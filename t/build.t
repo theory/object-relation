@@ -21,6 +21,6 @@ use lib catdir(updir, 'build'),              # Build test classes
 
 use TEST::Class::Kinetic catdir updir, 'build', 'TEST';
 
-TEST::Class::Kinetic->runtests;
+TEST::Class::Kinetic->runall;
 
 __END__

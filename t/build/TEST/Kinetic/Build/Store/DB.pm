@@ -13,7 +13,7 @@ use Test::Exception;
 use Test::File;
 use File::Spec::Functions;
 
-__PACKAGE__->runtests;
+__PACKAGE__->runtests unless caller;
 sub test_interface : Test(+5) {
     shift->SUPER::test_interface(qw(
         dsn test_dsn create_dsn dbd_class dsn_dbd

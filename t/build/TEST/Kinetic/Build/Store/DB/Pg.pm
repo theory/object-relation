@@ -12,7 +12,7 @@ use Test::Exception;
 use File::Spec::Functions;
 use Test::File;
 
-__PACKAGE__->runtests;
+__PACKAGE__->runtests unless caller;
 
 sub get_pg_auth : Test(startup) {
     my $self = shift;

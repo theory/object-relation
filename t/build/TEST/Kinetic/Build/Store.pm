@@ -10,7 +10,7 @@ use Test::Exception;
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Build';
 
-__PACKAGE__->runtests;
+__PACKAGE__->runtests unless caller;
 sub test_interface : Test(17) {
     my $self = shift;
     my $class = $self->test_class;

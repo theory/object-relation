@@ -33,6 +33,6 @@ use lib 't/sample/lib', 't/store', 't/lib';
 
 # Run the tests.
 use TEST::Class::Kinetic catdir 't', 'store', 'TEST';
-TEST::Class::Kinetic->runtests;
+TEST::Class::Kinetic->runall;
 
 __END__

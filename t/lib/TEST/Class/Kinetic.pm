@@ -29,7 +29,7 @@ use File::Find;
 use File::Spec::Functions;
 use aliased 'Test::MockModule';
 
-__PACKAGE__->runtests;
+__PACKAGE__->runtests unless caller;
 
 =head1 Name
 
@@ -38,8 +38,8 @@ TEST::Class::Kinetic - The Kinetic test class base class
 =head1 Synopsis
 
   use lib 't/lib';
-  use TEST::Class::Kinetic $directory;
-  TEST::Class::Kinetic->runtests;
+  use TEST::Class::Kinetic 't/lib';
+  TEST::Class::Kinetic->runall;
 
 =head1 Description
 
@@ -49,14 +49,13 @@ subclasses to add new tests to the Kinetic framework.
 
 In addition to the interface provided by Test::Class, TEST::Class::Kinetic
 does the extra work of finding all test classes in a specified directory and
-loading them. They are then used in the C<runtests()> method so that they are
-all executed.
+loading them. The tests in these classes can then be run by calling the
+C<runall()>. This feature is most often used by test scripts in the C<t>
+directory, rather than by test classes themselves.
 
-The classes are loaded upon startup. By default, TEST::Class::Kinetic loads
-all of the Perl modules in the F<t/lib> directory, but alternate directories
-can be specified when loading TEST::Class::Kinetic. Only those modules that
-inherit from TEST::Class::Kinetic will be processed by a call to
-C<runtests()>, however.
+The classes found in the directory specified in the C<use> statment are loaded
+upon startup. Only those modules that inherit from TEST::Class::Kinetic will
+be processed by a call to C<runall()>, however.
 
 In addition, this module sets up a number of configurations and methods that
 test subclasses can use to create directories, change directories, or check to
@@ -65,7 +64,7 @@ an environment variable, C<KINETIC_SUPPORTED>, which is set by C<./Build
 test>. If tests aren't being run by the Kinetic build system, simply set the
 environment variable to a space-delimited list of supported features, like so:
 
-  KINETIC_SUPPORTED="sqlite pg" prove t/build.t
+  KINETIC_CONF=t/conf/kinetic.conf KINETIC_SUPPORTED="sqlite pg" prove t/build.t
 
 =cut
 
@@ -76,27 +75,38 @@ sub import {
     if ($ENV{RUNTEST}) {
         push @CLASSES,
           map { eval "require $_" or die $!; $_ } split /\s+/, $ENV{RUNTEST};
-    } else {
+    } elsif ($dir) {
         my $want = sub {
             my $file = $File::Find::name;
             return if /^\.(?:svn|cvs)/;
             return unless /\.pm$/;
             return if /[#~]/; # Ignore backup files.
                 my $class = __PACKAGE__->file_to_class($file);
-               push @CLASSES, $class if $class->isa(__PACKAGE__);
-            };
+            push @CLASSES, $class if $class->isa(__PACKAGE__);
+        };
 
-        find({ wanted => $want, no_chdir => 1 }, $dir || catdir 't', 'lib');
+        find({ wanted => $want, no_chdir => 1 }, $dir);
     }
 }
-
-sub runtests { shift->SUPER::runtests(@CLASSES) }
 
 ##############################################################################
 
 =head1 Class Interface
 
 =head2 Class Methods
+
+=head3 runall
+
+  Kinetic::Test->runall
+
+Runs the tests in all of the classes loaded from the directory specified in
+the C<use> statement.
+
+=cut
+
+sub runall { shift->runtests(@CLASSES) }
+
+##############################################################################
 
 =head3 supported
 

@@ -19,7 +19,7 @@ use aliased 'Kinetic::Util::State';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';
 
-__PACKAGE__->runtests;
+__PACKAGE__->runtests unless caller;
 
 sub test_dbh : Test(2) {
     my $self = shift;

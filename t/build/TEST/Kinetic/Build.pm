@@ -13,7 +13,7 @@ use Test::File::Contents;
 use File::Copy;
 use File::Spec::Functions;
 
-__PACKAGE__->runtests;
+__PACKAGE__->runtests unless caller;
 
 sub atest_process_conf_files : Test(14) {
     my $self = shift;

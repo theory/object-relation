@@ -29,7 +29,7 @@ __PACKAGE__->SKIP_CLASS(
       ? 0
       : "Not testing SQLite"
 );
-#__PACKAGE__->runtests;
+__PACKAGE__->runtests unless caller;
 
 sub Store () { 'Kinetic::Store::DB::SQLite' }
 

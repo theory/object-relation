@@ -12,7 +12,7 @@ use Test::Exception;
 use File::Spec::Functions;
 use Test::File;
 
-__PACKAGE__->runtests;
+__PACKAGE__->runtests unless caller;
 
 sub test_class_methods : Test(8) {
     my $test = shift;

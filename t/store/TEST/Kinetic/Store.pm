@@ -13,7 +13,7 @@ use aliased 'Test::MockModule';
 use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Store' => 'Store', ':all';
 
-__PACKAGE__->runtests;
+__PACKAGE__->runtests unless caller;
 
 sub constructor : Test(5) {
     my $test = shift;
