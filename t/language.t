@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 10;
+use Test::More qw(no_plan);
 use File::Spec;
 use File::Find;
 
@@ -54,6 +54,20 @@ sub file_to_class {
     }
     join '::', @dirs;
 }
+
+##############################################################################
+# Make sure that all keys are present in all languages.
+for my $class (@langs) {
+    next if $class eq 'Bricolage::Util::Language::en';
+    (my $code = $class) =~ s/^Kinetic::Language:://;
+    my $lang = Kinetic::Language->get_handle($code);
+    for my $key (keys %Kinetic::Language::en::Lexicon) {
+        # XXX We might need to look for quant to make this work
+        # properly.
+        ok $lang->maketext($key, qw(one two three four)), "$code: $key";
+    }
+}
+
 
 1;
 __END__
