@@ -1121,8 +1121,8 @@ Because the hash reference cannot be part of an C<OR> search expression.
 =head1 How to Implement Store Subclasses
 
 Say you were creating a subclass of Kinetic::Store for a new storage back-end.
-If it were to be called, for example, "Oracle, and it was a database back-end,
-here's what you'd need to do:
+If it were to be called, for example, "Oracle," and it was a database
+back-end, here's what you'd need to do:
 
 =over
 
@@ -1148,36 +1148,77 @@ data store. It also builds a test data store (the build system will ask the
 Kinetic::Build::Store subclass to do this, if necsssary). See
 L<Kinetic::Build::Store::DB::Pg|Kinetic::Build::Store::DB::Pg> and
 L<Kinetic::Build::Store::DB::SQLite|Kinetic::Build::Store::DB::SQLite> for
-examples.
-
-=item * Test it in a build test class
-
-See F<t/build/TEST/Kinetic/Build/Store/DB/SQLite> and
-F<t/build/TEST/Kinetic/Build/Store/DB/Pg> for examples.
+examples. Note that this class should use FSA::Rules to gather information,
+and respect the C<--accept_defaults> and C<--quiet> C<./Build> options.
 
 =item * Add the Kinetic::Build::Store subclass to the C<%STORES> hash in Kinetic::Build.
 
+This is so that the build system knows that your new store back-end exists and
+may need to be built. The key in this hash is used to identify the data store
+via the C<--store> C<./Build> option.
+
+=item * Test it in a build test class
+
+See F<t/build/TEST/Kinetic/Build/Store/DB/SQLite.pm> and
+F<t/build/TEST/Kinetic/Build/Store/DB/Pg.pm> for examples.
+
 =item * Create scripts to setup and teardown a test data store.
 
-The script should be named with the key used in the C<%STORES> hash in
-Kinetic::Build and should build a data store with the test classes defined in
-F<t/sample/lib>. The scripts will run with their working diretories set to the
-F<t/sample> subdirectory, and should be named F<t/store/oracle_setup.pl> and
-F<t/store/oracle_teardown.pl>. These are different than the behavior of the
-test database created for testing Kinetic applications. It is designed
-specifically to fully test the complete store API.
+The scripts should live in F<t/store> and be named with the key used in the
+C<%STORES> hash in Kinetic::Build and should build a data store with the test
+classes defined in F<t/sample/lib>. There can be two scripts, one to setup the
+data store, and one to tear it down. For our Oracle example, the scripts would
+be named F<t/store/oracle_setup.pl> and F<t/store/oracle_teardown.pl>. These
+are different than the behavior of the test database created for testing
+Kinetic applications. It is designed specifically to fully test the complete
+store API, as the sample classes exibit every relationship and data type.
 
 =item * Create a subclass of Kinetic::Store::DB.
 
 It should be named Kinetic::Store::DB::Oracle. See
 L<Kinetic:::Store::DB::Pg|Kinetic::Store::DB::Pg> and
-L<Kinetic::Store::DB::SQLite|Kinetic::Store::DB::SQLite> for examples.
+L<Kinetic::Store::DB::SQLite|Kinetic::Store::DB::SQLite> for examples. Be sure
+to override the C<_add_store_meta()> method if you need to add data-store
+specific trusted attributes to Kinetic base class. For example,
+Kinetic::Store::DB uses this method to add a trusted C<id> attribute that can
+only be accessed by the store classes, but allows them to treat database IDs
+just like any other attribute.
+
+=item * Add Any needed code to Kinetic::Meta
+
+Some data stores need to add extra code to Kinetic::Meta classes in order to
+keep their code clean and well-factored. For example, the database stores have
+a special Kinetic::Meta label, ":with_dbstore_api". So when you load
+Kinetic::Meta like this:
+
+  use Kinetic::Meta ':with_dbstore_api';
+
+the import methods of the various Kinetic::Meta classes (Attribute, Class,
+Type) add Kinetic::Meta methods specific to database stores.
+
+Now, an Oracle data store probably wouldn't need to add any metadata methods
+not already added by the Kinetic::Store::DB class, but if it did, you could
+modify the import() methods of these classes to add the necessary methods. For
+example, say you needed to add a foo() method to Kinetic::Meta::Attribute just
+for use with Oracle, you could add something like this to the import() method
+of Kinetic::Meta::Attribute:
+
+    if ($api_label eq ':with_oracle_api') {
+        return if defined(&foo);
+        no strict 'refs';
+        *{__PACKAGE__ . '::foo'} = sub { ... };
+    }
+
+See the existing code in the import() methods of
+L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute> and
+L<Kinetic::Meta::Type|Kinetic::Meta::Type> for examples. Be sure to write
+tests for any methods you add! See F<t/dbmeta.t> for an example.
 
 =item * Create the test classes for the data store.
 
 These should live in the F<t/store> directory, and be subclasses of
-TEST::Kinetic::Store::DB>. See F<t/store/TEST/Kinetic/Store/DB/SQLite> and
-F<t/stpor/TEST/Kinetic/Store/DB/Pg> for examples.
+TEST::Kinetic::Store::DB. See F<t/store/TEST/Kinetic/Store/DB/SQLite.pm> and
+F<t/store/TEST/Kinetic/Store/DB/Pg.pm> for examples.
 
 =back
 

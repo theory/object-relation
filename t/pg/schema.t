@@ -5,17 +5,18 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
-use Test::More;
+use Test::More tests => 68;
 use Test::Differences;
 
-BEGIN {
-    no warnings 'uninitialized';
-    plan skip_all => "Not testing PostgreSQL"
-      unless $ENV{KINETIC_SUPPORTED} =~ /\bpg\b/;
-    plan tests => 68;
+{
+    # Fake out loading of Pg store.
+    package Kinetic::Store::DB::Pg;
+    use File::Spec::Functions 'catfile';
+    $INC{catfile qw(Kinetic Store DB Pg.pm)} = __FILE__;
+    sub _add_store_meta { 1 }
 }
 
-BEGIN { use_ok 'Kinetic::Build::Schema' or die };
+BEGIN { use_ok 'Kinetic::Build::Schema' or die }
 
 ok my $sg = Kinetic::Build::Schema->new, 'Get new Schema';
 isa_ok $sg, 'Kinetic::Build::Schema';

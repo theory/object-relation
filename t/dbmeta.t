@@ -3,17 +3,17 @@
 # $Id$
 
 use strict;
-use Test::More tests => 35;
+use Test::More tests => 42;
 
 package MyTestThingy;
 
 BEGIN {
     Test::More->import;
-    use_ok('Kinetic::Meta') or die;
+    use_ok('Kinetic::Meta', ':with_dbstore_api') or die;
     use_ok('Kinetic::Util::Language') or die;
     use_ok('Kinetic::Util::Language::en_us') or die;
     use_ok('Kinetic::Meta::Class') or die;
-    use_ok('Kinetic::Meta::Attribute', ':with_dbstore_api') or die;
+    use_ok('Kinetic::Meta::Attribute') or die;
     use_ok('Kinetic::Meta::AccessorBuilder') or die;
     use_ok('Kinetic::Meta::Widget') or die;
 }
@@ -31,6 +31,11 @@ BEGIN {
     ), "Create TestThingy class";
 
     ok $km->add_attribute(
+        name => 'id',
+        type => 'whole',
+    ), "Add id attribute";
+
+    ok $km->add_attribute(
         name          => 'foo',
         type          => 'string',
         label         => 'Foo',
@@ -41,7 +46,30 @@ BEGIN {
             type => 'text',
             tip  => 'Kinetic',
         )
-    ), "Add attribute";
+    ), "Add foo attribute";
+
+    ok $km->build, "Build TestThingy class";
+}
+
+package MyTestFooey;
+
+BEGIN {
+    Test::More->import;
+}
+
+BEGIN {
+    ok my $km = Kinetic::Meta->new(
+        key         => 'fooey',
+        name        => 'Fooey',
+        plural_name => 'Fooies',
+    ), "Create TestFooey class";
+
+    ok $km->add_attribute(
+        name          => 'thingy',
+        type          => 'thingy',
+        label         => 'Thingy',
+        indexed       => 1,
+    ), "Add thingy attribute";
 
     ok $km->build, "Build TestThingy class";
 }
@@ -51,8 +79,9 @@ Kinetic::Util::Language::en_us->add_to_lexicon(
   'Thingy'   => 'Thingy',
   'Thingies' => 'Thingies',
   'Foo'      => 'Foo',
+  'Fooey'    => 'Fooey',
+  'Fooies'    => 'Fooies',
 );
-
 ok( Kinetic::Util::Context->language(Kinetic::Util::Language->get_handle('en_us')),
     "Set language context" );
 
@@ -95,4 +124,7 @@ isa_ok $wm, 'Kinetic::Meta::Widget';
 isa_ok $wm, 'Widget::Meta';
 is $wm->tip, 'Kinetic', "Check tip";
 
-
+ok my $fclass = MyTestFooey->my_class, "Get Fooey class object";
+ok $attr = $fclass->attributes('thingy'), "Get thingy attribute";
+is $attr->raw({ thingy => bless { id => 10 }, $class->package }), 10,
+  "We should get an ID from raw()";

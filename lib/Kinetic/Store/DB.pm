@@ -24,12 +24,10 @@ use DBI;
 use Scalar::Util qw/blessed/;
 use Carp qw/croak/;
 
-use aliased 'Kinetic::Meta';
+use aliased 'Kinetic::Meta' => 'Meta', qw/:with_dbstore_api/;
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::DateTime::Incomplete';
 use aliased 'Kinetic::Store::Search';
-
-use Kinetic::Meta::Attribute qw/:with_dbstore_api/;
 
 use constant GROUP_OP => qr/^(?:AND|OR)$/;
 use constant OBJECT_DELIMITER => '__';
@@ -100,7 +98,7 @@ sub _save {
     foreach my $attr ($self->{search_class}->attributes) {
         $self->_save($attr->get($object)) if $attr->references;
         push @{$self->{columns}} => $attr->_view_column;
-        push @{$self->{values}}  => $self->_get_raw_value($object, $attr);
+        push @{$self->{values}}  => $attr->raw($object);
     }
 
     return $object->id
@@ -366,25 +364,6 @@ sub _insert {
     $self->_do_sql($sql, $self->{values});
     $self->_set_id($object);
     return $self;
-}
-
-##############################################################################
-
-=head3 _get_raw_value
-
-  my $value = $store->_get_raw_value($object, $attribute);
-
-Returns the raw value of a given attribute.  If the attribute references
-another object, it returns the contained object.
-
-=cut
-
-sub _get_raw_value {
-    my ($self, $object, $attr) = @_;
-    return $attr->raw($object) unless $attr->references;
-    return $attr->get($object)->id; # XXX If raw return the ID instead of the
-                                    # object (like it does for State), then this
-                                    # special case goes away
 }
 
 ##############################################################################

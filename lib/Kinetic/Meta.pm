@@ -38,7 +38,40 @@ overrides the behavior of Class::Meta to specify the use of the
 L<Kinetic::Meta::Class|Kinetic::Meta::Class> subclass in place of
 Class::Meta::Class.
 
+=head1 Dynamic APIs
+
+This class supports the dynamic loading of extra methods specifically designed
+to be used with particular Kinetic data store implementations. This is so that
+the store APIs can easily dispatch to attribute objects, class objects, and
+data types to get data-store specific metadata without having to do extra work
+themselves. Data store implementors needing store-specific metadata methods
+should add them as necessary to the C<import()> methods of
+L<Kinetic::Meta::Class|Kinetic::Meta::Class>,
+L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>, and/or/
+L<Kinetic::Meta::Type|Kinetic::Meta::Type>
+
+In general, however, Kinetic users will not need to worry about loading
+data-store specific APIs, as the data stores will load them themselves. And
+since the methods should either be protected or otherwise transparent, no one
+else should use them, anyway.
+
+As of this writing, only a single data-store specific API label is supported:
+
+  use Kinetic::Meta ':with_dbstore_api';
+
+More may be added in the future.
+
 =cut
+
+sub import {
+    my ($pkg, $api_label) = @_;
+    return unless $api_label;
+    $_->import($api_label) for qw(
+        Kinetic::Meta::Class
+        Kinetic::Meta::Attribute
+        Kinetic::Meta::Type
+    );
+}
 
 ##############################################################################
 # Constructors.

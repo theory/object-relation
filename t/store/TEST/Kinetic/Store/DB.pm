@@ -582,7 +582,7 @@ sub insert : Test(7) {
         One->new->my_class,
         'one',
         [map { $_->_column } @attributes],
-        [map { Store->_get_raw_value($one, $_) } @attributes],
+        [map { $_->raw($one) } @attributes],
     );
     ok $store->_insert($one),
         'and calling it should succeed';
@@ -629,7 +629,7 @@ sub update : Test(7) {
         One->new->my_class,
         'one',
         [map { $_->_column } @attributes],
-        [map { Store->_get_raw_value($one, $_) } @attributes],
+        [map { $_->raw($one) } @attributes],
     );
     ok $store->_update($one),
         'and calling it should succeed';
@@ -642,37 +642,6 @@ sub update : Test(7) {
     is_deeply $BIND, $bind_params,
         'and the correct bind params';
     is $one->{id}, 42, 'and the private id should not be changed';
-}
-
-sub _get_raw_value {
-    my ($class, $object, $attr) = @_;
-    return $attr->raw($object) unless $attr->references;
-    my $name = $attr->name;
-    my $contained_object = $object->$name;
-    return $contained_object->{id};  # this needs to be fixed
-}
-
-# XXX This is temporary until the behavior of Attribute->raw() is finalized.
-sub get_value : Test(3) {
-    can_ok Store, '_get_raw_value';
-
-    # suppress irrelevant "variable will not stay shared" warnings;
-    no warnings;
-    my $value      = 'rots';
-    my $references = 0;
-    my $object     = Two->new;
-    my $one        = One->new;
-    $one->{id}     = 23;
-    $object->name('Ovid');
-    $object->one($one);
-    my $attribute  = $object->my_class->attributes('name');
-
-    is Store->_get_raw_value($object, $attribute), 'Ovid',
-        'and normal values should simply be returned';
-
-    $attribute = $object->my_class->attributes('one');
-    is Store->_get_raw_value($object, $attribute), 23,
-        'and if it references another object, it should return the object id';
 }
 
 sub constraints : Test(4) {

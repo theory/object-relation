@@ -46,6 +46,21 @@ directly.
 
 =end comment
 
+=head1 Dynamic APIs
+
+This class supports the dynamic loading of extra methods specifically designed
+to be used with particular Kinetic data store implementations. See
+L<Kinetic::Meta|Kinetic::Meta> for details. The supported labels are:
+
+=over
+
+=item :with_dbstore_api
+
+Adds a _column() and _view_column() methods to return the names of table and
+view columns in the database.
+
+=back
+
 =cut
 
 sub new {
@@ -53,26 +68,6 @@ sub new {
     $self->{indexed} ||= $self->{unique};
     return $self;
 }
-
-=head1 Dynamic APIs
-
-This class supports the dynamic loading of extra methods specifically designed
-to be used with particular data store implementations. This is so that the
-store APIs can easily dispatch to attribute objects to get data-store specific
-metadata without having to do extra work themselves. Data store implementors
-needing store-specific metadata methods should add them to this module.
-
-In general, however, Bricolage users will not need to worry about loading
-data-store specific APIs, as the data stores will load them themselves. And
-since the methods are protected, no one else should use them, anyway.
-
-As of this writing, only a single data-store specific API label is supported:
-
-  use Kinetic::Meta::Attribute ':with_dbstore_api';
-
-More may be added in the future.
-
-=cut
 
 sub import {
     my ($pkg, $api_label) = @_;
@@ -213,7 +208,6 @@ sub build {
     # Figure out if the attribute is a reference to another object in a
     # Kinetic::Meta class.
     $self->{references} = Kinetic::Meta->for_key($self->type);
-
     my $type = Kinetic::Meta::Type->new($self->{type});
     # Create the attribute object get code reference.
     if ($self->authz >= Class::Meta::READ) {

@@ -57,7 +57,48 @@ raw code reference to do so might look like this:
 
   sub { shift->clone->set_time_zone('UTC')->iso8601 }
 
+=head1 Dynamic APIs
+
+This class supports the dynamic loading of extra methods specifically designed
+to be used with particular Kinetic data store implementations. See
+L<Kinetic::Meta|Kinetic::Meta> for details. The supported labels are:
+
+=over
+
+=item :with_dbstore_api
+
+Adds a new() constructor to overload the parent. The purpose is to add a raw()
+accessor that returns the database ID of an referenced object, rather than the
+object itself.
+
+=begin comment
+
+=item new
+
+Allow POD coverage tests to pass.
+
+=end comment
+
+=back
+
 =cut
+
+sub import {
+    my ($pkg, $api_label) = @_;
+    return unless $api_label;
+    if ($api_label eq ':with_dbstore_api') {
+        return if defined(&new);
+        # Create methods specific to database stores.
+        no strict 'refs';
+        *{__PACKAGE__ . '::new'} = sub {
+            my $self = shift->SUPER::new(@_);
+            # Set the raw method to return the object ID.
+            $self->{raw} ||= sub { shift->id }
+              if Kinetic::Meta->for_key($self->key);
+            return $self;
+        };
+    }
+}
 
 ##############################################################################
 

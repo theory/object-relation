@@ -5,14 +5,15 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
-use Test::More;
+use Test::More tests => 68;
 use Test::Differences;
 
-BEGIN {
-    no warnings 'uninitialized';
-    plan skip_all => "Not testing SQLite"
-      unless $ENV{KINETIC_SUPPORTED} =~ /\bsqlite\b/;
-    plan tests => 68;
+{
+    # Fake out loading of SQLite store.
+    package Kinetic::Store::DB::SQLite;
+    use File::Spec::Functions 'catfile';
+    $INC{catfile qw(Kinetic Store DB SQLite.pm)} = __FILE__;
+    sub _add_store_meta { 1 }
 }
 
 BEGIN { use_ok 'Kinetic::Build::Schema' or die };
