@@ -30,7 +30,8 @@ use Exception::Class(
     # Unlocalized exceptions.
     ##########################################################################
     # XXX Perhaps there's a way to get Class::Meta and others to localize
-    # exceptions?
+    # exceptions? Meanwhile, we just have ExternalLib inherit from
+    # Exception::Class base to avoid localization exceptions.
     'Kinetic::Util::Exception::ExternalLib' => {
         description => 'External library exception',
         alias       => 'throw_exlib',
@@ -100,6 +101,17 @@ use Exporter::Tidy all => [
      throw_read_only throw_lang throw_stat throw_io throw_error
      throw_password)
 ];
+
+# Always use exception objects for excptions and warnings.
+$SIG{__DIE__} = sub {
+    my $err = shift;
+    $err->rethrow if UNIVERSAL::can($err, 'rethrow');
+    Kinetic::Util::Exception::ExternalLib->throw($err);
+};
+
+$SIG{__WARN__} = sub {
+    print STDERR Kinetic::Util::Exception::ExternalLib->new(shift)->as_string;
+};
 
 ##############################################################################
 
@@ -297,11 +309,17 @@ sub as_string {
     return sprintf("%s\n%s\n", $self->full_message, $self->trace_as_text);
 }
 
+# Make sure that ExternalLib uses these methods, even though it doesn't
+# inherit from Kinetic::Util::Exception.
+*Kinetic::Util::Exception::ExternalLib::as_string = \&as_string;
+*Kinetic::Util::Exception::ExternalLib::trace_as_text = \&trace_as_text;
+*Kinetic::Util::Exception::ExternalLib::_filtered_frames = \&_filtered_frames;
+
 ##############################################################################
 
 =head3 trace_as_text
 
-  my $trace = $err->trace;
+  my $trace = $err->trace_as_text;
 
 Returns a stringified representation of the stack trace for the exception
 object. Used by C<as_string()> to pretty-print the stack trace.

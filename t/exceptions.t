@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 47;
+use Test::More tests => 54;
 
 BEGIN {
     use_ok('Kinetic::Util::Exceptions') or die;
@@ -38,11 +38,15 @@ NOIMPORT: { # 22 tests.
 
     eval { throw_fatal('Attribute must be defined') };
     ok( my $err = $@, 'Catch invalid l10n' );
-    ok( ! Kinetic::Util::Exceptions::isa_kinetic_exception($err),
+    ok( !Kinetic::Util::Exceptions::isa_kinetic_exception($err),
         "is not a kinetic exception" );
-    ok( ! Kinetic::Util::Exceptions::isa_exception($err),
-        "is not an exception" );
-    ok( ! ref $err, "Isn't a reference" );
+    ok( Kinetic::Util::Exceptions::isa_exception($err),
+        "is an exception" );
+    isa_ok $err, 'Kinetic::Util::Exception::ExternalLib';
+    isa_ok $err, "Exception::Class::Base";
+    like( $err->error,
+          qr{\AUndefined subroutine &Kinetic::Util::Exceptions::TestNoImport::throw_fatal},
+          "Is a Perl exception passed to ExternalLib");
 
     eval { Kinetic::Util::Exception::Fatal->throw('Attribute must be defined') };
     ok( $err = $@, 'Catch exception' );
@@ -111,6 +115,21 @@ STRING: {
       "The error message should be the first thing in the output";
     like $str, qr{^\[t/exceptions\.t:\d+\]\Z}ms,
       "The stack trace should be the last thing in the output";
+}
+
+GLOBAL: {
+    package Kinetic::Util::Exceptions::TestGlobal;
+    use Kinetic::Util::Exceptions qw(:all);
+    use Test::More;
+    use Test::Output;
+    eval { die "Ouch!" };
+    ok my $err = $@, "Catch die";
+    isa_ok $err, 'Kinetic::Util::Exception::ExternalLib';
+    isa_ok $err, "Exception::Class::Base";
+    stderr_like { warn "Oof"} qr{\AOof at}ms,
+      'Warnings should start with the warning message';
+    stderr_like { warn "Oof"} qr{^\[t/exceptions\.t:\d+\]\Z}ms,
+      'Warnings should end with the stack trace';
 }
 
 1;
