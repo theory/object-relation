@@ -65,7 +65,7 @@ dynamic).
 =cut
 
 my %types = (
-    string   => 'TEXT',
+    string   => 'TEXT COLLATE nocase',
     guid     => 'TEXT',
     boolean  => 'SMALLINT',
     whole    => 'INTEGER',

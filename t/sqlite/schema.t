@@ -39,8 +39,8 @@ is $simple->table, '_simple', "... Simple class has table '_simple'";
 my $table = q{CREATE TABLE _simple (
     id INTEGER NOT NULL PRIMARY KEY,
     guid TEXT NOT NULL,
-    name TEXT NOT NULL,
-    description TEXT,
+    name TEXT COLLATE nocase NOT NULL,
+    description TEXT COLLATE nocase,
     state INTEGER NOT NULL DEFAULT 1
 );
 };
@@ -383,8 +383,8 @@ is $composed->table, '_composed', "... Composed class has table '_composed'";
 $table = q{CREATE TABLE _composed (
     id INTEGER NOT NULL PRIMARY KEY,
     guid TEXT NOT NULL,
-    name TEXT NOT NULL,
-    description TEXT,
+    name TEXT COLLATE nocase NOT NULL,
+    description TEXT COLLATE nocase,
     state INTEGER NOT NULL DEFAULT 1,
     one_id INTEGER REFERENCES simple_one(id) ON DELETE CASCADE
 );
@@ -513,8 +513,8 @@ is $comp_comp->table, '_comp_comp', "... CompComp class has table 'comp_comp'";
 $table = q{CREATE TABLE _comp_comp (
     id INTEGER NOT NULL PRIMARY KEY,
     guid TEXT NOT NULL,
-    name TEXT NOT NULL,
-    description TEXT,
+    name TEXT COLLATE nocase NOT NULL,
+    description TEXT COLLATE nocase,
     state INTEGER NOT NULL DEFAULT 1,
     composed_id INTEGER NOT NULL REFERENCES _composed(id) ON DELETE RESTRICT
 );
