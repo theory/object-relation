@@ -147,7 +147,10 @@ my $utc = DateTime::TimeZone::UTC->new;
 Kinetic::Meta::Type->add(
     key     => "datetime",
     name    => "DateTime",
-    raw     => sub { shift->clone->set_time_zone($utc)->iso8601 },
+    raw     => sub { ref $_[0]
+                       ? shift->clone->set_time_zone($utc)->iso8601
+                       : shift
+                   },
     builder => 'Kinetic::Meta::AccessorBuilder',
     check   => 'Kinetic::DateTime',
 );
@@ -179,7 +182,7 @@ Kinetic::Meta::Type->add(
     key     => "state",
     name    => "State",
     builder => 'Kinetic::Meta::AccessorBuilder',
-    raw     => sub { shift->value },
+    raw     => sub { ref $_[0] ? shift->value : shift },
     check   => sub {
         UNIVERSAL::isa($_[0], 'Kinetic::Util::State')
             or throw_invalid(['Value "[_1]" is not a valid [_2] object',
