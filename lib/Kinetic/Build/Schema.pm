@@ -20,10 +20,13 @@ package Kinetic::Build::Schema;
 
 use strict;
 use Kinetic::Meta;
-use Kinetic::Meta::Attribute (build => 1);
+use Kinetic::Meta::Class::Schema;
+use Kinetic::Meta::Attribute::Schema;
 use Kinetic::Util::Config qw(:store);
 use File::Find;
 use File::Spec;
+Kinetic::Meta->class_class('Kinetic::Meta::Class::Schema');
+Kinetic::Meta->attribute_class('Kinetic::Meta::Attribute::Schema');
 
 =head1 Name
 

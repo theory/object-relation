@@ -59,13 +59,60 @@ Kinetic::Meta::Attribute.
 __PACKAGE__->default_error_handler(\&throw_exlib);
 
 sub new {
-    shift->SUPER::new(
+    my $pkg = shift;
+    $pkg->SUPER::new(
         # We must specify the package
         package         => scalar caller,
         @_,
-        class_class     => 'Kinetic::Meta::Class',
-        attribute_class => 'Kinetic::Meta::Attribute',
+        class_class     => $pkg->class_class,
+        attribute_class => $pkg->attribute_class,
     );
+}
+
+##############################################################################
+
+=head2 Class Attributes
+
+=head3 class_class
+
+  my $class_class = Kinetic::Meta->class_class;
+  Kinetic::Meta->class_class($class_class);
+
+The subclass or Class::Meta::Class that will be used to represent class
+objects. The value of this class attribute is only used at startup time when
+classes are loaded, so if you want to change it form the default, which is
+"Kinetic::Meta::Class", do it before you load any Kinetic classes.
+
+=cut
+
+my $class_class = 'Kinetic::Meta::Class';
+
+sub class_class {
+    shift;
+    return $class_class unless @_;
+    $class_class = shift;
+}
+
+##############################################################################
+
+=head3 attribute_class
+
+  my $attribute_class = Kinetic::Meta->attribute_class;
+  Kinetic::Meta->attribute_class($attribute_class);
+
+The subclass or Class::Meta::attribue that will be used to represent attribute
+objects. The value of this class attribute is only used at startup time when
+classes are loaded, so if you want to change it form the default, which is
+"Kinetic::Meta::Attribute", do it before you load any Kinetic classes.
+
+=cut
+
+my $attribute_class = 'Kinetic::Meta::Attribute';
+
+sub attribute_class {
+    shift;
+    return $attribute_class unless @_;
+    $attribute_class = shift;
 }
 
 1;

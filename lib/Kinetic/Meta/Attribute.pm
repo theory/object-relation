@@ -37,37 +37,9 @@ Class::Meta::Attribute.
 
 =cut
 
-my $build_mode = 0;
-sub import {
-    return unless @_ > 2;
-    $build_mode = $_[2];
-}
-
-##############################################################################
-# Class Methods
-##############################################################################
-
-=head1 Class Interface
-
-=head2 Constructors
-
-=head3 new
-
-This method is designed to only be called internally by C<Kinetic::Meta>. It
-overrides the behavior of C<< Class::Meta::Attribute->new >> to delete
-attributes relevant only during data store schema generation. See
-L<Kinetic::Build::Schema|Kinetic::Build::Schema> for more information.
-
-=cut
-
 sub new {
     my $self = shift->SUPER::new(@_);
-    if ($build_mode) {
-        $self->{on_delete} ||= 'CASCADE'
-          if Kinetic::Meta->for_key($self->type);
-    } else {
-        delete @{$self}{qw(indexed store_default on_delete)}
-    }
+    $self->{indexed} ||= $self->{unique};
     return $self;
 }
 
@@ -123,58 +95,14 @@ sub unique { shift->{unique} }
 
   my $indexed = $attr->indexed;
 
-During date store schema generation, returns true if an attribute is indexed
-in the data store, and false if it is not. Disabled when
-C<Kinetic::Build::Schema> is not loaded.
+Returns true if an attribute is indexed in the data store, and false if it is
+not. Note that this is a suggestion only, since not all data stores
+necessarily support indexes. Always returns a true value if the C<unique>
+attribute is set to a true value.
 
 =cut
 
 sub indexed { shift->{indexed} }
-
-##############################################################################
-
-=head3 store_default
-
-  my $store_default = $attr->store_default;
-
-During date store schema generation, returns a default value meant to be
-configured in a data store, if any. Disabled when C<Kinetic::Build::Schema>
-is not loaded.
-
-=cut
-
-sub store_default { shift->{store_default} }
-
-##############################################################################
-
-=head3 on_delete
-
-  my $on_delete = $attr->on_delete;
-
-During date store schema generation, returns a string describing what to do
-with an object that links to another object when that other object is
-deleted. This is only relevant when the attribute object represents that
-relationship. The possible values for this attributes are:
-
-=over
-
-=item CASCADE
-
-=item RESTRICT
-
-=item SET NULL
-
-=item SET DEFAULT
-
-=item NO ACTION
-
-=back
-
-The default is "CASCADE".
-
-=cut
-
-sub on_delete { shift->{on_delete} }
 
 1;
 __END__

@@ -19,6 +19,11 @@ BEGIN {
 }
 
 BEGIN {
+    is( Kinetic::Meta->class_class, 'Kinetic::Meta::Class',
+        "The class class should be 'Kinetic::Meta::Class'");
+    is( Kinetic::Meta->attribute_class, 'Kinetic::Meta::Attribute',
+        "The attribute class should be 'Kinetic::Meta::Attribute'");
+
     ok my $km = Kinetic::Meta->new(
         key         => 'thingy',
         name        => 'Thingy',
@@ -68,9 +73,7 @@ isa_ok $attr, 'Class::Meta::Attribute';
 is $attr->name, 'foo', "Check attr name";
 is $attr->type, 'string', "Check attr type";
 is $attr->label, 'Foo', "Check attr label";
-is $attr->indexed, undef, "Indexed should be undef";
-is $attr->store_default, undef, "Store default should be undef";
-is $attr->on_delete, undef, "ON DELETE should be undef";
+is $attr->indexed, 1, "Indexed should be true";
 
 ok my $wm = $attr->widget_meta, "Get widget meta object";
 isa_ok $wm, 'Kinetic::Meta::Widget';

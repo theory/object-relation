@@ -26,6 +26,7 @@ my $build = Module::Build->new(
     build_requires => {
         'Module::Build'         => 0.26,
         'Test::More'            => 0.17,
+        'Test::Differences'     => 0.47,
     },
 );
 
