@@ -366,10 +366,6 @@ __END__
 
 =item *
 
-Test on delete constraints (CASCADE, RESTRICT, etc.)
-
-=item *
-
 Add support for "once" attribute. Use an insert trigger when a value is
 required, and an update trigger (or a check?) when it is not required.
 

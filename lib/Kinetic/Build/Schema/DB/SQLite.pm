@@ -78,19 +78,21 @@ sub constraints_for_class {
     # Add foreign keys for any attributes that reference other objects.
     for my $attr ($class->table_attributes) {
         my $ref = $attr->references or next;
-        push @cons, $self->generate_fk($class, $attr->column, $ref);
+        push @cons, $self->generate_fk($class, $attr, $ref);
     }
 
     return join "\n", @cons;
 }
 
 sub generate_fk {
-    my ($self, $class, $col, $fk_class) = @_;
+    my ($self, $class, $attr, $fk_class) = @_;
     my $key = $class->key;
     my $table = $class->table;
     my $fk_key = $fk_class->key;
     my $fk_table = $fk_class->table;
-    my $prefix = $col eq 'id' ? 'pfk' : 'fk';
+    my ($prefix, $col, $cascade) = ref $attr
+      ? ('fk', $attr->column, uc $attr->on_delete eq 'CASCADE')
+      : ('pfk', 'id', 1);
     return (qq{CREATE TRIGGER ${prefix}i_$key\_$col
 BEFORE INSERT ON $table
 FOR EACH ROW BEGIN
@@ -109,13 +111,23 @@ FOR EACH ROW BEGIN
   END;
 END;
 },
-
-      qq{CREATE TRIGGER ${prefix}d_$key\_$col
+      ($cascade
+       ? qq{CREATE TRIGGER ${prefix}d_$key\_$col
 BEFORE DELETE ON $fk_table
 FOR EACH ROW BEGIN
-    DELETE from $table WHERE $col = OLD.id;
+  DELETE from $table WHERE $col = OLD.id;
 END;
-});
+}
+         : qq{CREATE TRIGGER ${prefix}d_$key\_$col
+BEFORE DELETE ON $fk_table
+FOR EACH ROW BEGIN
+  SELECT CASE
+    WHEN (SELECT $col FROM $table WHERE $col = OLD.id) IS NOT NULL
+    THEN RAISE(ABORT, 'delete on table "$fk_table" violates foreign key constraint "$prefix\_$key\_$col"')
+  END;
+END;
+})
+  );
 }
 
 sub state_trigger {

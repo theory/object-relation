@@ -15,6 +15,7 @@ BEGIN {
         type          => 'composed',
         label         => 'Composed',
         required      => 1,
+        on_delete     => 'RESTRICT',
         default       => sub { TestApp::Composed->new },
         widget_meta   => Kinetic::Meta::Widget->new(
             type => 'profile',

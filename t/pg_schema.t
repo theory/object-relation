@@ -388,7 +388,7 @@ $constraints = q{ALTER TABLE _comp_comp
 
 ALTER TABLE _comp_comp
   ADD CONSTRAINT fk_composed_id FOREIGN KEY (composed_id)
-  REFERENCES _composed(id) ON DELETE CASCADE;
+  REFERENCES _composed(id) ON DELETE RESTRICT;
 };
 eq_or_diff $sg->constraints_for_class($comp_comp), $constraints,
   "... Schema class generates CONSTRAINT statement";

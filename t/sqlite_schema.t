@@ -158,7 +158,7 @@ END;
 CREATE TRIGGER pfkd_one_id
 BEFORE DELETE ON _simple
 FOR EACH ROW BEGIN
-    DELETE from simple_one WHERE id = OLD.id;
+  DELETE from simple_one WHERE id = OLD.id;
 END;
 };
 eq_or_diff $sg->constraints_for_class($one), $constraints,
@@ -261,7 +261,7 @@ END;
 CREATE TRIGGER pfkd_two_id
 BEFORE DELETE ON _simple
 FOR EACH ROW BEGIN
-    DELETE from simple_two WHERE id = OLD.id;
+  DELETE from simple_two WHERE id = OLD.id;
 END;
 
 CREATE TRIGGER fki_two_one_id
@@ -284,7 +284,7 @@ END;
 CREATE TRIGGER fkd_two_one_id
 BEFORE DELETE ON simple_one
 FOR EACH ROW BEGIN
-    DELETE from simple_two WHERE one_id = OLD.id;
+  DELETE from simple_two WHERE one_id = OLD.id;
 END;
 };
 eq_or_diff $sg->constraints_for_class($two), $constraints,
@@ -404,7 +404,7 @@ END;
 CREATE TRIGGER fkd_composed_one_id
 BEFORE DELETE ON simple_one
 FOR EACH ROW BEGIN
-    DELETE from _composed WHERE one_id = OLD.id;
+  DELETE from _composed WHERE one_id = OLD.id;
 END;
 };
 eq_or_diff $sg->constraints_for_class($composed), $constraints,
@@ -471,7 +471,7 @@ $table = q{CREATE TABLE _comp_comp (
     name TEXT NOT NULL,
     description TEXT,
     state INTEGER NOT NULL DEFAULT 1,
-    composed_id INTEGER NOT NULL REFERENCES _composed(id) ON DELETE CASCADE
+    composed_id INTEGER NOT NULL REFERENCES _composed(id) ON DELETE RESTRICT
 );
 };
 eq_or_diff $sg->table_for_class($comp_comp), $table,
@@ -517,7 +517,10 @@ END;
 CREATE TRIGGER fkd_comp_comp_composed_id
 BEFORE DELETE ON _composed
 FOR EACH ROW BEGIN
-    DELETE from _comp_comp WHERE composed_id = OLD.id;
+  SELECT CASE
+    WHEN (SELECT composed_id FROM _comp_comp WHERE composed_id = OLD.id) IS NOT NULL
+    THEN RAISE(ABORT, 'delete on table "_composed" violates foreign key constraint "fk_comp_comp_composed_id"')
+  END;
 END;
 };
 
