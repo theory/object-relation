@@ -796,6 +796,7 @@ encoding. It will disconnect from the database when done.
 
 sub create_db {
     my ($self, $db_name) = @_;
+    $db_name ||= $self->_build_db_name || $self->db_name;
     my $dbh = $self->_connect(
         $self->_dsn($self->template_db_name),
         $self->db_super_user,
@@ -819,7 +820,7 @@ database. The database name defaults to the value returned by C<db_name>.
 
 sub add_plpgsql {
     my ($self, $db_name) = @_;
-    $db_name ||= $self->db_name;
+    $db_name ||= $self->_build_db_name || $self->db_name;
     # createlang -U postgres plpgsql template1
     my $createlang = $self->info->createlang or die "Cannot find createlang";
     my @options;
@@ -872,8 +873,8 @@ returned by C<db_user()> and the password returned by C<db_pass()>.
 
 sub create_user {
     my ($self, $user, $pass) = @_;
-    $user ||= $self->db_user;
-    $pass ||= $self->db_pass;
+    $user ||= $self->_build_db_user || $self->db_user;
+    $pass ||= $self->_build_db_pass || $self->db_pass;
     my $dbh = $self->_connect(
         $self->_dsn($self->template_db_name),
         $self->db_super_user,
@@ -897,12 +898,18 @@ implementation in the parent class to silence "NOTICE" output from PostgreSQL.
 =cut
 
 sub build_db {
+    my $self = shift;
+    $self->_dbh(
+        $self->_connect_user(
+            $self->_dsn( $self->_build_db_name || $self->db_name)
+        )
+    );
     local $SIG{__WARN__} = sub {
         my $message = shift;
         return if $message =~ /NOTICE:/; # ignore postgres warnings
         warn $message;
     };
-    shift->SUPER::build_db(@_);
+    $self->SUPER::build_db(@_);
 }
 
 ##############################################################################
@@ -919,7 +926,7 @@ Called if the super user creates the database.
 sub grant_permissions {
     my $self = shift;
     my $dbh = $self->_connect(
-        $self->_dsn($self->db_name),
+        $self->_dsn($self->_build_db_name || $self->db_name),
         $self->db_super_user,
         $self->db_super_pass,
     );
@@ -1008,17 +1015,17 @@ sub test_config {
 
   $kbs->build;
 
-Builds data store. This implementation overrides the parent version to set up
-a database handle for use during the build.
+Builds a data store. This implementation overrides the parent version to set
+up a database name, username, and password to be used in the action methods.
 
 =cut
 
 sub build {
     my $self = shift;
-#    $self->_dbh(my $dbh = DBI->connect($self->dsn, , ''));
-#    $self->SUPER::build(@_);
-#    $dbh->disconnect;
-    return $self;
+    $self->_build_db_name($self->db_name);
+    $self->_build_db_user($self->db_user);
+    $self->_build_db_user($self->db_pass);
+    $self->SUPER::build(@_);
 }
 
 ##############################################################################
@@ -1028,16 +1035,16 @@ sub build {
   $kbs->test_build;
 
 Builds a test data store. This implementation overrides the parent version to
-set up a database handle for use during the build.
+up a database name, username, and password to be used in the action methods.
 
 =cut
 
 sub test_build {
     my $self = shift;
-#    $self->_dbh(my $dbh = DBI->connect($self->test_dsn, '', ''));
-#    $self->SUPER::test_build(@_);
-#    $dbh->disconnect;
-    return $self;
+    $self->_build_db_name($self->test_db_name);
+    $self->_build_db_user($self->test_db_user);
+    $self->_build_db_user($self->test_db_pass);
+    $self->SUPER::build(@_);
 }
 
 ##############################################################################
@@ -1218,7 +1225,7 @@ sub _user_exists {
 
 ##############################################################################
 
-=head3
+=head3 _try_connect
 
   print "Can connect" if  $kbs->_try_connect($state, $user, $password);
 
@@ -1301,6 +1308,61 @@ sub _is_super_user {
         "select usesuper from pg_catalog.pg_user where usename = ?",
         $user || $self->db_super_user
     );
+}
+
+##############################################################################
+
+=head3 _build_db_name
+
+  my $db_name = $kbs->_build_db_name;
+  $kbs->_build_db_name($db_name);
+
+This attribute is set by the C<build()> and C<test_build()> methods to the
+name of the database to be built. Used by the action methods to build the
+correct database.
+
+=cut
+
+sub _build_db_name {
+    my $self = shift;
+    return $self->{build_db_name} unless @_;
+    return $self->{build_db_name} = shift;
+}
+
+##############################################################################
+
+=head3 _build_db_user
+
+  my $db_user = $kbs->_build_db_user;
+  $kbs->_build_db_user($db_user);
+
+This attribute is set by the C<build()> and C<test_build()> methods to the
+user to be created and granted permissions.
+
+=cut
+
+sub _build_db_user {
+    my $self = shift;
+    return $self->{build_db_user} unless @_;
+    return $self->{build_db_user} = shift;
+}
+
+##############################################################################
+
+=head3 _build_db_pass
+
+  my $db_pass = $kbs->_build_db_pass;
+  $kbs->_build_db_pass($db_pass);
+
+This attribute is set by the C<build()> and C<test_build()> methods to the
+password to be set for the user specified by the C<_build_db_user> attribute.
+
+=cut
+
+sub _build_db_pass {
+    my $self = shift;
+    return $self->{build_db_pass} unless @_;
+    return $self->{build_db_pass} = shift;
 }
 
 1;

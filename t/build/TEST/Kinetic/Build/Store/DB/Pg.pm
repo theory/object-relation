@@ -572,10 +572,9 @@ sub test_rules : Test(161) {
 # Check schema permissions
 # Done
 
-sub test_validate_user_db : Test(14) {
+sub test_validate_user_db : Test(28) {
     my $self = shift;
     my $class = $self->test_class;
-    $self->chdirs('t', 'data');
     # Supply username and password when prompted, database exists and has
     # pl/pgsql.
 
@@ -583,6 +582,7 @@ sub test_validate_user_db : Test(14) {
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
     my $builder = $self->new_builder;
+    $builder->source_dir('lib');
     $mb->mock(resume => $builder);
     $mb->mock(_app_info_params => sub { } );
     my @replies = ('localhost', '5432', 'kinetic', 'kinetic', 'asdfasdf');
@@ -637,6 +637,9 @@ sub test_validate_user_db : Test(14) {
         host    => undef,
         port    => undef,
     }, "The configuration should be set up properly.";
+
+    # Test the actions.
+    return $self->_run_build_tests($kbs, $pg);
 }
 
 ##############################################################################
@@ -656,10 +659,9 @@ sub test_validate_user_db : Test(14) {
 # Check user
 # Done
 
-sub test_validate_super_user : Test(14) {
+sub test_validate_super_user : Test(28) {
     my $self = shift;
     my $class = $self->test_class;
-    $self->chdirs('t', 'data');
     # Supply username and password when prompted, database exists and has
     # pl/pgsql.
 
@@ -726,6 +728,10 @@ sub test_validate_super_user : Test(14) {
         host    => 'pgme',
         port    => '5433',
     }, "The configuration should be set up properly.";
+
+    # Test the actions.
+    $info->unmock_all;
+    return $self->_run_build_tests($kbs, $pg);
 }
 
 ##############################################################################
@@ -741,10 +747,9 @@ sub test_validate_super_user : Test(14) {
 # Check user
 # Done
 
-sub test_validate_super_user_arg : Test(14) {
+sub test_validate_super_user_arg : Test(28) {
     my $self = shift;
     my $class = $self->test_class;
-    $self->chdirs('t', 'data');
     # Supply username and password when prompted, database exists and has
     # pl/pgsql.
 
@@ -811,6 +816,10 @@ sub test_validate_super_user_arg : Test(14) {
         host    => undef,
         port    => undef,
     }, "The configuration should be set up properly.";
+
+    # Test the actions.
+    $info->unmock_all;
+    return $self->_run_build_tests($kbs, $pg);
 }
 
 ##############################################################################
@@ -907,7 +916,7 @@ sub test_helpers : Test(15) {
 ##############################################################################
 # Test Pg store helpers that touch the database.
 
-sub test_db_helpers : Test(21) {
+sub test_db_helpers : Test(28) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -991,7 +1000,7 @@ sub test_db_helpers : Test(21) {
       "A non-existant user should not be a super user";
 }
 
-sub test_build : Test(no_plan) {
+sub test_build_meths : Test(20) {
     my $self = shift;
     return "Not testing PostgreSQL" unless $self->supported('pg');
     my $class = $self->test_class;
@@ -1073,7 +1082,7 @@ sub test_build : Test(no_plan) {
 
     # Test build_db.
     $pg->mock(_dbh => $self->{dbh}); # Don't use the template!
-    ok $kbs->build_db;
+    ok $kbs->build_db, "Build the database";
     my @views = qw'simple one two composed comp_comp';
     for my $view (@views) {
         is_deeply $self->{dbh}->selectall_arrayref("
@@ -1102,13 +1111,6 @@ sub test_build : Test(no_plan) {
         "SELECT " . join(', ', @checks), undef, @params
     ), [ ('1') x scalar @params / 3 ], "Permissions should now be granted";
 
-    # Try building the test database.
-#    ok !$kbs->_db_exists($kbs->db_name),
-#      "We should not have the database yet";
-#    ok $kbs->test_build, "Build the test database";
-#    ok $kbs->_db_exists($kbs->db_name),
-#      "Now we should have the database";
-
     # Clean up our mess.
     $pg->unmock('_dbh');
     $builder->dispatch('clean');
@@ -1131,8 +1133,78 @@ sub db_cleanup : Test(teardown) {
     }
 }
 
-# To Do:
-# * Test build() and test_build()--maybe with each of the rule scenarios?
+sub _run_build_tests {
+    my ($self, $kbs, $pg) = @_;
+    $pg->unmock('_connect');
+    $pg->unmock('_plpgsql_available');
+    $self->_test_build('build', $kbs, $pg);
+    $self->db_cleanup;
+    $self->_test_build('test_build', $kbs, $pg);
+}
+
+sub _test_build {
+    my ($self, $meth, $kbs, $pg) = @_;
+    # From here on in, we'll test actually creating the database.
+    return "Not testing PostgreSQL" unless $self->supported('pg');
+
+    # Test the build_db action by building the database. First make sure
+    # that everything we need to build the databse is actually in place.
+    my %mock = (
+        db_super_user    => 'db_super_user',
+        db_super_pass    => 'db_super_pass',
+        db_user          => 'db_user',
+        db_pass          => 'db_pass',
+        db_name          => 'db_name',
+        test_db_user     => 'db_user',
+        test_db_pass     => 'db_pass',
+        test_db_name     => 'db_name',
+        template_db_name => 'template_db_name',
+        db_host          => 'host',
+        db_port          => 'port',
+    );
+
+    while (my ($meth, $val) = each %mock) {
+        $pg->mock($meth => $self->{conf}{pg}{$val});
+    }
+
+    # Set up the template database handle.
+    isa_ok $self->{tdbh} = $kbs->_connect(
+        $kbs->_dsn($kbs->template_db_name),
+        $kbs->db_super_user,
+        $kbs->db_super_pass,
+        { RaiseError => 1, PrintError => 0 }
+    ), 'DBI::db';
+
+    $pg->mock(_dbh => $self->{tdbh});
+
+    # What actions are to be done?
+    my %actions = map { $_ => 1 } $kbs->actions;
+
+    # Create the test database and user and add PL/pgSQL.
+    $kbs->create_db($kbs->db_name) unless $actions{create_db};
+    $kbs->create_user($kbs->db_user)
+      unless $actions{create_user} || $kbs->_user_exists($kbs->db_user);
+    $kbs->add_plpgsql($kbs->db_name)
+      unless $actions{add_plpgsql} || $kbs->_plpgsql_available;
+    $pg->unmock('_dbh');
+
+    # Now test creating the new database.
+    ok $kbs->$meth;
+
+    # Grab the database handle and check it out.
+    $self->{dbh} = $kbs->_dbh;
+    my $sg = $kbs->schema_class->new;
+    $sg->load_classes($kbs->builder->source_dir);
+    for my $class ($sg->classes) {
+        my $view = $class->key;
+        is_deeply $self->{dbh}->selectall_arrayref("
+            SELECT 1
+            FROM   pg_catalog.pg_class c
+            WHERE  c.relname = ? and c.relkind = 'v'
+            ", {}, $view
+        ), [[1]], "View $view should exist";
+    }
+}
 
 1;
 __END__

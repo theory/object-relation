@@ -104,7 +104,10 @@ sub test_rules : Test(27) {
 
     # Make sure that the views were created.
     my $dbh = DBI->connect($kbs->test_dsn, '', '');
-    for my $view (qw'simple one two composed comp_comp') {
+    my $sg = $kbs->schema_class->new;
+    $sg->load_classes($kbs->builder->source_dir);
+    for my $class ($sg->classes) {
+        my $view = $class->key;
         is_deeply $dbh->selectall_arrayref(
             "SELECT 1 FROM sqlite_master WHERE type ='view' AND name = ?",
             {}, $view
