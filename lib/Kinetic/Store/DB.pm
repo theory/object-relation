@@ -50,26 +50,21 @@ sub save {
     my ($proto, $object) = @_;
     my $self = $proto->_from_proto;
     #return $class unless $object->changed;
-    # XXX this needs to go away
-    my %data = (
-        names  => [],
-        values => [],
-        class  => $object->my_class
-    );
-    $self->{search_class} = $object->my_class;
-    $data{view} = $data{class}->key;
-    foreach my $attr ($data{class}->attributes) {
+    local $self->{search_class} = $object->my_class;
+    local $self->{view}         = $self->{search_class}->key;
+    local @{$self}{qw/names values/};
+    foreach my $attr ($self->{search_class}->attributes) {
         if ($attr->references) {
             my $attr_name = $attr->name;
             my $contained_object = $object->$attr_name;
             $self->save($contained_object);
         }
-        push @{$data{names}}  => $self->_get_name($attr);
-        push @{$data{values}} => $self->_get_raw_value($object, $attr);
+        push @{$self->{names}}  => $self->_get_name($attr);
+        push @{$self->{values}} => $self->_get_raw_value($object, $attr);
     }
     return exists $object->{id}
-        ? $self->_update($object, \%data)
-        : $self->_insert($object, \%data);
+        ? $self->_update($object)
+        : $self->_insert($object);
 }
 
 sub _from_proto {
@@ -79,24 +74,24 @@ sub _from_proto {
 }
 
 sub _insert {
-    my ($class, $object, $data) = @_;
-    my $fields       = join ', ' => @{$data->{names}};
-    my $placeholders = join ', ' => (('?') x @{$data->{names}});
-    my $sql = "INSERT INTO $data->{view} ($fields) VALUES ($placeholders)";
-    $class->_do_sql($sql, $data->{values});
-    $class->_set_id($object);
-    return $class;
+    my ($self, $object) = @_;
+    my $fields       = join ', ' => @{$self->{names}};
+    my $placeholders = join ', ' => (('?') x @{$self->{names}});
+    my $sql = "INSERT INTO $self->{view} ($fields) VALUES ($placeholders)";
+    $self->_do_sql($sql, $self->{values});
+    $self->_set_id($object);
+    return $self;
 }
 
 sub _get_name {
-    my ($class, $attr) = @_;
+    my ($self, $attr) = @_;
     my $name = $attr->name;
     $name   .= '__id' if $attr->references;
     return $name;
 }
 
 sub _get_raw_value {
-    my ($class, $object, $attr) = @_;
+    my ($self, $object, $attr) = @_;
     return $attr->raw($object) unless $attr->references;
     my $name = $attr->name;
     my $contained_object = $object->$name;
@@ -105,29 +100,29 @@ sub _get_raw_value {
 
 # may be overridden in subclasses
 sub _set_id {
-    my ($class, $object) = @_;
-    $object->{id} = $class->_dbh->last_insert_id(undef, undef, undef, undef);
-    return $class;
+    my ($self, $object) = @_;
+    $object->{id} = $self->_dbh->last_insert_id(undef, undef, undef, undef);
+    return $self;
 }
 
 sub _update {
-    my ($class, $object, $data) = @_;
-    my $fields = join ', '  => map { "$_ = ?" } @{$data->{names}};
-    push @{$data->{values}} => $object->{id};
-    my $sql = "UPDATE $data->{view} SET $fields WHERE id = ?";
-    $class->_do_sql($sql, $data->{values});
-    return $class;
+    my ($self, $object) = @_;
+    my $fields = join ', '  => map { "$_ = ?" } @{$self->{names}};
+    push @{$self->{values}} => $object->{id};
+    my $sql = "UPDATE $self->{view} SET $fields WHERE id = ?";
+    $self->_do_sql($sql, $self->{values});
+    return $self;
 }
 
 sub _do_sql {
-    my ($class, $sql, $bind_params) = @_;
+    my ($self, $sql, $bind_params) = @_;
  
     # XXX this is to prevent the use of
     # uninit values in subroutine entry warnings
     # Is there a better way?
     local $^W;
-    $class->_dbh->do($sql, {}, @$bind_params); 
-    return $class;
+    $self->_dbh->do($sql, {}, @$bind_params); 
+    return $self;
 }
 
 # XXX note the encapsulation violation.  This may change in the future.
@@ -151,7 +146,7 @@ sub _build_object_from_hashref {
 }
 
 sub _get_kinetic_value {
-    my ($class, $name, $value) = @_;
+    my ($self, $name, $value) = @_;
     if ('state' eq $name) {
         return State->new($value);
     }
@@ -194,7 +189,7 @@ information about search params.
 sub search {
     my ($proto, $search_class, @search_params) = @_;
     my $self = $proto->_from_proto;
-    $self->{search_class} = $search_class;
+    local $self->{search_class} = $search_class;
     my $constraints  = pop @search_params if ref $search_params[-1] eq 'HASH';
     my @attributes   = $search_class->attributes;
     my $attributes   = join ', ' => map { $self->_get_name($_) } @attributes;
@@ -290,17 +285,33 @@ my %COMPARE = (
 );
 
 sub _comparison_operator {
-    my ($class, $key) = @_;
+    my ($self, $key) = @_;
     return $COMPARE{$key};
 }
 
+sub _case_insensitive_fields {
+    my ($self) = @_;
+    #return qw/guid string/;
+    return qw/string/;
+}
+
 sub _make_where_token {
-    my ($class, $field, $attribute) = @_;
+    my ($self, $field, $attribute) = @_;
+    if ($self->{search_class} && $field ne 'id') {
+    #if ($self->{search_class} && $field ne 'guid' && $field ne 'id') {
+        my $type = $self->{search_class}->attributes($field)->type;
+        foreach my $ifield ($self->_case_insensitive_fields) {
+            if ($type eq $ifield) {
+                $field = "lower($field)";
+                last;
+            }
+        }
+    }
     
-    my ($comparator, $value) = $class->_expand_attribute($attribute);
+    my ($comparator, $value) = $self->_expand_attribute($attribute);
 
                # simple compare         #       NULL            # BETWEEN
-    if ((my $op = $class->_comparison_operator($comparator)) && defined $value && ! ref $value) {
+    if ((my $op = $self->_comparison_operator($comparator)) && defined $value && ! ref $value) {
         return ("$field $op ?", [$value]);
     }
     elsif (($comparator eq '' || $comparator eq 'NOT')  && 'ARRAY' eq ref $value) {
@@ -323,7 +334,7 @@ sub _make_where_token {
 
 sub _expand_attribute {
     # we assume only two levesl of code refs
-    my ($class, $attribute) = @_;
+    my ($self, $attribute) = @_;
     unless ('CODE' eq ref $attribute) {
         return ('', undef)        unless defined $attribute;
         return ('', $attribute)   if 'ARRAY' eq ref $attribute;
@@ -348,7 +359,7 @@ sub _expand_attribute {
 }
 
 sub _constraints {
-    my ($class, $constraints) = @_;
+    my ($self, $constraints) = @_;
     my $sql = ' ';
     while (my ($constraint, $value) = each %$constraints) {
         if ('order_by' eq $constraint) {

@@ -268,16 +268,15 @@ sub lookup : Test(8) {
     $two->description('ssalc tset');
     Store->save($two);
     can_ok Store, 'lookup';
-    my $store = Store->new;
-    my $thing = $store->lookup($two->my_class, guid => $two->guid);
+    my $thing = Store->lookup($two->my_class, guid => $two->guid);
     is_deeply $thing, $two, 'and it should return the correct object';
     foreach my $method (qw/name description guid state/) {
         is $thing->$method, $two->$method, "$method() should behave the same";
     }
-    throws_ok {$store->lookup($two->my_class, 'no_such_property' => 1)}
+    throws_ok {Store->lookup($two->my_class, 'no_such_property' => 1)}
         qr/\QNo such property (no_such_property) for TestApp::Simple::One\E/,
         'but it should croak if you search for a non-existent property';
-    throws_ok {$store->lookup($two->my_class, 'name' => 1)}
+    throws_ok {Store->lookup($two->my_class, 'name' => 1)}
         qr/\QProperty (name) is not unique\E/,
         'or if you search on a non-unique field';
 }
@@ -621,13 +620,6 @@ sub save_compound : Test(3) {
     @results = sort { $a->age <=> $b->age } @results;
     is_deeply \@results, [$foo, $bar], '... and the correct results';
 }
-# TEST::Kinetic::Store::DB::SQLite->save_compound
-#ok 155 - Kinetic::Store::DB::SQLite->can('search')
-#ok 156 - Searching on a range should return the correct number of results
-#not ok 157 - save_compound died (Can't locate object method "age" via package 
-# "TestApp::Simple::One" at t/lib/TEST/Kinetic/Store/DB/SQLite.pm line 617.)
-#     Failed test (t/lib//TEST/Class/Kinetic.pm at line 93)
-#
 
 sub order_by : Test(4) {
     my $test = shift;
