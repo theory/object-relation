@@ -118,6 +118,56 @@ sub _clear_database {
     $test->{dbh}->begin_work;
 } 
 
+sub count : Test(8) {
+    my $test = shift;
+    can_ok Store, 'count';
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my $class = $foo->my_class;
+    ok my $count = Store->count($class),
+        'A search with only a class should succeed';
+    is $count, 3, 'returning a count of all instances';
+
+    ok $count = Store->count($class, name => 'foo'), 
+        'We should be able to count with a simple search';
+    is $count, 1, 'returning the correct count';
+
+    ok $count = Store->count($class, name => GT 'c'),
+        'We should be able to count with any search operators';
+    is $count, 2, 'returning the correct count';
+
+    ok ! ($count = Store->count($class, name => 'no such name')),
+        'and it should return a false count if nothing matches';
+}
+
+sub search_guids : Test(10) {
+    my $test = shift;
+    can_ok Store, 'search_guids';
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my $class = $foo->my_class;
+    ok my $guids = Store->search_guids($class),
+        'A search for guids with only a class should succeed';
+    @$guids = sort @$guids;
+    my @expected = sort map {$_->guid} $foo, $bar, $baz;
+    is_deeply $guids, \@expected,
+        'and it should return the correct list of guids';
+
+    ok $guids = Store->search_guids($class, name => 'foo'), 
+        'We should be able to search guids with a simple search';
+    is_deeply $guids, [$foo->guid], 'and return the correct guids';
+
+    ok $guids = Store->search_guids($class, name => GT 'c', {order_by => 'name'}),
+        'We should be able to search guids with any search operators';
+    is_deeply $guids, [$foo->guid, $baz->guid], 'and return the correct guids';
+
+    $guids = Store->search_guids($class, name => 'no such name');
+    is_deeply $guids, [],
+        'and it should return nothing if nothing matches';
+
+    ok my @guids = Store->search_guids($class, name => GT 'c', {order_by => 'name'}),
+        'search_guids should behave correctly in list context';
+    is_deeply \@guids, [$foo->guid, $baz->guid], 'and return the correct guids';
+}
+
 sub where_token : Test(24) {
     my $store = Store->new;
     can_ok $store, '_make_where_token';

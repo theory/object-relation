@@ -175,19 +175,82 @@ sub search {
 
 sub _search {
     my ($self, @search_params) = @_;
-    my $constraints  = pop @search_params if ref $search_params[-1] eq 'HASH';
     $self->_set_search_data;
     my $attributes = join ', ' => @{$self->{search_data}{fields}};
-    my $view       = $self->search_class->key;
-
-    my ($where_clause, $bind_params) =
-        $self->_make_where_clause(\@search_params, $constraints);
-    $where_clause = "WHERE $where_clause" if $where_clause;
-    my $sql       = "SELECT id, $attributes FROM $view $where_clause";
-    $sql         .= $self->_constraints($constraints) if $constraints;
+    my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
+        "id, $attributes",
+        \@search_params
+    );
     return $self->_get_sql_results($sql, $bind_params);
 }
 
+##############################################################################
+
+=head3 search_guids
+
+  my @guids = Store->search_guids($search_class, \@attributes, \%constraints);
+  my $guids = Store->search_guids($search_class, \@attributes, \%constraints);
+
+This method will return a list of guids matching the listed criteria.  It takes
+the same arguments as C<search>.  In list context it returns a list.  In scalar
+context it returns an array reference.
+
+=cut
+
+sub search_guids {
+    my ($proto, $search_class, @search_params) = @_;
+    my $self = $proto->_from_proto;
+    $self->_cache_statement(0);
+    $self->_create_iterator(0);
+    local $self->{search_class} = $search_class;
+    $self->_set_search_data;
+    my $attributes = join ', ' => @{$self->{search_data}{fields}};
+    my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
+        "guid",
+        \@search_params
+    );
+    my $guids = $self->_dbh->selectcol_arrayref($sql, undef, @$bind_params);
+    return wantarray ? @$guids : $guids;
+}
+
+##############################################################################
+
+=head3 count
+
+  my $count = Store->count($class_object, @search_params);
+
+This method takes the same arguments as C<search>.  Returns a count of how
+many rows a similar C<search> will return.
+
+Any final constraints (such as "LIMIT" or "ORDER BY") will be discarded.
+
+=cut
+
+sub count {
+    my ($proto, $search_class, @search_params) = @_;
+    pop @search_params if 'HASH' eq ref $search_params[-1];
+    my $self = $proto->_from_proto;
+    $self->_cache_statement(0);
+    local $self->{search_class} = $search_class;
+    my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
+        'count(*)',
+        \@search_params
+    );
+    my ($count)   = $self->_dbh->selectrow_array($sql, undef, @$bind_params);
+    return $count;
+}
+
+
+sub _get_select_sql_and_bind_params {
+    my ($self, $fields, $params) = @_;
+    my $constraints = pop @$params if 'HASH' eq ref $params->[-1];
+    my $view        = $self->search_class->key;
+    my ($where_clause, $bind_params) = $self->_make_where_clause($params);
+    $where_clause = "WHERE $where_clause" if $where_clause;
+    my $sql       = "SELECT $fields FROM $view $where_clause";
+    $sql         .= $self->_constraints($constraints) if $constraints;
+    return ($sql, $bind_params);
+}
 ##############################################################################
 
 =begin private
@@ -338,6 +401,7 @@ sub _do_sql {
         ? 'prepare_cached'
         : 'prepare';
     my $sth = $self->_dbh->$dbi_method($sql);
+    no warnings 'uninitialized';
     $sth->execute(@$bind_params);
     return $self;
 }
