@@ -5,8 +5,8 @@
 use strict;
 use warnings;
 use File::Spec;
-use Test::More 'no_plan';
-#use Test::More skip_all => 'PostgreSQL rules are incomplete';
+use Test::More tests => 21;
+#use Test::More 'no_plan';
 
 use lib 't/lib', '../../lib';
 use Kinetic::Build;

@@ -90,7 +90,7 @@ sub _state_machine {
     my $fail     = sub {! shift->result };
     my $succeed  = sub {  shift->result };
     my @state_machine = (
-        start => {
+        Start => {
             do => sub {
                 my $state = shift;
                 $state->machine->{actions} = []; # must never return to start
@@ -100,22 +100,21 @@ sub _state_machine {
                 $self->build->notes(kinetic_db_name => $kinetic_db_name);
             },
             rules => [
-                fail => {
+                Fail => {
                     rule    => $fail,
                     message => 'PostgreSQL does not appear to be installed',
                 },
-                installed => {
-                    rule => $succeed,
+                "Determine user" => {
+                    rule    => $succeed,
                     message => 'PostgreSQL does appear to be installed',
                 },
             ],
         },
-        installed => {
+        "Determine user" => {
             do => sub {
                 my $state   = shift;
                 my $build   = $self->build;
                 my $machine = $state->machine;
-
                 my $root = $build->db_root_user || 'postgres';
                 $build->db_root_user($root);
                 # Try connecting as root user.
@@ -149,21 +148,21 @@ sub _state_machine {
                 }
             },
             rules => [
-                can_use_root => {
-                    rule    => sub { shift->result eq 'can_use_root' },
-                    message => "Root user available and usable",
-                },
-                can_use_db_user => {
-                    rule    => sub { shift->result eq 'can_use_db_user' },
-                    message => "Root user not available, but can use db_user",
-                },
-                fail => {
+                Fail => {
                     rule => $fail,
                     message => 'Need root user or db user to build database',
                 },
+                "Check for user db and is root" => {
+                    rule    => sub { shift->result eq 'can_use_root' },
+                    message => "Root user available and usable",
+                },
+                "Check for user db and is not root" => {
+                    rule    => sub { shift->result eq 'can_use_db_user' },
+                    message => "Root user not available, but can use db_user",
+                },
             ]
         },
-        can_use_root => {
+        "Check for user db and is root" => {
             do => sub {
                 my $state = shift;
                 my $db_name = $self->build->notes('kinetic_db_name');
@@ -174,22 +173,23 @@ sub _state_machine {
                     $self->build->notes(db_name => $db_name);
                 }
                 else {
+                    $self->build->db_name($template);
                     push @{$state->machine->{actions}} => ['create_db', $db_name];
                 }
                 push @{$state->machine->{actions}} => ['switch_to_db', $db_name];
             },
             rules => [
-                database_exists => {
+                "Check user db for plpgsql" => {
                     rule    => $succeed,
-                    message => "Database \"@{[ $self->build->notes('kinetic_db_name') ]}\" exists",
+                    message => "Database kinetic exists",  # XXX fix this
                 },
-                no_database => {
+                "Check template1 for plpgsql and is root" => {
                     rule    => $fail,
-                    message => "Database \"@{[ $self->build->notes('kinetic_db_name') ]}\" does not exist",
+                    message => "Database kinetic does not exist", # XXX fix this
                 }
             ],
         },
-        no_database => {
+        "Check template1 for plpgsql and is root" => {
             do => sub {
                 my $state = shift;
                 if ($self->_plpgsql_available) {
@@ -201,38 +201,42 @@ sub _state_machine {
                 }
             },
             rules => [
-                done => {
+                Fail => {
+                    rule    => sub { shift->machine->{db_name} ne $template },
+                    message => "Panic state.  Cannot check template1 for plpgsql if we're not connected to it.",
+                },
+                Done => {
                     rule    => sub { shift->result eq 'template1 has plpgsql' },
                     message => 'Template1 has plgsql',
                 },
-                done => {
+                Done => {
                     rule    => sub { shift->result eq 'No plpgsql but we have createlang' },
                     message => 'Template1 does not have plpgsql, but we have createlang',
                 },
-                fail => {
+                Fail => {
                     rule    => $fail,
                     message => 'Template1 does not have plpgsql and we do not have createlang',
                 }
             ],
         },
-        no_plpgsql => {
+        "Check for createlang" => {
             do => sub {
                 my $state   = shift;
                 $state->result($self->info->createlang);
                 push @{$state->machine->{actions}} => ['add_plpgsql_to_db', $self->build->db_name];
             },
             rules => [
-                done => {
+                Done => {
                     rule    => $succeed,
                     message => 'We have createlang',
                 },
-                fail => {
+                Fail => {
                     rule    => $fail,
                     message => "Must have createlang to add plpgsql",
                 }
             ],
         },
-        can_use_db_user => {
+        "Check for user db and is not root" => {
             do => sub {
                 my $state = shift;
                 my $db_name = $self->build->notes('kinetic_db_name');
@@ -245,67 +249,75 @@ sub _state_machine {
                 }
             },
             rules => [
-                database_exists => {
+                Fail => {
+                    rule => $fail,
+                    message => "No database, and user has no permission to create it",
+                },
+                "Check user db for plpgsql" => {
                     rule => sub { shift->result eq 'database exists' },
                     message => 'Database exists',
                 },
-                can_create_database => {
+                "Check template1 for plpgsql and is not root" => {
                     rule => sub { shift->result eq 'user can create database' },
                     message => "User can create database",
                 },
-                fail => {
-                    rule => $fail,
-                    message => "No database, and user has no permission to create it",
-                }
             ],
         },
-        has_plpgsql => {
+        "Check user create permissions" => {
             do => sub {
                 my $state = shift;
                 my $user  = $state->machine->{user};
                 $state->result($self->_has_create_permissions($user));
             },
             rules => [
-                fail => {
+                Fail => {
                     rule    => $fail,
                     message => 'User does not have permission to add objects to database',
                 },
-                done => {
+                Done => {
                     rule    => $succeed,
                     message => 'User can add objects to database',
                 },
             ],
         },
-        can_create_database => {
+        "Check template1 for plpgsql and is not root" => {
             do => sub {
                 shift->result($self->_plpgsql_available);
             },
             rules => [
-                fail => {
+                Fail => {
+                    rule    => sub { shift->machine->{db_name} ne $template },
+                    message => "Panic state.  Cannot check template1 for plpgsql if we're not connected to it.",
+                },
+                Fail => {
                     rule    => $fail,
                     message => 'Template1 does not have plpgsql',
                 },
-                done => {
+                Done => {
                     rule    => $succeed,
                     message => 'Template1 has plpgsql',
                 }
             ]
         },
-        database_exists => {
+        "Check user db for plpgsql" => {
             do => sub {
                 my $state   = shift;
                 my $machine = $state->machine;
-                unless ($self->_dbh) {
-                    # XXX If the database exists, do you really want to connect
-                    # to template1?
-                    my $dbh = $self->_connect_to_pg($template, $machine->{user},
-                                                    $machine->{pass});
-                    $self->_dbh($dbh);
-                }
+                my $db_name = $self->build->notes('kinetic_db_name');
+                $machine->{db_name} = $db_name; # force the connection to the actual database
+                my $dbh = $self->_connect_to_pg(
+                    $db_name,
+                    $machine->{user},
+                    $machine->{pass},
+                );
+                $self->_dbh($dbh); # force a new dbh
                 $state->result($self->_plpgsql_available);
+                if (! $state->result && $machine->{is_root}) {
+                    push @{$machine->{actions}} => ['add_plpgsql_to_db', $machine->{db_name}];
+                }
             },
             rules => [
-                done => {
+                Done => {
                     rule    => sub {
                         my $state = shift;
                         return $state->result && $state->machine->{is_root};
@@ -314,21 +326,21 @@ sub _state_machine {
                     # messages printed out as we go along?
                     message => "Database has plpgsql",
                 },
-                no_plpgsql => {
+                "Check for createlang" => {
                     rule    => sub {
                         my $state = shift;
                         return ! $state->result && $state->machine->{is_root};
                     },
                     message => 'Database does not have plpgsql',
                 },
-                has_plpgsql => {
+                "Check user create permissions" => {
                     rule    => sub {
                         my $state = shift;
                         return $state->result && ! $state->machine->{is_root};
                     },
                     message => 'Database has plpgsql but not root',
                 },
-                fail => {
+                Fail => {
                     rule    => sub {
                         my $state = shift;
                         return ! $state->result && ! $state->machine->{is_root};
@@ -337,17 +349,17 @@ sub _state_machine {
                 }
             ]
         },
-        fail => {
+        Fail => {
             do => sub { die shift->prev_state->message || 'no message supplied' },
         },
-        done => {
+        Done => {
             do => sub {
                 my $state   = shift;
                 my $build   = $self->build;
                 my $machine = $state->machine;
                 push @{$machine->{actions}} => ['build_db']
                   unless $machine->{database_exists};
-                foreach my $attribute (qw/db_name actions user pass db_name/) {
+                foreach my $attribute (qw/actions user pass db_name/) {
                     $build->notes($attribute => $machine->{$attribute})
                       if $machine->{$attribute};
                 }

@@ -152,7 +152,7 @@ sub validate {
     my $machine = FSA::Rules->new(@$state_machine);
     $machine->start;
     $self->{machine} = $machine; # internal only.  Used for debugging
-    $machine->switch until $machine->at('done');
+    $machine->switch until $machine->at('Done');
     return $self;
 }
 

@@ -32,11 +32,11 @@ my %CONFIG = (
         store    => 'Kinetic::Store::DB::Pg',
         rules    => 'Kinetic::Build::Rules::Pg',
         dsn      => {
-            dbd        => 'Pg',
+            dbd     => 'Pg',
+            db_name => 'db_name',
             methods => {
-                dbname => 'db_name',
-                host   => 'db_host',
-                port   => 'db_port',
+                host => 'db_host',
+                port => 'db_port',
             },
         },
     },
@@ -45,9 +45,9 @@ my %CONFIG = (
         store    => 'Kinetic::Store::DB::SQLite',
         rules    => 'Kinetic::Build::Rules::SQLite',
         dsn      => {
-            dbd        => 'SQLite',
+            dbd     => 'SQLite',
+            db_name => 'db_file',
             methods => {
-                dbname => 'db_file',
             },
         },
     },
@@ -163,12 +163,7 @@ SQLite data store.
 
 =cut
 
-sub db_name {
-    my ($self, $db_name) = @_;
-    return $self->notes('db_name') || 'kinetic' unless $db_name;
-    $self->notes(db_name => $db_name);
-    return $self;
-}
+__PACKAGE__->add_property(db_name => 'kinetic');
 
 ##############################################################################
 
@@ -696,7 +691,7 @@ __PACKAGE__->add_property('_dbh');
 
 =head3 _dsn
 
-  $build->_dsn;
+  my $dsn = $build->_dsn;
 
 This method returns the dsn for the current build
 
@@ -704,12 +699,16 @@ This method returns the dsn for the current build
 
 sub _dsn {
     my $self = shift;
+    my $dsn     = $CONFIG{$self->store}{dsn};
+    my $db_name_method  = $dsn->{db_name};
     $self->_fatal_error("Cannot create dsn without a db_name")
-      unless defined $self->db_name;
+      unless defined $self->$db_name_method;
     $self->_fatal_error("The database port must be a numeric value")
       if defined $self->db_port and $self->db_port !~ /^[[:digit:]]+$/;
-    my $dsn  = $CONFIG{$self->store}{dsn};
-    my $dbd  = "dbi:$dsn->{dbd}";
+    # the following line is important as the machine rules may override
+    # the user's db_name if it doesn't exist.
+    my $db_name = $self->notes('db_name') || $self->$db_name_method;
+    my $dbd     = "dbi:$dsn->{dbd}:dbname=$db_name";
     my $properties = join ';' =>
         map  { join '=' => @$_ }
         grep { defined $_->[1] }
@@ -717,7 +716,8 @@ sub _dsn {
             my $method = $dsn->{methods}{$_}; 
             [ $_, $self->$method ]
         } sort keys %{ $dsn->{methods} };
-    return "$dbd:$properties";
+    $dbd .= ";$properties" if $properties;
+    return $dbd;
 }
 
 ##############################################################################

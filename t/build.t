@@ -6,7 +6,7 @@ use strict;
 use Test::Exception;
 use Test::MockModule;
 #use Test::More 'no_plan';
-use Test::More tests => 81;
+use Test::More tests => 61;
 use Test::File;
 use Test::File::Contents;
 use lib 't/lib', '../../lib';;
@@ -55,8 +55,8 @@ is $build->db_host, undef,
   '... The db_host attribute should be undef by default';
 is $build->db_port, undef,
   '... The db_port attribute should be undef by default';
-is $build->db_root_user, '',
-  '... The db_root_user attribute should be undefined by default';
+is $build->db_root_user, 'postgres',
+  '... The db_root_user should default to "postgres"';
 is $build->db_root_pass, '',
   '... The db_root_pass attribute should be an empty string by default';
 is $build->db_file, 'kinetic.db',
@@ -142,8 +142,8 @@ is $build->db_host, 'db.example.com',
   '... The db_host attribute should be "db.example.com"';
 is $build->db_port, 2222,
   '... The db_port attribute should be 2222';
-is $build->db_root_user, '',
-  '... The db_root_user attrbiute should be an empty string by default';
+is $build->db_root_user, 'postgres',
+  '... The db_root_user attribute should default to "postgres"';
 is $build->db_root_pass, '',
   '... The db_root_pass attribute should be an empty string by default';
 is $build->db_file, 'wild.db',
@@ -183,135 +183,6 @@ file_contents_like 'blib/conf/test.conf', qr/\n\s*store\s*=>\s*{\s*class\s*=>\s*
 $build->dispatch('realclean');
 file_not_exists_ok 'blib/conf/test.conf',
   '... There should no longer be a config file for installation';
-
-{
-    $build = $CLASS->new(module_name => 'KineticBuildOne', accept_defaults => 1);
-
-    my $sqlite = newmock('App::Info::RDBMS::SQLite');
-    $sqlite->mock(installed => sub {0} );
-    throws_ok {$build->ACTION_check_store}
-      qr/SQLite does not appear to be installed./,
-      '... and it should warn you if SQLite is not installed';
-
-    $sqlite->mock(installed => sub { 1 });
-    $sqlite->mock(version =>  sub { '2.0.0' });
-    throws_ok {$build->ACTION_check_store}
-      qr/SQLite is not the minimum required version.*/,
-      '... and it should warn you if SQLite is not a new enough version';
-
-    $sqlite->mock(version    => sub { '4.0.0' } );
-    ok $build->ACTION_check_store,
-       '... and if all parameters are correct, we should have no errors';
-    #my $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
-    #open GRAPH, '>', 'sqlite.png' or die $!;
-    #binmode GRAPH;
-    #print GRAPH $fsa->graph->as_png;
-    #close GRAPH or die $!;
-}
-
-{
-    # Check the PostgreSQL installation.
-
-    $build = $CLASS->new(
-        accept_defaults => 1,
-        module_name     => 'KineticBuildOne',
-        store           => 'pg',
-    );
-
-    my $pg = newmock('App::Info::RDBMS::PostgreSQL');
-    $pg->mock(installed => sub {0} );
-    my $rules = newmock('Kinetic::Build::Rules::Pg');
-    
-    throws_ok {$build->ACTION_check_store}
-      qr/Postgres not installed./,
-      'It should warn you if Postgres is not installed';
-
-    $pg->mock(installed => sub { 1 } );
-    $pg->mock(version => sub { '2.0.0' } );
-    throws_ok {$build->ACTION_check_store}
-        qr/\QPostgreSQL required version 7.4.5 but you have 2.0.0\E/,
-        '... and it should warn you if PostgreSQL is not a new enough version';
-
-    $pg->mock(version => sub { '7.4.5' });
-    $pg->mock(createlang => sub {''});
-    throws_ok {$build->ACTION_check_store}
-      qr/createlang is required for plpgsql support/,
-      '... and it should warn you if createlang is not available';
-    TODO: {
-        local $TODO = 'Need metadata tests';
-        ok(0);
-    }
-
-    $pg->mock(createlang => sub {1});
-    $build->notes(got_store => 0);
-    $rules->mock(_connect_as_user => sub {0});
-    eval {$build->ACTION_check_store};
-
-    my $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
-    my $message = $fsa->states('user')->message;
-    is $message, 'Could not connect as normal user',
-      '... and we should have an informational message letting us know that we could not connect as a normal user';
-    like $@, qr/$message/, '... and this should be fatal';
-    $rules->mock(_connect_as_root => 1);
-    ok $build->ACTION_check_store,
-      '... and if we have a root user, everything should be fine';
-    is $build->db_root_user, 'postgres',
-      '... and the default root user password should be "postgres"';
-
-    $build->notes(got_store => 0); # must reset
-    $rules->mock(_connect_as_root => 0);
-    $rules->mock(_connect_as_user => 1);
-    $rules->mock(_db_exists       => 0);
-    $rules->mock(_can_create_db   => 0);
-    throws_ok {$build->ACTION_check_store}
-      qr/Normal user does not have the right to create the database/,
-      'We should fail if the database does not exist and the user cannot created it';
-    $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
-    
-    is $fsa->states('database_exists')->message, 'The default database does not exist',
-      '... and we should have a message that the default database does not exist';
-    
-    is $fsa->states('can_create_database')->message,
-      'Normal user does not have the right to create the database',
-      '... and that the normal user does not have the right to create the database';
-
-    $rules->mock(_can_create_db   => 1);
-    ok $build->ACTION_check_store,
-      '... but if the user can create the database, all is well';
-
-    $rules->mock(_can_create_db => sub {1});
-    ok $build->ACTION_check_store,
-      '... but we should have no error messages if normal user can create the db';
-
-    $build->notes(got_store => 0); # must reset
-    $rules->mock(_connect_as_root   => 0);
-    $rules->mock(_connect_as_user   => 1);
-    $rules->mock(_db_exists         => 1);
-    $rules->mock(_plpgsql_available => 0);
-    
-    throws_ok {$build->ACTION_check_store}
-      qr/plpgsql not available.  Must be root user to install/,
-      'We should fail if plpgsql is not available';
-    $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
-    
-    is $fsa->states('database_exists')->message, 'The default database does exist',
-      '... but if we got that far, the database must have existed';
-    
-    $build->notes(got_store => 0); # must reset
-    $rules->mock(_connect_as_root   => 0);
-    $rules->mock(_connect_as_user   => 1);
-    $rules->mock(_db_exists         => 1);
-    $rules->mock(_plpgsql_available => 1);
-    $rules->mock(_has_create_permissions => 0);
-    
-    throws_ok {$build->ACTION_check_store}
-      qr/User does not have permission to create objects/,
-      'We should fail if the normal user does not have permission to create objects';
-    $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
-    
-    is $fsa->states('database_exists')->message, 'The default database does exist',
-      '... but if we got that far, the database must have existed';
-}
 
 can_ok $build, '_dsn';
 $build->db_name('foobar');

@@ -134,13 +134,13 @@ sub _state_machine {
                     rule    => $fail,
                     message => 'No filename for database',
                 },
-                done => {
+                Done => {
                     rule    => $succeed,
                     message => 'We have a filename',
                 }
             ],
         },
-        done => {
+        Done => {
             do => sub {
                 my $state   = shift;
                 my $build   = $self->build;
