@@ -40,8 +40,8 @@ our %Lexicon = (
   'Purged'    => 'Purged',
 
   # Exceptions.
-  'Value "[_1]" is not a [_2] object',
-  "Value “[_1]” is not a [_2] object",
+  'Value "[_1]" is not a valid [_2] object',
+  "Value “[_1]” is not a valid [_2] object",
 
   'Value "[_1]" is not a GUID',
   "Value “[_1]” is not a GUID",
@@ -58,8 +58,8 @@ our %Lexicon = (
   'Argument "[_1]" is not a code reference',
   "Argument “[_1]” is not a code reference",
 
-  'Argument "[_1]" is not a [_2] object',
-  "Argument “[_1]” is not a [_2] object",
+  'Argument "[_1]" is not a valid [_2] object',
+  "Argument “[_1]” is not a valid[_2] object",
 
   'Cannot assign permanent state',
   'Cannot assign permanent state',

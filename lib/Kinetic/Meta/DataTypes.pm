@@ -41,7 +41,8 @@ sub _make_isa_check {
     return sub {
         return unless defined $_[0];
         UNIVERSAL::isa($_[0], $pkg)
-          or throw_invalid(['Value "[_1]" is not a [_2] object', $_[0], $pkg]);
+          or throw_invalid(['Value "[_1]" is not a valid [_2] object',
+                            $_[0], $pkg]);
     };
 };
 
@@ -90,7 +91,7 @@ Class::Meta::Type->add(
 
 =item whole
 
-A whole number. Throws a Fatal::Invalid exception if the value is not a valid
+A whole number. Throws a Fatal::Invalid exception if the value is not a whole
 number.
 
 =cut
@@ -165,8 +166,8 @@ BEGIN {
         builder => 'Kinetic::Meta::AccessorBuilder',
         check   => sub {
             UNIVERSAL::isa($_[0], 'Kinetic::State')
-              or throw_invalid(['Value "[_1]" is not a [_2] object', $_[0],
-                                'Kinetic::State']);
+              or throw_invalid(['Value "[_1]" is not a valid [_2] object',
+                                 $_[0], 'Kinetic::State']);
             throw_invalid(['Cannot assign permanent state'])
               if $_[0] == Kinetic::State->PERMANENT;
         }

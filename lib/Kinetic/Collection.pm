@@ -57,7 +57,7 @@ B<Throws:>
 
 sub new {
     my ($class, $iter) = @_;
-    throw_invalid ['Argument "[_1]" is not a [_2] object', $iter,
+    throw_invalid ['Argument "[_1]" is not a valid [_2] object', $iter,
                    'Kinetic::Iterator']
       unless UNIVERSAL::isa($iter, 'Kinetic::Iterator');
     bless { iter => $code, index => -1, array => [], got => -1 }, $class;

@@ -77,7 +77,7 @@ sub language {
     shift;
     return $cx->{language} unless @_;
     UNIVERSAL::isa($_[0], 'Kinetic::Language')
-      or throw_invalid(['Value "[_1]" is not a [_2] object', $_[0],
+      or throw_invalid(['Value "[_1]" is not a valid [_2] object', $_[0],
                         'Kinetic::Language']);
     return $cx->{language} = shift;
 }
@@ -97,7 +97,7 @@ sub cache {
     shift;
     return $cx->{cache} unless @_;
     UNIVERSAL::isa($_[0], 'Kinetic::Cache')
-      or throw_invalid(['Value "[_1]" is not a [_2] object', $_[0],
+      or throw_invalid(['Value "[_1]" is not a valid [_2] object', $_[0],
                         'Kinetic::Cache']);
     return $cx->{cache} = shift;
 }
@@ -119,7 +119,7 @@ sub current_user {
     shift;
     return $cx->{current_user} unless @_;
     UNIVERSAL::isa($_[0], 'Kinetic::Party::Person::User')
-      or throw_invalid(['Value "[_1]" is not a [_2] object', $_[0],
+      or throw_invalid(['Value "[_1]" is not a valid [_2] object', $_[0],
                         'Kinetic::Party::Person::User']);
     return $cx->{current_user} = shift;
 }

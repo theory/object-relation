@@ -300,7 +300,6 @@ sub clone {
     # I think it's okay to use the underlying hash, so that we're sure to
     # get all private attributes, too.
     while (my ($k, $v) = each %$self) {
-        # XXX Will need to account for collections here...
         # XXX Need to account for circular references?
         $new->{$k} = UNIVERSAL::can($v, 'clone')
           ? $v->clone
