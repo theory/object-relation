@@ -196,7 +196,18 @@ sub _state_machine {
                 check_permissions => $succeed,
             ],
         },
-        $self->_dummy_state('check_permissions', 'done', 'fail should goto root_user'),
+        check_permissions => {
+            do => sub {
+                my $state = shift;
+                $state->result($self->_has_create_permissions($self->build->db_user));
+                $state->message('User does not have permission to create objects')
+                  unless $state->result;
+            },
+            rules => [
+                fail => $fail,
+                done => $succeed,
+            ]
+        },
         fail => {
             do => sub { 
                 my $state = shift;
@@ -305,8 +316,26 @@ super user must control install.
 sub _plpgsql_available {
     my $self = shift;
     $self->_pg_says_true(
-        'select 1 from pg.catalog.pg_language where lanname = ?',
+        'select 1 from pg_catalog.pg_language where lanname = ?',
         'plpgsql'
+    );
+}
+
+##############################################################################
+
+=head3 _has_create_permissions
+
+  $rules->_has_create_permissions($user);
+
+Returns boolean value indicating whether given user has permissions to create
+functions, views, triggers, etc.
+
+=cut
+sub _has_create_permissions {
+    my ($self, $user) = @_;
+    $self->_pg_says_true(
+        'select has_schema_privilege(?, current_schema(), ?)',
+        $user, 'CREATE'
     );
 }
 

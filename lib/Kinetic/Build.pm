@@ -30,7 +30,6 @@ my %CONFIG = (
     pg => {
         version  => '7.4.5',
         store    => 'Kinetic::Store::DB::Pg',
-        app_info => 'App::Info::RDBMS::PostgreSQL',
         rules    => 'Kinetic::Build::Rules::Pg',
         dsn      => {
             dbd        => 'Pg',
@@ -44,7 +43,6 @@ my %CONFIG = (
     sqlite => {
         version  => '3.0.8',
         store    => 'Kinetic::Store::DB::SQLite',
-        app_info => 'App::Info::RDBMS::SQLite',
         rules    => 'Kinetic::Build::Rules::SQLite',
         dsn      => {
             dbd        => 'SQLite',
@@ -301,30 +299,6 @@ sub ACTION_check_store {
 
     $self->notes(got_store => 1);
     return $self;
-}
-
-sub _required_version {
-    my $self = shift;
-    return $CONFIG{$self->store}{version};
-}
-
-sub _app_info_params {
-    my $self = shift;
-    require App::Info::Handler::Carp;
-    require App::Info::Handler::Print;
-    # XXX Maybe on_fatal should call _fatal_error() instead of Carp::Croak.
-    my @params = ( 
-        on_info  => 'stdout', 
-        on_error => 'croak',
-    );
-
-    unless ($self->accept_defaults) {
-        require App::Info::Handler::Prompt;
-        push @params,
-          on_unknown => 'prompt',
-          on_confirm => 'prompt';
-    }
-    return @params;
 }
 
 ##############################################################################
@@ -721,6 +695,50 @@ sub _copy_to {
                                     to   => File::Spec->catfile($dir, $dest) );
         }
     }
+}
+
+##############################################################################
+
+=head3 _required_version
+
+  $build->_required_version
+
+Returns the minimum required version of the data store.
+
+=cut
+
+sub _required_version {
+    my $self = shift;
+    return $CONFIG{$self->store}{version};
+}
+
+##############################################################################
+
+=head3 _app_info_params
+
+  $build->_app_info_params;
+
+Returns a list of params required for the C<App::Info> object.
+
+=cut
+
+sub _app_info_params {
+    my $self = shift;
+    require App::Info::Handler::Carp;
+    require App::Info::Handler::Print;
+    # XXX Maybe on_fatal should call _fatal_error() instead of Carp::Croak.
+    my @params = ( 
+        on_info  => 'stdout', 
+        on_error => 'croak',
+    );
+
+    unless ($self->accept_defaults) {
+        require App::Info::Handler::Prompt;
+        push @params,
+          on_unknown => 'prompt',
+          on_confirm => 'prompt';
+    }
+    return @params;
 }
 
 ##############################################################################

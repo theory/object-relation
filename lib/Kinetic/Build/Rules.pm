@@ -98,6 +98,35 @@ sub _validate {
     return $class;
 }
 
+##############################################################################
+
+=head3 graph
+
+  $rules->graph(@graph_viz_args);
+
+This method takes the same arguments as the C<GraphViz> constructor.  Returns
+a C<GraphViz> object.
+
+=cut
+
+sub graph {
+    my $self = shift;
+    eval "use GraphViz;";
+    if ($@) {
+        warn "Cannot create graph object: $@";
+        return;
+    }
+    my ($machine) = $self->_state_machine;
+    my $graph = GraphViz->new(@_);
+    while (my ($state,$definition) = splice @$machine => 0, 2) {
+       $graph->add_node($state);
+       next unless exists $definition->{rules};
+       while (my ($rule, $condition) = splice @{$definition->{rules}} => 0, 2) {
+           $graph->add_edge($state, $rule);
+       }
+    }
+    return $graph;
+}
 
 ##############################################################################
 

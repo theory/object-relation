@@ -5,8 +5,8 @@
 use strict;
 use Test::Exception;
 use Test::MockModule;
-use Test::More 'no_plan';
-#use Test::More tests => 82;
+#use Test::More 'no_plan';
+use Test::More tests => 82;
 use Test::File;
 use Test::File::Contents;
 use lib 't/lib', '../../lib';;
@@ -207,7 +207,7 @@ file_not_exists_ok 'blib/conf/test.conf',
       qr/DBD::SQLite is installed but we require the sqlite3 executable/,
       '... and it should warn you if the sqlite executable is not installed';
     $sqlite->mock(executable => sub {1} );
-    ok !checkstore($build),
+    ok $build->ACTION_check_store,
        '... and if all parameters are correct, we should have no errors';
 }
 
@@ -284,12 +284,34 @@ file_not_exists_ok 'blib/conf/test.conf',
     ok $build->ACTION_check_store,
       '... but we should have no error messages if normal user can create the db';
 
-    TODO: {
-        local $TODO = 'Need to implement these states later';
-        ok 0, 'Check plsql';
-        ok 0, 'Can add plsql';
-        ok 0, 'Check permissions';
-    }
+    $build->notes(got_store => 0); # must reset
+    $rules->mock(_connect_as_root   => 0);
+    $rules->mock(_connect_as_user   => 1);
+    $rules->mock(_db_exists         => 1);
+    $rules->mock(_plpgsql_available => 0);
+    
+    throws_ok {$build->ACTION_check_store}
+      qr/plpgsql not available.  Must be root user to install/,
+      'We should fail if plpgsql is not available';
+    $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
+    
+    ok ! defined $fsa->state('database_exists')->message,
+      '... but if we got that far, the database must have existed';
+    
+    $build->notes(got_store => 0); # must reset
+    $rules->mock(_connect_as_root   => 0);
+    $rules->mock(_connect_as_user   => 1);
+    $rules->mock(_db_exists         => 1);
+    $rules->mock(_plpgsql_available => 1);
+    $rules->mock(_has_create_permissions => 0);
+    
+    throws_ok {$build->ACTION_check_store}
+      qr/User does not have permission to create objects/,
+      'We should fail if the normal user does not have permission to create objects';
+    $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
+    
+    ok ! defined $fsa->state('database_exists')->message,
+      '... but if we got that far, the database must have existed';
 }
 
 can_ok $build, '_dsn';
@@ -308,22 +330,14 @@ is $build->_dsn, 'dbi:Pg:dbname=foobar;host=somehost;port=2323',
 $build->db_port('foo');
 eval {$build->_dsn};
 like $@, qr/The database port must be a numeric value/,
-  '... and die us if we have an invalid port';
+  '... and die if we have an invalid port';
 
 $build->db_port(undef);
 $build->db_name(undef);
 eval {$build->_dsn};
 like $@, qr/Cannot create dsn without a db_name/,
-  '... and die us if we do not have a db_name';
+  '... and die if we do not have a db_name';
   
-sub checkstore {
-    my $mock = newmock($CLASS);
-    my $error;
-    $mock->mock(_fatal_error => sub { shift; $error = join '' => @_; die });
-    eval { local $^W; shift->ACTION_check_store };
-    return $error;
-}
-
 sub newmock { Test::MockModule->new(shift) }
 
 END {

@@ -24,7 +24,7 @@ my $dbh = get_dbh($build);
 
 plan $dbh
     #? 'no_plan'
-    ? (tests => 14)
+    ? (tests => 18)
     : (skip_all => 'Could not connect to postgres');
 $build->_dbh($dbh);
 
@@ -48,6 +48,10 @@ ok $rules->_is_root_user($users->[0]),
 ok ! $rules->_is_root_user($non_root_user),
   '... and false for non-root users';
 
+can_ok $rules, '_has_create_permissions';
+ok $rules->_has_create_permissions($users->[0]),
+  '... and it should return true if user can create objects';
+
 can_ok $rules, '_can_create_db';
 $users = $dbh->selectcol_arrayref("select usename from pg_catalog.pg_user where usecreatedb is true");
 my $cannot_create_db = make_not_in($users);
@@ -70,6 +74,11 @@ ok !$rules->_db_exists,
 
 ok $rules->_db_exists($databases->[0]),
   '... and we should be able to supply an optional database name to override the default';
+
+can_ok $rules, '_plpgsql_available';
+my $plpgsql = $dbh->selectcol_arrayref('select 1 from pg_catalog.pg_language where lanname = \'plpgsql\'');
+is $rules->_plpgsql_available, $plpgsql->[0],
+  '... and its result should match what the database says';
 
 sub make_not_in {
     my $arrayref = shift;
