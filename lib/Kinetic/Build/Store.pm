@@ -157,10 +157,6 @@ as configured in F<kinetic.conf>.
 
 sub new {
     my $class = shift;
-    unless ($class ne __PACKAGE__) {
-        $class = shift || $class->store_class;
-        eval "require $class" or die $@;
-    }
     my $builder = eval { Kinetic::Build->resume }
       or die "Cannot resume build: $@";
 
@@ -277,7 +273,7 @@ sub test_config { die "test_config() must be overridden in the subclass" }
 
   $kbs->build;
 
-This method will build a database representing classes in the directory
+This method will build a data store representing classes in the directory
 specified by C<Kinetic::Build::source_dir()>.
 
 =cut
@@ -298,9 +294,9 @@ sub build {
 
   $kbs->test_build;
 
-This method will build a temporary database representing classes in the
+This method will build a temporary data store representing classes in the
 directory specified by C<Kinetic::Build::source_dir()>. This temporary
-database can then be used for testing.
+data store can then be used for testing.
 
 This implementation is merely an alias for the C<build()> method. Subclasses
 may override it to add test-specific functionality.
@@ -308,6 +304,22 @@ may override it to add test-specific functionality.
 =cut
 
 *test_build = \&build;
+
+##############################################################################
+
+=head3 test_cleanup
+
+  $kbs->test_cleanup;
+
+This method will cleanup a temporary data store created by the C<test_build()>
+meethod.
+
+This implementation is a no-op, but can be overridden in subclasses to delete
+drop a database or something similar.
+
+=cut
+
+sub test_cleanup { shift }
 
 ##############################################################################
 
