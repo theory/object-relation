@@ -738,8 +738,8 @@ reimplemented in other classes.
 
   $kbs->create_db($db_name);
 
-Attempts to create a database with the supplied named.  It uses Unicode encoding.
-It will disconnect from the database when done.
+Attempts to create a database with the supplied name. It uses Unicode
+encoding. It will disconnect from the database when done.
 
 =cut
 
@@ -856,6 +856,10 @@ sub test_config {
         db_pass => '__kinetic_test__',
         host    => $self->db_host,
         port    => $self->db_port,
+        # Well need these during tests.
+        db_super_user => $self->db_super_user,
+        db_super_pass => $self->db_super_pass,
+        template_db_name => $self->template_db_name,
     };
 }
 

@@ -607,6 +607,9 @@ sub test_validate_user_db : Test(14) {
         db_pass => '__kinetic_test__',
         host    => undef,
         port    => undef,
+        db_super_user => undef,
+        db_super_pass => undef,
+        template_db_name => undef,
     }, "As should the test configuration.";
 
     $mb->mock(store => 'pg');
@@ -693,6 +696,9 @@ sub test_validate_super_user : Test(14) {
         db_pass => '__kinetic_test__',
         host    => 'pgme',
         port    => '5433',
+        db_super_user => 'postgres',
+        db_super_pass => 'postgres',
+        template_db_name => 'template1',
     }, "As should the test configuration.";
 
     $mb->mock(store => 'pg');
@@ -774,6 +780,9 @@ sub test_validate_super_user_arg : Test(14) {
         db_pass => '__kinetic_test__',
         host    => undef,
         port    => undef,
+        db_super_user => 'postgres',
+        db_super_pass => 'postgres',
+        template_db_name => undef,
     }, "As should the test configuration.";
 
     $mb->mock(store => 'pg');
@@ -786,8 +795,190 @@ sub test_validate_super_user_arg : Test(14) {
     }, "The configuration should be set up properly.";
 }
 
+##############################################################################
+# Test simple Pg store helpers that don't touch the database.
+
+sub test_helpers : Test(16) {
+    my $self = shift;
+    require Kinetic::Util::Config;
+    Kinetic::Util::Config->import(':pg');
+
+    my $class = $self->test_class;
+    $self->chdirs('t', 'data');
+
+    # Override builder methods to keep things quiet.
+    my $mb = MockModule->new(Build);
+    $mb->mock(check_manifest => sub { return });
+    my $builder = $self->new_builder;
+    $mb->mock(resume => $builder);
+    $mb->mock(_app_info_params => sub { } );
+
+    # Override $class methods to keep things quiet.
+    my $pg = MockModule->new($class);
+    my $dsn = 'dbi:Pg:dbname=' . PG_TEMPLATE_DB_NAME();
+
+    # Construct the object.
+    ok my $kbs = $class->new, "Create new $class object";
+    isa_ok $kbs, $class;
+
+    # Try _connect_user().
+    $pg->mock(db_super_user => PG_DB_SUPER_USER());
+    $pg->mock(db_super_pass => PG_DB_SUPER_PASS());
+    my @args;
+    $pg->mock(_connect => sub { shift; @args = @_; } );
+    $kbs->_connect_user($dsn);
+    is_deeply \@args, [$dsn, PG_DB_SUPER_USER(), PG_DB_SUPER_PASS() ],
+      '_connect_user should pass super user to _connect';
+
+    # Try it without the super user.
+    $pg->unmock('db_super_user');
+    $pg->unmock('db_super_pass');
+    $pg->mock(db_user => PG_DB_USER());
+    $pg->mock(db_pass => PG_DB_PASS());
+    $kbs->_connect_user($dsn);
+    is_deeply \@args, [$dsn, PG_DB_USER(), PG_DB_PASS() ],
+      '_connect_user should pass database user to _connect';
+
+    $pg->unmock('db_user');
+    $pg->unmock('db_pass');
+    $pg->unmock('_connect');
+
+    # Test_dsn
+    is $kbs->_dsn('foo'), 'dbi:Pg:dbname=foo', 'Try a simple DSN';
+    # Set up a database.
+    $pg->mock(db_name => 'yow');
+    is $kbs->_dsn, 'dbi:Pg:dbname=yow', 'DSN should default to db_name';
+    # Set up a host.
+    $pg->mock(db_host => 'hello');
+    is $kbs->_dsn, 'dbi:Pg:dbname=yow;host=hello',
+      'DSN should use a host name';
+    # Set up a port.
+    $pg->mock(db_port => '1212');
+    is $kbs->_dsn, 'dbi:Pg:dbname=yow;host=hello;port=1212',
+      'DSN should use a port number';
+    # And without the host name.
+    $pg->unmock('db_host');
+    is $kbs->_dsn, 'dbi:Pg:dbname=yow;port=1212',
+      'DSN should use a port number without a host';
+    $pg->unmock('db_port');
+
+    # Test _try_connect.
+    my @cons = (1, 0, 1);
+    @args = ();
+    $pg->mock(_connect => sub { shift; push @args, @_; shift @cons });
+    $pg->mock(db_name => 'foo');
+    my $state = {};
+    ok $kbs->_try_connect($state, 'one', 'two'),
+      "_try_connect() should return true";
+    is_deeply \@args, ['dbi:Pg:dbname=foo', 'one', 'two'],
+      "Connection parameters should have been passed to _connect()";
+    is_deeply $state->{dsn}, ['dbi:Pg:dbname=foo'],
+      "The DSN should have been put in the state object";
+    $pg->mock(_get_template_db_name => 'myt');
+    $state = {};
+    @args = ();
+    ok $kbs->_try_connect($state, 'one', 'two'),
+      "_try_connect() should return true again";
+    is_deeply \@args,
+      ['dbi:Pg:dbname=foo', 'one', 'two', 'dbi:Pg:dbname=myt', 'one', 'two'],
+      "Two sets of connection parameters should have been passed to _connect()";
+    is_deeply $state->{dsn}, ['dbi:Pg:dbname=foo', 'dbi:Pg:dbname=myt'],
+      "Both DSNs should have been put in the state object";
+}
+
+##############################################################################
+# Test Pg store helpers that touch the database.
+
+sub test_db_helpers : Test(no_plan) {
+    my $self = shift;
+    require Kinetic::Util::Config;
+    Kinetic::Util::Config->import(':pg');
+
+    my $class = $self->test_class;
+    $self->chdirs('t', 'data');
+
+    # Override builder methods to keep things quiet.
+    my $mb = MockModule->new(Build);
+    $mb->mock(check_manifest => sub { return });
+    my $builder = $self->new_builder;
+    $mb->mock(resume => $builder);
+    $mb->mock(_app_info_params => sub { } );
+
+    # Override $class methods to keep things quiet.
+    my $pg = MockModule->new($class);
+    my $dsn = 'dbi:Pg:dbname=' . PG_TEMPLATE_DB_NAME();
+
+    # Construct the object.
+    ok my $kbs = $class->new, "Create new $class object";
+    isa_ok $kbs, $class;
+
+    # From here on in we hit the database.
+    return "Not testing PostgreSQL" unless $self->supported('pg');
+
+    # Test _connect().
+    isa_ok my $dbh = $kbs->_connect(
+        $dsn,
+        PG_DB_SUPER_USER(),
+        PG_DB_SUPER_PASS(),
+        { RaiseError => 1, PrintError => 1 }
+    ), 'DBI::db';
+
+    $pg->mock(_dbh => $dbh);
+
+    # Test _pg_says_true.
+    is $kbs->_pg_says_true('select 1'), 1,
+      "_pg_says_true should return the value we select";
+    is $kbs->_pg_says_true("select 'yow'"), 'yow',
+      "Even if it's not a number";
+    is $kbs->_pg_says_true("select 1 where 1 = ?", 1), 1,
+      "_pg_says_true should accept parameters";
+    is $kbs->_pg_says_true("select 1 where 1 = ?", 12), undef,
+      "And make appropriate use of them";
+
+    # Test _db_exists.
+    ok $kbs->_db_exists(PG_TEMPLATE_DB_NAME()),
+      "_db_exists should return true for the template db";
+    ok !$kbs->_db_exists('__an_impossible_db_name_i_hope__'),
+      "_db_exists should return false for a non-existant database";
+
+    is $kbs->_plpgsql_available,
+      $kbs->_pg_says_true(
+          'select 1 from pg_catalog.pg_language where lanname = ?',
+          'plpgsql'
+      ), '_plpgsql_available should do the right thing';
+
+    # Test _get_template_db_name.
+    $mb->mock(get_reply => 'mytemplate');
+    is $kbs->{template_db_name}, undef,
+      "Template name should start out undef";
+    is $kbs->_get_template_db_name, 'mytemplate',
+      '_get_template_db_name should return the name provided by get_reply';
+    is $kbs->{template_db_name}, 'mytemplate',
+      "And now it should be stored in the object";
+
+    # Test _user_exists.
+    ok $kbs->_user_exists(PG_DB_SUPER_USER()),
+      "_user_exists should find the super user";
+    ok !$kbs->_user_exists('__impossible_user_name_i_hope__'),
+      "and shouldn't find a non-existant user";
+
+    # Test _can_create_db and _has_schema_permissions.
+    $pg->mock(db_user => PG_DB_SUPER_USER());
+    ok $kbs->_can_create_db, "Super user should be able to create db";
+    ok $kbs->_has_schema_permissions,
+      "Super user should add objects to the db";
+    $pg->mock(db_user => '__impossible_user_name_i_hope__');
+    ok !$kbs->_can_create_db, "A non-existant user cannot create a database";
+    ok ! eval { $kbs->_has_schema_permissions },
+      "Nor can he add objects to a database";
+
+    ok $kbs->_is_super_user(PG_DB_SUPER_USER()),
+      "Super user should be super user";
+    ok !$kbs->_is_super_user('__impossible_user_name_i_hope__'),
+      "A non-existant user should not be a super user";
+}
+
 # To Do:
-# * Test helper methods used by rules
 # * Create and test methods to create the database.
 # * Create and test build() and test_build().
 

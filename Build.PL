@@ -3,8 +3,6 @@ use 5.008003;
 use lib 'lib';
 use Kinetic::Build;
 
-# XXX Switch to Module::Build once a new version with support for the
-# "build_class" property has been released.
 my $build = Kinetic::Build->new(
     module_name          => 'Kinetic',
     license              => 'gpl',
@@ -31,7 +29,7 @@ my $build = Kinetic::Build->new(
 #        'DBD::Pg'               => 1.32, # XXX Change to option.
 #        'DBD::SQLite'           => 1.07, # XXX Change to option.
     },
-    build_requires     => {
+    build_requires       => {
         'App::Info'             => 0.42,
         'FSA::Rules'            => 0.21,
         'Module::Build'         => 0.26,
