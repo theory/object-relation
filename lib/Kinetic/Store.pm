@@ -318,8 +318,11 @@ B<Throws:>
 =cut
 
 sub save {
-    require Carp;
-    Carp::croak("Kinetic::Store::save must be overridden in a subclass");
+    my $self = shift;
+    unless (ref $self) { # they called it as a class method
+        $self = $self->new;
+    }
+    $self->save(@_);
 }
 
 ##############################################################################
