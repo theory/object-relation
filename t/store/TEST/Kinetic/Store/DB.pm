@@ -21,8 +21,6 @@ use aliased 'TestApp::Simple::Two';
 
 __PACKAGE__->runtests;
 
-sub store { '' }
-
 sub test_dbh : Test(2) {
     my $self = shift;
     my $class = $self->test_class;
