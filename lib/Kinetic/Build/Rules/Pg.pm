@@ -237,14 +237,11 @@ sub _state_machine {
             ]
         },
         fail => {
-            do => sub { 
-                my $state = shift;
-                die $state->prev_state->message || 'no message supplied';
-            },
+            do => sub { die shift->prev_state->message || 'no message supplied' },
         },
-        done => { do => sub { $done = 1 } }
+        done => { do => sub { $self->build->notes(good_store => 1) } },
     );
-    return (\@state_machine, sub {$done});
+    return (\@state_machine);
 }
 
 sub _dummy_state {

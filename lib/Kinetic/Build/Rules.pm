@@ -100,36 +100,6 @@ sub _validate {
 
 ##############################################################################
 
-=head3 graph
-
-  $rules->graph(@graph_viz_args);
-
-This method takes the same arguments as the C<GraphViz> constructor.  Returns
-a C<GraphViz> object.
-
-=cut
-
-sub graph {
-    my $self = shift;
-    eval "use GraphViz;";
-    if ($@) {
-        warn "Cannot create graph object: $@";
-        return;
-    }
-    my ($machine) = $self->_state_machine;
-    my $graph = GraphViz->new(@_);
-    while (my ($state,$definition) = splice @$machine => 0, 2) {
-       $graph->add_node($state);
-       next unless exists $definition->{rules};
-       while (my ($rule, $condition) = splice @{$definition->{rules}} => 0, 2) {
-           $graph->add_edge($state, $rule);
-       }
-    }
-    return $graph;
-}
-
-##############################################################################
-
 =head1 Instance Interface
 
 =head2 Public Instance Methods
@@ -193,7 +163,7 @@ sub validate {
     my $machine = FSA::Rules->new(@$state_machine);
     $machine->start;
     $self->{machine} = $machine; # internal only.  Used for debugging
-    $machine->switch while ! $done->();
+    $machine->switch while ! $machine->at('done');
     return $self;
 }
 

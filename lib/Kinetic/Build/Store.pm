@@ -19,6 +19,7 @@ package Kinetic::Build::Store;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
+use Kinetic::Build;
 use Kinetic::Util::Config qw(:store);
 
 =head1 Name
@@ -65,7 +66,9 @@ sub new {
         $class =~ s/^Kinetic::Store/Kinetic::Build::Store/;
         eval "require $class" or die $@;
     }
-    bless {}, $class;
+    bless {
+        metadata => Kinetic::Build->resume,
+    } => $class;
 }
 
 ##############################################################################
@@ -87,6 +90,18 @@ sub validate {
     my ($self) = @_;
     return $self;
 }
+
+##############################################################################
+
+=head3 metadata
+
+  my $metadata = $kbs->metadata;
+
+Returns the C<Kinetic::Build> object used to determine build properties.
+
+=cut
+
+sub metadata { $_[0]->{metadata} }
 
 ##############################################################################
 

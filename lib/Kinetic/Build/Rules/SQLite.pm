@@ -89,39 +89,42 @@ sub _state_machine {
     my $succeed = sub {  shift->result };
     my @state_machine = (
         start => {
-            do => sub { 
-                my $state = shift;
-                $state->result($self->_is_installed);
-                $state->message($self->app_name ." does not appear to be installed" )
-                  unless $state->result;
-            },
+            do => sub { shift->result($self->_is_installed) },
             rules => [
-                fail          => $fail,
-                check_version => $succeed,
+                fail => {
+                    rule    => $fail,
+                    message => 'SQLite does not appear to be installed',
+                },
+                check_version => {
+                    rule    => $succeed,
+                    message => 'SQLite is installed',
+                },
             ],
         },
         check_version => {
-            do => sub { 
-                my $state = shift;
-                $state->result($self->_is_required_version);
-                $state->message($self->app_name . " is not the minimum required version")
-                  unless $state->result;
-            },
+            do => sub { shift->result($self->_is_required_version) },
             rules  => [
-                fail             => $fail,
-                check_executable => $succeed,
+                fail => {
+                    rule    => $fail,
+                    message => 'SQLite is not the minimum required version',
+                },
+                check_executable => {
+                    rule    => $succeed,
+                    message => 'SQLite is the minimum required version',
+                },
             ],
         },
         check_executable => {
-            do => sub {
-                my $state = shift;
-                $state->result($self->_has_executable);
-                $state->message("DBD::SQLite is installed but we require the sqlite3 executable")
-                  unless $state->result;
-            },
+            do => sub { shift->result($self->_has_executable) },
             rules => [
-                fail      => $fail,
-                file_name => $succeed,
+                fail      => {
+                    rule    => $fail,
+                    message => 'DBD::SQLite is installed but we require the sqlite3 executable',
+                },
+                file_name => {
+                    rule    => $succeed,
+                    message => 'sqlite3 found',
+                },
             ],
         },
         file_name => {
@@ -133,7 +136,19 @@ sub _state_machine {
                 $self->build->db_name($filename);
                 $state->result($filename);
             },
-            rules => [ file_name => $fail ],
+            rules => [ 
+                file_name => {
+                    rule    => $fail,
+                    message => 'No filename for database',
+                },
+                done => {
+                    rule    => $succeed,
+                    message => 'We have a filename',
+                }
+            ],
+        },
+        done => {
+            do => sub {$self->build->notes(good_store => 1) },
         },
         fail => {
             do => sub { 
@@ -143,7 +158,7 @@ sub _state_machine {
             },
         },
     );
-    return (\@state_machine, sub {$filename});
+    return (\@state_machine);
 }
 
 1;

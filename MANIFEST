@@ -67,7 +67,7 @@ t/pg_class.t
 t/pg_schema.t
 t/pg_schema_file.t
 t/pg_store_build.t
-t/pod-coverage.t
+t/pod_coverage.t
 t/pod.t
 t/schema_meta.pm
 t/sqlite_schema.t

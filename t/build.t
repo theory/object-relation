@@ -5,8 +5,8 @@
 use strict;
 use Test::Exception;
 use Test::MockModule;
-#use Test::More 'no_plan';
-use Test::More tests => 82;
+use Test::More 'no_plan';
+#use Test::More tests => 82;
 use Test::File;
 use Test::File::Contents;
 use lib 't/lib', '../../lib';;
@@ -209,6 +209,11 @@ file_not_exists_ok 'blib/conf/test.conf',
     $sqlite->mock(executable => sub {1} );
     ok $build->ACTION_check_store,
        '... and if all parameters are correct, we should have no errors';
+    #my $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
+    #open GRAPH, '>', 'sqlite.png' or die $!;
+    #binmode GRAPH;
+    #print GRAPH $fsa->graph->as_png;
+    #close GRAPH or die $!;
 }
 
 {
