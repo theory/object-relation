@@ -24,6 +24,7 @@ use version;
 use encoding 'utf8';
 use Kinetic::Meta;
 use Kinetic::Meta::Widget;
+use Kinetic::Store;
 use Kinetic::Util::State qw(:all);
 binmode STDOUT, ':utf8';
 binmode STDERR, ':utf8';
@@ -79,8 +80,10 @@ BEGIN {
         key         => 'kinetic',
         name        => 'Kinetic',
         plural_name => 'Kinetics', # Oof.
+        trust       => 'Kinetic::Store',
         abstract    => 1,
     );
+    Kinetic::Store->_add_store_meta($cm);
 
 ##############################################################################
 # Constructors.

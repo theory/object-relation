@@ -71,7 +71,7 @@ sub update_from_xml : Test(3) {
     my $xml_string = $xml->dump_xml;
     my $object = $test->_force_inflation(XML->update_from_xml($xml_string));
     ok exists $object->{id}, '... and an existing guid should provide its ID for the update';
-    
+
     $updated_object->{guid} = 'No such guid';
     $xml = XML->new($updated_object); 
     $xml_string = $xml->dump_xml;
@@ -101,7 +101,7 @@ sub new_from_xml : Test(5) {
     throws_ok { XML->new_from_xml($no_version) }
         qr/No version supplied in XML/,
         '... and calling it with kinetic XML without a version should fail';
-    
+
     my $one = One->new;
     $one->name('some name');
     $one->description('some description');
@@ -112,10 +112,10 @@ sub new_from_xml : Test(5) {
 
     my $two = Two->new;
     $two->name('june17');
-    $two->date(DateTime->new( 
+    $two->date(DateTime->new(
         year  => 1968,
         month => 6,
-        day   => 17 
+        day   => 17
     ));
     $two->one($one);
     $xml->object($two);
@@ -177,10 +177,10 @@ sub dump_xml : Test(5) {
     END_XML
     my $two = Two->new;
     $two->name('june17');
-    $two->date(DateTime->new( 
+    $two->date(DateTime->new(
         year  => 1968,
         month => 6,
-        day   => 17 
+        day   => 17
     ));
     $two->one($one);
     $xml->object($two);
@@ -227,7 +227,6 @@ sub dump_xml : Test(5) {
     is_xml $xml->dump_xml, <<"    END_XML", '... and if the object has an id, it should be in the XML';
     <kinetic version="0.01">
       <one guid="$guid">
-        <id>$id</id>
         <name>foo</name>
         <description></description>
         <state>1</state>

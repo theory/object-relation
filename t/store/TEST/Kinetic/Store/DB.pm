@@ -24,6 +24,23 @@ __PACKAGE__->runtests unless caller;
 
 sub foo : Test(1) { ok 1 }
 
+sub test_id : Test(5) {
+    # Test the private ID attribute added by Kinetic::Store::DB.
+    my $self = shift;
+    ok my $class = One->my_class, "We should get the class object";
+    ok my $attr = $class->attributes('id'),
+      "We should be able to directly access the id attribute object";
+    isa_ok($attr, 'Kinetic::Meta::Attribute');
+    ok !grep({ $_->name eq 'id' } $class->attributes),
+      "A call to attributes() should not include private attribute id";
+    {
+        package Kinetic::Store;
+        Test::More::ok grep({ $_->name eq 'id' } $class->attributes),
+          "But it should include it when we mock the Kinetic::Store package";
+    }
+}
+
+
 sub test_dbh : Test(2) {
     my $self = shift;
     my $class = $self->test_class;
@@ -549,7 +566,7 @@ sub insert : Test(7) {
         '1', # state: Active
         '1'  # bool
     ];
-    ok ! exists $one->{id}, 'And a new object should not have an id';
+    ok ! $one->{id}, 'And a new object should not have an id';
     my @attributes = $one->my_class->attributes;
     my $store = Store->new;
     @{$store}{qw/search_class view columns values/} = (

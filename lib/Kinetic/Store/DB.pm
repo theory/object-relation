@@ -98,9 +98,10 @@ sub _save {
     foreach my $attr ($self->{search_class}->attributes) {
         $self->_save($attr->get($object)) if $attr->references;
         push @{$self->{columns}}  => $self->_get_column($attr);
-        push @{$self->{values}} => $self->_get_raw_value($object, $attr);
+        push @{$self->{values}}   => $self->_get_raw_value($object, $attr);
     }
-    return exists $object->{id}
+
+    return $object->{id}
         ? $self->_update($object)
         : $self->_insert($object);
 }
@@ -456,8 +457,8 @@ sub _do_sql {
         ? 'prepare_cached'
         : 'prepare';
     my $sth = $self->_dbh->$dbi_method($sql);
-    # The warning has been suppressed due to 
-    # "use of unitialized value in subroutine entry" warnings
+    # The warning has been suppressed due to "use of unitialized value in
+    # subroutine entry" warnings from DBD::SQLite.
     no warnings 'uninitialized';
     $sth->execute(@$bind_params);
     return $self;
@@ -576,7 +577,7 @@ sub _build_object_from_hashref {
     my %objects;
     my %metadata = $self->_search_data_metadata;
     # XXX I can have an array in metadata which has the objects in reverse
-    # order and simply iterate through them and ensure that in the first 
+    # order and simply iterate through them and ensure that in the first
     # while loop, I know a contained object is built by the time you get
     # containing object(s)
     while (my ($package, $data) = each %metadata) {
@@ -624,12 +625,7 @@ sub _set_search_data {
     my ($self) = @_;
     my $package = $self->search_class->package;
     unless (exists $SEARCH_DATA{$package}) {
-        my @columns   = 'id'; # ID of main view
-        my %packages = (
-            $package => {
-                columns => { id => 'id' }
-            }
-        );
+        my (@columns, %packages);
         my @classes_to_process = {
             class  => $self->search_class,
             prefix => '',
@@ -640,15 +636,15 @@ sub _set_search_data {
                 foreach my $attr ($data->{class}->attributes) {
                     my $column      = $self->_get_column($attr);
                     my $view_column = "$data->{prefix}$column";
-                    push @columns   => $view_column;
                     $packages{$package}{columns}{$view_column} = $column;
                     if (my $class = $attr->references) {
-                        $packages{$class->package}{columns}{$view_column} = 'id';
                         push @classes_to_process => {
                             class  => $class,
                             prefix => $class->key . OBJECT_DELIMITER,
                         };
                         $packages{$package}{contains}{$column} = $class;
+                    } else {
+                        push @columns => $view_column;
                     }
                 }
             }
@@ -913,7 +909,7 @@ sub _is_case_insensitive {
           or croak "Cannot determine class for key ($key)";
         $column = $column2;
     }
-    if ($search_class && $column ne 'id') {
+    if ($search_class) {
         my $type = $search_class->attributes($column)->type;
         foreach my $icolumn ($self->_case_insensitive_types) {
             if ($type eq $icolumn) {
@@ -1123,6 +1119,36 @@ sub _connect_args {
 }
 
 #DESTROY { shift->_dbh->disconnect }
+
+##############################################################################
+
+=head3 _add_store_meta
+
+  package Kinetic;
+  my $km = Kinetic::Meta->new;
+  Kinetic::Store->_add_store_meta($km);
+
+This protected method adds an "id" attribute to the Kinetic base class, solely
+for use from within database stores. May be overridden in subclasses to add
+other metadata.
+
+=cut
+
+sub _add_store_meta {
+    my ($self, $km) = @_;
+    $km->add_attribute(
+        name     => 'id',
+        label    => 'Database Primary Key',
+        type     => 'whole',
+        required => 1,
+        indexed  => 1,
+        unique   => 1,
+        once     => 1,
+        authz    => Class::Meta::RDWR,
+        view     => Class::Meta::TRUSTED,
+    );
+    return $self;
+}
 
 1;
 __END__

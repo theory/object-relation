@@ -29,13 +29,15 @@ use constant XML_VERSION => '0.01';
 
 =head1 Name
 
-Kinetic::XML - The Kinetic xml serialization class
+Kinetic::XML - The Kinetic XML serialization class
 
 =head1 Synopsis
 
   use Kinetic::XML;
 
 =head1 Description
+
+XXX Write me!
 
 =cut
 
@@ -72,8 +74,9 @@ sub new {
 
  my $kinetic_object = Kinetic::XML->new_from_xml($xml);
 
-Loads the data in an XML representation of the Kinetic business object as a new
-object.  This will return a B<Kinetic> object, not a C<Kinetic::XML> object.
+Loads the data in an XML representation of the Kinetic business object as a
+new object. This method will return a B<Kinetic> object, not a C<Kinetic::XML>
+object.
 
 =cut
 
@@ -122,7 +125,7 @@ sub _get_hash_from_xml {
   my $object = $xml->_fetch_object($key, $data);
 
 This method takes a Kinetic::Meta key and a hashref for its data and will
-return an object for the appropriate class.  Contained objects will also be
+return an object for the appropriate class. Contained objects will also be
 handled correctly.
 
 =cut
@@ -136,6 +139,9 @@ sub _fetch_object {
     }
     my $class = Kinetic::Meta->for_key($key)
         or die "Cannot determine class for key ($key)";
+
+    # XXX Bleh! There's not validation here. We need validation by using the
+    # individual attribute accessors.
     my $object = bless $data => $class->package;
     if ($self->{params}{update}) {
         my $iter  = Kinetic::Store->new->search($class, guid => $object->guid);
@@ -145,6 +151,8 @@ sub _fetch_object {
         else {
             die "Could not find guid '$object->{guid}' in the store";
         }
+    } else {
+         $object->{id} = undef;
     }
     return $object;
 }
@@ -258,28 +266,24 @@ sub _add_object_to_xml {
     my ($self, $xml, $object) = @_;
     $xml->StartElementLiteral($object->my_class->key);
     $xml->AddAttributeLiteral(guid => $object->guid);
-    if (exists $object->{id}) {
-        $xml->Element( id => ($object->{id} || '') );
-    }
+
     foreach my $attr ($object->my_class->attributes) {
         my $name = $attr->name;
         next if 'guid' eq $name;
         if ($attr->references) {
             my $object = $attr->get($object);
             if (exists $self->{params}{with_contained} && ! $self->{params}{with_contained}) {
-                # just guid 
+                # just guid
                 my $name = $object->my_class->key;
                 $xml->StartElementLiteral('',$name);
                 $xml->AddAttributeLiteral('', guid => $object->guid);
                 $xml->AddAttributeLiteral('', relative => 1);
                 $xml->EndElement;
                 push @OBJECTS => $object;
-            }
-            else {
+            } else {
                 $self->_add_object_to_xml($xml, $object);
             }
-        }
-        else {
+        } else {
             $xml->Element( $name => ($attr->raw($object) || '') );
         }
     }

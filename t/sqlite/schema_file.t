@@ -5,8 +5,13 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
-#use Test::More 'no_plan';
-use Test::More tests => 23;
+use Test::More;
+
+BEGIN {
+    plan skip_all => "Not testing SQLite"
+      unless $ENV{KINETIC_SUPPORTED} =~ /\bsqlite\b/;
+    plan tests => 23;
+}
 
 BEGIN { use_ok 'Kinetic::Build::Schema' or die };
 

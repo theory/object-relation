@@ -5,8 +5,14 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
-use Test::More tests => 68;
+use Test::More;
 use Test::Differences;
+
+BEGIN {
+    plan skip_all => "Not testing PostgreSQL"
+      unless $ENV{KINETIC_SUPPORTED} =~ /\bpg\b/;
+    plan tests => 68;
+}
 
 BEGIN { use_ok 'Kinetic::Build::Schema' or die };
 

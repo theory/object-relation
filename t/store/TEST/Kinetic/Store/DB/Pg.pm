@@ -18,7 +18,7 @@ use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->supported('pg')
       ? 0
-      : "Not testing Postgresql"
+      : "Not testing PostgreSQL"
 ) if caller; # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 

@@ -21,12 +21,6 @@ package Kinetic::Store;
 use strict;
 use Kinetic::Util::Config qw(:store);
 
-#use base 'Class::Virtually::Abstract';
-#__PACKAGE__->virtual_methods(qw/
-#    search
-#    search_guids
-#/);
-
 =head1 Name
 
 Kinetic::Store - The Kinetic data storage class
@@ -36,7 +30,7 @@ Kinetic::Store - The Kinetic data storage class
   use Kinetic::Store;
   use Kinetic::Biz::Subclass;
   my $iter = Kinetic::Store->search('Kinetic::Biz::SubClass' =>
-                                      attr => 'value');
+                                    attr => 'value');
 
 =head1 Description
 
@@ -332,6 +326,38 @@ sub save {
 }
 
 ##############################################################################
+
+=begin private
+
+=head1 Private Methods
+
+=head2 Private Class Methods
+
+=head3 _add_store_meta
+
+  package Kinetic;
+  my $km = Kinetic::Meta->new;
+  Kinetic::Store->_add_store_meta($km);
+
+This protected method is the interface that allows store subclasses to add
+data-store dependendent attributes to the Kinetic base class via the
+Kinetic::Meta object used to construct the Kinetic base class. It will B<only>
+be called once, during compilation, by Kinetic, to add any necessary
+attributes or other metadata objects to ease the implemtation of the data
+store.
+
+The default implementation of this method is a no-op. See
+L<Kinetic::Store::DB> for an example implemntation.
+
+=cut
+
+sub _add_store_meta {
+    my $self = shift;
+    $self = $self->new unless ref $self;
+    $self->_add_store_meta(@_);
+}
+
+=end private
 
 =head1 Search Parameters Explained
 
