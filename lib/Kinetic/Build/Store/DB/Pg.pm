@@ -67,10 +67,10 @@ sub _dbh {
         return $self;
     }
     return $self->{dbh} if $self->{dbh};
-    my $metadata = $self->metadata;
-    my $dsn   = $metadata->_dsn;
-    my $user  = $metadata->notes->{user};
-    my $pass  = $metadata->notes->{pass};
+    my $builder = $self->builder;
+    my $dsn   = $builder->_dsn;
+    my $user  = $builder->notes->{user};
+    my $pass  = $builder->notes->{pass};
     my $dbh = DBI->connect($dsn, $user, $pass, {RaiseError => 1})
       or require Carp && Carp::croak $DBI::errstr;
     $self->{dbh} = $dbh;
@@ -119,10 +119,10 @@ database.
 sub add_plpgsql_to_db {
     my ($self, $db_name) = @_;
     # createlang -U postgres plpgsql template1
-    my $metadata    = $self->metadata;
+    my $builder    = $self->builder;
     my $info        = App::Info::RDBMS::PostgreSQL->new;
     my $createlang  = $info->createlang or die "Cannot find createlang";
-    my $root_user   = $metadata->db_root_user;
+    my $root_user   = $builder->db_root_user;
     my @options;
     my %options = (
         db_host      => '-h',
@@ -130,9 +130,9 @@ sub add_plpgsql_to_db {
         db_root_user => '-U',
     );
     while (my ($method, $switch) = each %options) {
-        push @options => ($switch, $metadata->$method) if defined $metadata->$method;
+        push @options => ($switch, $builder->$method) if defined $builder->$method;
     }
-    
+
     my $language = 'plpgsql';
     my @add_plpgsql = ($createlang, @options, $language, $db_name);
     system(@add_plpgsql) && die "system(@add_plpgsql) failed: $?";

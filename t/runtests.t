@@ -16,7 +16,7 @@ BEGIN {
     @classes = classes(shift);
 
     sub classes {
-        my $test_dir = shift || 't/';
+        my $test_dir = shift || 't';
         unshift @INC => $test_dir;
         my @classes;
         my $wanted = sub {

@@ -66,21 +66,21 @@ sub new {
         $class =~ s/^Kinetic::Store/Kinetic::Build::Store/;
         eval "require $class" or die $@;
     }
-    my $metadata;
-    eval { $metadata = Kinetic::Build->resume };
-    unless ($metadata) {
+    my $builder;
+    eval { $builder = Kinetic::Build->resume };
+    unless ($builder) {
         die "Cannot resume build: $@";
     }
     bless {
-        metadata => $metadata,
+        builder => $builder,
     } => $class;
 }
 
 ##############################################################################
 
-=head3 metadata
+=head3 builder
 
-  my $metadata = $kbs->metadata;
+  my $builder = $kbs->builder;
 
 Returns the C<Kinetic::Build> object used to determine build properties.
 
@@ -88,7 +88,7 @@ Returns the C<Kinetic::Build> object used to determine build properties.
 
 # XXX This is a terrible name for this attribute. Why not builder()?
 
-sub metadata { $_[0]->{metadata} }
+sub builder { $_[0]->{builder} }
 
 ##############################################################################
 
@@ -119,7 +119,7 @@ actions designated by the rules and runs all of them.
 
 sub do_actions {
     my ($self) = @_;
-    return $self unless my $actions = $self->metadata->notes('actions');
+    return $self unless my $actions = $self->builder->notes('actions');
     foreach my $action (@$actions) {
         my ($method, @args) = @$action;
         $self->$method(@args);

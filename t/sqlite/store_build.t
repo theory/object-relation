@@ -6,7 +6,7 @@ use strict;
 use Test::Exception;
 use Test::MockModule;
 #use Test::More 'no_plan';
-use Test::More tests => 21;
+use Test::More tests => 25;
 use lib 't/lib', '../../lib';
 use Kinetic::Build;
 use File::Spec;
@@ -14,16 +14,11 @@ use Cwd;
 
 my ($TEST_LIB, $CLASS, $BUILD);
 
-BEGIN { 
+BEGIN {
     $CLASS = 'Kinetic::Build::Store';
     chdir 't';
     chdir 'build_sample';
-    $TEST_LIB = File::Spec->catfile(qw/.. lib/);
-
-    # tell Kinetic::Build where to read the conf file
-    Kinetic::Build
-        ->new(module_name => 'KineticBuildOne')
-        ->dispatch('realclean');
+    $TEST_LIB = File::Spec->catfile(File::Spec->updir, 'lib');
 
     $BUILD = Kinetic::Build->new(
         module_name     => 'KineticBuildOne',
@@ -47,10 +42,10 @@ isa_ok $bstore, $CLASS, => "... and the object it returns";
 isa_ok $bstore, 'Kinetic::Build::Store::DB::SQLite',
   '... and the object it returns';
 
-can_ok $bstore, 'metadata';
-ok my $metadata = $bstore->metadata, '... and calling it should succeed';
-isa_ok $metadata, 'Kinetic::Build' => '... and the object it returns';
-is_deeply $metadata, $BUILD,
+can_ok $bstore, 'builder';
+ok my $builder = $bstore->builder, '... and calling it should succeed';
+isa_ok $builder, 'Kinetic::Build' => '... and the object it returns';
+is_deeply $builder, $BUILD,
   '... and it should be the same data that Kinetic::Build->resume returns';
 
 SKIP: {
@@ -64,13 +59,17 @@ SKIP: {
     ok ! $@, '... and "use"ing the class should not die';
     my $schema = $schema_class->new;
     $schema->load_classes($TEST_LIB);
-    my @tables = map { $_->table } $schema->classes;
+    my @views = map { $_->key } $schema->classes;
 
-    can_ok $bstore, '_dbh';
-    ok my $dbh = $bstore->_dbh, 'We should have a database handle';
+    ok my $store = Kinetic::Store->new, 'Create Kinetic::Store object';
+    isa_ok $store, 'Kinetic::Store';
+    isa_ok $store, 'Kinetic::Store::DB';
+    isa_ok $store, 'Kinetic::Store::DB::SQLite';
+    can_ok $store, '_dbh';
+    ok my $dbh = Kinetic::Store->new->_dbh, 'We should have a database handle';
     isa_ok $dbh, 'DBI::db' => '... and the handle';
 
-    foreach my $table (@tables) {
+    foreach my $table (@views) {
         my $sql = "SELECT * FROM $table";
         eval {$dbh->selectall_arrayref($sql)};
         ok ! $@, "... and it should tell us that '$table' exists in the database";
@@ -78,9 +77,6 @@ SKIP: {
 }
 
 END {
-    File::Path::rmtree(File::Spec->catdir(qw(t data)));
-    my $db = File::Spec->catfile(qw/.. build_sample/, $metadata->db_file);
-    unlink $db or die $!;
     $BUILD->dispatch('realclean');
 }
 

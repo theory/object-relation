@@ -20,6 +20,7 @@ package Kinetic::Build::Store::DB;
 
 use strict;
 use base 'Kinetic::Build::Store';
+use Kinetic::Store::DB;
 
 =head1 Name
 
@@ -52,18 +53,19 @@ sub build_db {
     eval "use $schema_class";
     die $@ if $@;
 
-    my $dbh = $self->_dbh;
+    my $dbh = Kinetic::Store->new->_dbh;
     $dbh->begin_work;
 
     eval {
         local $SIG{__WARN__} = sub {
             my $message = shift;
+            # XXX We shouldn't have PostgreSQL-specific code in this class!
             return if $message =~ /NOTICE:/; # ignore postgres warnings
             warn $message;
         };
         my $sg = $schema_class->new;
 
-        $sg->load_classes($self->metadata->source_dir);
+        $sg->load_classes($self->builder->source_dir);
 
         $dbh->do($_) foreach
           $sg->begin_schema,
@@ -92,8 +94,8 @@ creating a new database, and the database to be built.
 
 sub switch_to_db {
     my ($self, $db_name) = @_;
-    $self->metadata->db_name($db_name);
-    $self->metadata->notes(db_name => $db_name);
+    $self->builder->db_name($db_name);
+    $self->builder->notes(db_name => $db_name);
     $self->_dbh->disconnect if $self->_dbh;
     $self->_dbh(undef); # clear wherever we were
     return $self;
@@ -117,9 +119,9 @@ Returns the database handle to connect to the data store.
 
 sub _dbh {
     my $self = shift;
-    my $dsn  = $self->metadata->_dsn;
-    my $user = $self->metadata->db_user;
-    my $pass = $self->metadata->db_pass;
+    my $dsn  = $self->builder->_dsn;
+    my $user = $self->builder->db_user;
+    my $pass = $self->builder->db_pass;
     my $dbh = DBI->connect(
         $dsn,
         $user,

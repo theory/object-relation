@@ -5,10 +5,10 @@ package TEST::Kinetic::Store::DB::SQLite;
 use strict;
 use warnings;
 
-use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
+#use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
 use Kinetic::Build::Schema::DB::SQLite; # this seems a bit weird
 use Test::More;
-use base 'TEST::Kinetic::Store';
+use base 'TEST::Kinetic::Store::DB';
 use lib '../../lib';
 
 # we load Schema first because this class tells the others
@@ -32,7 +32,7 @@ sub _build_args {
         module_name     => 'KineticBuildOne',
         conf_file       => 'test.conf', # always writes to t/ and blib/
         accept_defaults => 1,
-        source_dir      => $test->_test_lib,,
+        source_dir      => $test->_test_lib,
         quiet           => 1,
     );
 }

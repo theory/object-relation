@@ -15,7 +15,6 @@ use Cwd;
 my ($TEST_LIB, $CLASS, $BUILD, $DB_NAME);
 
 BEGIN {
-#   use Carp; $SIG{__DIE__} = \&Carp::confess;
     $CLASS = 'Kinetic::Build::Store';
     chdir 't';
     chdir 'build_sample';
@@ -46,17 +45,16 @@ BEGIN {
     use_ok $CLASS or die;
 }
 
-#use Kinetic::Util::Config;
 can_ok $CLASS, 'new';
 ok my $bstore = $CLASS->new, '... and calling it should succeed';
 isa_ok $bstore, $CLASS, "... and the object it returns";
 isa_ok $bstore, 'Kinetic::Build::Store::DB::Pg',
   '... and the object it returns';
 
-can_ok $bstore, 'metadata';
-ok my $metadata = $bstore->metadata, '... and calling it should succeed';
-isa_ok $metadata, 'Kinetic::Build' => '... and the object it returns';
-is_deeply $metadata, $BUILD,
+can_ok $bstore, 'builder';
+ok my $builder = $bstore->builder, '... and calling it should succeed';
+isa_ok $builder, 'Kinetic::Build' => '... and the object it returns';
+is_deeply $builder, $BUILD,
   '... and it should be the same data that Kinetic::Build->resume returns';
 
 SKIP: {

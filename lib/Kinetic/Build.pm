@@ -283,6 +283,23 @@ __PACKAGE__->add_property(conf_file => 'kinetic.conf');
 
 ##############################################################################
 
+=head3 run_dev_tests
+
+  my $run_dev_tests = $build->run_dev_tests;
+  $build->run_dev_tests($run_dev_tests);
+
+Triggers the execution of developer tests. What this means is that, if this
+property is set to a true value, a temporary database will be built by the
+C<setup_test> action and dropped by the C<teardown_test> action. Tests will
+then be run that connect to and make changes to this database. The
+C<run_dev_tests> method is set to a false value by default.
+
+=cut
+
+__PACKAGE__->add_property(run_dev_tests => 0);
+
+##############################################################################
+
 =head2 Actions
 
 =head3 check_store
@@ -340,6 +357,9 @@ sub ACTION_config {
     # configuration file.
     my $old = File::Spec->catfile($self->blib,
                                   qw(lib Kinetic Util Config.pm));
+    # Just return if there is no configuration file.
+    # XXX Can this burn us?
+    return $self unless -e $old;
     my $new = File::Spec->catfile($self->blib,
                                   qw(lib Kinetic Util Config.pm.new));
     # Figure out where we're going to install this beast.
@@ -383,10 +403,30 @@ dependency.
 sub ACTION_build {
     my $self = shift;
     $self->depends_on('check_store');
-# XXX The pod says 'config' is a dependency, but it's commented out here.
-# Which is correct?
-#    $self->depends_on('config');
+    $self->depends_on('config');
     $self->SUPER::ACTION_build(@_);
+}
+
+##############################################################################
+
+=head3 setup_test
+
+=begin comment
+
+=head3 ACTION_setup_test
+
+=end comment
+
+Sets things up for the test action. For example, if the C<dev_tests> property
+has been set to at true value, this action sets up a database for testing.
+
+=cut
+
+sub ACTION_setup_test {
+    my $self = shift;
+    $self->depends_on('check_store');
+    $self->depends_on('config');
+    return unless $self->run_dev_tests;
 }
 
 ##############################################################################
@@ -406,10 +446,29 @@ dependency.
 
 sub ACTION_test {
     my $self = shift;
-    $self->depends_on('check_store');
-# XXX Same note as for ACTION_build
-#    $self->depends_on('config');
+    $self->depends_on('setup_test');
     $self->SUPER::ACTION_test(@_);
+    $self->depends_on('teardown_test');
+}
+
+##############################################################################
+
+=head3 teardown_test
+
+=begin comment
+
+=head3 ACTION_teardown_test
+
+=end comment
+
+Tears down any test infratructure set up during the C<setup_test> action.
+This might involve dropping a database, for example.
+
+=cut
+
+sub ACTION_teardown_test {
+    my $self = shift;
+    # XXX We need a way to say that setup_test needs to run again.
 }
 
 ##############################################################################
@@ -432,7 +491,12 @@ sub process_conf_files {
     return unless %$files;
     $self->_copy_to($files, $self->blib, 't');
 
-    for my $dir ('t/conf/', 'blib/conf/') {
+    my %prefix = (
+        't/conf/' => 'test_',
+        'blib/conf/' => '',
+    );
+
+    for my $dir (keys %prefix) {
         my $conf_file = $self->localize_file_path($dir . $self->conf_file);
         open CONF, '<', $conf_file or die "cannot open $conf_file: $!";
         my @conf;
@@ -441,7 +505,8 @@ sub process_conf_files {
             # Do we have the start of a section?
             next unless /^'?(\w+)'?\s?=>\s?{/;
             # Is there a method for this section?
-            my $method = $self->can($1 . '_config') or next;
+            my $method = $self->can($prefix{$dir} . $1 . '_config')
+              || $self->can($1 . '_config') or next;
             # Dump the default contents of the section.
             while (<CONF>) { last if /^},?$/; }
             if (my @section = $self->$method) {
@@ -497,6 +562,23 @@ sub sqlite_config {
 
 ##############################################################################
 
+=head3 test_sqlite_config
+
+This method is called by C<process_conf_files()> to populate the SQLite
+section of the configuration file used for testing. It returns a list of lines
+to be included in the section, configuring the "file" directive.
+
+=cut
+
+sub test_sqlite_config {
+    my $self = shift;
+    return unless $self->store eq 'sqlite';
+    return "    file => '" .
+      $self->localize_file_path('t/store/' . $self->db_file) . "',\n";
+}
+
+##############################################################################
+
 =head3 pg_config
 
 This method is called by C<process_conf_files()> to populate the PostgreSQL
@@ -513,6 +595,31 @@ sub pg_config {
         "    db_name => '" . $self->db_name . "',\n",
         "    db_user => '" . $self->db_user . "',\n",
         "    db_pass => '" . $self->db_pass . "',\n",
+        "    host    => " . (defined $self->db_host ? "'" . $self->db_host . "'" : 'undef'), ",\n",
+        "    port    => " . (defined $self->db_port ? "'" . $self->db_port . "'" : 'undef'), ",\n",
+    );
+}
+
+##############################################################################
+
+=head3 test_pg_config
+
+This method is called by C<process_conf_files()> to populate the PostgreSQL
+section of the configuration file used during testing. It returns a list of
+lines to be included in the section, configuring the "db_name", "db_user", and
+"db_pass" directives, which are each set to the temporary value
+"__kinetic_test__"; and "host", and "port" directives as specified via the
+"db_host" and "db_port" properties.
+
+=cut
+
+sub test_pg_config {
+    my $self = shift;
+    return unless $self->store eq 'pg';
+    return (
+        "    db_name => '__kinetic_test__',\n",
+        "    db_user => '__kinetic_test__',\n",
+        "    db_pass => '__kinetic_test__',\n",
         "    host    => " . (defined $self->db_host ? "'" . $self->db_host . "'" : 'undef'), ",\n",
         "    port    => " . (defined $self->db_port ? "'" . $self->db_port . "'" : 'undef'), ",\n",
     );
@@ -678,18 +785,6 @@ __PACKAGE__->add_property('_rules');
 
 ##############################################################################
 
-=head3 _dbh
-
-  $build->_dbh([$dbh]);
-
-Use this method to store and retrieve the database handle.
-
-=cut
-
-__PACKAGE__->add_property('_dbh');
-
-##############################################################################
-
 =head3 _dsn
 
   my $dsn = $build->_dsn;
@@ -714,7 +809,7 @@ sub _dsn {
         map  { join '=' => @$_ }
         grep { defined $_->[1] }
         map  {
-            my $method = $dsn->{methods}{$_}; 
+            my $method = $dsn->{methods}{$_};
             [ $_, $self->$method ]
         } sort keys %{ $dsn->{methods} };
     $dbd .= ";$properties" if $properties;

@@ -18,13 +18,11 @@ BEGIN {
     chdir 'build_sample';
 };
 
-my $build = Kinetic::Build->new( 
+my $build = Kinetic::Build->new(
     accept_defaults => 1,
     store           => 'sqlite',
     module_name     => 'KineticBuildOne',
 );
-my $dbh = get_dbh($build);
-$build->_dbh($dbh);
 
 my $info = Test::MockModule->new($CLASS->info_class);
 my @info_messages;
@@ -77,16 +75,3 @@ ok $rules->validate,
   '... and it should return a true value if everything is ok';
 is $build->db_file, 'fooness',
   '... and set the db_file correctly';
-
-sub get_dbh {
-    my $build = shift;
-    foreach my $db_name (qw/kinetic/) {
-        $build->db_name($db_name);
-
-        my $dsn = $build->_dsn;
-        my ($user, $pass) = ($build->db_user, $build->db_pass);
-        my $dbh;
-        eval {$dbh = DBI->connect($dsn, $user, $pass, {RaiseError => 1})};
-        return $dbh;
-    }
-}

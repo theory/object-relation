@@ -91,7 +91,7 @@ sub _state_machine {
 
     my @state_machine = (
         start => {
-            do => sub { 
+            do => sub {
                 my $state = shift;
                 $state->machine->{actions} = []; # must never return to start
                 $state->result($self->_is_installed);

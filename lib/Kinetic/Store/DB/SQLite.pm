@@ -20,6 +20,8 @@ package Kinetic::Store::DB::SQLite;
 
 use strict;
 use base qw(Kinetic::Store::DB);
+use Kinetic::Util::Config qw(:sqlite);
+use constant _dsn => ('dbi:SQLite:dbname=' . SQLITE_FILE, '', '');
 
 =head1 Name
 
@@ -27,37 +29,22 @@ Kinetic::Store::DB::SQLite - SQLite specific behavior for Kinetic::Store::DB
 
 =head1 Synopsis
 
-  use Kinetic::Store;
-
-  my $store = Kinetic::Store->load('DB');
-
-  $store->connect('dbi:SQLite:dbname=kinetic.db', '', '');
-
-  my $coll = $store->search('Kinetic::SubClass' =>
-                            attr => 'value');
+See L<Kinetic::Store|Kinetic::Store>.
 
 =head1 Description
 
-This class implements SQLite-specific behavior for the Kinetic
-storage API, by overriding C<Kinetic::Store::DB> methods as needed.
+This class implements SQLite-specific behavior for the Kinetic storage API by
+overriding C<Kinetic::Store::DB> methods as needed.
 
 =cut
 
-sub _comparison_operator_for_single {
-    my $self = shift;
-    my ($has_not, $operator, $type) = @_;
-
-    if ( $operator eq 'LIKE' ) {
-        return $has_not ? '!~' : '~';
-    } else {
-        return $self->SUPER::_comparison_operator_for_single(@_);
-    }
-}
-
 sub _set_id {
     my ($class, $object) = @_;
-    my $view = $object->my_class->view;
-    my $result = $class->_dbh->selectcol_arrayref("SELECT id FROM $view WHERE guid = ?", undef, $object->guid);
+    my $view = $object->my_class->key;
+    # XXX last_insert_id() doesn't seem to work properly.
+    my $result = $class->_dbh->selectcol_arrayref(
+        "SELECT id FROM $view WHERE guid = ?", undef, $object->guid
+    );
     $object->{id} = $result->[0];
     return $class;
 }

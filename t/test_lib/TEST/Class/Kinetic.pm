@@ -16,7 +16,7 @@ BEGIN { $STARTDIR = getcwd }
 
 =head3 _start_dir
 
-  $test->_start_dir;
+  my $start_dir = $test->_start_dir;
 
 Read only.  Returns absolute path to the directory the tests are run from.
 
@@ -28,7 +28,7 @@ sub _start_dir { $STARTDIR }
 
 =head3 _test_lib
 
-  $test->_test_lib;
+  my $test_lib = $test->_test_lib;
 
 Returns absolute path to the test lib directory that Kinetic ojbects will use.
 May be overridden.
@@ -39,4 +39,3 @@ sub _test_lib {
     return File::Spec->catfile(shift->_start_dir, qw/t lib/);
 }
 
-1;
