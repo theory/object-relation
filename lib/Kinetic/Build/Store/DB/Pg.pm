@@ -94,352 +94,499 @@ it must return arguments that the C<FSA::Rules> constructor requires.
 
 sub rules {
     my $self     = shift;
-    my $template = 'template1'; # default postgresql template
-    my $fail     = sub {! shift->result };
-    my $succeed  = sub {  shift->result };
+    my $builder  = $self->builder;
+    my $no_connect = sub {
+        return if $self->_dbh;
+        my $state = shift;
+        $state->message(
+            'I cannot connect to the PostgreSQL server via "'
+            . join('" or "', @{$state->{dsn}}) . '"'
+          );
+    };
+
+    my $connected = sub {
+        my $state = shift;
+        return unless $self->_dbh;
+        $state->message(
+            "Connected to server via \"$state->{dsn}[-1]\"; "
+              . "checking for database"
+          );
+        return $state;
+    };
+
     return (
-        Start => {
-            do => sub {
-                my $state = shift;
-                $state->machine->{actions} = []; # must never return to start
-                $state->result($self->info->installed);
-            },
+        'Start' => {
             rules => [
+                'Check version' => {
+                    rule => sub { $self->info->installed },
+                    message => "PostgreSQL is installed; checking version number",
+                },
                 Fail => {
-                    rule    => $fail,
-                    message => 'PostgreSQL does not appear to be installed',
+                    rule => 1,
+                    message => "Cannot find PostgreSQL",
+                }
+            ],
+    },
+
+        'Check version' => {
+            rules => [
+                'Server info' => {
+                    rule => sub { $self->is_required_version },
+                    message => 'PostgreSQL is the appropriate version number; '
+                               . 'collecting server info'
                 },
-                "Server info" => {
-                    rule    => $succeed,
-                    message => 'PostgreSQL does appear to be installed',
-                },
+                Fail => {
+                    rule => 1,
+                    message => "PostgreSQL is the wrong version",
+                }
             ],
         },
 
-        "Server info" => {
+        'Server info' => {
             do => sub {
-                my $state = shift;
-                my $build = $self->build;
-
                 # Get the host name.
-                $self->{db_host} = $build->get_reply(
-                    message => "PostgreSQL server hostname [localhost]? ",
-                    default => $ENV{PGHOST} || undef,
+                $self->{db_host} = $builder->get_reply(
                     name    => 'db_host',
+                    label   => 'PostgreSQL server hostname',
+                    message => "What PostgreSQL server host name should I use?",
+                    default => $ENV{PGHOST} || 'localhost',
                 );
+
+                # Just use undef if it's localhost.
+                $self->{db_host} = undef if $self->{db_host} eq 'localhost';
 
                 # Get the port number.
                 if ($ENV{PGPORT}) {
                     $self->{db_port} = $ENV{PGPORT};
                 } else {
-                    my ($def_port, $def_label) = defined $self->{db_host}
-                      ? ('5432', '5432')
-                        : (undef, 'local domain socket');
-                    $self->{db_port} = $ENV{PGHOST} || $build->prompt(
-                        "PostgreSQL server port [$def_label]? ",
-                        $def_port,
+                    my $def_port = defined $self->{db_host}
+                      ? '5432'
+                      : 'local domain socket';
+                    $self->{db_port} = $ENV{PGHOST} || $builder->get_reply(
+                        name    => 'db_port',
+                        label   => 'PostgreSQL server port',
+                        message => "What TCP/IP port should I use to connect "
+                                   . "to PostgreSQL?",
+                        default =>  $def_port,
                     );
+
+                    # Just use undef if it's a local domain socket or 5432.
+                    $self->{db_port} = undef
+                      if $self->{db_port} eq 'local domain socket'
+                      || $self->{db_port} eq '5432';
                 }
 
                 # Get the database name.
-                $self->{db_name} = $ENV{DBDATABASE} || $build->prompt(
-                    "Database name to use for the application [kinetic]? ",
-                    'kinetic',
+                $self->{db_name} = $ENV{PGDATABASE} || $builder->get_reply(
+                    name     => 'db_name',
+                    label    => 'Database name',
+                    message  => "What database should I use?",
+                    default  => 'kinetic',
+                    callback => sub { $_ } # Must be a true value.
                 );
 
                 # Get the database user.
-                $self->{db_user} = $ENV{PGUSER} || $build->prompt(
-                    "Database user the application will use [kinetic]? ",
-                    'kinetic',
+                $self->{db_user} = $ENV{PGUSER} || $builder->get_reply(
+                    name    => 'db_user',
+                    label   => 'Database user name',
+                    message => "What database user name should I use?",
+                    default => 'kinetic',
+                    callback => sub { $_ } # Must be a true value.
                 );
 
                 # Get the database user's password.
-                $self->{db_user} = $ENV{PGUSER} || $build->prompt(
-                    "Database user's password (can be blank) []? ",
-                    '',
+                $self->{db_pass} = $ENV{PGPASS} || $builder->get_reply(
+                    name    => 'db_pass',
+                    label   => 'Database user password',
+                    message => "What Database password should I use (can be "
+                               . "blank)?",
+                    default => '',
                 );
             },
+
             rules => [
                 Fail => {
-                    rule    => sub { !$self->db_name },
-                    message => 'You must provide a database name',
+                    rule => sub {
+                        my $state = shift;
+                        # This is proably unnecessary.
+                        my %parts = (
+                            db_name => 'database name',
+                            db_user => 'database user',
+                        );
+                        my @parts;
+                        while (my ($k, $v) = each %parts) {
+                            push @parts, $v unless $self->{$k};
+                        }
+                        return unless @parts;
+                        $state->message(
+                            'I need the ' . join(' and ', @parts)
+                            . ' to configure PostgreSQL'
+                         );
+                    },
                 },
-                "Server info" => {
-                    rule    => sub { $self->db_name },
-                    message => 'PostgreSQL does appear to be installed',
+
+                'Connect super user' => {
+                    rule => sub {
+                        # See if the super user was specified on the command-
+                        # line, but don't prompt!
+                        my $super = $self->db_super_user
+                          || $builder->args('db_super_user')
+                          or return;
+                        # We do! Cache them and move on.
+                        $self->{db_super_user} = $super;
+                        $self->{db_super_pass} = $builder->args('db_super_pass')
+                          unless defined $self->{db_super_pass};
+                        return 1;
+                    },
+                    message => 'Got server info and super user credentials; '
+                               . 'attempting to connect',
+                },
+
+                'Connect user' => {
+                    rule => sub { $self->db_user && $self->db_name },
+                    message => "Got server info; attempting to connect",
                 },
             ],
         },
 
-        "Determine user" => {
+        'Connect super user' => {
             do => sub {
-                my $state   = shift;
-                my $build   = $self->builder;
-                my $machine = $state->machine;
-                my $root    = $build->args('db_super_user') || 'postgres';
-
-                # Try connecting as root user.
-                my $dbh = $self->_connect_to_pg(
-                    $template,
-                    $build->db_root_user,
-                    $build->db_root_pass
+                $self->_try_connect(
+                    shift, $self->db_super_user, $self->db_super_pass
                 );
-                if ($dbh) {
-                    $self->_dbh($dbh);
-                    $state->result('can_use_root');
-                    $machine->{user}    = $build->db_root_user;
-                    $machine->{pass}    = $build->db_root_pass;
-                    $machine->{is_root} = 1;
-                    return;
-                }
-
-                # If we get here, try connecting as app user.
-                $dbh = $self->_connect_to_pg(
-                    $template,
-                    $build->db_user,
-                    $build->db_pass,
-                );
-                if ($dbh) {
-                    $self->_dbh($dbh);
-                    $state->result('can_use_db_user');
-                    $machine->{user}    = $build->db_user;
-                    $machine->{pass}    = $build->db_pass;
-                    $machine->{is_root} = 0;
-                    return;
-                }
             },
             rules => [
-                Fail => {
-                    rule => $fail,
-                    message => 'Need root user or db user to build database',
-                },
-                "Check for user db and is root" => {
-                    rule    => sub { shift->result eq 'can_use_root' },
-                    message => "Root user available and usable",
-                },
-                "Check for user db and is not root" => {
-                    rule    => sub { shift->result eq 'can_use_db_user' },
-                    message => "Root user not available, but can use db_user",
-                },
+                Fail => $no_connect,
+                'Check database' => $connected,
             ]
         },
-        "Check for user db and is root" => {
-            do => sub {
-                my $state = shift;
-                my $db_name = $self->build->notes('kinetic_db_name');
-                $state->result($self->_db_exists($db_name));
-                $state->machine->{database_exists} = $state->result;
-                if ($state->result) {
-                    $self->build->db_name($db_name);
-                    $self->build->notes(db_name => $db_name);
-                } else {
-                    # Set template1 as the db name so we start out by
-                    # connecting to it when it comes time to create
-                    # the database.
-                    $self->build->db_name($template);
-                    push @{$state->machine->{actions}} => ['create_db', $db_name];
-                }
-                push @{$state->machine->{actions}} => ['switch_to_db', $db_name];
-            },
+
+        'Check database' => {
+            do => sub { shift->result($self->_db_exists) },
             rules => [
-                "Check user db for plpgsql" => {
-                    rule    => $succeed,
-                    # XXX Yes, please do.
-                    message => "Database kinetic exists",  # XXX fix this
+                'Check plpgsql' => {
+                    rule => sub {
+                        my $state = shift;
+                        return unless $state->result;
+                        $state->message(
+                            'Database "' . $self->db_name
+                            . '" exists; checking for PL/pgSQL'
+                          )
+                    },
                 },
-                "Check template1 for plpgsql and is root" => {
-                    rule    => $fail,
-                    message => "Database kinetic does not exist", # XXX fix this
+
+                'Check create permissions' => {
+                    rule => sub {
+                        my $state = shift;
+                        # This is for the non-super user
+                        return if $self->db_super_user;
+                        # Note need to create database.
+                        push @{$self->{actions}}, ['create_db'];
+                        $state->message(
+                            'Database "' . $self->db_name
+                            . '" does not exist; checking permissions to create it'
+                        );
+                    },
+                },
+
+                'Check template plpgsql' => {
+                    rule => sub {
+                        my $state = shift;
+                        # This is for the super user
+                        return unless $self->db_super_user;
+                        # Note need to create database.
+                        push @{$self->{actions}}, ['create_db'];
+                        $state->message(
+                            'Database "' . $self->db_name
+                              . '" does not exist but will be created; checking '
+                              . 'template database for PL/pgSQL'
+                          );
+                    },
                 }
-            ],
+            ]
         },
-        "Check template1 for plpgsql and is root" => {
+
+        'Check plpgsql' => {
             do => sub {
-                my $state = shift;
-                if ($self->_plpgsql_available) {
-                    $state->result('template1 has plpgsql');
-                } elsif ($self->info->createlang) {
-                    $state->result('No plpgsql but we have createlang');
-                    push @{$state->machine->{actions}} => [
-                        'add_plpgsql_to_db',
-                        # XXX Are you sure that this is template1?
-                        $self->build->notes('kinetic_db_name')
-                    ];
-                }
-            },
-            rules => [
-                Fail => {
-                    rule    => sub { shift->machine->{db_name} ne $template },
-                    message => "Panic state. Cannot check template1 for plpgsql if we're not connected to it.",
-                },
-                Fail => {
-                    rule    => $fail,
-                    message => 'Template1 does not have plpgsql and we do not have createlang',
-                },
-                Done => {
-                    rule    => sub { shift->result eq 'template1 has plpgsql' },
-                    message => 'Template1 has plgsql',
-                },
-                Done => {
-                    rule    => sub { shift->result eq 'No plpgsql but we have createlang' },
-                    message => 'Template1 does not have plpgsql, but we have createlang',
-                },
-            ],
-        },
-        "Check for createlang" => {
-            do => sub {
-                my $state   = shift;
-                $state->result($self->info->createlang);
-                push @{$state->machine->{actions}} => ['add_plpgsql_to_db', $self->build->db_name];
-            },
-            rules => [
-                Done => {
-                    rule    => $succeed,
-                    message => 'We have createlang',
-                },
-                Fail => {
-                    rule    => $fail,
-                    message => "Must have createlang to add plpgsql",
-                }
-            ],
-        },
-        "Check for user db and is not root" => {
-            do => sub {
-                my $state = shift;
-                my $db_name = $self->build->notes('kinetic_db_name');
-                if ($self->_db_exists($db_name)) {
-                    $state->result('database exists');
-                }
-                elsif ($self->_can_create_db($state->machine->{user})) {
-                    $state->result('user can create database');
-                    push @{$state->machine->{actions}} => ['create_db', $db_name];
-                }
-                push @{$state->machine->{actions}} => ['switch_to_db', $db_name];
-            },
-            rules => [
-                Fail => {
-                    rule => $fail,
-                    message => "No database, and user has no permission to create it",
-                },
-                "Check user db for plpgsql" => {
-                    rule => sub { shift->result eq 'database exists' },
-                    message => 'Database exists',
-                },
-                "Check template1 for plpgsql and is not root" => {
-                    rule => sub { shift->result eq 'user can create database' },
-                    message => "User can create database",
-                },
-            ],
-        },
-        "Check user create permissions" => {
-            do => sub {
-                my $state = shift;
-                my $user  = $state->machine->{user};
-                $state->result($self->_has_create_permissions($user));
-            },
-            rules => [
-                Fail => {
-                    rule    => $fail,
-                    message => 'User does not have permission to add objects to database',
-                },
-                Done => {
-                    rule    => $succeed,
-                    message => 'User can add objects to database',
-                },
-            ],
-        },
-        "Check template1 for plpgsql and is not root" => {
-            do => sub {
+                $self->_dbh($self->_dsn($self->db_name));
                 shift->result($self->_plpgsql_available);
             },
             rules => [
-                Fail => {
-                    rule    => sub { shift->machine->{db_name} ne $template },
-                    message => "Panic state.  Cannot check template1 for plpgsql if we're not connected to it.",
+                'Check user' => {
+                    rule => sub {
+                        my $state = shift;
+                        return unless $state->result && $self->db_super_user;
+                        $state->message(
+                            'Database "' . $self->db_name . '" has PL/pgSQL; '
+                            . 'checking user');
+                        return $state;
+                    }
+                },
+                'Find createlang' => {
+                    rule => sub {
+                        my $state = shift;
+                        return unless $self->db_super_user && !$state->result;
+                        $state->message(
+                            'Database "' . $self->db_name . '" does not have PL/pgSQL; '
+                            . 'looking for createlang'
+                        );
+                    }
+                },
+                'Get super user' => {
+                    rule => sub {
+                        my $state = shift;
+                        # Non-super user.
+                        return if $self->db_super_user || $state->result;
+                        $state->message(
+                            sprintf 'Database "%s" does not have PL/pgSQL and '
+                            . 'user "%s" cannot add it; prompting for super user',
+                            $self->db_name, $self->db_user
+                        );
+                    }
+                },
+                'Check schema permissions' => {
+                    rule => sub {
+                        my $state = shift;
+                        # Non-super user.
+                        return if $self->db_super_user || !$state->result;
+                        $state->message(
+                            'Database "' . $self->db_name . '" has PL/pgSQL; '
+                            . 'checking schema permissions'
+                        );
+                    }
+                },
+            ]
+        },
+
+        'Check template plpgsql' => {
+            do => sub {
+                $self->_dbh($self->_dsn($self->_get_template_db_name));
+                shift->result($self->_plpgsql_available);
+            },
+            rules => [
+                'Check user' => {
+                    rule => sub {
+                        my $state = shift;
+                        # Super user.
+                        return unless $state->result && $self->db_super_user;
+                        $state->message("Template database has PL/pgSQL");
+                    },
+                },
+                'Find createlang' => {
+                    rule => sub {
+                        my $state = shift;
+                        # Super user.
+                        return if $state->result || !$self->db_super_user;
+                        $state->message(
+                            "Template database lacks PL/pgSQL; looking for createlang"
+                        );
+                    },
+                },
+                'Get super user' => {
+                    rule => sub {
+                        my $state = shift;
+                        # Non-super user.
+                        return if $state->result || $self->db_super_user;
+                        $state->message(
+                            sprintf "Template database lacks PL/pgSQL and user "
+                            . '"%s" cannot add it; prompting for super user',
+                            $self->db_user
+                        );
+                    },
+                },
+
+                'Done' => {
+                    rule => sub {
+                        my $state = shift;
+                        # Non-super user.
+                        return unless $state->result && !$self->db_super_user;
+                        $state->message("Template database has PL/pgSQL");
+                    },
+                },
+            ]
+        },
+
+        'Find createlang' => {
+            rules => [
+                'Check user' => {
+                    rule => sub {
+                        # Note location of createlang and need to create PL/pgSQL
+                        # in the database.
+                        $self->{createlang} = $self->info->createlang
+                          or return;
+                        push @{$self->{actions}}, ['add_plpgsql'];
+                    },
+                    message => "Found createlang",
                 },
                 Fail => {
-                    rule    => $fail,
-                    message => 'Template1 does not have plpgsql',
-                },
-                Done => {
-                    rule    => $succeed,
-                    message => 'Template1 has plpgsql',
+                    rule => 1,
+                    message => "Cannot find createlang",
                 }
             ]
         },
-        "Check user db for plpgsql" => {
-            do => sub {
-                my $state   = shift;
-                my $machine = $state->machine;
-                my $db_name = $self->build->notes('kinetic_db_name');
-                $machine->{db_name} = $db_name; # force the connection to the actual database
-               my $dbh = $self->_connect_to_pg(
-                    $db_name,
-                    $machine->{user},
-                    $machine->{pass},
-                );
-                $self->_dbh($dbh); # force a new dbh
-                $state->result($self->_plpgsql_available);
-            },
+
+        'Check user' => {
+            do => sub { shift->result($self->_user_exists($self->db_user)) },
             rules => [
                 Done => {
                     rule => sub {
                         my $state = shift;
-                        return $state->result && $state->machine->{is_root};
-                    },
-                    # XXX Love to see the database name in these messages. Are
-                    # messages printed out as we go along?
-                    # XXX They should be! Use a package-scoped scalar to set the
-                    # DB name for these messages, eh? You'll want to modify them
-                    # to be appropriate for output during installation, too.
-                    message => "Database has plpgsql",
+                        return unless $state->result;
+                        $state->message('User "' . $self->db_user . '" exists');
+                    }
                 },
-                "Check for createlang" => {
-                    rule    => sub {
+                Done => {
+                    rule => sub {
                         my $state = shift;
-                        return ! $state->result && $state->machine->{is_root};
-                    },
-                    message => 'Database does not have plpgsql',
-                    action  => [sub {
-                        my $machine = shift->machine;
-                        push @{$machine->{actions}} => ['add_plpgsql_to_db', $machine->{db_name}];
-                    }],
-                },
-                "Check user create permissions" => {
-                    rule    => sub {
-                        my $state = shift;
-                        return $state->result && ! $state->machine->{is_root};
-                    },
-                    message => 'Database has plpgsql but not root',
-                },
-                Fail => {
-                    rule    => sub {
-                        my $state = shift;
-                        return ! $state->result && ! $state->machine->{is_root};
-                    },
-                    message => 'Database does not have plpgsql and not root',
+                        return if $state->result;
+                        # Note need to create user.
+                        push @{$self->{actions}}, ['create_user'];
+                        $state->message(
+                            'User "' . $self->db_user
+                            . '" does not exist but will be created'
+                          );
+                    }
                 }
             ]
         },
-        Fail => {
-            do => sub { die shift->prev_state->message || 'no message supplied' },
+
+        'Connect user' => {
+            do => sub {
+                $self->_try_connect(shift, $self->db_user, $self->db_pass);
+            },
+            rules => [
+                'Check database' => $connected,
+                'Get super user' => sub {
+                    my $state = shift;
+                    $no_connect->($state);
+                    $state->message($state->message . '; prompting for super user');
+                },
+            ]
         },
+
+        'Check create permissions' => {
+            do => sub {
+                $self->_dbh($self->_dsn($self->db_name));
+                shift->result($self->_can_create_db);
+            },
+            rules => [
+                'Get super user' => {
+                    rule => sub {
+                        my $state = shift;
+                        return if $state->result;
+                        $state->message(
+                            sprintf 'User "%s" cannot create database "%s"; '
+                            . 'prompting for super user',
+                            $self->db_user, $self->db_name
+                        );
+                    },
+                },
+                'Check template plpgsql' => {
+                    rule => sub {
+                        my $state = shift;
+                        return unless $state->result;
+                        $state->message(
+                            sprintf 'User "%s" can create database "%s"; '
+                            . 'checking template for PL/pgSQL',
+                            $self->db_user, $self->db_name
+                        );
+                    },
+                }
+            ]
+        },
+
+        'Check schema permissions' => {
+            do => sub {
+                $self->_dbh($self->_dsn($self->db_name));
+                shift->result($self->_has_schema_permissions);
+            },
+            rules => [
+                'Get super user' => {
+                    rule => sub {
+                        my $state = shift;
+                        return if $state->result;
+                        $state->message(
+                            sprintf 'User "%s" does not have CREATE permission '
+                            . 'to the schema for database "%s"; prompting for '
+                            . 'super user', $self->db_user, $self->db_name
+                        );
+                    },
+                },
+                'Done' => {
+                    rule => sub {
+                        my $state = shift;
+                        return unless $state->result;
+                        $state->message(
+                            sprintf 'User "%s" has CREATE permission to the '
+                            . 'schema for database "%s"',
+                            $self->db_user, $self->db_name
+                        );
+                    },
+                }
+            ],
+        },
+
+        'Get super user' => {
+            do => sub {
+                # Get the database user.
+                # my $default = scalar getpwuid((stat('/usr/local/pgsql/data'))[4]);
+                my $default = 'postgres';
+                $self->{db_super_user} ||= $builder->get_reply(
+                    name    => 'db_super_user',
+                    label   => 'PostgreSQL super user name',
+                    message => "What's the username for the PostgreSQL super "
+                               . "user?",
+                    default => $default,
+                    callback => sub { $_ } # Must be a true value.
+                );
+
+                # Get the database user's password.
+                $self->{db_super_pass} ||= $builder->get_reply(
+                    name    => 'db_super_pass',
+                    label   => 'PostgreSQL super user password',
+                    message => "What's the password for the PostgreSQL super"
+                               . ' user (can be blank)?',
+                    default => '',
+                );
+            },
+            rules => [
+                'Connect super user' => {
+                    rule => sub {
+                        return unless $self->db_super_user;
+                        shift->message(
+                            sprintf 'Attempting to connect to the server as '
+                            . 'super user "%s"', $self->db_super_user
+                        );
+                    },
+                },
+                Fail => {
+                    rule => sub {
+                        my $state = shift;
+                        # This is proably unnecessary.
+                        return if $self->db_super_user;
+                        $state->message(
+                            'I need the super user name to configure PostgreSQL'
+                        );
+                    },
+                }
+            ]
+        },
+
+        Fail => {
+            do => sub { $builder->_fatal_error(shift->prev_state->message) },
+        },
+
         Done => {
             do => sub {
-                my $state   = shift;
-                my $build   = $self->build;
-                my $machine = $state->machine;
-                push @{$machine->{actions}} => ['build_db']
-                  unless $machine->{database_exists};
-                foreach my $attribute (qw/actions user pass db_name/) {
-                    $build->notes($attribute => $machine->{$attribute})
-                      if $machine->{$attribute};
-                }
-                $self->_dbh->disconnect if $self->_dbh;
-                $build->notes(stacktrace => $machine->stacktrace);
+                push @{$self->{actions}} => ['build_db'];
             }
         },
     );
+}
+
+DESTROY {
+    my $self = shift;
+    $self->_dbh->disconnect if $self->_dbh;
 }
 
 ##############################################################################
@@ -563,33 +710,6 @@ database. Not used by the SQLite data store.
 =cut
 
 sub db_port { shift->{db_port} }
-
-##############################################################################
-
-=head3 _dbh
-
-  $kbs->_dbh;
-
-Returns the database handle to connect to the data store.
-
-=cut
-
-sub _dbh {
-    my $self = shift;
-    if (@_) {
-        $self->{dbh} = shift;
-        return $self;
-    }
-    return $self->{dbh} if $self->{dbh};
-    my $builder = $self->builder;
-    my $dsn   = $builder->_dsn;
-    my $user  = $builder->notes->{user};
-    my $pass  = $builder->notes->{pass};
-    my $dbh = DBI->connect($dsn, $user, $pass, {RaiseError => 1})
-      or require Carp && Carp::croak $DBI::errstr;
-    $self->{dbh} = $dbh;
-    return $dbh;
-}
 
 ##############################################################################
 
@@ -729,27 +849,235 @@ sub test_config {
 
 =head2 Private Instance Methods
 
-=head3 _connect_to_pg
+##############################################################################
 
-  my $dbh = $kbs->_connect_to_pg($db_name, $user, $pass);
+=head3 _connect
 
-This method attempts to connect to the database as a given user. It returns a
-database handle on success and C<undef> on failure.
+  my $dbh = $build->_connect($dsn, $user, $pass);
+
+This method attempts to connect to PostgreSQL via a given DSN and as a given
+user. It returns a database handle on success and C<undef> on failure.
 
 =cut
 
-sub _connect_to_pg {
-    my ($self, $db_name, $user, $pass) = @_;
-    my $dbh;
-    eval {
-        $dbh = DBI->connect(
-            "dbi:Pg:dbname=$db_name",
-            $user,
-            $pass,
-            { RaiseError => 1, AutoCommit => 0 }
-        )
+sub _connect {
+    my $self = shift;
+    require DBI;
+    my $dbh = eval {
+        DBI->connect_cached(@_, { RaiseError => 1, AutoCommit => 0 })
     };
     return $dbh;
+}
+
+##############################################################################
+
+=head3 _dsn
+
+  my $dsn = $kbs->_dsn($db_name);
+
+Returns a DSN appropriate to connect to a given database on the PostgreSQL
+database server. The "host" and "port" parts of the DSN may be filled in based
+on the values returned by C<db_host()> and C<db_port()>.
+
+=cut
+
+sub _dsn {
+    my ($self, $db_name) = @_;
+    $db_name ||= $self->db_name;
+    my $dsn = "dbi:Pg:dbname=$db_name";
+    if (my $host = $self->db_host) {
+        $dsn .= ";host=$host";
+    }
+    if (my $port = $self->db_port) {
+        $dsn .= ";port=$port";
+    }
+    return $dsn;
+}
+
+##############################################################################
+
+=head3 _dbh
+
+  my $dbh = $kbs->_dbh;
+  $kbs->_dbh($dbh);
+
+Get or set a database handle.
+
+=cut
+
+sub _dbh {
+    my $self = shift;
+    return $self->{dbh} unless @_;
+    $self->{dbh} = shift;
+    return $self;
+}
+
+##############################################################################
+
+=head3 _pg_says_true
+
+  print "PostgreSQL says it's true"
+    if $kbs->_pg_says_true($sql, @bind_params);
+
+This slightly misnamed method executes the given SQL with the any params. It
+expects that the SQL will return one and only one value, and in turn returns
+that value.
+
+=cut
+
+sub _pg_says_true {
+    my ($self, $sql, @bind_params) = @_;
+    my $dbh    = $self->_dbh
+      or die "I need a database handle to execute a query";
+    my $result = $dbh->selectrow_array($sql, undef, @bind_params);
+    return $result;
+}
+
+##############################################################################
+
+=head3 _db_exists
+
+  print "Database '$db_name' exists" if $kbs->_db_exists($db_name);
+
+This method tells whether the given database exists.
+
+=cut
+
+sub _db_exists {
+    my ($self, $db_name) = @_;
+    $db_name ||= $self->build->db_name;
+    $self->_pg_says_true(
+        "SELECT datname FROM pg_catalog.pg_database WHERE datname = ?",
+        $db_name
+    );
+}
+
+##############################################################################
+
+=head3 _plpgsql_available
+
+  print "PL/pgSQL is available" if $kbs->_plpgsql_available;
+
+Returns boolean value indicating whether PL/pgSQL is installed in the database
+to which we're currently connected. If it's not, super user must control the
+install.
+
+=cut
+
+sub _plpgsql_available {
+    shift->_pg_says_true(
+        'select 1 from pg_catalog.pg_language where lanname = ?',
+        'plpgsql'
+    );
+}
+
+##############################################################################
+
+=head3 _get_template_db_name
+
+  my $template_db_name = $kbs->_get_template_db_name;
+
+Returns the name of the template database. Prompts the user for the name, if
+necessary. The template database name will thereafter also be available from
+the C<template_db_name()> accessor.
+
+=cut
+
+sub _get_template_db_name {
+    my $self = shift;
+    $self->{template_db_name} ||= $self->builder->get_reply(
+        name     => 'template_db_name',
+        label    => 'Template database name',
+        message  => "What template database should I use?",
+        default  => 'tempalte1',
+        callback => sub { $_ } # Must be a true value.
+    );
+}
+
+##############################################################################
+
+=head3 _user_exists
+
+  print "User exists" if $kbs->_user_exists($user);
+
+This method tells whether a particular PostgreSQL user exists.
+
+=cut
+
+sub _user_exists {
+    my ($self, $user) = @_;
+    $self->_pg_says_true(
+        "select usename from pg_catalog.pg_user where usename = ?",
+        $user
+    );
+}
+
+##############################################################################
+
+=head3
+
+  print "Can connect" if  $kbs->_try_connect($state, $user, $password);
+
+Used by state rules, this method attempts to connect to the database server,
+first using the database name and then the template database name. Each DSN
+attemped will be stored in under the C<dsn> key in the state object. Returns
+the Kinetic::Build::Store::DB::Pg object on success and C<undef> on failure.
+The database handle created by the connection, if any, may be retreived by the
+C<_dbh()> method.
+
+=cut
+
+sub _try_connect {
+    my ($self, $state, $user, $pass) = @_;
+    # Try connecting to the database first.
+    $state->{dsn} = [$self->_dsn($self->db_name)];
+    my $dbh = $self->_connect( $state->{dsn}[0], $user, $pass);
+    unless ($dbh) {
+        my $tdb = $self->_get_template_db_name;# Try the template database.
+        push @{$state->{dsn}}, $self->_dsn($tdb);
+        $dbh = $self->_connect( $state->{dsn}[-1], $user, $pass);
+    }
+    $self->_dbh($dbh);
+}
+
+##############################################################################
+
+=head3 _can_create_db
+
+  print "Iser can create database" if $build->_can_create_db;
+
+This method tells whether a particular user has permissions to create
+databases.
+
+=cut
+
+sub _can_create_db {
+    my $self = shift;
+    $self->_pg_says_true(
+        "select usecreatedb from pg_catalog.pg_user where usename = ?",
+        $self->db_user
+    );
+}
+
+##############################################################################
+
+=head3 _has_schema_permissions
+
+  print "User has schema permissions"
+    if $rules->_has_schema_permissions;
+
+Returns boolean value indicating whether the database user has the permissions
+necessary to create functions, views, triggers, etc. in the database to which
+we're currently connected (set by C<_dsn()>).
+
+=cut
+
+sub _has_schema_permissions {
+    my $self = shift;
+    $self->_pg_says_true(
+        'select has_schema_privilege(?, current_schema(), ?)',
+        $self->db_user, 'CREATE'
+    );
 }
 
 1;

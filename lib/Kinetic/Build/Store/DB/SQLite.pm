@@ -159,13 +159,7 @@ sub rules {
             }
         },
         fail => {
-            do => sub {
-                my $state = shift;
-                $self->builder->_fatal_error(
-                    $state->prev_state->message
-                      || "no message supplied"
-                );
-            },
+            do => sub { $self->builder->_fatal_error(shift->prev_state->message) },
         },
     );
 }
