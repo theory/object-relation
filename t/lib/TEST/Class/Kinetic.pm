@@ -101,7 +101,7 @@ sub runtests { shift->SUPER::runtests(@CLASSES) }
 =head3 supported
 
   sub test_sqlite : Test(1) {
-      return "SQLite support not included"
+      return "Not testing SQLite"
         unless TEST::Class::Kinetic->supported('sqlite');
       ok 1, 'We can use SQLite!';
       # ...

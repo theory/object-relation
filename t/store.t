@@ -10,7 +10,7 @@ my @scripts;
 BEGIN {
     # Run setup scripts for all supported databases unless we're asked
     # not to do so.
-    return if $ENV{NOSETUP};
+    return if $ENV{NOSETUP} || !$ENV{KINETIC_SUPPORTED};
     for my $feature (split /\s+/, $ENV{KINETIC_SUPPORTED}) {
         my $script = catfile 't', 'store', $feature;
         next unless -e "$script\_setup.pl";

@@ -87,7 +87,7 @@ sub test_props : Test(10) {
     is $builder->source_dir, 'lib', 'Default source dir should be "lib"';
     is $builder->conf_file, 'kinetic.conf',
       'Default conf file should be "kinetic.conf"';
-    is $builder->run_dev_tests, 0, 'Run dev tests should be disabled';
+    is $builder->dev_tests, 0, 'Run dev tests should be disabled';
     like $builder->install_base, qr/kinetic$/,
       'The install base should end with "kinetic"';
     is_deeply $builder->store_config, {class => 'Kinetic::Store::DB::SQLite'},

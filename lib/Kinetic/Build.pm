@@ -255,20 +255,20 @@ __PACKAGE__->add_property(conf_file => 'kinetic.conf');
 
 ##############################################################################
 
-=head3 run_dev_tests
+=head3 dev_tests
 
-  my $run_dev_tests = $build->run_dev_tests;
-  $build->run_dev_tests($run_dev_tests);
+  my $dev_tests = $build->dev_tests;
+  $build->dev_tests($dev_tests);
 
 Triggers the execution of developer tests. What this means is that, if this
 property is set to a true value, some tests will build temporary databases for
 comprehensive testing of all features. Tests will then be run that connect to
-and make changes to this database. The C<run_dev_tests> method is set to a
+and make changes to this database. The C<dev_tests> method is set to a
 false value by default.
 
 =cut
 
-__PACKAGE__->add_property(run_dev_tests => 0);
+__PACKAGE__->add_property(dev_tests => 0);
 
 ##############################################################################
 
@@ -426,7 +426,8 @@ sub ACTION_test {
     $self->depends_on('config');
     local $ENV{KINETIC_CONF} = $self->notes('test_conf_file');
     # XXX I'm sure we'll add other supported features to this list.
-    local $ENV{KINETIC_SUPPORTED} = join ' ', $self->store;
+    local $ENV{KINETIC_SUPPORTED} = join ' ', $self->store
+      if $self->dev_tests;
     $self->SUPER::ACTION_test(@_);
 }
 

@@ -43,6 +43,7 @@ sub _num_recs {
 
 sub setup : Test(setup) {
     my $test = shift;
+    return "Not testing SQLite" unless $test->supported('sqlite');
     $test->test_class->_dbh->begin_work;
     my $foo = One->new;
     $foo->name('foo');

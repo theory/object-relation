@@ -90,7 +90,7 @@ sub test_rules : Test(27) {
     is_deeply $kbs->test_config, {file => $test_file},
       "... as should the test configuration";
 
-    return "Not building with SQLite" unless $self->supported('sqlite');
+    return "Not testing SQLite" unless $self->supported('sqlite');
 
     # Try building the test database.
     $builder->source_dir('lib');
