@@ -19,6 +19,7 @@ package Kinetic::Meta::Attribute::Schema;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
+use Kinetic::Meta::Attribute ':with_dbstore_api';
 use base 'Kinetic::Meta::Attribute';
 
 =head1 Name
@@ -105,11 +106,7 @@ be the attribute name plus "_id".
 
 =cut
 
-sub column {
-    my $self = shift;
-    return $self->name unless $self->references;
-    return $self->name . '_id';
-}
+sub column { shift->SUPER::_column(@_) }
 
 ##############################################################################
 
@@ -125,11 +122,7 @@ double-underscore in views and a single underscore in tables.
 
 =cut
 
-sub view_column {
-    my $self = shift;
-    return $self->name unless $self->references;
-    return $self->name . '__id';
-}
+sub view_column { shift->SUPER::_view_column(@_) }
 
 ##############################################################################
 

@@ -54,6 +54,47 @@ sub new {
     return $self;
 }
 
+=head1 Dynamic APIs
+
+This class supports the dynamic loading of extra methods specifically designed
+to be used with particular data store implementations. This is so that the
+store APIs can easily dispatch to attribute objects to get data-store specific
+metadata without having to do extra work themselves. Data store implementors
+needing store-specific metadata methods should add them to this module.
+
+In general, however, Bricolage users will not need to worry about loading
+data-store specific APIs, as the data stores will load them themselves. And
+since the methods are protected, no one else should use them, anyway.
+
+As of this writing, only a single data-store specific API label is supported:
+
+  use Kinetic::Meta::Attribute ':with_dbstore_api';
+
+More may be added in the future.
+
+=cut
+
+sub import {
+    my ($pkg, $api_label) = @_;
+    return unless $api_label;
+    if ($api_label eq ':with_dbstore_api') {
+        return if defined(&column);
+        # Create methods specific to database stores.
+        no strict 'refs';
+        *{__PACKAGE__ . '::_column'} = sub {
+              my $self = shift;
+              return $self->name unless $self->references;
+              return $self->name . '_id';
+        };
+
+        *{__PACKAGE__ . '::_view_column'} = sub {
+            my $self = shift;
+            return $self->name unless $self->references;
+            return $self->name . '__id';
+        };
+    }
+}
+
 ##############################################################################
 # Instance Methods.
 ##############################################################################

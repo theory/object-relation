@@ -13,7 +13,7 @@ BEGIN {
     use_ok('Kinetic::Util::Language') or die;
     use_ok('Kinetic::Util::Language::en_us') or die;
     use_ok('Kinetic::Meta::Class') or die;
-    use_ok('Kinetic::Meta::Attribute') or die;
+    use_ok('Kinetic::Meta::Attribute', ':with_dbstore_api') or die;
     use_ok('Kinetic::Meta::AccessorBuilder') or die;
     use_ok('Kinetic::Meta::Widget') or die;
 }
@@ -57,6 +57,7 @@ ok( Kinetic::Util::Context->language(Kinetic::Util::Language->get_handle('en_us'
     "Set language context" );
 
 package main;
+use aliased 'Test::MockModule';
 
 ok my $class = MyTestThingy->my_class, "Get meta class object";
 isa_ok $class, 'Kinetic::Meta::Class';
@@ -75,17 +76,19 @@ is $attr->type, 'string', "Check attr type";
 is $attr->label, 'Foo', "Check attr label";
 is $attr->indexed, 1, "Indexed should be true";
 
-eval { $attr->_column };
-ok my $err = $@, "Should get error trying to call _column()";
-like $err,
-  qr/Can't locate object method "_column" via package "Kinetic::Meta::Attribute"/,
-  '...Because the _column() method should not exist';
+is $attr->_column, $attr->name,
+  'The _column() method should return the column name';
+is $attr->_view_column, $attr->name,
+  'The _view_column() method should return the view column name';
 
-eval { $attr->_view_column };
-ok $err = $@, "Should get error trying to call _view_column()";
-like $err,
-  qr/Can't locate object method "_view_column" via package "Kinetic::Meta::Attribute"/,
-  '...Because the _view_column() method should not exist';
+# Make sure they work when the attribute references another attribute.
+my $mock = MockModule->new('Kinetic::Meta::Attribute');
+$mock->mock(references => 1 );
+is $attr->_column, $attr->name . '_id',
+  'The _column() method should return the reference column name';
+is $attr->_view_column, $attr->name . '__id',
+  'The _view_column() method should return the reference view column name';
+$mock->unmock_all;
 
 ok my $wm = $attr->widget_meta, "Get widget meta object";
 isa_ok $wm, 'Kinetic::Meta::Widget';
