@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use diagnostics;
 use lib 't/lib';
-use Kinetic::TestSetup store => { class => 'Kinetic::Store::DB::Pg' };
-use Test::More tests => 133;
+use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
+use Test::More tests => 152;
 
 BEGIN { use_ok 'Kinetic::Build::Schema' };
 

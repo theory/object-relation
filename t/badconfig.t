@@ -4,8 +4,7 @@
 
 use strict;
 use warnings;
-use lib 't/lib';
-use Kinetic::TestSetup;
+use Kinetic::Build::Test;
 use Test::More tests => 2;
 use File::Copy;
 

@@ -5,8 +5,7 @@
 use strict;
 use warnings;
 use Test::More tests => 13;
-use lib 't/lib';
-use Kinetic::TestSetup;
+use Kinetic::Build::Test;
 use File::Spec;
 use File::Find;
 

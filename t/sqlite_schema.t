@@ -4,8 +4,8 @@
 
 use strict;
 use warnings;
+use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
 use lib 't/lib';
-use Kinetic::TestSetup store => { class => 'Kinetic::Store::DB::SQLite' };
 use Test::More tests => 67;
 use Test::Differences;
 

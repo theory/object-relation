@@ -1,4 +1,4 @@
-package Kinetic::Store::DBI;
+package Kinetic::Store::DB;
 
 # $Id$
 

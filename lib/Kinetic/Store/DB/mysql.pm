@@ -1,18 +1,19 @@
-package Kinetic::Store::DBI::mysql;
+package Kinetic::Store::DB::mysql;
 
 # $Id$
 
 use strict;
-use base qw(Kinetic::Store::DBI);
+use base qw(Kinetic::Store::DB);
+
 =head1 Name
 
-Kinetic::Store::DBI::mysql - MySQL specific behavior for Kinetic::Store::DBI
+Kinetic::Store::DB::mysql - MySQL specific behavior for Kinetic::Store::DB
 
 =head1 Synopsis
 
   use Kinetic::Store;
 
-  my $store = Kinetic::Store->load('DBI');
+  my $store = Kinetic::Store->load('DB');
 
   $store->connect('dbi:mysql:kinetic', $user, $pw);
 
@@ -22,7 +23,7 @@ Kinetic::Store::DBI::mysql - MySQL specific behavior for Kinetic::Store::DBI
 =head1 Description
 
 This class implements MySQL-specific behavior for the Kinetic
-storage API, by overriding C<Kinetic::Store::DBI> methods as needed.
+storage API, by overriding C<Kinetic::Store::DB> methods as needed.
 
 =cut
 

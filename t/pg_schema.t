@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 use lib 't/lib';
-use Kinetic::TestSetup store => { class => 'Kinetic::Store::DB::Pg' };
+use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
 use Test::More tests => 67;
 use Test::Differences;
 
