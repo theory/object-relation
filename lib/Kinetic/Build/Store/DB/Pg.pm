@@ -65,13 +65,47 @@ Returns the database handle to connect to the data store.
 
 sub _dbh {
     my $self = shift;
+    if (@_) {
+        $self->{dbh} = shift;
+        return $self;
+    }
     return $self->{dbh} if $self->{dbh};
-    my $dsn  = $self->metadata->_dsn;
-    my $user;
-    my $dbh = DBI->connect($dsn, '','', {RaiseError => 1})
+    my $metadata = $self->metadata;
+    my $dsn   = $metadata->_dsn;
+    my $user  = $metadata->notes->{user};
+    my $pass  = $metadata->notes->{pass};
+    my $dbh = DBI->connect($dsn, $user, $pass, {RaiseError => 1})
       or require Carp && Carp::croak $DBI::errstr;
     $self->{dbh} = $dbh;
     return $dbh;
+}
+
+##############################################################################
+
+=head1 ACTIONS
+
+=head2 PostgreSQL specific actions
+
+The following actions are all specific to PostgreSQL.  They may be
+reimplemented in other classes.
+
+=cut
+
+=head3 create_db
+
+  $kbs->create_db($db_name);
+
+Attempts to create a database with the supplied named.  It uses Unicode encoding.
+It will disconnect from the database when done.
+
+=cut
+
+sub create_db {
+    my ($self, $db_name) = @_;
+    my $dbh = $self->_dbh;
+    $dbh->do(qq{CREATE DATABASE "$db_name" WITH ENCODING = 'UNICODE'});
+    $dbh->disconnect;
+    return $self;
 }
 
 1;

@@ -97,7 +97,8 @@ specified by C<Kinetic::Build>.
 
 sub build {
     my ($self, $dir) = @_;
-
+    $self->do_actions;
+    
     my $schema_class = $self->_schema_class;
     eval "use $schema_class";
     die $@ if $@;
@@ -114,7 +115,36 @@ sub build {
     $self->_do(@tables, @behaviors);
     return $self;
 }
-    
+ 
+##############################################################################
+
+=head3 do_actions
+
+  $build->do_actions;
+
+Some must be performed before the store can be built.  This method pulls the
+actions designated by the rules and runs all of them.
+
+=cut
+
+sub do_actions {
+    my ($self) = @_;
+    return $self unless my $actions = $self->metadata->notes('actions');
+    foreach my $action (@$actions) {
+        my ($method, @args) = @$action;
+        $self->$method(@args);
+    }
+    return $self;
+}
+
+sub switch_to_db {
+    my ($self, $db_name) = @_;
+    $self->metadata->db_name($db_name);
+    $self->_dbh(undef); # clear wherever we were
+    $self->_dbh;        # and reset it
+    return $self;
+} 
+
 ##############################################################################
 
 =head2 Private Methods 
@@ -179,7 +209,6 @@ Returns the database handle to connect to the data store.
 
 sub _dbh {
     my $self = shift;
-    return $self->{dbh} if $self->{dbh};
     my $dsn  = $self->metadata->_dsn;
     my $user = $self->metadata->db_user;
     my $pass = $self->metadata->db_pass;

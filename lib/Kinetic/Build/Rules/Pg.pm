@@ -77,10 +77,9 @@ sub info_class { 'App::Info::RDBMS::PostgreSQL' }
 
 =head3 _state_machine
 
-  my ($state_machine, $end_func) = $rules->_state_machine;
+  my $state_machine = $rules->_state_machine;
 
-This method returns arguments that the C<DFA::Rules> constructor
-requires.
+This method returns arguments that the C<FSA::Rules> constructor requires.
 
 =cut
 
@@ -93,158 +92,244 @@ sub _state_machine {
     my $fail    = sub {! shift->result };
     my $succeed = sub {  shift->result };
     my @state_machine = (
-        installed => {
-            do => sub { shift->result($self->_is_installed) },
-            rules  => [
-                fail    => {
-                    rule    => $fail,
-                    message => "Postgres not installed",
-                },
-                version => {
-                    rule    => $succeed,
-                    message => "Postgres installed",
-                },
-            ],
-        },
-        version => {
+        start => {
             do => sub {
                 my $state = shift;
-                $state->result($self->_is_required_version);
-                unless ($state->result) {
-                    my $required = $self->build->_required_version;
-                    my $actual   = $self->info->version;
-                    $state->message($self->app_name 
-                        . " required version $required but you have $actual");
-                }
-            },
-            rules  => [
-                fail => $fail,
-                createlang => {
-                    rule    => $succeed,
-                    message => "Pg is required version",
-                },
-            ],
-        },
-        createlang => {
-            do => sub { shift->result($self->info->createlang) },
-            rules => [
-                fail     => {
-                    rule    => $fail,
-                    message => "createlang is required for plpgsql support",
-                },
-                metadata => {
-                    rule    => $succeed,
-                    message => "createlang is installed",
-                },
-            ],
-        },
-        # XXX Change this?
-        $self->_dummy_state('metadata', 'root_user'),
-        root_user => {
-            do => sub {
-                my $state = shift;
-                my $root = $self->build->db_root_user || 'postgres';
-                $self->build->db_root_user($root);
-                my $dbh  = $self->_connect_as_root($template);
-                $state->result($dbh);
-                $self->_dbh($dbh);
-                $state->message("User ($root) is not a root user or does not exist.")
-                  unless $state->result;
-            },
-            rules => [
-                user => $fail,
-                done => {
-                    rule    => $succeed,
-                    message => "root is available",
-                },
-            ],
-        },
-        user => {
-            do => sub {
-                my $state = shift;
-                my $dbh = $self->_connect_as_user($template);
-                $state->result($dbh);
-                $self->_dbh($dbh);
+                $state->machine->{actions} = []; # must never return to start
+                $state->machine->{db_name} = $template;
+                $state->result($self->_is_installed);
             },
             rules => [
                 fail => {
                     rule    => $fail,
-                    message => "Could not connect as normal user",
+                    message => 'PostgreSQL does not appear to be installed',
                 },
-                database_exists => {
-                    rule    => $succeed,
-                    message => "user available",
+                installed => {
+                    rule => $succeed,
+                    message => 'PostgreSQL does appear to be installed',
                 },
             ],
         },
-        database_exists => {
+        installed => {
             do => sub {
-                my $state = shift;
-                $state->result($self->_db_exists($self->build->db_name));
+                my $state   = shift;
+                my $build   = $self->build;
+                my $machine = $state->machine;
+
+                my $root = $build->db_root_user || 'postgres';
+                $build->db_root_user($root);
+                # note that we're caching the db name and altering it!
+                $self->build->notes(kinetic_db_name => $build->db_name);
+                my $dbh = $self->_connect_to_pg(
+                    $template,
+                    $build->db_root_user,
+                    $build->db_root_pass
+                ) ;
+                $self->build->notes(db_name => $template);
+                if ($dbh) {
+                    $self->_dbh($dbh);
+                    $state->result('can_use_root');
+                    $machine->{user}    = $build->db_root_user;
+                    $machine->{pass}    = $build->db_root_pass;
+                    $machine->{is_root} = 1;
+                    return;
+                }
+                $dbh = $self->_connect_to_pg(
+                    $template,
+                    $build->db_user,
+                    $build->db_pass,
+                );
+                if ($dbh) {
+                    $self->_dbh($dbh);
+                    $state->result('can_use_db_user');
+                    $machine->{user}    = $build->db_user;
+                    $machine->{pass}    = $build->db_pass;
+                    $machine->{is_root} = 0;
+                    return;
+                }
             },
             rules => [
-                can_create_database => {
-                    rule    => $fail,
-                    message => "The default database does not exist",
+                can_use_root => {
+                    rule    => sub { shift->result eq 'can_use_root' },
+                    message => "Root user available and usable",
                 },
-                plpgsql             => {
+                can_use_db_user => {
+                    rule    => sub { shift->result eq 'can_use_db_user' },
+                    message => "Root user not available, but can use db_user",
+                },
+                fail => {
+                    rule => $fail,
+                    message => 'Need root user or db user to build database',
+                },
+            ]
+        },
+        can_use_root => {
+            do => sub { 
+                my $state = shift;
+                my $db_name = $self->build->notes('kinetic_db_name');
+                $state->result($self->_db_exists($db_name));
+                if ($state->result) {
+                    $self->build->db_name($db_name);
+                    $self->build->notes(db_name => $db_name);
+                }
+                else {
+                    push @{$state->machine->{actions}} => ['create_db', $db_name];
+                }
+                push @{$state->machine->{actions}} => ['switch_to_db', $db_name];
+            },
+            rules => [
+                database_exists => {
                     rule    => $succeed,
-                    message => "The default database does exist",
+                    message => "Database exists",
+                },
+                no_database => {
+                    rule    => $fail,
+                    message => 'Database does not exist',
+                }
+            ],
+        },
+        no_database => {
+            do => sub {
+                warn "I don't know how to tie plpgsql to a particular database,\n"
+                    ."so I am skipping this for now.\n\n"
+                    ."We must also handle the 'createlang' part";
+                shift->result('template1 has plpgsql');
+            },
+            rules => [
+                done => {
+                    rule    => sub { shift->result eq 'template1 has plpgsql' },
+                    message => 'Template1 has plgsql',
+                },
+                done => {
+                    rule    => sub { shift->result eq 'No plpgsql but we have createlang' },
+                    message => 'Template1 does not have plpgsql, but we have createlang',
+                },
+                fail => {
+                    rule    => $fail,
+                    message => 'Template1 does not have plpgsql and we do  not have createlang',
+                }
+            ],
+        },
+        no_plpgsql => {
+            do => sub {
+                warn "no_plpgsql not yet implemented";
+                shift->result('have createlang');
+            },
+            rules => [
+                done => {
+                    rule    => sub { shift->result eq 'have createlang' },
+                    message => 'have createlang', # note need to add plpgsql
+                },
+                fail => {
+                    rule    => $fail,
+                    message => "Must have createlang to add plpgsql",
+                }
+            ],
+        },
+        can_use_db_user => {
+            do => sub {
+                warn "can use db user implementation being deferred";
+                shift->result(0); # should not get here; 
+            },
+            rules => [
+                database_exists => {
+                    rule => sub { shift->result eq 'database exists' },
+                    message => 'Database exists',
+                },
+                can_create_database => {
+                    rule => sub { shift->result eq 'user can create database' },
+                    message => "User can create database",
+                },
+                fail => {
+                    rule => $fail,
+                    message => "No database, and user has no permission to create it",
+                }
+            ],
+        },
+        has_plpgsql => {
+            rules => [
+                fail => {
+                    rule => $fail,
+                    message => 'User does not have permission to add objects to database',
+                },
+                done => {
+                    rule => $succeed,
+                    message => 'User can add objects to database',
                 },
             ],
         },
         can_create_database => {
             do => sub {
-                my $state = shift;
-                $state->result($self->_can_create_db($self->build->db_user));
+                warn "Deferring implementation of can_create_database";
+                # we should not get to here
             },
             rules => [
                 fail => {
-                    rule    => $fail,
-                    message => "Normal user does not have the right to create the database",
+                    rule => $fail,
+                    message => 'Template1 does not have plpgsql',
                 },
                 done => {
-                    rule    => $succeed,
-                    message => "can create database",
-                },
-            ],
+                    rule => $succeed,
+                    message => 'Template1 has plpgsql',
+                }
+            ]
         },
-        plpgsql => {
+        database_exists => {
             do => sub {
-                my $state = shift;
+                my $state   = shift;
+                my $machine = $state->machine;
+                unless ($self->_dbh) {
+                    my $dbh = $self->_connect_to_pg($template, $machine->{user}, $machine->{pass});
+                    $self->_dbh($dbh);
+                }
                 $state->result($self->_plpgsql_available);
+                # but we should not get to here at first
             },
             rules => [
-                fail              => {
-                    rule    => $fail,
-                    message => "plpgsql not available.  Must be root user to install.",
-                },
-                check_permissions => {
-                    rule    => $succeed,
-                    message => "plpgsql available",
-                },
-            ],
-        },
-        check_permissions => {
-            do => sub {
-                my $state = shift;
-                $state->result($self->_has_create_permissions($self->build->db_user));
-            },
-            rules => [
-                fail => {
-                    rule    => $fail,
-                    message => 'User does not have permission to create objects',
-                },
                 done => {
-                    rule    => $succeed,
-                    message => "user can create objects",
+                    rule    => sub { 
+                        my $state = shift;
+                        return $state->result && $state->machine->{is_root};
+                    },
+                    message => "Database has plpgsql",
                 },
+                no_plpgsql => {
+                    rule    => sub { 
+                        my $state = shift;
+                        return ! $state->result && $state->machine->{is_root};
+                    },
+                    message => 'Database does not have plpgsql',
+                },
+                has_plpgsql => {
+                    rule    => sub { 
+                        my $state = shift;
+                        return $state->result && ! $state->machine->{is_root};
+                    },
+                    message => 'Database has plpgsql but not root',
+                },
+                fail => {
+                    rule    => sub { 
+                        my $state = shift;
+                        return ! $state->result && ! $state->machine->{is_root};
+                    },
+                    message => 'Database does not have plpgsql and not root',
+                }
             ]
         },
         fail => {
             do => sub { die shift->prev_state->message || 'no message supplied' },
         },
-        done => { do => sub { $self->build->notes(good_store => 1) } },
+        done => { 
+            do => sub {
+                my $state   = shift;
+                my $build   = $self->build;
+                my $machine = $state->machine;
+                foreach my $attribute (qw/db_name actions user pass db_name/) {
+                    $build->notes($attribute => $machine->{$attribute});
+                }
+                $self->_dbh->disconnect;
+            }
+        },
     );
     return (\@state_machine);
 }
@@ -382,39 +467,9 @@ expects that the SQL will return one and only one value.
 
 sub _pg_says_true {
     my ($self, $sql, @bind_params) = @_;
-    return ($self->_dbh->selectrow_array($sql, undef, @bind_params));
-}
-
-##############################################################################
-
-=head3 _connect_as_user
-
-  $build->_connect_as_user($db_name);
-
-This method attempts to connect to the database as a normal user. It returns a
-database handle on success and undef on failure.
-
-=cut
-
-sub _connect_as_user {
-    my ($self, $db_name) = @_;
-    $self->_connect_to_pg($db_name, $self->build->db_user, $self->build->db_pass);
-}
-
-##############################################################################
-
-=head3 _connect_as_root
-
-  $build->_connect_as_root($db_name);
-
-This method attempts to connect to the database as a root user. It returns a
-database handle on success and undef on failure.
-
-=cut
-
-sub _connect_as_root {
-    my ($self, $db_name) = @_;
-    $self->_connect_to_pg($db_name, $self->build->db_root_user, $self->build->db_root_pass);
+    my $dbh    = $self->_dbh;
+    my $result = $dbh->selectrow_array($sql, undef, @bind_params);
+    return $result;
 }
 
 ##############################################################################
@@ -431,13 +486,148 @@ database handle on success and undef on failure.
 sub _connect_to_pg {
     my ($self, $db_name, $user, $pass) = @_;
     my $dbh;
-    eval { $dbh = DBI->connect($self->build->_dsn, $user, $pass) };
+    eval { $dbh = DBI->connect("dbi:Pg:dbname=$db_name", $user, $pass) };
     return $dbh;
 }
 
 1;
 __END__
 
+#        version => {
+#            do => sub {
+#                my $state = shift;
+#                $state->result($self->_is_required_version);
+#                unless ($state->result) {
+#                    my $required = $self->build->_required_version;
+#                    my $actual   = $self->info->version;
+#                    $state->message($self->app_name 
+#                        . " required version $required but you have $actual");
+#                }
+#            },
+#            rules  => [
+#                fail => $fail,
+#                createlang => {
+#                    rule    => $succeed,
+#                    message => "Pg is required version",
+#                },
+#            ],
+#        },
+#        createlang => {
+#            do => sub { shift->result($self->info->createlang) },
+#            rules => [
+#                fail     => {
+#                    rule    => $fail,
+#                    message => "createlang is required for plpgsql support",
+#                },
+#                metadata => {
+#                    rule    => $succeed,
+#                    message => "createlang is installed",
+#                },
+#            ],
+#        },
+#        # XXX Change this?
+#        $self->_dummy_state('metadata', 'root_user'),
+#        root_user => {
+#            do => sub {
+#                my $state = shift;
+#                my $root = $self->build->db_root_user || 'postgres';
+#                $self->build->db_root_user($root);
+#                my $dbh  = $self->_connect_as_root($template);
+#                $state->result($dbh);
+#                $self->_dbh($dbh);
+#                $state->message("User ($root) is not a root user or does not exist.")
+#                  unless $state->result;
+#            },
+#            rules => [
+#                user => $fail,
+#                done => {
+#                    rule    => $succeed,
+#                    message => "root is available",
+#                },
+#            ],
+#        },
+#        user => {
+#            do => sub {
+#                my $state = shift;
+#                my $dbh = $self->_connect_as_user($template);
+#                $state->result($dbh);
+#                $self->_dbh($dbh);
+#            },
+#            rules => [
+#                fail => {
+#                    rule    => $fail,
+#                    message => "Could not connect as normal user",
+#                },
+#                database_exists => {
+#                    rule    => $succeed,
+#                    message => "user available",
+#                },
+#            ],
+#        },
+#        database_exists => {
+#            do => sub {
+#                my $state = shift;
+#                $state->result($self->_db_exists($self->build->db_name));
+#            },
+#            rules => [
+#                can_create_database => {
+#                    rule    => $fail,
+#                    message => "The default database does not exist",
+#                },
+#                plpgsql             => {
+#                    rule    => $succeed,
+#                    message => "The default database does exist",
+#                },
+#            ],
+#        },
+#        can_create_database => {
+#            do => sub {
+#                my $state = shift;
+#                $state->result($self->_can_create_db($self->build->db_user));
+#            },
+#            rules => [
+#                fail => {
+#                    rule    => $fail,
+#                    message => "Normal user does not have the right to create the database",
+#                },
+#                done => {
+#                    rule    => $succeed,
+#                    message => "can create database",
+#                },
+#            ],
+#        },
+#        plpgsql => {
+#            do => sub {
+#                my $state = shift;
+#                $state->result($self->_plpgsql_available);
+#            },
+#            rules => [
+#                fail              => {
+#                    rule    => $fail,
+#                    message => "plpgsql not available.  Must be root user to install.",
+#                },
+#                check_permissions => {
+#                    rule    => $succeed,
+#                    message => "plpgsql available",
+#                },
+#            ],
+#        },
+#        check_permissions => {
+#            do => sub {
+#                my $state = shift;
+#                $state->result($self->_has_create_permissions($self->build->db_user));
+#            },
+#            rules => [
+#                fail => {
+#                    rule    => $fail,
+#                    message => 'User does not have permission to create objects',
+#                },
+#                done => {
+#                    rule    => $succeed,
+#                    message => "user can create objects",
+#                },
+#            ]
+#        },
 ##############################################################################
 
 =end private

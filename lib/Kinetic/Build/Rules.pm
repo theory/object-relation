@@ -163,7 +163,7 @@ sub validate {
     # XXX Hrm. _state_machine() doesn't seem like quite the right name to
     # me. More like states() or state_defs(). Also, why does it return two
     # values?
-    my ($state_machine, $done) = $self->_state_machine;
+    my $state_machine = $self->_state_machine;
     my $machine = FSA::Rules->new(@$state_machine);
     $machine->start;
     $self->{machine} = $machine; # internal only.  Used for debugging

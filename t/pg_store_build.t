@@ -5,8 +5,8 @@
 use strict;
 use warnings;
 use File::Spec;
-#use Test::More 'no_plan';
-use Test::More skip_all => 'PostgreSQL rules are incomplete';
+use Test::More 'no_plan';
+#use Test::More skip_all => 'PostgreSQL rules are incomplete';
 
 use lib 't/lib', '../../lib';
 use Kinetic::Build;
@@ -16,6 +16,8 @@ use Cwd;
 my ($TEST_LIB, $CLASS, $BUILD);
 
 BEGIN { 
+use Carp;
+#    $SIG{__DIE__} = \&Carp::confess;
     $CLASS = 'Kinetic::Build::Store';
     chdir 't';
     chdir 'build_sample';
@@ -31,7 +33,6 @@ BEGIN {
         conf_file       => 'test.conf', # always writes to t/ and blib/
         accept_defaults => 1,
         store           => 'pg',
-        db_root_user    => 'postgres',
     );
     $BUILD->create_build_script;
     $BUILD->dispatch('build');
@@ -41,7 +42,6 @@ BEGIN {
     use_ok $CLASS or die;
 }
 
-exit;
 #use Kinetic::Util::Config;
 can_ok $CLASS, 'new';
 ok my $bstore = $CLASS->new, '... and calling it should succeed';
@@ -56,7 +56,7 @@ is_deeply $metadata, $BUILD,
   '... and it should be the same data that Kinetic::Build->resume returns';
 
 SKIP: {
-    skip 'Bad store', undef unless $BUILD->notes('good_store');
+    skip 'Bad store', undef unless $BUILD->notes('got_store');
     can_ok $bstore, 'build';
     ok $bstore->build($TEST_LIB), '... and calling it should succeed';    
     

@@ -55,7 +55,7 @@ is_deeply $metadata, $BUILD,
   '... and it should be the same data that Kinetic::Build->resume returns';
 
 SKIP: {
-    skip 'Bad store', undef unless $BUILD->notes('good_store');
+    skip 'Bad store', undef unless $BUILD->notes('got_store');
     can_ok $bstore, 'build';
     ok $bstore->build($TEST_LIB), '... and calling it should succeed';    
     

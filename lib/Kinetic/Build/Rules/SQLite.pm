@@ -77,21 +77,25 @@ sub info_class { 'App::Info::RDBMS::SQLite' }
 
 =head3 _state_machine
 
-  my ($state_machine, $end_func) = $rules->_state_machine;
+  my $state_machine = $rules->_state_machine;
 
-This method returns arguments that the C<FSA::Rules> constructor
-requires.
+This method returns arguments that the C<FSA::Rules> constructor requires.
 
 =cut
 
 sub _state_machine {
     my $self = shift;
-    my ($done, $filename);
+
     my $fail    = sub {! shift->result };
     my $succeed = sub {  shift->result };
+
     my @state_machine = (
         start => {
-            do => sub { shift->result($self->_is_installed) },
+            do => sub { 
+                my $state = shift;
+                $state->machine->{actions} = []; # must never return to start
+                $state->result($self->_is_installed);
+             },
             rules => [
                 fail => {
                     rule    => $fail,
@@ -120,7 +124,7 @@ sub _state_machine {
             do => sub {
                 my $state = shift;
                 my $build = $self->build;
-                $filename = $build->db_name
+                my $filename = $build->db_name
                   || $build->prompt('Please enter a filename for the SQLite database');
                 $self->build->db_name($filename);
                 $state->result($filename);
@@ -138,7 +142,7 @@ sub _state_machine {
         },
         done => {
             # XXX Is this redundant?
-            do => sub {$self->build->notes(good_store => 1) },
+            do => sub {},
         },
         fail => {
             do => sub {
