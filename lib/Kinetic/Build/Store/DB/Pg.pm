@@ -591,6 +591,10 @@ sub rules {
         Done => {
             do => sub {
                 $self->add_actions('build_db');
+                # The super user must grant permissions to the database user
+                # to access the objects in the database.
+                $self->add_actions('grant_permissions')
+                  if $self->db_super_user;
             }
         },
     );
@@ -622,6 +626,22 @@ sub db_name { shift->{db_name} }
 
 ##############################################################################
 
+=head3 test_db_name
+
+  my $test_db_name = $kbs->test_db_name;
+
+Returns the name to be used for the test PostgreSQL database. This is a
+read-only attribute set by the call to the C<validate()> method.
+
+=cut
+
+# XXX To be paranoid, we should probably make sure that no username or
+# database exist with the name "__kinetic_test__".
+
+sub test_db_name { '__kinetic_test__' }
+
+##############################################################################
+
 =head3 template_db_name
 
   my $template_db_name = $kbs->template_db_name;
@@ -642,11 +662,28 @@ sub template_db_name { shift->{template_db_name} }
   $kbs->db_user($db_user);
 
 The database user to use to connect to the Kinetic database. Defaults to
-"kinetic". Not used by the SQLite data store.
+"kinetic".
 
 =cut
 
 sub db_user { shift->{db_user} }
+
+##############################################################################
+
+=head3 test_db_user
+
+  my $test_db_user = $kbs->test_db_user;
+  $kbs->test_db_user($test_db_user);
+
+The database user to use to connect to the Kinetic test database. Defaults to
+"__kinetic_test__".
+
+=cut
+
+# XXX To be paranoid, we should probably make sure that no username or
+# database exist with the name "__kinetic_test__".
+
+sub test_db_user { '__kinetic_test__' }
 
 ##############################################################################
 
@@ -656,11 +693,25 @@ sub db_user { shift->{db_user} }
   $kbs->db_pass($db_pass);
 
 The password for the database user specified by the C<db_user> attribute.
-Defaults to "kinetic". Not used by the SQLite data store.
+Defaults to "kinetic".
 
 =cut
 
 sub db_pass { shift->{db_pass} }
+
+##############################################################################
+
+=head3 test_db_pass
+
+  my $test_db_pass = $kbs->test_db_pass;
+  $kbs->test_db_pass($test_db_pass);
+
+The password for the database user specified by the C<test_db_user> attribute.
+Defaults to "__kinetic_test__".
+
+=cut
+
+sub test_db_pass { '__kinetic_test__' }
 
 ##############################################################################
 
@@ -745,38 +796,41 @@ encoding. It will disconnect from the database when done.
 
 sub create_db {
     my ($self, $db_name) = @_;
-    my $dbh = $self->_dbh;
+    my $dbh = $self->_connect(
+        $self->_dsn($self->template_db_name),
+        $self->db_super_user,
+        $self->db_super_pass,
+    );
+
     $dbh->do(qq{CREATE DATABASE "$db_name" WITH ENCODING = 'UNICODE'});
-    $dbh->disconnect;
     return $self;
 }
 
 ##############################################################################
 
-=head3 add_plpgsql_to_db
+=head3 add_plpgsql
 
-  $kbs->add_plpgsql_to_db($db_name);
+  $kbs->add_plpgsql($db_name);
 
 Given a database name, this method will attemt to add C<plpgsql> to the
-database.
+database. The database name defaults to the value returned by C<db_name>.
 
 =cut
 
-sub add_plpgsql_to_db {
+sub add_plpgsql {
     my ($self, $db_name) = @_;
+    $db_name ||= $self->db_name;
     # createlang -U postgres plpgsql template1
-    my $builder    = $self->builder;
-    my $info        = App::Info::RDBMS::PostgreSQL->new;
-    my $createlang  = $info->createlang or die "Cannot find createlang";
-    my $root_user   = $builder->db_root_user;
+    my $createlang = $self->info->createlang or die "Cannot find createlang";
     my @options;
     my %options = (
-        db_host      => '-h',
-        db_port      => '-p',
-        db_root_user => '-U',
+        db_host       => '-h',
+        db_port       => '-p',
+        db_super_user => '-U',
     );
     while (my ($method, $switch) = each %options) {
-        push @options => ($switch, $builder->$method) if defined $builder->$method;
+        push @options => ($switch, $self->$method)
+          if defined $self->$method;
     }
 
     my $language = 'plpgsql';
@@ -804,6 +858,94 @@ my %createlang = (
 );
 
 =end comment
+
+##############################################################################
+
+=head3 create_user
+
+  $kbs->create_user($user, $pass);
+
+Attempts to create a user with the supplied name. It defaults to the user name
+returned by C<db_user()> and the password returned by C<db_pass()>.
+
+=cut
+
+sub create_user {
+    my ($self, $user, $pass) = @_;
+    $user ||= $self->db_user;
+    $pass ||= $self->db_pass;
+    my $dbh = $self->_connect(
+        $self->_dsn($self->template_db_name),
+        $self->db_super_user,
+        $self->db_super_pass,
+    );
+
+    $dbh->do(qq{CREATE USER "$user" WITH password '$pass' NOCREATEDB NOCREATEUSER});
+    return $self;
+}
+
+##############################################################################
+
+=head3 build_db
+
+  $kbs->build_db;
+
+Builds the database with all of the tables, sequences, indexes, views,
+triggers, etc., required to power the application. Overrides the
+implementation in the parent class to silence "NOTICE" output from PostgreSQL.
+
+=cut
+
+sub build_db {
+    local $SIG{__WARN__} = sub {
+        my $message = shift;
+        return if $message =~ /NOTICE:/; # ignore postgres warnings
+        warn $message;
+    };
+    shift->SUPER::build_db(@_);
+}
+
+##############################################################################
+
+=head3 grant_permissions
+
+  $kbs->grant_permissions;
+
+Grants the database user permission to access the objects in the database.
+Called if the super user creates the database.
+
+=cut
+
+sub grant_permissions {
+    my $self = shift;
+    my $dbh = $self->_connect(
+        $self->_dsn($self->db_name),
+        $self->db_super_user,
+        $self->db_super_pass,
+    );
+
+# relkind:
+#   r => 'table'
+#   v => 'view'
+#   i => 'index'
+#   S => 'sequence'
+#   s => 'special'
+
+    my $objects = $dbh->selectcol_arrayref(qq{
+        SELECT n.nspname || '."' || c.relname || '"'
+        FROM   pg_catalog.pg_class c
+               LEFT JOIN pg_catalog.pg_user u ON u.usesysid = c.relowner
+               LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+        WHERE  c.relkind IN ('S', 'v')
+               AND n.nspname NOT IN ('pg_catalog', 'pg_toast')
+               AND pg_catalog.pg_table_is_visible(c.oid)
+    });
+
+    $dbh->do('GRANT SELECT, UPDATE, INSERT, DELETE ON '
+             . join(', ', @$objects) . ' TO "'
+             . $self->db_user . '"');
+    return $self;
+}
 
 ##############################################################################
 
@@ -845,15 +987,12 @@ and "db_pass" directives, which are each set to the temporary value
 
 =cut
 
-# XXX To be paranoid, we should probably make sure that no username or
-# database exist with the name "__kinetic__".
-
 sub test_config {
     my $self = shift;
     return {
-        db_name => '__kinetic_test__',
-        db_user => '__kinetic_test__',
-        db_pass => '__kinetic_test__',
+        db_name => $self->test_db_name,
+        db_user => $self->test_db_user,
+        db_pass => $self->test_db_pass,
         host    => $self->db_host,
         port    => $self->db_port,
         # Well need these during tests.
@@ -861,6 +1000,44 @@ sub test_config {
         db_super_pass => $self->db_super_pass,
         template_db_name => $self->template_db_name,
     };
+}
+
+##############################################################################
+
+=head3 build
+
+  $kbs->build;
+
+Builds data store. This implementation overrides the parent version to set up
+a database handle for use during the build.
+
+=cut
+
+sub build {
+    my $self = shift;
+#    $self->_dbh(my $dbh = DBI->connect($self->dsn, , ''));
+#    $self->SUPER::build(@_);
+#    $dbh->disconnect;
+    return $self;
+}
+
+##############################################################################
+
+=head3 test_build
+
+  $kbs->test_build;
+
+Builds a test data store. This implementation overrides the parent version to
+set up a database handle for use during the build.
+
+=cut
+
+sub test_build {
+    my $self = shift;
+#    $self->_dbh(my $dbh = DBI->connect($self->test_dsn, '', ''));
+#    $self->SUPER::test_build(@_);
+#    $dbh->disconnect;
+    return $self;
 }
 
 ##############################################################################

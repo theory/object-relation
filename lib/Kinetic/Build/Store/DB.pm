@@ -54,7 +54,7 @@ such as "DBD::Pg" or "DBD::SQLite". Must be overridden in subclasses.
 
 =cut
 
-sub dbd_class { die "dbd_class() must be overridden in the subclass" }
+sub dbd_class { require Carp && Carp::croak "dbd_class() must be overridden in the subclass" }
 
 ##############################################################################
 
@@ -88,7 +88,7 @@ subclass to connec to the database. Must be overridden in a subclass.
 
 =cut
 
-sub dsn { die "dsn() must be overridden in the subclass" }
+sub dsn { require Carp && Carp::croak "dsn() must be overridden in the subclass" }
 
 ##############################################################################
 
@@ -102,7 +102,7 @@ be overridden in a subclass.
 
 =cut
 
-sub test_dsn { die "test_dsn() must be overridden in the subclass" }
+sub test_dsn { require Carp && Carp::croak "test_dsn() must be overridden in the subclass" }
 
 ##############################################################################
 
@@ -131,7 +131,7 @@ sub build_db {
 
     my $schema_class = $self->schema_class;
     eval "use $schema_class";
-    die $@ if $@;
+    require Carp && Carp::croak $@ if $@;
 
     my $sg = $schema_class->new;
     $sg->load_classes($self->builder->source_dir);
@@ -140,13 +140,6 @@ sub build_db {
     $dbh->begin_work;
 
     eval {
-        local $SIG{__WARN__} = sub {
-            my $message = shift;
-            # XXX We shouldn't have PostgreSQL-specific code in this class!
-            return if $message =~ /NOTICE:/; # ignore postgres warnings
-            warn $message;
-        };
-
         $dbh->do($_) foreach
           $sg->begin_schema,
           $sg->setup_code,
@@ -156,7 +149,7 @@ sub build_db {
     };
     if (my $err = $@) {
         $dbh->rollback;
-        die $err;
+        require Carp && Carp::croak $err;
     }
 
     return $self;

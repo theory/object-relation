@@ -694,7 +694,7 @@ sub test_validate_super_user : Test(14) {
     isa_ok $kbs, $class;
     ok $kbs->validate, "We should be able to validate";
     is_deeply [$kbs->actions], ['create_db', 'add_plpgsql', 'create_user',
-                                'build_db'],
+                                'build_db', 'grant_permissions'],
       "We should have the right actions";
     is $kbs->db_host, 'pgme', 'Database host is undefined';
     is $kbs->db_port, '5433', 'Port is undefined';
@@ -778,7 +778,8 @@ sub test_validate_super_user_arg : Test(14) {
     ok my $kbs = $class->new, "Create new $class object";
     isa_ok $kbs, $class;
     ok $kbs->validate, "We should be able to validate";
-    is_deeply [$kbs->actions], ['add_plpgsql', 'create_user', 'build_db'],
+    is_deeply [$kbs->actions], ['add_plpgsql', 'create_user', 'build_db',
+                                'grant_permissions'],
       "We should have the right actions";
     is $kbs->db_host, undef, 'Database host is undefined';
     is $kbs->db_port, undef, 'Port is undefined';
@@ -933,7 +934,6 @@ sub test_db_helpers : Test(21) {
         $dsn,
         $self->{conf}{pg}{db_super_user},
         $self->{conf}{pg}{db_super_pass},
-        { RaiseError => 1, PrintError => 0 }
     ), 'DBI::db';
 
     $pg->mock(_dbh => $dbh);
@@ -991,9 +991,149 @@ sub test_db_helpers : Test(21) {
       "A non-existant user should not be a super user";
 }
 
+sub test_build : Test(no_plan) {
+    my $self = shift;
+    return "Not testing PostgreSQL" unless $self->supported('pg');
+    my $class = $self->test_class;
+
+    # Override builder methods to keep things quiet.
+    my $mb = MockModule->new(Build);
+    $mb->mock(check_manifest => sub { return });
+    $mb->mock(_app_info_params => sub { } );
+    $mb->mock(store => 'pg');
+
+    # Mock the class to use the admin settings set up during the build.
+    my $pg = MockModule->new($class);
+    my %mock = (
+        db_super_user    => 'db_super_user',
+        db_super_pass    => 'db_super_pass',
+        db_user          => 'db_user',
+        db_pass          => 'db_pass',
+        db_name          => 'db_name',
+        test_db_user     => 'db_user',
+        test_db_pass     => 'db_pass',
+        test_db_name     => 'db_name',
+        template_db_name => 'template_db_name',
+        db_host          => 'host',
+        db_port          => 'port',
+    );
+
+    while (my ($meth, $val) = each %mock) {
+        $pg->mock($meth => $self->{conf}{pg}{$val});
+    }
+
+    $pg->mock(validate => 1);
+
+    my $builder = $self->new_builder;
+    $mb->mock(resume => $builder);
+    $builder->source_dir('lib'); # We're in t/sample
+    $builder->dispatch('code');
+
+    # Construct the object.
+    ok my $kbs = $class->new, "Create new $class object";
+    isa_ok $kbs, $class;
+
+    isa_ok $self->{tdbh} = $kbs->_connect(
+        $kbs->_dsn($self->{conf}{pg}{template_db_name}),
+        $self->{conf}{pg}{db_super_user},
+        $self->{conf}{pg}{db_super_pass}
+    ), 'DBI::db';
+
+    $pg->mock(_dbh => $self->{tdbh});
+
+    # Test create_db.
+    ok !$kbs->_db_exists($kbs->test_db_name),
+      "The database should not yet exist";
+    ok $kbs->create_db($kbs->test_db_name), "Create the test database";
+    ok $kbs->_db_exists($kbs->test_db_name),
+      "Now the database should exist";
+
+    # Connect to the new database.
+    $self->{dbh} = DBI->connect_cached(
+        $kbs->_dsn($self->{conf}{pg}{db_name}),
+        $self->{conf}{pg}{db_super_user},
+        $self->{conf}{pg}{db_super_pass},
+        { RaiseError => 1, PrintError => 0 }
+    );
+
+    # Test add_plpgsql.
+    SKIP : {
+        skip "PL/pgSQL already installed", 2 if $kbs->_plpgsql_available;
+        ok $kbs->add_plpgsql($kbs->test_db_name), "Add PL/pgSQL";
+        $pg->mock(_dbh => $self->{dbh});
+        ok $kbs->_plpgsql_available, 'PL/pgSQL should be added';
+    }
+
+    # Test create_user.
+    ok !$kbs->_user_exists($kbs->test_db_user),
+      "The user should not yet exist";
+    ok $kbs->create_user($kbs->test_db_user), "Create the test user";
+    ok $kbs->_user_exists($kbs->test_db_user),
+      "Now the user should exist";
+
+    # Test build_db.
+    $pg->mock(_dbh => $self->{dbh}); # Don't use the template!
+    ok $kbs->build_db;
+    my @views = qw'simple one two composed comp_comp';
+    for my $view (@views) {
+        is_deeply $self->{dbh}->selectall_arrayref("
+            SELECT 1
+            FROM   pg_catalog.pg_class c
+            WHERE  c.relname = ? and c.relkind = 'v'
+            ", {}, $view
+        ), [[1]], "View $view should exist";
+    }
+
+    # Test granting permissions.
+    my @checks;
+    my @params;
+    for my $view (@views) {
+        for my $perm (qw(SELECT UPDATE INSERT DELETE)) {
+            push @checks, 'has_table_privilege(?, ?, ?)';
+            push @params, $self->{conf}{pg}{db_user}, $view, $perm;
+        }
+    }
+
+    is_deeply $self->{dbh}->selectrow_arrayref(
+        "SELECT " . join(', ', @checks), undef, @params
+    ), [ ('0') x scalar @params / 3 ], "No permissions should be granted yet";
+    ok $kbs->grant_permissions;
+    is_deeply $self->{dbh}->selectrow_arrayref(
+        "SELECT " . join(', ', @checks), undef, @params
+    ), [ ('1') x scalar @params / 3 ], "Permissions should now be granted";
+
+    # Try building the test database.
+#    ok !$kbs->_db_exists($kbs->db_name),
+#      "We should not have the database yet";
+#    ok $kbs->test_build, "Build the test database";
+#    ok $kbs->_db_exists($kbs->db_name),
+#      "Now we should have the database";
+
+    # Clean up our mess.
+    $pg->unmock('_dbh');
+    $builder->dispatch('clean');
+}
+
+sub db_cleanup : Test(teardown) {
+    my $self = shift;
+    if (my $dbh = delete $self->{dbh}) {
+        $dbh->disconnect;
+    }
+    if (my $dbh = delete $self->{tdbh}) {
+        $self->drop_db($dbh, );
+        # Wait until the other connection has been dropped.
+        sleep 1 while $dbh->selectrow_array(
+            'SELECT 1 FROM pg_stat_activity where datname = ?',
+            undef, $self->{conf}{pg}{db_name}
+        );
+        $dbh->do(qq{DROP DATABASE "$self->{conf}{pg}{db_name}"});
+        $dbh->do(qq{DROP user "$self->{conf}{pg}{db_user}"});
+        $dbh->disconnect;
+    }
+}
+
 # To Do:
-# * Create and test methods to create the database.
-# * Create and test build() and test_build().
+# * Test build() and test_build()--maybe with each of the rule scenarios?
 
 1;
 __END__
