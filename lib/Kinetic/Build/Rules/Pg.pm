@@ -205,6 +205,10 @@ sub _state_machine {
                     rule    => sub { shift->machine->{db_name} ne $template },
                     message => "Panic state.  Cannot check template1 for plpgsql if we're not connected to it.",
                 },
+                Fail => {
+                    rule    => $fail,
+                    message => 'Template1 does not have plpgsql and we do not have createlang',
+                },
                 Done => {
                     rule    => sub { shift->result eq 'template1 has plpgsql' },
                     message => 'Template1 has plgsql',
@@ -213,10 +217,6 @@ sub _state_machine {
                     rule    => sub { shift->result eq 'No plpgsql but we have createlang' },
                     message => 'Template1 does not have plpgsql, but we have createlang',
                 },
-                Fail => {
-                    rule    => $fail,
-                    message => 'Template1 does not have plpgsql and we do not have createlang',
-                }
             ],
         },
         "Check for createlang" => {
@@ -312,9 +312,6 @@ sub _state_machine {
                 );
                 $self->_dbh($dbh); # force a new dbh
                 $state->result($self->_plpgsql_available);
-                if (! $state->result && $machine->{is_root}) {
-                    push @{$machine->{actions}} => ['add_plpgsql_to_db', $machine->{db_name}];
-                }
             },
             rules => [
                 Done => {
@@ -332,6 +329,10 @@ sub _state_machine {
                         return ! $state->result && $state->machine->{is_root};
                     },
                     message => 'Database does not have plpgsql',
+                    action  => [sub {
+                        my $machine = shift->machine;
+                        push @{$machine->{actions}} => ['add_plpgsql_to_db', $machine->{db_name}];
+                    }],
                 },
                 "Check user create permissions" => {
                     rule    => sub {

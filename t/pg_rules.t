@@ -4,8 +4,8 @@
 
 use strict;
 use warnings;
-#use Test::More tests => 21;
-use Test::More 'no_plan';
+use Test::More tests => 83;
+#use Test::More 'no_plan';
 use Test::MockModule;
 use Test::Exception;
 
@@ -14,12 +14,13 @@ use Kinetic::Build;
 use File::Spec;
 use Cwd;
 use FSA::Rules;
+use Clone;
 
-my ($TEST_LIB, $CLASS, $BUILD);
+my ($TEST_LIB, $CLASS, $BUILD, $BUILD_CLASS);
 
-BEGIN { 
-use Carp;
+BEGIN {
     $CLASS = 'Kinetic::Build::Rules::Pg';
+    $BUILD_CLASS = 'Kinetic::Build::Store::DB::Pg';
     chdir 't';
     chdir 'build_sample';
     $TEST_LIB = File::Spec->catfile(qw/.. lib/);
@@ -31,7 +32,13 @@ use Carp;
         store           => 'pg',
         source_dir      => $TEST_LIB,
     );
-    use_ok $CLASS or die;
+    $BUILD->create_build_script;
+    $BUILD->dispatch('build');
+
+    $BUILD = Kinetic::Build->resume;
+    $ENV{KINETIC_CONF} = File::Spec->catfile(qw/t conf test.conf/);
+    use_ok $CLASS       or die;
+    use_ok $BUILD_CLASS or die;
 }
 
 can_ok $CLASS, 'new';
@@ -44,7 +51,6 @@ is ref $machine, 'ARRAY', '... and it should return an array ref';
 is @$machine %2, 0, '... with an even number of elements';
 
 if (0) {
-    require Clone;
     my $machine2 = Clone::clone($machine);
     my $temp = FSA::Rules->new(@$machine2);
     $temp->graph(
@@ -261,6 +267,9 @@ sub check_for_user_db {
         ['create_db',    'kinetic'],
         ['switch_to_db', 'kinetic'],
     ], '... telling us to create the user db and then connect to it.';
+    foreach my $action (map {$_->[0]} @$actions) {
+        can_ok $BUILD_CLASS, $action;
+    }
 
     $module->mock(_db_exists => 1);
     $machine->reset->curr_state($state);
@@ -276,10 +285,15 @@ sub check_for_user_db {
     is_deeply $actions, [
         ['switch_to_db', 'kinetic'],
     ], '... telling us to connect to the user db.';
+    foreach my $action (map {$_->[0]} @$actions) {
+        can_ok $BUILD_CLASS, $action;
+    }
 }
 
 sub check_user_db_for_plpgsql {
     my ($state, $definition) = @_;
+use Clone;
+    my $def2 = Clone::clone($definition);
     my $createlang_state = "Check for createlang";
     my $permissive_state = "Check user create permissions";
     my $machine = FSA::Rules->new(
@@ -298,23 +312,68 @@ sub check_user_db_for_plpgsql {
       qr/Database does not have plpgsql and not root/,
       qq/"$state" cannot add plpgsql unless using the root user/;
 
-    $machine->reset->curr_state($state);
+    $machine->reset;
     $machine->{is_root} = 1;
-    $machine->switch until $machine->at($createlang_state);
+    $machine->curr_state($state);
+    until ($machine->at($createlang_state)) {
+        $machine->switch; # until $machine->at($createlang_state);
+    }
     ok ! $machine->states($state)->result,
       qq/"$state" result should be false if plpgsql is not installed/;;
     my $actions = $machine->{actions};
     is @$actions, 1, '... and there should be one action';
     is_deeply $actions->[0], ['add_plpgsql_to_db', 'kinetic'],
       '... telling us to add plpgsql to the user db';
+    foreach my $action (map {$_->[0]} @$actions) {
+        can_ok $BUILD_CLASS, $action;
+    }
 }
 
 sub Done {
-    TODO: { local $TODO = "Tests for Done not yet implemented"; ok 0 } 
+    my ($state, $definition) = @_;
+    my $machine = FSA::Rules->new(
+        faux_state => { 
+            rules => [ Done => 1 ]
+        },
+        $state     => $definition,
+    );
+
+    my $disconnect = 0;
+    my $dbi   = Test::MockModule->new('DBI');
+    $dbi->mock(disconnect => sub { $disconnect = 1 } );
+    my $rules = Test::MockModule->new($CLASS);
+    $rules->mock(_dbh => sub { bless {} => 'DBI' });
+    
+    @{$machine}{qw/user pass db_name/} = qw/ovid divo rome/;
+    $machine->start;
+    $machine->switch;
+    my $actions = $machine->{actions};
+    is @$actions, 1,
+      qq/"$state" should set an action if the user database does not exist/;
+    is $actions->[0][0], 'build_db',
+      '... telling us to build the user database';
+    foreach my $action (map {$_->[0]} @$actions) {
+        can_ok $BUILD_CLASS, $action;
+    }
+    is $BUILD->notes('stacktrace'), $machine->stacktrace,
+      '... and the stacktrace should be copied to the build object';
+    foreach my $attribute (qw/actions user pass db_name/) {
+        is_deeply $BUILD->notes($attribute), $machine->{$attribute},
+          "... and '$attribute' should be copied from the machine to the build notes";
+    }
+    ok $disconnect, '... and we should disconnect from the db if connected';
+
+    $machine->reset;
+    $machine->{database_exists} = 1;
+    $machine->curr_state('faux_state');
+    $machine->switch;
+    $actions = $machine->{actions};
+    ok ! $actions, '... but we should not be told to build the user db if it exists';
 }
 
 sub Fail {
     my ($state, $definition) = @_;
+    my $def2 = Clone::clone($definition);
     my $machine = FSA::Rules->new(
         faux_state => { rules => [ Fail => 1 ] },
         $state     => $definition,
@@ -323,6 +382,18 @@ sub Fail {
     throws_ok { $machine->switch }
       qr/no message supplied/,
       qq'"$state" should die with an appropriate message';
+
+    $machine = FSA::Rules->new(
+        faux_state => {
+            do    => sub { shift->message('foo bar baz') },
+            rules => [ Fail => 1 ] 
+        },
+        $state     => $def2,
+    );
+    $machine->start;
+    throws_ok { $machine->switch }
+      qr/foo bar baz/,
+      qq'... and it should capture the previous state message, if available';
 }
 
 sub check_user_create_permissions {
@@ -346,7 +417,51 @@ sub check_user_create_permissions {
 }
 
 sub check_template1_for_plpgsql_and_is_root {
-    TODO: { local $TODO = "Tests for \"Check template1 for plpgsql and is root\" not yet implemented"; ok 0 } 
+    my ($state, $definition) = @_;
+    my $machine = FSA::Rules->new(
+        $state => $definition,
+        Fail   => { do => sub { die shift->prev_state->message } },
+        Done   => {},
+    );
+    $machine->{db_name} = 'kinetic';
+    my $info = Test::MockModule->new('App::Info::RDBMS::PostgreSQL');
+    $info->mock(createlang => 0);
+    my $module = Test::MockModule->new($CLASS);
+    $module->mock(_plpgsql_available => 0);
+    $machine->start;
+    throws_ok {$machine->switch}
+      qr/Panic state.  Cannot check template1 for plpgsql if we're not connected to it/,
+      qq/"$state" should panic if we're not connected to template1/;
+
+    $machine->reset;
+    $machine->{db_name} = 'template1';
+    $machine->curr_state($state);
+    throws_ok {$machine->switch}
+      qr/Template1 does not have plpgsql and we do not have createlang/,
+      qq/... and it should fail if we don't have either plpgsql or createlang/;
+
+    $info->mock(createlang => 1);
+    $machine->reset;
+    $machine->{db_name} = 'template1';
+    $machine->curr_state($state);
+    $machine->switch;
+    is $machine->states($state)->result, 'No plpgsql but we have createlang',
+      '... and we should not die if we have no plpgsql but we do have createlang';
+    my $actions = $machine->{actions};
+    is @$actions, 1, '... and we should have one action';
+    is_deeply $actions->[0], ['add_plpgsql_to_db', 'template1'],
+      '... tellling us to add plpgsql to template1';
+    foreach my $action (map {$_->[0]} @$actions) {
+        can_ok $BUILD_CLASS, $action;
+    }
+    $module->mock(_plpgsql_available => 1);
+    $machine->reset;
+    $machine->{db_name} = 'template1';
+    $machine->curr_state($state);
+    $machine->switch;
+    is $machine->states($state)->result, 'template1 has plpgsql',
+      qq/"$state" should succeed if template1 has plpgsql/;
+    ok ! $machine->{actions}, '... and we should have no actions to perform';
 }
 
 sub check_for_createlang {
@@ -373,4 +488,7 @@ sub check_for_createlang {
     is @$actions, 1, '... and we should have a new action added';
     is_deeply $actions->[0], [qw/add_plpgsql_to_db kinetic/],
       '... telling us to add plpgsql to the user db';
+    foreach my $action (map {$_->[0]} @$actions) {
+        can_ok $BUILD_CLASS, $action;
+    }
 }
