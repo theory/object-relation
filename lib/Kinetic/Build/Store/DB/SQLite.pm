@@ -162,9 +162,10 @@ sub rules {
         fail => {
             do => sub {
                 my $state = shift;
-                # XXX Use $build->_fatal_error()?
-                die $state->prev_state->message
-                  || "no message supplied";
+                $self->builder->_fatal_error(
+                    $state->prev_state->message
+                      || "no message supplied"
+                );
             },
         },
     );
@@ -202,7 +203,9 @@ it.
 
 sub dsn {
     my $self = shift;
-    sprintf 'dbi:%s:dbname=%s', $self->dsn_dbd, $self->db_file }
+    my $file = catfile $self->builder->install_base, 'store', $self->db_file;
+    return sprintf 'dbi:%s:dbname=%s', $self->dsn_dbd, $file;
+}
 
 ##############################################################################
 

@@ -10,7 +10,7 @@ use Test::File;
 
 __PACKAGE__->runtests;
 
-sub test_props : Test(6) {
+sub test_props : Test(7) {
     my $self = shift;
     my $class = $self->test_class;
     my $mb = MockModule->new($class);
@@ -24,6 +24,8 @@ sub test_props : Test(6) {
     is $builder->run_dev_tests, 0, 'Run dev tests should be disabled';
     is $builder->test_data_dir, $self->data_dir,
       'The test data directory should consistent';
+    like $builder->install_base, qr/kinetic$/,
+      'The install base should end with "kinetic"';
 }
 
 sub test_check_store_action : Test(7) {

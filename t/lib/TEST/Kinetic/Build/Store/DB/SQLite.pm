@@ -7,8 +7,11 @@ use Test::More;
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Build';
 use Test::Exception;
+use File::Spec::Functions;
+use Test::File;
 
 __PACKAGE__->runtests;
+
 sub test_class_methods : Test(8) {
     my $test = shift;
     my $class = $test->test_class;
@@ -42,14 +45,16 @@ sub test_new : Test(4) {
     isa_ok $kbs->info, $kbs->info_class;
 }
 
-sub test_rules : Test(8) {
+sub test_rules : Test(25) {
     my $self = shift;
     my $class = $self->test_class;
 
     # Override builder methods to keep things quiet.
-    my $builder = MockModule->new(Build);
-    $builder->mock(resume => sub { bless {}, Build });
-    $builder->mock(_app_info_params => sub { } );
+    my $mb = MockModule->new(Build);
+    $mb->mock(check_manifest => sub { return });
+    my $builder = $self->new_builder;
+    $mb->mock(resume => $builder);
+    $mb->mock(_app_info_params => sub { } );
 
     # Construct the object.
     ok my $kbs = $class->new, "Create new $class object";
@@ -71,7 +76,7 @@ sub test_rules : Test(8) {
 
     # Test when everything is cool.
     $info->mock(version => '3.0.8');
-    $builder->mock(prompt => 'fooness');
+    $mb->mock(prompt => 'fooness');
     ok $kbs->validate,
       '... and it should return a true value if everything is ok';
     is $kbs->db_file, 'fooness',
@@ -79,9 +84,61 @@ sub test_rules : Test(8) {
     is_deeply $kbs->{actions}, [['build_db']],
       "... and the actions should be set up";
 
-    # Check the DSNs.
-    is $kbs->dsn, 'dbi:SQLite:dbname=fooness';
+    # Check the DSNs. Make the install base the same as the test base.
+    $builder->install_base($builder->test_data_dir);
+    my $db_file = catfile 't', 'data', 'store', 'fooness';
+    is $kbs->dsn, "dbi:SQLite:dbname=$db_file",
+      "...and the DSN should be set";
+    my $test_file = catfile 't', 'data', 'fooness';
+    is $kbs->test_dsn, "dbi:SQLite:dbname=$test_file",
+      "as should the test DSN";
+
+    # Try building the test database.
+    $builder->source_dir('t/sample');
+    file_not_exists_ok $test_file,
+      "The test database file should not yet exist";
+    ok $kbs->test_build, "Build the test database";
+    file_exists_ok $test_file, "The test database file should now exist";
+
+    # Make sure that the views were created.
+    my $dbh = DBI->connect($kbs->test_dsn, '', '');
+    for my $view (qw'simple one two composed comp_comp') {
+        is_deeply $dbh->selectall_arrayref(
+            "SELECT 1 FROM sqlite_master WHERE type ='view' AND name = ?",
+            {}, $view
+        ), [[1]], "View $view should exist";
+    }
+
+    # Try building the production database.
+    unlink $test_file;
+    $self->mkpath('t', 'data', 'store');
+    file_not_exists_ok $db_file,
+      "The database file should not yet exist";
+    ok $kbs->build, "Build the database";
+    file_exists_ok $db_file, "The database file should now exist";
+
+    # Make sure that the views were created.
+    $dbh->disconnect;
+    $dbh = DBI->connect($kbs->dsn, '', '');
+    for my $view (qw'simple one two composed comp_comp') {
+        is_deeply $dbh->selectall_arrayref(
+            "SELECT 1 FROM sqlite_master WHERE type ='view' AND name = ?",
+            {}, $view
+        ), [[1]], "View $view should exist";
+    }
+    $dbh->disconnect;
+    unlink $db_file;
 }
 
+sub new_builder {
+    my $self = shift;
+    return $self->{builder} = Build->new(
+        dist_name       => 'Testing::Kinetic',
+        dist_version    => '1.0',
+        quiet           => 1,
+        accept_defaults => 1,
+        @_,
+    );
+}
 1;
 __END__

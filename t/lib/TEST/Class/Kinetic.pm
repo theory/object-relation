@@ -47,7 +47,7 @@ sub mkpath {
     return $self unless @_;
     my ($build, @cleanup);
     for my $dir (@_) {
-        $build = catdir(($build ? $build : ()), $dir);
+        $build = catdir((defined $build ? $build : ()), $dir);
         next if -e $build;
         push @cleanup, $build;
         File::Path::mkpath($build);

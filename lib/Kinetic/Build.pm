@@ -88,12 +88,20 @@ Overrides Module::Build's constructor to add Kinetic-specific build elements.
 =cut
 
 sub new {
-    my $self = shift->SUPER::new(@_);
+    my $self = shift->SUPER::new(
+        # Set up new default values for parent class properties.
+        install_base => File::Spec->catdir(
+            $Config::Config{installprefix}, 'kinetic'
+        ), @_ # User-set properties.
+    );
+
     # Add elements we need here.
     $self->add_build_element('conf');
     return $self;
 }
 
+__PACKAGE__->add_property(
+);
 =head3 Class Methods
 
 =head3 test_data_dir
@@ -143,6 +151,21 @@ The type of data store to be used for the application. Possible values are
 =cut
 
 __PACKAGE__->add_property(store => 'sqlite');
+
+##############################################################################
+
+=head3 install_base
+
+  my $install_base = $build->install_base;
+  $build->install_base($install_base);
+
+Overrides the Module::Build property with this name to put everything under
+the "kinetic" directory under the C<Config> module's "installprefix"
+directory.
+
+=cut
+
+# Handled in new().
 
 ##############################################################################
 
@@ -354,8 +377,7 @@ sub ACTION_config {
     my $new = File::Spec->catfile($self->blib,
                                   qw(lib Kinetic Util Config.pm.new));
     # Figure out where we're going to install this beast.
-    my $base = $self->install_base
-      || File::Spec->catdir($self->config->{installprefix}, 'kinetic');
+    my $base = $self->install_base;
     my $default = '/usr/local/kinetic/conf/kinetic.conf';
     my $config = File::Spec->catfile($base, qw(conf kinetic.conf));
 
@@ -424,6 +446,8 @@ sub ACTION_setup_test {
     my $data = $self->localize_file_path('t/data');
     File::Path::mkpath $data;
     $self->add_to_cleanup($data);
+
+    # Setup t/conf for tests to use a test configuration file.
 
     return $self unless $self->run_dev_tests;
 
@@ -509,7 +533,10 @@ sub process_conf_files {
             push @conf, $_;
             # Do we have the start of a section?
             next unless /^'?(\w+)'?\s?=>\s?{/;
-            # Is there a method for this section?
+            # Is there a configuration class or method for this section?
+            if ($CONFIG{$1}) {
+                
+            }
             my $method = $self->can($prefix{$dir} . $1 . '_config')
               || $self->can($1 . '_config') or next;
             # Dump the default contents of the section.
