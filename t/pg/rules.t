@@ -590,7 +590,7 @@ sub TEST_check_template1_for_plpgsql_and_is_root {
     $module->mock(_plpgsql_available => 0);
     $machine->start;
     throws_ok {$machine->switch}
-      qr/Panic state.  Cannot check template1 for plpgsql if we're not connected to it/,
+      qr/Panic state. Cannot check template1 for plpgsql if we're not connected to it/,
       qq/"$state" should panic if we're not connected to template1/;
 
     $machine->reset;
