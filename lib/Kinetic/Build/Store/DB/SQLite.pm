@@ -138,6 +138,7 @@ sub rules {
                 $self->{db_file} = $builder->args('db_file')
                   || $builder->get_reply(
                       message => 'Please enter a filename for the SQLite database',
+                      label   => 'SQLite database file name',
                       default => 'kinetic.db'
                 );
             },

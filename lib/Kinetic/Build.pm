@@ -67,8 +67,24 @@ for tests, data store schema generation, and database building.
 
 =head3 add_property
 
+  Kinetic::Build->add_property($property);
+  Kinetic::Build->add_property($property => $default);
+  Kinetic::Build->add_property(%params);
+
 This method overrides the default provided by Module::Build so that properties
-can be set up to prompt the user for values as appropriate.
+can be set up to prompt the user for values as appropriate. In addition to the
+support for Module::Build's default arguments--a property name and an optional
+default value--this method can take a number of parameters. In such a case, at
+least two parameters must be specified (to differentiate from Module::Build's
+default syntax). The parameters will be passed to the C<get_reply()> method
+whenever a new Module::Build object is created and the C<accept_defaults>
+property is set to a false value (the default). For any such properties,
+if they were not set by a command-line parameter, the user will be prompted
+for input.
+
+The supported parameters are the same as for the C<get_reply()> method, but
+the C<name>, C<lable>, and C<default> parameters are required when passing
+parameters rather than using Module::Build's default arguments.
 
 =cut
 
@@ -78,7 +94,7 @@ sub add_property {
     if (@_ > 2) {
         # This is something we may want to prompt for.
         my %params = @_;
-        $class->SUPER::add_property( $params{name} => $params{default} );
+        $class->SUPER::add_property( $params{name} => delete $params{default} );
         push @prompts, \%params if keys %params > 1;
     } else {
         # This is just a standard Module::Build property.
@@ -109,12 +125,25 @@ sub new {
 
     # Add elements we need here.
     $self->add_build_element('conf');
+
+    # Prompts.
+    for my $prompt (@prompts) {
+        my $prop = $prompt->{name};
+        $self->$prop($self->get_reply(%$prompt, default => $self->$prop));
+    }
+
     return $self;
 }
 
 ##############################################################################
 
 =head3 resume
+
+  my $build = Kinetic::Build->resume;
+
+Overrides Module::Build's implementation of the same method in order to set up
+the environment so that Kinetic::Util::Config can find the local configuration
+file.
 
 =cut
 
@@ -177,10 +206,11 @@ The type of data store to be used for the application. Possible values are
 =cut
 
 __PACKAGE__->add_property(
-    name     => 'store',
-    default  => 'sqlite',
-    choices  => [ keys %STORES ],
-    messsage => 'Which data store back end shold I use?'
+    name    => 'store',
+    label   => 'Data store',
+    default => 'sqlite',
+    options => [ sort keys %STORES ],
+    message => 'Which data store back end shold I use?'
 );
 
 ##############################################################################
@@ -426,8 +456,8 @@ dependency.
 
 sub ACTION_test {
     my $self = shift;
-    local $ENV{KINETIC_CONF} = $self->notes('test_conf_file');
     $self->depends_on('setup_test');
+    local $ENV{KINETIC_CONF} = $self->notes('test_conf_file');
     $self->SUPER::ACTION_test(@_);
     $self->depends_on('teardown_test');
 }
@@ -586,6 +616,12 @@ The supported parameters are:
 A message with which to prompt the user, such as "What is your favorite
 color?".
 
+=item name
+
+The name of the Kinetic::Build property or argument stored in the
+Module::Build C<args()> for which a value is sought. Optional. If the value
+was specified on the command-line, the user will not be prompted for a value.
+
 =item label
 
 A label for the value you're attempting to collect, such as "Favorite color".
@@ -617,7 +653,15 @@ sub get_reply {
       unless exists $self->{tty};
 
     my $def_label = $params{default};
-    if ($self->{tty} && ! $self->accept_defaults) {
+    my $val;
+    if (exists $params{name}) {
+        $val = $self->runtime_params($params{name});
+        $val =  $self->args($params{name}) unless defined $val;
+    }
+
+    if (defined $val) {
+        $params{default} = $val;
+    } elsif ($self->{tty} && ! $self->accept_defaults) {
         if (my $opts = $params{options}) {
             my $i;
             $self->_prompt(join "\n", map({
@@ -644,7 +688,7 @@ sub get_reply {
     }
 
     $def_label = defined $def_label ? " [$def_label]:" : '';
-    $self->_prompt("$params{label}: $params{default}")
+    $self->_prompt("$params{label}: $params{default}\n")
       unless $self->quiet;
     return $params{default};
 }

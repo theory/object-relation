@@ -122,9 +122,10 @@ sub rules {
                 my $build = $self->build;
 
                 # Get the host name.
-                $self->{db_host} = $build->prompt(
-                    "PostgreSQL server hostname [localhost]? ",
-                    $ENV{PGHOST} || undef,
+                $self->{db_host} = $build->get_reply(
+                    message => "PostgreSQL server hostname [localhost]? ",
+                    default => $ENV{PGHOST} || undef,
+                    name    => 'db_host',
                 );
 
                 # Get the port number.

@@ -76,7 +76,7 @@ sub atest_process_conf_files : Test(14) {
     file_not_exists_ok 'blib', 'Build lib should be gone';
 }
 
-sub test_props : Test(9) {
+sub test_props : Test(11) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -103,7 +103,15 @@ sub test_props : Test(9) {
     $builder->dispatch('clean');
     file_not_exists_ok 'blib', 'Build lib should be gone';
 
-    # Now try it quietly. We should be prompted for the data store.
+    # Don't accept defaults; we should be prompted for the data store.
+    my @msgs;
+    $mb->mock(_readline => '1');
+    $mb->mock(_prompt => sub { shift; push @msgs, @_; });
+    $builder = $self->new_builder(accept_defaults => 0);
+    is join('', @msgs),
+      "  1> pg\n  2> sqlite\nWhich data store back end shold I use? [2]: ",
+      "We should be prompted for the data store";
+    is $builder->store, 'pg', 'Data store should now be "pg"';
 }
 
 sub test_check_store_action : Test(7) {
@@ -221,7 +229,7 @@ sub test_test_actions : Test(9) {
     file_not_exists_ok $self->data_dir, 'Data directory should be deleted';
 }
 
-sub test_get_reply : Test(28) {
+sub test_get_reply : Test(33) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -230,6 +238,7 @@ sub test_get_reply : Test(28) {
 
     my $kb = MockModule->new($class);
     $kb->mock(check_manifest => sub { return });
+    local @ARGV = qw'--store pg foo=bar';
     my $mb = MockModule->new('Module::Build');
     $kb->mock(_prompt => sub { shift; $self->{output} .= join '', @_; });
     $kb->mock(_readline => sub {
@@ -237,15 +246,20 @@ sub test_get_reply : Test(28) {
         shift @{$self->{input}};
     });
 
+
     # Start not quiet and with defaults accepted.
     my $builder = $self->new_builder(quiet => 0);
+    is delete $self->{output}, "Data store: pg\n",
+      "Should have data store set by command-line option";
+
+    # We should be told what the setting is, but not prompted.
     $builder->{tty} = 1;
     $self->try_reply(
         $builder,
         message     => "What is your favorite color?",
         label       => "Favorite color",
         default     => 'blue',
-        exp_message => "Favorite color: blue",
+        exp_message => "Favorite color: blue\n",
         exp_value   => 'blue',
         input_value => 'blue',
         comment     => "With defaults accepted, should not be prompted",
@@ -258,7 +272,7 @@ sub test_get_reply : Test(28) {
         message     => "What is your favorite color?",
         label       => "Favorite color",
         default     => 'blue',
-        exp_message => "Favorite color: blue",
+        exp_message => "Favorite color: blue\n",
         exp_value   => 'blue',
         input_value => 'red',
         comment     => "With defaults accepted, should not be prompted",
@@ -271,7 +285,7 @@ sub test_get_reply : Test(28) {
         message     => "What is your favorite color?",
         label       => "Favorite color",
         default     => 'blue',
-        exp_message => "Favorite color: blue",
+        exp_message => "Favorite color: blue\n",
         exp_value   => 'blue',
         input_value => 'blue',
         comment     => "We shouldn't get prompted with TTY",
@@ -315,6 +329,32 @@ sub test_get_reply : Test(28) {
         exp_value   => 'yellow',
         input_value => 'yellow',
         comment     => "Quiet, but prompted",
+    );
+
+    # But we should not be prompted for parameters specified on the
+    # command-line.
+    $self->try_reply(
+        $builder,
+        message     => "What store?",
+        label       => "Data store",
+        name        => 'store',
+        default     => 'sqlite',
+        exp_message => undef,
+        exp_value   => 'pg',
+        input_value => 'sqlite',
+        comment     => "No prompt for command-line property"
+    );
+
+    $self->try_reply(
+        $builder,
+        message     => "What the foo?",
+        label       => "Foo me",
+        name        => 'foo',
+        default     => 'bick',
+        exp_message => undef,
+        exp_value   => 'bar',
+        input_value => 'pow',
+        comment     => "No prompt for command-line arugment"
     );
 
     # Try just accepting the default by inputting \n.
@@ -375,7 +415,7 @@ sub test_get_reply : Test(28) {
         message     => "What is your favorite color?",
         label       => "Favorite color",
         default     => 'blue',
-        exp_message => "Favorite color: blue",
+        exp_message => "Favorite color: blue\n",
         exp_value   => 'blue',
         input_value => 'red',
         comment     => "Without defaults accepted, by no TTY, our answer should be igored",
@@ -388,7 +428,7 @@ sub test_get_reply : Test(28) {
         label       => "Favorite color",
         default     => 'blue',
         options     => ['red', 'blue', 'yellow', 'orange'],
-        exp_message => "Favorite color: blue",
+        exp_message => "Favorite color: blue\n",
         exp_value   => 'blue',
         input_value => 'red',
         comment     => "With options by no TTY, we should just get the default",
