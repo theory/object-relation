@@ -1072,6 +1072,69 @@ exception:
 
 Because the hash reference cannot be part of an C<OR> search expression.
 
+=head1 How to Implement Store Subclasses
+
+Say you were creating a subclass of Kinetic::Store for a new storage back-end.
+If it were to be called, for example, "Oracle, and it was a database back-end,
+here's what you'd need to do:
+
+=over
+
+=item * Create subclass of Kinetic::Build::Schema::DB
+
+The job of this class is to create the code to generate the data store
+infrastructure on the data store server. For a database, this generally means
+generating a DDL (SQL, stored procedures, functions, and the like). See
+L<Kinetic::Build::Schema::DB::Pg|Kinetic::Build::Schema::DB::Pg> and
+L<Kinetic::Build::Schema::DB::SQLite|Kinetic::Build::Schema::DB::SQLite> for
+examples.
+
+=item * Test it in test script
+
+See F<t/sqlite/schema.t> and F</pg/schema.t> for examples.
+
+=item * Create a subclass of Kinetic::Build::Store::DB
+
+The job of this class is to determine, at installation time, the necessary
+information to build the back end, for example the server name, password,
+database name, etc. It then takes this information and actually I<builds> the
+data store. It also builds a test data store (the build system will ask the
+Kinetic::Build::Store subclass to do this, if necsssary). See
+L<Kinetic::Build::Store::DB::Pg|Kinetic::Build::Store::DB::Pg> and
+L<Kinetic::Build::Store::DB::SQLite|Kinetic::Build::Store::DB::SQLite> for
+examples.
+
+=item * Test it in a build test class
+
+See F<t/build/TEST/Kinetic/Build/Store/DB/SQLite> and
+F<t/build/TEST/Kinetic/Build/Store/DB/Pg> for examples.
+
+=item * Add the Kinetic::Build::Store subclass to the C<%STORES> hash in Kinetic::Build.
+
+=item * Create scripts to setup and teardown a test data store.
+
+The script should be named with the key used in the C<%STORES> hash in
+Kinetic::Build and should build a data store with the test classes defined in
+F<t/sample/lib>. The scripts will run with their working diretories set to the
+F<t/sample> subdirectory, and should be named F<t/store/oracle_setup.pl> and
+F<t/store/oracle_teardown.pl>. These are different than the behavior of the
+test database created for testing Kinetic applications. It is designed
+specifically to fully test the complete store API.
+
+=item * Create a subclass of Kinetic::Store::DB.
+
+It should be named Kinetic::Store::DB::Oracle. See
+L<Kinetic:::Store::DB::Pg|Kinetic::Store::DB::Pg> and
+L<Kinetic::Store::DB::SQLite|Kinetic::Store::DB::SQLite> for examples.
+
+=item * Create the test classes for the data store.
+
+These should live in the F<t/store> directory, and be subclasses of
+TEST::Kinetic::Store::DB>. See F<t/store/TEST/Kinetic/Store/DB/SQLite> and
+F<t/stpor/TEST/Kinetic/Store/DB/Pg> for examples.
+
+=back
+
 =cut
 
 1;

@@ -71,11 +71,15 @@ objects to the data store at the same time.
 sub save {
     my ($proto, $object) = @_;
     my $self = $proto->_from_proto;
+    # XXX So this is something we need to get implemented.
     #return $class unless $object->changed;
     local $self->{search_class} = $object->my_class;
     local $self->{view}         = $self->{search_class}->key;
     local @{$self}{qw/names values/};
     foreach my $attr ($self->{search_class}->attributes) {
+#       XXX Please replace the next five lines with the above line. You will
+#       need to fix tests to use Class::Meta.
+#        $self->save($attr->get($object)) if $attr->references;
         if ($attr->references) {
             my $attr_name = $attr->name;
             my $contained_object = $object->$attr_name;
@@ -96,11 +100,11 @@ sub save {
   my $search_class = $store->search_class;
   $store->search_class($search_class);
 
-This is a getter/setter for the class object representing the latest search.
-Returns C<$self> if used as a setter.
+This is an accessor method for the class object representing the latest
+search. Returns C<$self> if used to set the search class.
 
 Generally the programmer will know which search class she is working with, but
-if not, this method is avaible.  Note that it is only available externally if
+if not, this method is avaible. Note that it is only available externally if
 the programmer first creates an instances of store prior to doing a search.
 
  my $store = Kinetic::Store->new;
@@ -110,12 +114,10 @@ the programmer first creates an instances of store prior to doing a search.
 =cut
 
 sub search_class {
-    my ($self, $class) = @_;
-    if ($class) {
-        $self->{search_class} = $class;
-        return $self;
-    }
-    return $self->{search_class};
+    my $self = shift;
+    return $self->{search_class} unless @_;
+    $self->{search_class} = shift;
+    return $self;
 }
 
 ##############################################################################
@@ -132,9 +134,11 @@ will croak if the property does not exist or if it is not unique.
 sub lookup {
     my ($class, $search_class, $property, $value) = @_;
     my $attr = $search_class->attributes($property);
-    croak "No such property ($property) for ".$search_class->package
+    croak qq{No such property "$property" for } . $search_class->package
         unless $attr;
-    croak "Property ($property) is not unique" unless $attr->unique;
+    croak qq{Property "$property" is not unique} unless $attr->unique;
+    # XXX Can we do this without the iterator?
+    # XXX I think we should use prepare_cached() for lookups.
     my $collection = $class->search($search_class, $property, $value);
     return $collection->next;
 }
@@ -145,15 +149,19 @@ sub lookup {
 
   my $iter = Store->search($class_object, @search_params);
 
-Returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> containing all
-objects which match the search params.  See L<Kinetic::Store|Kinetic::Store>
+Returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> object containing
+all objects that match the search params. See L<Kinetic::Store|Kinetic::Store>
 for more information about search params.
 
+=begin private
+
 See notes for C<_set_search_data> and C<_build_object_from_hashref> for more
-information about how this method works internally.  For a given search, all
+information about how this method works internally. For a given search, all
 objects and their contained objects are fetched with a single SQL statement.
-While this complicates the code, it is far more efficient than issuing multiple
-SQL calls to assemble the data.
+While this complicates the code, it is far more efficient than issuing
+multiple SQL calls to assemble the data.
+
+=end private
 
 =cut
 
@@ -164,9 +172,9 @@ sub search {
     my $constraints  = pop @search_params if ref $search_params[-1] eq 'HASH';
     $self->_set_search_data;
     my $attributes = join ', ' => @{$self->{search_data}{fields}};
-    my $view       = $search_class->view;
-    
-    my ($where_clause, $bind_params) = 
+    my $view       = $search_class->key;
+
+    my ($where_clause, $bind_params) =
         $self->_make_where_clause(\@search_params, $constraints);
     $where_clause = "WHERE $where_clause" if $where_clause;
     my $sql       = "SELECT id, $attributes FROM $view $where_clause";
@@ -175,6 +183,8 @@ sub search {
 }
 
 ##############################################################################
+
+=begin private
 
 =head2 Private methods
 
@@ -189,7 +199,7 @@ All private methods are considered instance methods.
   my $self = $proto->_from_proto;
 
 Returns a new instance of a $store object regardless of whether the method
-called was called as a class or an instance.  This is used because many methods
+called was called as a class or an instance. This is used because many methods
 can be called as class methods but use instances internally to maintain state
 through recursive calls.
 
@@ -224,6 +234,7 @@ sub _insert {
     my $fields       = join ', ' => @{$self->{names}};
     my $placeholders = join ', ' => (('?') x @{$self->{names}});
     my $sql = "INSERT INTO $self->{view} ($fields) VALUES ($placeholders)";
+    # XXX I think we should use prepare_cached() for inserts.
     $self->_do_sql($sql, $self->{values});
     $self->_set_id($object);
     return $self;
@@ -260,6 +271,9 @@ another object, it returns the contained object.
 sub _get_raw_value {
     my ($self, $object, $attr) = @_;
     return $attr->raw($object) unless $attr->references;
+#    return $attr->get($object)->{id}; # this needs to be fixed
+    # XXX Please replace the below three lines with the above line. You'll
+    # need to fixe your tests.
     my $name = $attr->name;
     my $contained_object = $object->$name;
     return $contained_object->{id};  # this needs to be fixed
@@ -279,6 +293,7 @@ subclass.  See C<_insert> for caveats about object C<id>s.
 
 sub _set_id {
     my ($self, $object) = @_;
+    # XXX This won't work for PostgreSQL, so be sure to override it.
     $object->{id} = $self->_dbh->last_insert_id(undef, undef, undef, undef);
     return $self;
 }
@@ -300,6 +315,7 @@ sub _update {
     my $fields = join ', '  => map { "$_ = ?" } @{$self->{names}};
     push @{$self->{values}} => $object->{id};
     my $sql = "UPDATE $self->{view} SET $fields WHERE id = ?";
+    # XXX I think we should use prepare_cached() for updates.
     $self->_do_sql($sql, $self->{values});
     return $self;
 }
@@ -317,12 +333,13 @@ object.  Used for sql that is not expected to return data.
 
 sub _do_sql {
     my ($self, $sql, $bind_params) = @_;
- 
+
     # XXX this is to prevent the use of
     # uninit values in subroutine entry warnings
     # Is there a better way?
+    # XXX Send a test case to Matt to get DBD::SQLite fixed.
     local $^W;
-    $self->_dbh->do($sql, {}, @$bind_params); 
+    $self->_dbh->do($sql, {}, @$bind_params);
     return $self;
 }
 
@@ -342,6 +359,9 @@ sub _get_iterator_for_sql {
     my $sth = $self->_dbh->prepare($sql);
     $sth->execute(@$bind_params);
     my @results;
+    # XXX Fetching directly into the appropriate data structure would be
+    # faster, but so would an array ref, since you aren't really using
+    # the hash keys.
     while (my $result = $sth->fetchrow_hashref) {
         push @results => $self->_build_object_from_hashref($result);
     }
@@ -367,12 +387,16 @@ sub _build_object_from_hashref {
     my ($self, $hashref) = @_;
     my %objects;
     my $metadata = $self->{search_data}{metadata};
-    @objects{keys %$metadata} = undef;
+#    @objects{keys %$metadata} = undef; # XXX I don't think this is necessary.
     while (my ($package, $data) = each %$metadata) {
         my $fields = $data->{fields};
+        # XXX Is the distinction here due to IDs?
         my @sql_fields    = keys %$fields;
         my @object_fields = @{$fields}{@sql_fields};
         my %object;
+        # XXX Isn't this where one could use an array, since the columns should
+        # be in the same order as the attributes? Oh, does field eq attribute
+        # && field eq column?
         @object{@object_fields} = @{$hashref}{@sql_fields};
         # XXX ugh.  I hate doing this :(
         $object{state} = State->new($object{state}) if exists $object{state};
@@ -383,12 +407,13 @@ sub _build_object_from_hashref {
         # faster than our previous work with hitting the database repeatedly
         # for contained objects (which would kill us when a large search is
         # performed.  I might revisit this if we need to -- Ovid
+        # Implementation of Kinetic::Util::ObjectCache may help here. --Theory
 
         #if (my $contains = $data->{contains}) {
         #    while (my ($key, $contained) = each %$contains) {
         #        delete $object{$key};
         #        my $contained_package = $contained->package;
-        #        my $view = $contained->view;
+        #        my $view = $contained->key;
         #        alias $objects{$package}{$view}, $objects{$contained_package};
         #    }
         #}
@@ -400,7 +425,7 @@ sub _build_object_from_hashref {
             while (my ($key, $contained) = each %$contains) {
                 delete $objects{$package}{$key};
                 my $contained_package = $contained->package;
-                my $view = $contained->view;
+                my $view = $contained->key;
                 $objects{$package}{$view} = $objects{$contained_package};
             }
         }
@@ -422,6 +447,9 @@ into objects and its contained subobjects.
 
 =cut
 
+# XXX This is the information it'd be great to compile in at build time.
+# Maybe a utility object to track all of this data would be useful...
+
 my %SEARCH_DATA;
 sub _set_search_data {
     my ($self) = @_;
@@ -438,8 +466,7 @@ sub _set_search_data {
             prefix => '',
         };
         while (@classes_to_process) {
-            my @data = splice @classes_to_process, 0; 
-            foreach my $data (@data) {
+            foreach my $data (splice @classes_to_process, 0) {
                 my $package = $data->{class}->package;
                 foreach my $attr ($data->{class}->attributes) {
                     my $name     = $self->_get_name($attr);
@@ -450,7 +477,7 @@ sub _set_search_data {
                         $packages{$class->package}{fields}{$field} = 'id';
                         push @classes_to_process => {
                             class  => $class,
-                            prefix => $class->view.'__',
+                            prefix => $class->key . '__',
                         };
                         $packages{$package}{contains}{$name} = $class;
                     }
@@ -468,7 +495,7 @@ sub _set_search_data {
 
 =head3 _search_data
 
-  $store->_search_data($search_data); # returns self
+  $store->_search_data($search_data); # returns $self
   my $search_data = $store->_search_data;
 
 Getter/setter for search data generated by C<_set_search_data>.
@@ -478,29 +505,30 @@ Returns C<$self> if used as a setter.
 =cut
 
 sub _search_data {
-    my ($self, $data) = @_;
-    if ($data) {
-        $self->{search_data} = $data;
-        return $self;
-    }
-    return $self->{search_data};
+    my $self = shift;
+    return $self->{search_data} unless @_;
+    $self->{search_data} = shift;
+    return $self;
 }
 
 ##############################################################################
 
 =head3 _make_where_clause
 
- my ($where_clause, $bind_params) = $self->_make_where_clause(\@attributes); 
+ my ($where_clause, $bind_params) = $self->_make_where_clause(\@attributes);
 
-This method returns a where clause and an arrayref of any appropriate bind 
-params for that where clause.  Returns an empty string if no where clause
-can be generated.
+This method returns a where clause and an arrayref of any appropriate bind
+params for that where clause. Returns an empty string if no where clause can
+be generated.
 
 This is merely a wrapper around C<_make_where_clause_recursive>.
 
 =cut
 
 sub _make_where_clause {
+    # XXX I find the name $attributes confusing here, since above they were
+    # @search_params. Attributes are Kinetic::Meta::Attribute objects, at
+    # least in my mind.
     my ($self, $attributes) = @_;
     my ($where_clause, $bind_params) = $self->_make_where_clause_recursive($attributes);
     $where_clause = '' if '()' eq $where_clause;
@@ -511,7 +539,7 @@ sub _make_where_clause {
 
 =head3 _make_where_clause_recursive
 
-  my ($where_clause, $bind_params) = 
+  my ($where_clause, $bind_params) =
      $store->_make_where_clause_recursive(\@attributes);
 
 This method returns a where clause and an arrayref of any appropriate bind
@@ -582,6 +610,8 @@ sub _save_where_data {
     return $self;
 }
 
+##############################################################################
+
 my %COMPARE = (
     EQ          => '=',
     NOT         => '!=',
@@ -600,8 +630,6 @@ my %COMPARE = (
     'NOT GE'    => '<',
     'NOT LE'    => '>',
 );
-
-##############################################################################
 
 =head3 _comparison_operator
 
@@ -671,13 +699,16 @@ sub _make_where_token {
         my $type = $self->{search_class}->attributes($field)->type;
         foreach my $ifield ($self->_case_insensitive_types) {
             if ($type eq $ifield) {
+                # XXX Please make it "LOWER" instead of "lower". The basic
+                # rule is for SQL keywords and functions should be uc while
+                # entities (tables, views, columns, etc.) should be lc.
                 $field = "lower($field)";
                 $case_insensitive = 1;
                 last;
             }
         }
     }
-    
+
     my ($comparator, $value) = $self->_expand_attribute($attribute);
 
     my $place_holder = $case_insensitive
@@ -777,10 +808,12 @@ sub _constraints {
     while (my ($constraint, $value) = each %$constraints) {
         if ('order_by' eq $constraint) {
             $sql .= 'ORDER BY ';
+            # XXX Default to ASC?
             my $sort_order = $constraints->{sort_order};
             $value      = [$value]      unless 'ARRAY' eq ref $value;
             $sort_order = [$sort_order] unless 'ARRAY' eq ref $sort_order;
             my @sorts;
+            # XXX Perl 6 would so rock for this...
             for my $i (0 .. $#$value) {
                 my $sort = $value->[$i];
                 $sort .= ' ' . uc $sort_order->[$i]->() if defined $sort_order->[$i];
@@ -796,6 +829,8 @@ sub _constraints {
 __END__
 
 ##############################################################################
+
+=end private
 
 =head1 Copyright and License
 
