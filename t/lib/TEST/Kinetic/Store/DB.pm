@@ -11,6 +11,7 @@ use lib 't/lib';
 use Kinetic::Build::Schema;
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Meta';
+use aliased 'Kinetic::Store' => 'DONT_USE', ':all';
 use aliased 'Kinetic::Store::DB' => 'Store';
 use aliased 'Kinetic::Util::State';
 
@@ -18,6 +19,130 @@ use aliased 'TestApp::Simple::One';
 use aliased 'Hash::AsObject';
 
 __PACKAGE__->runtests;
+
+my %COMPARE;
+sub _make_where_token {
+    my ($class, $field, $attribute) = @_;
+    my ($comparator, $value) = $class->_expand_attribute($attribute);
+    # simple compare         #       NULL            # BETWEEN
+    if (exists $COMPARE{$comparator} && defined $value && ! ref $value) {
+        return ("$field $COMPARE{$comparator} ?", $value);
+    }
+    elsif ('ARRAY' eq ref $value) {
+        return ("$field $comparator BETWEEN ? AND ?", $value);
+    }
+#    elsif ($comparator =~ s/ANY//) {
+#        my $place_holders = join ', ' => (?) x @$value;
+#        return ("$field $comparator IN ($place_holders)", $value);
+#    }
+# don't forget like!
+    elsif (! defined $value) {
+        return "$field IS $comparator NULL";
+    }
+}
+
+sub where_token : Test(21) {
+    can_ok Store, '_make_where_token';
+    
+    my ($token, $bind) = Store->_make_where_token('name', 'foo');
+    is $token, 'name = ?', 'and a basic match should return the correct where snippet';
+    is_deeply $bind, ['foo'], 'and a proper bind param';
+
+    ($token, $bind) = Store->_make_where_token('name', NOT 'foo');
+    is $token, 'name != ?', 
+        'and a negated basic match should return the correct where snippet';
+    is_deeply $bind, ['foo'], 'and a proper bind param';
+
+    ($token, $bind) = Store->_make_where_token('name', ['bar', 'foo']);
+    is $token, 'name  BETWEEN ? AND ?',
+        'and a range search should return the correct where snippet';
+    is_deeply $bind, ['bar', 'foo'], 'and a proper bind param';
+
+    ($token, $bind) = Store->_make_where_token('name', NOT ['bar', 'foo']);
+    is $token, 'name NOT BETWEEN ? AND ?',
+        'and a negated range search should return the correct where snippet';
+    is_deeply $bind, ['bar', 'foo'], 'and a proper bind param';
+    
+    ($token, $bind) = Store->_make_where_token('name', undef);
+    is $token, 'name IS  NULL', 'and a NULL search  should return the correct where snippet';
+    is_deeply $bind, [], 'and a proper bind param';
+
+    ($token, $bind) = Store->_make_where_token('name', NOT undef);
+    is $token, 'name IS NOT NULL', 
+        'and a negated NULL search should return the correct where snippet';
+    is_deeply $bind, [], 'and a proper bind param';
+
+    ($token, $bind) = Store->_make_where_token('name', ANY(qw/foo bar baz/));
+    is $token, 'name  IN (?, ?, ?)', 
+        'and an IN search should return the correct where snippet';
+    is_deeply $bind, [qw/foo bar baz/], 'and a proper bind param';
+
+    ($token, $bind) = Store->_make_where_token('name', NOT ANY(qw/foo bar baz/));
+    is $token, 'name NOT IN (?, ?, ?)', 
+        'and a negated IN search should return the correct where snippet';
+    is_deeply $bind, [qw/foo bar baz/], 'and a proper bind param';
+    
+    ($token, $bind) = Store->_make_where_token('name', LIKE '%foo');
+    is $token, 'name LIKE ?', 'and a LIKE search should return the correct where snippet';
+    is_deeply $bind, ['%foo'], 'and a proper bind param';
+
+    ($token, $bind) = Store->_make_where_token('name', NOT LIKE '%foo');
+    is $token, 'name NOT LIKE ?', 'and a negated LIKE search should return the correct where snippet';
+    is_deeply $bind, ['%foo'], 'and a proper bind param';
+}
+
+sub expand_attribute : Test(25) {
+    can_ok Store, '_expand_attribute';
+
+    my ($type, $value) = Store->_expand_attribute('bar');
+    is $type, 'EQ', 'a simple expansion will return EQ for the type';
+    is $value, 'bar', 'and will not touch the value';
+
+    ($type, $value) = Store->_expand_attribute(undef);
+    is $type, '', 'a NULL expansion will return the empty string for the type';
+    is_deeply $value, undef, 'and an undef value';
+
+    ($type, $value) = Store->_expand_attribute(NOT undef);
+    is $type, 'NOT', 'a negated NULL expansion will return "NOT" for the type';
+    is_deeply $value, undef, 'and an undef value';
+
+    ($type, $value) = Store->_expand_attribute([qw/foo bar/]);
+    is $type, '', 'a range expansion will return the empty string for the type';
+    is_deeply $value, [qw/foo bar/], 'and will not touch the value';
+
+    ($type, $value) = Store->_expand_attribute(NOT [qw/foo bar/]);
+    is $type, 'NOT', 
+        'a negated range expansion will return "NOT" for the type';
+    is_deeply $value, [qw/foo bar/], 'and will not touch the value';
+
+    ($type, $value) = Store->_expand_attribute(ANY('bar'));
+    is $type, 'ANY', 'an ANY expansion will return ANY for the type';
+    is_deeply $value, ['bar'], 'and the values will be an array ref';
+
+    ($type, $value) = Store->_expand_attribute(GT 'bar');
+    is $type, 'GT', 'an GT expansion will return ANY for the type';
+    is_deeply $value, 'bar', 'and will not touch the value';
+
+    ($type, $value) = Store->_expand_attribute(NOT GT 'bar');
+    is $type, 'NOT GT', 'an NOT GT expansion will return ANY for the type';
+    is_deeply $value, 'bar', 'and will not touch the value';
+
+    ($type, $value) = Store->_expand_attribute(LIKE 'bar');
+    is $type, 'LIKE', 'an LIKE expansion will return ANY for the type';
+    is_deeply $value, 'bar', 'and will not touch the value';
+
+    ($type, $value) = Store->_expand_attribute(NOT LIKE 'bar');
+    is $type, 'NOT LIKE', 'an NOT LIKE expansion will return ANY for the type';
+    is_deeply $value, 'bar', 'and will not touch the value';
+
+    ($type, $value) = Store->_expand_attribute(NOT 'bar');
+    is $type, 'NOT', 'a NOT expansion with a scalar arg will return NOT for the type';
+    is_deeply $value, 'bar', 'and the scalar arg';
+
+    ($type, $value) = Store->_expand_attribute(NOT ANY('bar', 'baz'));
+    is $type, 'NOT ANY', 'a NOT ANY expansion will return NOT ANY for the type';
+    is_deeply $value, ['bar', 'baz'], 'and the args as an array ref';
+}
 
 {
     package Dummy::Class;
@@ -181,21 +306,22 @@ sub get_name : Test(3) {
         'but references should have "__id" appended to them';
 }
 
-sub get_value : Test(4) {
-    can_ok Store, '_get_raw_value';
-    my $attribute = AsObject->new({references => 0, name => 'dead_pig'});
-    my $object    = AsObject->new({dead_pig   => 'rots'});
-    is Store->_get_raw_value($object, $attribute), 'rots',
-        'and normal values should simply be returned';
-    $object->{dead_pig} = State->new(1);
-    is Store->_get_raw_value($object, $attribute), 1,
-        'and "state" values should return the integer value';
-
-    $attribute = AsObject->new({references => 1, name => 'dead_pig'});
-    $object    = AsObject->new({dead_pig   => {id => 23}});
-    is Store->_get_raw_value($object, $attribute), 23,
-        'and if it references another object, it should return the object id';
-}
+# XXX This is temporary until the behavior of Attribute->raw() is finalized.
+#sub get_value : Test(4) {
+#    can_ok Store, '_get_raw_value';
+#    my $attribute = AsObject->new({references => 0, name => 'dead_pig'});
+#    my $object    = AsObject->new({dead_pig   => 'rots'});
+#    is Store->_get_raw_value($object, $attribute), 'rots',
+#        'and normal values should simply be returned';
+#    $object->{dead_pig} = State->new(1);
+#    is Store->_get_raw_value($object, $attribute), 1,
+#        'and "state" values should return the integer value';
+#
+#    $attribute = AsObject->new({references => 1, name => 'dead_pig'});
+#    $object    = AsObject->new({dead_pig   => {id => 23}});
+#    is Store->_get_raw_value($object, $attribute), 23,
+#        'and if it references another object, it should return the object id';
+#}
 
 sub get_kinetic_value : Test(5) {
     can_ok Store, '_get_kinetic_value';

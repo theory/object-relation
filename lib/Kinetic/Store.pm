@@ -51,17 +51,19 @@ later, and L<Kinetic::Store::LDAP|Kinetic::Store::LDAP>.
 
 my %tokens;
 BEGIN {
-    $tokens{comparison} = [qw/EQ NOT LIKE GT LT GE LE/];
+    $tokens{comparison} = [qw/EQ NOT LIKE GT LT GE LE NE/];
     $tokens{logical}    = [qw/AND OR ANY/];
     $tokens{sorting}    = [qw/ASC DESC/];
 
-    foreach my $token (map @$_ => @tokens{qw/comparison sorting/}) {
-        no strict 'refs';
+    no strict 'refs';
+    foreach my $token (@{ $tokens{comparison} }) {
         *$token = sub($) { my $value = shift; sub { $token, $value } };
     }
-    foreach my $token (map @$_ => $tokens{logical}) {
-        no strict 'refs';
-        *$token = sub { sub { $token } };
+    foreach my $token (@{ $tokens{sorting} }) {
+        *$token = sub()  { sub { $token } }
+    }
+    foreach my $token (@{ $tokens{logical} }) {
+        *$token = sub    { my @args = @_; sub { $token, \@args } };
     }
 }
 use Exporter::Tidy
@@ -490,30 +492,6 @@ first name attribute 'Damian' and the last name attribute 'Conway'. String
 searches are always case-insensitive, so searches will also succeed with the
 last names "conway", "CONWAY", and "cOnWAy".
 
-But wait, there's more. If you're data store is an ANSI-92 compliant RDBMS, all
-string searches will be carried out using the SQL C<LIKE> operator. This means
-that you can use C<LIKE> patterns. Consult your RDBMS' documentation for
-details on its supported C<LIKE> pattern syntax. Here's a typical example:
-
-  my $coll = $store->search('Kinetic::Phony::Person' =>
-                            last_name => 'c%');
-
-This search returns all of the phony person objects with their C<last_name>
-attributes starting with the letter "c". This search, on the other hand:
-
-  my $coll = $store->search('Kinetic::Phony::Person' =>
-                            bio => '%photographer%');
-
-Will find all of the phony person objects with the string "photographer"
-anywhere in their C<bio> attributes. Be careful of expressions such as this,
-though; some databases don't have full-text indexes on their columns, so even
-if there is an index on the "bio" column in the database, it may not be used
-if your search does not start searching from the beginning of the value. So a
-C<LIKE> pattern such as '%photographer%' may trigger a full table scan, which,
-if you have tens of thousands of records or more, could be a very inefficient
-way to search, indeed. Search patterns that explicitly start at the beginning
-of the value, such as 'c%', will use an available index.
-
 =item Numbers
 
 So let's look at numbers:
@@ -527,7 +505,7 @@ numeric attribute search parameters with other types of search parameters:
 
   my $coll = $store->search('Kinetic::Phony::Person' =>
                             last_name   => 'Adams',
-                                      fav_number  => 42);
+                            fav_number  => 42);
 
 This search will return all phony person objects with the last name 'Adams'
 (or 'adams' or 'ADAMS' or 'aDaMs' -- you get the idea) and the favorite number

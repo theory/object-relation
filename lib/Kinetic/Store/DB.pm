@@ -82,20 +82,10 @@ sub _get_name {
 
 sub _get_raw_value {
     my ($class, $object, $attr) = @_;
-    my $raw_value;
-    if ($attr->references) {
-        my $name = $attr->name;
-        my $contained_object = $object->$name;
-        $raw_value = $contained_object->{id};  # this needs to be fixed
-    }
-    else {
-        my $attr_name = $class->_get_name($attr);
-        $raw_value = $object->$attr_name;
-        if (ref $raw_value && $raw_value->isa(State)) {
-            $raw_value = int $raw_value;
-        }
-    }
-    return $raw_value;
+    return $attr->raw($object) unless $attr->references;
+    my $name = $attr->name;
+    my $contained_object = $object->$name;
+    return $contained_object->{id};  # this needs to be fixed
 }
 
 # may be overridden in subclasses
@@ -179,11 +169,12 @@ sub search {
     
     my ($where_clause, @bind_params) = 
         $class->_make_where_clause(\@search_params, $constraints);
+    $where_clause = "WHERE $where_clause" if $where_clause;
     my $sql          = "SELECT id, $attributes FROM $view $where_clause";
-    if ($ENV{DEBUG}) {
-        warn "Calling sql ($sql) with (@bind_params)";
-    }
     $sql .= $class->_constraints($constraints) if $constraints;
+    # warn "# *** $sql ***\n";
+    # warn "# *** @bind_params ***\n";
+    
     my @results;
     my $sth = $class->_dbh->prepare($sql);
     $sth->execute(@bind_params);
@@ -218,87 +209,72 @@ sub _make_where_clause {
     my ($class, $attributes, $constraints) = @_;
     my (@where, @bind);
     while (my ($field, $attribute) = splice @$attributes => 0, 2) {
-        my ($token, @params) = $class->_make_where_token($field, $attribute);
+        my ($token, $params) = $class->_make_where_token($field, $attribute);
         push @where => $token;
-        push @bind  => @params;
+        push @bind  => @$params;
     }
-    return '' unless @where;
-    my $where = 'WHERE ' . join ' AND ' => @where;
+    my $where = join(' AND ' => @where) || '';
     return $where, @bind;
 }
 
 # this may have to go into subclasses
 # at some point
-my %term_map = (
-    EQ    => '=',
-    NOT   => '!=',
-    LIKE  => 'LIKE',
-    GT    => '>',
-    LT    => '<',
-    GE    => '>=',
-    LE    => '<=',
+my %COMPARE = (
+    EQ         => '=',
+    NOT        => '!=',
+    LIKE       => 'LIKE',
+    GT         => '>',
+    LT         => '<',
+    GE         => '>=',
+    LE         => '<=',
+    NE         => '!=',
+    'NOT LIKE' => 'NOT LIKE',
+    'NOT EQ'   => '!=',
+    'NOT GT'   => '<=',
+    'NOT LT'   => '>=',
+    'NOT GE'   => '<',
+    'NOT LE'   => '>',
 );
+
+
 sub _make_where_token {
     my ($class, $field, $attribute) = @_;
-    # maybe a switch at some point
-    my $compared_to;
-    if ('ARRAY' eq ref $attribute) {
-        return $class->_make_range_token($field, $attribute);
+    my ($comparator, $value) = $class->_expand_attribute($attribute);
+               # simple compare         #       NULL            # BETWEEN
+    if (exists $COMPARE{$comparator} && defined $value && ! ref $value) {
+        return ("$field $COMPARE{$comparator} ?", [$value]);
     }
-    elsif ('CODE' eq ref $attribute) {
-        my ($name, $value) = $attribute->();
-        $compared_to = $term_map{$name} or die "No such search operator: $name";
-        $attribute   = $value;
+    elsif (($comparator eq '' || $comparator eq 'NOT')  && 'ARRAY' eq ref $value) {
+        return ("$field $comparator BETWEEN ? AND ?", $value);
     }
-    unless ($compared_to) {
-        $compared_to = $attribute =~ /%/ ? 'LIKE' : '=';
+    elsif ($comparator =~ s/ ?ANY//) {
+        my $place_holders = join ', ' => ('?') x @$value;
+        return ("$field $comparator IN ($place_holders)", $value);
     }
-    return "$field $compared_to ?", $attribute;
+    elsif (! defined $value) {
+        return ("$field IS $comparator NULL", []); 
+    }
+    elsif ($comparator =~ /LIKE/) {
+        return ("$field $comparator ?", [$value]);
+    }
 }
 
-sub _make_range_token {
-    my ($class, $field, $attribute) = @_;
-    croak "Ranged searches must not have more than two elements"
-        if @$attribute > 2;
-    return "$field BETWEEN ? AND ?", @$attribute; 
+sub _expand_attribute {
+    # we assume only two levesl of code refs
+    my ($class, $attribute) = @_;
+    unless ('CODE' eq ref $attribute) {
+        return ('', undef)        unless defined $attribute;
+        return ('', $attribute)   if 'ARRAY' eq ref $attribute;
+        return ('EQ', $attribute);
+    }
+
+    my ($type, $value) = $attribute->();
+    unless ('CODE' eq ref $value) {
+        return ($type, $value);
+    }
+
+    my ($name, $value2) = $value->();
+    return ("$type $name", $value2);
 }
-
-##############################################################################
-
-=begin private
-
-=head1 Private Interface
-
-=head2 Private Instance Methods
-
-=head3 _dbh
-
-  my $dbh = Kinetic::Store->_dbh;
-
-Returns the database handle to be used for all access to the data store.
-
-=cut
-
-sub _dbh { DBI->connect_cached(shift->_dsn) }
 
 1;
-__END__
-
-=end private
-
-=head1 Copyright and License
-
-Copyright (c) 2004 Kineticode, Inc. <info@kineticode.com>
-
-This work is made available under the terms of Version 2 of the GNU General
-Public License. You should have received a copy of the GNU General Public
-License along with this program; if not, download it from
-L<http://www.gnu.org/licenses/gpl.txt> or write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
-This work is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
-details.
-
-=cut
