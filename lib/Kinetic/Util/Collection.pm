@@ -77,15 +77,15 @@ B<Throws:>
 
 sub new {
     my ($class, $iter) = @_;
-    { 
+    {
         local $^W; # suppress uninitialized warnings
         throw_invalid ['Argument "[_1]" is not a valid [_2] object', $iter, Iterator]
           unless UNIVERSAL::isa($iter, Iterator);
     }
-    bless { 
-        iter  => $iter, 
+    bless {
+        iter  => $iter,
         index => NULL,
-        array => [], 
+        array => [],
         got   => NULL,
     }, $class;
 }
@@ -150,13 +150,13 @@ sub next {
 
 =head3 curr
 
-  my $current = $coll->curr; 
+  my $current = $coll->curr;
 
 Returns the value at the current position of the collection.
 
 =cut
 
-sub curr { 
+sub curr {
     my $self = shift;
     return if $self->{index} == NULL;
     return $self->{array}[$self->{index}];
@@ -190,7 +190,8 @@ sub prev {
     my $self = shift;
     return unless $self->{index} > 0;
     return $self->{array}[--$self->{index}];
-} 
+
+}
 
 ##############################################################################
 
@@ -250,10 +251,10 @@ is not yet pointing at anything.
 
 =cut
 
-sub index { 
+sub index {
     my $self = shift;
     return if $self->{index} == NULL;
-    return $self->{index};   
+    return $self->{index};
 }
 
 ##############################################################################
@@ -309,7 +310,7 @@ sub clear {
 
  my @list = $coll->splice(@splice_args);
 
-Operates just like C<splice>. 
+Operates just like C<splice>.
 
 =cut
 
@@ -324,11 +325,15 @@ sub splice {
 
 ##############################################################################
 
+=begin comment
+
 =head3 extend
 
 XXX we can't implement this.  Since we cannot return undef elements, there is
 no way to extend the array.  This will be deleted unless David has a different
 viewpoint.
+
+=end comment
 
 =cut
 
@@ -377,7 +382,9 @@ sub all {
 
  $code->do($anon_sub);
 
-Call a function with each element of the list until the function returns false.
+Call a function with each element of the list until the function returns
+false. This method always resets the collection, first, so the code reference
+is applied from the beginning of the collection.
 
 =cut
 
