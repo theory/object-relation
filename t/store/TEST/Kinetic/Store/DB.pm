@@ -482,7 +482,7 @@ sub save : Test(12) {
     is $commit, 2, 'it should have commited the work';
     is $rollback, undef, 'it should not have rolled back the work';
     # Now trigger an exception.
-    $dbi->mock(commit => sub { die 'Yow!' });
+    $mock->mock(_save => sub { die 'Yow!' });
     eval { Store->save($object) };
     is $begin, 3, 'it should have started work';
     is $commit, 2, 'it should have not commited the work';

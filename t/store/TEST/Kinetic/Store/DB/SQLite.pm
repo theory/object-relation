@@ -50,10 +50,13 @@ sub _num_recs {
 
 sub setup : Test(setup) {
     my $test = shift;
-    $test->test_class->_dbh->begin_work;
-    $test->{mock} = MockModule->new('DBI::db', no_auto => 1);
-    $test->{mock}->mock(begin_work => 1);
-    $test->{mock}->mock(commit => 1);
+    $test->{dbh} = $test->test_class->_dbh;
+    $test->{dbh}->begin_work;
+    $test->{dbi_mock} = MockModule->new('DBI::db', no_auto => 1);
+    $test->{dbi_mock}->mock(begin_work => 1);
+    $test->{dbi_mock}->mock(commit => 1);
+    $test->{db_mock} = MockModule->new('Kinetic::Store::DB');
+    $test->{db_mock}->mock(_dbh => $test->{dbh});
     my $foo = One->new;
     $foo->name('foo');
     Store->save($foo);
@@ -68,22 +71,19 @@ sub setup : Test(setup) {
 
 sub teardown : Test(teardown) {
     my $test = shift;
-    delete($test->{mock})->unmock_all;
-    # XXX We shouldn't need to check AutoCommit, but connect_cached is a bit
-    # funky. See http://www.nntp.perl.org/group/perl.dbi.dev/3892
-    $test->test_class->_dbh->rollback
-      unless $test->test_class->_dbh->{AutoCommit};
+    delete($test->{dbi_mock})->unmock_all;
+    $test->{dbh}->rollback;
+    delete($test->{db_mock})->unmock_all;
 }
 
 sub _clear_database {
-    # call this if you have a test which needs an empty
-    # database
+    # Call this method if you have a test which needs an empty database.
     my $test = shift;
-    $test->{mock}->unmock_all;
-    $test->test_class->_dbh->rollback;
-    $test->test_class->_dbh->begin_work;
-    $test->{mock}->mock(begin_work => 1);
-    $test->{mock}->mock(commit => 1);
+    $test->{dbi_mock}->unmock_all;
+    $test->{dbh}->rollback;
+    $test->{dbh}->begin_work;
+    $test->{dbi_mock}->mock(begin_work => 1);
+    $test->{dbi_mock}->mock(commit => 1);
 }
 
 sub count : Test(8) {
@@ -323,7 +323,7 @@ sub search : Test(16) {
     is_deeply $iterator->next, $foo,
         'and the first item should match the correct object';
     ok ! $iterator->next, 'and there should be the correct number of objects';
-   
+
     ok $iterator = Store->search($class, name => 'foo'),
         'We should also be able to call search as a class method';
     isa_ok $iterator, Iterator, 'and the object it returns';

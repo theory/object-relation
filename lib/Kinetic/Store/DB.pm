@@ -1,4 +1,4 @@
-bpackage Kinetic::Store::DB;
+package Kinetic::Store::DB;
 
 # $Id$
 
@@ -60,23 +60,26 @@ many public class methods instantiate an object prior to doing work.
 
 =head3 save
 
-  Store->save($object);
+  $store->save($object);
 
-This method saves an object to the data store.  It also saves all contained
-objects to the data store at the same time.
+This method saves an object to the data store. It also saves all contained
+objects to the data store at the same time, all in a single transaction.
 
 =cut
 
 sub save {
     my $self = shift->_from_proto;
-    my $dbh = $self->_dbh;
-    $dbh->begin_work;
+    # XXX Cache the database handle only for the duration of a single call to
+    # save(). We can change this if DBI is ever changed so that
+    # connect_cached() stops resetting AutoCommit.
+    $self->{dbh} = $self->_dbh;
+    $self->{dbh}->begin_work;
     eval {
         $self->_save(@_);
-        $dbh->commit;
+        delete($self->{dbh})->commit;
     };
     if (my $err = $@) {
-        $dbh->rollback;
+        delete($self->{dbh})->rollback;
         die $err;
     }
     return $self;
@@ -289,8 +292,7 @@ through recursive calls.
 
 sub _from_proto {
     my $proto = shift;
-    my $self = ref $proto ? $proto : $proto->new;
-    return $self;
+    return ref $proto ? $proto : $proto->new;
 }
 
 ##############################################################################
@@ -1004,7 +1006,17 @@ sub _constraints {
     return $sql;
 }
 
-sub _dbh { DBI->connect_cached(shift->_connect_args) }
+sub _dbh {
+    my $self = shift->_from_proto;
+    # XXX The save() method sets up a database handle for the duration of its
+    # execution, so prefer that database handle. This is because, although
+    # connect_cached() will return the same handle, it will reset AutoCommit
+    # to 1, thus screwin up the transaction.
+    return $self->{dbh} || DBI->connect_cached($self->_connect_args);
+    # XXX Switch to this if connect_cached() ever stops resetting AutoCommit.
+    # See http://www.nntp.perl.org/group/perl.dbi.dev/3892
+    # DBI->connect_cached(shift->_connect_args);
+}
 
 sub _connect_args {
     require Carp;
