@@ -1,73 +1,11 @@
-? t/parents.t
-? t/subclass.t
-Index: lib/Module/Build/Authoring.pod
-===================================================================
-RCS file: /cvsroot/module-build/Module-Build/lib/Module/Build/Authoring.pod,v
-retrieving revision 1.1
-diff -u -r1.1 Authoring.pod
---- lib/Module/Build/Authoring.pod	6 Dec 2004 13:38:08 -0000	1.1
-+++ lib/Module/Build/Authoring.pod	7 Dec 2004 02:12:02 -0000
-@@ -162,6 +162,16 @@
- the body of installed modules, and facilitates correct dependency
- checking on binary/packaged distributions of the module.
- 
-+=item build_class
-+
-+The Module::Build class to use in the build script. Defaults to
-+"Module::Build" or the class name passed to or created by a call to
-+C<subclass()>. This property is useful if you're writing a custom
-+Module::Build subclass and have a bootstrapping problem--that is,
-+your subclass requires modules that may not be installed when
-+C<perl Build.PL> is executed, but you've listed in C<build_requires>
-+so that they should be available when C<./Build> is executed.
-+
- =item c_source
- 
- An optional C<c_source> argument specifies a directory which contains
-@@ -809,6 +819,23 @@
- Any directories that need to be created in order to perform the
- copying will be automatically created.
- 
-+=item add_property()
-+
-+  package My::Builder;
-+  use base 'Module::Build';
-+  __PACKAGE->add_property('foo');
-+  __PACKAGE->add_property('bar' => 1);
-+  __PACKAGE->add_property('hash' => {});
-+
-+This method adds new properties to subclasses of Module::Build. By using
-+C<add_property()>, you get the benefit of property conflict checking, accessor
-+method generation, and command-line argument support, just like the
-+Module::Build properties.
-+
-+An optional second argument specifies a default value for your property. Note
-+that if you pass in a hash or array reference, then your property will be
-+treated as such by Module::Build.
-+
- =item create_build_script()
- 
- Creates an executable script called C<Build> in the current directory
-@@ -1127,6 +1154,11 @@
- the Build script, so that My::Builder can be found when running build
- actions.
- 
-+If you need to add new properties to your subclass, and want them to be
-+supported for passing to C<new()> or as command-line parameters, as well
-+as to have accessor methods generated for them, use the C<add_property>
-+method to add them to your class.
-+
- For very small additions, Module::Build provides a C<subclass()>
- method that lets you subclass Module::Build more conveniently, without
- creating a separate file for your module:
 Index: lib/Module/Build/Base.pm
 ===================================================================
 RCS file: /cvsroot/module-build/Module-Build/lib/Module/Build/Base.pm,v
-retrieving revision 1.358
-diff -u -r1.358 Base.pm
---- lib/Module/Build/Base.pm	6 Dec 2004 23:03:08 -0000	1.358
-+++ lib/Module/Build/Base.pm	7 Dec 2004 02:12:03 -0000
-@@ -80,28 +80,16 @@
+retrieving revision 1.359
+diff -u -r1.359 Base.pm
+--- lib/Module/Build/Base.pm	7 Dec 2004 03:25:53 -0000	1.359
++++ lib/Module/Build/Base.pm	7 Dec 2004 05:43:51 -0000
+@@ -80,29 +80,16 @@
    my $config = delete $input{config} || {};
  
    my $self = bless {
@@ -89,6 +27,7 @@ diff -u -r1.358 Base.pm
 -				   install_path    => {},
 -				   include_dirs    => [],
 -				   recurse_into    => [],
+-				   build_class     => $package,
 -				   %input,
 -				  },
 -		   }, $package;
@@ -105,7 +44,7 @@ diff -u -r1.358 Base.pm
    my ($p, $c) = ($self->{properties}, $self->{config});
  
    # The following warning could be unnecessary if the user is running
-@@ -115,7 +103,7 @@
+@@ -116,7 +103,7 @@
    $p->{bindoc_dirs} ||= [ "$p->{blib}/script" ];
    $p->{libdoc_dirs} ||= [ "$p->{blib}/lib", "$p->{blib}/arch" ];
  
@@ -114,7 +53,7 @@ diff -u -r1.358 Base.pm
  
    # Synonyms
    $p->{requires} = delete $p->{prereq} if exists $p->{prereq};
-@@ -123,7 +111,7 @@
+@@ -124,7 +111,7 @@
  
    $self->add_to_cleanup( @{delete $p->{add_to_cleanup}} )
      if $p->{add_to_cleanup};
@@ -123,7 +62,7 @@ diff -u -r1.358 Base.pm
    return $self;
  }
  
-@@ -434,66 +422,173 @@
+@@ -435,67 +422,173 @@
  }
  
  {
@@ -135,6 +74,7 @@ diff -u -r1.358 Base.pm
 -       dist_version
 -       dist_version_from
 -       dist_author
+-       build_class
 -       dist_abstract
 -       requires
 -       recommends
@@ -357,7 +297,7 @@ diff -u -r1.358 Base.pm
  }
  
  sub extra_compiler_flags {
-@@ -544,7 +639,7 @@
+@@ -546,7 +639,7 @@
  sub dist_name {
    my $self = shift;
    my $p = $self->{properties};
@@ -366,7 +306,7 @@ diff -u -r1.358 Base.pm
    
    die "Can't determine distribution name, must supply either 'dist_name' or 'module_name' parameter"
      unless $p->{module_name};
-@@ -558,7 +653,7 @@
+@@ -560,7 +653,7 @@
    my ($self) = @_;
    my $p = $self->{properties};
    
@@ -375,7 +315,7 @@ diff -u -r1.358 Base.pm
    
    if ($self->module_name) {
      $p->{dist_version_from} ||= join( '/', 'lib', split '::', $self->module_name ) . '.pm';
-@@ -580,7 +675,7 @@
+@@ -582,7 +675,7 @@
    my ($self, $part) = @_;
    my $p = $self->{properties};
    my $member = "dist_$part";
@@ -384,16 +324,7 @@ diff -u -r1.358 Base.pm
    
    return unless $p->{dist_version_from};
    my $fh = IO::File->new($p->{dist_version_from}) or return;
-@@ -964,7 +1059,7 @@
- sub print_build_script {
-   my ($self, $fh) = @_;
-   
--  my $build_package = ref($self);
-+  my $build_package = $self->build_class;
-   
-   my %q = map {$_, $self->$_()} qw(config_dir base_dir);
-   $q{base_dir} = Win32::GetShortPathName($q{base_dir}) if $^O eq 'MSWin32';
-@@ -1101,8 +1196,6 @@
+@@ -1103,8 +1196,6 @@
          die "Option specification '$k' conflicts with a " . ref $self
            . " option of the same name"
            if $self->valid_property($k);
@@ -402,7 +333,7 @@ diff -u -r1.358 Base.pm
          push @specs, $k . (defined $v->{type} ? $v->{type} : '');
          push @specs, $v->{store} if exists $v->{store};
          $args->{$k} = $v->{default} if exists $v->{default};
-@@ -1155,11 +1248,8 @@
+@@ -1157,11 +1248,8 @@
    }
    $args{ARGV} = \@argv;
  
@@ -415,7 +346,7 @@ diff -u -r1.358 Base.pm
      next unless exists $args{$_};
      my %hash;
      $args{$_} ||= [];
-@@ -1171,25 +1261,25 @@
+@@ -1173,25 +1261,25 @@
      }
      $args{$_} = \%hash;
    }
@@ -447,42 +378,7 @@ diff -u -r1.358 Base.pm
  		  : $self->valid_property($key) ? $self->{properties}
  		  : $self->{args});
  
-Index: t/basic.t
-===================================================================
-RCS file: /cvsroot/module-build/Module-Build/t/basic.t,v
-retrieving revision 1.33
-diff -u -r1.33 basic.t
---- t/basic.t	15 Nov 2004 19:58:42 -0000	1.33
-+++ t/basic.t	7 Dec 2004 02:12:03 -0000
-@@ -2,7 +2,7 @@
- 
- use strict;
- use Test;
--BEGIN { plan tests => 41 }
-+BEGIN { plan tests => 43 }
- use Module::Build;
- ok(1);
- 
-@@ -21,6 +21,7 @@
-   my $build = new Module::Build( module_name => 'ModuleBuildOne' );
-   ok $build;
-   ok $build->module_name, 'ModuleBuildOne';
-+  ok $build->build_class, 'Module::Build';
-   ok $build->dist_name, 'ModuleBuildOne';
-   
-   $build = Module::Build->new( dist_name => 'ModuleBuildOne', dist_version => 7 );
-@@ -152,8 +153,10 @@
-     (
-      module_name => 'ModuleBuildOne',
-      dist_author => 'Foo Meister <foo@example.com>',
-+     build_class => 'My::Big::Fat::Builder',
-     );
-   ok $build;
-   ok ref($build->dist_author);
-   ok $build->dist_author->[0], 'Foo Meister <foo@example.com>';
-+  ok $build->build_class, 'My::Big::Fat::Builder';
- }
---- /dev/null	Mon Dec  6 18:09:55 2004
+--- /dev/null	Mon Dec  6 21:43:57 2004
 +++ t/parents.t	Mon Dec  6 17:47:35 2004
 @@ -0,0 +1,57 @@
 +use strict;
@@ -542,7 +438,7 @@ diff -u -r1.33 basic.t
 +ok $parents[2], 'Module::Build';
 +ok $parents[-2], 'Module::Build::Base';
 +ok $parents[-1], 'MyTest';
---- /dev/null	Mon Dec  6 18:09:55 2004
+--- /dev/null	Mon Dec  6 21:43:57 2004
 +++ t/subclass.t	Mon Dec  6 18:09:54 2004
 @@ -0,0 +1,104 @@
 +use strict;
