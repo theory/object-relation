@@ -112,8 +112,22 @@ sub new {
     return $self;
 }
 
-__PACKAGE__->add_property(
-);
+##############################################################################
+
+=head3 resume
+
+=cut
+
+sub resume {
+    my $self = shift->SUPER::resume(@_);
+    if (my $conf = $self->notes('build_conf_file')) {
+        $ENV{KINETIC_CONF} = $conf;
+    }
+    return $self;
+}
+
+##############################################################################
+
 =head3 Class Methods
 
 =head3 test_data_dir
@@ -251,8 +265,7 @@ sub ACTION_check_store {
     my $build_store_class = $STORES{$self->store}
       or $self->_fatal_error("I'm not familiar with the " . $self->store
                              . ' data store');
-    eval "use $build_store_class";
-    $self->_fatal_error($@) if $@;
+    eval "require $build_store_class" or $self->_fatal_error($@);
     my $build_store = $build_store_class->new($self);
     $build_store->validate;
     $self->notes(build_store => $build_store);
@@ -328,6 +341,7 @@ dependency.
 sub ACTION_build {
     my $self = shift;
     $self->depends_on('check_store');
+    $self->depends_on('code');
     $self->depends_on('config');
     $self->SUPER::ACTION_build(@_);
     return $self;
@@ -353,6 +367,7 @@ sub ACTION_setup_test {
     my $self = shift;
     return $self if $self->notes('ACTION_setup_test');
     $self->depends_on('check_store');
+    $self->depends_on('code');
     $self->depends_on('config');
 
     # Set up t/data for tests to fill with junk. We'll clean it up.
@@ -366,7 +381,7 @@ sub ACTION_setup_test {
     my $build_store_class = $STORES{$self->store}
       or $self->_fatal_error("I'm not familiar with the " . $self->store
                              . ' data store');
-    eval "use $build_store_class";
+    eval "require $build_store_class" or $self->_fatal_error($@);
     my $build_store = $self->notes('build_store');
     $build_store->resume($self);
     $build_store->test_build;
@@ -391,6 +406,7 @@ dependency.
 
 sub ACTION_test {
     my $self = shift;
+    local $ENV{KINETIC_CONF} = $self->notes('test_conf_file');
     $self->depends_on('setup_test');
     $self->SUPER::ACTION_test(@_);
     $self->depends_on('teardown_test');
@@ -419,8 +435,7 @@ sub ACTION_teardown_test {
     my $build_store_class = $STORES{$self->store}
       or $self->_fatal_error("I'm not familiar with the " . $self->store
                              . ' data store');
-    eval "use $build_store_class";
-    $self->_fatal_error($@) if $@;
+    eval "require $build_store_class" or $self->_fatal_error($@);
     my $build_store = $self->notes('build_store');
     $build_store->resume($self);
     $build_store->test_cleanup;
@@ -448,7 +463,13 @@ sub process_conf_files {
     return unless %$files;
 
     for my $conf_file ($self->_copy_to($files, $self->blib, 't')) {
-        my $prefix = $conf_file =~ /^blib/ ? '' : 'test_';
+        my $prefix = '';
+        if ($conf_file =~ /^blib/) {
+            $self->notes(build_conf_file => $ENV{KINETIC_CONF} = $conf_file);
+        } else {
+            $self->notes(test_conf_file => $conf_file);
+            $prefix = 'test_';
+        }
         open CONF, '<', $conf_file or die "cannot open $conf_file: $!";
         my @conf;
         while (<CONF>) {
@@ -509,7 +530,7 @@ sub store_config {
     my $build_store_class = $STORES{$self->store}
       or $self->_fatal_error("I'm not familiar with the " . $self->store
                              . ' data store');
-    eval "use $build_store_class";
+    eval "require $build_store_class" or $self->_fatal_error($@);
     my $store_class = $build_store_class->store_class;
     return "    class => '$store_class',\n";
 }

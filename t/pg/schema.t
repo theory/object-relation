@@ -15,7 +15,7 @@ isa_ok $sg, 'Kinetic::Build::Schema';
 isa_ok $sg, 'Kinetic::Build::Schema::DB';
 isa_ok $sg, 'Kinetic::Build::Schema::DB::Pg';
 
-ok $sg->load_classes('t/sample'), "Load classes";
+ok $sg->load_classes('t/sample/lib'), "Load classes";
 is_deeply [ map { $_->key } $sg->classes ],
   [qw(simple one two composed comp_comp)],
   "classes() returns classes in their proper dependency order";

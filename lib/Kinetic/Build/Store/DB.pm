@@ -20,7 +20,6 @@ package Kinetic::Build::Store::DB;
 
 use strict;
 use base 'Kinetic::Build::Store';
-use Kinetic::Store::DB;
 use DBI;
 my %private;
 

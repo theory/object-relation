@@ -90,7 +90,7 @@ sub test_rules : Test(27) {
       "... as should the test configuration";
 
     # Try building the test database.
-    $builder->source_dir('t/sample');
+    $builder->source_dir('t/sample/lib');
     file_not_exists_ok $test_file,
       "The test database file should not yet exist";
     ok $kbs->test_build, "Build the test database";

@@ -14,7 +14,7 @@ isa_ok $sg, 'Kinetic::Build::Schema';
 isa_ok $sg, 'Kinetic::Build::Schema::DB';
 isa_ok $sg, 'Kinetic::Build::Schema::DB::Pg';
 
-ok $sg->load_classes('t/sample'), "Load classes";
+ok $sg->load_classes('t/sample/lib'), "Load classes";
 my $file = 't/data/Pg.sql';
 ok $sg->write_schema($file), "Write schema file";
 my $fn = File::Spec->catfile(split m{/}, $file);
