@@ -27,7 +27,7 @@ use File::Copy ();
 
 my %VERSIONS = (
     postgresql => '7.4.5',
-    sqlite => '3.0.8',
+    sqlite     => '3.0.8',
 );
 
 =head1 Name
@@ -557,14 +557,22 @@ sub check_postgresql {
         exit 1;
     }
 
+    # Check for database accessibility. Rules:
+    # * There must be psql so that we can load the database.
+    # * There must be createlang so that we can add plpgsql support.
+    # * If the database in the db_name property exists, we must be able to
+    #   access it with db_user and be able to create tables, views, sequences,
+    #   functions, triggers, rules, etc.
+    # * If the database doesn't exist, we must have db_root_user so that
+    #   we can create it. We might also need a value for db_root_pass, too.
+    # * db_port and db_host can be undefined if we're using Unix sockets to
+    #   connect to a local server. Otherwise, they must be defined.
+
     # We're good to go. Collect the configuration data.
     my %info = (
-        bin_dir => $pg->bin_dir,
+        psql    => File::Spec->cat_file($pg->bin_dir, 'psql'),
         version => $got_version,
-        host    => $self->prompt('Enter:')
     );
-    
-
 
     $self->notes(pg_info => $pg);
     return $self;
@@ -610,10 +618,12 @@ sub check_sqlite {
     my $req_version = version->new($VERSIONS{sqlite});
     my $got_version = version->new($sqlite->version);
     unless ($got_version >= $req_version) {
-        print STDERR "SQLite version $got_version is installed, but we ",
-          "need version $req_version or newer";
-        exit 1;
+        die "SQLite version $got_version is installed, but we ",
+          "need version $req_version or newer\n";
     }
+
+    die "DBD::SQLite ist installed, but we require the sqlite3 executable"
+      unless $sqlite->bin_dir;
 
     return $self;
 }

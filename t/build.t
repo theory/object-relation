@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 49;
+use Test::More tests => 51;
 use Test::File;
 use Test::File::Contents;
 use lib 't/lib';
@@ -98,6 +98,8 @@ file_contents_like 'blib/conf/test.conf', qr/#\s*pg\s+=>\s+{/,
   '... The PostgreSQL section should be commented out.';
 
 $build->dispatch('realclean');
+file_not_exists_ok 't/conf/test.conf',
+  '... The test config file should be gone';
 
 {
     # Set up some parameters.
@@ -159,6 +161,8 @@ $build->dispatch('realclean');
       '... The SQLite section should be commented out.';
 
     $build->dispatch('realclean');
+    file_not_exists_ok 'blib/conf/test.conf',
+      '... There should no longer be a config file for installation';
 }
 
 END {
