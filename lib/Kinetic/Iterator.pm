@@ -1,0 +1,210 @@
+package Kinetic::Iterator;
+
+# $Id$
+
+use strict;
+use Kinetic::Exceptions qw(throw_invalid);
+
+=head1 Name
+
+Kinetic::Iterator - Kinetic iterator class
+
+=head1 Synopsis
+
+  use Kinetic::Iterator;
+
+  my $iter = Kinetic::Iterator->new(\&closure);
+  while (my $thing = $iter->next) {
+      # Do something with $thing.
+  }
+
+=head1 Description
+
+This class provides an iterator interface for accessing a list of items,
+generally Kinetic objects. Users generally won't create iterator objects
+directly, but will get them back from calls to the C<search()> method of
+Kinetic::Store.
+
+The basic interface for iterator objects is the C<next()> instance
+method. This method will return each item in turn, and will return C<undef>
+when there are no more items. Therefore, no item can actually be C<undef>.
+
+=cut
+
+##############################################################################
+
+##############################################################################
+# Constructors.
+##############################################################################
+
+=head1 Class Interface
+
+=head2 Constructors
+
+=head3 new
+
+  my $iter = Kinetic::Iterator->new(\&closure);
+
+Constructs and returns a new iterator object. The closure passed in must
+return the next item to iterate over each time it is called, and C<undef> when
+there are no more items. C<undef> cannot itself be an item.
+
+B<Throws:>
+
+=over 4
+
+=item Fatal::Invalid
+
+=back
+
+=cut
+
+sub new {
+    my ($class, $code) = @_;
+    throw_invalid ['Argument "[_1]" is not a code reference', $code]
+      unless ref $code eq 'CODE';
+    bless { code => $code }, $class;
+}
+
+##############################################################################
+
+##############################################################################
+# Instance Methods.
+##############################################################################
+
+=head1 Instance Interface
+
+=head2 Instance Methods
+
+=head3 next
+
+  while (my $thing = $iter->next) {
+      # Do something with $thing.
+  }
+
+Returns the next item in the iterator. Returns C<undef> when there are no more
+items to iterate.
+
+=cut
+
+sub next {
+    my $self = shift;
+    $self->{curr} =  exists $self->{peek}
+      ? delete $self->{peek}
+      : $self->{code}->();
+    return $self->{curr};
+}
+
+##############################################################################
+
+=head3 current
+
+  my $current = $iter->current;
+
+Returns the current item in the iterator--that is, the same item returned by
+the last call to C<next()>.
+
+=cut
+
+sub current { shift->{curr} }
+
+##############################################################################
+
+=head3 peek
+
+  while ($iter->peek == 1) {
+      $iter->next;
+  }
+
+Returns the next item to be returned by C<next()> without atually removing it
+from the list of items to be returned. The item returned by C<peek()> will be
+returned by the next call to C<next()>. After that, it will not be available
+from C<peek()> but the next item will be.
+
+=cut
+
+sub peek {
+    my $self = shift;
+    return $self->{peek} ||= $self->{code}->();
+}
+
+##############################################################################
+
+=head3 all
+
+  for my $item ($iter->all) {
+      print "Item: $item\n";
+  }
+
+Returns a list or array reference of all of the items to be returned by the
+iterator. If C<next()> has been called prior to the call to C<all()>, then
+only the remaining items in the iterator will be returned. Use this method
+with caution, as it could cause a large number of Kinetic objects to be
+loaeed into memory at once.
+
+=cut
+
+sub all {
+    my $self = shift;
+    my @items;
+    push @items, $self->next while $self->peek;
+    return wantarray ? @items : \@items;
+}
+
+##############################################################################
+
+=head3 do
+
+  $iter->do( sub { print "$_[0]\n"; return $_[0]; } );
+  $iter->do( sub { print "$_\n"; return $_; } );
+
+Pass a code reference to this method to execute it for each item in the
+iterator. Each item will be set to C<$_> before executing the code reference,
+and will also be passed as the sole argument to the code reference. If
+C<next()> has been called prior to the call to C<do()>, then only the
+remaining items in the iterator will passed to the code reference. Iteration
+terminates when the code reference returns false, so be sure to have it return
+a true value if you want it to iterate over every item.
+
+=cut
+
+sub do {
+    my ($self, $code) = @_;
+    while (local $_ = $self->next) {
+        return unless $code->($_);
+    }
+}
+
+
+1;
+__END__
+
+##############################################################################
+
+=head1 Author
+
+Kineticode, Inc. <info@kineticode.com>
+
+=head1 See Also
+
+=over 4
+
+=item L<Kinetic::Collection|Kinetic::Collection>
+
+The Kinetic collection class uses iterator objects to populate the
+collection.
+
+=item L<Kinetic::Store|Kinetic::Store>
+
+Kinetic::Store returns an iterator object from its C<search()> method.
+
+=back
+
+=head1 Copyright and License
+
+Copyright (c) 2004 Kineticode, Inc.
+
+This Library is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
+
+=cut

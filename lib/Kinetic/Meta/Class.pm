@@ -4,7 +4,7 @@ package Kinetic::Meta::Class;
 
 use strict;
 use base 'Class::Meta::Class';
-#use Kinetic::Util::Context;
+#use Kinetic::Context;
 
 =head1 Name
 
@@ -57,7 +57,7 @@ Returns the localized form of the name of the class, such as "Thingy".
 =cut
 
 #sub name {
-#    Kinetic::Util::Context->language->maketext(shift->SUPER::name);
+#    Kinetic::Context->language->maketext(shift->SUPER::name);
 #}
 
 ##############################################################################
@@ -72,7 +72,7 @@ Returns the localized plural form of the name of the class, such as
 =cut
 
 sub plural_name {
-#    Kinetic::Util::Context->language->maketext(shift->{plural_name});
+#    Kinetic::Context->language->maketext(shift->{plural_name});
     shift->{plural_name};
 }
 

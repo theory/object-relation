@@ -9,11 +9,11 @@ use Widget::Meta;
 
 =head1 Name
 
-Kinetic::Biz - Kinetic application framework base class
+Kinetic::Base - Kinetic application framework base class
 
 =head1 Synopsis
 
-  package MyBiz;
+  package MyApp;
   use base qw(Kinetic::Base);
 
 =head1 Description
@@ -42,7 +42,7 @@ BEGIN {
 
 =head3 new
 
-  my $biz_obj = Kinetic::Base->new;
+  my $kinetic = Kinetic::Base->new;
   $kinetic = Kinetic::Base->new(%init);
 
 The universal Kinetic object constructor. It takes a list of parameters as its
