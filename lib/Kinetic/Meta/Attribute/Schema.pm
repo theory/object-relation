@@ -122,7 +122,7 @@ be the attribute name plus "_id".
 sub column {
     my $self = shift;
     return $self->name unless $self->references;
-    return $self->name . '_id'; # XXX should be '__id'?
+    return $self->name . '_id';
 }
 
 ##############################################################################
