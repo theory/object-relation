@@ -157,7 +157,8 @@ Kinetic::Util::Exception so that it can be used for exceptions thrown by
 libraries not under direct Kinetic control and therefore are not localizable.
 This class is also used for the global C<$SIG{__DIE__}> and C<$SIG{__WARN__}>
 handlers, so that error messages and warnings always include a nicely
-formatted stack trace.
+formatted stack trace. Note that this class is not a Kinetic::Util::Exception
+class, even though "Kinetic::Util::Exception" is included in its package name.
 
 =back
 
