@@ -21,7 +21,6 @@ package Kinetic::Build::Store::DB::Pg;
 use strict;
 use base 'Kinetic::Build::Store::DB';
 use Kinetic::Build;
-use Kinetic::Util::Exceptions;
 use App::Info::RDBMS::PostgreSQL;
 
 =head1 Name
@@ -1076,10 +1075,10 @@ user. It returns a database handle on success and C<undef> on failure.
 =cut
 
 sub _connect {
-    my $self = shift;
+    my ($self, $dsn, $user, $pass) = @_;
     require DBI;
     my $dbh = eval {
-        DBI->connect_cached( @_, {
+        DBI->connect_cached( $dsn, $user, $pass, {
             RaiseError     => 0,
             PrintError     => 0,
             pg_enable_utf8 => 1,

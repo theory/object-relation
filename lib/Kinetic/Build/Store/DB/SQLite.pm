@@ -22,7 +22,6 @@ use strict;
 use base 'Kinetic::Build::Store::DB';
 use DBI;
 use Kinetic::Build;
-use Kinetic::Util::Exceptions;
 use App::Info::RDBMS::SQLite;
 use File::Spec::Functions;
 

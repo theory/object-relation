@@ -25,6 +25,7 @@ use DBI;
 use File::Spec;
 use File::Path ();
 use File::Copy ();
+use Kinetic::Util::Exceptions;
 
 my %STORES = (
     pg     => 'Kinetic::Build::Store::DB::Pg',
