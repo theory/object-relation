@@ -3,8 +3,8 @@ package Kinetic::Language::en_uk;
 # $Id$
 
 use strict;
-use base 'Kinetic::Language';
-use utf8;
+use base 'Kinetic::Language::en';
+use encoding 'utf8';
 
 =encoding utf8
 
@@ -14,22 +14,27 @@ Kinetic::Language::en_uk - Kinetic UK English localization
 
 =head1 Description
 
-This class handles Kinetic UK English localization. It is used internally by
-Kinetic. See L<Kinetic::Language|Kinetic::Language> for a
-complete description of the Kinetic localization interface.
+This class handles Kinetic UK English localization. See
+L<Kinetic::Language|Kinetic::Language> for a complete description of the
+Kinetic localization interface.
 
 =cut
 
 our %Lexicon = (
   # Attribute labels and tips.
   'Last Name' => 'Surname',
-  "The person's last name" => "The person's surname",
+  "The person's last name",
+  "The person's surname",
+
   'First Name', => 'Given Name',
-  "The person's first name" => "The person's given name",
+  "The person's first name",
+  "The person's given name",
 );
 
 1;
 __END__
+
+##############################################################################
 
 ##############################################################################
 
@@ -49,8 +54,9 @@ The Kinetic localization class.
 
 =head1 Copyright and License
 
-Copyright (c) 2004 Kineticode, Inc. See
-L<Kinetic::License|Kinetic::License> for complete license terms and
-conditions.
+Copyright (c) 2004 Kineticode, Inc.
+
+This Library is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut

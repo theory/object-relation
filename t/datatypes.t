@@ -68,7 +68,7 @@ ok( my $t = Kinetic::TestTypes->new,
 
 # Test the GUID accessor.
 ok(my $guid = $t->guid, "Get GUID" );
-ok( eval { Data::UUID->new->from_string($guid) }, "It's a valid GUID" );
+ok( Data::UUID->new->from_string($guid), "It's a valid GUID" );
 
 # Make sure we can't set it.
 eval { $t->guid($guid) };

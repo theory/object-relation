@@ -219,9 +219,6 @@ documentation for details on its formats to pass in custom formats.
         );
     }
 
-    # Create an alias if they want AFFORDANCE ACCESSORS.
-    *get_name = \&name if AFFORDANCE_ACCESSORS;
-
     # We want to override the name attribute to make it READ-only, and so that
     # this method for all practical purposes becomes its replacement.
     $cm->add_attribute(

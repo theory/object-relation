@@ -1,13 +1,15 @@
 #!/usr/bin/perl -w
 
 use strict;
-use Test::More tests => 25;
+use Test::More tests => 28;
 
 package MyTestThingy;
 
 BEGIN {
     Test::More->import;
     use_ok('Kinetic::Meta');
+    use_ok('Kinetic::Language');
+    use_ok('Kinetic::Language::en_us');
     use_ok('Kinetic::Meta::Class');
     use_ok('Kinetic::Meta::Attribute');
     use_ok('Kinetic::Meta::AccessorBuilder');
@@ -33,6 +35,16 @@ BEGIN {
 
     ok $km->build, "Build TestThingy class";
 }
+
+# Add new strings to the lexicon.
+Kinetic::Language::en_us->add_to_lexicon(
+  'Thingy'   => 'Thingy',
+  'Thingies' => 'Thingies',
+  'Foo'      => 'Foo',
+);
+
+ok( Kinetic::Context->language(Kinetic::Language->get_handle('en_us')),
+    "Set language context" );
 
 package main;
 

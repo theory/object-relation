@@ -3,8 +3,8 @@ package Kinetic::Language::en_us;
 # $Id$
 
 use strict;
-use base 'Kinetic::Language';
-use utf8;
+use base 'Kinetic::Language::en';
+use encoding 'utf8';
 
 =encoding utf8
 
@@ -14,9 +14,9 @@ Kinetic::Language::en_us - Kinetic US English localization
 
 =head1 Description
 
-This class handles Kinetic US English localization. It is used internally by
-Kinetic. See L<Kinetic::Language|Kinetic::Language> for a
-complete description of the Kinetic localization interface.
+This class handles Kinetic US English localization. See
+L<Kinetic::Language|Kinetic::Language> for a complete description of the
+Kinetic localization interface.
 
 =cut
 

@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 8;
+use Test::More tests => 10;
 use File::Spec;
 use File::Find;
 
@@ -29,8 +29,16 @@ use_ok $_ for @langs;
 my $self = shift;
 ok my $lang = Kinetic::Language->get_handle('en_us'),
   'Create language object';
+
 is($lang->maketext('Value "[_1]" is not a [_2] object', 'foo', 'bar'),
-   'Value "foo" is not a bar object', 'Text maketext' );
+   "Value \x{201c}foo\x{201d} is not a bar object", 'Text maketext' );
+
+# Try adding to the lexicon.
+Kinetic::Language::en_us->add_to_lexicon(
+  'Thingy',
+  'Thingy'
+);
+is($lang->maketext('Thingy'), 'Thingy', "Check for added lexicon key" );
 
 # Make sure we're throwing an exception properly.
 eval { $lang->maketext('foo') };

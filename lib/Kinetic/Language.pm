@@ -3,7 +3,7 @@ package Kinetic::Language;
 # $Id$
 
 use strict;
-use version;
+use encoding 'utf8';
 use base qw(Locale::Maketext);
 
 =encoding utf8
@@ -14,91 +14,36 @@ Kinetic::Language - Kinetic localization class
 
 =head1 Synopsis
 
+  # Add localization strings.
+  package MyApp::Language::en;
+  use Kinetic::Language::en;
+  Kinetic::Language::en->add_to_lexicon(
+    'Thingy' => 'Thingy',
+    'Thingies' => 'Thingies',
+  );
+
+  # Use directly.
   use Kinetic::Language;
-  my $lang = Kinetic::Language->get_handle;
+  my $lang = Kinetic::Language->get_handle('en_us');
   print $lang->maketext($msg);
 
 =head1 Description
 
-This class handles Kinetic localization. It subclasses
-L<Locale::Maketext|Locale::Maketext> to offer this functionality.
+This class handles Kinetic localization. To add this functionality, it
+subclasses L<Locale::Maketext|Locale::Maketext> and addes a few other
+features. One of these features is that failure to find a localization string
+will result in the throwing of a Kinetic::Exception::Fatal::Language
+exception.
+
+But since the Kinetic framework is just that, a framework, this class
+functions as the base class for the localization libraries of all Kinetic
+applications. Those applications can add their own localization strings
+libraries via the C<add_to_lexicon()> method.
+
+Those who wish to add new localizations to the Kinetic framework should
+consult the C<en> subclass for a full lexicon.
 
 =cut
-
-##############################################################################
-# This is the default lexicon from which all other languages inherit.
-##############################################################################
-
-our %Lexicon = (
-  # Classes.
-  'Kinetic' => 'Kinetic',
-  'Class' => 'Class',
-  'Classes' => 'Classes',
-  'Party' => 'Party',
-  'Parties', 'Parties',
-  'Person' => 'Person',
-  'Persons' => 'Persons',
-  'User' => 'User',
-  'Users' => 'Users',
-
-  # Exceptions.
-  'Value "[_1]" is not a [_2] object' => 'Value \x{201c}[_1]\x{201d} is not a [_2] object',
-  'Value "[_1]" is not a GUID' => 'Value \x{201c}[_1]\x{201d} is not a GUID',
-  'Attribute must be defined' => 'Attribute must be defined',
-  'Localization for "[_1]" not found' => 'Localization for \x{201c}[_0]\x{201d} not found',
-  'Cannot assign to read-only attribute "[_1]"' => 'Cannot assign to read-only attribute \x{201c}[_1]\x{201d}',
-  'Argument "[_1]" is not a code reference' => 'Argument \x{201c}[_1]\x{201d} is not a code reference',
-  'Argument "[_1]" is not a [_2] object' => 'Argument \x{201c}[_1]\x{201d} is not a [_2] object',
-  'Cannot assign permanent state' => 'Cannot assign permanent state',
-  'Cannot open file "[_1]": [_2]' => 'Cannot open file \x{201c}[_1]\x{201d}: [_2]',
-
-  # States.
-  'Permanent' => 'Permanent',
-  'Active' => 'Active',
-  'Inactive' => 'Inactive',
-  'Deleted' => 'Deleted',
-  'Purged' => 'Purged',
-
-  # Priorities.
-  'Lowest' => 'Lowest',
-  'Low' => 'Low',
-  'Normal' => 'Normal',
-  'High' => 'High',
-  'Highest' => 'Highest',
-
-  # Kinetic Attribute labels and tips.
-  'GUID' => 'GUID',
-  'The globally unique identifier for this object' => 'The globally unique identifier for this object',
-  'Name' => 'Name',
-  'The name of this object' => 'The name of this object',
-  'Description' => 'Description',
-  'The description of this object' => 'The description of this object',
-  'State' => 'State',
-  'The state of this object' => 'The state of this object',
-
-  # Kinetic::Party::Person labels and tips.
-  'Last Name' => 'Last Name',
-  "The person's last name" => "The person's last name",
-  'First Name', => 'First Name',
-  "The person's first name" => "The person's first name",
-  'Middle Name', => 'Middle Name',
-  "The person's middle name" => "The person's middle name",
-  'Nickname', => 'Nickname',
-  "The person's nickname" => "The person's nickname",
-  'Prefix' => 'Prefix',
-  "The prefix to the person's name" => "The prefix to the person's name, such as \x{201c}Mr.\x{201d}, \x{201c}Ms.\x{201d}, \x{201c}Dr.\x{201d}, etc.",
-  'Suffix' => 'Suffix',
-  "The suffix to the person's name" => "The suffix to the person's name, such as \x{201c}JD\x{201d}, \x{201c}PhD\x{201d}, \x{201c}MD\x{201d}, etc.",
-  'Generation' => 'Generation',
-  "The generation of the person's name" => "The generation to the person's name, such as \x{201c}Jr.\x{201d}, \x{201c}III\x{201d}, etc.",
-  'strfname_format' => "%p% f% M% l% g%, s",
-
-  # Kinetic::Party::Person::User labels and tips.
-  'Username' => 'Username',
-  "The user's username" => "The user's username",
-  'Password' => 'Password',
-  "The user's password" => "The user's password",
-);
 
 ##############################################################################
 # Constructors.
@@ -106,18 +51,41 @@ our %Lexicon = (
 
 =head1 Class Interface
 
-=head2 Constructors
+=head2 Class Methods
 
-=head3 get_handle
+=head3 add_to_lexicon
 
-  my $lang = Kinetic::Language->get_handle;
+  Kinetic::Language::en->add_to_lexicon(
+    'Thingy' => 'Thingy',
+    'Thingies' => 'Thingies',
+  );
 
-Returns a Kinetic::Language subclass object for a particular language.
-See L<Locale::Maketext|Locale::Maketext> for a complete description of its
-interface. Kinetic::Language overrides the Locale::Maketext
-implementation of this method to add special error handling that will throw
-Kinetic exceptions. It is otherwise exactly the same as the C<get_handle>
-method of Locale::Maketext.
+Adds new entries to the lexicon of the class. This method is intended to be
+used by the localization libraries of Kinetic applications, which will have
+their own strings that need localizing.
+
+=cut
+
+sub add_to_lexicon {
+    no strict 'refs';
+    my $lex = \%{shift() . "::Lexicon"};
+    while (my $k = shift) {
+        $lex->{$k} = shift;
+    }
+}
+
+##############################################################################
+# This is the default lexicon from which all other languages inherit.
+##############################################################################
+
+=head1 Instance Interface
+
+=head2 Instance Methods
+
+=head3 init
+
+This method is used internally by Locale::Maketext to set up failed
+localization key lookups to throw exceptions.
 
 =cut
 
@@ -129,10 +97,10 @@ my $fail_with = sub {
     );
 };
 
-sub get_handle {
-    my $handle = shift->SUPER::get_handle(@_);
+sub init {
+    my $handle = shift;
+    $handle->SUPER::init(@_);
     $handle->fail_with($fail_with);
-    return $handle;
 }
 
 1;
