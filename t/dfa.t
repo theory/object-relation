@@ -4,8 +4,8 @@
 
 use strict;
 #use Test::More 'no_plan';
+use Test::More tests => 20;
 use Test::Exception;
-use Test::More tests => 19;
 
 my $DFA;
 BEGIN { 
@@ -111,3 +111,15 @@ $fsm->next_state while ! $fsm->done;
 cmp_ok $count, '>=', 20,
     '... and it should be able to tell when the machine is done';
     
+%state_machine = (
+    first => {
+        enter => sub { $goto = 'last' },
+        goto => [
+            unknown_state_name => [sub {'last' eq $goto}, sub {$count++}],
+        ],
+    },
+);
+
+throws_ok {$fsm = $DFA->new(\%state_machine, 'first', sub { $count >= 20 })}
+    qr/Unknown state 'unknown_state_name' referenced in state 'first'/,
+    'Attempting to goto an unknown state name should die';
