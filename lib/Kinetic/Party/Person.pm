@@ -244,7 +244,7 @@ __END__
 
 =head1 Copyright and License
 
-Copyright (c) 2004 Kineticode, Inc. See
+Copyright (c) 2004-2005 Kineticode, Inc. See
 L<Kinetic::License|Kinetic::License> for complete license terms and
 conditions.
 
