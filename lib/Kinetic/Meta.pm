@@ -38,6 +38,8 @@ overrides the behavior of Class::Meta to specify the use of the
 L<Kinetic::Meta::Class|Kinetic::Meta::Class> subclass in place of
 Class::Meta::Class.
 
+=cut
+
 ##############################################################################
 # Constructors.
 ##############################################################################

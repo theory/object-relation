@@ -1,9 +1,9 @@
-use Module::Build;
-
 use strict;
-use 5.005003;
+use 5.008003;
+use lib 'lib';
+use Kinetic::Build;
 
-my $build = Module::Build->new(
+my $build = Kinetic::Build->new(
     module_name        => 'Kinetic',
     license            => 'gpl',
     create_makefile_pl => 'passthrough',

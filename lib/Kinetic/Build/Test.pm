@@ -42,6 +42,8 @@ directive in the C<store> configuration property to use SQLite, do this:
 When the script finishes running, the modified F<kinetic.conf> file will be
 deleted and the original file restored.
 
+Kinetic::Build::Test also sets up US English as the localization during tests.
+
 =cut
 
 use Kinetic::Util::Context;
