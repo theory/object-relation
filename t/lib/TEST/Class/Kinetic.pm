@@ -25,6 +25,7 @@ use base 'Test::Class';
 use Test::More;
 use Cwd ();
 use File::Path ();
+use File::Find;
 use File::Spec::Functions;
 use aliased 'Test::MockModule';
 
@@ -37,22 +38,61 @@ TEST::Class::Kinetic - The Kinetic test class base class
 =head1 Synopsis
 
   use lib 't/lib';
-  use TEST::Class::Kinetic;
-  TEST::Class::Kinetic->runtests(@classes);
+  use TEST::Class::Kinetic $directory;
+  TEST::Class::Kinetic->runtests;
 
 =head1 Description
 
-This modules implements a base class for all Kinetic framework tests using the
-L<Test::Class|Test::Class> framework. It sets up a number of configurations
-and methods that test subclasses can use to create directories, change
-directories, or check to see if particular features are enabled.
+This class is the base class for all Kinetic test classes. It inherits from
+L<Test::Class|Test::Class>, and so, therfore, do its subclasses. Create new
+subclasses to add new tests to the Kinetic framework.
 
-The supported features are parsed from an environment variable,
-C<KINETIC_SUPPORTED>, which is set by C<./Build test>. If tests aren't being
-run by the Kinetic build system, simply set the environment variable to a
-space-delimited list of supported features, like so:
+In addition to the interface provided by Test::Class, TEST::Class::Kinetic
+does the extra work of finding all test classes in a specified directory and
+loading them. They are then used in the C<runtests()> method so that they are
+all executed.
+
+The classes are loaded upon startup. By default, TEST::Class::Kinetic loads
+all of the Perl modules in the F<t/lib> directory, but alternate directories
+can be specified when loading TEST::Class::Kinetic. Only those modules that
+inherit from TEST::Class::Kinetic will be processed by a call to
+C<runtests()>, however.
+
+In addition, this module sets up a number of configurations and methods that
+test subclasses can use to create directories, change directories, or check to
+see if particular features are enabled. The supported features are parsed from
+an environment variable, C<KINETIC_SUPPORTED>, which is set by C<./Build
+test>. If tests aren't being run by the Kinetic build system, simply set the
+environment variable to a space-delimited list of supported features, like so:
 
   KINETIC_SUPPORTED="sqlite pg" prove t/build.t
+
+=cut
+
+my @CLASSES;
+
+sub import {
+    my ($pkg, $dir) = @_;
+    if ($ENV{RUNTEST}) {
+        push @CLASSES,
+          map { eval "require $_" or die $!; $_ } split /\s+/, $ENV{RUNTEST};
+    } else {
+        my $want = sub {
+            my $file = $File::Find::name;
+            return if /^\.(?:svn|cvs)/;
+            return unless /\.pm$/;
+            return if /[#~]/; # Ignore backup files.
+                my $class = __PACKAGE__->file_to_class($file);
+                push @CLASSES, $class if $class->isa(__PACKAGE__);
+            };
+
+        find({ wanted => $want, no_chdir => 1 }, $dir || catdir 't', 'lib');
+    }
+}
+
+sub runtests { shift->SUPER::runtests(@CLASSES) }
+
+##############################################################################
 
 =head1 Class Interface
 
@@ -76,6 +116,49 @@ or not to skip a set of tests.
 my %SUPPORTED = map { $_ => undef } split /\s+/, $ENV{KINETIC_SUPPORTED};
 
 sub supported { exists $SUPPORTED{$_[1]} }
+
+##############################################################################
+
+=head3 file_to_class
+
+  my $class = TEST::Class::Kinetic->file_to_class($file_name);
+
+This method takes a file name for an argument, converts it to a class name,
+and then requires the clas. This is useful for tests that search the file
+system for class files, and then want to load those classes. The class name is
+assumed to start with an upper-case character, so all characters in the file
+name up to the first upper-case character will be removed, and the remainder
+of the file name will make up the class name. Thus, any of the following
+exmples would be properly converted:
+
+=over 4
+
+=item F<t/lib/TEST/Kinetic/Build.pm>
+
+Loads and returns "TEST::Kinetic::Build".
+
+=item F<lib/Kinetic/Util/Language.pm>
+
+Loads and returns "Kinetic::Util::Language".
+
+=item F<Kinetic/Util/Config.pm>
+
+Loads and returns "Kinetic::Util::Config".
+
+=back
+
+=cut
+
+sub file_to_class {
+    my ($pkg, $file) = @_;
+    $file =~ s/\.pm$// or die "$file is not a Perl module";
+    my (@dirs) = File::Spec->splitdir($file);
+    # Assume that only test class file will be upper-cased.
+    shift @dirs while $dirs[0] && $dirs[0] !~ /^[[:upper:]]/;
+    my $class = join '::', @dirs;
+    eval "require $class" or die $@;
+    return $class;
+}
 
 ##############################################################################
 

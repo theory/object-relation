@@ -19,43 +19,8 @@ use lib catdir(updir, 'build'),              # Build test classes
         catdir(updir, updir, 'blib', 'lib'), # Build library
         catdir(updir, updir, 'lib');         # Distribution library
 
-use TEST::Class::Kinetic;
+use TEST::Class::Kinetic catdir updir, 'build', 'TEST';
 
-my @classes;
-
-TEST::Class::Kinetic->runtests(@classes);
-
-BEGIN {
-    if ($ENV{RUNTEST}) {
-        push @classes,
-          map { eval "require $_" or die $!; $_ }
-          split /\s+/, $ENV{RUNTEST};
-    } else {
-        find({ wanted => \&wanted, no_chdir => 1 },
-             catdir updir, 'build', 'TEST');
-    }
-
-    sub wanted {
-        my $file = $File::Find::name;
-        return if /^\.(?:svn|cvs)/;
-        return unless /\.pm$/;
-        return if /[#~]/; # Ignore backup files.
-        if (my $class = file_to_mod($file)) {
-            eval "require $class" or die $@;
-            push @classes => $class;
-        }
-    };
-
-    sub file_to_mod {
-        my ($file) = @_;
-        $file =~ s/\.pm$// or die "$file is not a Perl module";
-        my (@dirs) = File::Spec->splitdir($file);
-        # Assume that only test class file will be upper-cased.
-        shift @dirs while $dirs[0] && $dirs[0] !~ /^[[:upper:]]/;
-        my $class = join '::' => @dirs;
-        return $class;
-    }
-
-}
+TEST::Class::Kinetic->runtests;
 
 __END__
