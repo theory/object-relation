@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use lib 't/lib';
 use Kinetic::TestSetup store => { class => 'Kinetic::Store::DB::Pg' };
-use Test::More tests => 62;
+use Test::More tests => 66;
 use Test::Differences;
 
 BEGIN { use_ok 'Kinetic::Build::Schema' };
@@ -20,8 +20,6 @@ ok $sg->load_classes('t/lib'), "Load classes";
 for my $class ($sg->classes) {
     ok $class->is_a('Kinetic'), "Class is a Kinetic";
 }
-
-open my $file, ">", "/tmp/kinetic.sql" or die "Can't open it: $!\n";
 
 ##############################################################################
 # Grab the simple class.
@@ -394,6 +392,7 @@ ALTER TABLE _comp_comp
 };
 eq_or_diff $sg->constraints_for_class($comp_comp), $constraints,
   "... Schema class generates CONSTRAINT statement";
+
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW comp_comp AS
   SELECT _comp_comp.id, _comp_comp.guid, _comp_comp.name, _comp_comp.description, _comp_comp.state, _comp_comp.composed_id, composed.guid AS "composed.guid", composed.name AS "composed.name", composed.description AS "composed.description", composed.state AS "composed.state", composed.one_id AS "composed.one_id", composed."one.guid" AS "composed.one.guid", composed."one.name" AS "composed.one.name", composed."one.description" AS "composed.one.description", composed."one.state" AS "composed.one.state", composed."one.bool" AS "composed.one.bool"
@@ -403,12 +402,38 @@ $view = q{CREATE VIEW comp_comp AS
 eq_or_diff $sg->view_for_class($comp_comp), $view,
   "... Schema class generates CREATE VIEW statement";
 
-print $file $sg->schema_for_class($simple);
-print $file "\n", $sg->schema_for_class($one);
-print $file "\n", $sg->schema_for_class($two);
-print $file "\n", $sg->schema_for_class($composed);
-print $file "\n", $sg->schema_for_class($comp_comp);
+# Check that the INSERT rule/trigger is correct.
+$insert = q{CREATE RULE insert_comp_comp AS
+ON INSERT TO comp_comp DO INSTEAD (
+  INSERT INTO _comp_comp (id, guid, name, description, state, composed_id)
+  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state, NEW.composed_id);
+);
+};
+eq_or_diff $sg->insert_for_class($comp_comp), $insert,
+  "... Schema class generates view INSERT rule";
 
-my $spacer = \x{00b7};
+# Check that the UPDATE rule/trigger is correct.
+$update = q{CREATE RULE update_comp_comp AS
+ON UPDATE TO comp_comp DO INSTEAD (
+  UPDATE _comp_comp
+  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state, composed_id = NEW.composed_id
+  WHERE  id = OLD.id;
+);
+};
+eq_or_diff $sg->update_for_class($comp_comp), $update,
+  "... Schema class generates view UPDATE rule";
 
-print "Spacer: $spacer\n";
+# Check that the DELETE rule/trigger is correct.
+$delete = q{CREATE RULE delete_comp_comp AS
+ON DELETE TO comp_comp DO INSTEAD (
+  DELETE FROM _comp_comp
+  WHERE  id = OLD.id;
+);
+};
+eq_or_diff $sg->delete_for_class($comp_comp), $delete,
+  "... Schema class generates view DELETE rule";
+
+# Check that a complete schema is properly generated.
+eq_or_diff $sg->schema_for_class($comp_comp),
+  join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
+  "... Schema class generates complete schema";

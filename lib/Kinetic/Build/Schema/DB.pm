@@ -227,6 +227,12 @@ sub column_null {
     return '';
 }
 
+my %num_types = (
+    integer => 1,
+    whole   => 1,
+    boolean => 1,
+);
+
 sub column_default {
     my ($self, $attr) = @_;
     my $def = $attr->{default};
@@ -234,7 +240,7 @@ sub column_default {
     my $type = $attr->type;
 
     # Return the raw value for numeric data types.
-    return "DEFAULT $def" if $type eq 'integer' || $type eq 'whole';
+    return "DEFAULT $def" if $num_types{$type};
     return "DEFAULT " . ($def + 0) if $type eq 'state';
 
     # Otherwise, assume that it's a string.
@@ -246,7 +252,17 @@ sub column_reference {
     my ($self, $attr) = @_;
     my $ref = $attr->references or return;
     my $fk_table = $ref->table;
-    return "REFERENCES $fk_table(id)";
+    return "REFERENCES $fk_table(id) ON DELETE " . uc $attr->on_delete;
+}
+
+sub pk_column {
+    my ($self, $class) = @_;
+    if (my $parent = $class->parent) {
+        my $fk_table = $parent->table;
+        return "id INTEGER NOT NULL PRIMARY KEY REFERENCES $fk_table(id) "
+          . "ON DELETE CASCADE";
+    }
+    return "id INTEGER NOT NULL PRIMARY KEY";
 }
 
 sub indexes_for_class {
@@ -347,14 +363,6 @@ __END__
 =head1 To Do
 
 =over
-
-=item *
-
-Get SQLite support working againg.
-
-=item *
-
-Use triggers to add FKs to SQLite schema.
 
 =item *
 

@@ -51,7 +51,6 @@ my %types = (
     datetime => 'TIMESTAMP',
 );
 
-
 sub column_type {
     my ($self, $attr) = @_;
     return "INTEGER" if $attr->references;
@@ -173,8 +172,8 @@ sub start_schema {
 '
 CREATE SEQUENCE seq_kinetic;
 
-CREATE DOMAIN state AS INT2 NOT NULL DEFAULT 1
-CHECK(
+CREATE DOMAIN state AS SMALLINT NOT NULL DEFAULT 1
+CONSTRAINT ck_state CHECK(
    VALUE BETWEEN -1 AND 2
 );';
 }

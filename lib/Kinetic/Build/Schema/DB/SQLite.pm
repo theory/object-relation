@@ -46,18 +46,11 @@ information.
 my %types = (
     string   => 'TEXT',
     guid     => 'TEXT',
-    boolean  => 'INTEGER',
+    boolean  => 'SMALLINT',
     whole    => 'INTEGER',
     state    => 'INTEGER',
     datetime => 'TEXT',
 );
-
-sub column_name {
-    my ($self, $attr) = @_;
-    return $self->SUPER::column_name($attr) if $types{$attr->type};
-    # Assume it's an object reference.
-    return $attr->name . '_id';
-}
 
 sub column_type {
     my ($self, $attr) = @_;
@@ -67,60 +60,159 @@ sub column_type {
     return "INTEGER";
 }
 
-sub pk_column {
-    my ($self, $class) = @_;
-    if (my $fk_table = $self->{$class->key}{table_data}{parent}) {
-        return "id INTEGER NOT NULL PRIMARY KEY REFERENCES $fk_table(id)";
-    } else {
-        return "id INTEGER NOT NULL PRIMARY KEY";
-    }
-}
-
-sub generate_insert_rule {
+sub constraints_for_class {
     my ($self, $class) = @_;
     my $key = $class->key;
-    # Output the INSERT rule.
-    $self->{$key}{buffer} .= "CREATE TRIGGER insert_$key\n"
+    my $table = $class->table;
+
+    # Start with a state trigger, if there is a state column, and a boolean
+    # trigger, if there is a boolean column.
+    my @cons = ($self->state_trigger($class), $self->boolean_trigger($class));
+
+    # Add a foreign key from the id column to the parent table if this
+    # class has a parent table class.
+    if (my $parent = $class->parent) {
+        push @cons, $self->generate_fk($class, 'id', $parent)
+    }
+
+    # Add foreign keys for any attributes that reference other objects.
+    for my $attr ($class->table_attributes) {
+        my $ref = $attr->references or next;
+        push @cons, $self->generate_fk($class, $attr->column, $ref);
+    }
+
+    return join "\n", @cons;
+}
+
+sub generate_fk {
+    my ($self, $class, $col, $fk_class) = @_;
+    my $key = $class->key;
+    my $table = $class->table;
+    my $fk_key = $fk_class->key;
+    my $fk_table = $fk_class->table;
+    my $prefix = $col eq 'id' ? 'pfk' : 'fk';
+    return (qq{CREATE TRIGGER ${prefix}i_$key\_$col
+BEFORE INSERT ON $table
+FOR EACH ROW BEGIN
+  SELECT CASE
+    WHEN (SELECT id FROM $fk_table WHERE id = NEW.$col) IS NULL
+    THEN RAISE(ABORT, 'insert on table "$table" violates foreign key constraint "$prefix\_$key\_$col"')
+  END;
+END;
+},
+
+      qq{CREATE TRIGGER ${prefix}u_$key\_$col
+BEFORE UPDATE ON $table
+FOR EACH ROW BEGIN
+  SELECT CASE WHEN (SELECT id FROM $fk_table WHERE id = NEW.$col) IS NULL
+    THEN RAISE(ABORT, 'update on table "$table" violates foreign key constraint "$prefix\_$key\_$col"')
+  END;
+END;
+},
+
+      qq{CREATE TRIGGER ${prefix}d_$key\_$col
+BEFORE DELETE ON $fk_table
+FOR EACH ROW BEGIN
+    DELETE from $table WHERE $col = OLD.id;
+END;
+});
+}
+
+sub state_trigger {
+    my ($self, $class) = @_;
+    my @states = grep { $_->type eq 'state'} $class->table_attributes
+      or return;
+    my $table = $class->table;
+    my $key = $class->key;
+    my @trigs;
+    for my $attr (@states) {
+        my $col = $attr->column;
+        push @trigs,
+            "CREATE TRIGGER ck_$key\_$col\n"
+          . "BEFORE INSERT on $table\n"
+          . "FOR EACH ROW BEGIN\n"
+          . "  SELECT CASE\n"
+          . "    WHEN NEW.$col NOT BETWEEN -1 AND 2\n"
+          . "    THEN RAISE(ABORT, 'value for domain state violates "
+          .                      qq{check constraint "ck_state"')\n}
+          . "  END;\n"
+          . "END;\n";
+    }
+    return join "\n", @trigs;
+}
+
+sub boolean_trigger {
+    my ($self, $class) = @_;
+    my @bools = grep { $_->type eq 'boolean'} $class->table_attributes
+      or return;
+    my $table = $class->table;
+    my $key = $class->key;
+    my @trigs;
+    for my $attr (@bools) {
+        my $col = $attr->column;
+        push @trigs,
+            "CREATE TRIGGER ck_$key\_$col\n"
+          . "BEFORE INSERT on $table\n"
+          . "FOR EACH ROW BEGIN\n"
+          . "  SELECT CASE\n"
+          . "    WHEN NEW.$col NOT IN (1, 0)\n"
+          . "    THEN RAISE(ABORT, 'value for domain boolean violates "
+          .                      qq{check constraint "ck_boolean"')\n}
+          . "  END;\n"
+          . "END;\n";
+    }
+    return join "\n", @trigs;
+}
+
+sub insert_for_class {
+    my ($self, $class) = @_;
+    my $key = $class->key;
+
+    # Output the INSERT trigger.
+    my $sql = "CREATE TRIGGER insert_$key\n"
       . "INSTEAD OF INSERT ON $key\nFOR EACH ROW BEGIN";
     my $pk = '';
-    for my $table (@{$self->{table_data}{tables}}) {
-        my $cols = $self->{table_data}{colmap}{$table} or next;
-        $self->{$key}{buffer} .= "\n  INSERT INTO $table ("
+    for my $impl (reverse($class->parents), $class) {
+        my $table = $impl->table;
+        $sql .= "\n  INSERT INTO $table ("
           . ($pk ? 'id, ' : '')
-          . join(', ', @$cols) . ")\n  VALUES ($pk"
-          . join(', ', map { "NEW.$_" } @$cols) . ");\n";
+          . join(', ', map { $_->column } $impl->table_attributes )
+          . ")\n  VALUES ($pk"
+          . join(', ', map { "NEW." . $_->column } $impl->table_attributes)
+          . ");\n";
         $pk ||= 'last_insert_rowid(), ';
     }
-    $self->{$key}{buffer} .= "END;\n\n";
-    return $self;
+
+    return $sql . "END;\n";
+
 }
 
-sub generate_update_rule {
+sub update_for_class {
     my ($self, $class) = @_;
     my $key = $class->key;
-    # Output the UPDATE rule.
-    $self->{$key}{buffer} .= "CREATE TRIGGER update_$key\n"
+    # Output the UPDATE trigger.
+    my $sql .= "CREATE TRIGGER update_$key\n"
       . "INSTEAD OF UPDATE ON $key\nFOR EACH ROW BEGIN";
-    for my $table (@{$self->{table_data}{tables}}) {
-        my $cols = $self->{table_data}{colmap}{$table} or next;
-        $self->{$key}{buffer} .= "\n  UPDATE $table\n  SET    "
-          . join(', ', map { "$_ = NEW.$_" } @$cols)
+    for my $impl (reverse ($class->parents), $class) {
+        my $table = $impl->table;
+        $sql .= "\n  UPDATE $table\n  SET    "
+          . join(', ', map { "$_ = NEW.$_" } map { $_->column } $impl->table_attributes)
           . "\n  WHERE  id = OLD.id;\n";
     }
-    $self->{$key}{buffer} .= "END;\n\n";
-    return $self;
+    return $sql . "END;\n";
 }
 
-sub generate_delete_rule {
+sub delete_for_class {
     my ($self, $class) = @_;
     my $key = $class->key;
+    my $table = $class->table;
     # Output the DELETE rule.
-    $self->{$key}{buffer} .= "CREATE TRIGGER delete_$key\n"
-      . "INSTEAD OF DELETE ON $key\nFOR EACH ROW BEGIN\n"
-      . "  DELETE FROM $self->{$key}{table_data}{name}\n"
-      . "  WHERE  id = OLD.id;\nEND;\n\n";
-
-    return $self;
+    return "CREATE TRIGGER delete_$key\n"
+      . "INSTEAD OF DELETE ON $key\n"
+      . "FOR EACH ROW BEGIN\n"
+      . "  DELETE FROM $table\n"
+      . "  WHERE  id = OLD.id;\n"
+      . "END;\n";
 }
 
 1;
