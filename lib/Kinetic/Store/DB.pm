@@ -1011,10 +1011,10 @@ sub _dbh {
     # XXX The save() method sets up a database handle for the duration of its
     # execution, so prefer that database handle. This is because, although
     # connect_cached() will return the same handle, it will reset AutoCommit
-    # to 1, thus screwin up the transaction.
+    # to 1, thus screwing up the transaction.
     return $self->{dbh} || DBI->connect_cached($self->_connect_args);
-    # XXX Switch to this if connect_cached() ever stops resetting AutoCommit.
-    # See http://www.nntp.perl.org/group/perl.dbi.dev/3892
+    # XXX Switch to this single line if connect_cached() ever stops resetting
+    # AutoCommit. See http://www.nntp.perl.org/group/perl.dbi.dev/3892
     # DBI->connect_cached(shift->_connect_args);
 }
 
