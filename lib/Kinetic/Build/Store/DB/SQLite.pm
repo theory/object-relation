@@ -51,7 +51,7 @@ store. Its interface is defined entirely by Kinetic::Build::Store.
 
 =head3 info_class
 
-  my $info_class = Kinetic::Build::Store->info_class
+  my $info_class = Kinetic::Build::Store::DB->info_class
 
 This abstract class method returns the name of the C<App::Info> class for the
 data store. Must be overridden in subclasses.
@@ -64,7 +64,7 @@ sub info_class { 'App::Info::RDBMS::SQLite' }
 
 =head3 min_version
 
-  my $version = Kinetic::Build::Store->min_version
+  my $version = Kinetic::Build::Store::DB::SQLite->min_version
 
 This abstract class method returns the minimum required version number of the
 data store application. Must be overridden in subclasses.
@@ -75,7 +75,7 @@ sub min_version { '3.0.8' }
 
 =head3 dbd_class
 
-  my $dbd_class = Kinetic::Build::Store::DB->dbd_class;
+  my $dbd_class = Kinetic::Build::Store::DB::SQLite->dbd_class;
 
 This abstract class method returns the name of the DBI database driver class,
 such as "DBD::Pg" or "DBD::SQLite". Must be overridden in subclasses.
@@ -85,6 +85,107 @@ such as "DBD::Pg" or "DBD::SQLite". Must be overridden in subclasses.
 sub dbd_class { 'DBD::SQLite' }
 
 ##############################################################################
+
+=head3 rules
+
+  my @rules = Kinetic::Build::Store::DB::SQLite->rules;
+
+This is an abstract method that must be overridden in a subclass. By default
+it must return arguments that the C<FSA::Rules> constructor requires.
+
+=cut
+
+sub rules {
+    my $self = shift;
+
+    my $fail    = sub {! shift->result };
+    my $succeed = sub {  shift->result };
+
+    return (
+        start => {
+            do => sub {
+                my $state = shift;
+                $state->machine->{actions} = []; # must never return to start
+                $state->result($self->info->installed);
+             },
+            rules => [
+                fail => {
+                    rule    => $fail,
+                    message => 'SQLite does not appear to be installed',
+                },
+                check_version => {
+                    rule    => $succeed,
+                    message => 'SQLite is installed',
+                },
+            ],
+        },
+        check_version => {
+            do => sub { shift->result($self->is_required_version) },
+            rules  => [
+                fail => {
+                    rule    => $fail,
+                    message => 'SQLite is not the minimum required version',
+                },
+                file_name => {
+                    rule    => $succeed,
+                    message => 'SQLite is the minimum required version',
+                },
+            ],
+        },
+        file_name => {
+            do => sub {
+                my $state = shift;
+                my $builder = $self->builder;
+                my $filename = $builder->db_file
+                  || $builder->prompt('Please enter a filename for the SQLite database');
+                $builder->db_file($filename);
+                $state->result($filename);
+            },
+            rules => [
+                file_name => {
+                    rule    => $fail,
+                    message => 'No filename for database',
+                },
+                Done => {
+                    rule    => $succeed,
+                    message => 'We have a filename',
+                }
+            ],
+        },
+        Done => {
+            do => sub {
+                my $state   = shift;
+                my $builder   = $self->builder;
+                my $machine = $state->machine;
+                push @{$machine->{actions}} => ['build_db'];
+                foreach my $attribute (qw/db_file actions user pass/) {
+                    $builder->notes($attribute => $machine->{$attribute})
+                      if $machine->{$attribute};
+                }
+#                $self->_dbh->disconnect if $self->_dbh;
+            }
+        },
+        fail => {
+            do => sub {
+                my $state = shift;
+                # XXX Use $build->_fatal_error()?
+                die $state->prev_state->message
+                  || "no message supplied";
+            },
+        },
+    );
+}
+
+##############################################################################
+# Instance Methods.
+##############################################################################
+
+=head1 Instance Interface
+
+=head2 Instance Methods
+
+
+=cut
 
 1;
 __END__

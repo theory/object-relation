@@ -4,8 +4,12 @@ use strict;
 use warnings;
 use base 'TEST::Kinetic::Build::Store::DB';
 use Test::More;
+use aliased 'Test::MockModule';
+use aliased 'Kinetic::Build';
+use Test::Exception;
 
-sub test_class_methods : Test(6) {
+__PACKAGE__->runtests;
+sub test_class_methods : Test(7) {
     my $test = shift;
     my $class = $test->test_class;
     is $class->info_class, 'App::Info::RDBMS::SQLite',
@@ -20,6 +24,54 @@ sub test_class_methods : Test(6) {
       'We should have the correct DBD class';
     is $class->dsn_dbd, 'SQLite',
       'We should have the correct DSN DBD string';
+    ok $class->rules, "We should get some rules";
+}
+
+sub test_new : Test(4) {
+    my $self = shift;
+    my $class = $self->test_class;
+    # Fake the Kinetic::Build interface.
+    my $builder = MockModule->new(Build);
+    $builder->mock(resume => sub { bless {}, Build });
+    $builder->mock(_app_info_params => sub { } );
+    ok my $kbs = $class->new, "Create new $class object";
+    isa_ok $kbs, $class;
+    isa_ok $kbs->builder, 'Kinetic::Build';
+    isa_ok $kbs->info, $kbs->info_class;
+}
+
+sub test_rules : Test(6) {
+    my $self = shift;
+    my $class = $self->test_class;
+
+    # Override builder methods to keep things quiet.
+    my $builder = MockModule->new(Build);
+    $builder->mock(resume => sub { bless {}, Build });
+    $builder->mock(_app_info_params => sub { } );
+
+    # Construct the object.
+    ok my $kbs = $class->new, "Create new $class object";
+    isa_ok $kbs, $class;
+
+    # Test behavior if SQLite is not installed
+    my $info = MockModule->new($class->info_class);
+    $info->mock(installed => 0);
+    throws_ok { $kbs->validate }
+      qr/SQLite does not appear to be installed/,
+      '... and it should die if SQLite is not installed';
+
+    # Test when SQLite is not the correct version.
+    $info->mock(installed => 1);
+    $info->mock(version => '2.0');
+    throws_ok { $kbs->validate }
+      qr/SQLite is not the minimum required version/,
+      '... or if SQLite is not the minumum supported version';
+
+    $info->mock(version => '3.0.8');
+    $builder->mock(prompt => 'fooness');
+    ok $kbs->validate, '... and it should return a true value if everything is ok';
+    is $kbs->builder->db_file, 'fooness',
+      '... and set the db_file correctly';
 }
 
 1;

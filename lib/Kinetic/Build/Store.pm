@@ -21,6 +21,8 @@ package Kinetic::Build::Store;
 use strict;
 use Kinetic::Build;
 use Kinetic::Util::Config qw(:store);
+use FSA::Rules;
+use version;
 
 =head1 Name
 
@@ -105,6 +107,19 @@ maximum version number.
 sub max_version { 0 }
 
 ##############################################################################
+
+=head3 rules
+
+  my @rules = Kinetic::Build::Store->rules;
+
+This is an abstract method that must be overridden in a subclass. By default
+it must return arguments that the C<FSA::Rules> constructor requires.
+
+=cut
+
+sub rules { die "rules() must be overridden in the subclass" }
+
+##############################################################################
 # Constructors.
 ##############################################################################
 
@@ -127,16 +142,13 @@ sub new {
         $class =~ s/^Kinetic::Store/Kinetic::Build::Store/;
         eval "require $class" or die $@;
     }
-    my $builder;
-    eval { $builder = Kinetic::Build->resume };
-    unless ($builder) {
-        die "Cannot resume build: $@";
-    }
+    my $builder = eval { Kinetic::Build->resume }
+      or die "Cannot resume build: $@";
 
     my $info_object = $class->info_class->new($builder->_app_info_params);
     bless {
         builder => $builder,
-        info     => $info_object,
+        info    => $info_object,
     } => $class;
 }
 
@@ -166,19 +178,6 @@ sub info { $_[0]->{info} }
 
 ##############################################################################
 
-=head3 rules
-
-  my @rules = $kbs->rules;
-
-This is an abstract protected method that must be overridden in a subclass. By
-default it must return arguments that the C<FSA::Rules> constructor requirea.
-
-=cut
-
-sub rules { die "rules() must be overridden in the subclass" }
-
-##############################################################################
-
 =head3 validate
 
   $kbs->validate;
@@ -199,6 +198,29 @@ sub validate {
     $self->{machine} = $machine; # internal only.  Used for debugging
     $machine->switch until $machine->at('Done');
     return $self;
+}
+
+##############################################################################
+
+=head3 is_required_version
+
+  print "Is required version" if $rules->is_required_version;
+
+This is a common helper method that uses the C<version> module to determine if
+the data store is of the minumum required version and no more than the maximum
+required version, if C<max_version()> returns a true value. Returns a boolean
+value.
+
+=cut
+
+sub is_required_version {
+    my $self = shift;
+    my $min_version = version->new($self->build->min_version);
+    my $got_version = version->new($self->info->version);
+    my $max_version = $self->build->max_version
+      or return $got_version >= $min_version;
+    return $got_version >= $min_version
+      && $got_version <= version->new($max_version);
 }
 
 ##############################################################################
