@@ -245,7 +245,7 @@ ON INSERT TO two DO INSTEAD (
   VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state);
 
   INSERT INTO simple_two (id, one_id)
-  VALUES (CURRVAL('seq_kinetic'), NEW.one_id);
+  VALUES (CURRVAL('seq_kinetic'), NEW.one__id);
 );
 };
 eq_or_diff $sg->insert_for_class($two), $insert,
@@ -259,7 +259,7 @@ ON UPDATE TO two DO INSTEAD (
   WHERE  id = OLD.id;
 
   UPDATE simple_two
-  SET    one_id = NEW.one_id
+  SET    one_id = NEW.one__id
   WHERE  id = OLD.id;
 );
 };
@@ -345,7 +345,7 @@ eq_or_diff $sg->view_for_class($composed), $view,
 $insert = q{CREATE RULE insert_composed AS
 ON INSERT TO composed DO INSTEAD (
   INSERT INTO _composed (id, guid, name, description, state, one_id)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state, NEW.one_id);
+  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state, NEW.one__id);
 );
 };
 eq_or_diff $sg->insert_for_class($composed), $insert,
@@ -355,7 +355,7 @@ eq_or_diff $sg->insert_for_class($composed), $insert,
 $update = q{CREATE RULE update_composed AS
 ON UPDATE TO composed DO INSTEAD (
   UPDATE _composed
-  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state, one_id = NEW.one_id
+  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state, one_id = NEW.one__id
   WHERE  id = OLD.id;
 );
 };
@@ -442,7 +442,7 @@ eq_or_diff $sg->view_for_class($comp_comp), $view,
 $insert = q{CREATE RULE insert_comp_comp AS
 ON INSERT TO comp_comp DO INSTEAD (
   INSERT INTO _comp_comp (id, guid, name, description, state, composed_id)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state, NEW.composed_id);
+  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state, NEW.composed__id);
 );
 };
 eq_or_diff $sg->insert_for_class($comp_comp), $insert,
@@ -452,7 +452,7 @@ eq_or_diff $sg->insert_for_class($comp_comp), $insert,
 $update = q{CREATE RULE update_comp_comp AS
 ON UPDATE TO comp_comp DO INSTEAD (
   UPDATE _comp_comp
-  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state, composed_id = NEW.composed_id
+  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state, composed_id = NEW.composed__id
   WHERE  id = OLD.id;
 );
 };

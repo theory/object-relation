@@ -332,7 +332,7 @@ FOR EACH ROW BEGIN
   VALUES (NEW.guid, NEW.name, NEW.description, NEW.state);
 
   INSERT INTO simple_two (id, one_id)
-  VALUES (last_insert_rowid(), NEW.one_id);
+  VALUES (last_insert_rowid(), NEW.one__id);
 END;
 };
 eq_or_diff $sg->insert_for_class($two), $insert,
@@ -347,7 +347,7 @@ FOR EACH ROW BEGIN
   WHERE  id = OLD.id;
 
   UPDATE simple_two
-  SET    one_id = NEW.one_id
+  SET    one_id = NEW.one__id
   WHERE  id = OLD.id;
 END;
 };
@@ -466,7 +466,7 @@ $insert = q{CREATE TRIGGER insert_composed
 INSTEAD OF INSERT ON composed
 FOR EACH ROW BEGIN
   INSERT INTO _composed (guid, name, description, state, one_id)
-  VALUES (NEW.guid, NEW.name, NEW.description, NEW.state, NEW.one_id);
+  VALUES (NEW.guid, NEW.name, NEW.description, NEW.state, NEW.one__id);
 END;
 };
 eq_or_diff $sg->insert_for_class($composed), $insert,
@@ -477,7 +477,7 @@ $update = q{CREATE TRIGGER update_composed
 INSTEAD OF UPDATE ON composed
 FOR EACH ROW BEGIN
   UPDATE _composed
-  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state, one_id = NEW.one_id
+  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state, one_id = NEW.one__id
   WHERE  id = OLD.id;
 END;
 };
@@ -601,7 +601,7 @@ $insert = q{CREATE TRIGGER insert_comp_comp
 INSTEAD OF INSERT ON comp_comp
 FOR EACH ROW BEGIN
   INSERT INTO _comp_comp (guid, name, description, state, composed_id)
-  VALUES (NEW.guid, NEW.name, NEW.description, NEW.state, NEW.composed_id);
+  VALUES (NEW.guid, NEW.name, NEW.description, NEW.state, NEW.composed__id);
 END;
 };
 eq_or_diff $sg->insert_for_class($comp_comp), $insert,
@@ -612,7 +612,7 @@ $update = q{CREATE TRIGGER update_comp_comp
 INSTEAD OF UPDATE ON comp_comp
 FOR EACH ROW BEGIN
   UPDATE _comp_comp
-  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state, composed_id = NEW.composed_id
+  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state, composed_id = NEW.composed__id
   WHERE  id = OLD.id;
 END;
 };

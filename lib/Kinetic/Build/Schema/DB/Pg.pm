@@ -305,7 +305,7 @@ sub insert_for_class {
         $sql .= "\n  INSERT INTO $table (id, "
           . join(', ', map { $_->column } $impl->table_attributes )
           . ")\n  VALUES ($func('seq_kinetic'), "
-          . join(', ', map { "NEW." . $_->column } $impl->table_attributes)
+          . join(', ', map { "NEW." . $_->view_column } $impl->table_attributes)
           . ");\n";
         $func = 'CURRVAL';
     }
@@ -335,7 +335,9 @@ sub update_for_class {
     for my $impl (reverse ($class->parents), $class) {
         my $table = $impl->table;
         $sql .= "\n  UPDATE $table\n  SET    "
-          . join(', ', map { "$_ = NEW.$_" } map { $_->column } $impl->table_attributes)
+          . join(', ',
+                 map { sprintf "%s = NEW.%s", $_->column, $_->view_column }
+                   $impl->table_attributes)
           . "\n  WHERE  id = OLD.id;\n";
     }
     return $sql . ");\n";

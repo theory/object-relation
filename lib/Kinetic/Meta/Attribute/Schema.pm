@@ -112,7 +112,10 @@ sub on_delete { shift->{on_delete} }
 
   my $column = $attr->column;
 
-Returns the name of the database column for this attribute.
+Returns the name of the database table column for this attribute. The table
+column name will generally be the same as the attribute name, but for
+contained objects, in which the column is a foreign key column, the name will
+be the attribute name plus "_id".
 
 =cut
 
@@ -120,6 +123,26 @@ sub column {
     my $self = shift;
     return $self->name unless $self->references;
     return $self->name . '_id';
+}
+
+##############################################################################
+
+=head3 view_column
+
+  my $view_column = $attr->view_column;
+
+Returns the name of the database view column for this attribute. The view
+column name will generally be the same as the column name, but for attributes
+that reference other objects, the name will be the class key for the contained
+object plus "__id". IOW, contained object foreign key columns have a
+double-underscore in views and a single underscore in tables.
+
+=cut
+
+sub view_column {
+    my $self = shift;
+    return $self->name unless $self->references;
+    return $self->name . '__id';
 }
 
 ##############################################################################
