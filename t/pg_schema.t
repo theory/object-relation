@@ -55,6 +55,11 @@ my $one = $classes[1];
 ALTER TABLE simple_one
  ADD CONSTRAINT pfk_simple_id FOREIGN KEY (id)
  REFERENCES simple(id) ON DELETE CASCADE;
+
+CREATE VIEW one AS
+  SELECT simple.id, simple.guid, simple.name, simple.description, simple.state, simple_one.bool
+  FROM   simple, simple_one
+  WHERE  simple.id = simple_one.id;
 }) =~ s/[ ]+/ /g;
 
 ok $sql = $sg->schema_for_class($one), "Get schema for One class";
@@ -77,6 +82,11 @@ ALTER TABLE simple_two
 ALTER TABLE simple_two
  ADD CONSTRAINT fk_simple_one_id FOREIGN KEY (one_id)
  REFERENCES simple_one(id) ON DELETE CASCADE;
+
+CREATE VIEW two AS
+  SELECT simple.id, simple.guid, simple.name, simple.description, simple.state, simple_two.one_id, simple_one.bool
+  FROM   simple, simple_one, simple_two
+  WHERE  simple_two.id = simple.id AND simple_two.one_id = simple_one.id AND simple_one.id = simple.id;
 }) =~ s/[ ]+/ /g;
 
 ok $sql = $sg->schema_for_class($two), "Get schema for Two class";

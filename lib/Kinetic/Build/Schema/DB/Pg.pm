@@ -99,6 +99,54 @@ sub output_constraints {
     $self->{$key}{constraints} = join "\n\n", @fks;
 }
 
+sub schema_for_class {
+    my ($self, $class) = @_;
+    $class = $class->my_class
+      unless UNIVERSAL::isa($class, 'Kinetic::Meta::Class');
+    my $key = $class->key;
+
+    $self->SUPER::schema_for_class($class)
+      . $self->output_view($class);
+}
+
+sub output_view {
+    my ($self, $class) = @_;
+    $self->prepare_view($class);
+    return '' unless $self->{$class->key}{view};
+    return "\n" . $self->{$class->key}{view};
+}
+
+sub prepare_view {
+    my ($self, $class) = @_;
+    my $key = $class->key;
+    my $attrs = $self->{$key}{attrs};
+    return $self unless @$attrs > 1;
+
+    my (@tables, $cols);
+    for my $at (@$attrs) {
+        push @tables, $at->[0];
+        if ($cols) {
+            $cols .= ', ';
+        } else {
+            $cols = "$at->[0].id, ";
+        }
+        $cols .= join ', ', map { "$at->[0]." . $_->name  } @{$at->[1]};
+    }
+    my $from = join ', ', @tables;
+    my $last = shift @tables;
+    my $where;
+    for (@tables) {
+        $where .= "$last.id = $_.id";
+        $last = $_;
+    }
+
+    $self->{$key}{view} = "CREATE VIEW $key AS\n"
+      . "  SELECT $cols\n"
+      . "  FROM   $from\n"
+      . "  WHERE  $where;\n";
+    return $self;
+}
+
 sub start_schema {
 
 'CREATE DOMAIN state AS INT2 NOT NULL DEFAULT 1
