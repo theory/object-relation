@@ -167,23 +167,6 @@ hash reference takes a number of possible keys:
 
 =over
 
-=item order
-
-An array refererence of class keys for classes to be written to the schema
-file in the order in which they appear in the array. This is important for
-classes that have dependencies on other classes (inheritance, composition).
-Classes loaded by C<load_classes()> but not in this list will have their
-schema generation code output after the classes specified by the C<order>
-parameter.
-
-=begin comment
-
-XXX Is there some way we could perhaps be more intelligent about this, to
-analyze the relationships between classes and make a best guess as to the
-order in which the schema generation code should be written out?
-
-=end comment
-
 =item with_kinetic
 
 If set to a true value, this parameter causes the Kinetic framework's class
@@ -305,6 +288,8 @@ sub file_to_mod {
     join '::', @dirs;
 }
 
+##############################################################################
+
 =begin private
 
 =head1 Private Methods
@@ -345,6 +330,8 @@ sub _sort_class {
 __END__
 
 ##############################################################################
+
+=end private
 
 =head1 Copyright and License
 

@@ -29,16 +29,36 @@ Kinetic::Build::Schema::DB::Pg - Kinetic PostgreSQL data store schema generation
 =head1 Synopsis
 
   use Kinetic::Schema;
-  my $sg = Kinetic::Schema->new;
-  $sg->generate_to_file($file_name);
+  my $kbs = Kinetic::Schema->new;
+  $kbs->generate_to_file($file_name);
 
 =head1 Description
 
 This module generates and outputs to a file the schema information necessary
 to create a PostgreSQL data store for a Kinetic application. See
 L<Kinetic::Build::Schema|Kinetic::Build::Schema> and
-L<Kinetic::Build::Schema::DB|Kinetic::Build::Schema::DB> for more
-information.
+L<Kinetic::Build::Schema::DB|Kinetic::Build::Schema::DB> for more information.
+
+=cut
+
+##############################################################################
+# Instance Interface
+##############################################################################
+
+=head1 Instance Interface
+
+=head2 Instance Methods
+
+=head3 column_type
+
+  my $type = $kbs->column_type($attr);
+
+Pass in a Kinetic::Meta::Attribute::Schema object to get back the PostgreSQL
+column type to be used for the attribute. The column types are optimized for
+the best correspondence between the attribute types and the types supported by
+PostgreSQL, plus data domains where appropriate (e.g., the "state" column type
+is defined by a data domain defined by a statement returned by
+C<setup_code()>).
 
 =cut
 
@@ -59,11 +79,42 @@ sub column_type {
     croak "No such data type: $type" unless Kinetic::Meta->for_key($type);
 }
 
+##############################################################################
+
+=head3 pk_column
+
+  my $pk_sql = $kbs->pk_column($class);
+
+Returns the SQL statement to create the primary key column for the table for
+the Kinetic::Meta::Class::Schema object passed as its sole argument. If the
+class has no concrete parent class, the primary key column expression will
+set up a C<DEFAULT> statement to get its value from the "seq_kinetic" sequence.
+Otherwise, it will be be a simple column declaration. The primary key constraint
+is actually returned by C<constraints_for_class()>, and so is not included in
+the expression returned by C<pk_column()>.
+
+=cut
+
 sub pk_column {
-    my ($self, $attr) = @_;
-    return "id INTEGER NOT NULL" if $attr->parent;
+    my ($self, $class) = @_;
+    return "id INTEGER NOT NULL" if $class->parent;
     return "id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic')";
 }
+
+##############################################################################
+
+=head3 column_default
+
+  my $default_sql = $kbs->column_default($attr);
+
+Pass in a Kinetic::Meta::Attribute::Schema object to get back the default
+value expression for the column for the attribute. Returns C<undef> (or an
+empty list) if there is no default value on the column. Otherwise, it returns
+the default value expression. Overrides the parent method to return
+PostgreSQL-specific default expressions where appropriate (e.g., for boolean)
+columns.
+
+=cut
 
 sub column_default {
     my ($self, $attr) = @_;
@@ -74,8 +125,32 @@ sub column_default {
     return $def ? 'DEFAULT true' : 'DEFAULT false';
 }
 
-# Pg handles FKs in constraints.
+##############################################################################
+
+=head2 column_reference
+
+  my $ref_sql = $kbs->column_reference($attr);
+
+Overrides the parent method to return C<undef> (or an empty list). This is
+because the column foreign key constraints are named and returned by
+C<constraints_for_class()>, instead.
+
+=cut
+
 sub column_reference { return }
+
+##############################################################################
+
+=head3 index_on
+
+  my $column = $kbs->index_on($attr);
+
+Returns the name of the column on which an index will be generated for the
+given Kinetic::Meta::Attribute::Schema object. Called by C<index_for_class()>
+in the parent class. Overridden here to wrap the name in the PostgreSQL
+C<LOWER()> function when the data type is a string.
+
+=cut
 
 sub index_on {
     my ($self, $attr) = @_;
@@ -84,6 +159,43 @@ sub index_on {
     return "LOWER($name)" if $type eq 'string' || $type eq 'guid';
     return $name;
 }
+
+##############################################################################
+
+=head3 constraints_for_class
+
+  my $constraint_sql = $kbs->constraints_for_class($class);
+
+Returns the SQL statements to create all of the constraints for the class
+described by the Kinetic::Meta::Class::Schema object passed as the sole
+argument. All of the constraint declaration statements will be returned in a
+single string, each separated by a double "\n\n".
+
+The constraint statements returned may include one or more of the following:
+
+=over
+
+=item *
+
+A primary key constraint.
+
+=item *
+
+A foreign key constraint from the primary key column to the table for a
+concrete parent class.
+
+=item *
+
+Foreign key constraints to the tables for contained (referenced) objects.
+
+=item *
+
+"Once triggers", which prevent a value from being changed in a column after
+the first time it has been set to a non-C<NULL> value.
+
+=back
+
+=cut
 
 sub constraints_for_class {
     my ($self, $class) = @_;
@@ -123,6 +235,20 @@ sub constraints_for_class {
     return join "\n", @cons;
 }
 
+##############################################################################
+
+=head3 once_triggers
+
+  my $once_triggers_sql = $kbs->once_triggers($class);
+
+Returns the SQL statements to generate trigger constraints for any "once"
+attributes in the Kinetic::Meta::Class::Schema object passed as the sole
+argument. The triggers are PL/pgSQL functions that ensure that, if a column
+has been set to a non-C<NULL> value, it's value can never be changed again.
+Called by C<constraints_for_class()>.
+
+=cut
+
 sub once_triggers {
     my ($self, $class) = @_;
     my @onces = grep { $_->once} $class->table_attributes
@@ -153,6 +279,19 @@ CREATE TRIGGER $key\_$col\_once BEFORE UPDATE ON $table
     return @trigs;
 }
 
+##############################################################################
+
+=head3 insert_for_class
+
+  my $insert_rule_sql = $kbs->insert_for_class($class);
+
+Returns a PostgreSQL rule that manages C<INSERT> statements executed against
+the view for the class. The rule ensures that the C<INSERT> statement updates
+the table for the class as well as any parent classes. Contained objects
+are ignored, and should be inserted separately.
+
+=cut
+
 sub insert_for_class {
     my ($self, $class) = @_;
     my $key = $class->key;
@@ -174,6 +313,19 @@ sub insert_for_class {
     return $sql . ");\n";
 }
 
+##############################################################################
+
+=head3 update_for_class
+
+  my $update_rule_sql = $kbs->update_for_class($class);
+
+Returns a PostgreSQL rule that manages C<UPDATE> statements executed against
+the view for the class. The rule ensures that the C<UPDATE> statement updates
+the table for the class as well as any parent classes. Contained objects are
+ignored, and should be updated separately.
+
+=cut
+
 sub update_for_class {
     my ($self, $class) = @_;
     my $key = $class->key;
@@ -189,6 +341,18 @@ sub update_for_class {
     return $sql . ");\n";
 }
 
+##############################################################################
+
+=head3 delete_for_class
+
+  my $delete_rule_sql = $kbs->delete_for_class($class);
+
+Returns a PostgreSQL rule that manages C<DELETE> statements executed against
+the view for the class. Deletes simply pass through to the underlying table
+for the class; parent object records are left in tact.
+
+=cut
+
 sub delete_for_class {
     my ($self, $class) = @_;
     my $key = $class->key;
@@ -199,6 +363,30 @@ sub delete_for_class {
       . "  DELETE FROM $table\n"
       . "  WHERE  id = OLD.id;\n);\n";
 }
+
+##############################################################################
+
+=head3 setup_code
+
+  my $setup_sql = $kbs->setup_code;
+
+Returns any SQL statements that must be executed after the creation of a
+database, but before any database objects are created. This implementation
+returns statement to perform the following tasks:
+
+=over
+
+=item *
+
+Create a sequence, named "seq_kinetic", to be used for all primary key values
+in the database.
+
+=item *
+
+Creates a domain, "state", that can be used as a column type in Kinetic
+tables.
+
+=back
 
 sub setup_code {
 

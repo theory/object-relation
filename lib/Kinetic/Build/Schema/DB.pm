@@ -28,23 +28,22 @@ Kinetic::Build::Schema::DB - Kinetic database data store schema generation
 =head1 Synopsis
 
   use Kinetic::Build::Schema;
-  my $sg = Kinetic::::Build::Schema->new;
-  $sg->write_schema($file_name);
+  my kbs = Kinetic::::Build::Schema->new;
+  $kbs->write_schema($file_name);
 
 =head1 Description
 
 This is an abstract base class for the generation and output of a database
 schema to build a data store for a Kinetic application. See
-L<Kinetic::Build::Schema|Kinetic::Build::Schema> for more information
-and the subclasses of Kinetic::Schema::DB for database-specific
-implementations.
+L<Kinetic::Build::Schema|Kinetic::Build::Schema> for more information and the
+subclasses of Kinetic::Schema::DB for database-specific implementations.
 
 =head1 Naming Conventions
 
 The naming conventions for database objects are defined by the schema meta
 classes. See L<Kinetic::Meta::Class::Schema|Kinetic::Meta::Class::Schema> and
 L<Kinetic::Meta::Attribute::Schema|Kinetic::Meta::Attribute::Schema> for the
-methods that define these names, and documentation for the naming conventions.
+methods that define these names and documentation for the naming conventions.
 
 =cut
 
@@ -61,7 +60,8 @@ methods that define these names, and documentation for the naming conventions.
   my @sql = $kbs->schema_for_class($class);
 
 Returns a list of the SQL statements that can be used to build the tables,
-indexes, and constraints necessary to manage a class in a database.
+indexes, and constraints necessary to manage a class in a database. Pass in a
+Kinetic::Meta::Class object as the sole argument.
 
 =cut
 
@@ -81,9 +81,9 @@ sub schema_for_class {
 
 =head3 behaviors_for_class
 
-  my @behaviors = $self->behaviors_for_class($class);
+  my @sql = $self->behaviors_for_class($class);
 
-Takes a class object.  Returns a list of SQL statements for:
+Takes a class object. Returns a list of SQL statements for:
 
 =over 4
 
@@ -120,7 +120,7 @@ when a schema is being created in a new database.
 
 sub behaviors_for_class {
     my ($self, $class) = @_;
-    return 
+    return grep { $_ }
       $self->indexes_for_class($class),
       $self->constraints_for_class($class),
       $self->view_for_class($class),
@@ -133,9 +133,9 @@ sub behaviors_for_class {
 
 =head3 table_for_class
 
-  $kbs->table_for_class($class);
+  my $table_sql = $kbs->table_for_class($class);
 
-This method takes a class object.  It returns a C<CREATE TABLE> sql statement
+This method takes a class object. It returns a C<CREATE TABLE> sql statement
 for the class;
 
 =cut
@@ -151,7 +151,7 @@ sub table_for_class {
 
 =head3 start_table
 
-  $kbs->start_table($class);
+  my $start_table_sql = $kbs->start_table($class);
 
 This method is called by C<table_for_class()> to generate the opening
 statement for creating a table.
@@ -168,7 +168,7 @@ sub start_table {
 
 =head3 end_table
 
-  $kbs->end_table($class);
+  my $end_table_sql = $kbs->end_table($class);
 
 This method is called by C<table_for_class()> to generate the closing
 statement for creating a table.
@@ -181,11 +181,11 @@ sub end_table {
 
 ##############################################################################
 
-=head3 output_columns
+=head3 columns_for_class
 
-  $kbs->output_columns($class);
+  my @column_sql = $kbs->columns_for_class($class);
 
-This method outputs all of the columns necessary to represent a class in a
+This method returns all of the columns necessary to represent a class in a
 table.
 
 =cut
@@ -203,7 +203,7 @@ sub columns_for_class {
 
 =head3 generate_column
 
-  my $sql = $kbs->generate_column($class, $attr);
+  my $column_sql = $kbs->generate_column($class, $attr);
 
 This method returns the SQL representing a single column declaration in a
 table, where the column holds data represented by the
@@ -224,13 +224,51 @@ sub generate_column {
       . ($fk ? " $fk" : '')
 }
 
+##############################################################################
+
+=head3 column_type
+
+  my $type = $kbs->column_type($attr);
+
+Pass in a Kinetic::Meta::Attribute::Schema object to get back the column type
+to be used for the attribute. This implementation simply returns the string
+"TEXT" for all attributes, but may be overridden in subclasses to return
+something more appropriate to particular attribute types.
+
+=cut
+
 sub column_type { return "TEXT" }
+
+##############################################################################
+
+=head3 column_null
+
+  my $null_sql = $kbs->column_null($attr);
+
+Pass in a Kinetic::Meta::Attribute::Schema object to get back the null
+constraint expression for the attribute. Returns "NOT NULL" if the attribute
+is required, and an empty string if it is not required.
+
+=cut
 
 sub column_null {
     my ($self, $attr) = @_;
     return "NOT NULL" if $attr->required;
     return '';
 }
+
+##############################################################################
+
+=head3 column_default
+
+  my $default_sql = $kbs->column_default($attr);
+
+Pass in a Kinetic::Meta::Attribute::Schema object to get back the default
+value expression for the column for the attribute. Returns C<undef> (or an
+empty list) if there is no default value on the column. Otherwise, it returns
+the default value expression.
+
+=cut
 
 my %num_types = (
     integer => 1,
@@ -253,12 +291,44 @@ sub column_default {
     return "DEFAULT '$def'";
 }
 
+
+##############################################################################
+
+=head2 column_reference
+
+  my $ref_sql = $kbs->column_reference($attr);
+
+Pass in a Kinetic::Meta::Attribute::Schema object to get back the SQL
+expression to create a foreign key relationship to another table for the given
+attribute. Returns C<undef> (or an empty list) if the attribute is not a
+reference to another object. Otherwise, it returns a simple reference
+statement of the form "REFERENCES table(id) ON DELETE CASCADE" (where "table"
+and "CASCADE" may vary). This method may be overridden in subclasses to return
+C<undef> if they use named foreign key constraints, instead.
+
+
+=cut
+
 sub column_reference {
     my ($self, $attr) = @_;
     my $ref = $attr->references or return;
     my $fk_table = $ref->table;
     return "REFERENCES $fk_table(id) ON DELETE " . uc $attr->on_delete;
 }
+
+##############################################################################
+
+=head3 pk_column
+
+  my $pk_sql = $kbs->pk_column($class);
+
+Returns the SQL statement to create the primary key column for the table for
+the Kinetic::Meta::Class::Schema object passed as its sole argument. If the
+class has a concrete parent class, the primary key column expression will
+reference the primary key in the parent table. Otherwise, it will just define
+the primary key for the current class.
+
+=cut
 
 sub pk_column {
     my ($self, $class) = @_;
@@ -269,6 +339,19 @@ sub pk_column {
     }
     return "id INTEGER NOT NULL PRIMARY KEY";
 }
+
+##############################################################################
+
+=head3 indexes_for_class
+
+  my $index_sql = $kbs->indexes_for_class($class);
+
+Returns the SQL statements to create all of the indexes for the class
+described by the Kinetic::Meta::Class::Schema object passed as the sole
+argument. All of the index declaration statements will be returned in a single
+string, each separated by a double "\n\n".
+
+=cut
 
 sub indexes_for_class {
     my ($self, $class) = @_;
@@ -283,12 +366,60 @@ sub indexes_for_class {
     return $sql;
 }
 
+##############################################################################
+
+=head3 index_on
+
+  my $column = $kbs->index_on($attr);
+
+Returns the name of the column on which an index will be generated for the
+given Kinetic::Meta::Attribute::Schema object. Called by C<index_for_class()>.
+May be overridden in subclasses to enclose the column name in SQL functions
+and the like.
+
+=cut
+
 sub index_on { pop->column }
+
+##############################################################################
+
+=head3 constraints_for_class
+
+  my $constraint_sql = $kbs->constraints_for_class($class);
+
+Returns the SQL statements to create all of the constraints for the class
+described by the Kinetic::Meta::Class::Schema object passed as the sole
+argument. All of the constraint declaration statements will be returned in a
+single string, each separated by a double "\n\n".
+
+This implementation actually returns C<undef> (or an empty list), but
+may be overridden in subclasses to return constraint statements.
+
+=cut
 
 sub constraints_for_class {
     my ($self, $class) = @_;
     return;
 }
+
+##############################################################################
+
+=head3 view_for_class
+
+  my $view_sql = $kbs->view_for_class($class);
+
+Returns the SQL statement to create a database view for class described by the
+Kinetic::Meta::Class::Schema object passed as the sole argument. Views are the
+main construct to access the attributes of a class. They will often
+encapsulate inheritance relationships, so that consumer code does not have to
+be aware of the inheritance relationship of tables when selecting or modify
+the contents of an object. They will also often encapsulate the relationship
+between an object and any other objects it containts ("has-a" relationships)
+by including all of the attributes of the contained object in the view. This
+approach makes selecting an object and all of its contained objects very easy
+to do in a single C<SELECT> statement.
+
+=cut
 
 sub view_for_class {
     my ($self, $class) = @_;
@@ -303,8 +434,8 @@ sub view_for_class {
             push @wheres, "$last.id = $tables[-1].id" if $last;
             $last = $tables[-1];
             push @cols,
-              $self->view_columns($last, \@tables, \@wheres,
-                                  $class->parent_attributes($parent));
+              $self->_view_columns($last, \@tables, \@wheres,
+                                   $class->parent_attributes($parent));
 
         }
         unshift @cols, "$tables[0].id";
@@ -329,7 +460,53 @@ sub view_for_class {
       . "\n";
 }
 
-sub view_columns {
+##############################################################################
+
+=begin private
+
+=head1 Private Interface
+
+=head3 Private Instance Methods
+
+=head3 _view_columns
+
+  my @view_col_sql = $kbs->_view_columns($table, $tables, $wheres, @attrs);
+
+Used by the C<view_for_class()> method to generate and return the SQL
+expressions for all of the columns used in a view. This method may be
+called recursively to get all of the column names for all of the tables
+referenced in a view, including parent tables and contained object tables.
+
+The arguments are as follows:
+
+=over
+
+=item * $table
+
+The name of the table for which we're currently defining the columns. This
+may be used to create C<JOIN>s.
+
+=item * $tables
+
+A reference to an array of all the tables used in the view to the point that
+C<_view_columns()> was called. C<_view_columns> may add new table names to
+this array, so calling code must be sure to include them all in the view.
+
+=item * $wheres
+
+A reference to an array of all the C<WHERE> statements used in the view to the
+point that C<_view_columns()> was called. C<_view_columns> may add new
+C<WHERE> statements to this array, so calling code must be sure to include
+them all in the view.
+
+=item * @attrs
+
+A list of the attributes to that correspond to columns in the table specified
+by the C<$table> argument.
+
+=back
+
+sub _view_columns {
     my ($self, $table, $tables, $wheres) = (shift, shift, shift, shift);
     my @cols;
     for my $attr (@_) {
@@ -349,7 +526,7 @@ sub view_columns {
                     push @$tables, $join;
                 }
             }
-            push @cols, "$table.$col", $self->map_ref_columns($ref, $key);
+            push @cols, "$table.$col", $self->_map_ref_columns($ref, $key);
         } else {
             push @cols, "$table.$col";
         }
@@ -357,7 +534,21 @@ sub view_columns {
     return @cols;
 }
 
-sub map_ref_columns {
+##############################################################################
+
+=head3 _map_ref_columns
+
+  my @cols_sql = $kbs->_map_ref_columns($class, $key, @keys);
+
+This method is called by C<_view_columns()> to create the column names for
+contained objects in a view. It may be called recursively if the contained
+object itself has one or more contained objects. Contained object column names
+are the key name of the class, a dot, and then the name of the column. The dot
+distinguishes contained object column names from the columns for the primary
+attributes of a class. But since they have the dot, they must be
+double-quoted.
+
+sub _map_ref_columns {
     my ($self, $class, $key, @keys) = @_;
     my @cols;
     my ($ckey, $q) = @keys ? (join ('.', @keys, ''), '"') : ('', '');
@@ -365,7 +556,7 @@ sub map_ref_columns {
         my $col = $attr->column;
         push @cols, qq{$key.$q$ckey$col$q AS "$key.$ckey$col"};
         if (my $ref = $attr->references) {
-            push @cols, $self->map_ref_columns($ref, $key, @keys, $ref->key);
+            push @cols, $self->_map_ref_columns($ref, $key, @keys, $ref->key);
         }
     }
     return @cols;
@@ -375,6 +566,8 @@ sub map_ref_columns {
 __END__
 
 ##############################################################################
+
+=end private
 
 =head1 Copyright and License
 
