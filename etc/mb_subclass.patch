@@ -1,13 +1,30 @@
 ? t/parents.t
-? t/sublcass.t
+? t/subclass.t
 Index: lib/Module/Build/Authoring.pod
 ===================================================================
 RCS file: /cvsroot/module-build/Module-Build/lib/Module/Build/Authoring.pod,v
 retrieving revision 1.1
 diff -u -r1.1 Authoring.pod
 --- lib/Module/Build/Authoring.pod	6 Dec 2004 13:38:08 -0000	1.1
-+++ lib/Module/Build/Authoring.pod	7 Dec 2004 01:17:35 -0000
-@@ -809,6 +809,23 @@
++++ lib/Module/Build/Authoring.pod	7 Dec 2004 02:12:02 -0000
+@@ -162,6 +162,16 @@
+ the body of installed modules, and facilitates correct dependency
+ checking on binary/packaged distributions of the module.
+ 
++=item build_class
++
++The Module::Build class to use in the build script. Defaults to
++"Module::Build" or the class name passed to or created by a call to
++C<subclass()>. This property is useful if you're writing a custom
++Module::Build subclass and have a bootstrapping problem--that is,
++your subclass requires modules that may not be installed when
++C<perl Build.PL> is executed, but you've listed in C<build_requires>
++so that they should be available when C<./Build> is executed.
++
+ =item c_source
+ 
+ An optional C<c_source> argument specifies a directory which contains
+@@ -809,6 +819,23 @@
  Any directories that need to be created in order to perform the
  copying will be automatically created.
  
@@ -31,7 +48,7 @@ diff -u -r1.1 Authoring.pod
  =item create_build_script()
  
  Creates an executable script called C<Build> in the current directory
-@@ -1127,6 +1144,11 @@
+@@ -1127,6 +1154,11 @@
  the Build script, so that My::Builder can be found when running build
  actions.
  
@@ -49,7 +66,7 @@ RCS file: /cvsroot/module-build/Module-Build/lib/Module/Build/Base.pm,v
 retrieving revision 1.358
 diff -u -r1.358 Base.pm
 --- lib/Module/Build/Base.pm	6 Dec 2004 23:03:08 -0000	1.358
-+++ lib/Module/Build/Base.pm	7 Dec 2004 01:17:37 -0000
++++ lib/Module/Build/Base.pm	7 Dec 2004 02:12:03 -0000
 @@ -80,28 +80,16 @@
    my $config = delete $input{config} || {};
  
@@ -106,7 +123,7 @@ diff -u -r1.358 Base.pm
    return $self;
  }
  
-@@ -434,66 +422,169 @@
+@@ -434,66 +422,173 @@
  }
  
  {
@@ -239,15 +256,18 @@ diff -u -r1.358 Base.pm
 +    sub _set_defaults {
 +        my $self = shift;
 +        my $class = $self->_prop_class;
++	# Set the build class.
++	$self->{build_properties}{build_class} ||= ref $self;
 +        for my $prop ($self->valid_properties) {
 +            $self->{properties}{$prop} = $valid_properties{$class}->{$prop}
 +              unless exists $self->{properties}{$prop};
 +        }
-+        # Copy defaults for arrays ans hashes.
++        # Copy defaults for arrays any arrays.
 +        for my $prop ($self->array_properties) {
 +            $self->{properties}{$prop} = [@{$valid_properties{$class}->{$prop}}]
 +              unless exists $self->{properties}{$prop};
 +        }
++        # Copy defaults for arrays any hashes.
 +        for my $prop ($self->hash_properties) {
 +            $self->{properties}{$prop} = {%{$valid_properties{$class}->{$prop}}}
 +              unless exists $self->{properties}{$prop};
@@ -272,6 +292,7 @@ diff -u -r1.358 Base.pm
 +__PACKAGE__->add_property(include_dirs => []);
 +__PACKAGE__->add_property('config', {});
 +__PACKAGE__->add_property(recurse_into => []);
++__PACKAGE__->add_property(build_class => 'Module::Build');
 +__PACKAGE__->add_property($_) for qw(
 +   base_dir
 +   dist_name
@@ -331,12 +352,12 @@ diff -u -r1.358 Base.pm
 +        # before), push them, in order, onto the stack of classes I need to
 +        # explore.
 +    }
-+        shift @out;
++    shift @out;
 +    return @out;
  }
  
  sub extra_compiler_flags {
-@@ -544,7 +635,7 @@
+@@ -544,7 +639,7 @@
  sub dist_name {
    my $self = shift;
    my $p = $self->{properties};
@@ -345,7 +366,7 @@ diff -u -r1.358 Base.pm
    
    die "Can't determine distribution name, must supply either 'dist_name' or 'module_name' parameter"
      unless $p->{module_name};
-@@ -558,7 +649,7 @@
+@@ -558,7 +653,7 @@
    my ($self) = @_;
    my $p = $self->{properties};
    
@@ -354,7 +375,7 @@ diff -u -r1.358 Base.pm
    
    if ($self->module_name) {
      $p->{dist_version_from} ||= join( '/', 'lib', split '::', $self->module_name ) . '.pm';
-@@ -580,7 +671,7 @@
+@@ -580,7 +675,7 @@
    my ($self, $part) = @_;
    my $p = $self->{properties};
    my $member = "dist_$part";
@@ -363,7 +384,16 @@ diff -u -r1.358 Base.pm
    
    return unless $p->{dist_version_from};
    my $fh = IO::File->new($p->{dist_version_from}) or return;
-@@ -1101,8 +1192,6 @@
+@@ -964,7 +1059,7 @@
+ sub print_build_script {
+   my ($self, $fh) = @_;
+   
+-  my $build_package = ref($self);
++  my $build_package = $self->build_class;
+   
+   my %q = map {$_, $self->$_()} qw(config_dir base_dir);
+   $q{base_dir} = Win32::GetShortPathName($q{base_dir}) if $^O eq 'MSWin32';
+@@ -1101,8 +1196,6 @@
          die "Option specification '$k' conflicts with a " . ref $self
            . " option of the same name"
            if $self->valid_property($k);
@@ -372,7 +402,7 @@ diff -u -r1.358 Base.pm
          push @specs, $k . (defined $v->{type} ? $v->{type} : '');
          push @specs, $v->{store} if exists $v->{store};
          $args->{$k} = $v->{default} if exists $v->{default};
-@@ -1155,11 +1244,8 @@
+@@ -1155,11 +1248,8 @@
    }
    $args{ARGV} = \@argv;
  
@@ -385,7 +415,7 @@ diff -u -r1.358 Base.pm
      next unless exists $args{$_};
      my %hash;
      $args{$_} ||= [];
-@@ -1171,25 +1257,25 @@
+@@ -1171,25 +1261,25 @@
      }
      $args{$_} = \%hash;
    }
@@ -417,168 +447,205 @@ diff -u -r1.358 Base.pm
  		  : $self->valid_property($key) ? $self->{properties}
  		  : $self->{args});
  
-0a1,57
-> use strict;
-> use Test;
-> BEGIN { plan tests => 27 }
-> use Module::Build;
-> ok(1);
-> 
-> package Foo;
-> sub foo;
-> 
-> package MySub1;
-> use base 'Module::Build';
-> 
-> package MySub2;
-> use base 'MySub1';
-> 
-> package MySub3;
-> use base qw(MySub2 Foo);
-> 
-> package MyTest;
-> use base 'Module::Build';
-> 
-> package MyBulk;
-> use base qw(MySub2 MyTest);
-> 
-> package main;
-> 
-> ok my @parents = MySub1->mb_parents;
-> # There will be at least one platform class in between.
-> ok @parents >= 2;
-> # They should all inherit from Module::Build::Base;
-> ok ! grep { !$_->isa('Module::Build::Base') } @parents;
-> ok $parents[0], 'Module::Build';
-> ok $parents[-1], 'Module::Build::Base';
-> 
-> ok @parents = MySub2->mb_parents;
-> ok @parents >= 3;
-> ok ! grep { !$_->isa('Module::Build::Base') } @parents;
-> ok $parents[0], 'MySub1';
-> ok $parents[1], 'Module::Build';
-> ok $parents[-1], 'Module::Build::Base';
-> 
-> ok @parents = MySub3->mb_parents;
-> ok @parents >= 4;
-> ok ! grep { !$_->isa('Module::Build::Base') } @parents;
-> ok $parents[0], 'MySub2';
-> ok $parents[1], 'MySub1';
-> ok $parents[2], 'Module::Build';
-> ok $parents[-1], 'Module::Build::Base';
-> 
-> ok @parents = MyBulk->mb_parents;
-> ok @parents >= 5;
-> ok ! grep { !$_->isa('Module::Build::Base') } @parents;
-> ok $parents[0], 'MySub2';
-> ok $parents[1], 'MySub1';
-> ok $parents[2], 'Module::Build';
-> ok $parents[-2], 'Module::Build::Base';
-> ok $parents[-1], 'MyTest';
-0a1,106
-> ######################### We start with some black magic to print on failure.
-> 
-> use strict;
-> use Test;
-> BEGIN { plan tests => 37 }
-> use Module::Build;
-> ok(1);
-> 
-> use File::Spec;
-> use Cwd;
-> require File::Spec->catfile('t', 'common.pl');
-> 
-> ######################### End of black magic.
-> 
-> ok $INC{'Module/Build.pm'}, '/blib/', "Make sure Module::Build was loaded from blib/";
-> 
-> package MBSub;
-> use Test;
-> use vars qw($VERSION @ISA);
-> @ISA = qw(Module::Build);
-> $VERSION = 0.01;
-> 
-> # Add a new property.
-> ok(__PACKAGE__->add_property('foo'));
-> # Add a new property with a default value.
-> ok(__PACKAGE__->add_property('bar', 'hey'));
-> # Add a hash property.
-> ok(__PACKAGE__->add_property('hash', {}));
-> 
-> 
-> # Catch an exception adding an existing property.
-> eval { __PACKAGE__->add_property('module_name')};
-> ok my $err = $@;
-> ok $err =~ /Property "module_name" already exists/;
-> 
-> 1;
-> 
-> package MBSub2;
-> use Test;
-> use vars qw($VERSION @ISA);
-> @ISA = qw(Module::Build);
-> $VERSION = 0.01;
-> 
-> # Add a new property with a different default value than MBSub has.
-> ok(__PACKAGE__->add_property('bar', 'yow'));
-> 1;
-> 
-> package main;
-> 
-> BEGIN { chdir 't'; }
-> ok my $build = MBSub->new( module_name => 'ModuleBuildOne' );
-> ok $build->isa('Module::Build');
-> ok $build->isa('MBSub');
-> ok $build->valid_property('foo');
-> # Ppbbbblllltttt! Stupid Test::ok doesn't know that a code reference
-> # is a true value. Duh! Turns out it executes it and checks its return
-> # value, instead. D'oh!
-> ok !!$build->can('module_name');
-> 
-> # Check foo property.
-> ok !!$build->can('foo');
-> ok ! $build->foo;
-> ok $build->foo(1);
-> ok $build->foo;
-> 
-> # Check bar property.
-> ok !!$build->can('bar');
-> ok $build->bar, 'hey';
-> ok $build->bar('you');
-> ok $build->bar, 'you';
-> 
-> # Check hash property.
-> ok $build = MBSub->new(
->     module_name => 'ModuleBuildOne',
->     hash        => { foo => 'bar', bin => 'foo'}
-> );
-> 
-> ok !!$build->can('hash');
-> ok ref $build->hash, 'HASH';
-> ok $build->hash->{foo}, 'bar';
-> ok $build->hash->{bin}, 'foo';
-> 
-> # Check hash property passed via the command-line.
-> {
->      local @ARGV = (
->          '--hash', 'foo=bar',
->          '--hash', 'bin=foo',
->      );
->      ok $build = MBSub->new(
->          module_name => 'ModuleBuildOne',
->      );
-> }
-> 
-> ok !!$build->can('hash');
-> ok ref $build->hash, 'HASH';
-> ok $build->hash->{foo}, 'bar';
-> ok $build->hash->{bin}, 'foo';
-> 
-> # Make sure that a different subclass with the same named property has a
-> # different default.
-> ok $build = MBSub2->new( module_name => 'ModuleBuildOne' );
-> ok $build->isa('Module::Build');
-> ok $build->isa('MBSub2');
-> ok $build->valid_property('bar');
-> ok !!$build->can('bar');
-> ok $build->bar, 'yow';
+Index: t/basic.t
+===================================================================
+RCS file: /cvsroot/module-build/Module-Build/t/basic.t,v
+retrieving revision 1.33
+diff -u -r1.33 basic.t
+--- t/basic.t	15 Nov 2004 19:58:42 -0000	1.33
++++ t/basic.t	7 Dec 2004 02:12:03 -0000
+@@ -2,7 +2,7 @@
+ 
+ use strict;
+ use Test;
+-BEGIN { plan tests => 41 }
++BEGIN { plan tests => 43 }
+ use Module::Build;
+ ok(1);
+ 
+@@ -21,6 +21,7 @@
+   my $build = new Module::Build( module_name => 'ModuleBuildOne' );
+   ok $build;
+   ok $build->module_name, 'ModuleBuildOne';
++  ok $build->build_class, 'Module::Build';
+   ok $build->dist_name, 'ModuleBuildOne';
+   
+   $build = Module::Build->new( dist_name => 'ModuleBuildOne', dist_version => 7 );
+@@ -152,8 +153,10 @@
+     (
+      module_name => 'ModuleBuildOne',
+      dist_author => 'Foo Meister <foo@example.com>',
++     build_class => 'My::Big::Fat::Builder',
+     );
+   ok $build;
+   ok ref($build->dist_author);
+   ok $build->dist_author->[0], 'Foo Meister <foo@example.com>';
++  ok $build->build_class, 'My::Big::Fat::Builder';
+ }
+--- /dev/null	Mon Dec  6 18:09:55 2004
++++ t/parents.t	Mon Dec  6 17:47:35 2004
+@@ -0,0 +1,57 @@
++use strict;
++use Test;
++BEGIN { plan tests => 27 }
++use Module::Build;
++ok(1);
++
++package Foo;
++sub foo;
++
++package MySub1;
++use base 'Module::Build';
++
++package MySub2;
++use base 'MySub1';
++
++package MySub3;
++use base qw(MySub2 Foo);
++
++package MyTest;
++use base 'Module::Build';
++
++package MyBulk;
++use base qw(MySub2 MyTest);
++
++package main;
++
++ok my @parents = MySub1->mb_parents;
++# There will be at least one platform class in between.
++ok @parents >= 2;
++# They should all inherit from Module::Build::Base;
++ok ! grep { !$_->isa('Module::Build::Base') } @parents;
++ok $parents[0], 'Module::Build';
++ok $parents[-1], 'Module::Build::Base';
++
++ok @parents = MySub2->mb_parents;
++ok @parents >= 3;
++ok ! grep { !$_->isa('Module::Build::Base') } @parents;
++ok $parents[0], 'MySub1';
++ok $parents[1], 'Module::Build';
++ok $parents[-1], 'Module::Build::Base';
++
++ok @parents = MySub3->mb_parents;
++ok @parents >= 4;
++ok ! grep { !$_->isa('Module::Build::Base') } @parents;
++ok $parents[0], 'MySub2';
++ok $parents[1], 'MySub1';
++ok $parents[2], 'Module::Build';
++ok $parents[-1], 'Module::Build::Base';
++
++ok @parents = MyBulk->mb_parents;
++ok @parents >= 5;
++ok ! grep { !$_->isa('Module::Build::Base') } @parents;
++ok $parents[0], 'MySub2';
++ok $parents[1], 'MySub1';
++ok $parents[2], 'Module::Build';
++ok $parents[-2], 'Module::Build::Base';
++ok $parents[-1], 'MyTest';
+--- /dev/null	Mon Dec  6 18:09:55 2004
++++ t/subclass.t	Mon Dec  6 18:09:54 2004
+@@ -0,0 +1,104 @@
++use strict;
++use Test;
++BEGIN { plan tests => 37 }
++use Module::Build;
++ok(1);
++
++use File::Spec;
++use Cwd;
++require File::Spec->catfile('t', 'common.pl');
++
++######################### End of black magic.
++
++ok $INC{'Module/Build.pm'}, '/blib/', "Make sure Module::Build was loaded from blib/";
++
++package MBSub;
++use Test;
++use vars qw($VERSION @ISA);
++@ISA = qw(Module::Build);
++$VERSION = 0.01;
++
++# Add a new property.
++ok(__PACKAGE__->add_property('foo'));
++# Add a new property with a default value.
++ok(__PACKAGE__->add_property('bar', 'hey'));
++# Add a hash property.
++ok(__PACKAGE__->add_property('hash', {}));
++
++
++# Catch an exception adding an existing property.
++eval { __PACKAGE__->add_property('module_name')};
++ok my $err = $@;
++ok $err =~ /Property "module_name" already exists/;
++
++1;
++
++package MBSub2;
++use Test;
++use vars qw($VERSION @ISA);
++@ISA = qw(Module::Build);
++$VERSION = 0.01;
++
++# Add a new property with a different default value than MBSub has.
++ok(__PACKAGE__->add_property('bar', 'yow'));
++1;
++
++package main;
++
++BEGIN { chdir 't'; }
++ok my $build = MBSub->new( module_name => 'ModuleBuildOne' );
++ok $build->isa('Module::Build');
++ok $build->isa('MBSub');
++ok $build->valid_property('foo');
++# Ppbbbblllltttt! Stupid Test::ok doesn't know that a code reference
++# is a true value. Duh! Turns out it executes it and checks its return
++# value, instead. D'oh!
++ok !!$build->can('module_name');
++
++# Check foo property.
++ok !!$build->can('foo');
++ok ! $build->foo;
++ok $build->foo(1);
++ok $build->foo;
++
++# Check bar property.
++ok !!$build->can('bar');
++ok $build->bar, 'hey';
++ok $build->bar('you');
++ok $build->bar, 'you';
++
++# Check hash property.
++ok $build = MBSub->new(
++    module_name => 'ModuleBuildOne',
++    hash        => { foo => 'bar', bin => 'foo'}
++);
++
++ok !!$build->can('hash');
++ok ref $build->hash, 'HASH';
++ok $build->hash->{foo}, 'bar';
++ok $build->hash->{bin}, 'foo';
++
++# Check hash property passed via the command-line.
++{
++     local @ARGV = (
++         '--hash', 'foo=bar',
++         '--hash', 'bin=foo',
++     );
++     ok $build = MBSub->new(
++         module_name => 'ModuleBuildOne',
++     );
++}
++
++ok !!$build->can('hash');
++ok ref $build->hash, 'HASH';
++ok $build->hash->{foo}, 'bar';
++ok $build->hash->{bin}, 'foo';
++
++# Make sure that a different subclass with the same named property has a
++# different default.
++ok $build = MBSub2->new( module_name => 'ModuleBuildOne' );
++ok $build->isa('Module::Build');
++ok $build->isa('MBSub2');
++ok $build->valid_property('bar');
++ok !!$build->can('bar');
++ok $build->bar, 'yow';
