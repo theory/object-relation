@@ -304,6 +304,18 @@ $constraints = q{ALTER TABLE _composed
 ALTER TABLE _composed
   ADD CONSTRAINT fk_one_id FOREIGN KEY (one_id)
   REFERENCES simple_one(id) ON DELETE CASCADE;
+
+CREATE FUNCTION composed_one_id_once() RETURNS trigger AS '
+  BEGIN
+    IF OLD.one_id IS NOT NULL AND (OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL)
+        THEN RAISE EXCEPTION ''value of "one_id" cannot be changed'';
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER composed_one_id_once BEFORE INSERT OR UPDATE ON _composed
+    FOR EACH ROW EXECUTE PROCEDURE composed_one_id_once();
 };
 eq_or_diff $sg->constraints_for_class($composed), $constraints,
   "... Schema class generates CONSTRAINT statement";

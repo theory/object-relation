@@ -117,7 +117,35 @@ sub constraints_for_class {
           . "  REFERENCES $fk_table(id) ON DELETE $del_action;\n";
     }
 
+    # Add any once triggers.
+    push @cons, $self->once_triggers($class);
+
     return join "\n", @cons;
+}
+
+sub once_triggers {
+    my ($self, $class) = @_;
+    my @onces = grep { $_->once} $class->table_attributes
+      or return;
+    my $table = $class->table;
+    my $key = $class->key;
+    my @trigs;
+    for my $attr (@onces) {
+        my $col = $attr->column;
+        push @trigs, qq{CREATE FUNCTION $key\_$col\_once() RETURNS trigger AS '
+  BEGIN
+    IF OLD.$col IS NOT NULL AND (OLD.$col <> NEW.$col OR NEW.$col IS NULL)
+        THEN RAISE EXCEPTION ''value of "$col" cannot be changed'';
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER $key\_$col\_once BEFORE INSERT OR UPDATE ON $table
+    FOR EACH ROW EXECUTE PROCEDURE $key\_$col\_once();
+};
+    }
+    return @trigs;
 }
 
 sub insert_for_class {

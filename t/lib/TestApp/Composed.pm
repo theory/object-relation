@@ -15,6 +15,7 @@ BEGIN {
         type          => 'one',
         label         => 'One',
         required      => 1,
+        once          => 1,
         default       => sub { TestApp::Simple::One->new },
         widget_meta   => Kinetic::Meta::Widget->new(
             type => 'profile',

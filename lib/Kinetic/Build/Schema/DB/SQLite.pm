@@ -67,7 +67,9 @@ sub constraints_for_class {
 
     # Start with a state trigger, if there is a state column, and a boolean
     # trigger, if there is a boolean column.
-    my @cons = ($self->state_trigger($class), $self->boolean_trigger($class));
+    my @cons = ($self->state_trigger($class),
+                $self->boolean_triggers($class),
+                $self->once_triggers($class));
 
     # Add a foreign key from the id column to the parent table if this
     # class has a parent table class.
@@ -140,8 +142,17 @@ sub state_trigger {
     for my $attr (@states) {
         my $col = $attr->column;
         push @trigs,
-            "CREATE TRIGGER ck_$key\_$col\n"
-          . "BEFORE INSERT on $table\n"
+            "CREATE TRIGGER cki_$key\_$col\n"
+          . "BEFORE INSERT ON $table\n"
+          . "FOR EACH ROW BEGIN\n"
+          . "  SELECT CASE\n"
+          . "    WHEN NEW.$col NOT BETWEEN -1 AND 2\n"
+          . "    THEN RAISE(ABORT, 'value for domain state violates "
+          .                      qq{check constraint "ck_state"')\n}
+          . "  END;\n"
+          . "END;\n",
+            "CREATE TRIGGER cku_$key\_$col\n"
+          . "BEFORE UPDATE OF $col ON $table\n"
           . "FOR EACH ROW BEGIN\n"
           . "  SELECT CASE\n"
           . "    WHEN NEW.$col NOT BETWEEN -1 AND 2\n"
@@ -153,7 +164,7 @@ sub state_trigger {
     return join "\n", @trigs;
 }
 
-sub boolean_trigger {
+sub boolean_triggers {
     my ($self, $class) = @_;
     my @bools = grep { $_->type eq 'boolean'} $class->table_attributes
       or return;
@@ -163,13 +174,44 @@ sub boolean_trigger {
     for my $attr (@bools) {
         my $col = $attr->column;
         push @trigs,
-            "CREATE TRIGGER ck_$key\_$col\n"
-          . "BEFORE INSERT on $table\n"
+            "CREATE TRIGGER cki_$key\_$col\n"
+          . "BEFORE INSERT ON $table\n"
           . "FOR EACH ROW BEGIN\n"
           . "  SELECT CASE\n"
           . "    WHEN NEW.$col NOT IN (1, 0)\n"
           . "    THEN RAISE(ABORT, 'value for domain boolean violates "
           .                      qq{check constraint "ck_boolean"')\n}
+          . "  END;\n"
+          . "END;\n",
+            "CREATE TRIGGER cku_$key\_$col\n"
+          . "BEFORE UPDATE OF $col ON $table\n"
+          . "FOR EACH ROW BEGIN\n"
+          . "  SELECT CASE\n"
+          . "    WHEN NEW.$col NOT IN (1, 0)\n"
+          . "    THEN RAISE(ABORT, 'value for domain boolean violates "
+          .                      qq{check constraint "ck_boolean"')\n}
+          . "  END;\n"
+          . "END;\n";
+    }
+    return join "\n", @trigs;
+}
+
+sub once_triggers {
+    my ($self, $class) = @_;
+    my @onces = grep { $_->once} $class->table_attributes
+      or return;
+    my $table = $class->table;
+    my $key = $class->key;
+    my @trigs;
+    for my $attr (@onces) {
+        my $col = $attr->column;
+        push @trigs,
+            "CREATE TRIGGER ck_$key\_$col\_once\n"
+          . "BEFORE UPDATE ON $table\n"
+          . "FOR EACH ROW BEGIN\n"
+          . "  SELECT CASE\n"
+          . "    WHEN OLD.$col IS NOT NULL AND (OLD.$col <> NEW.$col OR NEW.$col IS NULL)\n"
+        . qq{    THEN RAISE(ABORT, 'value of "one_id" cannot be changed')\n}
           . "  END;\n"
           . "END;\n";
     }

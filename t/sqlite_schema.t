@@ -48,8 +48,17 @@ eq_or_diff $sg->indexes_for_class($simple), $indexes,
   "... Schema class generates CREATE INDEX statements";
 
 # Check that the TRIGGER statements are correct.
-my $constraints = q{CREATE TRIGGER ck_simple_state
-BEFORE INSERT on _simple
+my $constraints = q{CREATE TRIGGER cki_simple_state
+BEFORE INSERT ON _simple
+FOR EACH ROW BEGIN
+  SELECT CASE
+    WHEN NEW.state NOT BETWEEN -1 AND 2
+    THEN RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+  END;
+END;
+
+CREATE TRIGGER cku_simple_state
+BEFORE UPDATE OF state ON _simple
 FOR EACH ROW BEGIN
   SELECT CASE
     WHEN NEW.state NOT BETWEEN -1 AND 2
@@ -129,8 +138,17 @@ is $sg->indexes_for_class($one), undef,
   "... Schema class generates CREATE INDEX statements";
 
 # Check that the boolean and foreign key triggers are in place.
-$constraints = q{CREATE TRIGGER ck_one_bool
-BEFORE INSERT on simple_one
+$constraints = q{CREATE TRIGGER cki_one_bool
+BEFORE INSERT ON simple_one
+FOR EACH ROW BEGIN
+  SELECT CASE
+    WHEN NEW.bool NOT IN (1, 0)
+    THEN RAISE(ABORT, 'value for domain boolean violates check constraint "ck_boolean"')
+  END;
+END;
+
+CREATE TRIGGER cku_one_bool
+BEFORE UPDATE OF bool ON simple_one
 FOR EACH ROW BEGIN
   SELECT CASE
     WHEN NEW.bool NOT IN (1, 0)
@@ -375,12 +393,30 @@ eq_or_diff $sg->indexes_for_class($composed), $indexes,
   "... Schema class generates CREATE INDEX statements";
 
 # Check that the constraint and foreign key triggers are correct.
-$constraints = q{CREATE TRIGGER ck_composed_state
-BEFORE INSERT on _composed
+$constraints = q{CREATE TRIGGER cki_composed_state
+BEFORE INSERT ON _composed
 FOR EACH ROW BEGIN
   SELECT CASE
     WHEN NEW.state NOT BETWEEN -1 AND 2
     THEN RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+  END;
+END;
+
+CREATE TRIGGER cku_composed_state
+BEFORE UPDATE OF state ON _composed
+FOR EACH ROW BEGIN
+  SELECT CASE
+    WHEN NEW.state NOT BETWEEN -1 AND 2
+    THEN RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+  END;
+END;
+
+CREATE TRIGGER ck_composed_one_id_once
+BEFORE UPDATE ON _composed
+FOR EACH ROW BEGIN
+  SELECT CASE
+    WHEN OLD.one_id IS NOT NULL AND (OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL)
+    THEN RAISE(ABORT, 'value of "one_id" cannot be changed')
   END;
 END;
 
@@ -488,8 +524,17 @@ eq_or_diff $sg->indexes_for_class($comp_comp), $indexes,
   "... Schema class generates CREATE INDEX statements";
 
 # Check that the constraint and foreign key triggers are correct.
-$constraints = q{CREATE TRIGGER ck_comp_comp_state
-BEFORE INSERT on _comp_comp
+$constraints = q{CREATE TRIGGER cki_comp_comp_state
+BEFORE INSERT ON _comp_comp
+FOR EACH ROW BEGIN
+  SELECT CASE
+    WHEN NEW.state NOT BETWEEN -1 AND 2
+    THEN RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+  END;
+END;
+
+CREATE TRIGGER cku_comp_comp_state
+BEFORE UPDATE OF state ON _comp_comp
 FOR EACH ROW BEGIN
   SELECT CASE
     WHEN NEW.state NOT BETWEEN -1 AND 2
