@@ -12,7 +12,7 @@ use Kinetic::Build;
 use File::Spec;
 use Cwd;
 
-my ($TEST_LIB, $CLASS, $BUILD);
+my ($TEST_LIB, $CLASS, $BUILD, $DB_NAME);
 
 BEGIN {
 #   use Carp; $SIG{__DIE__} = \&Carp::confess;
@@ -20,6 +20,7 @@ BEGIN {
     chdir 't';
     chdir 'build_sample';
     $TEST_LIB = File::Spec->catfile(File::Spec->updir, 'lib');
+    $DB_NAME = '__kinetic_test__';
 
     $BUILD = Kinetic::Build->new(
         module_name     => 'KineticBuildOne',
@@ -27,6 +28,9 @@ BEGIN {
         accept_defaults => 1,
         store           => 'pg',
         source_dir      => $TEST_LIB,
+        db_name         => $DB_NAME,
+        db_user         => $DB_NAME,
+        db_pass         => $DB_NAME,
     );
     $BUILD->create_build_script;
     eval {$BUILD->dispatch('build')};
@@ -80,4 +84,8 @@ SKIP: {
 
 END {
     $BUILD->dispatch('realclean');
+    $bstore->switch_to_db('template1');
+    sleep 1; # Wait for the connection to close.
+    my $dbh = $bstore->_dbh;
+    $dbh->do(qq{DROP DATABASE "$DB_NAME"});
 }

@@ -81,6 +81,8 @@ Returns the C<Kinetic::Build> object used to determine build properties.
 
 =cut
 
+# XXX This is a terrible name for this attribute. Why not builder()?
+
 sub metadata { $_[0]->{metadata} }
 
 ##############################################################################
