@@ -136,14 +136,16 @@ sub build {
                 # Check the value passed in.
                 $_->($_[0]) for @checks;
                 # Assign the value.
-                return $self->{$name} = $_[0];
+                $self->{$name} = $_[0];
+                return $self;
             };
         } else {
             *{"${pkg}::$name"} = sub {
                 my $self = shift;
                 return $self->{$name} unless @_;
                 # Assign the value.
-                return $self->{$name} = shift;
+                $self->{$name} = shift;
+                return $self;
             };
         }
     }

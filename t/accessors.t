@@ -115,26 +115,26 @@ ok( $@, "Cannot set ro attribute via object" );
 is( $t->rw, 3, "Check rw" );
 eval { $t->get_rw };
 ok( $@, "Cannot get_rw" );
-ok( $t->rw(2), "Set rw to 2" );
+is( $t->rw(2), $t, "Set rw to 2" );
 is( $t->rw, 2, "Check rw for 2" );
 eval { $t->set_rw(3) };
 ok( $@, "Cannot set_rw" );
 ok( $attr = $class->attributes('rw'), "Get rw attribute" );
 is( $attr->get($t), 2, "Check rw via attribute object" );
-ok( $attr->set($t, 3), "Set rw via attribue object" );
+is( $attr->set($t, 3), $t, "Set rw via attribue object" );
 is( $attr->get($t), 3, "Check rw via attribute object for new value" );
 
 # Try nocheck attribute.
 is( $t->nc, 'foo', "Check nocheck" );
 eval { $t->get_nc };
 ok( $@, "Cannot get_nc" );
-ok( $t->nc('bar'), "Set nocheck" );
+is( $t->nc('bar'), $t, "Set nocheck" );
 is( $t->nc, 'bar', "Check new nocheck value" );
 eval { $t->set_nc('bat') };
 ok( $@, "Cannot set_nc" );
 ok( $attr = $class->attributes('nc'), "Get nc attribute" );
 is( $attr->get($t), 'bar', "Check nc via attribute object" );
-ok( $attr->set($t, 'bif'), "Set nc via attribue object" );
+is( $attr->set($t, 'bif'), $t, "Set nc via attribue object" );
 is( $attr->get($t), 'bif', "Check nc via attribute object for new value" );
 
 # Try the read-only class attribute.
@@ -143,7 +143,7 @@ eval {Kinetic::TestAccessors->get_cro };
 ok( $@, "Cannot get_cro" );
 is( $t->cro, 1, "Check cro via object" );
 eval { $t->get_cro };
-ok( $@, , "Cannot get_cro via object" );
+ok( $@, "Cannot get_cro via object" );
 eval { Kinetic::TestAccessors->cro(2) };
 ok( $@, "Cannot set cro attribute" );
 ok( $attr = $class->attributes('cro'), "Get cro attribute" );
