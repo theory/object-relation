@@ -112,12 +112,13 @@ sub _save {
   my $search_class = $store->search_class;
   $store->search_class($search_class);
 
-This is an accessor method for the class object representing the latest
-search. Returns C<$self> if used to set the search class.
+This is an accessor method for the Kinetic::Meta::Class object representing
+the class searched in latest search. Returns the store object if used to set
+the search class.
 
-Generally the programmer will know which search class she is working with, but
-if not, this method is avaible. Note that it is only available externally if
-the programmer first creates an instances of store prior to doing a search.
+Generally, the programmer will know which search class she is working with,
+but if not, this method is avaible. Note that it is only available externally
+if the programmer first creates an instances of store prior to doing a search.
 
  my $store = Kinetic::Store->new;
  my $iter  = $store->search($some_class, name => 'foo');
@@ -136,27 +137,27 @@ sub search_class {
 
 =head3 lookup
 
-  my $object = Store->lookup($class_object, $unique_property, $value);
+  my $object = Store->lookup($class_object, $unique_attr, $value);
 
-Returns a single object whose value matches the specified property.  This method
-will croak if the property does not exist or if it is not unique.
+Returns a single object whose value matches the specified attribute. This
+method will croak if the attribute does not exist or if it is not unique.
 
 =cut
 
 sub lookup {
-    my ($proto, $search_class, $property, $value) = @_;
+    my ($proto, $search_class, $attr_key, $value) = @_;
     my $self = $proto->_from_proto;
-    my $attr = $search_class->attributes($property);
-    croak qq{No such property "$property" for } . $search_class->package
+    my $attr = $search_class->attributes($attr_key);
+    croak qq{No such attribute "$attr_key" for } . $search_class->package
         unless $attr;
-    croak qq{Property "$property" is not unique} unless $attr->unique;
+    croak qq{Attribute "$attr_key" is not unique} unless $attr->unique;
     $self->_cache_statement(1);
     $self->_create_iterator(0);
     local $self->{search_class} = $search_class;
-    my $results = $self->_search($property, $value);
+    my $results = $self->_search($attr_key, $value);
     if (@$results > 1) {
         my $package = $search_class->package;
-        croak "Panic:  lookup($package, $property, $value) returned more than one result."
+        croak "Panic: lookup($package, $attr_key, $value) returned more than one result."
     }
     return $results->[0];
 }
@@ -171,7 +172,7 @@ Returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> object containing
 all objects that match the search params. See L<Kinetic::Store|Kinetic::Store>
 for more information about search params.
 
-=begin private
+=begin comment
 
 See notes for C<_set_search_data> and C<_build_object_from_hashref> for more
 information about how this method works internally. For a given search, all
@@ -179,7 +180,7 @@ objects and their contained objects are fetched with a single SQL statement.
 While this complicates the code, it is far more efficient than issuing
 multiple SQL calls to assemble the data.
 
-=end private
+=end comment
 
 =cut
 
@@ -194,8 +195,8 @@ sub search {
 
 sub _search {
     my ($self, @search_params) = @_;
-    return $self->_full_text_search(@search_params) 
-        if 1 == @search_params && ! ref $search_params[0];
+    return $self->_full_text_search(@search_params)
+        if 1 == @search_params && ! ref $search_par2ams[0];
     $self->_set_search_data;
     my $attributes = join ', ' => $self->_search_data_fields;
     my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
@@ -264,12 +265,18 @@ sub count {
 
 ##############################################################################
 
+=begin private
+
+=head2 Private methods
+
+All private methods are considered instance methods.
+
 =head3 _date_handler
 
   my ($where_token, $bind_params) = $store->_date_handler($date);
 
 This method is used for returning the proper SQL and bind params for handling
-incomplete dates.  
+incomplete dates.
 
 Ultimately, all it does is dispatch on the operator to the correct date handing
 method.
@@ -311,16 +318,6 @@ sub _get_select_sql_and_bind_params {
     $sql         .= $self->_constraints($constraints) if $constraints;
     return ($sql, $bind_params);
 }
-
-##############################################################################
-
-=begin private
-
-=head2 Private methods
-
-All private methods are considered instance methods.
-
-=cut
 
 ##############################################################################
 
@@ -440,8 +437,7 @@ sub _update {
     push @{$self->{values}} => $object->{id};
     my $sql = "UPDATE $self->{view} SET $fields WHERE id = ?";
     $self->_cache_statement(1);
-    $self->_do_sql($sql, $self->{values});
-    return $self;
+    return $self->_do_sql($sql, $self->{values});
 }
 
 ##############################################################################
@@ -528,8 +524,6 @@ sub _get_sql_results {
         ? 'prepare_cached'
         : 'prepare';
     my $sth = $self->_dbh->$dbi_method($sql);
-#use Data::Dumper::Simple;
-#warn Dumper($sql, $bind_params);
     $self->_execute($sth, $bind_params);
     my @results;
     # XXX Fetching directly into the appropriate data structure would be
@@ -601,11 +595,11 @@ sub _build_object_from_hashref {
 
  $store->_set_search_data;
 
-This method sets the search data used for the current search.  Since this is
-expensive, we cache search data for each search class.  The search data
-consists of the sql fields that will be used in the search sql and metadata
-that C<_build_object_from_hashref> will use to break the returned sql data down
-into objects and its contained subobjects.
+This method sets the search data used for the current search. Since this is
+expensive, we cache search data for each search class. The search data
+consists of the SQL columns that will be used in the search SQL and metadata
+that C<_build_object_from_hashref> will use to break the returned SQL data
+down into an object and its contained objects.
 
 =cut
 
@@ -675,7 +669,7 @@ sub _search_data {
 
 ##############################################################################
 
-=head3 _search_data_fields 
+=head3 _search_data_fields
 
   my @fields = $store->_search_data_fields;
 
@@ -687,7 +681,7 @@ sub _search_data_fields { @{shift->{search_data}{fields}} }
 
 ##############################################################################
 
-=head3 _search_data_metadata 
+=head3 _search_data_metadata
 
   my @metadata = $store->_search_data_metadata;
 
@@ -746,13 +740,17 @@ sub _make_where_clause_recursive {
         my $curr_search_param = shift @$search_params;
         unless (ref $curr_search_param) {
             # name => 'foo'
-            $curr_search_param =~ s/\./@{[OBJECT_DELIMITER]}/g;
+            $curr_search_param =~ s/\./OBJECT_DELIMITER/eg;
             my $value = shift @$search_params;
-            ($where_token, $bindings) = $self->_make_where_token($curr_search_param, $value);
+            ($where_token, $bindings) = $self->_make_where_token(
+                $curr_search_param, $value
+            );
         }
         elsif ('ARRAY' eq ref $curr_search_param) {
             # [ name => 'foo', description => 'bar' ]
-            ($where_token, $bindings) = $self->_make_where_clause_recursive($curr_search_param);
+            ($where_token, $bindings) = $self->_make_where_clause_recursive(
+                $curr_search_param
+            );
         }
         elsif ('CODE' eq ref $curr_search_param) {
             # OR(name => 'foo') || AND(name => 'foo')
@@ -945,15 +943,15 @@ sub _LIKE_SEARCH {
 
   my ($op_key, $value) = $store->_expand_search_param($search_param);
 
-When given an search_param, this method returns the op key that will be used to
-determine the comparison operator used in a where token.  It also returns the
-value(s) that will be used in the bind params.  If there are multiple values,
-they will be returned as an arrayref.
+When given a search_param, this method returns the op key that will be used to
+determine the comparison operator to be used in a where token. It also returns
+the value(s) that will be used in the bind params. If there are multiple
+values, they will be returned as an arrayref.
 
-The search_param passed to this method may be a code ref.  Attribute code refs
-return a string and another search_param.  The new search_param may be the value used
-or it may, in turn, be another code ref.  Attribute code refs are never more
-than two deep.
+The $search_param passed to this method may be a code ref. Attribute code refs
+return a string and another $search_param. The new $search_param may be the
+value used or it may, in turn, be another code ref. Attribute code refs are
+never more than two deep.
 
 =cut
 
@@ -962,8 +960,8 @@ sub _expand_search_param {
     my ($self, $search_param) = @_;
     my $negated = '';
     unless ('CODE' eq ref $search_param) {
-        return ($negated, '', undef)        unless defined $search_param;
-        return ($negated, '', $search_param)   if 'ARRAY' eq ref $search_param;
+        return ($negated, '', undef)         unless defined $search_param;
+        return ($negated, '', $search_param) if 'ARRAY' eq ref $search_param;
         return ($negated, 'EQ', $search_param);
     }
 
@@ -1016,10 +1014,10 @@ sub _constraints {
     my $sql = '';
     foreach my $constraint (keys %$constraints) {
         if ('order_by' eq $constraint) {
-            $sql .= $self->_constraint_order_by($constraints); 
+            $sql .= $self->_constraint_order_by($constraints);
         }
         elsif ('limit' eq $constraint) {
-            $sql .= $self->_constraint_limit($constraints); 
+            $sql .= $self->_constraint_limit($constraints);
         }
     }
     return $sql;
@@ -1034,7 +1032,7 @@ sub _constraint_order_by {
     $value      = [$value]      unless 'ARRAY' eq ref $value;
     $sort_order = [$sort_order] unless 'ARRAY' eq ref $sort_order;
     # normalize . to __
-    s/\./@{[OBJECT_DELIMITER]}/g foreach @$value; # one.name -> one__name
+    s/\./OBJECT_DELIMITER/eg foreach @$value; # one.name -> one__name
     my @sorts;
     # XXX Perl 6 would so rock for this...
     for my $i (0 .. $#$value) {

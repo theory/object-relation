@@ -241,7 +241,7 @@ sub _am_i_eq_or_not {
     my ($search) = @_;
     my $data     = $search->data;
     $search->operator($search->negated ? '!=' : '=');
-    return 
+    return
         ! defined $data                     ? '_NULL_SEARCH'
         : UNIVERSAL::isa($data, Incomplete) ? '_date_handler'
         :                                     '_EQ_SEARCH';

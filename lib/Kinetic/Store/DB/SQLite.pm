@@ -54,7 +54,7 @@ overriding C<Kinetic::Store::DB> methods as needed.
 sub _cast_as_int {
     my ($self, @tokens) = @_;
     # that "abs()" forces SQLite to cast the result as a number, thus allowing
-    # a proper numeric comparison.  Otherwise, the substr forces SQLite to 
+    # a proper numeric comparison.  Otherwise, the substr forces SQLite to
     # treat it as a string, causing the SQL to not match our expectations.
     return 'abs('. join(' || ' => @tokens) .')';
 }
@@ -73,7 +73,7 @@ sub _fetchrow_hashref {
     my $hash = $sth->fetchrow_hashref;
     return unless $hash;
     _utf8_on($_) foreach values %$hash;
-    return $hash; 
+    return $hash;
 }
 
 ##############################################################################
@@ -89,7 +89,8 @@ SQLite-specific implementation of C<Kinetic::Store::DB::_set_id>.
 sub _set_id {
     my ($class, $object) = @_;
     my $view = $object->my_class->key;
-    # XXX last_insert_id() doesn't seem to work properly.
+    # XXX last_insert_id() doesn't seem to work properly. Watch
+    # http://sqlite.org/cvstrac/tktview?tn=1191 for the fix.
     my $result = $class->_dbh->selectcol_arrayref(
         "SELECT id FROM $view WHERE guid = ?", undef, $object->guid
     );
@@ -144,14 +145,18 @@ will make no fields case-insensitive.
 
 sub _case_insensitive_types {}
 
+# XXX We should probably switch from substr() to strftime() and require
+# SQLite 3.2.0 or later. That will allow more flexible years (before 1000 and
+# after 9999, not to mention dates BCE. But see
+# http://sqlite.org/cvstrac/tktview?tn=1190 for the Year 10000 problem.
 my @DATE = (
-    [year   => [1, 4]],
+    [year   => [1, 4]], # XXX Years before 1000 and after 9999 are not supported.
     [month  => [6, 2]],
     [day    => [9, 2]],
     [hour   => [12,2]],
     [minute => [15,2]],
     [second => [18,2]],
-); 
+);
 
 sub _field_format {
     my ($self, $field, $date) = @_;

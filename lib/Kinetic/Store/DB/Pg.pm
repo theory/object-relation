@@ -69,10 +69,12 @@ subclass.  See C<_insert> for caveats about object C<id>s.
 sub _set_id {
     my ($self, $object) = @_;
     my $view        = $self->search_class->key;
-    #$object->{id}  = $self->_dbh->last_insert_id(undef, undef, $view, undef); # XXX Doesn't work
-    #($object->{id}) = $self->_dbh->selectrow_array("SELECT MAX(id) FROM $view"); # XXX Aack!
-    #$object->{id}  = $self->_dbh->last_insert_id(undef, undef, undef, undef, {sequence => 'seq_kinetic' });
-    ($object->{id}) = $self->_dbh->selectrow_array("SELECT CURRVAL('seq_kinetic')"); # XXX Aack!
+    # XXX This should work, but doesn't. The alternative is the equivalent,
+    # so we'll just use it.
+    #$object->{id}  = $self->_dbh->last_insert_id(
+    #undef, undef, undef, undef, { sequence => 'seq_kinetic' }
+    #);
+    ($object->{id}) = $self->_dbh->selectrow_array("SELECT CURRVAL('seq_kinetic')");
     return $self;
 }
 
@@ -128,7 +130,7 @@ my %DATE = (
     hour   => { format => 'HH24', length => 2 },
     minute => { format => 'MI',   length => 2 },
     second => { format => 'SS',   length => 2 },
-); 
+);
 
 sub _gt_lt_date_handler {
     my ($self, $search) = @_;
