@@ -7,6 +7,7 @@ use warnings;
 use DBI;
 
 use base 'TEST::Kinetic::Store::DB';
+#use base 'TEST::Class::Kinetic';
 use Test::More;
 use Test::Exception;
 
@@ -28,7 +29,7 @@ __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->supported('sqlite')
       ? 0
       : "Not testing SQLite"
-);
+) if caller; # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
 sub Store () { 'Kinetic::Store::DB::SQLite' }
@@ -84,6 +85,93 @@ sub _clear_database {
     $test->{dbh}->begin_work;
     $test->{dbi_mock}->mock(begin_work => 1);
     $test->{dbi_mock}->mock(commit => 1);
+}
+
+sub limit : Test(12) {
+    my $test = shift;
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my $class = $foo->my_class;
+    my $store = Store->new;
+    ok my $iterator = $store->search(
+        $class, { 
+            limit    => 2,
+            order_by => 'name',
+        }),
+        'A search with a limit should succeed';
+    my @results = _all_items($iterator);
+    is @results, 2, 'returning no more than the number of objects specified in the limit';
+
+    $iterator = $store->search( $class, { 
+        limit    => 4,
+        order_by => 'name',
+    });
+    @results = _all_items($iterator);
+    is @results, 3, 'but no more than the number of objects available';
+
+    $iterator = $store->search( $class, { 
+        limit    => 0,
+        order_by => 'name',
+    });
+    @results = _all_items($iterator);
+    ok ! @results, 'and no objects if the limit is 0';
+
+    for my $letter ( 'a' .. 'z' ) {
+        my $object = One->new;
+        $object->name($letter);
+        Store->save($object);
+    }
+    $iterator = $store->search( $class, { 
+        limit    => 30,
+        order_by => 'name',
+    });
+    @results = _all_items($iterator);
+    is @results, 29, 'We should have all 26 letters of the alphabet plus the original three objects';
+
+    $iterator = $store->search( $class, name => LIKE '_', { 
+        limit    => 30,
+        order_by => 'name',
+    });
+    @results = _all_items($iterator);
+    is @results, 26, 'We should have all 26 letters of the alphabet';
+    
+    $iterator = $store->search( $class, name => LIKE '_', { 
+        limit    => 13,
+        order_by => 'name',
+    });
+    @results = _all_items($iterator);
+    is @results, 13, 'We should have 13 letters of the alphabet';
+    my @letters = map $_->name => @results;
+    is_deeply \@letters, ['a' .. 'm'], 'and they should be the first 13 letters';
+
+    $iterator = $store->search( $class, name => LIKE '_', { 
+        limit    => 13,
+        order_by => 'name',
+        offset   => 13,
+    });
+    @results = _all_items($iterator);
+    is @results, 13, 'We should have 13 letters of the alphabet';
+    @letters = map $_->name => @results;
+    is_deeply \@letters, ['n' .. 'z'], 'and they should be the last 13 letters';
+
+    $iterator = $store->search( $class, name => LIKE '_', { 
+        limit    => 24,
+        order_by => 'name',
+        offset   => 1,
+    });
+    @results = _all_items($iterator);
+    is @results, 24, 'We should have 24 letters of the alphabet';
+    @letters = map $_->name => @results;
+    is_deeply \@letters, ['b' .. 'y'], 'and they should be all but the first and last letters';
+}
+
+sub full_text_search : Test(1) {
+    my $test = shift;
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my $class = $foo->my_class;
+    my $store = Store->new;
+    throws_ok {$store->search($class => 'full text search string')}
+        qr/SQLite does not support full-text searches/,
+        'SQLite should die if a full text search is attempted';
 }
 
 sub count : Test(8) {
@@ -623,6 +711,7 @@ sub search_in : Test(6) {
 sub save_compound : Test(3) {
     my $test = shift;
     can_ok Store, 'search';
+    #my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $foo = Two->new;
     $foo->name('foo');
     $foo->age(13);

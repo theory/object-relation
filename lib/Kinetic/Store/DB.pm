@@ -191,6 +191,8 @@ sub search {
 
 sub _search {
     my ($self, @search_params) = @_;
+    return $self->_full_text_search(@search_params) 
+        if 1 == @search_params && ! ref $search_params[0];
     $self->_set_search_data;
     my $attributes = join ', ' => @{$self->{search_data}{fields}};
     my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
@@ -985,23 +987,42 @@ those constraints.
 
 sub _constraints {
     my ($self, $constraints) = @_;
-    my $sql = ' ';
-    while (my ($constraint, $value) = each %$constraints) {
+    my $sql = '';
+    foreach my $constraint (keys %$constraints) {
         if ('order_by' eq $constraint) {
-            $sql .= 'ORDER BY ';
-            # XXX Default to ASC?
-            my $sort_order = $constraints->{sort_order};
-            $value      = [$value]      unless 'ARRAY' eq ref $value;
-            $sort_order = [$sort_order] unless 'ARRAY' eq ref $sort_order;
-            my @sorts;
-            # XXX Perl 6 would so rock for this...
-            for my $i (0 .. $#$value) {
-                my $sort = $value->[$i];
-                $sort .= ' ' . uc $sort_order->[$i]->() if defined $sort_order->[$i];
-                push @sorts => $sort;
-            }
-            $sql .= join ', ' => @sorts;
+            $sql .= $self->_constraint_order_by($constraints); 
         }
+        elsif ('limit' eq $constraint) {
+            $sql .= $self->_constraint_limit($constraints); 
+        }
+    }
+    return $sql;
+}
+
+sub _constraint_order_by {
+    my ($self, $constraints) = @_;
+    my $sql   = ' ORDER BY ';
+    my $value = $constraints->{order_by};
+    # XXX Default to ASC?
+    my $sort_order = $constraints->{sort_order};
+    $value      = [$value]      unless 'ARRAY' eq ref $value;
+    $sort_order = [$sort_order] unless 'ARRAY' eq ref $sort_order;
+    my @sorts;
+    # XXX Perl 6 would so rock for this...
+    for my $i (0 .. $#$value) {
+        my $sort = $value->[$i];
+        $sort .= ' ' . uc $sort_order->[$i]->() if defined $sort_order->[$i];
+        push @sorts => $sort;
+    }
+    $sql .= join ', ' => @sorts;
+    return $sql;
+}
+
+sub _constraint_limit {
+    my ($self, $constraints) = @_;
+    my $sql = " LIMIT $constraints->{limit}";
+    if (exists $constraints->{offset}) {
+        $sql .= " OFFSET $constraints->{offset}";
     }
     return $sql;
 }

@@ -68,6 +68,22 @@ sub _set_id {
 
 ##############################################################################
 
+=head3 _full_text_search
+
+  # not implemented in SQLite
+
+Not implemented in SQLite
+
+=cut
+
+sub _full_text_search {
+    my $self = shift;
+    require Carp;
+    Carp::croak("SQLite does not support full-text searches");
+}
+
+##############################################################################
+
 =head3 _comparison_handler
 
   my $op = $store->_comparison_handler($key);

@@ -170,18 +170,20 @@ default attributes to sort by.
 
 =item sort_order
 
-
   my $iter = $store->search( $class, @search_params,
                              { order_by   => $attr,
                                sort_order => ASC } );
 
 
-The direction in which to sort the the C<order_by>> attributes. The possible
+The direction in which to sort the the C<order_by> attributes. The possible
 values are C<ASC> and C<DESC>. If C<order_by> is a single attribute, then
 C<sort_order> should be a single value, or will default to C<ASC>. If
 C<order_by> is an array of attributes, then C<sort_order> may also be an array
 of directions; any directions missing for a corresponding C<order_by>
 attribute will default to C<ASC>. By default, all searches will be C<ASC>.
+
+Passing C<sort_order> without a corresponding C<order_by> constraint will have
+no effect.
 
 =item limit
 
@@ -205,6 +207,9 @@ only 50 objects, starting with the 200th object found in the search. This is
 implemented in such a way that the data store does all the work and returns
 only the results desired. It is therefore a very efficient way to fetch results
 for pagination.
+
+Passing C<offset> without a corresponding C<limit> constraint will have no
+effect.
 
 =back
 
@@ -378,7 +383,7 @@ At its simplest, a search  can be a simple keyword search:
   my $iter = $store->search('Kinetic::Phony::Person' =>
                             'Perl inventor');
 
-Pasing a single string as the search parameter triggers a full text search of
+Passing a single string as the search parameter triggers a full text search of
 all the objects of the class and returns all of the active objects that match
 the search. The full text substring search works because an XML representation
 of each Kinetic biziness objects is always kept in the data store. The
