@@ -17,6 +17,13 @@ my $dbh = DBI->connect( $dsn, PG_DB_SUPER_USER, PG_DB_SUPER_PASS, {
     PrintError => 1
 });
 
+for (0..1) {
+    sleep 1 while $dbh->selectrow_array(
+        'SELECT 1 FROM pg_stat_activity where datname = ?',
+        undef, PG_DB_NAME
+    );
+}
+
 $dbh->do('DROP DATABASE "' . PG_DB_NAME . '"');
 $dbh->do('DROP USER "' . PG_DB_USER . '"');
 $dbh->disconnect;
