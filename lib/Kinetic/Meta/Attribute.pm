@@ -35,6 +35,16 @@ L<"Instance Interface"> section for the attributes added to
 Kinetic::Meta::Attribute in addition to those defined by
 Class::Meta::Attribute.
 
+=begin comment
+
+Allow POD coverage tests to pass, even though new is implemented, it's not
+really worth documenting at this point, especially since it's never called
+directly.
+
+=head3 new
+
+=end comment
+
 =cut
 
 sub new {

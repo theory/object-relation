@@ -7,6 +7,9 @@ lib/Kinetic/Build/Schema.pm
 lib/Kinetic/Build/Schema/DB.pm
 lib/Kinetic/Build/Schema/DB/Pg.pm
 lib/Kinetic/Build/Schema/DB/SQLite.pm
+lib/Kinetic/Build/Store.pm
+lib/Kinetic/Build/Store/DB.pm
+lib/Kinetic/Build/Store/DB/Pg.pm
 lib/Kinetic/Build/Test.pm
 lib/Kinetic/DateTime.pm
 lib/Kinetic/Meta.pm
@@ -40,6 +43,9 @@ README
 t/accessors.t
 t/badconfig.t
 t/basic.t
+t/build.t
+t/build_sample/conf/test.conf
+t/build_sample/lib/KineticBuildOne.pm
 t/clone.t
 t/config.t
 t/context.t
@@ -53,13 +59,14 @@ t/lib/TestApp/Composed.pm
 t/lib/TestApp/Simple.pm
 t/lib/TestApp/Simple/One.pm
 t/lib/TestApp/Simple/Two.pm
+t/lib/TieOut.pm
 t/meta.t
 t/mysql_schema.t
 t/noconfig.t
 t/pg_class.t
 t/pg_schema.t
 t/pg_schema_file.t
-t/pg_schema_load.t
+t/pg_store_build.t
 t/pod-coverage.t
 t/pod.t
 t/schema_meta.pm

@@ -31,7 +31,7 @@ ALL: { # 3 tests.
     package Kinetic::Util::Config::TestAll;
     use Kinetic::Util::Config qw(:all);
     use Test::More;
-    ok(APACHE_BIN, "Got apache_bin" );
+    ok(APACHE_USER, "Got apache_user" );
     ok(STORE_CLASS, "Got store_class" );
     ok($stores{&STORE_CLASS}, "Got store_class value" );
 }
@@ -40,7 +40,7 @@ APACHE: { # 2 tests.
     package Kinetic::Util::Config::TestApache;
     use Kinetic::Util::Config qw(:apache);
     use Test::More;
-    ok(APACHE_BIN, "Got apache_bin" );
+    ok(APACHE_USER, "Got apache_user" );
     eval "STORE_CLASS";
     ok($@, "Got error trying to access store_class");
 }
@@ -51,15 +51,15 @@ STORE: { # 3 tests.
     use Test::More;
     ok(STORE_CLASS, "Got store_class" );
     ok($stores{&STORE_CLASS}, "Got store_class value" );
-    eval "APACHE_BIN";
-    ok($@, "Got error trying to access apache_bin");
+    eval "APACHE_USER";
+    ok($@, "Got error trying to access apache_user");
 }
 
-PG: { # 2 tests.
-    package Kinetic::Util::Config::TestPg;
-    use Kinetic::Util::Config qw(:pg);
+USER: { # 2 tests.
+    package Kinetic::Util::Config::TestUser;
+    use Kinetic::Util::Config qw(:user);
     use Test::More;
-    ok(PG_DB_NAME, "Got store_class" );
+    ok(USER_MIN_PASS_LEN, "Got USER_MIN_PASS_LEN" );
     eval "STORE_CLASS";
     ok($@, "Got error trying to access store_class");
 }
@@ -70,8 +70,8 @@ NOIMPORT: { # 2 tests.
     use Test::More;
     eval "STORE_CLASS";
     ok($@, "Got error trying to access store_class");
-    eval "APACHE_BIN";
-    ok($@, "Got error trying to access apache_bin");
+    eval "APACHE_USER";
+    ok($@, "Got error trying to access apache_user");
 }
 
 1;

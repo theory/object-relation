@@ -81,8 +81,7 @@ sub import {
     while (my ($k, $v) = each %conf) {
         print CONF "$k => {\n";
         while (my ($dir, $val) = each %$v) {
-            $val = 'undef' unless defined $val;
-            print CONF "    $dir => '$val',\n";
+            print CONF "    $dir => ", defined $val ? "'$val',\n" : "undef,\n";
         }
         print CONF "},\n\n";
     }

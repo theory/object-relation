@@ -103,6 +103,8 @@ the base (concrete) class. For example, the foreign key for "usr" class, which
 inherits from the "person" class, shall be named "pfk_person_id" but actually
 point to the "id" column of the "party" table.
 
+=back
+
 =cut
 
 ##############################################################################
