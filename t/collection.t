@@ -5,8 +5,8 @@
 use strict;
 use warnings;
 use utf8;
-#use Test::More tests => 17;
-use Test::More 'no_plan';
+use Test::More tests => 27;
+#use Test::More 'no_plan';
 use Test::Exception;
 use File::Spec;
 use Kinetic::Util::Iterator;

@@ -36,6 +36,7 @@ sub test_class_methods : Test(7) {
 sub test_rules : Test(159) {
     my $self = shift;
     my $class = $self->test_class;
+    $self->chdirs('t', 'data');
 
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
@@ -545,6 +546,7 @@ sub test_rules : Test(159) {
 sub test_validate_user_db : Test(14) {
     my $self = shift;
     my $class = $self->test_class;
+    $self->chdirs('t', 'data');
     # Supply username and password when prompted, database exists and has
     # pl/pgsql.
 
@@ -625,6 +627,7 @@ sub test_validate_user_db : Test(14) {
 sub test_validate_super_user : Test(14) {
     my $self = shift;
     my $class = $self->test_class;
+    $self->chdirs('t', 'data');
     # Supply username and password when prompted, database exists and has
     # pl/pgsql.
 
@@ -705,6 +708,7 @@ sub test_validate_super_user : Test(14) {
 sub test_validate_super_user_arg : Test(14) {
     my $self = shift;
     my $class = $self->test_class;
+    $self->chdirs('t', 'data');
     # Supply username and password when prompted, database exists and has
     # pl/pgsql.
 

@@ -22,6 +22,7 @@ use aliased 'Sub::Override';
 
 use Kinetic::Store qw/:all/;
 use aliased 'Kinetic::Build';
+use aliased 'Kinetic::Build::Store::DB::SQLite' => 'SQLiteBuild';
 use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Store::DB::SQLite' => 'Store';
 use aliased 'Kinetic::Util::Iterator';
@@ -33,38 +34,6 @@ use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
 __PACKAGE__->runtests;
 
 my ($DBH, $DBFILE);
-
-BEGIN {
-    # why this didn't work in Test(startup) is a mystery to me
-    $DBFILE = catfile(getcwd, qw/t data kinetic.db/);
-    if (-e $DBFILE && -f _) {
-        unlink $DBFILE or die "Cannot unlink $DBFILE: $!";
-    }
-    my $info = MockModule->new('App::Info::RDBMS::SQLite');
-    $info->mock(installed => 1);
-    $info->mock(version => '3.0.8');
-
-    my $builder;
-    my $mb = MockModule->new('Kinetic::Build');
-    $mb->mock(resume => sub { $builder });
-    $mb->mock(check_manifest => sub { return });
-
-    local @INC = (catdir(updir, updir, 'lib'), @INC);
-
-    $builder = Build->new(
-        dist_name       => 'Testing::Kinetic',
-        dist_version    => '1.0',
-        quiet           => 1,
-        accept_defaults => 1,
-        run_dev_tests   => 1,
-    );
-    $builder->source_dir(catdir qw/t sample lib/);
-    $builder->dispatch('setup_test');
-    my $dsn = "dbi:SQLite:dbname=$DBFILE";
-    $DBH    = DBI->connect($dsn, '', '', {RaiseError => 1});
-    no warnings 'redefine';
-    *Kinetic::Store::DB::_dbh = sub {$DBH};
-}
 
 sub _all_items {
     my $iterator = shift;
@@ -82,9 +51,49 @@ sub _num_recs {
 }
 
 sub startup : Test(startup) {
-    shift->{dbh} = $DBH;
+    my $self = shift;
+
+    $self->chdirs('t', 'sample');
+    local @INC = (catdir(updir, updir, 'lib'), @INC);
+
+    my $builder;
+    my $build = MockModule->new(Build);
+    $build->mock(resume => sub { $builder });
+    $build->mock(_app_info_params => sub {});
+    $builder = Build->new(
+        dist_name       => 'Testing::Kinetic',
+        dist_version    => '1.0',
+        quiet           => 1,
+        accept_defaults => 1,
+        source_dir      => 'lib',
+    );
+
+    # Construct the SQLite Builder.
+    my $db_file = 'sqlite_test.db';
+    my $sqlite = MockModule->new(SQLiteBuild);
+    $sqlite->mock(db_file => $db_file);
+    $sqlite->mock(_path => $db_file);
+
+    my $kbs = SQLiteBuild->new;
+    $kbs->add_actions('build_db');
+    $kbs->build;
+    die "$db_file doesn't exist!" unless -e $db_file;
+    my $dsn = "dbi:SQLite:dbname=$db_file";
+    my $dbh = DBI->connect($dsn, '', '', {RaiseError => 1});
+    $self->{dbh} = $dbh;
+    no warnings 'redefine';
+    *Kinetic::Store::DB::_dbh = sub {$DBH};
 }
 
+sub shutdown : Test(shutdown) {
+    my $self = shift;
+    $self->{dbh}->disconnect;
+    delete $self->{dbh};
+    unlink catfile 't', 'sample', 'sqlite_test.db';
+}
+
+1;
+__END__
 sub setup : Test(setup) {  
     my $test = shift;
     $test->{dbh}->begin_work;
@@ -278,7 +287,7 @@ sub search_lt : Test(6) {
     is_deeply \@items, [$baz], 'not to mention the correct items';
 }
 
-sub search_eq : Test(no_plan) {
+sub search_eq : Test(14) {
 #local $ENV{DEBUG} = 1;
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};

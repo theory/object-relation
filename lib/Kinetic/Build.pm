@@ -324,14 +324,20 @@ sub ACTION_config {
 
     # Find Kinetic::Util::Config and hard-code the path to the
     # configuration file.
-    my $old = File::Spec->catfile($self->blib,
-                                  qw(lib Kinetic Util Config.pm));
+    my @path = qw(lib Kinetic Util Config.pm);
+    my $old = File::Spec->catfile($self->blib, @path);
     # Just return if there is no configuration file.
     # XXX Can this burn us?
     return $self unless -e $old;
-    my $new = File::Spec->catfile($self->blib,
-                                  qw(lib Kinetic Util Config.pm.new));
+
+    # Find Kinetic::Util::Config in lib and just return if it
+    # hasn't changed.
+    my $lib = File::Spec->catfile(@path);
+    return $self if $self->up_to_date($lib, $old);
+
     # Figure out where we're going to install this beast.
+    $path[-1] .= '.new';
+    my $new = File::Spec->catfile($self->blib, @path);
     my $base = $self->install_base;
     my $default = '/usr/local/kinetic/conf/kinetic.conf';
     my $config = File::Spec->catfile($base, qw(conf kinetic.conf));
@@ -351,6 +357,7 @@ sub ACTION_config {
 
     # Make the switch.
     rename $new, $old or die "Cannot rename '$old' to '$new': $!\n";
+    return $self;
 }
 
 ##############################################################################
@@ -459,7 +466,7 @@ sub ACTION_test {
     $self->depends_on('setup_test');
     # This should always return a value here, but sometimes it doesn't...
     # Not sure why; fix if it becomes a problem.
-    local $ENV{KINETIC_CONF} = $self->notes('test_conf_file') || '';
+    local $ENV{KINETIC_CONF} = $self->notes('test_conf_file');
     $self->SUPER::ACTION_test(@_);
     $self->depends_on('teardown_test');
 }
