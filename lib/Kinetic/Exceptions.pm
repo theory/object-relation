@@ -3,7 +3,6 @@ package Kinetic::Exceptions;
 # $Id$
 
 use strict;
-# Use require to avoid circular dependency problems.
 use Kinetic::Context;
 
 use Exception::Class(
@@ -83,7 +82,7 @@ use Exception::Class(
 Kinetic::Exception->Trace(1);
 
 use Exporter::Tidy all => [
-    qw(isa_kinetic_exception isa_exception throw_exlib throw_fatal throw_invalid
+  qw(isa_kinetic_exception isa_exception throw_exlib throw_fatal throw_invalid
        throw_read_only throw_lang throw_stat throw_io throw_error
        throw_password)
 ];
@@ -92,7 +91,7 @@ use Exporter::Tidy all => [
 
 =head1 Name
 
-Kinetic::Exception - Kinetic exception object definition
+Kinetic::Exceptions - Kinetic exception object definitions
 
 =head1 Synopsis
 
@@ -104,7 +103,7 @@ Kinetic::Exception - Kinetic exception object definition
 
 =head1 Description
 
-This class defines Kinetic exception objects. It subclasses Exception::Class
+This class defines Kinetic exception objects. It subclasses Exception::Class,
 which provides a robust exception implementation. It extends Exception::Class
 by requiring localizable error messages. All error messages must be
 represented in the appropriate Kinetic::Language lexicons.
@@ -127,10 +126,9 @@ invalid.
 
 =item Kinetic::Exception::ExternalLib
 
-This class inherits from Exception::Class rather than from
-Kinetic::Exception so that it can be used for exceptions thrown by
-libraries not under direct Kinetic control and therefore are not
-localizable.
+This class inherits from Exception::Class rather than from Kinetic::Exception
+so that it can be used for exceptions thrown by libraries not under direct
+Kinetic control and therefore are not localizable.
 
 =back
 
@@ -155,8 +153,8 @@ Base class for fatal exceptions. Alias: C<throw_fatal>.
 
 =item Kinetic::Exception::Fatal::Invalid
 
-Invalid data exception. Thrown when an invalid value is assigned to a
-Kinetic class attribute. Alias: C<throw_invalid>.
+Invalid data exception. Thrown when an invalid value is assigned to a Kinetic
+class attribute. Alias: C<throw_invalid>.
 
 =item Kinetic::Exception::Error
 
@@ -250,7 +248,7 @@ Kineticode, Inc. <info@kineticode.com>
 
 =over 4
 
-=item L<Kinetic|Kinetic>
+=item L<Kinetic::Base|Kinetic::Base>
 
 The Kinetic base class.
 

@@ -3,8 +3,6 @@ package Kinetic::Context;
 # $Id$
 
 use strict;
-use Kinetic::Meta;
-use Kinetic::Config qw(:api);
 use Kinetic::Cache;
 use Kinetic::Language;
 
@@ -62,15 +60,16 @@ the class methods.
 
 sub new { $cx }
 
+##############################################################################
+
 =head2 Accessor Methods
 
 =head3 language
 
   my $language = $cx->language;
 
-Returns the L<Kinetic::Language|Kinetic::Language> object to
-be used for all localization. The language object will be appropriate to the
-user logged in.
+Returns the L<Kinetic::Language|Kinetic::Language> object to be used for all
+localization. The language object will be appropriate to the user logged in.
 
 =cut
 
@@ -89,8 +88,8 @@ sub language {
 
   my $cache = $cx->cache;
 
-Returns the L<Kinetic::Cache|Kinetic::Cache> object to
-be used for all non-object caching.
+Returns the L<Kinetic::Cache|Kinetic::Cache> object to be used for all
+non-object caching.
 
 =cut
 
@@ -109,8 +108,7 @@ sub cache {
 
   my $current_user = $cx->current_user;
 
-Returns the
-L<Kinetic::Party::Person::User|Kinetic::Party::Person::User>
+Returns the L<Kinetic::Party::Person::User|Kinetic::Party::Person::User>
 object to be used for all authorization. This object will be considered the
 currently logged in user, and must be set before much can be done with
 Kinetic.
@@ -124,17 +122,6 @@ sub current_user {
       or throw_invalid(['Value "[_1]" is not a [_2] object', $_[0],
                         'Kinetic::Party::Person::User']);
     return $cx->{current_user} = shift;
-}
-
-##############################################################################
-
-if (AFFORDANCE_ACCESSORS) {
-    *get_language     = \&language;
-    *set_language     = \&language;
-    *get_cache        = \&cache;
-    *set_cache        = \&cache;
-    *get_current_user = \&current_user;
-    *set_current_user = \&current_user;
 }
 
 1;
@@ -166,8 +153,9 @@ The Kinetic user class.
 
 =head1 Copyright and License
 
-Copyright (c) 2004 Kineticode, Inc. See
-L<Kinetic::License|Kinetic::License> for complete license terms and
-conditions.
+Copyright (c) 2004 Kineticode, Inc.
+
+This Library is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut

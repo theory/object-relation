@@ -5,7 +5,6 @@ package Kinetic::Language;
 use strict;
 use version;
 use base qw(Locale::Maketext);
-use Kinetic::Exceptions;
 
 =encoding utf8
 
@@ -43,15 +42,15 @@ our %Lexicon = (
   'Users' => 'Users',
 
   # Exceptions.
-  'Value "[_1]" is not a [_2] object' => 'Value "[_1]" is not a [_2] object',
-  'Value "[_1]" is not a GUID' => 'Value "[_1]" is not a GUID',
+  'Value "[_1]" is not a [_2] object' => 'Value \x{201c}[_1]\x{201d} is not a [_2] object',
+  'Value "[_1]" is not a GUID' => 'Value \x{201c}[_1]\x{201d} is not a GUID',
   'Attribute must be defined' => 'Attribute must be defined',
-  'Localization for "[_0]" not found' => 'Localization for "[_0]" not found',
-  'Cannot assign to read-only attribute "[_1]"' => 'Cannot assign to read-only attribute "[_1]"',
-  'Argument "[_1]" is not a code reference' => 'Argument "[_1]" is not a code reference',
-  'Argument "[_1]" is not a [_2] object' => 'Argument "[_1]" is not a [_2] object',
+  'Localization for "[_1]" not found' => 'Localization for \x{201c}[_0]\x{201d} not found',
+  'Cannot assign to read-only attribute "[_1]"' => 'Cannot assign to read-only attribute \x{201c}[_1]\x{201d}',
+  'Argument "[_1]" is not a code reference' => 'Argument \x{201c}[_1]\x{201d} is not a code reference',
+  'Argument "[_1]" is not a [_2] object' => 'Argument \x{201c}[_1]\x{201d} is not a [_2] object',
   'Cannot assign permanent state' => 'Cannot assign permanent state',
-  'Cannot open file "[_1]": [_2]' => 'Cannot open file "[_1]": [_2]',
+  'Cannot open file "[_1]": [_2]' => 'Cannot open file \x{201c}[_1]\x{201d}: [_2]',
 
   # States.
   'Permanent' => 'Permanent',
@@ -124,8 +123,9 @@ method of Locale::Maketext.
 
 my $fail_with = sub {
     my ($lang, $key) = @_;
+    require Kinetic::Exceptions;
     Kinetic::Exception::Fatal::Language->throw(
-        ['Localization for "[_0]" not found', $key]
+        ['Localization for "[_1]" not found', $key]
     );
 };
 
