@@ -55,92 +55,87 @@ sub column_name {
     my ($self, $attr) = @_;
     return $self->SUPER::column_name($attr) if $types{$attr->type};
     # Assume it's an object reference.
-    return "    " . $attr->name . "_id";
+    return $attr->name . '_id';
 }
 
 sub column_type {
-    my ($self, $class, $attr) = @_;
+    my ($self, $attr) = @_;
     my $type = $attr->type;
-    return " $types{$type}" if $types{$type};
-    my $fk_class = Kinetic::Meta->for_key($type)
-      or croak "No such data type: $type";
-    # We need to note that an FK constraint needs to be added to refer to the
-    # table of this object.
-    push @{$self->{$class->key}{fk_classes}}, $fk_class;
-    return " INTEGER";
+    return $types{$type} if $types{$type};
+    croak "No such data type: $type" unless Kinetic::Meta->for_key($type);
+    return "INTEGER";
+}
+
+sub pk_column {
+    my ($self, $class) = @_;
+    my $key = $class->key;
+    if ($self->{$key}{table_data}{parent}) {
+        return "id INTEGER NOT NULL";
+    } else {
+        return "id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic')";
+    }
 }
 
 sub index_on {
-    my ($self, $attr) = @_;
-    my $col = $attr->name;
-    return $attr->type eq 'string' || $attr->type eq 'guid'
-      ? "LOWER($col)"
-      : $col;
+    my ($self, $col) = @_;
+    my $name = $col->{name};
+    return $col->{attr}->type eq 'string' || $col->{attr}->type eq 'guid'
+      ? "LOWER($name)"
+      : $name;
 }
 
-sub output_constraints {
+sub generate_constraints {
     my ($self, $class) = @_;
     my $key = $class->key;
-    my $table = $self->{$key}{attrs}[-1][0];
-    my @fks;
-    if (@{$self->{$key}{attrs}} > 1) {
-        my $fk_table = $self->{$key}{attrs}[-2][0];
-        push @fks, "ALTER TABLE $table\n"
+    my $table = $self->{$key}{table_data}{name};
+    my @cons = ( "ALTER TABLE $table\n"
+                 . "  ADD CONSTRAINT pk_$table PRIMARY KEY (id);"
+    );
+
+    if (my $fk_table = $self->{$key}{table_data}{parent}) {
+        push @cons, "ALTER TABLE $table\n"
           . "  ADD CONSTRAINT pfk_$fk_table\_id FOREIGN KEY (id)\n"
           . "  REFERENCES $fk_table(id) ON DELETE CASCADE;";
     }
-    for my $fk_class (@{$self->{$key}{fk_classes}}) {
-        my $fk_key = $fk_class->key;
-        my $fk_table = $self->{$fk_key}{tablename};
-        push @fks, "ALTER TABLE $table\n"
+    my $cols = $self->{$key}{col_data};
+    for my $col (grep { $_->{refs} && $_->{attr}->class->key eq $key} @$cols) {
+        my $fk_key = $col->{refs}->key;
+        my $fk_table = $self->{$fk_key}{table_data}{name};
+        push @cons, "ALTER TABLE $table\n"
           . "  ADD CONSTRAINT fk_$fk_table\_id FOREIGN KEY ($fk_key\_id)\n"
           . "  REFERENCES $fk_table(id) ON DELETE CASCADE;";
     }
-    $self->{$key}{constraints} = join "\n\n", @fks;
+
+    $self->{$key}{buffer} .= join "\n\n", @cons, '';
+    return $self;
 }
 
-sub schema_for_class {
-    my ($self, $class) = @_;
-    $class = $class->my_class
-      unless UNIVERSAL::isa($class, 'Kinetic::Meta::Class');
-    my $key = $class->key;
-
-    $self->SUPER::schema_for_class($class)
-      . $self->output_view($class);
-}
-
-sub output_view {
-    my ($self, $class) = @_;
-    $self->prepare_view($class);
-    return '' unless $self->{$class->key}{view};
-    return "\n" . $self->{$class->key}{view};
-}
-
-sub prepare_view {
+sub generate_view {
     my ($self, $class) = @_;
     my $key = $class->key;
-    my $attrs = $self->{$key}{attrs};
-    return $self unless @$attrs > 1;
+    return $self unless $self->{$key}{table_data}{parent};
 
-    my (@tables, $cols);
-    for my $at (@$attrs) {
-        push @tables, $at->[0];
-        if ($cols) {
-            $cols .= ', ';
-        } else {
-            $cols = "$at->[0].id, ";
+    my (@tables, @wheres, %seen, $cols);
+    for my $col (@{$self->{$key}{col_data}}) {
+        unless ($seen{$col->{table}}++) {
+            push @tables, $col->{table};
+            push @wheres, "$tables[-2].id = $tables[-1].id"
+              if @tables > 1;
         }
-        $cols .= join ', ', map { "$at->[0]." . $_->name  } @{$at->[1]};
-    }
-    my $from = join ', ', @tables;
-    my $last = shift @tables;
-    my $where;
-    for (@tables) {
-        $where .= "$last.id = $_.id";
-        $last = $_;
+        $cols .= $cols ? ', ' : "$col->{table}.id, ";
+        $cols .= "$col->{table}.$col->{name}";
+        if ($col->{refs}) {
+            my $fkey = $col->{refs}->key;
+            push @tables, $key unless $seen{$fkey}++;
+            push @wheres, "$col->{table}.$col->{name} = $fkey.id";
+            $cols .= ", $fkey.$_->{name}" for @{$self->{$fkey}{col_data}}
+        }
     }
 
-    $self->{$key}{view} = "CREATE VIEW $key AS\n"
+    my $from = join ', ', @tables;
+    my $where = join ', ', @wheres;
+
+    $self->{$key}{buffer} .= "CREATE VIEW $key AS\n"
       . "  SELECT $cols\n"
       . "  FROM   $from\n"
       . "  WHERE  $where;\n";
@@ -149,7 +144,10 @@ sub prepare_view {
 
 sub start_schema {
 
-'CREATE DOMAIN state AS INT2 NOT NULL DEFAULT 1
+'
+CREATE SEQUENCE seq_kinetic;
+
+CREATE DOMAIN state AS INT2 NOT NULL DEFAULT 1
 CHECK(
    VALUE BETWEEN -1 AND 2
 );';

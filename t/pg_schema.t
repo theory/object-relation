@@ -21,13 +21,12 @@ ok $sg->load_classes('t/lib'), "Load classes";
 ok my @classes = $sg->classes, "Get classes";
 is $classes[0]->key, 'simple', "Check for simple class";
 
-
 ##############################################################################
 # Check the SQL generated for the simple class.
 my $simple = $classes[0];
 
 ( my $testsql = q{CREATE TABLE simple (
-    id          INTEGER NOT NULL PRIMARY KEY DEFAULT NEXTVAL('seq_kinetic'),
+    id          INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
     guid        TEXT    NOT NULL,
     name        TEXT    NOT NULL,
     description TEXT,
@@ -37,6 +36,10 @@ my $simple = $classes[0];
 CREATE UNIQUE INDEX udx_simple_guid ON simple (LOWER(guid));
 CREATE INDEX idx_simple_name ON simple (LOWER(name));
 CREATE INDEX idx_simple_state ON simple (state);
+
+ALTER TABLE simple
+ ADD CONSTRAINT pk_simple PRIMARY KEY (id);
+
 }) =~ s/[ ]+/ /g;
 
 ok my $sql = $sg->schema_for_class($simple), "Get schema for Simple class";
@@ -48,9 +51,12 @@ is $sql, $testsql, "Check Simple class SQL";
 my $one = $classes[1];
 
 ( $testsql = q{CREATE TABLE simple_one (
-    id    INTEGER  NOT NULL PRIMARY KEY,
+    id    INTEGER  NOT NULL,
     bool  BOOLEAN  NOT NULL DEFAULT '1'
 );
+
+ALTER TABLE simple_one
+ ADD CONSTRAINT pk_simple_one PRIMARY KEY (id);
 
 ALTER TABLE simple_one
  ADD CONSTRAINT pfk_simple_id FOREIGN KEY (id)
@@ -71,9 +77,14 @@ is $sql, $testsql, "Check One class SQL";
 my $two = $classes[2];
 
 ( $testsql = q{CREATE TABLE simple_two (
-    id      INTEGER  NOT NULL PRIMARY KEY,
+    id      INTEGER  NOT NULL,
     one_id  INTEGER  NOT NULL
 );
+
+CREATE INDEX idx_simple_two_one_id ON simple_two (one_id);
+
+ALTER TABLE simple_two
+ ADD CONSTRAINT pk_simple_two PRIMARY KEY (id);
 
 ALTER TABLE simple_two
  ADD CONSTRAINT pfk_simple_id FOREIGN KEY (id)
@@ -84,9 +95,9 @@ ALTER TABLE simple_two
  REFERENCES simple_one(id) ON DELETE CASCADE;
 
 CREATE VIEW two AS
-  SELECT simple.id, simple.guid, simple.name, simple.description, simple.state, simple_two.one_id, simple_one.bool
-  FROM   simple, simple_one, simple_two
-  WHERE  simple_two.id = simple.id AND simple_two.one_id = simple_one.id AND simple_one.id = simple.id;
+  SELECT simple.id, simple.guid, simple.name, simple.description, simple.state, simple_two.one_id, one.guid, one.name, one.description, one.state, one.bool
+  FROM simple, simple_two, two
+  WHERE simple.id = simple_two.id, simple_two.one_id = one.id;
 }) =~ s/[ ]+/ /g;
 
 ok $sql = $sg->schema_for_class($two), "Get schema for Two class";
