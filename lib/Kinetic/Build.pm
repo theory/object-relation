@@ -447,8 +447,7 @@ sub ACTION_setup_test {
     File::Path::mkpath $data;
     $self->add_to_cleanup($data);
 
-    # Setup t/conf for tests to use a test configuration file.
-
+    # XXX  Setup t/conf for tests to use a test configuration file.
     return $self unless $self->run_dev_tests;
 
     # Build a test data store.
@@ -497,7 +496,12 @@ This might involve dropping a database, for example.
 
 sub ACTION_teardown_test {
     my $self = shift;
-    # XXX We need a way to say that setup_test needs to run again.
+    return $self unless $self->run_dev_tests;
+
+    # Tear down test data store.
+    my $build_store = $self->notes('build_store');
+    $build_store->resume($self);
+    $build_store->test_cleanup;
 }
 
 ##############################################################################
@@ -518,38 +522,44 @@ sub process_conf_files {
     $self->add_to_cleanup('t/conf');
     my $files = $self->find_conf_files;
     return unless %$files;
-    $self->_copy_to($files, $self->blib, 't');
 
-    my %prefix = (
-        't/conf/' => 'test_',
-        'blib/conf/' => '',
-    );
-
-    for my $dir (keys %prefix) {
-        my $conf_file = $self->localize_file_path($dir . $self->conf_file);
+    for my $conf_file ($self->_copy_to($files, $self->blib, 't')) {
+        Test::More::diag "File: $conf_file";
+        my $prefix = $conf_file =~ /^blib/ ? '' : 'test_';
         open CONF, '<', $conf_file or die "cannot open $conf_file: $!";
         my @conf;
         while (<CONF>) {
             push @conf, $_;
             # Do we have the start of a section?
             next unless /^'?(\w+)'?\s?=>\s?{/;
-            # Is there a configuration class or method for this section?
-            if ($CONFIG{$1}) {
-                
-            }
-            my $method = $self->can($prefix{$dir} . $1 . '_config')
-              || $self->can($1 . '_config') or next;
-            # Dump the default contents of the section.
-            while (<CONF>) { last if /^},?$/; }
-            if (my @section = $self->$method) {
-                # Insert the section contents using the *_config method.
-                push @conf, @section, "},\n\n";
-            } else {
-                # Comment out this section.
+            if ($1 eq $self->store) {
+                # It's the configuration section for the data store.
+                # Let the store builder set up the configuration.
+                my $store = $self->notes('build_store');
+                if (my $method = $store->can($prefix . "config")) {
+                    if (my @section = $store->$method) {
+                        push @conf, @section, "},\n";
+                    }
+                }
+            } elsif ($CONFIG{$1}) {
+                # It's a section for another data store. Comment it out.
                 $conf[-1] = "# $conf[-1]";
                 push @conf, "# }\n";
+            } elsif (my $method = $self->can($prefix . $1 . '_config')
+              || $self->can($1 . '_config')) {
+                # There's a configuration method for it in this class.
+                if (my @section = $self->$method) {
+                    # Insert the section contents using the *_config method.
+                    push @conf, @section, "},\n";
+                }
+            } else {
+                # Continue with the next line to grab the default contents
+                # of the section.
+                next;
             }
-            next;
+
+            # Dump the default contents of the section.
+            while (<CONF>) { last if /^},?$/; }
         }
         close CONF;
         my $tmp = "$conf_file.tmp";
@@ -573,88 +583,8 @@ in the section, configuring the "class" directive.
 
 sub store_config {
     my $self = shift;
-#    return "    class => '" . $self->_fetch_store_class . "',\n";
-}
-
-##############################################################################
-
-=head3 sqlite_config
-
-This method is called by C<process_conf_files()> to populate the SQLite
-section of the configuration files. It returns a list of lines to be included
-in the section, configuring the "file" directive.
-
-=cut
-
-sub sqlite_config {
-    my $self = shift;
-    return unless $self->store eq 'sqlite';
-#    return "    file => '" . $self->db_file . "',\n";
-}
-
-##############################################################################
-
-=head3 test_sqlite_config
-
-This method is called by C<process_conf_files()> to populate the SQLite
-section of the configuration file used for testing. It returns a list of lines
-to be included in the section, configuring the "file" directive.
-
-=cut
-
-sub test_sqlite_config {
-    my $self = shift;
-    return unless $self->store eq 'sqlite';
-#    return "    file => '" .
-#      $self->localize_file_path('t/store/' . $self->db_file) . "',\n";
-}
-
-##############################################################################
-
-=head3 pg_config
-
-This method is called by C<process_conf_files()> to populate the PostgreSQL
-section of the configuration files. It returns a list of lines to be included
-in the section, configuring the "db_name", "db_user", "db_pass", "host", and
-"port" directives.
-
-=cut
-
-sub pg_config {
-    my $self = shift;
-    return unless $self->store eq 'pg';
-    return (
-        "    db_name => '" . $self->db_name . "',\n",
-        "    db_user => '" . $self->db_user . "',\n",
-        "    db_pass => '" . $self->db_pass . "',\n",
-        "    host    => " . (defined $self->db_host ? "'" . $self->db_host . "'" : 'undef'), ",\n",
-        "    port    => " . (defined $self->db_port ? "'" . $self->db_port . "'" : 'undef'), ",\n",
-    );
-}
-
-##############################################################################
-
-=head3 test_pg_config
-
-This method is called by C<process_conf_files()> to populate the PostgreSQL
-section of the configuration file used during testing. It returns a list of
-lines to be included in the section, configuring the "db_name", "db_user", and
-"db_pass" directives, which are each set to the temporary value
-"__kinetic_test__"; and "host", and "port" directives as specified via the
-"db_host" and "db_port" properties.
-
-=cut
-
-sub test_pg_config {
-    my $self = shift;
-    return unless $self->store eq 'pg';
-    return (
-        "    db_name => '__kinetic_test__',\n",
-        "    db_user => '__kinetic_test__',\n",
-        "    db_pass => '__kinetic_test__',\n",
-        "    host    => " . (defined $self->db_host ? "'" . $self->db_host . "'" : 'undef'), ",\n",
-        "    port    => " . (defined $self->db_port ? "'" . $self->db_port . "'" : 'undef'), ",\n",
-    );
+    my $store_class = $CONFIG{$self->store}{build}->store_class;
+    return "    class => '$store_class',\n";
 }
 
 ##############################################################################
@@ -718,10 +648,10 @@ sub _fatal_error {
 
 =head3 _copy_to
 
-  $build->_copy_to($files, @dirs);
+  my @copied = $build->_copy_to($files, @dirs);
 
 This method copies the files in the C<$files> hash reference to each of the
-directories specified in C<@dirs>.
+directories specified in C<@dirs>. Returns a list of the new files.
 
 =cut
 
@@ -729,12 +659,16 @@ sub _copy_to {
     my $self = shift;
     my $files = shift;
     return unless %$files;
+    my @ret;
     while (my ($file, $dest) = each %$files) {
         for my $dir (@_) {
-            $self->copy_if_modified(from => $file,
-                                    to   => File::Spec->catfile($dir, $dest) );
+            push @ret, $self->copy_if_modified(
+                from => $file,
+                to   => File::Spec->catfile($dir, $dest)
+            );
         }
     }
+    return @ret;
 }
 
 ##############################################################################

@@ -177,7 +177,7 @@ Returns the C<Kinetic::Build> object used to determine build properties.
 
 =cut
 
-sub builder { $_[0]->{builder} }
+sub builder { $_[0]->{builder} ||= Kinetic::Build->resume }
 
 ##############################################################################
 

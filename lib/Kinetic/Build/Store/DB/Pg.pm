@@ -127,21 +127,74 @@ sub add_plpgsql_to_db {
     return $self;
 }
 
-# This is the SQL involved.  We may switch to this if the dependency
-# on createlang causes a problem.
+=begin comment
 
-#my %createlang = (
-#  '7.4' => [
-#      q{CREATE FUNCTION "plpgsql_call_handler" () RETURNS language_handler AS '$libdir/plpgsql' LANGUAGE C},
-#      q{CREATE TRUSTED LANGUAGE "plpgsql" HANDLER "plpgsql_call_handler"},
-#  ],
-#
-#  '8.0' => [
-#      q{CREATE FUNCTION "plpgsql_call_handler" () RETURNS language_handler AS '$libdir/plpgsql' LANGUAGE C},
-#      q{CREATE FUNCTION "plpgsql_validator" (oid) RETURNS void AS '$libdir/plpgsql' LANGUAGE C},
-#      q{CREATE TRUSTED LANGUAGE "plpgsql" HANDLER "plpgsql_call_handler" VALIDATOR "plpgsql_validator"},
-#  ],
-#);
+This is the SQL involved.  We may switch to this if the dependency
+on createlang causes a problem.
+
+my %createlang = (
+  '7.4' => [
+      q{CREATE FUNCTION "plpgsql_call_handler" () RETURNS language_handler AS '$libdir/plpgsql' LANGUAGE C},
+      q{CREATE TRUSTED LANGUAGE "plpgsql" HANDLER "plpgsql_call_handler"},
+  ],
+
+  '8.0' => [
+      q{CREATE FUNCTION "plpgsql_call_handler" () RETURNS language_handler AS '$libdir/plpgsql' LANGUAGE C},
+      q{CREATE FUNCTION "plpgsql_validator" (oid) RETURNS void AS '$libdir/plpgsql' LANGUAGE C},
+      q{CREATE TRUSTED LANGUAGE "plpgsql" HANDLER "plpgsql_call_handler" VALIDATOR "plpgsql_validator"},
+  ],
+);
+
+=end comment
+
+##############################################################################
+
+=head3 config
+
+This method is called by C<process_conf_files()> to populate the PostgreSQL
+section of the configuration files. It returns a list of lines to be included
+in the section, configuring the "db_name", "db_user", "db_pass", "host", and
+"port" directives.
+
+=cut
+
+sub config {
+    my $self = shift;
+    return unless $self->store eq 'pg';
+    return (
+        "    db_name => '" . $self->db_name . "',\n",
+        "    db_user => '" . $self->db_user . "',\n",
+        "    db_pass => '" . $self->db_pass . "',\n",
+        "    host    => " . (defined $self->db_host ? "'" . $self->db_host . "'" : 'undef'), ",\n",
+        "    port    => " . (defined $self->db_port ? "'" . $self->db_port . "'" : 'undef'), ",\n",
+    );
+}
+
+##############################################################################
+
+=head3 test_config
+
+This method is called by C<process_conf_files()> to populate the PostgreSQL
+section of the configuration file used during testing. It returns a list of
+lines to be included in the section, configuring the "db_name", "db_user", and
+"db_pass" directives, which are each set to the temporary value
+"__kinetic_test__"; and "host", and "port" directives as specified via the
+"db_host" and "db_port" properties.
+
+=cut
+
+sub test_config {
+    my $self = shift;
+    return unless $self->store eq 'pg';
+    return (
+        "    db_name => '__kinetic_test__',\n",
+        "    db_user => '__kinetic_test__',\n",
+        "    db_pass => '__kinetic_test__',\n",
+        "    host    => " . (defined $self->db_host ? "'" . $self->db_host . "'" : 'undef'), ",\n",
+        "    port    => " . (defined $self->db_port ? "'" . $self->db_port . "'" : 'undef'), ",\n",
+    );
+}
+
 
 1;
 __END__

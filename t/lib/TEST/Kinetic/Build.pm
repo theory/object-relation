@@ -7,10 +7,13 @@ use Test::More;
 use aliased 'Test::MockModule';
 use Test::Exception;
 use Test::File;
+use Test::File::Contents;
+use File::Copy;
+use File::Spec::Functions;
 
 __PACKAGE__->runtests;
 
-sub test_props : Test(7) {
+sub test_props : Test(8) {
     my $self = shift;
     my $class = $self->test_class;
     my $mb = MockModule->new($class);
@@ -26,6 +29,8 @@ sub test_props : Test(7) {
       'The test data directory should consistent';
     like $builder->install_base, qr/kinetic$/,
       'The install base should end with "kinetic"';
+    is $builder->store_config, "    class => 'Kinetic::Store::DB::SQLite',\n",
+      "The store_config method should set up the SQLite store";
 }
 
 sub test_check_store_action : Test(7) {
@@ -74,7 +79,7 @@ sub test_config_action : Test(1){
     # Copy Kinetic::Util::Config here and test it.
 }
 
-sub test_setup_test_action : Test(7) {
+sub test_test_actions : Test(9) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -104,9 +109,74 @@ sub test_setup_test_action : Test(7) {
     file_exists_ok $self->data_dir . '/kinetic.db',
       'SQLite database should now exist';
 
+    # Make sure that the test_teardown action calls the store's test_cleanup
+    # method.
+    my $store = MockModule->new('Kinetic::Build::Store::DB::SQLite');
+    $store->mock('test_cleanup' =>
+                   sub { ok 1, "Store->test_cleanup should be called" });
+    ok $builder->dispatch('teardown_test'),
+      "We should be able to execute the teardown_test action";
+
     # Make sure we clean up our mess.
     $builder->dispatch('clean');
     file_not_exists_ok $self->data_dir, 'Data directory should be deleted';
+}
+
+sub test_process_conf_files : Test(12) {
+    my $self = shift;
+    my $class = $self->test_class;
+
+    # Copy the configuration file for us to play with without hurting anybody.
+    $self->mkpath(qw't data conf');
+    $self->mkpath(qw't data t');
+    copy catfile(qw'conf kinetic.conf'), catdir(qw't data conf');
+    $self->chdirs('t', 'data');
+    file_exists_ok 'conf/kinetic.conf', "We should have a default config file";
+
+    # There should be no blib direcory or t/conf directories.
+    file_not_exists_ok 'blib/conf/kinetic.conf',
+      "We should start with no blib config file";
+    file_not_exists_ok 't/conf/kinetic.conf',
+      "Nor should there be a t/conf config file";
+
+    # We can make sure thing work with the default SQLite store.
+    my $info = MockModule->new('App::Info::RDBMS::SQLite');
+    $info->mock(installed => 1);
+    $info->mock(version => '3.0.8');
+
+    # I mock thee, builder!
+    my $builder;
+    my $mb = MockModule->new($class);
+    $mb->mock(resume => sub { $builder });
+    $mb->mock('ACTION_docs' => 0);
+    $builder = $self->new_builder;
+
+    # Building should create these things.
+    is $builder->dispatch('build'), $builder, "Run check_store";
+    file_exists_ok 'blib/conf/kinetic.conf',
+      "Now there should be a blib config file";
+    file_exists_ok 't/conf/kinetic.conf',
+      "And there should be a t/conf config file";
+
+    # Check the config file to be installed.
+    my $db_file = catfile $builder->install_base, 'store', 'kinetic.db';
+    file_contents_like 'blib/conf/kinetic.conf', qr/file\s+=>\s+'$db_file',/,
+      '... The database file name should be set properly';
+    file_contents_like 'blib/conf/kinetic.conf', qr/#\s*pg\s+=>\s+{/,
+      '... The PostgreSQL section should be commented out';
+    file_contents_like 'blib/conf/kinetic.conf',
+      qr/\n\s*store\s*=>\s*{\s*class\s*=>\s*'Kinetic::Store::DB::SQLite'/,
+      '... The store should point to the correct data store';
+
+    # Check the test config file.
+    my $test_file = catfile 't', 'data', 'kinetic.db';
+    file_contents_like 't/conf/kinetic.conf', qr/file\s+=>\s+'$test_file',/,
+      '... The test database file name should be set properly';
+    file_contents_like 't/conf/kinetic.conf', qr/#\s*pg\s+=>\s+{/,
+      '... The PostgreSQL section should be commented out in the test conf';
+    file_contents_like 't/conf/kinetic.conf',
+      qr/\n\s*store\s*=>\s*{\s*class\s*=>\s*'Kinetic::Store::DB::SQLite'/,
+      '... The store should point to the correct data store in the test conf';
 }
 
 sub new_builder {
