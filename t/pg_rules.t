@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 83;
+use Test::More tests => 91;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Test::Exception;
@@ -19,6 +19,7 @@ use Clone;
 my ($TEST_LIB, $CLASS, $BUILD, $BUILD_CLASS);
 
 BEGIN {
+    *CORE::GLOBAL::system = sub { &CORE::system };
     $CLASS = 'Kinetic::Build::Rules::Pg';
     $BUILD_CLASS = 'Kinetic::Build::Store::DB::Pg';
     chdir 't';
@@ -63,17 +64,17 @@ if (0) {
 }
 
 my %state_tests = (
-    Start                                         => \&start,
-    "Determine user"                              => \&determine_user,
-    "Check for user db and is root"               => \&check_for_user_db,
-    "Check user db for plpgsql"                   => \&check_user_db_for_plpgsql,
-    "Check template1 for plpgsql and is root"     => \&check_template1_for_plpgsql_and_is_root,
-    "Check user create permissions"               => \&check_user_create_permissions,
-    "Check template1 for plpgsql and is not root" => \&check_template1_for_plpgsql,
-    "Check for user db and is not root"           => \&check_if_user_db_exists,
-    "Check for createlang"                        => \&check_for_createlang,
-    Fail                                          => \&Fail, 
-    Done                                          => \&Done,
+    Start                                         => \&TEST_start,
+    "Determine user"                              => \&TEST_determine_user,
+    "Check for user db and is root"               => \&TEST_check_for_user_db,
+    "Check user db for plpgsql"                   => \&TEST_check_user_db_for_plpgsql,
+    "Check template1 for plpgsql and is root"     => \&TEST_check_template1_for_plpgsql_and_is_root,
+    "Check user create permissions"               => \&TEST_check_user_create_permissions,
+    "Check template1 for plpgsql and is not root" => \&TEST_check_template1_for_plpgsql,
+    "Check for user db and is not root"           => \&TEST_check_if_user_db_exists,
+    "Check for createlang"                        => \&TEST_check_for_createlang,
+    Fail                                          => \&TEST_Fail, 
+    Done                                          => \&TEST_Done,
 );
 
 while (my ($state, $definition) = splice @$machine => 0, 2) {
@@ -82,7 +83,43 @@ while (my ($state, $definition) = splice @$machine => 0, 2) {
     $test->($state, $definition);
 }
 
-sub start {
+{
+    my $build = $BUILD_CLASS->new;
+    can_ok $build => 'create_db';
+    my $dbi = Test::MockModule->new('DBI');
+    my ($sql, $disconnect);
+    $dbi->mock(do         => sub { $sql = $_[1] });
+    $dbi->mock(disconnect => sub { $disconnect = 1});
+    $build->_dbh(bless {} => 'DBI');
+    ok $build->create_db('whozit'), '... and calling it should succeed';
+    is $sql, qq{CREATE DATABASE "whozit" WITH ENCODING = 'UNICODE'},
+      '... and it will attempt to create an appropriately named database';
+    ok $disconnect, '... and should attempt to disconnect from the current dbh';
+}
+
+{
+    my $build = $BUILD_CLASS->new;
+    can_ok $build => 'add_plpgsql_to_db';
+    my $info = Test::MockModule->new('App::Info::RDBMS::PostgreSQL');
+    $info->mock(createlang => 0);
+    throws_ok {$build->add_plpgsql_to_db}
+      qr/Cannot find createlang/,
+      '... and it should die if createlang cannot be found';
+    no warnings 'redefine';
+    my @system;
+    *CORE::GLOBAL::system = sub {@system = @_; 0};
+    $info->mock(createlang => '/usr/bin/createlang');
+    $build->add_plpgsql_to_db('foo');
+    is_deeply \@system, [qw{/usr/bin/createlang -U postgres plpgsql foo}],
+      '... and the system command should be correct';
+
+    *CORE::GLOBAL::system = sub {@system = @_; 1};
+    throws_ok {$build->add_plpgsql_to_db('foo')}
+      qr|system\(/usr/bin/createlang -U postgres plpgsql foo\) failed:|,
+      '... but it should die and show the system call if it fails';
+}
+
+sub TEST_start {
     my ($state, $definition) = @_;
     my $machine = FSA::Rules->new(
         $state    => $definition,
@@ -124,7 +161,7 @@ sub start {
       '... and they should be the correct states';
 }
 
-sub determine_user {
+sub TEST_determine_user {
     my ($state, $definition) = @_;
     my $is_root_state  = "Check for user db and is root";
     my $not_root_state = "Check for user db and is not root";
@@ -173,7 +210,7 @@ sub determine_user {
       '... and add a note that it is not operating as the root user';
 }
 
-sub check_template1_for_plpgsql {
+sub TEST_check_template1_for_plpgsql {
     my ($state, $definition) = @_;
     my $machine = FSA::Rules->new(
         $state => $definition,
@@ -204,7 +241,7 @@ sub check_template1_for_plpgsql {
       '... but we should not fail if plpgsql is available';
 }
 
-sub check_if_user_db_exists {
+sub TEST_check_if_user_db_exists {
     my ($state, $definition) = @_;
     my $db_exists_state     = "Check user db for plpgsql";
     my $not_db_exists_state = "Check template1 for plpgsql and is not root";
@@ -241,7 +278,7 @@ sub check_if_user_db_exists {
     is @$actions, 0, '... and no actions should need to be performed';
 }
 
-sub check_for_user_db {
+sub TEST_check_for_user_db {
     my ($state, $definition) = @_;
     my $db_exists_state     = "Check user db for plpgsql";
     my $not_db_exists_state = "Check template1 for plpgsql and is root";
@@ -290,9 +327,8 @@ sub check_for_user_db {
     }
 }
 
-sub check_user_db_for_plpgsql {
+sub TEST_check_user_db_for_plpgsql {
     my ($state, $definition) = @_;
-use Clone;
     my $def2 = Clone::clone($definition);
     my $createlang_state = "Check for createlang";
     my $permissive_state = "Check user create permissions";
@@ -329,7 +365,7 @@ use Clone;
     }
 }
 
-sub Done {
+sub TEST_Done {
     my ($state, $definition) = @_;
     my $machine = FSA::Rules->new(
         faux_state => { 
@@ -371,7 +407,7 @@ sub Done {
     ok ! $actions, '... but we should not be told to build the user db if it exists';
 }
 
-sub Fail {
+sub TEST_Fail {
     my ($state, $definition) = @_;
     my $def2 = Clone::clone($definition);
     my $machine = FSA::Rules->new(
@@ -396,7 +432,7 @@ sub Fail {
       qq'... and it should capture the previous state message, if available';
 }
 
-sub check_user_create_permissions {
+sub TEST_check_user_create_permissions {
     my ($state, $definition) = @_;
     my $machine = FSA::Rules->new(
         $state => $definition,
@@ -416,7 +452,7 @@ sub check_user_create_permissions {
       '... but it should get to "Done" if the user can add objects';
 }
 
-sub check_template1_for_plpgsql_and_is_root {
+sub TEST_check_template1_for_plpgsql_and_is_root {
     my ($state, $definition) = @_;
     my $machine = FSA::Rules->new(
         $state => $definition,
@@ -464,7 +500,7 @@ sub check_template1_for_plpgsql_and_is_root {
     ok ! $machine->{actions}, '... and we should have no actions to perform';
 }
 
-sub check_for_createlang {
+sub TEST_check_for_createlang {
     my ($state, $definition) = @_;
     my $machine = FSA::Rules->new(
         $state => $definition,

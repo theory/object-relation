@@ -6,7 +6,7 @@ use strict;
 use Test::Exception;
 use Test::MockModule;
 #use Test::More 'no_plan';
-use Test::More tests => 61;
+use Test::More tests => 62;
 use Test::File;
 use Test::File::Contents;
 use lib 't/lib', '../../lib';;
@@ -190,6 +190,12 @@ $build->db_host(undef);
 $build->db_port(undef);
 is $build->_dsn, 'dbi:Pg:dbname=foobar',
     '... and it should return a proper dsn';
+
+$build->notes(db_name => 'raboof');
+is $build->_dsn, 'dbi:Pg:dbname=raboof',
+  '... and notes should be able to override the database name';
+$build->notes(db_name => undef);
+
 $build->db_host('somehost');
 is $build->_dsn, 'dbi:Pg:dbname=foobar;host=somehost',
     '... and properly handle an optional host';
