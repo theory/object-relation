@@ -25,7 +25,6 @@ my @schema = <$schema>;
 close $schema;
 ok @schema, "... File has contents";
 
-
 # Test writing out class schemas in the proper order
 my @class_keys = qw(simple one two composed comp_comp);
 test_contains_order(\@schema, @class_keys);

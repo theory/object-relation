@@ -884,7 +884,7 @@ sub _connect {
     my $self = shift;
     require DBI;
     my $dbh = eval {
-        DBI->connect_cached(@_, { RaiseError => 1, AutoCommit => 0 })
+        DBI->connect_cached(@_, { RaiseError => 1, PrintError => 0 })
     };
     return $dbh;
 }

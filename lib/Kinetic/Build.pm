@@ -424,10 +424,21 @@ sub ACTION_test {
     my $self = shift;
     $self->depends_on('code');
     $self->depends_on('config');
+
+    # Set up t/data for tests to fill with junk. We'll clean it up.
+    my $data = $self->test_data_dir;
+    File::Path::mkpath $data;
+    $self->add_to_cleanup($data);
+
+    # Set up the test configuration file.
     local $ENV{KINETIC_CONF} = $self->notes('test_conf_file');
+
+    # Set up a list of supported features.
     # XXX I'm sure we'll add other supported features to this list.
     local $ENV{KINETIC_SUPPORTED} = join ' ', $self->store
       if $self->dev_tests;
+
+    # Make it so!
     $self->SUPER::ACTION_test(@_);
 }
 

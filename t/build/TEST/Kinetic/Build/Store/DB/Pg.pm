@@ -14,6 +14,23 @@ use Test::File;
 
 __PACKAGE__->runtests;
 
+sub get_pg_auth : Test(startup) {
+    my $self = shift;
+    return unless $self->supported('pg');
+    # We need to read in the test configuration file, in t/conf.
+    # This is to circumvent the use of the test configuration file
+    # in t/sample/conf, just so that we can get the full username
+    # and password of the super user to test actul connections to
+    # the database. These are set up by the main ./Build.
+    # We're in t/sample, so we need to get ../conf/kinetic.conf.
+    my $conf_file = catfile updir, 'conf', 'kinetic.conf';
+    open my $conf, '<', $conf_file or die "Cannot open $conf_file: $!";
+    local $/;
+    my %conf = eval <$conf>;
+    close $conf;
+    $self->{conf} = \%conf;
+}
+
 sub test_class_methods : Test(7) {
     my $test = shift;
     my $class = $test->test_class;
@@ -798,13 +815,9 @@ sub test_validate_super_user_arg : Test(14) {
 ##############################################################################
 # Test simple Pg store helpers that don't touch the database.
 
-sub test_helpers : Test(16) {
+sub test_helpers : Test(15) {
     my $self = shift;
-    require Kinetic::Util::Config;
-    Kinetic::Util::Config->import(':pg');
-
     my $class = $self->test_class;
-    $self->chdirs('t', 'data');
 
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
@@ -815,33 +828,35 @@ sub test_helpers : Test(16) {
 
     # Override $class methods to keep things quiet.
     my $pg = MockModule->new($class);
-    my $dsn = 'dbi:Pg:dbname=' . PG_TEMPLATE_DB_NAME();
+    my $dsn = 'dbi:Pg:dbname=' . 'template';
 
     # Construct the object.
     ok my $kbs = $class->new, "Create new $class object";
     isa_ok $kbs, $class;
 
     # Try _connect_user().
-    $pg->mock(db_super_user => PG_DB_SUPER_USER());
-    $pg->mock(db_super_pass => PG_DB_SUPER_PASS());
+    $pg->mock(db_super_user => 'postgres');
+    $pg->mock(db_super_pass => 'password');
     my @args;
     $pg->mock(_connect => sub { shift; @args = @_; } );
+    $pg->mock(_dbh => undef);
     $kbs->_connect_user($dsn);
-    is_deeply \@args, [$dsn, PG_DB_SUPER_USER(), PG_DB_SUPER_PASS() ],
+    is_deeply \@args, [$dsn, 'postgres', 'password' ],
       '_connect_user should pass super user to _connect';
 
     # Try it without the super user.
     $pg->unmock('db_super_user');
     $pg->unmock('db_super_pass');
-    $pg->mock(db_user => PG_DB_USER());
-    $pg->mock(db_pass => PG_DB_PASS());
+    $pg->mock(db_user => 'user');
+    $pg->mock(db_pass => 'pass');
     $kbs->_connect_user($dsn);
-    is_deeply \@args, [$dsn, PG_DB_USER(), PG_DB_PASS() ],
+    is_deeply \@args, [$dsn, 'user', 'pass' ],
       '_connect_user should pass database user to _connect';
 
     $pg->unmock('db_user');
     $pg->unmock('db_pass');
     $pg->unmock('_connect');
+    $pg->unmock('_dbh');
 
     # Test_dsn
     is $kbs->_dsn('foo'), 'dbi:Pg:dbname=foo', 'Try a simple DSN';
@@ -866,7 +881,9 @@ sub test_helpers : Test(16) {
     my @cons = (1, 0, 1);
     @args = ();
     $pg->mock(_connect => sub { shift; push @args, @_; shift @cons });
+    $pg->mock(_dbh => sub { shift; shift; });
     $pg->mock(db_name => 'foo');
+
     my $state = {};
     ok $kbs->_try_connect($state, 'one', 'two'),
       "_try_connect() should return true";
@@ -889,13 +906,9 @@ sub test_helpers : Test(16) {
 ##############################################################################
 # Test Pg store helpers that touch the database.
 
-sub test_db_helpers : Test(no_plan) {
+sub test_db_helpers : Test(21) {
     my $self = shift;
-    require Kinetic::Util::Config;
-    Kinetic::Util::Config->import(':pg');
-
     my $class = $self->test_class;
-    $self->chdirs('t', 'data');
 
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
@@ -906,7 +919,6 @@ sub test_db_helpers : Test(no_plan) {
 
     # Override $class methods to keep things quiet.
     my $pg = MockModule->new($class);
-    my $dsn = 'dbi:Pg:dbname=' . PG_TEMPLATE_DB_NAME();
 
     # Construct the object.
     ok my $kbs = $class->new, "Create new $class object";
@@ -914,13 +926,14 @@ sub test_db_helpers : Test(no_plan) {
 
     # From here on in we hit the database.
     return "Not testing PostgreSQL" unless $self->supported('pg');
+    my $dsn = 'dbi:Pg:dbname=' . $self->{conf}{pg}{template_db_name};
 
     # Test _connect().
     isa_ok my $dbh = $kbs->_connect(
         $dsn,
-        PG_DB_SUPER_USER(),
-        PG_DB_SUPER_PASS(),
-        { RaiseError => 1, PrintError => 1 }
+        $self->{conf}{pg}{db_super_user},
+        $self->{conf}{pg}{db_super_pass},
+        { RaiseError => 1, PrintError => 0 }
     ), 'DBI::db';
 
     $pg->mock(_dbh => $dbh);
@@ -936,7 +949,7 @@ sub test_db_helpers : Test(no_plan) {
       "And make appropriate use of them";
 
     # Test _db_exists.
-    ok $kbs->_db_exists(PG_TEMPLATE_DB_NAME()),
+    ok $kbs->_db_exists($self->{conf}{pg}{template_db_name}),
       "_db_exists should return true for the template db";
     ok !$kbs->_db_exists('__an_impossible_db_name_i_hope__'),
       "_db_exists should return false for a non-existant database";
@@ -957,13 +970,13 @@ sub test_db_helpers : Test(no_plan) {
       "And now it should be stored in the object";
 
     # Test _user_exists.
-    ok $kbs->_user_exists(PG_DB_SUPER_USER()),
+    ok $kbs->_user_exists($self->{conf}{pg}{db_super_user}),
       "_user_exists should find the super user";
     ok !$kbs->_user_exists('__impossible_user_name_i_hope__'),
       "and shouldn't find a non-existant user";
 
     # Test _can_create_db and _has_schema_permissions.
-    $pg->mock(db_user => PG_DB_SUPER_USER());
+    $pg->mock(db_user =>$self->{conf}{pg}{db_super_user});
     ok $kbs->_can_create_db, "Super user should be able to create db";
     ok $kbs->_has_schema_permissions,
       "Super user should add objects to the db";
@@ -972,7 +985,7 @@ sub test_db_helpers : Test(no_plan) {
     ok ! eval { $kbs->_has_schema_permissions },
       "Nor can he add objects to a database";
 
-    ok $kbs->_is_super_user(PG_DB_SUPER_USER()),
+    ok $kbs->_is_super_user($self->{conf}{pg}{db_super_user}),
       "Super user should be super user";
     ok !$kbs->_is_super_user('__impossible_user_name_i_hope__'),
       "A non-existant user should not be a super user";
