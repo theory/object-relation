@@ -74,6 +74,22 @@ sub new {
 
 =head2 Instance Methods
 
+=head3 validate
+
+  $kbs->validate;
+
+Ensures that the user can actually use the store in question.  Must be
+overridden in the subclass.
+
+=cut
+
+sub validate {
+    my ($self) = @_;
+    return $self;
+}
+
+##############################################################################
+
 =head3 build
 
   $kbs->build($filename);

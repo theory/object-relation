@@ -8,7 +8,7 @@ use Test::MockModule;
 use Test::More tests => 80;
 use Test::File;
 use Test::File::Contents;
-use lib 't/lib';
+use lib 't/lib', '../../lib';;
 use TieOut;
 
 my $CLASS;
@@ -207,8 +207,8 @@ file_not_exists_ok 'blib/conf/test.conf',
       '... and it should warn you if the sqlite executable is not installed';
 
     $sqlite->mock(executable => sub {1} );
-    ok(!checkstore($build),
-       '... and if all parameters are correct, we should have no errors');
+    ok !checkstore($build),
+       '... and if all parameters are correct, we should have no errors';
 }
 
 {

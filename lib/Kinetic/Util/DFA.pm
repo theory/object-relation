@@ -106,7 +106,7 @@ sub _init {
     foreach my $index (0 .. $#states) {
         my $current_state = $states[$index];
         $rules[$index] = [];
-        my @goto = @{ $state_machine->{$current_state}{goto} };
+        my @goto = @{ $state_machine->{$current_state}{goto} || [] };
         while (my ($goto_state, $actions) = splice @goto => 0, 2) {
             unless (exists $state_machine->{$goto_state}) {
                 croak "Unknown state '$goto_state' referenced in state '$current_state'";

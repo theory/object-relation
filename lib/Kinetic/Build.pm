@@ -31,6 +31,7 @@ my %CONFIG = (
         version  => '7.4.5',
         store    => 'Kinetic::Store::DB::Pg',
         app_info => 'App::Info::RDBMS::PostgreSQL',
+        rules    => 'Kinetic::Build::Rules::Pg',
         dsn      => {
             dbd        => 'Pg',
             methods => {
@@ -44,6 +45,7 @@ my %CONFIG = (
         version  => '3.0.8',
         store    => 'Kinetic::Store::DB::SQLite',
         app_info => 'App::Info::RDBMS::SQLite',
+        rules    => 'Kinetic::Build::Rules::SQLite',
         dsn      => {
             dbd        => 'SQLite',
             methods => {
@@ -113,7 +115,7 @@ Module::Build calls these "properties". They can either be specified in
 F<Build.PL> by passing them to C<new()>, or they can be specified on the
 command line.
 
-=head1 accept_defaults
+=head3 accept_defaults
 
   my $accept = $build->accept_defaults;
   $build->accept_defaults($accept);
@@ -292,6 +294,37 @@ sub ACTION_check_store {
     my $app_info_module = $CONFIG{$self->store}{app_info};
     eval "require $app_info_module";
     $self->_fatal_error("Could not require $app_info_module: $@") if $@;
+    my $store_info = $app_info_module->new($self->_app_info_params);
+    my $store_name = $store_info->key_name;
+
+    unless ($store_info->installed) {
+        $self->_fatal_error("$store_name is not installed. Please download and ",
+          "install the latest from ", $store_info->download_url );
+    }
+
+    # XXX Move to top after M::B releases version with build_class parameter.
+    require version;
+    my $req_version = version->new($self->_required_version);
+    my $got_version = version->new($store_info->version);
+    unless ($got_version >= $req_version) {
+        $self->_fatal_error("$store_name version $got_version is installed, ",
+          "but we need version $req_version or newer");
+    }
+
+    # Check the specific store.
+    my $method = 'check_' . lc $self->store;
+    $self->$method($store_info);
+    $self->notes(got_store => 1);
+    return $self;
+}
+
+sub _required_version {
+    my $self = shift;
+    return $CONFIG{$self->store}{version};
+}
+
+sub _app_info_params {
+    my $self = shift;
     require App::Info::Handler::Carp;
     require App::Info::Handler::Print;
     # XXX Maybe on_fatal should call _fatal_error() instead of Carp::Croak.
@@ -306,29 +339,7 @@ sub ACTION_check_store {
           on_unknown => 'prompt',
           on_confirm => 'prompt';
     }
-
-    my $store_info = $app_info_module->new(@params);
-    my $store_name = $store_info->key_name;
-
-    unless ($store_info->installed) {
-        $self->_fatal_error("$store_name is not installed. Please download and ",
-          "install the latest from ", $store_info->download_url );
-    }
-
-    # XXX Move to top after M::B releases version with build_class parameter.
-    require version;
-    my $req_version = version->new($CONFIG{$self->store}{version});
-    my $got_version = version->new($store_info->version);
-    unless ($got_version >= $req_version) {
-        $self->_fatal_error("$store_name version $got_version is installed, ",
-          "but we need version $req_version or newer");
-    }
-
-    # Check the specific store.
-    my $method = 'check_' . lc $self->store;
-    $self->$method($store_info);
-    $self->notes(got_store => 1);
-    return $self;
+    return @params;
 }
 
 ##############################################################################
@@ -671,8 +682,11 @@ built. uses L<App::Info::RDBMS::SQLite|App::Info::RDBMS::SQLite> to do this.
 sub check_sqlite {
     my ($self, $sqlite) = @_;
 
-    $self->_fatal_error("DBD::SQLite is installed but we require the sqlite3 executable")
-      unless $sqlite->executable;
+    my $rules_class = $CONFIG{$self->store}{rules};
+    eval "use $rules_class";
+    $self->_fatal_error("Cannot use class ($rules_class): $@") if $@;
+    my $rules = $rules_class->new($self);
+    $rules->validate; 
 
     return $self;
 }

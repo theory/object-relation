@@ -35,8 +35,6 @@ ok $sg->write_schema($file, { order => \@class_keys, with_kinetic => 1 }),
 # Build the store.
 ok $sb->build($file), "Build data store";
 
-
-
 ##############################################################################
 # Cleanup our mess.
 END { File::Path::rmtree(File::Spec->catdir(qw(t data))) }
