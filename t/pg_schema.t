@@ -22,7 +22,7 @@ for my $class ($sg->classes) {
 
 ##############################################################################
 # Check Setup SQL.
-is $sg->setup_sql, 'CREATE SEQUENCE seq_kinetic;
+is $sg->setup_code, 'CREATE SEQUENCE seq_kinetic;
 
 CREATE DOMAIN state AS SMALLINT NOT NULL DEFAULT 1
 CONSTRAINT ck_state CHECK (
