@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 54;
+use Test::More tests => 56;
 
 BEGIN {
     use_ok('Kinetic::Util::Exceptions') or die;
@@ -38,11 +38,12 @@ NOIMPORT: { # 22 tests.
 
     eval { throw_fatal('Attribute must be defined') };
     ok( my $err = $@, 'Catch invalid l10n' );
-    ok( !Kinetic::Util::Exceptions::isa_kinetic_exception($err),
-        "is not a kinetic exception" );
+    ok( Kinetic::Util::Exceptions::isa_kinetic_exception($err),
+        "is a kinetic exception" );
     ok( Kinetic::Util::Exceptions::isa_exception($err),
         "is an exception" );
     isa_ok $err, 'Kinetic::Util::Exception::ExternalLib';
+    isa_ok $err, 'Kinetic::Util::Exception';
     isa_ok $err, "Exception::Class::Base";
     like( $err->error,
           qr{\AUndefined subroutine &Kinetic::Util::Exceptions::TestNoImport::throw_fatal},
@@ -125,6 +126,7 @@ GLOBAL: {
     eval { die "Ouch!" };
     ok my $err = $@, "Catch die";
     isa_ok $err, 'Kinetic::Util::Exception::ExternalLib';
+    isa_ok $err, 'Kinetic::Util::Exception';
     isa_ok $err, "Exception::Class::Base";
     stderr_like { warn "Oof"} qr{\AOof at}ms,
       'Warnings should start with the warning message';

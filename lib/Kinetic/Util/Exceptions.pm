@@ -29,11 +29,9 @@ use Exception::Class(
     ##########################################################################
     # Unlocalized exceptions.
     ##########################################################################
-    # XXX Perhaps there's a way to get Class::Meta and others to localize
-    # exceptions? Meanwhile, we just have ExternalLib inherit from
-    # Exception::Class base to avoid localization exceptions.
     'Kinetic::Util::Exception::ExternalLib' => {
         description => 'External library exception',
+        isa         => 'Kinetic::Util::Exception',
         alias       => 'throw_exlib',
     },
 
@@ -152,13 +150,11 @@ invalid.
 
 =item Kinetic::Util::Exception::ExternalLib
 
-This class inherits from Exception::Class rather than from
-Kinetic::Util::Exception so that it can be used for exceptions thrown by
-libraries not under direct Kinetic control and therefore are not localizable.
-This class is also used for the global C<$SIG{__DIE__}> and C<$SIG{__WARN__}>
-handlers, so that error messages and warnings always include a nicely
-formatted stack trace. Note that this class is not a Kinetic::Util::Exception
-class, even though "Kinetic::Util::Exception" is included in its package name.
+This class will never has its error message localized. This is so that it can
+be thrown by libraries not under direct Kinetic control and therefore are not
+localizable. This class is also used for the global C<$SIG{__DIE__}> and
+C<$SIG{__WARN__}> handlers, so that error messages and warnings always include
+a nicely formatted stack trace.
 
 =back
 
@@ -228,7 +224,6 @@ sub isa_kinetic_exception {
         throw_fatal qq{No such exception class "$class"}
           unless isa_exception($class);
     }
-
     return UNIVERSAL::isa($err, $class);
 }
 
@@ -283,10 +278,11 @@ correspond to their respective classes.
 sub new {
     my $class = shift;
     my %p =  @_ == 1 ? ( error => $_[0] ) : @_;
+
     # Localize the error message.
     $p{error} = Kinetic::Util::Context->language->maketext(
         ref $p{error} ? @{$p{error}} : $p{error}
-    );
+    ) unless $class eq 'Kinetic::Util::Exception::ExternalLib';
     $class->SUPER::new(%p);
 }
 
@@ -312,12 +308,6 @@ sub as_string {
     my $self = shift;
     return sprintf("%s\n%s\n", $self->full_message, $self->trace_as_text);
 }
-
-# Make sure that ExternalLib uses these methods, even though it doesn't
-# inherit from Kinetic::Util::Exception.
-*Kinetic::Util::Exception::ExternalLib::as_string = \&as_string;
-*Kinetic::Util::Exception::ExternalLib::trace_as_text = \&trace_as_text;
-*Kinetic::Util::Exception::ExternalLib::_filtered_frames = \&_filtered_frames;
 
 ##############################################################################
 
