@@ -3,8 +3,9 @@ package Kinetic::Base;
 # $Id$
 
 use strict;
-use Kinetic;
 use Kinetic::Meta;
+use Kinetic::Meta::Widget;
+use Kinetic::State qw(:all);
 
 =head1 Name
 
