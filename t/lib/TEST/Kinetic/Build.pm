@@ -106,7 +106,7 @@ sub test_props : Test(9) {
     # Now try it quietly. We should be prompted for the data store.
 }
 
-sub test_check_store_action : Test(6) {
+sub test_check_store_action : Test(7) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -129,12 +129,12 @@ sub test_check_store_action : Test(6) {
     $info->mock(version => '3.0.8');
 
     $builder = $self->new_builder;
-    ok $builder->dispatch('check_store'), "Run check_store";
+    can_ok $builder, 'ACTION_check_store';
+    ok $builder->dispatch('code'), "Run code action";
     isa_ok $builder->notes('build_store'), 'Kinetic::Build::Store';
 
     # Make sure that the build action relies on check_store.
     $builder = $self->new_builder;
-    $mb->mock('ACTION_code' => 0);
     $mb->mock('ACTION_docs' => 0);
     ok $builder->dispatch('build'), "Run build";
     isa_ok $builder->notes('build_store'), 'Kinetic::Build::Store';
