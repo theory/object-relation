@@ -3,7 +3,7 @@
 # $Id: datetime.t 894 2004-12-04 02:48:49Z curtis $
 
 use strict;
-use Test::More tests => 20;
+use Test::More tests => 24;
 #use Test::More 'no_plan';
 
 my $CLASS;
@@ -46,3 +46,9 @@ foreach my $segment (qw/year hour minute second/) {
 }
 is $date->month, 7, '... but the month should be correct';
 is $date->day, 14, '... as should the day';
+
+can_ok $date, 'contiguous';
+ok $date->contiguous, '... and dates with all components contiguous should succeed';
+ok ! $CLASS->new->contiguous, '... but if no components are defined, its not contiguous';
+ok ! $CLASS->new(year => 1997, day => 3)->contiguous,
+    '... nor should contiguous() return true if the date components are not contiguous';

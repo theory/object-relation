@@ -5,6 +5,7 @@ package TEST::Kinetic::Store::DB::SQLite;
 use strict;
 use warnings;
 use DBI;
+use Encode qw(is_utf8);
 
 use base 'TEST::Kinetic::Store::DB';
 #use base 'TEST::Class::Kinetic';
@@ -89,7 +90,7 @@ sub _clear_database {
     $test->{dbi_mock}->mock(commit => 1);
 }
 
-sub search_incomplete_dates : Test(25) {
+sub search_incomplete_dates : Test(no_plan) {
     my $test = shift;
     $test->_clear_database;
     my $theory = Two->new;
@@ -201,9 +202,7 @@ sub search_incomplete_dates : Test(25) {
     }
 }
 
-#1;
-#__END__
-sub search : Test(16) {
+sub search : Test(no_plan) {
     my $test = shift;
     can_ok Store, 'search';
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
@@ -213,6 +212,9 @@ sub search : Test(16) {
         'A search with only a class should succeed';
     my @results = _all_items($iterator);
     is @results, 3, 'returning all instances in the class';
+    foreach my $result (@results) {
+        ok is_utf8($result->name), '... and the data should be unicode strings';
+    }
 
     ok $iterator = $store->search($class, name => 'foo'),
         'and an exact match should succeed';
@@ -244,6 +246,8 @@ sub search : Test(16) {
         '... and it should be the correct results';
 }
 
+#1;
+#__END__
 sub search_dates : Test(8) {
     my $test = shift;
     $test->_clear_database;

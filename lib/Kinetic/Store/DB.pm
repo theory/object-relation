@@ -265,17 +265,17 @@ sub count {
 
 ##############################################################################
 
-=head3 date_handler
+=head3 _date_handler
 
-  $store->date_handler($date);
+  $store->_date_handler($date);
 
 This method is used for returning the proper SQL and bind params for handling
 incomplete dates.  This must be overridden in a subclass.
 
 =cut
 
-sub date_handler {
-    croak "You must override date_handler in a subclass";
+sub _date_handler {
+    croak "You must override _date_handler in a subclass";
 }
 
 sub _get_select_sql_and_bind_params {
@@ -509,12 +509,17 @@ sub _get_sql_results {
     # XXX Fetching directly into the appropriate data structure would be
     # faster, but so would an array ref, since you aren't really using
     # the hash keys.
-    while (my $result = $sth->fetchrow_hashref) {
+    while (my $result = $self->_fetchrow_hashref($sth)) {
         push @results => $self->_build_object_from_hashref($result);
     }
     return $self->_create_iterator
         ? Iterator->new(sub {shift @results})
         : \@results;
+}
+
+sub _fetchrow_hashref {
+    my ($self, $sth) = @_;
+    return $sth->fetchrow_hashref;
 }
 
 ##############################################################################
@@ -794,16 +799,13 @@ sub _make_where_token {
             : $self->_get_id_from_object($value);
     }
 
-    $operator ||=  'ARRAY' eq ref $value ? 'BETWEEN' : 'EQ';
     my $search = Search->new(
         attr     => $field,
         operator => $operator,
         negated  => $negated,
         data     => $value,
     );
-    my $search_method = $search->search_method
-        or croak "Don't know how to search for ($field $negated $operator $value)";
-
+    my $search_method = $search->search_method;
     return $self->$search_method($search);
 }
 
@@ -851,13 +853,17 @@ sub _ANY_SEARCH {
 }
 
 sub _EQ_SEARCH {
-    my ($self, $search) = @_;
-    my ($negated, $value) = ($search->negated, $search->data);
+    my ($self, $search)        = @_;
     my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
-    my $operator = $negated ? '!=' : '=';
-    return 
-          UNIVERSAL::isa($value, Incomplete) ? ("$field $negated LIKE ?", [$self->date_handler($value)])
-        :                                      ("$field $operator $place_holder", [$value]);
+    my $operator = $search->negated ? '!=' : '=';
+    return ("$field $operator $place_holder", [$search->data]);
+}
+
+sub _EQ_INCOMPLETE_DATE_SEARCH {
+    my ($self, $search) = @_;
+    my $negated = $search->negated;
+    my ($field) = $self->_is_case_insensitive($search->attr);
+    return $self->_date_handler($search);
 }
 
 sub _NULL_SEARCH {
@@ -892,13 +898,13 @@ sub _LT_SEARCH {
 
 sub _gt_lt_handler {
     my ($self, $search) = @_;
-    my ($orig_field, $operator, $value) =
-        ($search->attr, $search->operator, $search->data);
-    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
+    my $value = $search->data;
     if (UNIVERSAL::isa($value, Incomplete)) {
-        return $self->date_handler($value, $field, $operator);
+        return $self->_date_handler($search);
     }
     else {
+        my $operator = $search->operator;
+        my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
         return ("$field $operator $place_holder", [$value]);
     }
 }

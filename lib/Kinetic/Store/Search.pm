@@ -22,6 +22,8 @@ use strict;
 use Scalar::Util qw(blessed);
 use Carp qw(croak);
 
+use Kinetic::DateTime::Incomplete;
+
 =head1 Name
 
 Kinetic::Store::Search - Manage Kinetic search parameters
@@ -76,14 +78,14 @@ If passed named parameters, those respective slots will be populated with the va
 
 =cut
 
-my @ATTRIBUTES = qw/
+my @_ATTRIBUTES = qw/
     attr
-    data
     negated
     operator
     place_holder
     search_class
 /;
+my @ATTRIBUTES = ( 'data', @_ATTRIBUTES );
 my %ATTR_LOOKUP;
 @ATTR_LOOKUP{@ATTRIBUTES} = undef;
     
@@ -94,10 +96,15 @@ sub new {
         require Carp;
         Carp::croak "Unknown attributes to ${class}::new (@invalid)";
     }
-    bless \%attributes => $class;
+    no strict 'refs';
+    my $self = bless {} => $class;
+    while (my ($attribute, $value) = each %attributes) {
+        $self->$attribute($value);
+    }
+    return $self;
 }
 
-foreach my $attribute (@ATTRIBUTES) {
+foreach my $attribute (@_ATTRIBUTES) {
     no strict 'refs';
     *$attribute = sub {
         my $self = shift;
@@ -109,14 +116,29 @@ foreach my $attribute (@ATTRIBUTES) {
     }
 }
 
+sub data {
+    my $self = shift;
+    if (@_) {
+        my $data = shift;
+        $self->{data} = $data;
+        # XXX Is this too early?  If it is, we should push this test into
+        # the operator() method.  For now, it works and all tests pass.
+        unless ($self->operator) {
+             $self->operator('ARRAY' eq ref $data ? 'BETWEEN' : 'EQ');
+        }
+        return $self;
+    }
+    return $self->{data};
+}
+
 my %COMPARE_DISPATCH = (
     EQ      => sub { 
         my ($search) = @_;
-        return defined $search->data? '_EQ_SEARCH' : '_NULL_SEARCH';
+        return _am_i_eq_or_not($search);
     },
     NOT     => sub { 
         my ($search) = @_;
-        return defined $search->data? '_EQ_SEARCH' : '_NULL_SEARCH';
+        return _am_i_eq_or_not($search);
     },
     LIKE    => sub { '_LIKE_SEARCH' },
     MATCH   => sub { '_MATCH_SEARCH' },
@@ -129,10 +151,19 @@ my %COMPARE_DISPATCH = (
         my ($search) = @_;
         $search->negated('NOT');
         $search->operator('EQ');
-        return defined $search->data? '_EQ_SEARCH' : '_NULL_SEARCH';
+        return _am_i_eq_or_not($search);
     },
     ANY     => sub { '_ANY_SEARCH' },
 );
+
+sub _am_i_eq_or_not {
+    my ($search) = @_;
+    my $data = $search->data;
+    return 
+        ! defined $data                                          ? '_NULL_SEARCH'
+        : UNIVERSAL::isa($data, 'Kinetic::DateTime::Incomplete') ? '_EQ_INCOMPLETE_DATE_SEARCH'
+        :                                                          '_EQ_SEARCH';
+}
 
 ##############################################################################
 
@@ -153,15 +184,19 @@ sub search_method {
     my $op    = $self->operator;
     # if it's blessed, assume that it's an object whose overloading will
     # provide the correct search data
+    my $error = do {
+        local $^W;
+        "Don't know how to search for ($attr $neg $op $value)";
+    };
+    croak "$error:  undefined op" unless defined $op;
     if ( ref $value && ! blessed($value) 
             && 
         ('ARRAY' ne ref $value || grep {ref && ! blessed($_)} @$value)
     ) {
-        croak "Don't know how to search for ($attr $neg $op $value)";
+        croak "$error: don't know how to handle value.";
     }
-    my $search_method = $COMPARE_DISPATCH{$op}->($self)
-        or croak "Don't know how to search for ($attr $neg $op $value)";
-
+    my $op_sub = $COMPARE_DISPATCH{$op} or croak "$error: unknown op ($op)";
+    my $search_method = $COMPARE_DISPATCH{$op}->($self);
     return $search_method;
 }
 

@@ -20,9 +20,12 @@ package Kinetic::Store::DB::SQLite;
 
 use strict;
 use base qw(Kinetic::Store::DB);
+use Encode qw(_utf8_on);
+
 use Kinetic::Store qw(:logical);
 use Kinetic::Util::Config qw(:sqlite);
 use Exception::Class::DBI;
+
 use constant _connect_args => (
     'dbi:SQLite:dbname=' . SQLITE_FILE, '', '', {
         RaiseError  => 0,
@@ -48,9 +51,9 @@ overriding C<Kinetic::Store::DB> methods as needed.
 
 ##############################################################################
 
-=head3 date_handler
+=head3 _date_handler
 
-  $store->date_handler($date);
+  $store->_date_handler($date);
 
 Used to return the correct representation of a date object for purposes of a 
 store's search mechanism.
@@ -66,42 +69,74 @@ my %date = (
     second => [18,2],
 ); 
 
-sub date_handler {
-    my ($self, $date, $field, $comparator) = @_;
-    return $self->_eq_handler($date) unless defined $field; 
-    unless (ref $comparator) {
-        my (@tokens,@values);
-        while (my ($segment, $idx) = each %date) {
-            my $value = $date->$segment;
-            next unless defined $value;
-            # that "+0" forces SQLite to cast the result as a number, thus allowing
-            # a proper numeric comparison.  Otherwise, the substr forces SQLite to 
-            # treat it as a string, causing the SQL to not match our expectations.
-            push @tokens => "substr($field, $idx->[0], $idx->[1])+0 $comparator ?";
-            push @values => $value;
-        }
-        my $token = join ' AND ' => @tokens;
-        return $token, \@values;
-    }
-    elsif ('ARRAY' eq ref $comparator){
-        return $self->_between_handler($field, $date);
-    }
+sub _date_handler {
+    my ($self, $search) = @_;
+    my $operator = $search->operator;
+    return 'EQ'      eq $operator ? $self->_eq_date_handler($search)
+        :  'BETWEEN' eq $operator ? $self->_between_date_handler($search)
+        :                           $self->_gt_lt_date_handler($search);
 }
 
-sub _between_handler {
-    my ($self, $field, $date) = @_;
+sub _gt_lt_date_handler {
+    my ($self, $search) = @_;
+    my ($date, $operator) = ($search->data, $search->operator);
+    my ($field) = $self->_is_case_insensitive($search->attr);
+    my (@tokens,@values);
+    while (my ($segment, $idx) = each %date) {
+        my $value = $date->$segment;
+        next unless defined $value;
+        # that "abs()" forces SQLite to cast the result as a number, thus allowing
+        # a proper numeric comparison.  Otherwise, the substr forces SQLite to 
+        # treat it as a string, causing the SQL to not match our expectations.
+        push @tokens => "abs(substr($field, $idx->[0], $idx->[1])) $operator ?";
+        push @values => $value;
+    }
+    my $token = join ' AND ' => @tokens;
+    return $token, \@values;
 }
 
-sub _eq_handler {
-    my ($self, $date) = @_;
+sub _between_date_handler {
+    my ($self, $search) = @_;
+    my ($negated, $operator) = ($search->negated, $search->operator);
+    my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
+    return ("$field $negated $operator $place_holder AND $place_holder", $search->data)
+}
+
+sub _eq_date_handler {
+    my ($self, $search) = @_;
     # 2005-03-14T23:01:26
     # YYYY-MM-DD{T}hh:mm:ss
+    my $date = $search->data;
     my $year = defined $date->year? sprintf("%04d",$date->year) : '____';
     my @date;
     foreach my $segment (qw/month day hour minute second/) {
         push @date => defined $date->$segment? sprintf("%02d",$date->$segment) : '__'
     }
-    return sprintf "$year-%02s-%02sT%02s:%02s:%02s" => @date;
+    my $negated = $search->negated;
+    my ($field) = $self->_is_case_insensitive($search->attr);
+    return (
+        "$field $negated LIKE ?", 
+        [ sprintf "$year-%02s-%02sT%02s:%02s:%02s" => @date ]
+    );
+}
+
+##############################################################################
+
+=head3 _fetchrow_hashref
+
+  $store->_fetchrow_hashref($sth);
+
+This method delegates the fetchrow hashref call to the statement handle, but
+ensures that data returned is uft8.
+
+=cut
+
+sub _fetchrow_hashref {
+    my ($self, $sth) = @_;
+    my $hash = $sth->fetchrow_hashref;
+    return unless $hash;
+    _utf8_on($_) foreach values %$hash;
+    return $hash; 
 }
 
 ##############################################################################

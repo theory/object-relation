@@ -68,6 +68,44 @@ my $utc = DateTime::TimeZone::UTC->new;
 
 sub new { shift->SUPER::new(time_zone => $utc, @_) }
 
+##############################################################################
+
+=head3 contiguous
+
+  if ($date->contiguous) { ... }
+
+This method returns a true or false value depending upon whether or not all of
+the date components are contiguous.  For example, "month, day and hour" are
+contiguous, but "month, day, and minute" are not.
+
+This method will return false if none of the date components are defined.
+
+=cut
+
+my @components = qw/
+    year
+    month
+    day
+    hour
+    minute
+    second
+/;
+
+sub contiguous {
+    my $self  = shift;
+    my $count = 0;
+    my @indexes;
+    foreach my $index (0 .. $#components) {
+        my $component = $components[$index];
+        if (defined $self->$component) {
+            $count++;
+            push @indexes => $index;
+        }
+    }
+    return unless $count; # no components will be considered non-contiguous
+    return (1 + ($indexes[-1] - $indexes[0])) == $count;
+}
+
 1;
 __END__
 
