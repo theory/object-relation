@@ -47,28 +47,32 @@ C<Kinetic::Store::DB::Pg> and C<Kinetic::Store::DBI::SQLite> classes.
 sub save {
     my ($class, $object) = @_;
     #return $class unless $object->changed;
-    foreach my $attr ($object->my_class->attributes) {
+    my %data = (
+        names  => [],
+        values => [],
+        class  => $object->my_class,
+    );
+    $data{view} = $data{class}->key;
+    foreach my $attr ($data{class}->attributes) {
         if ($attr->references) {
             my $attr_name = $attr->name;
             my $contained_object = $object->$attr_name;
             $class->save($contained_object);
         }
+        push @{$data{names}}  => $class->_get_name($attr);
+        push @{$data{values}} => $class->_get_raw_value($object, $attr);
     }
     return exists $object->{id}
-        ? $class->_update($object)
-        : $class->_insert($object);
+        ? $class->_update($object, \%data)
+        : $class->_insert($object, \%data);
 }
 
 sub _insert {
-    my ($class, $object) = @_;
-    my $my_class     = $object->my_class;
-    my $view         = $my_class->key;
-    my @attributes   = $my_class->attributes; #$class->_fetch_attributes($object, $my_class);
-    my $attributes   = join ', ' => map { $class->_get_name($_) } @attributes;
-    my $placeholders = join ', ' => (('?') x @attributes);
-    my @values       = map { $class->_get_raw_value($object, $_) } @attributes;
-    my $sql = "INSERT INTO $view ($attributes) VALUES ($placeholders)";
-    $class->_do_sql($sql, \@values);
+    my ($class, $object, $data) = @_;
+    my $fields       = join ', ' => @{$data->{names}};
+    my $placeholders = join ', ' => (('?') x @{$data->{names}});
+    my $sql = "INSERT INTO $data->{view} ($fields) VALUES ($placeholders)";
+    $class->_do_sql($sql, $data->{values});
     $class->_set_id($object);
     return $class;
 }
@@ -96,24 +100,17 @@ sub _set_id {
 }
 
 sub _update {
-    my ($class, $object) = @_;
-    my $my_class      = $object->my_class;
-    my $view          = $my_class->key;
-    my @attributes    = $my_class->attributes;
-    my $column_values =
-        join ', ' =>
-        map { $class->_get_name($_) .' = ?' }
-            @attributes;
-    my @values = map { $class->_get_raw_value($object, $_) } @attributes;
-    push @values => $object->{id};
-    my $sql = "UPDATE $view SET $column_values WHERE id = ?";
-    $class->_do_sql($sql, \@values);
+    my ($class, $object, $data) = @_;
+    my $fields = join ', '  => map { "$_ = ?" } @{$data->{names}};
+    push @{$data->{values}} => $object->{id};
+    my $sql = "UPDATE $data->{view} SET $fields WHERE id = ?";
+    $class->_do_sql($sql, $data->{values});
     return $class;
 }
 
 sub _do_sql {
     my ($class, $sql, $bind_params) = @_;
-    
+ 
     # XXX this is to prevent the use of
     # uninit values in subroutine entry warnings
     # Is there a better way?
@@ -196,7 +193,7 @@ sub _constraints {
             my @sorts;
             for my $i (0 .. $#$value) {
                 my $sort = $value->[$i];
-                $sort .= ' ' . uc $sort_order->[$i] if defined $sort_order->[$i];
+                $sort .= ' ' . uc $sort_order->[$i]->() if defined $sort_order->[$i];
                 push @sorts => $sort;
             }
             $sql .= join ', ' => @sorts;
@@ -217,32 +214,36 @@ sub _make_where_clause {
     return $where, @bind;
 }
 
-# this may have to go into subclasses
-# at some point
 my %COMPARE = (
-    EQ         => '=',
-    NOT        => '!=',
-    LIKE       => 'LIKE',
-    GT         => '>',
-    LT         => '<',
-    GE         => '>=',
-    LE         => '<=',
-    NE         => '!=',
-    'NOT LIKE' => 'NOT LIKE',
-    'NOT EQ'   => '!=',
-    'NOT GT'   => '<=',
-    'NOT LT'   => '>=',
-    'NOT GE'   => '<',
-    'NOT LE'   => '>',
+    EQ          => '=',
+    NOT         => '!=',
+    LIKE        => 'LIKE',
+    MATCH       => 'SIMILAR TO', # postgresql specific
+    GT          => '>',
+    LT          => '<',
+    GE          => '>=',
+    LE          => '<=',
+    NE          => '!=',
+    'NOT LIKE'  => 'NOT LIKE',
+    'NOT MATCH' => 'NOT SIMILAR TO', # see MATCH
+    'NOT EQ'    => '!=',
+    'NOT GT'    => '<=',
+    'NOT LT'    => '>=',
+    'NOT GE'    => '<',
+    'NOT LE'    => '>',
 );
 
+sub _comparison_operator {
+    my ($class, $key) = @_;
+    return $COMPARE{$key};
+}
 
 sub _make_where_token {
     my ($class, $field, $attribute) = @_;
     my ($comparator, $value) = $class->_expand_attribute($attribute);
                # simple compare         #       NULL            # BETWEEN
-    if (exists $COMPARE{$comparator} && defined $value && ! ref $value) {
-        return ("$field $COMPARE{$comparator} ?", [$value]);
+    if ((my $op = $class->_comparison_operator($comparator)) && defined $value && ! ref $value) {
+        return ("$field $op ?", [$value]);
     }
     elsif (($comparator eq '' || $comparator eq 'NOT')  && 'ARRAY' eq ref $value) {
         return ("$field $comparator BETWEEN ? AND ?", $value);

@@ -51,7 +51,7 @@ later, and L<Kinetic::Store::LDAP|Kinetic::Store::LDAP>.
 
 my %tokens;
 BEGIN {
-    $tokens{comparison} = [qw/EQ NOT LIKE GT LT GE LE NE/];
+    $tokens{comparison} = [qw/EQ NOT LIKE GT LT GE LE NE MATCH/];
     $tokens{logical}    = [qw/AND OR ANY/];
     $tokens{sorting}    = [qw/ASC DESC/];
 

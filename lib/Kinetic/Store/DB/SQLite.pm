@@ -49,6 +49,15 @@ sub _set_id {
     return $class;
 }
 
+sub _comparison_operator {
+    my ($class, $key) = @_;
+    if ($key =~ /MATCH/) {
+        require Carp;
+        Carp::croak("$key:  SQLite does not support regular expressions");
+    }
+    return $class->SUPER::_comparison_operator($key);
+}
+
 1;
 __END__
 

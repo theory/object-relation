@@ -24,6 +24,7 @@ use Kinetic::Store qw/:all/;
 use aliased 'Kinetic::Build';
 use aliased 'Kinetic::Build::Store::DB::SQLite' => 'SQLiteBuild';
 use aliased 'Kinetic::Meta';
+use aliased 'Kinetic::Store' => 'DOESNT_MATTER', ':all';
 use aliased 'Kinetic::Store::DB::SQLite' => 'Store';
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Util::State';
@@ -82,7 +83,7 @@ sub startup : Test(startup) {
     my $dbh = DBI->connect($dsn, '', '', {RaiseError => 1});
     $self->{dbh} = $dbh;
     no warnings 'redefine';
-    *Kinetic::Store::DB::_dbh = sub {$DBH};
+    *Kinetic::Store::DB::_dbh = sub {$dbh};
 }
 
 sub shutdown : Test(shutdown) {
@@ -92,8 +93,6 @@ sub shutdown : Test(shutdown) {
     unlink catfile 't', 'sample', 'sqlite_test.db';
 }
 
-1;
-__END__
 sub setup : Test(setup) {  
     my $test = shift;
     $test->{dbh}->begin_work;
@@ -413,6 +412,14 @@ sub search_like : Test(6) {
         'and should include the correct items';
 }
 
+sub search_match : Test(1) {
+    my $test = shift;
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    throws_ok {Store->search( $foo->my_class, name => MATCH '(a|b)%' ) }
+        qr/MATCH:  SQLite does not support regular expressions/,
+        'SQLite should croak() if a MATCH search is attempted';
+}
+
 sub search_null : Test(6) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
@@ -528,62 +535,16 @@ sub order_by : Test(4) {
     
     $iterator = Store->search($class, {
         order_by   => [qw/name age/],
-        sort_order => [qw/asc desc/],
+        sort_order => [ASC, DESC],
     });
     @results = _all_items($iterator);
     is_deeply \@results, [$foo, $bar, $baz],
         'and we should be able to handle multiple sort parameters';
 
-    $iterator = Store->search($class, {order_by => 'age', sort_order => 'desc'});
+    $iterator = Store->search($class, {order_by => 'age', sort_order => DESC});
     @results = _all_items($iterator);
     is_deeply \@results, [$baz, $foo, $bar],
         'and we can combine single items order_by and sort parameters';
 }
 
 1;
-
-__END__
-BEGIN {
-    my $schema_class = 'Kinetic::Build::Schema::DB::SQLite';
-    my $schema = $schema_class->new;
-    $schema->load_classes(File::Spec->catfile(getcwd, qw/t lib/));
-    foreach my $class ($schema->classes) {
-        printf "Package: %20s    Key: %10s\n" => $class->package, $class->key;
-        foreach my $attribute ($class->attributes) {
-            printf "    Attribute: %14s    Type: %10s\n" => $attribute->name, $attribute->type;
-        }
-    }
-    exit;
-}
-
-Package:      TestApp::Simple    Key:     simple
-    Attribute:           guid    Type:       guid
-    Attribute:           name    Type:     string
-    Attribute:    description    Type:     string
-    Attribute:          state    Type:      state
-Package: TestApp::Simple::One    Key:        one
-    Attribute:           guid    Type:       guid
-    Attribute:           name    Type:     string
-    Attribute:    description    Type:     string
-    Attribute:          state    Type:      state
-    Attribute:           bool    Type:    boolean
-Package: TestApp::Simple::Two    Key:        two
-    Attribute:           guid    Type:       guid
-    Attribute:           name    Type:     string
-    Attribute:    description    Type:     string
-    Attribute:          state    Type:      state
-    Attribute:            one    Type:        one
-    Attribute:            age    Type:      whole
-Package:    TestApp::Composed    Key:   composed
-    Attribute:           guid    Type:       guid
-    Attribute:           name    Type:     string
-    Attribute:    description    Type:     string
-    Attribute:          state    Type:      state
-    Attribute:            one    Type:        one
-Package:    TestApp::CompComp    Key:  comp_comp
-    Attribute:           guid    Type:       guid
-    Attribute:           name    Type:     string
-    Attribute:    description    Type:     string
-    Attribute:          state    Type:      state
-    Attribute:       composed    Type:   composed
-

@@ -32,10 +32,10 @@ sub save : Test(2) {
         'but calling it directly should croak()';
 }
 
-sub does_import : Test(66) {
+sub does_import : Test(71) {
     can_ok Store, 'import';
     # comparison
-    foreach my $sub (qw/EQ NOT LIKE GT LT GE LE NE/) {
+    foreach my $sub (qw/EQ NOT LIKE GT LT GE LE NE MATCH/) {
         can_ok __PACKAGE__, $sub;
         no strict 'refs';
         my $result = [$sub->(7)->()];
@@ -61,7 +61,7 @@ sub does_import : Test(66) {
     {
         package Foo;
         use Kinetic::Store ':comparison';
-        foreach my $sub (qw/EQ NOT LIKE GT LT GE LE NE/) {
+        foreach my $sub (qw/EQ NOT LIKE GT LT GE LE NE MATCH/) {
             TEST::Kinetic::Store::ok UNIVERSAL::can(Foo => $sub),
                 '":comparison" should export the correct methods';
         }
@@ -77,7 +77,7 @@ sub does_import : Test(66) {
             TEST::Kinetic::Store::ok UNIVERSAL::can(Bar => $sub),
                 '":logical" should export the correct methods';
         }
-        foreach my $sub (qw/EQ NOT LIKE GT LT GE LE ASC DESC NE/) {
+        foreach my $sub (qw/EQ NOT LIKE GT LT GE LE ASC DESC NE MATCH/) {
             TEST::Kinetic::Store::ok ! UNIVERSAL::can(Bar => $sub),
                 '":logical" should not export unrequested methods';
         }
@@ -89,7 +89,7 @@ sub does_import : Test(66) {
             TEST::Kinetic::Store::ok UNIVERSAL::can(Baz => $sub),
                 '":sorting" should export the correct methods';
         }
-        foreach my $sub (qw/EQ NOT LIKE GT LT GE LE AND OR ANY NE/) {
+        foreach my $sub (qw/EQ NOT LIKE GT LT GE LE AND OR ANY NE MATCH/) {
             TEST::Kinetic::Store::ok ! UNIVERSAL::can(Baz => $sub),
                 '":sorting" should not export unrequested methods';
         }
