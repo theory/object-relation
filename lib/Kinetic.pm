@@ -275,7 +275,6 @@ Those methods are:
         required      => 1,
         indexed       => 1,
         default       => Kinetic::Util::State::ACTIVE,
-        store_default => Kinetic::Util::State::ACTIVE + 0,
         widget_meta   => Kinetic::Meta::Widget->new(
             type    => 'dropdown',
             tip     => 'The state of this object',

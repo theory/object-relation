@@ -70,10 +70,15 @@ sub schema_for_class {
     $self->table_for_class($class);
     # Generate the indexes.
     $self->output_indexes($class);
+    # Generate the constraints.
+    $self->output_constraints($class);
 
     return delete($self->{"$key\_table"})
       . ($self->{"$key\_indexes"}
            ?  "\n" . delete($self->{$class->key . '_indexes'}) . "\n"
+           : '')
+      . ($self->{"$key\_constraints"}
+           ?  "\n" . delete($self->{$class->key . '_constraints'}) . "\n"
            : '');
 }
 
@@ -102,7 +107,7 @@ sub prepare_attributes {
     if (my @parents = grep { ! $_->abstract } $class->parents) {
         # This class inherits from one or more other classes.
         # XXX This is probably naive.
-        $self->{"$key\_pk_fk_table"} = @parents[-1]->key;
+        $self->{"$key\_pk_fk_class"} = $parents[-1];
         $self->{"$key\_attrs"} =
           [ grep { $_->class->key eq $key } $class->attributes ];
     } else {
@@ -113,10 +118,12 @@ sub prepare_attributes {
 
 sub pk_column {
     my ($self, $class) = @_;
-    if (my $table = $self->{$class->key . "_pk_fk_table"}) {
-        return "$table\_id INTEGER NOT NULL PRIMARY KEY"
+    if (my $fk_class = $self->{$class->key . "_pk_fk_class"}) {
+        my $table = $fk_class->key;
+        push @{$self->{$class->key . '_fk_classes'}}, $fk_class;
+        return "$table\_id INTEGER NOT NULL PRIMARY KEY";
     } else {
-        return "id INTEGER NOT NULL PRIMARY KEY DEFAULT NEXTVAL('seq_kinetic')"
+        return "id INTEGER NOT NULL PRIMARY KEY DEFAULT NEXTVAL('seq_kinetic')";
     }
 }
 
@@ -240,6 +247,8 @@ sub index_on {
     my ($self, $attr) = @_;
     return $attr->name;
 }
+
+sub output_constraints { return }
 
 1;
 __END__

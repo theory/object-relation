@@ -46,7 +46,7 @@ my %types = (
     guid     => 'TEXT',
     boolean  => 'BOOLEAN',
     whole    => 'INTEGER',
-    state    => 'INT2',
+    state    => 'STATE',
     datetime => 'TIMESTAMP',
 );
 
@@ -63,7 +63,26 @@ sub index_on {
       : $col;
 }
 
+sub output_constraints {
+    my ($self, $class) = @_;
+    my $key = $class->key;
+    my @fks;
+    for my $fk_class (@{$self->{"$key\_fk_classes"}}) {
+        my $fk_table = $fk_class->key;
+        push @fks, "ALTER TABLE $key\n"
+          . "  ADD CONSTRAINT fk_$fk_table\_id FOREIGN KEY ($fk_table\_id)\n"
+          . "  REFERENCES $fk_table(id) ON DELETE CASCADE;";
+    }
+    $self->{"$key\_constraints"} = join "\n", @fks;
+}
 
+sub start_schema {
+
+'CREATE DOMAIN state AS INT2 NOT NULL DEFAULT 1
+CHECK(
+   VALUE BETWEEN -1 AND 2
+);';
+}
 
 1;
 __END__

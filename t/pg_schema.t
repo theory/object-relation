@@ -27,11 +27,11 @@ is $classes[0]->key, 'simple', "Check for simple class";
 my $simple = $classes[0];
 
 ( my $testsql = q{CREATE TABLE simple (
-    id          INTEGER  NOT NULL PRIMARY KEY DEFAULT NEXTVAL('seq_kinetic'),
-    guid        TEXT     NOT NULL,
-    name        TEXT     NOT NULL,
+    id          INTEGER NOT NULL PRIMARY KEY DEFAULT NEXTVAL('seq_kinetic'),
+    guid        TEXT    NOT NULL,
+    name        TEXT    NOT NULL,
     description TEXT,
-    state       INT2     NOT NULL DEFAULT '1'
+    state       STATE   NOT NULL
 );
 
 CREATE UNIQUE INDEX udx_simple_guid ON simple (LOWER(guid));
@@ -51,6 +51,10 @@ my $one = $classes[1];
     simple_id   INTEGER  NOT NULL PRIMARY KEY,
     bool        BOOLEAN  NOT NULL DEFAULT '1'
 );
+
+ALTER TABLE one
+ ADD CONSTRAINT fk_simple_id FOREIGN KEY (simple_id)
+ REFERENCES simple(id) ON DELETE CASCADE;
 }) =~ s/[ ]+/ /g;
 
 ok $sql = $sg->schema_for_class($one), "Get schema for One class";
