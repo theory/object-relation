@@ -203,7 +203,8 @@ is $two->table, 'simple_two', "... Two class has table 'simple_two'";
 $table = q{CREATE TABLE simple_two (
     id INTEGER NOT NULL,
     one_id INTEGER NOT NULL,
-    age INTEGER
+    age INTEGER,
+    date TIMESTAMP NOT NULL
 );
 };
 eq_or_diff $sg->table_for_class($two), $table,
@@ -232,7 +233,7 @@ eq_or_diff $sg->constraints_for_class($two), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW two AS
-  SELECT simple.id AS id, simple.guid AS guid, simple.name AS name, simple.description AS description, simple.state AS state, simple_two.one_id AS one__id, one.guid AS one__guid, one.name AS one__name, one.description AS one__description, one.state AS one__state, one.bool AS one__bool, simple_two.age AS age
+  SELECT simple.id AS id, simple.guid AS guid, simple.name AS name, simple.description AS description, simple.state AS state, simple_two.one_id AS one__id, one.guid AS one__guid, one.name AS one__name, one.description AS one__description, one.state AS one__state, one.bool AS one__bool, simple_two.age AS age, simple_two.date AS date
   FROM   simple, simple_two, one
   WHERE  simple.id = simple_two.id AND simple_two.one_id = one.id;
 };
@@ -244,8 +245,8 @@ ON INSERT TO two DO INSTEAD (
   INSERT INTO _simple (id, guid, name, description, state)
   VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state);
 
-  INSERT INTO simple_two (id, one_id, age)
-  VALUES (CURRVAL('seq_kinetic'), NEW.one__id, NEW.age);
+  INSERT INTO simple_two (id, one_id, age, date)
+  VALUES (CURRVAL('seq_kinetic'), NEW.one__id, NEW.age, NEW.date);
 );
 };
 eq_or_diff $sg->insert_for_class($two), $insert,
@@ -259,7 +260,7 @@ ON UPDATE TO two DO INSTEAD (
   WHERE  id = OLD.id;
 
   UPDATE simple_two
-  SET    one_id = NEW.one__id, age = NEW.age
+  SET    one_id = NEW.one__id, age = NEW.age, date = NEW.date
   WHERE  id = OLD.id;
 );
 };

@@ -147,7 +147,7 @@ sub set_search_data : Test(9) {
     is_deeply \@keys, [qw/fields metadata/],
         'and it should return the types of data that we are looking for';
     is_deeply [sort @{$results->{fields}}],
-    [qw/ age description guid id name one__bool one__description one__guid
+    [qw/ age date description guid id name one__bool one__description one__guid
          one__id one__name one__state state /],
         'which correctly identify the sql field names';
     my $metadata = {
@@ -167,6 +167,7 @@ sub set_search_data : Test(9) {
             },
             fields => {
                 age         => 'age',
+                date        => 'date',
                 description => 'description',
                 guid        => 'guid',
                 id          => 'id',

@@ -20,10 +20,11 @@ use aliased 'Kinetic::Build::Store::DB::SQLite' => 'SQLiteBuild';
 use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Util::State';
+use aliased 'Kinetic::DateTime';
+use aliased 'Kinetic::DateTime::Incomplete';
 
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
-use aliased 'TestApp::Simple::Three'; # points to a DateTime object
 
 # Skip all of the tests in this class if SQLite isn't supported.
 __PACKAGE__->SKIP_CLASS(
@@ -88,17 +89,120 @@ sub _clear_database {
     $test->{dbi_mock}->mock(commit => 1);
 }
 
-sub search_dates : Test(no_plan) {
+sub search_incomplete_dates : Test(no_plan) {
     my $test = shift;
     $test->_clear_database;
-    my $three1 = Three->new;
-    diag $three1->date;
-    my $date = DateTime->new( 
+    my $theory = Two->new;
+    $theory->name('David');
+    $theory->one->name('david_one_name');
+    $theory->date(DateTime->new( 
         year  => 1968,
         month => 12,
         day   => 19 
+    ));
+    my $ovid = Two->new;
+    $ovid->name('Ovid');
+    $ovid->one->name('ovid_one_name');
+    $ovid->date(DateTime->new( 
+        year  => 1967,
+        month => 06,
+        day   => 20 
+    ));
+    my $usa = Two->new;
+    $usa->one->name('usa_one_name');
+    $usa->name('USA');
+    $usa->date(DateTime->new(
+        year  => 1976, # yeah, I know
+        month => 7,
+        day   => 4,
+    ));
+    my $lil = Two->new;
+    $lil->one->name('Lil');
+    $lil->name('Lil_one_name');
+    $lil->date(DateTime->new(
+        year  => 1976,
+        month => 1,
+        day   => 9,
+    )); 
+    Store->save($_) foreach $theory, $ovid, $usa, $lil;
+
+    my $class = $ovid->my_class;
+    my $store = Store->new;
+    my $june  = Incomplete->new(month => 6); 
+    my $iterator = $store->search($class, date => $june);
+    my @results = _all_items($iterator);
+    is @results, 1, 'We should be able to search on incomplete dates';
+    is_deeply \@results, [$ovid], '... and get the correct results';
+
+    my $bicentennial = Incomplete->new(year => 1976);
+    $iterator = $store->search($class, date => $bicentennial, { order_by => 'date' });
+    @results = _all_items($iterator);
+    is @results, 2, '... even if we have multiple results';
+    is_deeply \@results, [$lil, $usa], '... but they had better be the correct results';
+
+    my $bad_date = Incomplete->new(year => 1776);
+    $iterator = $store->search($class, date => $bad_date);
+    @results = _all_items($iterator);
+    ok ! @results, '... but searching in a non-existent date should fail, even if it is an incomplete date';
+
+    #$june = Incomplete->new(
+    #    month => 6,
+    #    day   => 21,
+    #);
+    #$iterator = $store->search($class, date => GE $june, {order_by => 'date'});
+    #@results = _all_items($iterator);
+    #is @results, 2, 'Incomplete dates should recognize GE';
+    #is_deeply \@results, [$theory, $usa], '... and get the correct results';
+}
+
+sub search_dates : Test(8) {
+    my $test = shift;
+    $test->_clear_database;
+    my $theory = Two->new;
+    $theory->name('David');
+    $theory->one->name('david_one_name');
+    $theory->date(DateTime->new( 
+        year  => 1968,
+        month => 12,
+        day   => 19 
+    ));
+    my $ovid = Two->new;
+    $ovid->name('Ovid');
+    $ovid->one->name('ovid_one_name');
+    $ovid->date(DateTime->new( 
+        year  => 1967,
+        month => 06,
+        day   => 20 
+    ));
+    my $usa = Two->new;
+    $usa->one->name('usa_one_name');
+    $usa->name('USA');
+    $usa->date(DateTime->new(
+        year  => 1976, # yeah, I know
+        month => 7,
+        day   => 4,
+    ));
+    Store->save($_) foreach $theory, $ovid, $usa;
+
+    my $class   = $ovid->my_class;
+    my $store = Store->new;
+    my $iterator = Store->search($class, date => GT $theory->date);
+    my @results = _all_items($iterator);
+    is @results, 1, 'We should be able to search on date fields of objects';
+    is_deeply \@results, [$usa], '... and get the correct results';
+
+    ok $iterator = Store->search($class, 
+        date => GE $theory->date,
+        { order_by => 'date' }
     );
-    diag $date;
+    @results = _all_items($iterator);
+    is @results, 2, 'We should be able to search on date fields of objects';
+    is_deeply \@results, [$theory, $usa], '... and get the correct results';
+
+    ok $iterator = Store->search($class, date => $theory->date);
+    @results = _all_items($iterator);
+    is @results, 1, 'We should be able to search on date fields of objects';
+    is_deeply \@results, [$theory], '... and get the correct results';
 }
 
 sub search_compound : Test(9) {

@@ -27,6 +27,7 @@ use Carp qw/croak/;
 use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Util::State';
+use aliased 'Kinetic::DateTime::Incomplete';
 
 use constant GROUP_OP => qr/^(?:AND|OR)$/;
 use constant OBJECT_DELIMITER => '__';
@@ -198,7 +199,7 @@ sub _search {
     $self->_set_search_data unless exists $self->{search_data};
     my $attributes = join ', ' => @{$self->{search_data}{fields}};
     my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
-        "id, $attributes",
+        $attributes,
         \@search_params
     );
     return $self->_get_sql_results($sql, $bind_params);
@@ -904,9 +905,10 @@ sub _EQ_SEARCH {
     my ($self, $orig_field, $negated, $comparator, $value) = @_;
     my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
     $comparator = $negated ? '!=' : '=';
-    return defined $value
-        ? ("$field $comparator $place_holder", [$value])
-        : ("$field IS $negated NULL", []); 
+    return 
+        ! defined $value                     ? ("$field IS $negated NULL", []) 
+        : UNIVERSAL::isa($value, Incomplete) ? ("$field $negated LIKE ?", [$self->date_handler($value)])
+        :                                      ("$field $comparator $place_holder", [$value]);
 }
 
 sub _NE_SEARCH {
@@ -925,7 +927,12 @@ sub _GE_SEARCH {
     my ($self, $orig_field, $negated, $comparator, $value) = @_;
     my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
     $comparator = $negated ? '<' : '>=';
-    return ("$field $comparator $place_holder", [$value]);
+    if (UNIVERSAL::isa($value, Incomplete)) {
+        my ($where_token, $value) = $self->date_handler($value, $field, $comparator);
+    }
+    else {
+        return ("$field $comparator $place_holder", [$value]);
+    }
 }
 
 sub _LE_SEARCH {

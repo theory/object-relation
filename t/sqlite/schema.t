@@ -255,7 +255,8 @@ is $two->table, 'simple_two', "... Two class has table 'simple_two'";
 $table = q{CREATE TABLE simple_two (
     id INTEGER NOT NULL PRIMARY KEY REFERENCES _simple(id) ON DELETE CASCADE,
     one_id INTEGER NOT NULL REFERENCES simple_one(id) ON DELETE CASCADE,
-    age INTEGER
+    age INTEGER,
+    date TEXT NOT NULL
 );
 };
 
@@ -320,7 +321,7 @@ eq_or_diff $sg->constraints_for_class($two), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW two AS
-  SELECT simple.id AS id, simple.guid AS guid, simple.name AS name, simple.description AS description, simple.state AS state, simple_two.one_id AS one__id, one.guid AS one__guid, one.name AS one__name, one.description AS one__description, one.state AS one__state, one.bool AS one__bool, simple_two.age AS age
+  SELECT simple.id AS id, simple.guid AS guid, simple.name AS name, simple.description AS description, simple.state AS state, simple_two.one_id AS one__id, one.guid AS one__guid, one.name AS one__name, one.description AS one__description, one.state AS one__state, one.bool AS one__bool, simple_two.age AS age, simple_two.date AS date
   FROM   simple, simple_two, one
   WHERE  simple.id = simple_two.id AND simple_two.one_id = one.id;
 };
@@ -334,8 +335,8 @@ FOR EACH ROW BEGIN
   INSERT INTO _simple (guid, name, description, state)
   VALUES (NEW.guid, NEW.name, NEW.description, NEW.state);
 
-  INSERT INTO simple_two (id, one_id, age)
-  VALUES (last_insert_rowid(), NEW.one__id, NEW.age);
+  INSERT INTO simple_two (id, one_id, age, date)
+  VALUES (last_insert_rowid(), NEW.one__id, NEW.age, NEW.date);
 END;
 };
 eq_or_diff $sg->insert_for_class($two), $insert,
@@ -350,7 +351,7 @@ FOR EACH ROW BEGIN
   WHERE  id = OLD.id;
 
   UPDATE simple_two
-  SET    one_id = NEW.one__id, age = NEW.age
+  SET    one_id = NEW.one__id, age = NEW.age, date = NEW.date
   WHERE  id = OLD.id;
 END;
 };

@@ -47,6 +47,52 @@ overriding C<Kinetic::Store::DB> methods as needed.
 
 ##############################################################################
 
+=head3 date_handler
+
+  $store->date_handler($date);
+
+Used to return the correct representation of a date object for purposes of a 
+store's search mechanism.
+
+=cut
+
+my %date = (
+    year   => [0, 4],
+    month  => [5, 2],
+    day    => [8, 2],
+    hour   => [11,2],
+    minute => [14,2],
+    second => [17,2],
+); 
+
+sub date_handler {
+    my ($self, $date, $field, $comparator) = @_;
+    return $self->_like_string($date) unless defined $field; 
+    my (@tokens,@values);
+    while (my ($segment, $idx) = each %date) {
+        my $value = $date->$segment;
+        next unless defined $value;
+        push @tokens => "substr($field, $idx->[0], $idx->[1]) $comparator ?";
+        push @values => $value;
+    }
+    my $token = join ' AND ' => @tokens;
+    return $token, \@values;
+}
+
+sub _like_string {
+    my ($self, $date) = @_;
+    # 2005-03-14T23:01:26
+    # YYYY-MM-DD{T}hh:mm:ss
+    my $year = defined $date->year? sprintf("%04d",$date->year) : '____';
+    my @date;
+    foreach my $segment (qw/month day hour minute second/) {
+        push @date => defined $date->$segment? sprintf("%02d",$date->$segment) : '__'
+    }
+    return sprintf "$year-%02s-%02sT%02s:%02s:%02s" => @date;
+}
+
+##############################################################################
+
 =head3 _set_id
 
   $store->_set_id($kinetic_object);
