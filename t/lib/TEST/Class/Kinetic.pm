@@ -2,6 +2,22 @@ package TEST::Class::Kinetic;
 
 # $Id$
 
+# CONTRIBUTION SUBMISSION POLICY:
+#
+# (The following paragraph is not intended to limit the rights granted to you
+# to modify and distribute this software under the terms of the GNU General
+# Public License Version 2, and is only of importance to you if you choose to
+# contribute your changes and enhancements to the community by submitting them
+# to Kineticode, Inc.)
+#
+# By intentionally submitting any modifications, corrections or
+# derivatives to this work, or any other work intended for use with the
+# Kinetic framework, to Kineticode, Inc., you confirm that you are the
+# copyright holder for those contributions and you grant Kineticode, Inc.
+# a nonexclusive, worldwide, irrevocable, royalty-free, perpetual license to
+# use, copy, create derivative works based on those contributions, and
+# sublicense and distribute those contributions and any derivatives thereof.
+
 use strict;
 use warnings;
 use utf8;
@@ -14,9 +30,70 @@ use aliased 'Test::MockModule';
 
 __PACKAGE__->runtests;
 
+=head1 Name
+
+TEST::Class::Kinetic - The Kinetic test class base class
+
+=head1 Synopsis
+
+  use lib 't/lib';
+  use TEST::Class::Kinetic;
+  TEST::Class::Kinetic->runtests(@classes);
+
+=head1 Description
+
+This modules implements a base class for all Kinetic framework tests using the
+L<Test::Class|Test::Class> framework. It sets up a number of configurations
+and methods that test subclasses can use to create directories, change
+directories, or check to see if particular features are enabled.
+
+The supported features are parsed from an environment variable,
+C<KINETIC_SUPPORTED>, which is set by C<./Build test>. If tests aren't being
+run by the Kinetic build system, simply set the environment variable to a
+space-delimited list of supported features, like so:
+
+  KINETIC_SUPPORTED="sqlite pg" prove t/build.t
+
+=head1 Class Interface
+
+=head2 Class Methods
+
+=head3 supported
+
+  sub test_sqlite : Test(1) {
+      return "SQLite support not included"
+        unless TEST::Class::Kinetic->supported('sqlite');
+      ok 1, 'We can use SQLite!';
+      # ...
+  }
+
+Pass a single argument to this method to find out whether a particular feature
+of the Kinetic framework is supported. This makes it easy to determine whether
+or not to skip a set of tests.
+
+=cut
+
 my %SUPPORTED = map { $_ => undef } split /\s+/, $ENV{KINETIC_SUPPORTED};
 
 sub supported { exists $SUPPORTED{$_[1]} }
+
+##############################################################################
+
+=head1 Instance Interface
+
+=head2 Instance Methods
+
+=head3 a_test_load
+
+This is a test method automatically run by the Test::Class framework. It
+determines the class being tested (by removing "TEST::" from the package name
+of the test class itself) and makes sure that it loads. The name of the class
+being tested can thereafter be retreived from the C<test_class()> method. It
+has the funny name it does to ensure that it runs before other tests in the
+test class, so that the value returned by the C<test_class()> will be correct
+for the rest of the methods in the class.
+
+=cut
 
 sub a_test_load : Test(startup => 1) {
     my $test = shift;
@@ -26,15 +103,31 @@ sub a_test_load : Test(startup => 1) {
     $test->{test_class} = $class;
 }
 
+##############################################################################
+
+=head3 test_class
+
+  my $test_class = $test->test_class;
+
+Returns the name of the Kinetic class being tested. This will usually be the
+same as the name of the test class itself with "TEST::" stripped out.
+
+=cut
+
 sub test_class { shift->{test_class} }
 
-sub cleanup : Test(teardown) {
-    my $self = shift;
-    chdir delete $self->{_cwd_} if exists $self->{_cwd_};
-    if (my $paths = delete $self->{_paths_}) {
-        File::Path::rmtree($_) for reverse @$paths;
-    }
-}
+##############################################################################
+
+=head3 chdirs
+
+  $test->chdirs('t', 'data');
+
+Changes into each of the directories specified. This is a great way to descend
+into subdirectories, as the current working directory will be restored by the
+execution of the C<tck_cleanup()> method when the test method that calls
+C<chdirs()> returns.
+
+=cut
 
 sub chdirs {
     my $self = shift;
@@ -42,6 +135,23 @@ sub chdirs {
     chdir $_ for @_;
     return $self;
 }
+
+##############################################################################
+
+=head3 mkpath
+
+  $test->mkpath('t', 'data', 'store');
+
+Creates a new directory path based on the list of directories passed to it. In
+the above example, the path to "t/data/store" would be created. The first
+directory to be created that does not already exist will be completely deleted
+(along with any contents that a test has put into it) by the execution of the
+C<tck_cleanup()> method when the test method that calls C<mkpath()> returns.
+
+In other words, the path created by <mkpath()> lasts only for the duration of
+the test method that called it.
+
+=cut
 
 sub mkpath {
     my $self = shift;
@@ -57,6 +167,46 @@ sub mkpath {
     return $self;
 }
 
+##############################################################################
+
+=head3 tck_cleanup
+
+This is a Test::Class "teardown" method. It executes after every test method
+returns, changing back to the original working directory if it was changed by
+any calls to C<chdirs()>, and deleting any paths created by any calls to
+C<mkpath()>.
+
+=cut
+
+sub tck_cleanup : Test(teardown) {
+    my $self = shift;
+    chdir delete $self->{_cwd_} if exists $self->{_cwd_};
+    if (my $paths = delete $self->{_paths_}) {
+        File::Path::rmtree($_) for reverse @$paths;
+    }
+}
+
 
 1;
 __END__
+
+##############################################################################
+
+=end private
+
+=head1 Copyright and License
+
+Copyright (c) 2004 Kineticode, Inc. <info@kineticode.com>
+
+This work is made available under the terms of Version 2 of the GNU General
+Public License. You should have received a copy of the GNU General Public
+License along with this program; if not, download it from
+L<http://www.gnu.org/licenses/gpl.txt> or write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+This work is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
+details.
+
+=cut
