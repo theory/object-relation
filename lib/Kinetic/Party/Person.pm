@@ -3,10 +3,10 @@ package Kinetic::::Party::Person;
 # $Id$
 
 use strict;
-use base qw(Kinetic::::Party);
+use base qw(Kinetic::Party);
 use Kinetic::Util::Context;
 use Lingua::Strfname ();
-use Kinetic::Util::Config qw(:api);
+use Kinetic::Util::Config qw(:user);
 
 =head1 Name
 
