@@ -12,24 +12,23 @@ Kinetic::TestSetup - Kinetic test script helper
 
 =head1 Synopsis
 
-  #!perl -w
+  #!/usr/bin/perl -w
 
   use strict;
-  use Test::More;
   use lib 't/lib';
   use Kinetic::TestSetup;
 
 Or modify the configuration for the duration of the running of the test
 script:
 
-  use lib File::Spec->catdir(qw(t lib));
+  use lib 't/lib';
   # Switch to SQLite.
   use Kinetic::TestSetup store => { class => 'Kinetic::Store::DBI::SQLite' };
 
 =head1 Description
 
 This class sets up the environment for testing. It should thus be used by all
-test scripts.
+Kinetic test scripts.
 
 Seting up the environment consist of setting up the C<$KINETIC_CONF>
 environment variable to point to the F<kinetic.conf> in either the F<t/conf>
