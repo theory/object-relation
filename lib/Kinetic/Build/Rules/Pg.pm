@@ -90,15 +90,16 @@ sub _state_machine {
     my $succeed = sub {  shift->result };
     my @state_machine = (
         installed => {
-            do => sub { 
-                my $state = shift;
-                $state->result($self->_is_installed);
-                $state->message($self->app_name ." does not appear to be installed" )
-                  unless $state->result;
-            },
+            do => sub { shift->result($self->_is_installed) },
             rules  => [
-                fail    => $fail,
-                version => $succeed,
+                fail    => {
+                    rule    => $fail,
+                    message => "Postgres not installed",
+                },
+                version => {
+                    rule    => $succeed,
+                    message => "Postgres installed",
+                },
             ],
         },
         version => {
@@ -113,20 +114,24 @@ sub _state_machine {
                 }
             },
             rules  => [
-                fail       => $fail,
-                createlang => $succeed,
+                fail => $fail,
+                createlang => {
+                    rule    => $succeed,
+                    message => "Pg is required version",
+                },
             ],
         },
         createlang => {
-            do => sub {
-                my $state = shift;
-                $state->result($self->info->createlang);
-                $state->message("createlang is required for plpgsql support")
-                  unless $state->result;
-            },
+            do => sub { shift->result($self->info->createlang) },
             rules => [
-                fail     => $fail,
-                metadata => $succeed,
+                fail     => {
+                    rule    => $fail,
+                    message => "createlang is required for plpgsql support",
+                },
+                metadata => {
+                    rule    => $succeed,
+                    message => "createlang is installed",
+                },
             ],
         },
         $self->_dummy_state('metadata', 'root_user'),
@@ -143,7 +148,10 @@ sub _state_machine {
             },
             rules => [
                 user => $fail,
-                done => $succeed,
+                done => {
+                    rule    => $succeed,
+                    message => "root is available",
+                },
             ],
         },
         user => {
@@ -151,61 +159,81 @@ sub _state_machine {
                 my $state = shift;
                 my $dbh = $self->_connect_as_user($template);
                 $state->result($dbh);
-                $state->message("Could not connect as normal user")
-                  unless $dbh;
                 $self->_dbh($dbh);
             },
             rules => [
-                fail            => $fail,
-                database_exists => $succeed
+                fail => {
+                    rule    => $fail,
+                    message => "Could not connect as normal user",
+                },
+                database_exists => {
+                    rule    => $succeed,
+                    message => "user available",
+                },
             ],
         },
         database_exists => {
             do => sub {
                 my $state = shift;
                 $state->result($self->_db_exists($self->build->db_name));
-                $state->message("The default database does not exist")
-                  unless $state->result;
             },
             rules => [
-                can_create_database => $fail,
-                plpgsql             => $succeed,
+                can_create_database => {
+                    rule    => $fail,
+                    message => "The default database does not exist",
+                },
+                plpgsql             => {
+                    rule    => $succeed,
+                    message => "The default database does exist",
+                },
             ],
         },
         can_create_database => {
             do => sub {
                 my $state = shift;
                 $state->result($self->_can_create_db($self->build->db_user));
-                $state->message("Normal user does not have the right to create the database")
-                  unless $state->result;
             },
             rules => [
-                fail => $fail,
-                done => $succeed,
+                fail => {
+                    rule    => $fail,
+                    message => "Normal user does not have the right to create the database",
+                },
+                done => {
+                    rule    => $succeed,
+                    message => "can create database",
+                },
             ],
         },
         plpgsql => {
             do => sub {
                 my $state = shift;
                 $state->result($self->_plpgsql_available);
-                $state->message("plpgsql not available.  Must be root user to install.")
-                  unless $state->result;
             },
             rules => [
-                fail              => $fail,
-                check_permissions => $succeed,
+                fail              => {
+                    rule    => $fail,
+                    message => "plpgsql not available.  Must be root user to install.",
+                },
+                check_permissions => {
+                    rule    => $succeed,
+                    message => "plpgsql available",
+                },
             ],
         },
         check_permissions => {
             do => sub {
                 my $state = shift;
                 $state->result($self->_has_create_permissions($self->build->db_user));
-                $state->message('User does not have permission to create objects')
-                  unless $state->result;
             },
             rules => [
-                fail => $fail,
-                done => $succeed,
+                fail => {
+                    rule    => $fail,
+                    message => 'User does not have permission to create objects',
+                },
+                done => {
+                    rule    => $succeed,
+                    message => "user can create objects",
+                },
             ]
         },
         fail => {

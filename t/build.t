@@ -225,7 +225,7 @@ file_not_exists_ok 'blib/conf/test.conf',
     my $rules = newmock('Kinetic::Build::Rules::Pg');
     
     throws_ok {$build->ACTION_check_store}
-      qr/PostgreSQL does not appear to be installed./,
+      qr/Postgres not installed./,
       'It should warn you if Postgres is not installed';
 
     $pg->mock(installed => sub { 1 } );
@@ -233,12 +233,12 @@ file_not_exists_ok 'blib/conf/test.conf',
     throws_ok {$build->ACTION_check_store}
         qr/\QPostgreSQL required version 7.4.5 but you have 2.0.0\E/,
         '... and it should warn you if PostgreSQL is not a new enough version';
+
     $pg->mock(version => sub { '7.4.5' });
     $pg->mock(createlang => sub {''});
     throws_ok {$build->ACTION_check_store}
       qr/createlang is required for plpgsql support/,
       '... and it should warn you if createlang is not available';
-
     TODO: {
         local $TODO = 'Need metadata tests';
         ok(0);
@@ -250,11 +250,10 @@ file_not_exists_ok 'blib/conf/test.conf',
     eval {$build->ACTION_check_store};
 
     my $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
-    my $message = $fsa->state('user')->message;
+    my $message = $fsa->states('user')->message;
     is $message, 'Could not connect as normal user',
       '... and we should have an informational message letting us know that we could not connect as a normal user';
     like $@, qr/$message/, '... and this should be fatal';
-
     $rules->mock(_connect_as_root => 1);
     ok $build->ACTION_check_store,
       '... and if we have a root user, everything should be fine';
@@ -269,10 +268,10 @@ file_not_exists_ok 'blib/conf/test.conf',
       'We should fail if the database does not exist and the user cannot created it';
     $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
     
-    is $fsa->state('database_exists')->message, 'The default database does not exist',
+    is $fsa->states('database_exists')->message, 'The default database does not exist',
       '... and we should have a message that the default database does not exist';
     
-    is $fsa->state('can_create_database')->message,
+    is $fsa->states('can_create_database')->message,
       'Normal user does not have the right to create the database',
       '... and that the normal user does not have the right to create the database';
 
@@ -295,7 +294,7 @@ file_not_exists_ok 'blib/conf/test.conf',
       'We should fail if plpgsql is not available';
     $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
     
-    ok ! defined $fsa->state('database_exists')->message,
+    is $fsa->states('database_exists')->message, 'The default database does exist',
       '... but if we got that far, the database must have existed';
     
     $build->notes(got_store => 0); # must reset
@@ -310,7 +309,7 @@ file_not_exists_ok 'blib/conf/test.conf',
       'We should fail if the normal user does not have permission to create objects';
     $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
     
-    ok ! defined $fsa->state('database_exists')->message,
+    is $fsa->states('database_exists')->message, 'The default database does exist',
       '... but if we got that far, the database must have existed';
 }
 

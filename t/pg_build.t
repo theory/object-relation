@@ -80,6 +80,20 @@ my $plpgsql = $dbh->selectcol_arrayref('select 1 from pg_catalog.pg_language whe
 is $rules->_plpgsql_available, $plpgsql->[0],
   '... and its result should match what the database says';
 
+#use FSA::Rules;
+#my ($state_machine) = $rules->_state_machine;
+#my $fsa = FSA::Rules->new(@$state_machine);
+#open FOO, '>', 'pg_rules.png' or die $!;
+#print FOO $fsa->graph(
+#    bgcolor   => 'burlywood',
+#    node => {
+#        style     =>'filled',
+#        fillcolor =>'lightgray',
+#        fontname  =>'arial',
+#    }
+#)->as_png;
+#close FOO;
+
 sub make_not_in {
     my $arrayref = shift;
     my %element  = map { $_ => 1 } @$arrayref;

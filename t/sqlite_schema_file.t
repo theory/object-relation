@@ -62,7 +62,7 @@ test_contains_order(\@schema, @class_keys);
 
 ##############################################################################
 # Cleanup our mess.
-END { File::Path::rmtree(File::Spec->catdir(qw(t data))) }
+#END { File::Path::rmtree(File::Spec->catdir(qw(t data))) }
 
 sub test_contains {
     my ($contents, $find) = @_;
