@@ -34,7 +34,6 @@ sub atest_process_conf_files : Test(14) {
     $info->mock(installed => 1);
     $info->mock(version => '3.0.8');
 
-    use Carp; $SIG{__DIE__} = \&Carp::confess;
     # I mock thee, builder!
     my $builder;
     my $mb = MockModule->new($class);
@@ -229,7 +228,7 @@ sub test_test_actions : Test(9) {
     file_not_exists_ok $self->data_dir, 'Data directory should be deleted';
 }
 
-sub test_get_reply : Test(33) {
+sub test_get_reply : Test(49) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -241,6 +240,7 @@ sub test_get_reply : Test(33) {
     local @ARGV = qw'--store pg foo=bar';
     my $mb = MockModule->new('Module::Build');
     $kb->mock(_prompt => sub { shift; $self->{output} .= join '', @_; });
+    $kb->mock(log_info => sub { shift; $self->{info} .= join '', @_; });
     $kb->mock(_readline => sub {
         chomp $self->{input}[0] if defined $self->{input}[0];
         shift @{$self->{input}};
@@ -249,7 +249,7 @@ sub test_get_reply : Test(33) {
 
     # Start not quiet and with defaults accepted.
     my $builder = $self->new_builder(quiet => 0);
-    is delete $self->{output}, "Data store: pg\n",
+    is delete $self->{info}, "Data store: pg\n",
       "Should have data store set by command-line option";
 
     # We should be told what the setting is, but not prompted.
@@ -259,7 +259,8 @@ sub test_get_reply : Test(33) {
         message     => "What is your favorite color?",
         label       => "Favorite color",
         default     => 'blue',
-        exp_message => "Favorite color: blue\n",
+        exp_message => undef,
+        exp_info    => "Favorite color: blue\n",
         exp_value   => 'blue',
         input_value => 'blue',
         comment     => "With defaults accepted, should not be prompted",
@@ -272,7 +273,8 @@ sub test_get_reply : Test(33) {
         message     => "What is your favorite color?",
         label       => "Favorite color",
         default     => 'blue',
-        exp_message => "Favorite color: blue\n",
+        exp_message => undef,
+        exp_info    => "Favorite color: blue\n",
         exp_value   => 'blue',
         input_value => 'red',
         comment     => "With defaults accepted, should not be prompted",
@@ -285,7 +287,8 @@ sub test_get_reply : Test(33) {
         message     => "What is your favorite color?",
         label       => "Favorite color",
         default     => 'blue',
-        exp_message => "Favorite color: blue\n",
+        exp_message => undef,
+        exp_info    => "Favorite color: blue\n",
         exp_value   => 'blue',
         input_value => 'blue',
         comment     => "We shouldn't get prompted with TTY",
@@ -299,6 +302,7 @@ sub test_get_reply : Test(33) {
         label       => "Favorite color",
         default     => 'blue',
         exp_message => undef,
+        exp_info    => undef,
         exp_value   => 'blue',
         input_value => 'blue',
         comment     => "No prompt in quiet mode with no TTY.",
@@ -312,6 +316,7 @@ sub test_get_reply : Test(33) {
         label       => "Favorite color",
         default     => 'blue',
         exp_message => undef,
+        exp_info    => undef,
         exp_value   => 'blue',
         input_value => 'blue',
         comment     => "No prompt in quiet mode with TTY.",
@@ -326,6 +331,7 @@ sub test_get_reply : Test(33) {
         label       => "Favorite color",
         default     => 'blue',
         exp_message => "What is your favorite color? [blue]: ",
+        exp_info    => undef,
         exp_value   => 'yellow',
         input_value => 'yellow',
         comment     => "Quiet, but prompted",
@@ -340,6 +346,7 @@ sub test_get_reply : Test(33) {
         name        => 'store',
         default     => 'sqlite',
         exp_message => undef,
+        exp_info    => undef,
         exp_value   => 'pg',
         input_value => 'sqlite',
         comment     => "No prompt for command-line property"
@@ -352,6 +359,7 @@ sub test_get_reply : Test(33) {
         name        => 'foo',
         default     => 'bick',
         exp_message => undef,
+        exp_info    => undef,
         exp_value   => 'bar',
         input_value => 'pow',
         comment     => "No prompt for command-line arugment"
@@ -364,6 +372,7 @@ sub test_get_reply : Test(33) {
         label       => "Favorite color",
         default     => 'blue',
         exp_message => "What is your favorite color? [blue]: ",
+        exp_info    => undef,
         exp_value   => 'blue',
         input_value => "\n",
         comment     => "We should be able to accept the default",
@@ -391,6 +400,7 @@ sub test_get_reply : Test(33) {
         label       => "Favorite color",
         default     => 'blue',
         exp_message => "What is your favorite color? [blue]: ",
+        exp_info    => undef,
         exp_value   => 'red',
         input_value => 'red',
         comment     => "Without defaults accepted, we should be prompted",
@@ -403,6 +413,7 @@ sub test_get_reply : Test(33) {
         message     => "What is your favorite color?",
         label       => "Favorite color",
         exp_message => "What is your favorite color? ",
+        exp_info    => undef,
         exp_value   => 'red',
         input_value => 'red',
         comment     => "With no default, there should be none in the message",
@@ -415,7 +426,8 @@ sub test_get_reply : Test(33) {
         message     => "What is your favorite color?",
         label       => "Favorite color",
         default     => 'blue',
-        exp_message => "Favorite color: blue\n",
+        exp_message => undef,
+        exp_info    => "Favorite color: blue\n",
         exp_value   => 'blue',
         input_value => 'red',
         comment     => "Without defaults accepted, by no TTY, our answer should be igored",
@@ -428,7 +440,8 @@ sub test_get_reply : Test(33) {
         label       => "Favorite color",
         default     => 'blue',
         options     => ['red', 'blue', 'yellow', 'orange'],
-        exp_message => "Favorite color: blue\n",
+        exp_message => undef,
+        exp_info    => "Favorite color: blue\n",
         exp_value   => 'blue',
         input_value => 'red',
         comment     => "With options by no TTY, we should just get the default",
@@ -444,6 +457,7 @@ sub test_get_reply : Test(33) {
         options     => ['red', 'blue', 'yellow', 'orange'],
         exp_message => "  1> red\n  2> blue\n  3> yellow\n  4> orange\n"
                        . "Please select your favorite color? [2]: ",
+        exp_info    => undef,
         exp_value   => 'blue',
         input_value => '2',
         comment     => "With options by no TTY, we should just get the default",
@@ -460,6 +474,7 @@ sub test_get_reply : Test(33) {
         exp_message => "  1> red\n  2> blue\n  3> yellow\n  4> orange\n"
                        . "Please select your favorite color? [2]: "
                        . "\nInvalid selection, please try again [2]: ",
+        exp_info    => undef,
         exp_value   => 'yellow',
         input_value => ['foo', '3'],
         comment     => "With options by no TTY, we should just get the default",
@@ -469,6 +484,7 @@ sub test_get_reply : Test(33) {
 sub try_reply {
     my ($self, $builder, %params) = @_;
     my $exp_msg = delete $params{exp_message};
+    my $exp_info = delete $params{exp_info};
     my $exp_value = delete $params{exp_value};
     my $comment = delete $params{comment};
     $self->{input} = ref $params{input_value}
@@ -478,6 +494,9 @@ sub try_reply {
 
     is delete $self->{output}, $exp_msg, 'Output should be ' .
       (defined $exp_msg ? qq{"$exp_msg"} : 'undef');
+
+    is delete $self->{info}, $exp_info, 'Info should be ' .
+      (defined $exp_info ? qq{"$exp_info"} : 'undef');
 
     delete $self->{input};
     return $self;

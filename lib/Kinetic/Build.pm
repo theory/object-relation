@@ -713,7 +713,7 @@ sub get_reply {
     }
 
     $def_label = defined $def_label ? " [$def_label]:" : '';
-    $self->_prompt("$params{label}: $params{default}\n")
+    $self->log_info("$params{label}: $params{default}\n")
       unless $self->quiet;
     return $params{default};
 }
