@@ -87,9 +87,73 @@ sub parents { @{shift->{parents}} }
 
 Returns the name of the table to be used for this class in the database.
 
+Classes will no concrete parent class will be named for the key name of the
+classes they represent, prepended by an undderscore, such as "_party". Classes
+that inherit from a concrete class will be named for their inheritance
+relationship, such as "party_person" for the person class.
+
 =cut
 
 sub table { shift->{table} }
+
+##############################################################################
+
+=head3 view
+
+  my $view = $class->view;
+
+Returns the name of the database view to be used for this class. Views, which
+represent a class of objects and often build up their representations from a
+number of different tables, shall be named for the key names of the classes
+they represent. Typical names include "party", "usr", "person",
+"contact_type", etc.
+
+=cut
+
+sub view { shift->key }
+
+##############################################################################
+
+=head3 primary_key
+
+  my $pk = $class->primary_key;
+
+Primary key constraints are named for the class key plus "_id" (the primary
+key column name), and be preceded by "pk_". For example, the primary key for
+the "person" class shall be named "pk_person_id" and the primary key for the
+"party" class shall be named "pk_party_id".
+
+=cut
+
+sub primary_key { 'pk_' . shift->key . '_id' }
+
+##############################################################################
+
+=head3 foreign_key
+
+  my $fk = $class->foreign_key;
+
+For classes that inherit from another concrete class, their primary ID column
+will also be a foreign key to primary ID column in the parent class' table.
+This method returns the name of the foreign key constraint for such classes.
+The foreign key constraint name starts with "pfk_", then the key name of the
+parent class, then the key name of the current class, and ends with "_id".
+
+For example, the foreign key applied to the primary key column created for the
+"person" class to point to the primary key for the "party" class (the class
+from which "person" inherits) shall be named "pfk_person_party_id", apply to
+the "id" column of the "party_person" table, and refer to the "id" column of
+the "_party" table.
+
+If the C<parent()> method returns a false value, this method returns C<undef>.
+
+=cut
+
+sub foreign_key {
+    my $self = shift;
+    my $parent = $self->parent or return;
+    return 'pfk_' . $parent->key . '_' . $self->key . '_id';
+}
 
 ##############################################################################
 
@@ -107,18 +171,6 @@ the attributes of concrete parent classes.
 =cut
 
 sub table_attributes { @{shift->{cols}} }
-
-##############################################################################
-
-=head3 view
-
-  my $view = $class->view;
-
-Returns the name of the database view to be used for this class.
-
-=cut
-
-sub view { shift->key }
 
 ##############################################################################
 

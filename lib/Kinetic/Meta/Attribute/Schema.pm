@@ -124,6 +124,31 @@ sub column {
 
 ##############################################################################
 
+=head3 foreign_key
+
+  my $fk = $class->foreign_key;
+
+Attributes that are references to another Kinetic object will need to have a
+foreign key constraint. This method returns the name of that constraint, which
+starts with "fk_", then the key name the current class, then the name of the
+current attribute, followed by '_id'.
+
+For example, the foreign key for the "contact_type" attribute of the "contact"
+class is named "fk_contact_type_id" and applies to the "contact" table and
+references, of course, the "id" column of the "contact_type" table.
+
+If the C<parent()> method returns a false value, this method returns C<undef>.
+
+=cut
+
+sub foreign_key {
+    my $self = shift;
+    return unless $self->references;
+    return 'fk_' . $self->class->key . '_' . $self->name . '_id';
+}
+
+##############################################################################
+
 =head2 Instance Methods
 
 =head3 index

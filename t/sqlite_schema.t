@@ -159,24 +159,24 @@ FOR EACH ROW BEGIN
   END;
 END;
 
-CREATE TRIGGER pfki_one_id
+CREATE TRIGGER pfki_simple_one_id
 BEFORE INSERT ON simple_one
 FOR EACH ROW BEGIN
   SELECT CASE
     WHEN (SELECT id FROM _simple WHERE id = NEW.id) IS NULL
-    THEN RAISE(ABORT, 'insert on table "simple_one" violates foreign key constraint "pfk_one_id"')
+    THEN RAISE(ABORT, 'insert on table "simple_one" violates foreign key constraint "pfk_simple_one_id"')
   END;
 END;
 
-CREATE TRIGGER pfku_one_id
+CREATE TRIGGER pfku_simple_one_id
 BEFORE UPDATE ON simple_one
 FOR EACH ROW BEGIN
   SELECT CASE WHEN (SELECT id FROM _simple WHERE id = NEW.id) IS NULL
-    THEN RAISE(ABORT, 'update on table "simple_one" violates foreign key constraint "pfk_one_id"')
+    THEN RAISE(ABORT, 'update on table "simple_one" violates foreign key constraint "pfk_simple_one_id"')
   END;
 END;
 
-CREATE TRIGGER pfkd_one_id
+CREATE TRIGGER pfkd_simple_one_id
 BEFORE DELETE ON _simple
 FOR EACH ROW BEGIN
   DELETE from simple_one WHERE id = OLD.id;
@@ -262,24 +262,24 @@ eq_or_diff $sg->indexes_for_class($two), $indexes,
   "... Schema class generates CREATE INDEX statements";
 
 # Check that the constraint and foreign key triggers are correct.
-$constraints = q{CREATE TRIGGER pfki_two_id
+$constraints = q{CREATE TRIGGER pfki_simple_two_id
 BEFORE INSERT ON simple_two
 FOR EACH ROW BEGIN
   SELECT CASE
     WHEN (SELECT id FROM _simple WHERE id = NEW.id) IS NULL
-    THEN RAISE(ABORT, 'insert on table "simple_two" violates foreign key constraint "pfk_two_id"')
+    THEN RAISE(ABORT, 'insert on table "simple_two" violates foreign key constraint "pfk_simple_two_id"')
   END;
 END;
 
-CREATE TRIGGER pfku_two_id
+CREATE TRIGGER pfku_simple_two_id
 BEFORE UPDATE ON simple_two
 FOR EACH ROW BEGIN
   SELECT CASE WHEN (SELECT id FROM _simple WHERE id = NEW.id) IS NULL
-    THEN RAISE(ABORT, 'update on table "simple_two" violates foreign key constraint "pfk_two_id"')
+    THEN RAISE(ABORT, 'update on table "simple_two" violates foreign key constraint "pfk_simple_two_id"')
   END;
 END;
 
-CREATE TRIGGER pfkd_two_id
+CREATE TRIGGER pfkd_simple_two_id
 BEFORE DELETE ON _simple
 FOR EACH ROW BEGIN
   DELETE from simple_two WHERE id = OLD.id;

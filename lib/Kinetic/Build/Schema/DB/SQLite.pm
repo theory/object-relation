@@ -120,40 +120,47 @@ sub generate_fk {
     my $table = $class->table;
     my $fk_key = $fk_class->key;
     my $fk_table = $fk_class->table;
-    my ($prefix, $col, $cascade) = ref $attr
-      ? ('fk', $attr->column, uc $attr->on_delete eq 'CASCADE')
-      : ('pfk', 'id', 1);
-    return (qq{CREATE TRIGGER ${prefix}i_$key\_$col
+    my ($fk, $col, $cascade) = ref $attr
+      ? ($attr->foreign_key, $attr->column, uc $attr->on_delete eq 'CASCADE')
+      : ($class->foreign_key, 'id', 1);
+
+    # We actually have three different triggers for each foreign key, so we
+    # have to give each one a slightly different name.
+    (my $fki = $fk) =~ s/_/i_/;
+    (my $fku = $fk) =~ s/_/u_/;
+    (my $fkd = $fk) =~ s/_/d_/;
+
+    return (qq{CREATE TRIGGER $fki
 BEFORE INSERT ON $table
 FOR EACH ROW BEGIN
   SELECT CASE
     WHEN (SELECT id FROM $fk_table WHERE id = NEW.$col) IS NULL
-    THEN RAISE(ABORT, 'insert on table "$table" violates foreign key constraint "$prefix\_$key\_$col"')
+    THEN RAISE(ABORT, 'insert on table "$table" violates foreign key constraint "$fk"')
   END;
 END;
 },
 
-      qq{CREATE TRIGGER ${prefix}u_$key\_$col
+      qq{CREATE TRIGGER $fku
 BEFORE UPDATE ON $table
 FOR EACH ROW BEGIN
   SELECT CASE WHEN (SELECT id FROM $fk_table WHERE id = NEW.$col) IS NULL
-    THEN RAISE(ABORT, 'update on table "$table" violates foreign key constraint "$prefix\_$key\_$col"')
+    THEN RAISE(ABORT, 'update on table "$table" violates foreign key constraint "$fk"')
   END;
 END;
 },
       ($cascade
-       ? qq{CREATE TRIGGER ${prefix}d_$key\_$col
+       ? qq{CREATE TRIGGER $fkd
 BEFORE DELETE ON $fk_table
 FOR EACH ROW BEGIN
   DELETE from $table WHERE $col = OLD.id;
 END;
 }
-         : qq{CREATE TRIGGER ${prefix}d_$key\_$col
+         : qq{CREATE TRIGGER $fkd
 BEFORE DELETE ON $fk_table
 FOR EACH ROW BEGIN
   SELECT CASE
     WHEN (SELECT $col FROM $table WHERE $col = OLD.id) IS NOT NULL
-    THEN RAISE(ABORT, 'delete on table "$fk_table" violates foreign key constraint "$prefix\_$key\_$col"')
+    THEN RAISE(ABORT, 'delete on table "$fk_table" violates foreign key constraint "$fk"')
   END;
 END;
 })

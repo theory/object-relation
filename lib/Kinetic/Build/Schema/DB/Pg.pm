@@ -89,20 +89,20 @@ sub constraints_for_class {
     my ($self, $class) = @_;
     my $key = $class->key;
     my $table = $class->table;
+    my $pk = $class->primary_key;
 
     # We always need a primary key.
     my @cons = (
-        "ALTER TABLE $table\n"
-          . "  ADD CONSTRAINT pk_$key\_id PRIMARY KEY (id);\n"
+        "ALTER TABLE $table\n  ADD CONSTRAINT $pk PRIMARY KEY (id);\n"
     );
 
     # Add a foreign key from the id column to the parent table if this
     # class has a parent table class.
     if (my $parent = $class->parent) {
-        my $fk_key = $parent->key;
+        my $fk = $class->foreign_key;
         my $fk_table = $parent->table;
         push @cons, "ALTER TABLE $table\n"
-          . "  ADD CONSTRAINT pfk_$fk_key\_id FOREIGN KEY (id)\n"
+          . "  ADD CONSTRAINT $fk FOREIGN KEY (id)\n"
           . "  REFERENCES $fk_table(id) ON DELETE CASCADE;\n";
     }
 

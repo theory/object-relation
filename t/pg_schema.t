@@ -131,7 +131,7 @@ $constraints = q{ALTER TABLE simple_one
   ADD CONSTRAINT pk_one_id PRIMARY KEY (id);
 
 ALTER TABLE simple_one
-  ADD CONSTRAINT pfk_simple_id FOREIGN KEY (id)
+  ADD CONSTRAINT pfk_simple_one_id FOREIGN KEY (id)
   REFERENCES _simple(id) ON DELETE CASCADE;
 };
 eq_or_diff $sg->constraints_for_class($one), $constraints,
@@ -215,7 +215,7 @@ $constraints = q{ALTER TABLE simple_two
   ADD CONSTRAINT pk_two_id PRIMARY KEY (id);
 
 ALTER TABLE simple_two
-  ADD CONSTRAINT pfk_simple_id FOREIGN KEY (id)
+  ADD CONSTRAINT pfk_simple_two_id FOREIGN KEY (id)
   REFERENCES _simple(id) ON DELETE CASCADE;
 
 ALTER TABLE simple_two

@@ -108,14 +108,14 @@ sub classes {
 
 =head3 load_classes
 
-  $sg->load_classes('lib');
+  $sg->load_classes($dir);
 
 Loads all of the Kinetic::Meta classes found in the specified directory and
 its subdirectories. Use Unix-style directory naming; C<load_classes()> will
-automatically convert it to be appropriate to the current operating system.
-All Perl modules found in the directory will be loaded, but C<load_classes()>
-will only store a the C<Kineti::Meta::Class> object for those modules that
-inherit from C<Kinetic>.
+automatically convert the directory path to the appropriate format for the
+current operating system. All Perl modules found in the directory will be
+loaded, but C<load_classes()> will only store a the C<Kineti::Meta::Class>
+object for those modules that inherit from C<Kinetic>.
 
 =cut
 
@@ -145,7 +145,8 @@ sub load_classes {
   $sg->write_schema($file_name);
   $sg->write_schema($file_name, \%params);
 
-Writes storage schema generation code to C<$file_name>. All classes loaded by
+Writes the data store schema generation code to C<$file_name>. If the file or
+its directory path don't exist, they will be created. All classes loaded by
 C<load_classes()> will have their schemas written to the file. The optional
 hash reference takes a number of possible keys:
 
@@ -159,6 +160,14 @@ classes that have dependencies on other classes (inheritance, composition).
 Classes loaded by C<load_classes()> but not in this list will have their
 schema generation code output after the classes specified by the C<order>
 parameter.
+
+=begin comment
+
+XXX Is there some way we could perhaps be more intelligent about this, to
+analyze the relationships between classes and make a best guess as to the
+order in which the schema generation code should be written out?
+
+=end comment
 
 =item with_kinetic
 
@@ -175,10 +184,12 @@ sub write_schema {
     my (@parts) = split m{/}, shift;
     my $params = shift || {};
     my $file = File::Spec->catfile(@parts);
+
+    # Create the directory, if necessary, and open the file.
     pop @parts;
     my $dir = File::Spec->catdir(@parts);
     mkpath $dir;
-    open my $fh, '>', $file or die "Cannot open '$file': $!\n";
+    open my $fh, '>', $file or croak "Cannot open '$file': $!\n";
 
     if (my $begin = $self->begin_schema) {
         print $fh $begin, "\n";
@@ -216,8 +227,8 @@ sub write_schema {
 
   my $code = $sg->begin_schema;
 
-Returns any schema code necessary for output at the beginning of a schema
-file. Returns C<undef> by default, but subclasses may override it.
+Returns any schema code to be output at the beginning of a schema file.
+Returns C<undef> by default, but subclasses may override it.
 
 =cut
 
@@ -229,8 +240,8 @@ sub begin_schema { return }
 
   my $code = $sg->end_schema;
 
-Returns any schema code necessary for output at the endning of a schema
-file. Returns C<undef> by default, but subclasses may override it.
+Returns any schema code to be output at the end of a schema file. Returns
+C<undef> by default, but subclasses may override it.
 
 =cut
 
@@ -242,9 +253,10 @@ sub end_schema { return }
 
   my $code = $sg->setup_code;
 
-Returns any schema code necessary for setting up a data store. This code will
-be output by C<write_schema()> before any of the class schema code. Returns
-C<undef> by default, but subclasses may override it.
+Returns any schema code necessary for setting up a data store, such as
+sequences or database functions. This code will be output by C<write_schema()>
+before any of the class schema code. Returns C<undef> by default, but
+subclasses may override it.
 
 =cut
 
@@ -258,7 +270,9 @@ sub setup_code { return }
 
 Returns the schema that can be used to build the data store for the class
 passed as an argument. The class can be either a class name or a
-C<Kinetic::Meta::Class> object.
+C<Kinetic::Meta::Class> object, but must have been loaded by
+C<load_classes()>. This method is abstract; it must be implemented by
+subclasses.
 
 =cut
 
@@ -271,14 +285,14 @@ C<Kinetic::Meta::Class> object.
   my $module = $sg->file_to_mod($file);
 
 Converts a file name to a Perl module name. The file name is expected to be a
-relative file name ending in ".pm". It's okay if it starts with "t", "lib", or
-"t/lib"; C<file_to_mod()> will simply strip of those directory names.
+relative file name ending in F<.pm>. If it starts with "t", "lib", or "t/lib",
+C<file_to_mod()> will simply strip off those directory names.
 
 =cut
 
 sub file_to_mod {
     my ($self, $file) = @_;
-    $file =~ s/\.pm$// or die "$file is not a Perl module";
+    $file =~ s/\.pm$// or croak "$file is not a Perl module";
     my (@dirs) = File::Spec->splitdir($file);
     while ($dirs[0] && ($dirs[0] eq 't' || $dirs[0] eq 'lib')) {
         shift @dirs;
