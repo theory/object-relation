@@ -61,16 +61,9 @@ t/lib/TestApp/Simple/One.pm
 t/lib/TestApp/Simple/Two.pm
 t/lib/TieOut.pm
 t/meta.t
-t/mysql_schema.t
 t/noconfig.t
-t/pg_class.t
-t/pg_schema.t
-t/pg_schema_file.t
-t/pg_store_build.t
 t/pod_coverage.t
 t/pod.t
 t/schema_meta.pm
-t/sqlite_schema.t
-t/sqlite_schema_file.t
 t/state.t
 t/test_setup.t
