@@ -3,10 +3,13 @@ use 5.008003;
 use lib 'lib';
 use Kinetic::Build;
 
+# XXX Switch to Module::Build once a new version with support for the
+# "build_class" property has been released.
 my $build = Kinetic::Build->new(
     module_name        => 'Kinetic',
     license            => 'gpl',
     create_makefile_pl => 'passthrough',
+    build_class        => 'Kinetic::Build',
     dist_author        => 'Kineticode, Inc. <info@kineticode.com>',
     requires           => {
         'Class::Meta'           => 0.44,
