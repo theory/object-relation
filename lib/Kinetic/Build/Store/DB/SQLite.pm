@@ -203,8 +203,7 @@ it.
 
 sub dsn {
     my $self = shift;
-    my $file = catfile $self->builder->install_base, 'store', $self->db_file;
-    return sprintf 'dbi:%s:dbname=%s', $self->dsn_dbd, $file;
+    return sprintf 'dbi:%s:dbname=%s', $self->dsn_dbd, $self->_path;
 }
 
 ##############################################################################
@@ -219,9 +218,36 @@ Returns the DSN to be used to connect to SQLite database to build for testing.
 
 sub test_dsn {
     my $self = shift;
-    my $file = catfile $self->builder->test_data_dir, $self->db_file;
-    return sprintf 'dbi:%s:dbname=%s', $self->dsn_dbd, $file;
+    return sprintf 'dbi:%s:dbname=%s', $self->dsn_dbd, $self->_test_path;
 }
+
+##############################################################################
+
+=head3 config
+
+  my @config = $kbs->config;
+
+Returns a list of lines to include in the configuration file's "sqlite" block.
+Called during the build to set up the SQLite store configuration directives to
+be used by the Kinetic store at run time.
+
+=cut
+
+sub config { "    file => '" . shift->_path . "',\n" }
+
+##############################################################################
+
+=head3 test_config
+
+  my @test_config = $kbs->test_config;
+
+Returns a list of lines to include in the test configuration file's "sqlite"
+block. Called during the build to set up the SQLite store configuration
+directives to be used during testing.
+
+=cut
+
+sub test_config { "    file => '" . shift->_test_path . "',\n" }
 
 ##############################################################################
 
@@ -261,10 +287,51 @@ sub test_build {
     return $self;
 }
 
+=begin private
+
+=head1 Private Interface
+
+=head2 Private Instance Methods
+
+=head3 _path
+
+  my $path = $kbs->_path;
+
+Returns the full path to the file to be used for the SQLite database file. It
+is based on the value of the C<install_base> Kinetic::Build property, with a
+subdirectory named "store", and then the nave of the file as set C<db_file()>
+method.
+
+=cut
+
+sub _path {
+    my $self = shift;
+    return catfile $self->builder->install_base, 'store', $self->db_file;
+}
+
+##############################################################################
+
+=head3 _test_path
+
+  my $test_path = $kbs->_test_path;
+
+Returns the path to the file to be used for the SQLite database file used by
+developer tests. It file is named by the C<db_file()> method and is in the
+directory named by the the C<test_data_dir> Kinetic::Build property.
+
+=cut
+
+sub _test_path {
+    my $self = shift;
+    return catfile $self->builder->test_data_dir, $self->db_file;
+}
+
 ##############################################################################
 
 1;
 __END__
+
+=end private
 
 =head1 Copyright and License
 

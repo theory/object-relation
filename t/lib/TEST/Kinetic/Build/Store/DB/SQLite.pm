@@ -45,7 +45,7 @@ sub test_new : Test(4) {
     isa_ok $kbs->info, $kbs->info_class;
 }
 
-sub test_rules : Test(25) {
+sub test_rules : Test(27) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -84,7 +84,8 @@ sub test_rules : Test(25) {
     is_deeply $kbs->{actions}, [['build_db']],
       "... and the actions should be set up";
 
-    # Check the DSNs. Make the install base the same as the test base.
+    # Check the DSNs. Make the install base is the same as the test base
+    # for the purposes of testing.
     $builder->install_base($builder->test_data_dir);
     my $db_file = catfile 't', 'data', 'store', 'fooness';
     is $kbs->dsn, "dbi:SQLite:dbname=$db_file",
@@ -92,6 +93,12 @@ sub test_rules : Test(25) {
     my $test_file = catfile 't', 'data', 'fooness';
     is $kbs->test_dsn, "dbi:SQLite:dbname=$test_file",
       "as should the test DSN";
+
+    # Check the configs.
+    is $kbs->config, "    file => '$db_file',\n",
+      "... and the configuration should be set";
+    is $kbs->test_config, "    file => '$test_file',\n",
+      "... as should the test configuration";
 
     # Try building the test database.
     $builder->source_dir('t/sample');
