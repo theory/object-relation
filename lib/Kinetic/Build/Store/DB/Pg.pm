@@ -22,9 +22,6 @@ use strict;
 use base 'Kinetic::Build::Store::DB';
 use Kinetic::Build;
 use App::Info::RDBMS::PostgreSQL;
-use App::Info::Handler::Carp;
-use App::Info::Handler::Prompt;
-use App::Info::Handler::Print;
 
 =head1 Name
 
@@ -105,8 +102,39 @@ sub create_db {
     my $dbh = $self->_dbh;
     $dbh->do(qq{CREATE DATABASE "$db_name" WITH ENCODING = 'UNICODE'});
     $dbh->disconnect;
+
+    # createlang -U postgres plpgsql template1
+    my $metadata    = $self->metadata;
+    my $info        = App::Info::RDBMS::PostgreSQL->new;
+    my $createlang  = $info->createlang or die "Cannot find createlang";
+    my $root_user   = $metadata->db_root_user;
+    my @options;
+    push @options => ('-h', $metadata->db_host)      if defined $metadata->db_host;
+    push @options => ('-p', $metadata->db_port)      if defined $metadata->db_port;
+    push @options => ('-U', $metadata->db_root_user) if defined $metadata->db_root_user;
+    
+    my $language = 'plpgsql';
+    my @add_plpgsql = ($createlang, @options, $language, $db_name);
+    system(@add_plpgsql) && die "system(@add_plpgsql) failed: $?";
+
     return $self;
 }
+
+# This is the SQL involved.  We may switch to this if the dependency
+# on createlang causes a problem.
+
+#my %createlang = (
+#  '7.4' => [
+#      q{CREATE FUNCTION "plpgsql_call_handler" () RETURNS language_handler AS '$libdir/plpgsql' LANGUAGE C},
+#      q{CREATE TRUSTED LANGUAGE "plpgsql" HANDLER "plpgsql_call_handler"},
+#  ],
+#
+#  '8.0' => [
+#      q{CREATE FUNCTION "plpgsql_call_handler" () RETURNS language_handler AS '$libdir/plpgsql' LANGUAGE C},
+#      q{CREATE FUNCTION "plpgsql_validator" (oid) RETURNS void AS '$libdir/plpgsql' LANGUAGE C},
+#      q{CREATE TRUSTED LANGUAGE "plpgsql" HANDLER "plpgsql_call_handler" VALIDATOR "plpgsql_validator"},
+#  ],
+#);
 
 1;
 __END__

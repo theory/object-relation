@@ -211,9 +211,11 @@ The root or admin database user, which will be used to create the Kinetic
 database and user if they don't already exist. The default is the typical root
 user name for the seleted data store. Not used by the SQLite data store.
 
+Defaults to postgres.
+
 =cut
 
-__PACKAGE__->add_property(db_root_user => '');
+__PACKAGE__->add_property(db_root_user => 'postgres');
 
 ##############################################################################
 

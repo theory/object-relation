@@ -87,11 +87,10 @@ sub metadata { $_[0]->{metadata} }
 
 =head3 build
 
-  $kbs->build($dir);
+  $kbs->build;
 
-Passed the name of a directory where the appropriate classes are located, this
-method will build a database representing those classes in the database
-specified by C<Kinetic::Build>.
+This method will build a database representing classes in the directory
+specified by C<Kinetic::Build::source_dir()>.
 
 =cut
 
@@ -106,17 +105,30 @@ sub build_db {
     my $schema_class = $self->_schema_class;
     eval "use $schema_class";
     die $@ if $@;
-    my $sg = $schema_class->new;
 
-    $sg->load_classes($self->metadata->source_dir);
-    my (@tables, @behaviors);
-    my %seen;
-    for my $class ($sg->classes) {
-        next if $seen{$class->key}++;
-        push @tables    => $sg->table_for_class($class);
-        push @behaviors => $sg->behaviors_for_class($class);
+    my $dbh = $self->_dbh;
+    $dbh->begin_work;
+
+    eval {
+        local $SIG{__WARN__} = sub {
+            my $message = shift;
+            return if $message =~ /NOTICE:/; # ignore postgres warnings
+            warn $message;
+        };
+        my $sg = $schema_class->new;
+        $sg->load_classes($self->metadata->source_dir);
+        $dbh->do($_) foreach 
+          $sg->begin_schema,
+          $sg->setup_code,
+          (map { $sg->schema_for_class($_) } $sg->classes),
+          $sg->end_schema;
+        $dbh->commit;
+    };
+    if (my $err = $@) {
+        $dbh->rollback;
+        die $err;
     }
-    $self->_do(@tables, @behaviors);
+
     return $self;
 }
  
@@ -144,8 +156,8 @@ sub do_actions {
 sub switch_to_db {
     my ($self, $db_name) = @_;
     $self->metadata->db_name($db_name);
+    $self->_dbh->disconnect if $self->_dbh;
     $self->_dbh(undef); # clear wherever we were
-    $self->_dbh;        # and reset it
     return $self;
 } 
 
@@ -154,54 +166,6 @@ sub switch_to_db {
 =head2 Private Methods 
 
 =cut
-
-=head3 _do
-
-  $kbs->_do(@sql);
-
-This method will attempt to C<$dbh-E<gt>do($sql)> until no more SQL can be
-done.  This effectively brute forces the database ordering problem (e.g., when
-you're trying to create a foreign key constraint on a column in a table you
-haven't created yet.)
-
-=cut
-
-sub _do {
-    my $self    = shift;
-    my %actions = map { $_ => 1 } grep { $_ && /\w/ } @_;
-    my $count   = keys %actions;
-    my $dbh     = $self->_dbh;
-
-    my (@failures, $schema_created);
-
-    while ( ! $schema_created ) {
-        foreach my $action (keys %actions) {
-            eval {
-                local $SIG{__WARN__} = sub {};
-                $dbh->do($action)
-            };
-            if ($@) {
-                push @failures => [$action => $@];
-            } else {
-                delete $actions{$action};
-            }
-        }
-        if ( ! @failures ) {
-            $schema_created = 1;
-        } elsif ( $count == keys %actions ) {
-            foreach my $failure (@failures) {
-                warn "Action: \n$failure->[0]\nFailure reason: $@\n----------\n";
-            }
-            die "Database schema creation failed.";
-        } else {
-            @failures = ();
-            $count    = keys %actions;
-        }
-    }
-    return $self;
-}
-
-##############################################################################
 
 =head3 _dbh
 
@@ -216,8 +180,12 @@ sub _dbh {
     my $dsn  = $self->metadata->_dsn;
     my $user = $self->metadata->db_user;
     my $pass = $self->metadata->db_pass;
-    my $dbh = DBI->connect( $dsn, $user, $pass, {RaiseError => 1}) 
-      or require Carp && Carp::croak $DBI::errstr;
+    my $dbh = DBI->connect(
+        $dsn, 
+        $user, 
+        $pass,
+        {RaiseError => 1, AutoCommit => 1}
+    ) or require Carp && Carp::croak $DBI::errstr;
     $self->{dbh} = $dbh;
     return $dbh;
 }

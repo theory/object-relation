@@ -97,6 +97,8 @@ sub _state_machine {
                 $state->machine->{actions} = []; # must never return to start
                 $state->machine->{db_name} = $template;
                 $state->result($self->_is_installed);
+                my $kinetic_db_name = $self->build->db_name || 'kinetic';
+                $self->build->notes(kinetic_db_name => $kinetic_db_name);
             },
             rules => [
                 fail => {
@@ -117,8 +119,6 @@ sub _state_machine {
 
                 my $root = $build->db_root_user || 'postgres';
                 $build->db_root_user($root);
-                # Note that we're caching the db name and altering it!
-                $build->notes(kinetic_db_name => $build->db_name);
                 # Try connecting as root user.
                 my $dbh = $self->_connect_to_pg(
                     $template,
@@ -169,6 +169,7 @@ sub _state_machine {
                 my $state = shift;
                 my $db_name = $self->build->notes('kinetic_db_name');
                 $state->result($self->_db_exists($db_name));
+                $state->machine->{database_exists} = $state->result;
                 if ($state->result) {
                     $self->build->db_name($db_name);
                     $self->build->notes(db_name => $db_name);
@@ -181,11 +182,11 @@ sub _state_machine {
             rules => [
                 database_exists => {
                     rule    => $succeed,
-                    message => qq{Database "$db_name" exists},
+                    message => "Database \"@{[ $self->build->notes('kinetic_db_name') ]}\" exists",
                 },
                 no_database => {
                     rule    => $fail,
-                    message => qq{Database "$db_name" does not exist},
+                    message => "Database \"@{[ $self->build->notes('kinetic_db_name') ]}\" does not exist",
                 }
             ],
         },
@@ -289,7 +290,6 @@ sub _state_machine {
                     $self->_dbh($dbh);
                 }
                 $state->result($self->_plpgsql_available);
-                # but we should not get to here at first
             },
             rules => [
                 done => {
@@ -332,7 +332,8 @@ sub _state_machine {
                 my $state   = shift;
                 my $build   = $self->build;
                 my $machine = $state->machine;
-                push @{$machine->{actions}} => ['build_db'];
+                push @{$machine->{actions}} => ['build_db']
+                  unless $machine->{database_exists};
                 foreach my $attribute (qw/db_name actions user pass db_name/) {
                     $build->notes($attribute => $machine->{$attribute})
                       if $machine->{$attribute};
@@ -492,7 +493,14 @@ database handle on success and undef on failure.
 sub _connect_to_pg {
     my ($self, $db_name, $user, $pass) = @_;
     my $dbh;
-    eval { $dbh = DBI->connect("dbi:Pg:dbname=$db_name", $user, $pass) };
+    eval { 
+        $dbh = DBI->connect(
+            "dbi:Pg:dbname=$db_name",
+            $user, 
+            $pass,
+            { RaiseError => 1, AutoCommit => 0 }
+        )
+    };
     return $dbh;
 }
 
