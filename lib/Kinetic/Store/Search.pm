@@ -80,7 +80,7 @@ Kinetic::Store::Search - Manage Kinetic search parameters
       attr         => $attr,
       operator     => $operator,
       negated      => $negated,
-      place_holder => $place_holder, 
+      place_holder => $place_holder,
       data         => $data,
       search_class => $search_class,
   );
@@ -92,7 +92,7 @@ Kinetic::Store::Search - Manage Kinetic search parameters
 =head1 Description
 
 This class manages all of the data necessary for creation of individual search
-tokens ("name = 'foo'", "age >= 21", etc.).  When enough slots are filled,
+tokens ("name = 'foo'", "age >= 21", etc.). When enough slots are filled,
 calling C<store_method> will return the name of the method that will generate
 the appropriate search token.
 
@@ -107,19 +107,20 @@ the appropriate search token.
 =head3 new
 
   my $search = Kinetic::Store::Search->new;
-  # or 
+  # or
   my $search = Kinetic::Store::Search->new(
       attr         => $attr,
       operator     => $operator,
       negated      => $negated,
-      place_holder => $place_holder, 
+      place_holder => $place_holder,
       data         => $data,
       search_class => $search_class,
   );
 
 Creates and returns a new search manager.
 
-If passed named parameters, those respective slots will be populated with the values.
+If passed named parameters, those respective slots will be populated with the
+values.
 
 =cut
 
@@ -173,7 +174,7 @@ sub search_method {
         local $^W;
         "Don't know how to search for ($attr $neg $op $value)";
     };
-    croak "$error:  undefined op" unless defined $op;
+    croak "$error: undefined op" unless defined $op;
     if ( ref $value && ! blessed($value) && 'ARRAY' ne ref $value) {
         croak "$error: don't know how to handle value.";
     }
@@ -187,8 +188,8 @@ sub data {
     if (@_) {
         my $data = shift;
         $self->{data} = $data;
-        # XXX Is this too early?  If it is, we should push this test into
-        # the operator() method.  For now, it works and all tests pass.
+        # XXX Is this too early? If it is, we should push this test into
+        # the operator() method. For now, it works and all tests pass.
         unless ($self->operator) {
              $self->operator('ARRAY' eq ref $data ? 'BETWEEN' : 'EQ');
         }
@@ -201,7 +202,7 @@ sub _ANY_SEARCH {
     my $search = shift;
     my $data   = $search->data;
     unless ('ARRAY' eq ref $data) {
-        croak "PANIC:  ANY search data is not an array ref.  This should never happen.";
+        croak "PANIC: ANY search data is not an array ref. This should never happen.";
     }
     my %types;
     {
@@ -213,27 +214,27 @@ sub _ANY_SEARCH {
     }
     return Incomplete eq ref $data->[0]
         ? '_date_handler'
-        : '_ANY_SEARCH'; 
+        : '_ANY_SEARCH';
 }
 
 sub _BETWEEN_SEARCH {
     my $search = shift;
     my $data   = $search->data;
     unless ('ARRAY' eq ref $data) {
-        croak "PANIC:  BETWEEN search data is not an array ref.  This should never happen.";
+        croak "PANIC: BETWEEN search data is not an array ref. This should never happen.";
     }
     unless (2 == @$data) {
         my $count = @$data;
         my $plural = 1 == $count? '' : 's';
-        croak "BETWEEN searches should have two terms.  You have $count term$plural.";
+        croak "BETWEEN searches should have two terms. You have $count term$plural.";
     }
     if (ref $data->[0] ne ref $data->[1]) {
         my ($ref1, $ref2) = (ref $data->[0], ref $data->[1]);
-        croak "BETWEEN searches must be between identical types.  You have ($ref1) and ($ref2)";
+        croak "BETWEEN searches must be between identical types. You have ($ref1) and ($ref2)";
     }
     return Incomplete eq ref $data->[0]
         ? '_date_handler'
-        : '_BETWEEN_SEARCH'; 
+        : '_BETWEEN_SEARCH';
 }
 
 sub _am_i_eq_or_not {
@@ -258,7 +259,7 @@ sub _am_i_eq_or_not {
 
   $search->attr([$attr]);
 
-Getter/Setter for the field attribute you wish to search on.
+Getter/Setter for the field attribute on wich you wish to search.
 
 ##############################################################################
 
@@ -266,7 +267,7 @@ Getter/Setter for the field attribute you wish to search on.
 
   $search->data([$data]);
 
-Getter/Setter for the data you with to search for.
+Getter/Setter for the data you wish to search for.
 
 ##############################################################################
 
@@ -274,7 +275,8 @@ Getter/Setter for the data you with to search for.
 
   $search->negated(['NOT']);
 
-Getter/Setter for whether or not the current search logic is negated.
+Getter/Setter for the boolean attribute that determines whether or not the
+current search logic is negated.
 
 ##############################################################################
 
@@ -282,7 +284,7 @@ Getter/Setter for whether or not the current search logic is negated.
 
   $search->operator([$operator]);t
 
-Getter/Setter for which operator is being used for the current search.
+Getter/Setter identifying which operator is being used for the current search.
 Examples are 'LE', 'EQ', 'LIKE', etc.
 
 ##############################################################################
@@ -291,7 +293,7 @@ Examples are 'LE', 'EQ', 'LIKE', etc.
 
   $search->place_holder([$place_holder]);
 
-Getter/Setter for the place holder to use in DB store apps.
+Getter/Setter for the place holder to use in Database store apps, such as '?'.
 
 ##############################################################################
 
@@ -302,7 +304,6 @@ Getter/Setter for the place holder to use in DB store apps.
 Getter/Setter for the current search class.
 
 =cut
-
 
 1;
 __END__
