@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use lib 't/lib';
 use Kinetic::TestSetup store => { class => 'Kinetic::Store::DB::Pg' };
-use Test::More tests => 12;
+use Test::More tests => 14;
 
 package main;
 
@@ -44,7 +44,7 @@ $sql =~ s/[ ]+/ /g;
 is $sql, $testsql, "Check Simple class SQL";
 
 ##############################################################################
-# Check the SQL generated for the subclass.
+# Check the SQL generated for the One subclass.
 my $one = $classes[1];
 
 ( $testsql = q{CREATE TABLE one (
@@ -61,5 +61,26 @@ ok $sql = $sg->schema_for_class($one), "Get schema for One class";
 $sql =~ s/[ ]+/ /g;
 is $sql, $testsql, "Check One class SQL";
 
+##############################################################################
+# Check the SQL generated for the Two subclass.
+my $two = $classes[2];
 
+( $testsql = q{CREATE TABLE two (
+    simple_id   INTEGER  NOT NULL PRIMARY KEY,
+    one_id      INTEGER  NOT NULL
+);
 
+ALTER TABLE two
+ ADD CONSTRAINT fk_simple_id FOREIGN KEY (simple_id)
+ REFERENCES simple(id) ON DELETE CASCADE;
+
+ALTER TABLE two
+ ADD CONSTRAINT fk_one_id FOREIGN KEY (one_id)
+ REFERENCES one(simple_id) ON DELETE CASCADE;
+}) =~ s/[ ]+/ /g;
+
+ok $sql = $sg->schema_for_class($two), "Get schema for Two class";
+$sql =~ s/[ ]+/ /g;
+is $sql, $testsql, "Check Two class SQL";
+
+# XXX Need to add code to add updatable views...

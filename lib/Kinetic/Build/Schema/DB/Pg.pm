@@ -20,6 +20,7 @@ package Kinetic::Build::Schema::DB::Pg;
 
 use strict;
 use base 'Kinetic::Build::Schema::DB';
+use Carp;
 
 =head1 Name
 
@@ -50,9 +51,23 @@ my %types = (
     datetime => 'TIMESTAMP',
 );
 
-sub column_type {
+sub column_name {
     my ($self, $attr) = @_;
-    return " $types{$attr->type}";
+    return $self->SUPER::column_name($attr) if $types{$attr->type};
+    # Assume it's an object reference.
+    return "    " . $attr->name . "_id";
+}
+
+sub column_type {
+    my ($self, $class, $attr) = @_;
+    my $type = $attr->type;
+    return " $types{$type}" if $types{$type};
+    my $fk_class = Kinetic::Meta->for_key($type)
+      or croak "No such data type: $type";
+    # We need to note that an FK constraint needs to be added to refer to the
+    # table of this object.
+    push @{$self->{$class->key . "_fk_classes"}}, $fk_class;
+    return " INTEGER";
 }
 
 sub index_on {
@@ -69,11 +84,12 @@ sub output_constraints {
     my @fks;
     for my $fk_class (@{$self->{"$key\_fk_classes"}}) {
         my $fk_table = $fk_class->key;
+        my $pk_col = $self->{"$fk_table\_pk"};
         push @fks, "ALTER TABLE $key\n"
           . "  ADD CONSTRAINT fk_$fk_table\_id FOREIGN KEY ($fk_table\_id)\n"
-          . "  REFERENCES $fk_table(id) ON DELETE CASCADE;";
+          . "  REFERENCES $fk_table($pk_col) ON DELETE CASCADE;";
     }
-    $self->{"$key\_constraints"} = join "\n", @fks;
+    $self->{"$key\_constraints"} = join "\n\n", @fks;
 }
 
 sub start_schema {

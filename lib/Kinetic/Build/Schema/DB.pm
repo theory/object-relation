@@ -118,11 +118,14 @@ sub prepare_attributes {
 
 sub pk_column {
     my ($self, $class) = @_;
+    my $key = $class->key;
     if (my $fk_class = $self->{$class->key . "_pk_fk_class"}) {
         my $table = $fk_class->key;
-        push @{$self->{$class->key . '_fk_classes'}}, $fk_class;
+        push @{$self->{"$key\_fk_classes"}}, $fk_class;
+        $self->{"$key\_pk"} = "$table\_id";
         return "$table\_id INTEGER NOT NULL PRIMARY KEY";
     } else {
+        $self->{"$key\_pk"} = "id";
         return "id INTEGER NOT NULL PRIMARY KEY DEFAULT NEXTVAL('seq_kinetic')";
     }
 }
@@ -178,7 +181,7 @@ sub output_columns {
     my $key = $class->key;
     $self->{"$key\_table"} .= join ",\n    ",
       "    " . $self->pk_column($class),
-      map { $self->generate_column($_) } @{$self->{"$key\_attrs"}};
+      map { $self->generate_column($class, $_) } @{$self->{"$key\_attrs"}};
     return $self;
 }
 
@@ -195,9 +198,9 @@ C<Kinetic::Meta::Attribute> object passed to the method.
 =cut
 
 sub generate_column {
-    my ($self, $attr, $buffers) = @_;
+    my ($self, $class, $attr) = @_;
     return $self->column_name($attr)
-      . $self->column_type($attr)
+      . $self->column_type($class, $attr)
       . $self->column_null($attr)
       . $self->column_default($attr);
 }
