@@ -254,7 +254,7 @@ is $two->table, 'simple_two', "... Two class has table 'simple_two'";
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE simple_two (
     id INTEGER NOT NULL PRIMARY KEY REFERENCES _simple(id) ON DELETE CASCADE,
-    one_id INTEGER NOT NULL REFERENCES simple_one(id) ON DELETE CASCADE,
+    one_id INTEGER NOT NULL REFERENCES simple_one(id) ON DELETE RESTRICT,
     age INTEGER,
     date TEXT NOT NULL
 );
@@ -313,7 +313,10 @@ END;
 CREATE TRIGGER fkd_two_one_id
 BEFORE DELETE ON simple_one
 FOR EACH ROW BEGIN
-  DELETE from simple_two WHERE one_id = OLD.id;
+  SELECT CASE
+    WHEN (SELECT one_id FROM simple_two WHERE one_id = OLD.id) IS NOT NULL
+    THEN RAISE(ABORT, 'delete on table "simple_one" violates foreign key constraint "fk_two_one_id"')
+  END;
 END;
 };
 eq_or_diff $sg->constraints_for_class($two), $constraints,
@@ -387,7 +390,7 @@ $table = q{CREATE TABLE _composed (
     name TEXT COLLATE nocase NOT NULL,
     description TEXT COLLATE nocase,
     state INTEGER NOT NULL DEFAULT 1,
-    one_id INTEGER REFERENCES simple_one(id) ON DELETE CASCADE
+    one_id INTEGER REFERENCES simple_one(id) ON DELETE RESTRICT
 );
 };
 eq_or_diff $sg->table_for_class($composed), $table,
@@ -451,7 +454,10 @@ END;
 CREATE TRIGGER fkd_composed_one_id
 BEFORE DELETE ON simple_one
 FOR EACH ROW BEGIN
-  DELETE from _composed WHERE one_id = OLD.id;
+  SELECT CASE
+    WHEN (SELECT one_id FROM _composed WHERE one_id = OLD.id) IS NOT NULL
+    THEN RAISE(ABORT, 'delete on table "simple_one" violates foreign key constraint "fk_composed_one_id"')
+  END;
 END;
 };
 eq_or_diff $sg->constraints_for_class($composed), $constraints,

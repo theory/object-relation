@@ -86,7 +86,7 @@ returns true). The possible values for this attributes are:
 
 =back
 
-The default is "CASCADE".
+The default is "RESTRICT".
 
 =cut
 
@@ -196,8 +196,7 @@ sub build {
     my $self = shift;
     $self->SUPER::build(@_);
     if ($self->references) {
-        # XXX We should probably default to RESTRICT here.
-        $self->{on_delete} ||= 'CASCADE';
+        $self->{on_delete} ||= 'RESTRICT';
     } else {
         delete $self->{on_delete};
     }

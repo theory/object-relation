@@ -226,7 +226,7 @@ ALTER TABLE simple_two
 
 ALTER TABLE simple_two
   ADD CONSTRAINT fk_one_id FOREIGN KEY (one_id)
-  REFERENCES simple_one(id) ON DELETE CASCADE;
+  REFERENCES simple_one(id) ON DELETE RESTRICT;
 };
 eq_or_diff $sg->constraints_for_class($two), $constraints,
   "... Schema class generates CONSTRAINT statement";
@@ -317,7 +317,7 @@ $constraints = q{ALTER TABLE _composed
 
 ALTER TABLE _composed
   ADD CONSTRAINT fk_one_id FOREIGN KEY (one_id)
-  REFERENCES simple_one(id) ON DELETE CASCADE;
+  REFERENCES simple_one(id) ON DELETE RESTRICT;
 
 CREATE FUNCTION composed_one_id_once() RETURNS trigger AS '
   BEGIN
