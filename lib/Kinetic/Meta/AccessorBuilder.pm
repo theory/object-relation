@@ -73,6 +73,104 @@ the same name as the attribute itself.
 
 =cut
 
+my $thaw = sub {
+    $_[0] =~ m/^(\d\d\d\d).(\d\d).(\d\d).(\d\d).(\d\d).(\d\d)(\.\d*)?/;
+    return Kinetic::DateTime->new(
+        year       => $1,
+        month      => $2,
+        day        => $3,
+        hour       => $4,
+        minute     => $5,
+        second     => $6,
+        nanosecond => $7 ? $7 * 1.0E9 : 0
+    );
+};
+
+my %builders = (
+    default => {
+        get => sub {
+            my $name = shift;
+            return sub {
+                # XXX Turn off this error in certain modes?
+                throw_read_only(['Cannot assign to read-only attribute "[_1]"',
+                                 $name])
+                  if @_ > 1;
+                $_[0]->{$name};
+            };
+        },
+        getset => sub {
+            my ($name, @checks) = @_;
+            return sub {
+                my $self = shift;
+                return $self->{$name} unless @_;
+                # Assign the value.
+                $self->{$name} = shift;
+                return $self;
+            } unless @checks;
+            return sub {
+                my $self = shift;
+                return $self->{$name} unless @_;
+                # Check the value passed in.
+                $_->($_[0]) for @checks;
+                # Assign the value.
+                $self->{$name} = $_[0];
+                return $self;
+            };
+        },
+    },
+    state => {
+        # State is always get/set.
+        getset => sub {
+            my ($name, @checks) = @_;
+            return sub {
+                my $self = shift;
+                unless (@_) {
+                    return ref $self->{$name}
+                      ? $self->{$name}
+                      : $self->{$name} = Kinetic::Util::State->new($self->{$name})
+                }
+                # Check the value passed in.
+                $_->($_[0]) for @checks;
+                # Assign the value.
+                $self->{$name} = shift;
+                return $self;
+            };
+        },
+    },
+    datetime => {
+        get => sub {
+            my $name = shift;
+            return sub {
+                # XXX Turn off this error in certain modes?
+                throw_read_only(['Cannot assign to read-only attribute "[_1]"',
+                                 $name])
+                  if @_ > 1;
+                # Do we need to inflate the DateTime object?
+                $_[0]->{$name} = $thaw->($_[0]->{$name})
+                  if $_[0]->{$name} and not ref $_[0]->{$name};
+                return $_[0]->{$name};
+            };
+        },
+        getset => sub {
+            my ($name, @checks) = @_;
+            return sub {
+                my $self = shift;
+                unless (@_) {
+                    # Do we need to inflate the DateTime object?
+                    $self->{$name} = $thaw->($self->{$name})
+                      if $self->{$name} and not ref $self->{$name};
+                    return $self->{$name};
+                }
+                # Check the value passed in.
+                $_->($_[0]) for @checks;
+                # Assign the value.
+                $self->{$name} = shift;
+                return $self;
+            };
+        },
+    }
+);
+
 sub build {
     my ($pkg, $attr, $create, @checks) = @_;
     unshift @checks, $req_chk if $attr->required;
@@ -117,37 +215,13 @@ sub build {
     }
 
     # If we get here, it's an object attribute.
+    my $builder = $builders{$attr->type} || $builders{default};
     if ($create == Class::Meta::GET) {
         # Create GET accessor.
-        *{"${pkg}::$name"} = sub {
-            # XXX Turn off this error in certain modes?
-            throw_read_only(['Cannot assign to read-only attribute "[_1]"',
-                             $name])
-              if @_ > 1;
-            $_[0]->{$name};
-        };
-
+        *{"${pkg}::$name"} = $builder->{get}->($name);
     } else {
         # Create GETSET accessor(s).
-        if (@checks) {
-            *{"${pkg}::$name"} = sub {
-                my $self = shift;
-                return $self->{$name} unless @_;
-                # Check the value passed in.
-                $_->($_[0]) for @checks;
-                # Assign the value.
-                $self->{$name} = $_[0];
-                return $self;
-            };
-        } else {
-            *{"${pkg}::$name"} = sub {
-                my $self = shift;
-                return $self->{$name} unless @_;
-                # Assign the value.
-                $self->{$name} = shift;
-                return $self;
-            };
-        }
+        *{"${pkg}::$name"} = $builder->{getset}->($name, @checks);
     }
 }
 

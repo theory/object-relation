@@ -74,6 +74,11 @@ my $utc = DateTime::TimeZone::UTC->new;
 
 sub new { shift->SUPER::new(time_zone => $utc, @_) }
 
+sub raw {
+    my $self = shift;
+    return $self->iso8601 . '.' . $self->microsecond;
+}
+
 1;
 __END__
 
