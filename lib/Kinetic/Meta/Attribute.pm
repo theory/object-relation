@@ -46,6 +46,14 @@ directly.
 
 =end comment
 
+=cut
+
+sub new {
+    my $self = shift->SUPER::new(@_);
+    $self->{indexed} ||= $self->{unique};
+    return $self;
+}
+
 =head1 Dynamic APIs
 
 This class supports the dynamic loading of extra methods specifically designed
@@ -62,12 +70,6 @@ view columns in the database.
 =back
 
 =cut
-
-sub new {
-    my $self = shift->SUPER::new(@_);
-    $self->{indexed} ||= $self->{unique};
-    return $self;
-}
 
 sub import {
     my ($pkg, $api_label) = @_;
