@@ -599,6 +599,7 @@ sub check_pg {
     # Check for database accessibility. Rules:
     $pg->createlang
         or $self->_fatal_error("createlang must be available for plpgsql support");
+
     # * If the database in the db_name property exists, we must be able to
     #   access it with db_user and be able to create tables, views, sequences,
     #   functions, triggers, rules, etc.
@@ -606,7 +607,13 @@ sub check_pg {
     # * If the database doesn't exist, we must have db_root_user so that
     #   we can create it. We might also need a value for db_root_pass, too.
 
-    $self->db_host('localhost') if $self->db_port and ! defined $self->db_host;
+    require DBI;
+    my $dbi = DBI->connect(
+        "dbi:Pg:dbname=".$self->db_name, 
+        $self->db_user, 
+        $self->db_pass,
+    );
+    $self->_fatal_error('DBI->connect failed: '.DBI->errstr) if DBI->errstr;
 
     # We're good to go. Collect the configuration data.
     my %info = (

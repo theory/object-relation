@@ -1,10 +1,11 @@
+#!/usr/bin/perl -w
 
 # $Id$
 
 use strict;
 use Test::MockModule;
 #use Test::More 'no_plan';
-use Test::More tests => 70;
+use Test::More tests => 66;
 use Test::File;
 use Test::File::Contents;
 use lib 't/lib';
@@ -150,7 +151,10 @@ file_not_exists_ok 't/conf/test.conf',
       '... The store class attribute should be correct';
 
     # Built it.
+    my $module = Test::MockModule->new('DBI');
+    $module->mock('connect', sub {1});
     $build->dispatch('build');
+    undef $module;
     ok $stdout->read, '... There should be output to STDOUT after build';
 
     # We should not have files for SQLite databases.
@@ -183,9 +187,9 @@ file_not_exists_ok 't/conf/test.conf',
     my $sqlite = Test::MockModule->new('App::Info::RDBMS::SQLite');
     $sqlite->mock( 'installed', sub {0} );
     my $class  = Test::MockModule->new($CLASS);
-    $class->mock("_fatal_error" => sub { @error = @_; die });
+    $class->mock("_fatal_error" => sub { shift; @error = @_; die });
     eval {$build->ACTION_check_store};
-    like $error[1],
+    like $error[0],
         qr/SQLite is not installed./,
         '... and it should warn you if SQLite is not installed';
 
@@ -193,7 +197,7 @@ file_not_exists_ok 't/conf/test.conf',
     $sqlite->mock('installed', sub { 1 } );
     $sqlite->mock('version',   sub { '2.0.0' } );
     eval {$build->ACTION_check_store};
-    like $error[1].$error[2],
+    like $error[0].$error[1],
         qr/SQLite version 2.0.0 is installed, but we need version .* or newer/,
         '... and it should warn you if SQLite is not a new enough version';
     
@@ -201,7 +205,7 @@ file_not_exists_ok 't/conf/test.conf',
     $sqlite->mock('version', sub { 4.0 } );
     $sqlite->mock('executable', sub { 0 } );
     eval {$build->ACTION_check_store};
-    like $error[1],
+    like $error[0],
         qr/DBD::SQLite is installed but we require the sqlite3 executable/,
         '... and it should warn you if the sqlite executable is not installed';
 
@@ -223,9 +227,9 @@ file_not_exists_ok 't/conf/test.conf',
     my $pg = Test::MockModule->new('App::Info::RDBMS::PostgreSQL');
     $pg->mock( 'installed', sub {0} );
     my $class  = Test::MockModule->new($CLASS);
-    $class->mock("_fatal_error" => sub { @error = @_; die });
+    $class->mock("_fatal_error" => sub { shift; @error = @_; die });
     eval {$build->ACTION_check_store};
-    like $error[1],
+    like $error[0],
         qr/PostgreSQL is not installed./,
         '... and it should warn you if Postgres is not installed';
 
@@ -233,36 +237,31 @@ file_not_exists_ok 't/conf/test.conf',
     $pg->mock('installed', sub { 1 } );
     $pg->mock('version',   sub { '2.0.0' } );
     eval {$build->ACTION_check_store};
-    like $error[1].$error[2],
+    like $error[0].$error[1],
         qr/PostgreSQL version 2.0.0 is installed, but we need version .* or newer/,
         '... and it should warn you if PostgreSQL is not a new enough version';
 
     @error = ();
     $pg->mock('version' => sub { '7.4.5' });
     $pg->mock('createlang' => sub {''});
+
+    my $mockdbi = Test::MockModule->new('DBI');
+    $mockdbi->mock('connect', sub {1});
     eval {$build->ACTION_check_store};
-    like $error[1], qr/createlang must be available for plpgsql support/,
+    like $error[0], qr/createlang must be available for plpgsql support/,
         '... and it should warn you if createlang is not available';
     
     @error = ();
-    $pg->mock('createlang' => sub {'createlang'});
-    $build->db_port(2222);
-    $build->db_host(undef);
-    $pg->mock('executable' => sub {'pgsql'} );
-    isa_ok $build->ACTION_check_store => $CLASS;
-    is $build->db_host, 'localhost',
-        '... if db_port is set and db_host is not, the latter should default to localhost';
-    ok(!@error, '... and if all parameters are correct, we should have no errors');
-
-    @error = ();
-    $pg->mock('createlang' => sub {'createlang'});
-    $build->db_port(2222);
-    $build->db_host('some.host');
-    $pg->mock('executable' => sub {'pgsql'} );
-    $build->ACTION_check_store;
-    is $build->db_host, 'some.host',
-        '... if db_port and db_host are both set, the latter should not default to localhost';
-    ok(!@error, '... and if all parameters are correct, we should have no errors');
+    $mockdbi->unmock('connect');
+    $pg->mock('createlang' => sub {1});
+    $build->db_name('no_such_database');
+    $build->notes(got_store => 0); 
+    eval{
+        local $SIG{__WARN__} = sub{}; # we know the DBI warning is there.  We don't care.
+        $build->ACTION_check_store;
+    };
+    like $error[0], qr/DBI->connect failed: FATAL:  database "no_such_database" does not exist/,
+        '... and if it cannot find the database, it will tell us this';
 }
 
 END {
