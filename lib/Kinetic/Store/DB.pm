@@ -21,6 +21,7 @@ package Kinetic::Store::DB;
 use strict;
 use base qw(Kinetic::Store);
 use DBI;
+use Scalar::Util qw/blessed/;
 use Carp qw/croak/;
 
 use aliased 'Kinetic::Meta';
@@ -28,6 +29,7 @@ use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Util::State';
 
 use constant GROUP_OP => qr/^(?:AND|OR)$/;
+use constant OBJECT_DELIMITER => '__';
 
 =head1 Name
 
@@ -193,7 +195,7 @@ sub _search {
     my ($self, @search_params) = @_;
     return $self->_full_text_search(@search_params) 
         if 1 == @search_params && ! ref $search_params[0];
-    $self->_set_search_data;
+    $self->_set_search_data unless exists $self->{search_data};
     my $attributes = join ', ' => @{$self->{search_data}{fields}};
     my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
         "id, $attributes",
@@ -250,6 +252,7 @@ sub count {
     my $self = $proto->_from_proto;
     $self->_cache_statement(0);
     local $self->{search_class} = $search_class;
+    $self->_set_search_data unless exists $self->{search_data};
     my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
         'count(*)',
         \@search_params
@@ -339,7 +342,7 @@ Given an attribute object, C<_get_name> will return the SQL column name.
 sub _get_name {
     my ($self, $attr) = @_;
     my $name = $attr->name;
-    $name   .= '__id' if $attr->references;
+    $name   .= OBJECT_DELIMITER.'id' if $attr->references;
     return $name;
 }
 
@@ -517,7 +520,6 @@ sub _build_object_from_hashref {
     my ($self, $hashref) = @_;
     my %objects;
     my $metadata = $self->{search_data}{metadata};
-#    @objects{keys %$metadata} = undef; # XXX I don't think this is necessary.
     while (my ($package, $data) = each %$metadata) {
         my $fields = $data->{fields};
         # XXX Is the distinction here due to IDs?
@@ -533,8 +535,8 @@ sub _build_object_from_hashref {
         $objects{$package} = bless \%object => $package;
     }
     # XXX Aack!  This is fugly.
-    while (my ($package, $data) = each %{$self->{search_data}{metadata}}) {
-        if (my $contains = $data->{contains}) {
+    while (my ($package, $data) = each %$metadata) {
+        if (defined (my $contains = $data->{contains})) {
             while (my ($key, $contained) = each %$contains) {
                 delete $objects{$package}{$key};
                 my $contained_package = $contained->package;
@@ -590,7 +592,7 @@ sub _set_search_data {
                         $packages{$class->package}{fields}{$field} = 'id';
                         push @classes_to_process => {
                             class  => $class,
-                            prefix => $class->key . '__',
+                            prefix => $class->key . OBJECT_DELIMITER,
                         };
                         $packages{$package}{contains}{$name} = $class;
                     }
@@ -673,6 +675,7 @@ sub _make_where_clause_recursive {
         my $curr_search_param = shift @$search_params;
         unless (ref $curr_search_param) {
             # name => 'foo'
+            $curr_search_param =~ s/\./@{[OBJECT_DELIMITER]}/g;
             my $value = shift @$search_params;
             ($where_token, $bindings) = $self->_make_where_token($curr_search_param, $value);
         }
@@ -763,30 +766,60 @@ sub _make_where_token {
     my ($self, $field, $search_param) = @_;
 
     my ($negated, $comparator, $value) = $self->_expand_search_param($search_param);
+    unless (grep $_ eq $field => @{$self->{search_data}{fields}}) {
+        # special case for searching on a contained object id ...
+        my $id_field = $field . OBJECT_DELIMITER . 'id';
+        unless (grep $_ eq $id_field => @{$self->{search_data}{fields}}) {
+            croak "Don't know how to search for ($field $negated $comparator $value)";
+        }
+        $field = $id_field;
+        $value = 'ARRAY' eq ref $value
+            ? [map $self->_get_id_from_object($_) => @$value]
+            : $self->_get_id_from_object($value);
+    }
 
     $comparator ||=  'ARRAY' eq ref $value ? 'BETWEEN' : 'EQ';
     my $token_handler = $self->_comparison_handler($comparator)
-        or croak "Don't know how to make do a search for ($negated $comparator $value)";
+        or croak "Don't know how to search for ($field $negated $comparator $value)";
     if (ref $value && ('ARRAY' ne ref $value || grep {ref} @$value)) {
-        croak "Don't know how to make do a search for ($negated $comparator $value)";
+        croak "Don't know how to search for ($field $negated $comparator $value)";
     }
     return $token_handler->($self, $field, $negated, $comparator, $value);
 }
 
+sub _get_id_from_object {
+    my ($self, $object) = @_;
+    #unless (blessed ($object) && $object->isa('Kinetic::Meta')) {
+    #    croak "Don't know how to search for $object";
+    #}
+    return $object->{id};
+}
+
 sub _is_case_insensitive {
     my ($self, $field) = @_;
-    my $orig_field = $field;
-    if ($self->{search_class} && $field ne 'id') {
-        my $type = $self->{search_class}->attributes($field)->type;
+    my $orig_field     = $field;
+    my $search_class   = $self->{search_class};
+    if ($field =~ /@{[OBJECT_DELIMITER]}/) {
+        my ($key,$field2) = split /@{[OBJECT_DELIMITER]}/ => $field;
+        $search_class = Kinetic::Meta->for_key($key)
+          or croak "Cannot determine class for key ($key)";
+        $field = $field2;
+    }
+    if ($search_class && $field ne 'id') {
+        my $type = $search_class->attributes($field)->type;
         foreach my $ifield ($self->_case_insensitive_types) {
             if ($type eq $ifield) {
-                $field = "LOWER($field)";
+                $field = "LOWER($orig_field)";
                 last;
             }
         }
     }
-    my $place_holder =  $field eq $orig_field ? '?' : 'LOWER(?)';
-    return ($field, $place_holder);
+    if ($field =~ /^LOWER/) {
+        return ($field, 'LOWER(?)');
+    }
+    else {
+        return ($orig_field, '?');
+    }
 }
 
 sub _expand_search_param {
@@ -1007,6 +1040,8 @@ sub _constraint_order_by {
     my $sort_order = $constraints->{sort_order};
     $value      = [$value]      unless 'ARRAY' eq ref $value;
     $sort_order = [$sort_order] unless 'ARRAY' eq ref $sort_order;
+    # normalize . to __
+    s/\./@{[OBJECT_DELIMITER]}/g foreach @$value; # one.name -> one__name
     my @sorts;
     # XXX Perl 6 would so rock for this...
     for my $i (0 .. $#$value) {

@@ -87,6 +87,55 @@ sub _clear_database {
     $test->{dbi_mock}->mock(commit => 1);
 }
 
+sub search_compound : Test(9) {
+    my $test = shift;
+    $test->_clear_database;
+    can_ok Store, 'search';
+    my $foo = Two->new;
+    $foo->name('foo');
+    $foo->age(13);
+    $foo->one->name('foo_name');
+    Store->save($foo);
+    my $bar = Two->new;
+    $bar->name('bar');
+    $bar->age(29);
+    $bar->one->name('bar_name');
+    Store->save($bar);
+    my $baz = Two->new;
+    $baz->age(33);
+    $baz->name('snorfleglitz');
+    $baz->one->name('snorfleglitz_rulez_d00d');
+    Store->save($baz);
+    my $class   = $foo->my_class;
+    my $store = Store->new;
+    my $iterator = Store->search($class, 'one.name' => 'foo_name');
+    my @results = _all_items($iterator);
+    is @results, 1, 'We should be able to search on the key fields of contained objects';
+    is_deeply \@results, [$foo], '... and get the correct results';
+
+    $iterator = Store->search($class, 
+        'one.name' => LIKE '%name',
+        {order_by => 'one.name'}
+    );
+    @results = _all_items($iterator);
+    is @results, 2, '... and we should even be able to order by those fields';
+    is_deeply \@results, [$bar,$foo], '... and get the correct results';
+
+    my $one = $foo->one;
+    $iterator = Store->search($class, one => $one);
+    @results = _all_items($iterator);
+    is @results, 1, '... and we should be able to search on just an object';
+    is_deeply $results[0], $foo, 
+        '... and it should return the correct object';
+    $iterator = Store->search($class, 
+        one => $one, OR('one.name' => 'bar_name'),
+        {order_by => 'one.name'},
+    );
+    @results = _all_items($iterator);
+    is @results, 2, '... and we should even be able to order by those fields';
+    is_deeply \@results, [$bar,$foo], '... and get the correct results';
+}
+
 sub limit : Test(12) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
@@ -225,6 +274,7 @@ sub search_guids : Test(10) {
 
 sub where_token : Test(2) {
     my $store = Store->new;
+    $store->{search_data}{fields} = ['name']; # so it doesn't think it's an object search
     throws_ok {$store->_make_where_token('name', MATCH '(a|b)%')}
         qr/MATCH:  SQLite does not support regular expressions/,
         'Trying to use a regex match with SQLite should croak';
@@ -515,7 +565,6 @@ sub search_lt : Test(6) {
 }
 
 sub search_eq : Test(14) {
-#local $ENV{DEBUG} = 1;
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
@@ -711,7 +760,6 @@ sub search_in : Test(6) {
 sub save_compound : Test(3) {
     my $test = shift;
     can_ok Store, 'search';
-    #my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $foo = Two->new;
     $foo->name('foo');
     $foo->age(13);
@@ -729,10 +777,6 @@ sub save_compound : Test(3) {
     Store->save($baz);
     my $class   = $foo->my_class;
     my $store = Store->new;
-    #use Data::Dumper::Simple;
-    #$Data::Dumper::Indent = 1;
-    #diag(Dumper(Store->_from_proto, $class));
-    #<STDIN>;
     my $iterator = Store->search($class, age => [12 => 30]);
     my @results = _all_items($iterator);
     is @results, 2, 'Searching on a range should return the correct number of results';

@@ -623,6 +623,12 @@ even if our phony contact objects stringify to their value attributes, an
 argument to a C<contact> search parameter will always search by the contact
 object ID:
 
+  # XXX the docs say "ID", but this says GUID.  Which is it?
+  # right now I'll assume ID as its easier.  However, is this
+  # distinction necessary?  Is it OK to just search by "person
+  # has this object" and complete hide from the developer the
+  # fact that it's joining on anything?
+
   # Search by contact object GUID.
   my $iter = $store->search('Kinetic::Phony::Person' =>
                             'contact' => $contact);

@@ -46,6 +46,7 @@ sub where_token : Test(26) {
     can_ok $store, '_make_where_token';
     $store->{search_class} = One->new->my_class;
 
+    $store->{search_data}{fields} = [qw/name desc/]; # so it doesn't think it's an object search
     my ($token, $bind) = $store->_make_where_token('name', 'foo');
     is $token, 'LOWER(name) = LOWER(?)', 'and a basic match should return the correct where snippet';
     is_deeply $bind, ['foo'], 'and a proper bind param';
@@ -56,7 +57,7 @@ sub where_token : Test(26) {
     is_deeply $bind, ['foo'], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', undef);
-    is $token, 'LOWER(name) IS  NULL', 'and a NULL search  should return the correct where snippet';
+    is $token, 'LOWER(name) IS  NULL', 'and a NULL search should return the correct where snippet';
     is_deeply $bind, [], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', NOT undef);
@@ -279,6 +280,7 @@ sub where_clause : Test(11) {
         return $fields{$current_field};
     });
     can_ok $store, '_make_where_clause';
+    $store->{search_data}{fields} = [qw/name desc/]; # so it doesn't think it's an object search
     my ($where, $bind) = $store->_make_where_clause([
         name => 'foo',
         desc => 'bar',
@@ -288,6 +290,7 @@ sub where_clause : Test(11) {
     is_deeply $bind, [qw/foo bar/],
         'and return the correct bind params';
 
+    $store->{search_data}{fields} = [qw/name desc this/]; # so it doesn't think it's an object search
     ($where, $bind) = $store->_make_where_clause([
         name => 'foo',
         [
@@ -312,6 +315,14 @@ sub where_clause : Test(11) {
     is_deeply $bind, [qw/foo bar that/],
         'and return the correct bind params';
 
+    $store->{search_data}{fields} = [qw/
+        last_name
+        first_name 
+        bio 
+        one__type 
+        one__value 
+        fav_number
+    /]; # so it doesn't think it's an object search
     ($where, $bind) = $store->_make_where_clause([
         [
             last_name  => 'Wall',
@@ -319,13 +330,13 @@ sub where_clause : Test(11) {
         ],
         OR( bio => LIKE '%perl%'),
         OR(
-          'contact.type'  => LIKE 'email',
-          'contact.value' => LIKE '@cpan\.org$',
+          'one.type'  => LIKE 'email',
+          'one.value' => LIKE '@cpan\.org$',
           'fav_number'    => GE 42
         )
     ]);
     is $where, '((last_name = ? AND first_name = ?) OR (bio  LIKE ?) OR '
-              .'(contact.type  LIKE ? AND contact.value  LIKE ? AND fav_number >= ?))',
+              .'(one__type  LIKE ? AND one__value  LIKE ? AND fav_number >= ?))',
         'Even very complex conditions should be manageable';
     is_deeply $bind, [qw/Wall Larry %perl% email @cpan\.org$ 42/],
         'and be able to generate the correct bindings';
@@ -337,13 +348,13 @@ sub where_clause : Test(11) {
         ),
         OR( bio => LIKE '%perl%'),
         OR(
-          'contact.type'  => LIKE 'email',
-          'contact.value' => LIKE '@cpan\.org$',
+          'one.type'  => LIKE 'email',
+          'one.value' => LIKE '@cpan\.org$',
           'fav_number'    => GE 42
         )
     ]);
     is $where, '((last_name = ? AND first_name = ?) OR (bio  LIKE ?) OR '
-              .'(contact.type  LIKE ? AND contact.value  LIKE ? AND fav_number >= ?))',
+              .'(one__type  LIKE ? AND one__value  LIKE ? AND fav_number >= ?))',
         'Even very complex conditions should be manageable';
     is_deeply $bind, [qw/Wall Larry %perl% email @cpan\.org$ 42/],
         'and be able to generate the correct bindings';
