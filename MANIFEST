@@ -54,11 +54,6 @@ t/datetime.t
 t/exceptions.t
 t/iterator.t
 t/language.t
-t/lib/TestApp/CompComp.pm
-t/lib/TestApp/Composed.pm
-t/lib/TestApp/Simple.pm
-t/lib/TestApp/Simple/One.pm
-t/lib/TestApp/Simple/Two.pm
 t/lib/TieOut.pm
 t/meta.t
 t/noconfig.t

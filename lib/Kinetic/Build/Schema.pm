@@ -142,6 +142,7 @@ sub load_classes {
     };
 
     find({ wanted => $find_classes, no_chdir => 1 }, $dir);
+    shift @INC;
 
     # Store classes according to dependency order.
     my (@sorted, %seen);

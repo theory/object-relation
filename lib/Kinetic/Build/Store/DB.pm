@@ -21,6 +21,7 @@ package Kinetic::Build::Store::DB;
 use strict;
 use base 'Kinetic::Build::Store';
 use Kinetic::Store::DB;
+use DBI;
 
 =head1 Name
 
@@ -132,7 +133,10 @@ sub build_db {
     eval "use $schema_class";
     die $@ if $@;
 
-    my $dbh = Kinetic::Store->new->_dbh;
+    my $sg = $schema_class->new;
+    $sg->load_classes($self->builder->source_dir);
+
+    my $dbh = $self->_dbh;
     $dbh->begin_work;
 
     eval {
@@ -142,9 +146,6 @@ sub build_db {
             return if $message =~ /NOTICE:/; # ignore postgres warnings
             warn $message;
         };
-        my $sg = $schema_class->new;
-
-        $sg->load_classes($self->builder->source_dir);
 
         $dbh->do($_) foreach
           $sg->begin_schema,
@@ -198,17 +199,8 @@ Returns the database handle to connect to the data store.
 
 sub _dbh {
     my $self = shift;
-    my $dsn  = $self->builder->_dsn;
-    my $user = $self->builder->db_user;
-    my $pass = $self->builder->db_pass;
-    my $dbh = DBI->connect(
-        $dsn,
-        $user,
-        $pass,
-        {RaiseError => 1, AutoCommit => 1}
-    ) or require Carp && Carp::croak $DBI::errstr;
-    $self->{dbh} = $dbh;
-    return $dbh;
+    return $self->{dbh} unless @_;
+    return $self->{dbh} = shift;
 }
 
 1;

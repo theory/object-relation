@@ -41,15 +41,7 @@ my %CONFIG = (
         },
     },
     sqlite => {
-        version  => '3.0.8',
-        store    => 'Kinetic::Store::DB::SQLite',
-        rules    => 'Kinetic::Build::Rules::SQLite',
-        dsn      => {
-            dbd     => 'SQLite',
-            db_name => 'db_file',
-            methods => {
-            },
-        },
+        build => 'Kinetic::Build::Store::DB::SQLite',
     },
 );
 
@@ -98,10 +90,23 @@ Overrides Module::Build's constructor to add Kinetic-specific build elements.
 sub new {
     my $self = shift->SUPER::new(@_);
     # Add elements we need here.
-    $self->add_build_element('db');
     $self->add_build_element('conf');
     return $self;
 }
+
+=head3 Class Methods
+
+=head3 test_data_dir
+
+  my $dir = $build->test_data_dir;
+
+Returns the name of a directory that can be used by tests for storing
+arbitrary files. The whole directory will be deleted by the C<cleanup>
+action. This is a read-only class method.
+
+=cut
+
+use constant test_data_dir => File::Spec->catdir('t', 'data');
 
 ##############################################################################
 
@@ -149,7 +154,7 @@ The directory where the Kinetic Store libraries will be found.
 
 =cut
 
-__PACKAGE__->add_property('source_dir');
+__PACKAGE__->add_property(source_dir => 'lib');
 
 ##############################################################################
 
@@ -256,20 +261,6 @@ __PACKAGE__->add_property('db_port');
 
 ##############################################################################
 
-=head3 db_file
-
-  my $db_file = $build->db_file;
-  $build->db_file($db_file);
-
-The name of the database file. Defaults to F<kinetic.db>. Used by the SQLite
-data store.
-
-=cut
-
-__PACKAGE__->add_property(db_file => 'kinetic.db');
-
-##############################################################################
-
 =head3 conf_file
 
   my $conf_file = $build->conf_file;
@@ -318,18 +309,18 @@ attribute has been set to a true value.
 
 sub ACTION_check_store {
     my $self = shift;
-    return $self if $self->notes('got_store');
+    return $self if $self->notes('build_store');
 
     # Check the specific store.
-    my $rules_class = $CONFIG{$self->store}{rules};
-    eval "use $rules_class";
-    $self->_fatal_error("Cannot use class ($rules_class): $@") if $@;
-    my $rules = $rules_class->new($self);
-    $self->_rules($rules); # testing hook
-    $rules->validate;
-
-    $self->notes(got_store => 1);
-    $self->notes(rules_class => $rules_class);
+    my $build_store_class = $CONFIG{$self->store}{build}
+      or $self->_fatal_error("I'm not familiar with the " . $self->store
+                             . ' data store');
+    eval "use $build_store_class";
+    $self->_fatal_error($@) if $@;
+    my $build_store = $build_store_class->new($self);
+    $build_store->validate;
+    $self->notes(build_store => $build_store->serializable);
+    $self->notes(build_store_class => $build_store_class);
     return $self;
 }
 
@@ -405,6 +396,7 @@ sub ACTION_build {
     $self->depends_on('check_store');
     $self->depends_on('config');
     $self->SUPER::ACTION_build(@_);
+    return $self;
 }
 
 ##############################################################################
@@ -418,7 +410,8 @@ sub ACTION_build {
 =end comment
 
 Sets things up for the test action. For example, if the C<dev_tests> property
-has been set to at true value, this action sets up a database for testing.
+has been set to at true value, this action creates the F<t/data> directory for
+tests to use as a temporary directory, and sets up a database for testing.
 
 =cut
 
@@ -426,7 +419,19 @@ sub ACTION_setup_test {
     my $self = shift;
     $self->depends_on('check_store');
     $self->depends_on('config');
-    return unless $self->run_dev_tests;
+
+    # Set up t/data for tests to fill with junk. We'll clean it up.
+    my $data = $self->localize_file_path('t/data');
+    File::Path::mkpath $data;
+    $self->add_to_cleanup($data);
+
+    return $self unless $self->run_dev_tests;
+
+    # Build a test data store.
+    my $build_store = $self->notes('build_store');
+    $build_store->resume($self);
+    $build_store->test_build;
+    return $self;
 }
 
 ##############################################################################
@@ -541,7 +546,7 @@ in the section, configuring the "class" directive.
 
 sub store_config {
     my $self = shift;
-    return "    class => '" . $self->_fetch_store_class . "',\n";
+#    return "    class => '" . $self->_fetch_store_class . "',\n";
 }
 
 ##############################################################################
@@ -557,7 +562,7 @@ in the section, configuring the "file" directive.
 sub sqlite_config {
     my $self = shift;
     return unless $self->store eq 'sqlite';
-    return "    file => '" . $self->db_file . "',\n";
+#    return "    file => '" . $self->db_file . "',\n";
 }
 
 ##############################################################################
@@ -573,8 +578,8 @@ to be included in the section, configuring the "file" directive.
 sub test_sqlite_config {
     my $self = shift;
     return unless $self->store eq 'sqlite';
-    return "    file => '" .
-      $self->localize_file_path('t/store/' . $self->db_file) . "',\n";
+#    return "    file => '" .
+#      $self->localize_file_path('t/store/' . $self->db_file) . "',\n";
 }
 
 ##############################################################################
@@ -638,31 +643,6 @@ sub find_conf_files  { shift->_find_files_in_dir('conf') }
 
 ##############################################################################
 
-=head3 process_db_files
-
-This method creates the database files used by the SQLite data store. Two will
-be created: One in F<blib/store> for installation, and one in F<t/store> for
-testing.
-
-=cut
-
-sub process_db_files {
-    my $self = shift;
-    # Do nothing unless the data store is SQLite.
-    return $self unless lc $self->store eq 'sqlite';
-    $self->add_to_cleanup('t/store');
-    for my $dir ($self->blib, 't') {
-        my $path = $self->localize_file_path($dir . '/store');
-        File::Path::mkpath($path, 0, 0777);
-        my $file = $self->localize_file_path($path . '/' . $self->db_file);
-        open F, '>', $file or die "Cannot open '$file': $!\n";
-        close F;
-    }
-    return $self;
-}
-
-##############################################################################
-
 =head3 prompt
 
 This method overrides Module::Build's C<prompt()> method to simply return the
@@ -675,6 +655,7 @@ sub prompt {
     # Let Module::Build do it's thing unless --accept_defaults
     return $self->SUPER::prompt(@_) unless $self->accept_defaults;
     my ($prompt, $default) = @_;
+    return $default if $self->quiet;
     # Output the prompt and the value so that they know what's what.
     local $| = 1;
     print "$prompt: ", (defined $default ? $default : '[undefined]'), "\n";
@@ -826,9 +807,9 @@ given store.
 =cut
 
 sub _fetch_store_class {
-    my ($self) = @_;
-    return $CONFIG{$self->store}{store}
-      or $self->_fatal_error("Class not found for " . $self->store);
+    my $kbsc = $CONFIG{shift->store}{build};
+    eval "require $kbsc" or die $@;
+    return $kbsc->store_class;
 }
 
 ##############################################################################

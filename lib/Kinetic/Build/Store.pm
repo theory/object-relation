@@ -62,9 +62,11 @@ data store. Must be overridden in subclasses.
 
 sub info_class { die "info_class() must be overridden in the subclass" }
 
+##############################################################################
+
 =head3 schema_class
 
-  my $schmea_class = Kinetic::Build::Store->schema_class
+  my $schema_class = Kinetic::Build::Store->schema_class
 
 Returns the name of the Kinetic::Build::Schema subclass that can be used
 to generate the schema code to build the data store. By default, this method
@@ -76,6 +78,24 @@ but with "Store" replaced with "Schema".
 sub schema_class {
     (my $class = ref $_[0] ? ref shift : shift)
       =~ s/Kinetic::Build::Store/Kinetic::Build::Schema/;
+    return $class;
+}
+
+##############################################################################
+
+=head3 store_class
+
+  my $store_class = Kinetic::Build::Store->store_class
+
+Returns the name of the Kinetic::Store subclass that manages the interface to
+the data store for Kinetic applications. By default, this method returns the
+same name as the name of the Kinetic::Build::Store subclass, but with "Build"
+removed.
+
+=cut
+
+sub store_class {
+    (my $class = ref $_[0] ? ref shift : shift) =~ s/Build:://;
     return $class;
 }
 
@@ -138,8 +158,7 @@ as configured in F<kinetic.conf>.
 sub new {
     my $class = shift;
     unless ($class ne __PACKAGE__) {
-        $class = shift || STORE_CLASS;
-        $class =~ s/^Kinetic::Store/Kinetic::Build::Store/;
+        $class = shift || $class->store_class;
         eval "require $class" or die $@;
     }
     my $builder = eval { Kinetic::Build->resume }
@@ -195,7 +214,6 @@ sub validate {
     my $self = shift;
     my $machine = FSA::Rules->new($self->rules);
     $machine->start;
-    $self->{machine} = $machine; # internal only.  Used for debugging
     $machine->switch until $machine->at('Done');
     return $self;
 }
@@ -215,9 +233,9 @@ value.
 
 sub is_required_version {
     my $self = shift;
-    my $min_version = version->new($self->build->min_version);
+    my $min_version = version->new($self->min_version);
     my $got_version = version->new($self->info->version);
-    my $max_version = $self->build->max_version
+    my $max_version = $self->max_version
       or return $got_version >= $min_version;
     return $got_version >= $min_version
       && $got_version <= version->new($max_version);
@@ -265,28 +283,66 @@ specified by C<Kinetic::Build::source_dir()>.
 =cut
 
 sub build {
-    my ($self) = @_;
-    $self->do_actions;
-}
-
-##############################################################################
-
-=head3 do_actions
-
-  $build->do_actions;
-
-Some must be performed before the store can be built.  This method pulls the
-actions designated by the rules and runs all of them.
-
-=cut
-
-sub do_actions {
-    my ($self) = @_;
-    return $self unless my $actions = $self->builder->notes('actions');
+    my $self = shift;
+    my $actions = $self->{actions} or return $self;
     foreach my $action (@$actions) {
         my ($method, @args) = @$action;
         $self->$method(@args);
     }
+    return $self;
+}
+
+##############################################################################
+
+=head3 test_build
+
+  $kbs->test_build;
+
+This method will build a temporary database representing classes in the
+directory specified by C<Kinetic::Build::source_dir()>. This temporary
+database can then be used for testing.
+
+This implementation is merely an alias for the C<build()> method. Subclasses
+may override it to add test-specific functionality.
+
+=cut
+
+*test_build = \&build;
+
+##############################################################################
+
+=head3 serializable
+
+  $kbs->serializable;
+
+Modifies the Kinetic::Build::Store object so that it can be serialized by
+Module::Build. Essentially this means removing the Kinetic::Build object and
+the App::Info object.
+
+=cut
+
+sub serializable {
+    my $self = shift;
+    delete $self->{builder};
+    delete $self->{info};
+    return $self;
+}
+
+##############################################################################
+
+=head3 resume
+
+  $kbs->resume($builder);
+
+Resumes the state of the Kinetic::Build::Store object after it has been
+retreived from a serializable state. Pass a Kinetic::Build object to set the
+C<builder> attribute.
+
+=cut
+
+sub resume {
+    my $self = shift;
+    $self->{builder} = shift if @_;
     return $self;
 }
 

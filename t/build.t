@@ -6,7 +6,7 @@ use strict;
 use Test::Exception;
 use Test::MockModule;
 #use Test::More 'no_plan';
-use Test::More tests => 62;
+use Test::More tests => 59;
 use Test::File;
 use Test::File::Contents;
 use lib 't/lib', '../../lib';;
@@ -59,8 +59,6 @@ is $build->db_root_user, 'postgres',
   '... The db_root_user should default to "postgres"';
 is $build->db_root_pass, '',
   '... The db_root_pass attribute should be an empty string by default';
-is $build->db_file, 'kinetic.db',
-  '... The db_file should default to "kinetic.db"';
 is $build->conf_file, 'kinetic.conf',
   '... The conf_file should default to "kinetic.conf"';
 
@@ -88,12 +86,6 @@ $build->dispatch('build');
 ok my $out = $stdout->read, '... There should be output to STDOUT after build';
 like $out, qr/Looking for SQLite/,
   '... telling us it is looking for the SQLite executable';
-
-# We should have files for SQLite databases.
-file_exists_ok 'blib/store/test.db',
-  '... There should be a database file for installation';
-file_exists_ok 't/store/test.db',
-  '... There should be a database file for testing';
 
 # We should have copies of the configuration file.
 file_exists_ok 'blib/conf/test.conf',

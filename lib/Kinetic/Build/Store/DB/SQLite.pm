@@ -23,6 +23,7 @@ use base 'Kinetic::Build::Store::DB';
 use DBI;
 use Kinetic::Build;
 use App::Info::RDBMS::SQLite;
+use File::Spec::Functions;
 
 =head1 Name
 
@@ -105,7 +106,7 @@ sub rules {
         start => {
             do => sub {
                 my $state = shift;
-                $state->machine->{actions} = []; # must never return to start
+                $self->{actions} = []; # must never return to start
                 $state->result($self->info->installed);
              },
             rules => [
@@ -136,33 +137,26 @@ sub rules {
             do => sub {
                 my $state = shift;
                 my $builder = $self->builder;
-                my $filename = $builder->db_file
-                  || $builder->prompt('Please enter a filename for the SQLite database');
-                $builder->db_file($filename);
-                $state->result($filename);
+                $self->{db_file} = $builder->args('db_file')
+                  || $builder->prompt(
+                      'Please enter a filename for the SQLite database',
+                      'kinetic.db'
+                );
             },
             rules => [
                 file_name => {
-                    rule    => $fail,
+                    rule    => sub { ! $self->db_file },
                     message => 'No filename for database',
                 },
                 Done => {
-                    rule    => $succeed,
+                    rule    => 1,
                     message => 'We have a filename',
                 }
             ],
         },
         Done => {
             do => sub {
-                my $state   = shift;
-                my $builder   = $self->builder;
-                my $machine = $state->machine;
-                push @{$machine->{actions}} => ['build_db'];
-                foreach my $attribute (qw/db_file actions user pass/) {
-                    $builder->notes($attribute => $machine->{$attribute})
-                      if $machine->{$attribute};
-                }
-#                $self->_dbh->disconnect if $self->_dbh;
+                push @{$self->{actions}} => ['build_db'];
             }
         },
         fail => {
@@ -182,10 +176,89 @@ sub rules {
 
 =head1 Instance Interface
 
-=head2 Instance Methods
+=head2 Instance Accessors
 
+=head3 db_file
+
+  my $db_file = $kbs->db_file;
+
+Returns the name of the file to be used for the SQLite database. This is a
+read-only attribute set by the call to the C<validate()> method.
 
 =cut
+
+sub db_file { shift->{db_file} }
+
+##############################################################################
+
+=head3 dsn
+
+  my $dsn = $kbs->dsn;
+
+Returns the DSN to be used to connect to the SQLite database when building
+it.
+
+=cut
+
+sub dsn {
+    my $self = shift;
+    sprintf 'dbi:%s:dbname=%s', $self->dsn_dbd, $self->db_file }
+
+##############################################################################
+
+=head3 test_dsn
+
+  my $test_dsn = $kbs->test_dsn;
+
+Returns the DSN to be used to connect to SQLite database to build for testing.
+
+=cut
+
+sub test_dsn {
+    my $self = shift;
+    my $file = catfile $self->builder->test_data_dir, $self->db_file;
+    return sprintf 'dbi:%s:dbname=%s', $self->dsn_dbd, $file;
+}
+
+##############################################################################
+
+=head3 build
+
+  $kbs->build;
+
+Builds data store. This implementation overrides the parent version to set up
+a database handle for use during the build.
+
+=cut
+
+sub build {
+    my $self = shift;
+    $self->_dbh(my $dbh = DBI->connect($self->dsn, '', ''));
+    $self->SUPER::build(@_);
+    $dbh->disconnect;
+    return $self;
+}
+
+##############################################################################
+
+=head3 test_build
+
+  $kbs->test_build;
+
+Builds a test data store. This implementation overrides the parent version to
+set up a database handle for use during the build.
+
+=cut
+
+sub test_build {
+    my $self = shift;
+    $self->_dbh(my $dbh = DBI->connect($self->test_dsn, '', ''));
+    $self->SUPER::test_build(@_);
+    $dbh->disconnect;
+    return $self;
+}
+
+##############################################################################
 
 1;
 __END__

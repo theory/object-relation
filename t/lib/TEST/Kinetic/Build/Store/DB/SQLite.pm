@@ -9,7 +9,7 @@ use aliased 'Kinetic::Build';
 use Test::Exception;
 
 __PACKAGE__->runtests;
-sub test_class_methods : Test(7) {
+sub test_class_methods : Test(8) {
     my $test = shift;
     my $class = $test->test_class;
     is $class->info_class, 'App::Info::RDBMS::SQLite',
@@ -20,6 +20,8 @@ sub test_class_methods : Test(7) {
       'We should have the correct maximum version number';
     is $class->schema_class, 'Kinetic::Build::Schema::DB::SQLite',
       'We should have the correct schema class';
+    is $class->store_class, 'Kinetic::Store::DB::SQLite',
+      'We should have the correct store class';
     is $class->dbd_class, 'DBD::SQLite',
       'We should have the correct DBD class';
     is $class->dsn_dbd, 'SQLite',
@@ -40,7 +42,7 @@ sub test_new : Test(4) {
     isa_ok $kbs->info, $kbs->info_class;
 }
 
-sub test_rules : Test(6) {
+sub test_rules : Test(8) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -67,11 +69,18 @@ sub test_rules : Test(6) {
       qr/SQLite is not the minimum required version/,
       '... or if SQLite is not the minumum supported version';
 
+    # Test when everything is cool.
     $info->mock(version => '3.0.8');
     $builder->mock(prompt => 'fooness');
-    ok $kbs->validate, '... and it should return a true value if everything is ok';
-    is $kbs->builder->db_file, 'fooness',
+    ok $kbs->validate,
+      '... and it should return a true value if everything is ok';
+    is $kbs->db_file, 'fooness',
       '... and set the db_file correctly';
+    is_deeply $kbs->{actions}, [['build_db']],
+      "... and the actions should be set up";
+
+    # Check the DSNs.
+    is $kbs->dsn, 'dbi:SQLite:dbname=fooness';
 }
 
 1;
