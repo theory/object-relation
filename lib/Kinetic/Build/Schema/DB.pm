@@ -331,8 +331,19 @@ sub view_columns {
         my $col = $attr->column;
         if (my $ref = $attr->references) {
             my $key = $ref->key;
-            push @$tables, $key;
-            push @$wheres, "$table.$col = $key.id";
+            if ($attr->required) {
+                push @$tables, $key;
+                push @$wheres, "$table.$col = $key.id";
+            } else {
+                my $join = "$table LEFT JOIN $key ON $table.$col = $key.id";
+                # Either change the existing table name to the join table
+                # syntax, or, if it is already joined to another table (and
+                # therefore is not the whole string), then push the new join
+                # string onto the table list.
+                unless (grep { s/^$table$/$join/} @$tables) {
+                    push @$tables, $join;
+                }
+            }
             push @cols, "$table.$col", $self->map_ref_columns($ref, $key);
         } else {
             push @cols, "$table.$col";
@@ -359,22 +370,6 @@ sub map_ref_columns {
 __END__
 
 ##############################################################################
-
-=head1 To Do
-
-=over
-
-=item *
-
-Add support for "once" attribute. Use an insert trigger when a value is
-required, and an update trigger (or a check?) when it is not required.
-
-=item *
-
-Allow contained item to be NOT NULL--use a left join in the view to get this
-to work properly.
-
-=back
 
 =head1 Copyright and License
 

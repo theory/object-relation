@@ -14,7 +14,7 @@ BEGIN {
         name          => 'one',
         type          => 'one',
         label         => 'One',
-        required      => 1,
+        required      => 0,
         once          => 1,
         default       => sub { TestApp::Simple::One->new },
         widget_meta   => Kinetic::Meta::Widget->new(

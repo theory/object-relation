@@ -376,7 +376,7 @@ $table = q{CREATE TABLE _composed (
     name TEXT NOT NULL,
     description TEXT,
     state INTEGER NOT NULL DEFAULT 1,
-    one_id INTEGER NOT NULL REFERENCES simple_one(id) ON DELETE CASCADE
+    one_id INTEGER REFERENCES simple_one(id) ON DELETE CASCADE
 );
 };
 eq_or_diff $sg->table_for_class($composed), $table,
@@ -449,8 +449,7 @@ eq_or_diff $sg->constraints_for_class($composed), $constraints,
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW composed AS
   SELECT _composed.id, _composed.guid, _composed.name, _composed.description, _composed.state, _composed.one_id, one.guid AS "one.guid", one.name AS "one.name", one.description AS "one.description", one.state AS "one.state", one.bool AS "one.bool"
-  FROM   _composed, one
-  WHERE  _composed.one_id = one.id;
+  FROM   _composed LEFT JOIN one ON _composed.one_id = one.id;
 };
 eq_or_diff $sg->view_for_class($composed), $view,
   "... Schema class generates CREATE VIEW statement";
@@ -539,6 +538,15 @@ FOR EACH ROW BEGIN
   SELECT CASE
     WHEN NEW.state NOT BETWEEN -1 AND 2
     THEN RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+  END;
+END;
+
+CREATE TRIGGER ck_comp_comp_composed_id_once
+BEFORE UPDATE ON _comp_comp
+FOR EACH ROW BEGIN
+  SELECT CASE
+    WHEN OLD.composed_id <> NEW.composed_id OR NEW.composed_id IS NULL
+    THEN RAISE(ABORT, 'value of "composed_id" cannot be changed')
   END;
 END;
 

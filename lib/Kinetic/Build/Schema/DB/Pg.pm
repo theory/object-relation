@@ -132,16 +132,21 @@ sub once_triggers {
     my @trigs;
     for my $attr (@onces) {
         my $col = $attr->column;
+        # If the column is required, then the NOT NULL constraint will
+        # handle that bit for us--no need to be redundant.
+        my $if = $attr->required
+          ? "OLD.$col <> NEW.$col OR NEW.$col IS NULL"
+          : "OLD.$col IS NOT NULL AND (OLD.$col <> NEW.$col OR NEW.$col IS NULL)";
         push @trigs, qq{CREATE FUNCTION $key\_$col\_once() RETURNS trigger AS '
   BEGIN
-    IF OLD.$col IS NOT NULL AND (OLD.$col <> NEW.$col OR NEW.$col IS NULL)
+    IF $if
         THEN RAISE EXCEPTION ''value of "$col" cannot be changed'';
     END IF;
     RETURN NEW;
   END;
 ' LANGUAGE plpgsql;
 
-CREATE TRIGGER $key\_$col\_once BEFORE INSERT OR UPDATE ON $table
+CREATE TRIGGER $key\_$col\_once BEFORE UPDATE ON $table
     FOR EACH ROW EXECUTE PROCEDURE $key\_$col\_once();
 };
     }

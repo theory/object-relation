@@ -205,13 +205,18 @@ sub once_triggers {
     my @trigs;
     for my $attr (@onces) {
         my $col = $attr->column;
+        # If the column is required, then the NOT NULL constraint will
+        # handle that bit for us--no need to be redundant.
+        my $when = $attr->required
+          ? "OLD.$col <> NEW.$col OR NEW.$col IS NULL"
+          : "OLD.$col IS NOT NULL AND (OLD.$col <> NEW.$col OR NEW.$col IS NULL)";
         push @trigs,
             "CREATE TRIGGER ck_$key\_$col\_once\n"
           . "BEFORE UPDATE ON $table\n"
           . "FOR EACH ROW BEGIN\n"
           . "  SELECT CASE\n"
-          . "    WHEN OLD.$col IS NOT NULL AND (OLD.$col <> NEW.$col OR NEW.$col IS NULL)\n"
-        . qq{    THEN RAISE(ABORT, 'value of "one_id" cannot be changed')\n}
+          . "    WHEN $when\n"
+        . qq{    THEN RAISE(ABORT, 'value of "$col" cannot be changed')\n}
           . "  END;\n"
           . "END;\n";
     }

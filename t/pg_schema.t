@@ -281,7 +281,7 @@ $table = q{CREATE TABLE _composed (
     name TEXT NOT NULL,
     description TEXT,
     state STATE NOT NULL DEFAULT 1,
-    one_id INTEGER NOT NULL
+    one_id INTEGER
 );
 };
 eq_or_diff $sg->table_for_class($composed), $table,
@@ -314,7 +314,7 @@ CREATE FUNCTION composed_one_id_once() RETURNS trigger AS '
   END;
 ' LANGUAGE plpgsql;
 
-CREATE TRIGGER composed_one_id_once BEFORE INSERT OR UPDATE ON _composed
+CREATE TRIGGER composed_one_id_once BEFORE UPDATE ON _composed
     FOR EACH ROW EXECUTE PROCEDURE composed_one_id_once();
 };
 eq_or_diff $sg->constraints_for_class($composed), $constraints,
@@ -323,8 +323,7 @@ eq_or_diff $sg->constraints_for_class($composed), $constraints,
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW composed AS
   SELECT _composed.id, _composed.guid, _composed.name, _composed.description, _composed.state, _composed.one_id, one.guid AS "one.guid", one.name AS "one.name", one.description AS "one.description", one.state AS "one.state", one.bool AS "one.bool"
-  FROM   _composed, one
-  WHERE  _composed.one_id = one.id;
+  FROM   _composed LEFT JOIN one ON _composed.one_id = one.id;
 };
 eq_or_diff $sg->view_for_class($composed), $view,
   "... Schema class generates CREATE VIEW statement";
@@ -401,6 +400,18 @@ $constraints = q{ALTER TABLE _comp_comp
 ALTER TABLE _comp_comp
   ADD CONSTRAINT fk_composed_id FOREIGN KEY (composed_id)
   REFERENCES _composed(id) ON DELETE RESTRICT;
+
+CREATE FUNCTION comp_comp_composed_id_once() RETURNS trigger AS '
+  BEGIN
+    IF OLD.composed_id <> NEW.composed_id OR NEW.composed_id IS NULL
+        THEN RAISE EXCEPTION ''value of "composed_id" cannot be changed'';
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER comp_comp_composed_id_once BEFORE UPDATE ON _comp_comp
+    FOR EACH ROW EXECUTE PROCEDURE comp_comp_composed_id_once();
 };
 eq_or_diff $sg->constraints_for_class($comp_comp), $constraints,
   "... Schema class generates CONSTRAINT statement";
