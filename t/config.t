@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 11;
+use Test::More tests => 13;
 use lib 't/lib';
 use Kinetic::TestSetup;
 use File::Spec;
@@ -54,6 +54,15 @@ STORE: { # 3 tests.
     ok($stores{&STORE_CLASS}, "Got store_class value" );
     eval "APACHE_BIN";
     ok($@, "Got error trying to access apache_bin");
+}
+
+PG: { # 2 tests.
+    package Kinetic::Config::TestPg;
+    use Kinetic::Config qw(:pg);
+    use Test::More;
+    ok(PG_DB_NAME, "Got store_class" );
+    eval "STORE_CLASS";
+    ok($@, "Got error trying to access store_class");
 }
 
 NOIMPORT: { # 2 tests.
