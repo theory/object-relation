@@ -99,9 +99,9 @@ sub switch_to_db {
     return $self;
 }
 
-=begin private
-
 ##############################################################################
+
+=begin private
 
 =head1 Private Interface
 
@@ -134,6 +134,8 @@ sub _dbh {
 __END__
 
 ##############################################################################
+
+=end private
 
 =head1 Copyright and License
 
