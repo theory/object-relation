@@ -24,7 +24,7 @@ my $dbh   = get_dbh($build);
 
 plan $dbh
     #? 'no_plan'
-    ? (tests => 12)
+    ? (tests => 13)
     : (skip_all => 'Could not connect to postgres');
 $build->_dbh($dbh);
 
@@ -63,7 +63,9 @@ ok $build->_db_exists,
 $build->db_name($non_existent_database);
 ok !$build->_db_exists,
   '... and false if it does not';
-$build->db_name($db_name);
+
+ok $build->_db_exists($databases->[0]),
+  '... and we should be able to supply an optional database name to override the default';
 
 sub make_not_in {
     my $arrayref = shift;

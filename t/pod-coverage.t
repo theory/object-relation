@@ -7,6 +7,7 @@ use Test::More;
 eval "use Test::Pod::Coverage 0.08";
 plan skip_all => "Test::Pod::Coverage required for testing POD coverage" if $@;
 
+diag "Don't forget to update the pod at some point";
 my %TODO = map { $_ => 1 } qw/
     Kinetic::Build::Schema::DB
     Kinetic::Build::Schema::DB::Pg

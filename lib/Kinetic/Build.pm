@@ -606,12 +606,23 @@ sub check_pg {
         or $self->_fatal_error("createlang must be available for plpgsql support");
 
     my $template1 = 'template1';
-    my $root      = $self->db_root_user;
     my $user      = $self->db_user;
     my $pass      = $self->db_pass;
-    my $db_name   = $self->db_name;
 
-    if ($root) {
+    unless ($self->db_root_user) {
+        # We should be able to connect to template1 as db_user
+        my $dbh = $self->_connect_as_user($template1)
+          or $self->_fatal_error("Can't connect as $user to $template1: $DBI::errstr");
+
+        $self->_dbh($dbh);
+        # If db_name does not exist, db_user should have permission to create it.
+        unless ($self->_db_exists) {
+            $self->_can_create_db($user)
+              or $self->_fatal_error("User $user does not have permission to create databases");
+        }
+    } else {
+        $self->db_root_user('postgres') unless defined $self->db_root_user;
+        my $root = $self->db_root_user;
         # We should be able to connect to template1 as db_root_user
         my $dbh = $self->_connect_as_root($template1)
           or $self->_fatal_error("Can't connect as $root to $template1: $DBI::errstr");
@@ -633,23 +644,13 @@ sub check_pg {
         unless ($self->_user_exists($user)) {
             $self->notes(default_user => "$user does not exist");
         }
-    } else {
-        # We should be able to connect to template1 as db_user
-        my $dbh = $self->_connect_as_user($template1)
-          or $self->_fatal_error("Can't connect as $user to $template1: $DBI::errstr");
-
-        # If db_name does not exist, db_user should have permission to create it.
-        unless ($self->_db_exists) {
-            $self->_can_create_db($user)
-              or $self->_fatal_error("User $user does not have permission to create databases");
-        }
     }
 
     # We're good to go. Collect the configuration data.
     my %info = (
-        psql    => $pg->executable,
         createlang => $pg->createlang,
-        version => version->new($pg->version),
+        psql       => $pg->executable,
+        version    => version->new($pg->version),
     );
 
     $self->notes(pg_info => $pg);
@@ -850,11 +851,12 @@ This method tells whether the default database exists.
 =cut
 
 sub _db_exists {
-    my ($self) = @_;
+    my ($self, $db_name) = @_;
+    $db_name ||= $self->db_name;
     $self->_pg_says_true(
         $self->_dbh,
         "select datname from pg_catalog.pg_database where datname = ?",
-        $self->db_name
+        $db_name
     );
 }
 
@@ -919,7 +921,9 @@ database handle on success and undef on failure.
 
 sub _connect_to_pg {
     my ($self, $db_name, $user, $pass) = @_;
-    return DBI->connect($self->_dsn, $user, $pass);
+    my $dbh;
+    eval { $dbh = DBI->connect($self->_dsn, $user, $pass) };
+    return $dbh;
 }
 
 ##############################################################################
