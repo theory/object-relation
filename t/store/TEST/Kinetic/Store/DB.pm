@@ -20,6 +20,11 @@ use aliased 'Kinetic::Util::State';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';
 
+__PACKAGE__->SKIP_CLASS(
+    __PACKAGE__->any_supported(qw/pg sqlite/)
+      ? 0
+      : "Not testing Data Stores"
+) if caller; # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
 sub foo : Test(1) { ok 1 }
@@ -143,7 +148,7 @@ sub set_search_data : Test(9) {
     ok my $results = $store->_search_data,
         "Calling $method for simple types should succeed";
     my @keys      = sort keys %$results;
-    is_deeply \@keys, [qw/columns lookup  metadata/],
+    is_deeply \@keys, [qw/build_order columns lookup  metadata/],
         'and it should return the types of data that we are looking for';
     is_deeply [sort @{$results->{columns}}],
         [qw/bool description guid id name state/],
@@ -168,7 +173,7 @@ sub set_search_data : Test(9) {
     ok $results = $store->$method->_search_data,
         "Calling $method for complex types should succeed";
     @keys      = sort keys %$results;
-    is_deeply \@keys, [qw/columns lookup  metadata/],
+    is_deeply \@keys, [qw/build_order columns lookup  metadata/],
         'and it should return the types of data that we are looking for';
     is_deeply [sort @{$results->{columns}}],
     [qw/ age date description guid id name one__bool one__description one__guid
@@ -255,7 +260,11 @@ sub build_objects : Test(16) {
             state       => 'state',
           }
         }
-      }
+      },
+      build_order => [
+        'TestApp::Simple::One',
+        'TestApp::Simple::Two',
+      ],
     };
     my $two_class = Two->new->my_class;
     $store->search_class($two_class);
@@ -572,7 +581,7 @@ sub insert : Test(7) {
     @{$store}{qw/search_class view columns values/} = (
         One->new->my_class,
         'one',
-        [map { Store->_get_column($_) } @attributes],
+        [map { $_->_column } @attributes],
         [map { Store->_get_raw_value($one, $_) } @attributes],
     );
     ok $store->_insert($one),
@@ -619,7 +628,7 @@ sub update : Test(7) {
     @{$store}{qw/search_class view columns values/} = (
         One->new->my_class,
         'one',
-        [map { Store->_get_column($_) } @attributes],
+        [map { $_->_column } @attributes],
         [map { Store->_get_raw_value($one, $_) } @attributes],
     );
     ok $store->_update($one),
@@ -633,19 +642,6 @@ sub update : Test(7) {
     is_deeply $BIND, $bind_params,
         'and the correct bind params';
     is $one->{id}, 42, 'and the private id should not be changed';
-}
-
-sub get_column : Test(3) {
-    can_ok Store, '_get_column';
-    my $object = Two->new;
-    my $attribute = $object->my_class->attributes('name');
-    is Store->_get_column($attribute), 'name',
-        'normal names should be returned intact';
-    my $one = One->new;
-    $object->one($one);
-    $attribute = $object->my_class->attributes('one');
-    is Store->_get_column($attribute), 'one__id',
-        'but references should have "__id" appended to them';
 }
 
 sub _get_raw_value {

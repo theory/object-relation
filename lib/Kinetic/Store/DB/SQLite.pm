@@ -94,7 +94,7 @@ sub _set_id {
     my $result = $class->_dbh->selectcol_arrayref(
         "SELECT id FROM $view WHERE guid = ?", undef, $object->guid
     );
-    $object->{id} = $result->[0];
+    $object->id($result->[0]);
     return $class;
 }
 

@@ -8,6 +8,7 @@ use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
 use Test::More;
 
 BEGIN {
+    no warnings 'uninitialized';
     plan skip_all => "Not testing SQLite"
       unless $ENV{KINETIC_SUPPORTED} =~ /\bsqlite\b/;
     plan tests => 23;

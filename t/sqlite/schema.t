@@ -9,6 +9,7 @@ use Test::More;
 use Test::Differences;
 
 BEGIN {
+    no warnings 'uninitialized';
     plan skip_all => "Not testing SQLite"
       unless $ENV{KINETIC_SUPPORTED} =~ /\bsqlite\b/;
     plan tests => 68;

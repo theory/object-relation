@@ -29,6 +29,8 @@ use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::DateTime::Incomplete';
 use aliased 'Kinetic::Store::Search';
 
+use Kinetic::Meta::Attribute qw/:with_dbstore_api/;
+
 use constant GROUP_OP => qr/^(?:AND|OR)$/;
 use constant OBJECT_DELIMITER => '__';
 
@@ -97,11 +99,11 @@ sub _save {
     local @{$self}{qw/columns values/};
     foreach my $attr ($self->{search_class}->attributes) {
         $self->_save($attr->get($object)) if $attr->references;
-        push @{$self->{columns}}  => $self->_get_column($attr);
-        push @{$self->{values}}   => $self->_get_raw_value($object, $attr);
+        push @{$self->{columns}} => $attr->_view_column;
+        push @{$self->{values}}  => $self->_get_raw_value($object, $attr);
     }
 
-    return $object->{id}
+    return $object->id
         ? $self->_update($object)
         : $self->_insert($object);
 }
@@ -199,9 +201,9 @@ sub _search {
     return $self->_full_text_search(@search_params)
         if 1 == @search_params && ! ref $search_params[0];
     $self->_set_search_data;
-    my $attributes = join ', ' => $self->_search_data_columns;
+    my $columns = join ', ' => $self->_search_data_columns;
     my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
-        $attributes,
+        $columns,
         \@search_params
     );
     return $self->_get_sql_results($sql, $bind_params);
@@ -368,23 +370,6 @@ sub _insert {
 
 ##############################################################################
 
-=head3 _get_column
-
-  my $name = $store->_get_column($attribute);
-
-Given an attribute object, C<_get_column> will return the SQL column name.
-
-=cut
-
-sub _get_column {
-    my ($self, $attr) = @_;
-    my $name = $attr->name;
-    $name   .= OBJECT_DELIMITER.'id' if $attr->references;
-    return $name;
-}
-
-##############################################################################
-
 =head3 _get_raw_value
 
   my $value = $store->_get_raw_value($object, $attribute);
@@ -397,7 +382,9 @@ another object, it returns the contained object.
 sub _get_raw_value {
     my ($self, $object, $attr) = @_;
     return $attr->raw($object) unless $attr->references;
-    return $attr->get($object)->{id}; # this needs to be fixed
+    return $attr->get($object)->id; # XXX If raw return the ID instead of the
+                                    # object (like it does for State), then this
+                                    # special case goes away
 }
 
 ##############################################################################
@@ -415,7 +402,7 @@ subclass.  See C<_insert> for caveats about object C<id>s.
 sub _set_id {
     my ($self, $object) = @_;
     # XXX This won't work for PostgreSQL, so be sure to override it.
-    $object->{id} = $self->_dbh->last_insert_id(undef, undef, undef, undef);
+    $object->id($self->_dbh->last_insert_id(undef, undef, undef, undef));
     return $self;
 }
 
@@ -434,7 +421,7 @@ Creates and executes an C<UPDATE> sql statement for the given object.
 sub _update {
     my ($self, $object) = @_;
     my $columns = join ', '  => map { "$_ = ?" } @{$self->{columns}};
-    push @{$self->{values}} => $object->{id};
+    push @{$self->{values}} => $object->id;
     my $sql = "UPDATE $self->{view} SET $columns WHERE id = ?";
     $self->_cache_statement(1);
     return $self->_do_sql($sql, $self->{values});
@@ -576,22 +563,15 @@ sub _build_object_from_hashref {
     my ($self, $hashref) = @_;
     my %objects;
     my %metadata = $self->_search_data_metadata;
-    # XXX I can have an array in metadata which has the objects in reverse
-    # order and simply iterate through them and ensure that in the first
-    # while loop, I know a contained object is built by the time you get
-    # containing object(s)
-    while (my ($package, $data) = each %metadata) {
-        my $columns = $data->{columns};
+    foreach my $package ($self->_search_data_build_order) {
+        my $columns = $metadata{$package}{columns};
         # XXX Is the distinction here due to IDs?
         my @object_columns    = keys %$columns;
         my @object_attributes = @{$columns}{@object_columns};
         my %object;
         @object{@object_attributes} = @{$hashref}{@object_columns};
         $objects{$package} = bless \%object => $package;
-    }
-    # XXX Aack!  This is fugly.
-    while (my ($package, $data) = each %metadata) {
-        if (defined (my $contains = $data->{contains})) {
+        if (defined (my $contains = $metadata{$package}{contains})) {
             while (my ($key, $contained) = each %$contains) {
                 delete $objects{$package}{$key};
                 my $contained_package = $contained->package;
@@ -630,12 +610,15 @@ sub _set_search_data {
             class  => $self->search_class,
             prefix => '',
         };
+        my @build_order;
         while (@classes_to_process) {
             foreach my $data (splice @classes_to_process, 0) {
                 my $package = $data->{class}->package;
+                unshift @build_order => $package;
                 foreach my $attr ($data->{class}->attributes) {
-                    my $column      = $self->_get_column($attr);
+                    my $column      = $attr->_view_column;
                     my $view_column = "$data->{prefix}$column";
+
                     $packages{$package}{columns}{$view_column} = $column;
                     if (my $class = $attr->references) {
                         push @classes_to_process => {
@@ -649,9 +632,10 @@ sub _set_search_data {
                 }
             }
         }
-        $SEARCH_DATA{$package}{columns}  = \@columns;
-        $SEARCH_DATA{$package}{metadata} = \%packages;
-        $SEARCH_DATA{$package}{lookup}   = {};
+        $SEARCH_DATA{$package}{columns}     = \@columns;
+        $SEARCH_DATA{$package}{metadata}    = \%packages;
+        $SEARCH_DATA{$package}{build_order} = \@build_order;
+        $SEARCH_DATA{$package}{lookup}      = {};
         # merely a hashset.  The values are useless
         @{$SEARCH_DATA{$package}{lookup}}{@columns} = undef;
     }
@@ -721,6 +705,19 @@ Returns a list of the search data metadata.  See C<_set_search_data>.
 =cut
 
 sub _search_data_metadata { %{shift->{search_data}{metadata}} }
+
+##############################################################################
+
+=head3 _search_data_build_order
+
+  my @build_order = $store->_search_data_metadata;
+
+Returns a list of the packages in the order they should be built by
+C<_build_object_from_hashref>.  See C<_set_search_data>.
+
+=cut
+
+sub _search_data_build_order { @{shift->{search_data}{build_order}} }
 
 ##############################################################################
 
@@ -875,9 +872,7 @@ sub _make_where_token {
             croak "Don't know how to search for ($column $negated $operator $value)";
         }
         $column = $id_column;
-        $value = 'ARRAY' eq ref $value
-            ? [map $self->_get_id_from_object($_) => @$value]
-            : $self->_get_id_from_object($value);
+        $value = 'ARRAY' eq ref $value ? [map $_->id => @$value] : $value->id;
     }
 
     my $search = Search->new(
@@ -888,14 +883,6 @@ sub _make_where_token {
     );
     my $search_method = $search->search_method;
     return $self->$search_method($search);
-}
-
-sub _get_id_from_object {
-    my ($self, $object) = @_;
-    #unless (blessed ($object) && $object->isa('Kinetic::Meta')) {
-    #    croak "Don't know how to search for $object";
-    #}
-    return $object->{id};
 }
 
 sub _is_case_insensitive {

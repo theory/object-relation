@@ -21,6 +21,11 @@ use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
 
 use aliased 'Kinetic::XML';
 
+__PACKAGE__->SKIP_CLASS(
+    __PACKAGE__->any_supported(qw/pg sqlite/)
+      ? 0
+      : "Not testing Data Stores"
+) if caller; # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
 sub setup : Test(setup) {

@@ -37,7 +37,9 @@ Kinetic::XML - The Kinetic XML serialization class
 
 =head1 Description
 
-XXX Write me!
+This class is used for serializing and deserializing Kinetic objects to and and
+from XML.  New objects may be created or existing objects may be updated using
+this class.
 
 =cut
 
@@ -142,19 +144,29 @@ sub _fetch_object {
 
     # XXX Bleh! There's not validation here. We need validation by using the
     # individual attribute accessors.
-    my $object = bless $data => $class->package;
-    if ($self->{params}{update}) {
-        my $iter  = Kinetic::Store->new->search($class, guid => $object->guid);
-        if (my $found = $iter->next) {
-            $object->{id} = $found->{id};
-        }
-        else {
-            die "Could not find guid '$object->{guid}' in the store";
-        }
-    } else {
-         $object->{id} = undef;
+    my $object = $self->{params}{update}
+        ? $self->_fetch_object_from_store($class, $data->{guid})
+        : $class->package->new;
+    # XXX no mutator for guid, so I need to special case it and skip
+    # validation
+    $object->{guid} = delete $data->{guid};
+    while (my ($attr, $value) = each %$data) {
+        # XXX for the time being, I need to assign directly instead of using
+        # mutators.  Trying to use them results in "wide character in print" when
+        # I am dealing with objects (State, DateTime, etc.)
+        $object->{$attr} = $value;
+        #$object->$attr($value);
     }
     return $object;
+}
+
+sub _fetch_object_from_store {
+    my ($self, $class, $guid) = @_;
+    my $iter = Kinetic::Store->new->search($class, guid => $guid);
+    if ($iter && (my $found = $iter->next)) {
+        return $found;
+    }
+    die "Could not find guid '$guid' in the store";
 }
 
 ##############################################################################

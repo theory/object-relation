@@ -9,6 +9,7 @@ use Test::More;
 use Test::Differences;
 
 BEGIN {
+    no warnings 'uninitialized';
     plan skip_all => "Not testing PostgreSQL"
       unless $ENV{KINETIC_SUPPORTED} =~ /\bpg\b/;
     plan tests => 68;

@@ -44,7 +44,7 @@ TEST::Class::Kinetic - The Kinetic test class base class
 =head1 Description
 
 This class is the base class for all Kinetic test classes. It inherits from
-L<Test::Class|Test::Class>, and so, therfore, do its subclasses. Create new
+L<Test::Class|Test::Class>, and so, therefore, do its subclasses. Create new
 subclasses to add new tests to the Kinetic framework.
 
 In addition to the interface provided by Test::Class, TEST::Class::Kinetic
@@ -126,6 +126,27 @@ or not to skip a set of tests.
 my %SUPPORTED = map { $_ => undef } split /\s+/, $ENV{KINETIC_SUPPORTED} || '';
 
 sub supported { exists $SUPPORTED{$_[1]} }
+
+##############################################################################
+
+=head3 any_supported
+
+  if (__PACKAGE__->any_supported(@features)) { ... }
+
+This method returns a boolean value indicating whether or not I<any> features
+of the Kinetic framework are supported.  Takes a list of features.
+
+Optionally
+
+=cut
+
+sub any_supported { 
+    my ($class, @features) = @_;
+    foreach my $feature (@features) {
+        return 1 if exists $SUPPORTED{$feature};
+    }
+    return;
+}
 
 ##############################################################################
 
