@@ -74,6 +74,16 @@ my $utc = DateTime::TimeZone::UTC->new;
 
 sub new { shift->SUPER::new(time_zone => $utc, @_) }
 
+##############################################################################
+
+=head3 raw
+
+  my $date_string = $date->raw;
+
+Return the ISO8601 value of the datetime object.
+
+=cut
+
 sub raw {
     my $self = shift;
     return $self->iso8601 . '.' . $self->microsecond;

@@ -3,7 +3,7 @@
 # $Id: datetime.t 894 2004-12-04 02:48:49Z curtis $
 
 use strict;
-use Test::More tests => 30;
+use Test::More tests => 32;
 #use Test::More 'no_plan';
 
 my $CLASS;
@@ -11,8 +11,6 @@ BEGIN {
     $CLASS = 'Kinetic::DateTime::Incomplete'; 
     use_ok $CLASS or die 
 };
-
-# Try now().
 
 can_ok $CLASS, 'now';
 ok my $date = $CLASS->now, "Create now DateTime";
@@ -74,3 +72,8 @@ ok ! $date1->same_segments($date2),
 $date2->set(hour => 17);
 ok $date1->same_segments($date2),
     '... and it should return true if two dates have the same segments defined';
+
+$date = $CLASS->new(year => 2009, month => 6, hour => 3);
+can_ok $date, 'defined_store_fields';
+is_deeply [$date->defined_store_fields], [qw/ year month hour /],
+    '... and it should return the correct values';

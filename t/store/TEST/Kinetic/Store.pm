@@ -28,19 +28,25 @@ sub _all_items {
     my @iterator;
     my $store = Store->new;
     while (my $object = $iterator->next) {
-        if ($object->can('date') && $store->isa('Kinetic::Store::DB::Pg')) {
-            $object->date(_convert_to_datetime($object->date));
-        }
-        push @iterator => $object;
+        push @iterator => $test->_force_inflation($object);
     }
     return @iterator;
 }
 
-sub _convert_to_datetime {
-    my $date = shift;
-    my %date;
-    @date{qw/year month day hour minute second/} = $date =~ /(\d\d\d\d)-(\d\d)-(\d\d).(\d\d):(\d\d):(\d\d)/;
-    return DateTime->new(%date);
+sub _force_inflation {
+    my ($test, $object) = @_;
+    return unless $object;
+    no warnings 'void';
+    foreach my $attr ($object->my_class->attributes) {
+        if ($attr->references) {
+            $test->_force_inflation($attr->get($object));
+        }
+        else {
+            my $name = $attr->name;
+            $object->$name; # this is what forces inflation
+        }
+    }
+    return $object;
 }
 
 sub _num_recs {
@@ -152,30 +158,30 @@ sub search : Test(19) {
     ok $iterator = $store->search($class, name => $foo->name),
         'and an exact match should succeed';
     isa_ok $iterator, Iterator, 'and the object it returns';
-    is_deeply $iterator->next, $foo,
+    is_deeply $test->_force_inflation($iterator->next), $foo,
         'and the first item should match the correct object';
-    ok ! $iterator->next, 'and there should be the correct number of objects';
+    ok ! $test->_force_inflation($iterator->next), 'and there should be the correct number of objects';
 
     ok $iterator = $store->search($class, name => $foo->name),
         'We should also be able to call search as a class method';
     isa_ok $iterator, Iterator, 'and the object it returns';
-    is_deeply $iterator->next, $foo,
+    is_deeply $test->_force_inflation($iterator->next), $foo,
         'and it should return the same results as an instance method';
-    ok ! $iterator->next, 'and there should be the correct number of objects';
+    ok ! $test->_force_inflation($iterator->next), 'and there should be the correct number of objects';
 
     ok $iterator = $store->search($class, name => ucfirst $foo->name),
         'Case-insensitive searches should work';
     isa_ok $iterator, Iterator, 'and the object it returns';
-    is_deeply $iterator->next, $foo,
+    is_deeply $test->_force_inflation($iterator->next), $foo,
          'and they should return data even if the case does not match';
 
     $iterator = $store->search($class, name => $foo->name, description => 'asdf');
-    ok ! $iterator->next,
+    ok ! $test->_force_inflation($iterator->next),
         'but searching for non-existent values will return no results';
     $foo->description('asdf');
     $store->save($foo);
     $iterator = $store->search($class, name => $foo->name, description => 'asdf');
-    is_deeply $iterator->next, $foo,
+    is_deeply $test->_force_inflation($iterator->next), $foo,
         '... and it should be the correct results';
 }
 
@@ -864,10 +870,13 @@ sub search_overloaded : Test(11) {
     $class   = $foo->my_class;
     my $twelve = Test::Number->new(12);
     my $thirty = Test::Number->new(30);
-    $iterator = $store->search($class, age => [$twelve => $thirty]);
+    $iterator = $store->search($class, 
+        age => [$twelve => $thirty],
+        {order_by => 'age'}
+    );
     my @results = $test->_all_items($iterator);
     is @results, 2, 'Searching on a range should return the correct number of results';
-    @results = sort { $a->age <=> $b->age } @results;
+    #@results = sort { $a->age <=> $b->age } @results;
     is_deeply \@results, [$foo, $bar], '... and the correct results';
 }
 
@@ -886,7 +895,7 @@ sub lookup : Test(8) {
     $store->save($two);
     can_ok $store, 'lookup';
     my $thing = $store->lookup($two->my_class, guid => $two->guid);
-    is_deeply $thing, $two, 'and it should return the correct object';
+    is_deeply $test->_force_inflation($thing), $two, 'and it should return the correct object';
     foreach my $method (qw/name description guid state/) {
         is $thing->$method, $two->$method, "$method() should behave the same";
     }

@@ -26,7 +26,6 @@ use Carp qw/croak/;
 
 use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Util::Iterator';
-use aliased 'Kinetic::Util::State';
 use aliased 'Kinetic::DateTime::Incomplete';
 use aliased 'Kinetic::Store::Search';
 
@@ -280,61 +279,26 @@ method.
 sub _date_handler {
     my ($self, $search) = @_;
     my $operator = $search->operator;
-    return 'EQ'      eq $operator ? $self->_eq_date_handler($search)
+    return '='       =~ $operator ? $self->_eq_date_handler($search)
         :  'BETWEEN' eq $operator ? $self->_between_date_handler($search)
         :  'ANY'     eq $operator ? $self->_any_date_handler($search)
         :                           $self->_gt_lt_date_handler($search);
 }
 
 sub _eq_date_handler {
-    my ($self, $search) = @_;
-    my $date     = $search->data;
-    my $token    = $self->_field_format($search->attr, $date);
-    my $operator = $search->negated? '!=' : '=';
-    return ("$token $operator ?", [$date->sort_string]);
+    croak "This must be overridden in a subclass";
 }
 
 sub _gt_lt_date_handler {
-    my ($self, $search) = @_;
-    my ($date, $operator) = ($search->data, $search->operator);
-    unless ($date->contiguous) {
-        require Carp;
-        Carp::croak "You cannot do GT or LT type searches with non-contiguous dates";
-    }
-    my $token = $self->_field_format($search->attr, $date);
-    my $value = $date->sort_string;
-    return ("$token $operator ?", [$value]);
+    croak "This must be overridden in a subclass";
 }
 
 sub _between_date_handler {
-    my ($self, $search) = @_;
-    my $data = $search->data;
-    my ($date1, $date2) = @$data;
-    unless ($date1->contiguous && $date2->contiguous) {
-        require Carp;
-        Carp::croak "You cannot do range searches with non-contiguous dates";
-    }
-    unless ($date1->same_segments($date2)) {
-        require Carp;
-        Carp::croak "BETWEEN search dates must have identical segments defined";
-    }
-    my ($negated, $operator) = ($search->negated, $search->operator);
-    my $token = $self->_field_format($search->attr, $date1);
-    return ("$token $negated $operator ? AND ?", [$date1->sort_string, $date2->sort_string])
+    croak "This must be overridden in a subclass";
 }
 
 sub _any_date_handler {
-    my ($self, $search)   = @_;
-    my ($negated, $value) = ($search->negated, $search->data);
-    my (@tokens, @values);
-    my $field = $search->attr;
-    foreach my $date (@$value) {
-        my $token = $self->_field_format($field, $date);
-        push @tokens => "$token = ?";
-        push @values => $date->sort_string;
-    }
-    my $token = join ' OR ' => @tokens;
-    return ($token, \@values);
+    croak "This must be overridden in a subclass";
 }
 
 sub _get_select_sql_and_bind_params {
@@ -348,28 +312,6 @@ sub _get_select_sql_and_bind_params {
     return ($sql, $bind_params);
 }
 
-my @DATE = (
-    [year   => [1, 4]],
-    [month  => [6, 2]],
-    [day    => [9, 2]],
-    [hour   => [12,2]],
-    [minute => [15,2]],
-    [second => [18,2]],
-); 
-
-sub _field_format {
-    my ($self, $field, $date) = @_;
-    my @tokens;
-    foreach my $date_data (@DATE) {
-        my ($segment, $idx) = @$date_data;
-        my $value = $date->$segment;
-        next unless defined $value;
-        push @tokens => "substr($field, $idx->[0], $idx->[1])";
-    }
-    return $self->_cast_as_int(@tokens);
-}
-
-##############################################################################
 ##############################################################################
 
 =begin private
@@ -637,8 +579,6 @@ sub _build_object_from_hashref {
         my @object_fields = @{$fields}{@sql_fields};
         my %object;
         @object{@object_fields} = @{$hashref}{@sql_fields};
-        # XXX ugh.  I hate doing this :(
-        $object{state} = State->new($object{state}) if exists $object{state};
         $objects{$package} = bless \%object => $package;
     }
     # XXX Aack!  This is fugly.
@@ -946,12 +886,7 @@ sub _is_case_insensitive {
             }
         }
     }
-    if ($field =~ /^LOWER/) {
-        return ($field, 'LOWER(?)');
-    }
-    else {
-        return ($orig_field, '?');
-    }
+    return $field =~ /^LOWER/? ($field, 'LOWER(?)') : ($orig_field, '?');
 }
 
 sub _ANY_SEARCH {
@@ -962,21 +897,11 @@ sub _ANY_SEARCH {
     return ("$field $negated IN ($place_holders)", $value);
 }
 
-sub _ANY_INCOMPLETE_DATE_SEARCH {
-    my ($self, $search) = @_;
-    return $self->_date_handler($search);
-}
-
 sub _EQ_SEARCH {
     my ($self, $search)        = @_;
     my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
-    my $operator = $search->negated ? '!=' : '=';
+    my $operator = $search->operator;
     return ("$field $operator $place_holder", [$search->data]);
-}
-
-sub _EQ_INCOMPLETE_DATE_SEARCH {
-    my ($self, $search) = @_;
-    return $self->_date_handler($search);
 }
 
 sub _NULL_SEARCH {
@@ -985,41 +910,12 @@ sub _NULL_SEARCH {
     return ("$field IS $negated NULL", []);
 }
 
-sub _GT_SEARCH {
-    my ($self, $search) = @_;
-    $search->operator($search->negated ? '<=' : '>');
-    $self->_gt_lt_handler($search);
-}
-
-sub _GE_SEARCH {
-    my ($self, $search) = @_;
-    $search->operator($search->negated ? '<' : '>=');
-    $self->_gt_lt_handler($search);
-}
-
-sub _LE_SEARCH {
-    my ($self, $search) = @_;
-    $search->operator($search->negated ? '>' : '<=');
-    $self->_gt_lt_handler($search);
-}
-
-sub _LT_SEARCH {
-    my ($self, $search) = @_;
-    $search->operator($search->negated ? '>=' : '<');
-    $self->_gt_lt_handler($search);
-}
-
-sub _gt_lt_handler {
+sub _GT_LT_SEARCH {
     my ($self, $search) = @_;
     my $value = $search->data;
-    if (UNIVERSAL::isa($value, Incomplete)) {
-        return $self->_date_handler($search);
-    }
-    else {
-        my $operator = $search->operator;
-        my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
-        return ("$field $operator $place_holder", [$value]);
-    }
+    my $operator = $search->operator;
+    my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
+    return ("$field $operator $place_holder", [$value]);
 }
 
 sub _BETWEEN_SEARCH {
@@ -1027,11 +923,6 @@ sub _BETWEEN_SEARCH {
     my ($negated, $operator) = ($search->negated, $search->operator);
     my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
     return ("$field $negated $operator $place_holder AND $place_holder", $search->data)
-}
-
-sub _BETWEEN_INCOMPLETE_DATE_SEARCH {
-    my ($self, $search) = @_;
-    return $self->_date_handler($search);
 }
 
 sub _MATCH_SEARCH {

@@ -65,10 +65,10 @@ my %operators = (
     NOT     => '_EQ_SEARCH',
     LIKE    => '_LIKE_SEARCH',
     MATCH   => '_MATCH_SEARCH', 
-    GT      => '_GT_SEARCH',
-    LT      => '_LT_SEARCH',
-    GE      => '_GE_SEARCH',
-    LE      => '_LE_SEARCH',
+    GT      => '_GT_LT_SEARCH',
+    LT      => '_GT_LT_SEARCH',
+    GE      => '_GT_LT_SEARCH',
+    LE      => '_GT_LT_SEARCH',
     NE      => '_EQ_SEARCH',
 );
 while (my ($operator, $method) = each %operators) {
@@ -87,7 +87,7 @@ foreach my $operator (qw/EQ NOT NE/) {
 $search->data(Incomplete->now);
 foreach my $operator (qw/EQ NOT NE/) {
     $search->operator($operator);
-    is $search->search_method, '_EQ_INCOMPLETE_DATE_SEARCH',
+    is $search->search_method, '_date_handler',
         "$operator should default to a _EQ_INCOMPLETE_DATE_SEARCH if the search value is an incomplete date";
 }
 
@@ -117,7 +117,7 @@ is $search->search_method, '_BETWEEN_SEARCH',
     'A BETWEEN search with most arguments should default to the _BETWEEN_SEARCH method';
 
 $search->data([Incomplete->now => Incomplete->now]);
-is $search->search_method, '_BETWEEN_INCOMPLETE_DATE_SEARCH',
+is $search->search_method, '_date_handler',
     '... and with incomplete date arguments should default to the correct method';
 
 $search->operator('ANY');
@@ -136,5 +136,5 @@ is $search->search_method, '_ANY_SEARCH',
     'An ANY search with most arguments should default to the _ANY_SEARCH method';
 
 $search->data([Incomplete->now => Incomplete->now]);
-is $search->search_method, '_ANY_INCOMPLETE_DATE_SEARCH',
+is $search->search_method, '_date_handler',
     '... and with incomplete date arguments should default to the correct method';

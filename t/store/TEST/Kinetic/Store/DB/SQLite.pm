@@ -6,7 +6,6 @@ use strict;
 use warnings;
 
 use base 'TEST::Kinetic::Store';
-#use base 'TEST::Kinetic::Store::DB';
 use Test::More;
 use Test::Exception;
 

@@ -6,7 +6,6 @@ use strict;
 use warnings;
 
 use base 'TEST::Kinetic::Store';
-#use base 'TEST::Class::Kinetic';
 use Test::More;
 use Test::Exception;
 
@@ -23,13 +22,11 @@ __PACKAGE__->SKIP_CLASS(
 ) if caller; # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
-sub Store () { 'Kinetic::Store::DB::Pg' }
-
 sub full_text_search : Test(1) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
-    my $store = Store->new;
+    my $store = Kinetic::Store->new;
     TODO: {
         local $TODO  = 'Full text search is not yet implemented.';
         my $iterator = $store->search($class => 'oo');
@@ -43,7 +40,7 @@ sub full_text_search : Test(1) {
 sub search_match : Test(6) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
-    my $store = Store->new;
+    my $store = Kinetic::Store->new;
     my $iterator = $store->search( $foo->my_class, 
         name => MATCH '^(f|ba)',
         { order_by => 'name' }

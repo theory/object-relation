@@ -108,22 +108,84 @@ sub _execute {
     $sth->execute(@$bind_params);
 }
 
-sub _cast_as_int {
-    my ($self, @tokens) = @_;
-    return 'CAST('. join(' || ' => @tokens) .' AS int8)';
-}
-
-sub _comparison_operator_for_single {
-    my $self = shift;
-    my ($has_not, $operator, $type) = @_;
-
-    if ( $operator eq 'LIKE' ) {
-        return $has_not ? '!~' : '~';
-    } else {
-        return $self->SUPER::_comparison_operator_for_single(@_);
+sub _eq_date_handler {
+    my ($self, $search) = @_;
+    my $date  = $search->data;
+    my $field = $search->attr;
+    my $operator = $search->operator;
+    my (@tokens, @values);
+    foreach my $segment ($date->defined_store_fields) {
+        push @tokens => "EXTRACT($segment FROM $field) $operator ?";
+        push @values => $date->$segment;
     }
+    return ("(".join(' AND ' => @tokens).")", \@values);
 }
 
+my %DATE = (
+    year   => { format => 'IYYY', length => 4 },
+    month  => { format => 'MM',   length => 2 },
+    day    => { format => 'DD',   length => 2 },
+    hour   => { format => 'HH24', length => 2 },
+    minute => { format => 'MI',   length => 2 },
+    second => { format => 'SS',   length => 2 },
+); 
+
+sub _gt_lt_date_handler {
+    my ($self, $search) = @_;
+    my ($date, $operator) = ($search->data, $search->operator);
+    unless ($date->contiguous) {
+        require Carp;
+        Carp::croak "You cannot do GT or LT type searches with non-contiguous dates";
+    }
+    my ($token, $value) = $self->_date_token_and_value($search, $date);
+    return ("$token $operator ?", [$value]);
+}
+
+sub _date_token_and_value {
+    my ($self, $search, $date) = @_;
+    my ($format,$value) = ('','');
+    foreach my $segment ($date->defined_store_fields) {
+        $format .= $DATE{$segment}{format};
+        $value  .= sprintf "%0$DATE{$segment}{length}d" => $date->$segment;
+    }
+    my $field = $search->attr;
+    my $token = "to_char($field, '$format')";
+    return ($token, $value);
+}
+
+sub _between_date_handler {
+    my ($self, $search) = @_;
+    my $data = $search->data;
+    my ($date1, $date2) = @$data;
+    unless ($date1->contiguous && $date2->contiguous) {
+        require Carp;
+        Carp::croak "You cannot do range searches with non-contiguous dates";
+    }
+    unless ($date1->same_segments($date2)) {
+        require Carp;
+        Carp::croak "BETWEEN search dates must have identical segments defined";
+    }
+    my ($negated, $operator) = ($search->negated, $search->operator);
+    my ($token, $value1) = $self->_date_token_and_value($search, $date1);
+    my (undef,  $value2) = $self->_date_token_and_value($search, $date2);
+    return ("$token $negated $operator ? AND ?", [$value1, $value2])
+}
+
+sub _any_date_handler {
+    my ($self, $search)   = @_;
+    my ($negated, $value) = ($search->negated, $search->data);
+    my (@tokens, @values);
+    my $field = $search->attr;
+    foreach my $date (@$value) {
+        my ($token, $value) = $self->_date_token_and_value($search, $date);
+        push @tokens => "$token = ?";
+        push @values => $value;
+    }
+    my $token = join ' OR ' => @tokens;
+    return ($token, \@values);
+}
+
+##############################################################################
 1;
 __END__
 

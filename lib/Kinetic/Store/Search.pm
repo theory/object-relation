@@ -22,7 +22,7 @@ use strict;
 use Scalar::Util qw(blessed);
 use Carp qw(croak);
 
-use Kinetic::DateTime::Incomplete;
+use aliased 'Kinetic::DateTime::Incomplete';
 
 # lots of private class data
 
@@ -48,10 +48,10 @@ my %COMPARE_DISPATCH = (
     LIKE    => sub { '_LIKE_SEARCH' },
     MATCH   => sub { '_MATCH_SEARCH' },
     BETWEEN => \&_BETWEEN_SEARCH,
-    GT      => sub { '_GT_SEARCH' },
-    LT      => sub { '_LT_SEARCH' },
-    GE      => sub { '_GE_SEARCH' },
-    LE      => sub { '_LE_SEARCH' },
+    GT      => sub { shift->_GT_LT_SEARCH('<=', '>') },
+    LT      => sub { shift->_GT_LT_SEARCH('>=', '<') },
+    GE      => sub { shift->_GT_LT_SEARCH('<', '>=') },
+    LE      => sub { shift->_GT_LT_SEARCH('>', '<=') },
     NE      => sub {
         my ($search) = @_;
         $search->negated('NOT');
@@ -60,6 +60,14 @@ my %COMPARE_DISPATCH = (
     },
     ANY     => \&_ANY_SEARCH,
 );
+
+sub _GT_LT_SEARCH {
+    my ($search, $neg_op, $op) = @_;
+    $search->operator($search->negated ? $neg_op : $op);
+    return UNIVERSAL::isa($search->data, Incomplete)
+        ? '_date_handler'
+        : '_GT_LT_SEARCH';
+}
 
 =head1 Name
 
@@ -203,8 +211,8 @@ sub _ANY_SEARCH {
     unless (1 == keys %types) {
         croak "All types to an ANY search must match";
     }
-    return 'Kinetic::DateTime::Incomplete' eq ref $data->[0]
-        ? '_ANY_INCOMPLETE_DATE_SEARCH'
+    return Incomplete eq ref $data->[0]
+        ? '_date_handler'
         : '_ANY_SEARCH'; 
 }
 
@@ -223,18 +231,19 @@ sub _BETWEEN_SEARCH {
         my ($ref1, $ref2) = (ref $data->[0], ref $data->[1]);
         croak "BETWEEN searches must be between identical types.  You have ($ref1) and ($ref2)";
     }
-    return 'Kinetic::DateTime::Incomplete' eq ref $data->[0]
-        ? '_BETWEEN_INCOMPLETE_DATE_SEARCH'
+    return Incomplete eq ref $data->[0]
+        ? '_date_handler'
         : '_BETWEEN_SEARCH'; 
 }
 
 sub _am_i_eq_or_not {
     my ($search) = @_;
-    my $data = $search->data;
+    my $data     = $search->data;
+    $search->operator($search->negated ? '!=' : '=');
     return 
-        ! defined $data                                          ? '_NULL_SEARCH'
-        : UNIVERSAL::isa($data, 'Kinetic::DateTime::Incomplete') ? '_EQ_INCOMPLETE_DATE_SEARCH'
-        :                                                          '_EQ_SEARCH';
+        ! defined $data                     ? '_NULL_SEARCH'
+        : UNIVERSAL::isa($data, Incomplete) ? '_date_handler'
+        :                                     '_EQ_SEARCH';
 }
 
 ##############################################################################

@@ -108,6 +108,22 @@ sub contiguous {
 
 ##############################################################################
 
+=head3 defined_store_fields
+
+  my @fields = $date->defined_store_fields;
+
+This method returns a list of all defined fields which are also valid for the
+data stores.
+
+=cut
+
+sub defined_store_fields {
+    my $self = shift;
+    return grep ! /(?:time_zone|locale)/ => $self->defined_fields;
+}
+
+##############################################################################
+
 =head3 sort_string
 
   my $sortable_string = $date->sort_string;
@@ -121,7 +137,7 @@ four characters.
     year  => 1997,
     month => 6,
     hour  => 23
-  );
+  )->sort_string;
 
 =cut
 
