@@ -75,45 +75,28 @@ sub new {
 
 ##############################################################################
 
-=head2 Normal class methods
+=head3 info_class
 
-=head3 _validate
+  my $info = $rules->info_class
 
-  $class->_validate($build_object);
-
-When passed the build object, this method ensures that the class has been
-called correctly.  If the class has been instantiated directly or the build
-object is not a C<Kinetic::Build>, this method will C<croak()>.
+This abstract class method returns the name of the C<App::Info> class for the
+data store. Must be overridden in subclasses.
 
 =cut
 
-sub _validate {
-    my ($class, $build) = @_;
-    if (__PACKAGE__ eq $class) {
-        # What module? I think we need a more descriptive error message here.
-        Carp::croak "This module must be subclassed.";
-    }
-    unless (UNIVERSAL::isa($build, 'Kinetic::Build')) {
-        Carp::croak "The argument to the constructor must be a Kinetic::Build object";
-    }
-    return $class;
-}
+sub info_class { die "info_class() must be overridden in the subclass" }
 
 ##############################################################################
 
 =head1 Instance Interface
 
-=head2 Public Instance Methods
-
-=cut
-
-##############################################################################
+=head2 Instance Accessors
 
 =head3 build
 
-  $rules->build;
+  my $build = $rules->build;
 
-Returns the build object;
+Returns the Kinetic::Build object;
 
 =cut
 
@@ -123,9 +106,10 @@ sub build { $_[0]->{build} }
 
 =head3 app_name
 
-  $rules->app_name;
+  my $app_name = $rules->app_name;
 
-Returns the app_name (key_name) as determined by the C<App::Info> method.
+Returns the application name (key_name) as determined by the C<App::Info>
+method.
 
 =cut
 
@@ -135,7 +119,7 @@ sub app_name { $_[0]->{app_name} }
 
 =head3 info
 
-  $rules->info;
+  my $info = $rules->info;
 
 Returns the C<App::Info> object for the data store.
 
@@ -145,24 +129,25 @@ sub info { $_[0]->{info} }
 
 ##############################################################################
 
+=head2 Instance Methods
+
 =head3 validate
 
   $rules->validate;
 
-This method will validate the store rules.  Returns true if the store can be
-used.  Otherwise it will C<croak()>.
+This method will validate the store rules. Returns true if the store can be
+used. Otherwise it will C<croak()>.
 
 Internally this method calls C<_state_machine()>. See that method for details.
 If you do not wish to use C<FSA::Rules> for rules validation, you will need to
-override this method.
+override the C<validate()> method.
 
 =cut
 
 sub validate {
     my $self = shift;
     # XXX Hrm. _state_machine() doesn't seem like quite the right name to
-    # me. More like states() or state_defs(). Also, why does it return two
-    # values?
+    # me. More like states() or state_defs().
     my $state_machine = $self->_state_machine;
     my $machine = FSA::Rules->new(@$state_machine);
     $machine->start;
@@ -171,20 +156,42 @@ sub validate {
     return $self;
 }
 
+##############################################################################
+
 =begin private
 
 =head2 Private Methods
 
+=head3 _validate
+
+  $class->_validate($build_object);
+
+When passed the build object, this method ensures that the class has been
+called correctly. If the class has been instantiated directly or the build
+object is not a C<Kinetic::Build>, this method will C<croak()>. Otherwise,
+it will return the class name.
+
 =cut
+
+sub _validate {
+    my ($class, $build) = @_;
+    Carp::croak "$class is an abstract base class. Please use a subclass"
+      if __PACKAGE__ eq $class;
+
+    Carp::croak "The argument to the constructor is not a Kinetic::Build object"
+      unless UNIVERSAL::isa($build, 'Kinetic::Build');
+
+    return $class;
+}
 
 ##############################################################################
 
 =head3 _is_required_version
 
- $rules->_is_required_version;
+  print "Is required version" if $rules->_is_required_version;
 
-This is a common helper function that uses C<version> to determine if the
-data store is of the minumum required version.  Returns a boolean value.
+This is a common helper function that uses the C<version> module to determine
+if the data store is of the minumum required version. Returns a boolean value.
 
 =cut
 
@@ -199,9 +206,10 @@ sub _is_required_version {
 
 =head3 _dbh
 
- $rules->_dbh([$dbh]);
+  my $dbh = $rules->_dbh;
+  $rules->_dbh($dbh);
 
-A convenient place to cache a database handle, if necessary.  Always returns
+A convenient place to cache a database handle, if necessary. Always returns
 the database handle, even when setting it.
 
 =cut
@@ -216,10 +224,10 @@ sub _dbh {
 
 =head3 _is_installed
 
-  $rules->_installed;
+  print "Is installed" if $rules->_is_installed;
 
 This is a common helper function that uses C<App::Info> to determine if the
-data store is installed.  Returns a boolean value.
+data store is installed. Returns a boolean value.
 
 =cut
 
@@ -231,7 +239,7 @@ sub _is_installed {
 
 =head3 _has_executable
 
-  $rules->_has_excutable;
+  print "Has executable" if $rules->_has_excutable;
 
 Uses C<App::Info> to determine if the executable is installed.  Returns a
 boolean value.
@@ -244,40 +252,12 @@ sub _has_executable {
 
 ##############################################################################
 
-=head1 Abstract Methods
-
-=head2 Abstract Class Methods
-
-=cut
-
-##############################################################################
-
-=head3 info_class
-
- $rules->info_class
-
-Returns the C<App::Info> class for the data store.
-
-=cut
-
-sub info_class { die "info_class() must be overridden in the subclass" }
-
-##############################################################################
-
-=head2 Abstract Instance Methods
-
-Description
-
-=cut
-
-##############################################################################
-
 =head3 _state_machine
 
   my ($state_machine, $end_func) = $rules->_state_machine;
 
-This is a protected method that must be overridden in a subclass.  By default
-it must return arguments that the C<FSA::Rules> engine requires.
+This is an abstract protected method that must be overridden in a subclass. By
+default it must return arguments that the C<FSA::Rules> engine requires.
 
 =cut
 
