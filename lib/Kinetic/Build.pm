@@ -464,9 +464,8 @@ dependency.
 sub ACTION_test {
     my $self = shift;
     $self->depends_on('setup_test');
-    # This should always return a value here, but sometimes it doesn't...
-    # Not sure why; fix if it becomes a problem.
     local $ENV{KINETIC_CONF} = $self->notes('test_conf_file');
+    local $ENV{KINETIC_SUPPORTED} = $self->store;
     $self->SUPER::ACTION_test(@_);
     $self->depends_on('teardown_test');
 }

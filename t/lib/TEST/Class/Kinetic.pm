@@ -7,29 +7,16 @@ use warnings;
 use utf8;
 use base 'Test::Class';
 use Test::More;
-use Cwd;
-use DBI;
+use Cwd ();
 use File::Path ();
 use File::Spec::Functions;
-use lib 't/sample/lib';
-
 use aliased 'Test::MockModule';
-
-my ($STARTDIR, $DSN, $DBH, $DBFILE);
 
 __PACKAGE__->runtests;
 
-BEGIN {
-    $ENV{KINETIC_CONF} = catfile(qw/t conf kinetic.conf/);
-}
+my %SUPPORTED = map { $_ => undef } split /\s+/, $ENV{KINETIC_SUPPORTED};
 
-my $builder;
-sub builder {
-    my $test = shift;
-    return $builder unless @_;
-    $builder = shift;
-    return $test;
-}
+sub supported { exists $SUPPORTED{$_[1]} }
 
 sub a_test_load : Test(startup => 1) {
     my $test = shift;
@@ -51,7 +38,7 @@ sub cleanup : Test(teardown) {
 
 sub chdirs {
     my $self = shift;
-    $self->{_cwd_} ||= getcwd;
+    $self->{_cwd_} ||= Cwd::getcwd;
     chdir $_ for @_;
     return $self;
 }
@@ -59,44 +46,15 @@ sub chdirs {
 sub mkpath {
     my $self = shift;
     return $self unless @_;
-    my ($build, @cleanup);
+    my ($build, $cleanup);
     for my $dir (@_) {
         $build = catdir((defined $build ? $build : ()), $dir);
         next if -e $build;
-        push @cleanup, $build;
+        $cleanup ||= $build;
         File::Path::mkpath($build);
     }
-    push @{$self->{_paths_}}, @cleanup if @cleanup;
+    push @{$self->{_paths_}}, $cleanup if $cleanup;
     return $self;
-}
-
-sub data_dir { catdir 't', 'data' }
-
-##############################################################################
-
-=head3 _start_dir
-
-  my $start_dir = $test->_start_dir;
-
-Read only.  Returns absolute path to the directory the tests are run from.
-
-=cut
-
-sub _start_dir { $STARTDIR }
-
-##############################################################################
-
-=head3 _test_lib
-
-  my $test_lib = $test->_test_lib;
-
-Returns absolute path to the test lib directory that Kinetic ojbects will use.
-May be overridden.
-
-=cut
-
-sub _test_lib {
-    return File::Spec->catfile(shift->_start_dir, qw/t lib/);
 }
 
 

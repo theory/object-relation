@@ -9,7 +9,7 @@ use lib 't/lib', 't/sample/lib';
 use TEST::Class::Kinetic;
 
 my @classes;
-TEST::Class::Kinetic->builder(Kinetic::Build->resume)->runtests(@classes);
+TEST::Class::Kinetic->runtests(@classes);
 
 BEGIN {
     my $test_dir = shift || File::Spec->catdir('t', 'lib', 'TEST');

@@ -19,8 +19,6 @@ sub atest_process_conf_files : Test(14) {
     my $self = shift;
     my $class = $self->test_class;
 
-    $self->chdirs('t', 'sample');
-    local @INC = (catdir(updir, updir, 'lib'), @INC);
     file_exists_ok 'conf/kinetic.conf', "We should have a default config file";
 
     # There should be no blib direcory or t/conf directories.
@@ -77,12 +75,9 @@ sub atest_process_conf_files : Test(14) {
     file_not_exists_ok 'blib', 'Build lib should be gone';
 }
 
-sub test_props : Test(11) {
+sub test_props : Test(10) {
     my $self = shift;
     my $class = $self->test_class;
-
-    $self->chdirs('t', 'sample');
-    local @INC = (catdir(updir, updir, 'lib'), @INC);
 
     my $mb = MockModule->new($class);
     $mb->mock(check_manifest => sub { return });
@@ -93,8 +88,6 @@ sub test_props : Test(11) {
     is $builder->conf_file, 'kinetic.conf',
       'Default conf file should be "kinetic.conf"';
     is $builder->run_dev_tests, 0, 'Run dev tests should be disabled';
-    is $builder->test_data_dir, $self->data_dir,
-      'The test data directory should consistent';
     like $builder->install_base, qr/kinetic$/,
       'The install base should end with "kinetic"';
     is_deeply $builder->store_config, {class => 'Kinetic::Store::DB::SQLite'},
@@ -118,9 +111,6 @@ sub test_props : Test(11) {
 sub test_check_store_action : Test(7) {
     my $self = shift;
     my $class = $self->test_class;
-
-    $self->chdirs('t', 'sample');
-    local @INC = (catdir(updir, updir, 'lib'), @INC);
 
     # Break things.
     my $builder;
@@ -156,10 +146,9 @@ sub test_config_action : Test(4) {
     my $class = $self->test_class;
 
     # Copy Kinetic::Util::Config to data dir (not sample!).
-    $self->mkpath(qw't data lib Kinetic Util');
-    copy catfile(qw'lib Kinetic Util Config.pm'),
-         catdir($self->data_dir, qw'lib Kinetic Util');
-    $self->chdirs($self->data_dir);
+    $self->mkpath(qw'lib Kinetic Util');
+    copy catfile(updir, updir, qw'lib Kinetic Util Config.pm'),
+         catdir(qw'lib Kinetic Util');
     my $default = '/usr/local/kinetic/conf/kinetic.conf';
 
     my $config = catfile qw'lib Kinetic Util Config.pm';
@@ -197,24 +186,22 @@ sub test_test_actions : Test(9) {
     my $mb = MockModule->new($class);
     $mb->mock(resume => sub { $builder });
     $mb->mock(check_manifest => sub { return });
-
-    $self->chdirs(qw't sample');
-    local @INC = (catdir(updir, updir, 'lib'), @INC);
     $builder = $self->new_builder;
 
     # Dev tests are off.
-    file_not_exists_ok $self->data_dir,
+    file_not_exists_ok $builder->test_data_dir,
       'We should not yet have a test data directory';
     ok $builder->dispatch('setup_test'), "Run setup_test action";
-    file_exists_ok $self->data_dir, 'Now we should have a test data directory';
-    file_not_exists_ok $self->data_dir . '/kinetic.db',
+    file_exists_ok $builder->test_data_dir,
+      'Now we should have a test data directory';
+    file_not_exists_ok $builder->test_data_dir . '/kinetic.db',
       '... but not a SQLite database, since dev tests are off';
 
     # Turn the dev tests on.
     $builder = $self->new_builder( run_dev_tests => 1);
     $builder->source_dir('lib');
     ok $builder->dispatch('setup_test'), "Run setup_test action";
-    file_exists_ok $self->data_dir . '/kinetic.db',
+    file_exists_ok $builder->test_data_dir . '/kinetic.db',
       'SQLite database should now exist';
 
     # Make sure that the test_teardown action calls the store's test_cleanup
@@ -227,15 +214,13 @@ sub test_test_actions : Test(9) {
 
     # Make sure we clean up our mess.
     $builder->dispatch('clean');
-    file_not_exists_ok $self->data_dir, 'Data directory should be deleted';
+    file_not_exists_ok $builder->test_data_dir,
+      'Data directory should be deleted';
 }
 
 sub test_get_reply : Test(49) {
     my $self = shift;
     my $class = $self->test_class;
-
-    $self->chdirs('t', 'sample');
-    local @INC = (catdir(updir, updir, 'lib'), @INC);
 
     my $kb = MockModule->new($class);
     $kb->mock(check_manifest => sub { return });

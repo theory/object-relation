@@ -73,10 +73,10 @@ sub test_rules : Test(27) {
     is_deeply [$kbs->actions], ['build_db'],
       "... and the actions should be set up";
 
-    # Check the DSNs. Make the install base is the same as the test base
-    # for the purposes of testing.
-    $builder->install_base($builder->test_data_dir);
-    my $db_file = catfile 't', 'data', 'store', 'fooness';
+    # Check the DSNs. Make sure that the install base is the same as the test
+    # base for the purposes of testing.
+    $builder->install_base(curdir);
+    my $db_file = catfile 'store', 'fooness';
     is $kbs->dsn, "dbi:SQLite:dbname=$db_file",
       "...and the DSN should be set";
     my $test_file = catfile 't', 'data', 'fooness';
@@ -90,8 +90,11 @@ sub test_rules : Test(27) {
     is_deeply $kbs->test_config, {file => $test_file},
       "... as should the test configuration";
 
+    return "Not building with SQLite" unless $self->supported('sqlite');
+
     # Try building the test database.
-    $builder->source_dir('t/sample/lib');
+    $builder->source_dir('lib');
+    $self->mkpath('t', 'data');
     file_not_exists_ok $test_file,
       "The test database file should not yet exist";
     ok $kbs->test_build, "Build the test database";
@@ -108,7 +111,7 @@ sub test_rules : Test(27) {
 
     # Try building the production database.
     unlink $test_file;
-    $self->mkpath('t', 'data', 'store');
+    $self->mkpath('store');
     file_not_exists_ok $db_file,
       "The database file should not yet exist";
     ok $kbs->build, "Build the database";
