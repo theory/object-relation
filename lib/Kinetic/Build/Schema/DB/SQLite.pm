@@ -1,4 +1,4 @@
-package Kinetic::Build::SchemaGen::DB::Pg;
+package Kinetic::Build::Schema::DB::SQLite;
 
 # $Id$
 
@@ -19,41 +19,27 @@ package Kinetic::Build::SchemaGen::DB::Pg;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use base 'Kinetic::Build::SchemaGen::DB';
+use base 'Kinetic::Build::Schema::DB';
 
 =head1 Name
 
-Kinetic::Build::SchemaGen::DB::Pg - Kinetic PostgreSQL data store schema generation
+Kinetic::Build::Schema::DB::SQLite - Kinetic SQLite data store schema generation
 
 =head1 Synopsis
 
-  use Kinetic::SchemaGen;
-  my $sg = Kinetic::SchemaGen->new;
+  use Kinetic::Schema;
+  my $sg = Kinetic::Schema->new;
   $sg->generate_to_file($file_name);
 
 =head1 Description
 
 This module generates and outputs to a file the schema information necessary
 to create a PostgreSQL data store for a Kinetic application. See
-L<Kinetic::Build::SchemaGen|Kinetic::Build::SchemaGen> and
-L<Kinetic::Build::SchemaGen::DB|Kinetic::Build::SchemaGen::DB> for more
+L<Kinetic::Build::Schema|Kinetic::Build::Schema> and
+L<Kinetic::Build::Schema::DB|Kinetic::Build::Schema::DB> for more
 information.
 
 =cut
-
-my %types = (
-    string   => 'TEXT',
-    guid     => 'TEXT',
-    boolean  => 'BOOL',
-    whole    => 'INTEGER',
-    state    => 'INT2',
-    datetime => 'TIMESTAMP',
-);
-
-sub column_type {
-    my ($self, $attr) = @_;
-    return " $types{$attr->type}";
-}
 
 1;
 __END__

@@ -1,4 +1,4 @@
-package Kinetic::Build::SchemaGen::DB;
+package Kinetic::Build::Schema::DB;
 
 # $Id$
 
@@ -19,24 +19,24 @@ package Kinetic::Build::SchemaGen::DB;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use base 'Kinetic::Build::SchemaGen';
+use base 'Kinetic::Build::Schema';
 
 =head1 Name
 
-Kinetic::Build::SchemaGen::DB - Kinetic database data store schema generation
+Kinetic::Build::Schema::DB - Kinetic database data store schema generation
 
 =head1 Synopsis
 
-  use Kinetic::SchemaGen;
-  my $sg = Kinetic::SchemaGen->new;
+  use Kinetic::Schema;
+  my $sg = Kinetic::Schema->new;
   $sg->generate_to_file($file_name);
 
 =head1 Description
 
 This is an abstract base class for the generation and output of a database
 schema to build a data store for a Kinetic application. See
-L<Kinetic::Build::SchemaGen|Kinetic::Build::SchemaGen> for more information
-and the subclasses of Kinetic::SchemaGen::DB for database-specific
+L<Kinetic::Build::Schema|Kinetic::Build::Schema> for more information
+and the subclasses of Kinetic::Schema::DB for database-specific
 implementations.
 
 =cut

@@ -10,12 +10,12 @@ use Test::More tests => 10;
 
 package main;
 
-BEGIN { use_ok 'Kinetic::Build::SchemaGen' };
+BEGIN { use_ok 'Kinetic::Build::Schema' };
 
-ok my $sg = Kinetic::Build::SchemaGen->new, 'Get new SchemaGen';
-isa_ok $sg, 'Kinetic::Build::SchemaGen';
-isa_ok $sg, 'Kinetic::Build::SchemaGen::DB';
-isa_ok $sg, 'Kinetic::Build::SchemaGen::DB::Pg';
+ok my $sg = Kinetic::Build::Schema->new, 'Get new Schema';
+isa_ok $sg, 'Kinetic::Build::Schema';
+isa_ok $sg, 'Kinetic::Build::Schema::DB';
+isa_ok $sg, 'Kinetic::Build::Schema::DB::Pg';
 
 ok $sg->load_classes('t/lib'), "Load classes";
 ok my @classes = $sg->classes, "Get classes";

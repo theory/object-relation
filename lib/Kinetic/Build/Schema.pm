@@ -1,4 +1,4 @@
-package Kinetic::Build::SchemaGen;
+package Kinetic::Build::Schema;
 
 # $Id$
 
@@ -27,12 +27,12 @@ use File::Spec;
 
 =head1 Name
 
-Kinetic::Build::SchemaGen - Kinetic data store schema generation
+Kinetic::Build::Schema - Kinetic data store schema generation
 
 =head1 Synopsis
 
-  use Kinetic::SchemaGen;
-  my $sg = Kinetic::SchemaGen->new;
+  use Kinetic::Schema;
+  my $sg = Kinetic::Schema->new;
   $sg->generate_to_file($file_name);
 
 =head1 Description
@@ -54,10 +54,10 @@ directive.
 
 =head3 new
 
-  my $sg = Kinetic::Build::SchemaGen->new;
-  my $sg = Kinetic::Build::SchemaGen->new( $store_class );
+  my $sg = Kinetic::Build::Schema->new;
+  my $sg = Kinetic::Build::Schema->new( $store_class );
 
-Creates and returns a new SchemaGen object. This is a factory constructor; it
+Creates and returns a new Schema object. This is a factory constructor; it
 will return the subclass appropriate to the currently selected store class as
 configured in F<kinetic.conf>. Pass in a specific store class name or call
 C<new()> directly on a store subclass to override the class selected from
@@ -69,7 +69,7 @@ sub new {
     my $class = shift;
     unless ($class ne __PACKAGE__) {
         $class = shift || STORE_CLASS;
-        $class =~ s/^Kinetic::Store/Kinetic::Build::SchemaGen/;
+        $class =~ s/^Kinetic::Store/Kinetic::Build::Schema/;
         eval "require $class" or die $@;
     }
     bless {}, $class;

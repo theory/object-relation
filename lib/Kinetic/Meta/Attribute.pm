@@ -108,7 +108,7 @@ sub widget_meta { shift->{widget_meta} }
 
 During date store schema generation, returns true if an attribute is indexed
 in the data store, and false if it is not. Disabled when
-C<Kinetic::Build::SchemaGen> is not loaded.
+C<Kinetic::Build::Schema> is not loaded.
 
 =cut
 
@@ -121,7 +121,7 @@ sub indexed { shift->{indexed} }
   my $store_default = $class->store_default;
 
 During date store schema generation, returns a default value meant to be
-configured in a data store, if any. Disabled when C<Kinetic::Build::SchemaGen>
+configured in a data store, if any. Disabled when C<Kinetic::Build::Schema>
 is not loaded.
 
 =cut

@@ -8,9 +8,9 @@ use lib 't/lib';
 use Kinetic::TestSetup store => { class => 'Kinetic::Store::DB::SQLite' };
 use Test::More tests => 5;
 
-BEGIN { use_ok 'Kinetic::Build::SchemaGen' };
+BEGIN { use_ok 'Kinetic::Build::Schema' };
 
-ok my $sg = Kinetic::Build::SchemaGen->new, 'Get new SchemaGen';
-isa_ok $sg, 'Kinetic::Build::SchemaGen';
-isa_ok $sg, 'Kinetic::Build::SchemaGen::DB';
-isa_ok $sg, 'Kinetic::Build::SchemaGen::DB::SQLite';
+ok my $sg = Kinetic::Build::Schema->new, 'Get new Schema';
+isa_ok $sg, 'Kinetic::Build::Schema';
+isa_ok $sg, 'Kinetic::Build::Schema::DB';
+isa_ok $sg, 'Kinetic::Build::Schema::DB::SQLite';
