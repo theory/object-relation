@@ -21,7 +21,7 @@ my $build = Kinetic::Build->new(
         'Locale::Maketext'      => 1.09,
         'version'               => 0.420,
         'Widget::Meta'          => 0.03,
-        'XML::Writer'           => 0.520,
+        'XML::Genx'             => 0.05,
         'DBD::Pg'               => 1.32, # XXX Change to option.
         'DBD::SQLite'           => 1.07, # XXX Change to option.
     },
