@@ -340,10 +340,31 @@ dependency.
 
 sub ACTION_build {
     my $self = shift;
-    $self->depends_on('check_store');
     $self->depends_on('code');
     $self->depends_on('config');
     $self->SUPER::ACTION_build(@_);
+    return $self;
+}
+
+##############################################################################
+
+=head3 code
+
+=begin comment
+
+=head3 ACTION_code
+
+=end comment
+
+Overrides Module::Build's C<code> action to add the C<check_store> action as a
+dependency.
+
+=cut
+
+sub ACTION_code {
+    my $self = shift;
+    $self->depends_on('check_store');
+    $self->SUPER::ACTION_code(@_);
     return $self;
 }
 
@@ -366,7 +387,6 @@ tests to use as a temporary directory, and sets up a database for testing.
 sub ACTION_setup_test {
     my $self = shift;
     return $self if $self->notes('ACTION_setup_test');
-    $self->depends_on('check_store');
     $self->depends_on('code');
     $self->depends_on('config');
 
@@ -631,9 +651,11 @@ sub get_reply {
 
 sub _prompt {
     my $self = shift;
+    require Term::ANSIColor;
     local $| = 1;
     local $\;
-    print @_;
+    print Term::ANSIColor::BOLD(), Term::ANSIColor::RED(), @_,
+      Term::ANSIColor::RESET();
 }
 
 sub _readline {
@@ -759,7 +781,7 @@ use base 'Kinetic::Build::AppInfoHandler';
 
 sub handler {
     my ($self, $req) = @_;
-    $self->{builder}->log_info($req->message)
+    $self->{builder}->log_info($req->message, "\n")
 }
 
 package Kinetic::Build::CroakHandler;

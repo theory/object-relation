@@ -102,6 +102,8 @@ sub test_props : Test(9) {
     # Make sure we clean up our mess.
     $builder->dispatch('clean');
     file_not_exists_ok 'blib', 'Build lib should be gone';
+
+    # Now try it quietly. We should be prompted for the data store.
 }
 
 sub test_check_store_action : Test(6) {
