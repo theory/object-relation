@@ -11,6 +11,14 @@ use aliased 'Test::MockModule';
 use aliased 'Kinetic::Build';
 
 __PACKAGE__->runtests unless caller;
+
+sub teardown_builder : Test(teardown) {
+    my $self = shift;
+    if (my $builder = delete $self->{builder}) {
+        $builder->dispatch('realclean');
+    }
+}
+
 sub test_interface : Test(17) {
     my $self = shift;
     my $class = $self->test_class;
@@ -48,7 +56,6 @@ sub test_instance : Test(32) {
 
     # Fake the Kinetic::Build interface.
     my $builder = MockModule->new(Build);
-    $self->{builder} = $builder;
     $builder->mock(resume => sub { bless {}, Build });
     $builder->mock(_app_info_params => sub { } );
     my $store = MockModule->new($class);
