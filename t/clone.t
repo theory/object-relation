@@ -5,7 +5,7 @@
 use strict;
 use Test::More tests => 17;
 
-BEGIN { use_ok 'Kinetic' };
+BEGIN { use_ok 'Kinetic' or die };
 
 package MyApp::Simple;
 use base 'Kinetic';

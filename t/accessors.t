@@ -12,8 +12,8 @@ use strict;
 BEGIN {
     Test::More->import;
     # We need to load Kinetic first, or else things just won't work!
-    use_ok('Kinetic');
-    use_ok('Kinetic::Meta');
+    use_ok('Kinetic')       or die;
+    use_ok('Kinetic::Meta') or die;
 }
 
 BEGIN {

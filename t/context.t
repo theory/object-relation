@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Test::More tests => 6;
 
-BEGIN { use_ok 'Kinetic::Util::Context' }
+BEGIN { use_ok 'Kinetic::Util::Context' or die }
 
 ok my $cx = Kinetic::Util::Context->new, "Get Context";
 isa_ok $cx, 'Kinetic::Util::Context';

@@ -7,7 +7,7 @@ use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
 use Test::More tests => 37;
 
-BEGIN { use_ok 'Kinetic::Build::Schema' };
+BEGIN { use_ok 'Kinetic::Build::Schema' or die };
 
 ok my $sg = Kinetic::Build::Schema->new, 'Get new Schema';
 isa_ok $sg, 'Kinetic::Build::Schema';

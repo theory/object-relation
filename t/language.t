@@ -31,7 +31,9 @@ BEGIN {
 
     # Find all of the language classes and make sure that they load.
     find($find_langs, File::Spec->catdir(@path));
-    use_ok $_ for @langs;
+    foreach my $lang (@langs) {
+        use_ok $lang or die;
+    }
 }
 
 ##############################################################################

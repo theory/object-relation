@@ -7,7 +7,7 @@ use warnings;
 use Test::More tests => 94;
 
 BEGIN {
-    use_ok('Kinetic::Util::State');
+    use_ok('Kinetic::Util::State') or die;
 }
 
 IMPORT: { # 10 tests.

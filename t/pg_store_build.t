@@ -11,8 +11,8 @@ use Kinetic::Build::Test (
 );
 
 BEGIN {
-    use_ok 'Kinetic::Build::Store';
-    use_ok 'Kinetic::Build::Schema'
+    use_ok 'Kinetic::Build::Store'  or die;
+    use_ok 'Kinetic::Build::Schema' or die;
 };
 
 ok my $sb = Kinetic::Build::Store->new, "Load store builder";

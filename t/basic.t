@@ -7,11 +7,11 @@ use Test::More tests => 81;
 use Data::UUID;
 
 BEGIN {
-    use_ok 'Kinetic';
-    use_ok 'Kinetic::Util::Context';
-    use_ok 'Kinetic::Util::Language';
-    use_ok 'Kinetic::Util::Language::en_us';
-    use_ok 'Kinetic::Util::State';
+    use_ok 'Kinetic' or die;
+    use_ok 'Kinetic::Util::Context' or die;
+    use_ok 'Kinetic::Util::Language' or die;
+    use_ok 'Kinetic::Util::Language::en_us' or die;
+    use_ok 'Kinetic::Util::State' or die;
 };
 
 isa_ok( $Kinetic::VERSION, 'version');

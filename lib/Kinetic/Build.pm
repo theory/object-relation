@@ -570,7 +570,7 @@ sub check_postgresql {
 
     # We're good to go. Collect the configuration data.
     my %info = (
-        psql    => File::Spec->cat_file($pg->bin_dir, 'psql'),
+        psql    => File::Spec->catfile($pg->bin_dir, 'psql'),
         version => $got_version,
     );
 
@@ -594,7 +594,6 @@ sub check_sqlite {
     require App::Info::RDBMS::SQLite;
     require App::Info::Handler::Carp;
     my @params = ( on_error => 'croak' );
-
     unless ($self->accept_defaults) {
         require App::Info::Handler::Prompt;
         require App::Info::Handler::Print;
@@ -608,9 +607,8 @@ sub check_sqlite {
 
     # Make sure that SQLite is installed.
     unless ($sqlite->installed) {
-        print STDERR "SQLite is not installed. Please download and ",
-          "install the latest from ", $sqlite->download_url;
-        exit 1;
+        $self->_fatal_error( "SQLite is not installed. Please download and ",
+          "install the latest from ", $sqlite->download_url );
     }
 
     # Make sure that we have the appropriate version.
@@ -618,11 +616,11 @@ sub check_sqlite {
     my $req_version = version->new($VERSIONS{sqlite});
     my $got_version = version->new($sqlite->version);
     unless ($got_version >= $req_version) {
-        die "SQLite version $got_version is installed, but we ",
-          "need version $req_version or newer\n";
+        $self->_fatal_error("SQLite version $got_version is installed, but we ",
+          "need version $req_version or newer\n");
     }
 
-    die "DBD::SQLite ist installed, but we require the sqlite3 executable"
+    $self->_fatal_error("DBD::SQLite is installed but we require the sqlite3 executable")
       unless $sqlite->bin_dir;
 
     return $self;
@@ -633,6 +631,25 @@ sub check_sqlite {
 =begin private
 
 =head1 Private Methods
+
+=head2 Class Methods
+
+=head3 _fatal_error
+
+  Kinetic::Build->_fatal_error(@messages)
+
+This method is a standard way of reporting fatal errors.  At the current time,
+all we do is croak().
+
+=cut
+
+sub _fatal_error {
+    my ($package, @messages) = @_;
+    require Carp;
+    Carp::croak @messages;
+}
+
+##############################################################################
 
 =head2 Instance Methods
 

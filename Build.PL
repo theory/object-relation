@@ -28,6 +28,7 @@ my $build = Kinetic::Build->new(
     build_requires     => {
         'App::Info'             => 0.40,
         'Module::Build'         => 0.26,
+        'Sub::Override'         => 0.05,
         'Test::More'            => 0.17,
         'Test::Differences'     => 0.47,
         'Test::File'            => 1.06, # XXX Update if OS patch applied.

@@ -10,7 +10,7 @@ use File::Spec;
 use File::Find;
 
 BEGIN {
-    use_ok('Kinetic::Util::Config');
+    use_ok('Kinetic::Util::Config') or die;
 }
 
 ##############################################################################

@@ -9,13 +9,13 @@ package MyTestThingy;
 
 BEGIN {
     Test::More->import;
-    use_ok('Kinetic::Meta');
-    use_ok('Kinetic::Util::Language');
-    use_ok('Kinetic::Util::Language::en_us');
-    use_ok('Kinetic::Meta::Class');
-    use_ok('Kinetic::Meta::Attribute');
-    use_ok('Kinetic::Meta::AccessorBuilder');
-    use_ok('Kinetic::Meta::Widget');
+    use_ok('Kinetic::Meta') or die;
+    use_ok('Kinetic::Util::Language') or die;
+    use_ok('Kinetic::Util::Language::en_us') or die;
+    use_ok('Kinetic::Meta::Class') or die;
+    use_ok('Kinetic::Meta::Attribute') or die;
+    use_ok('Kinetic::Meta::AccessorBuilder') or die;
+    use_ok('Kinetic::Meta::Widget') or die;
 }
 
 BEGIN {

@@ -7,7 +7,7 @@ use warnings;
 use Test::More tests => 40;
 
 BEGIN {
-    use_ok('Kinetic::Util::Exceptions');
+    use_ok('Kinetic::Util::Exceptions') or die;
 }
 
 ##############################################################################

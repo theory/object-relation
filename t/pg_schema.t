@@ -8,7 +8,7 @@ use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
 use Test::More tests => 67;
 use Test::Differences;
 
-BEGIN { use_ok 'Kinetic::Build::Schema' };
+BEGIN { use_ok 'Kinetic::Build::Schema' or die };
 
 ok my $sg = Kinetic::Build::Schema->new, 'Get new Schema';
 isa_ok $sg, 'Kinetic::Build::Schema';

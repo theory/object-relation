@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Test::More tests => 39;
 
-BEGIN { use_ok('Kinetic::Util::Iterator') }
+BEGIN { use_ok('Kinetic::Util::Iterator') or die }
 
 
 # Make sure we get an exception when we don't pass a code reference to the
