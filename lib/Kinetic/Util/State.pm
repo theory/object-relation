@@ -124,8 +124,10 @@ Kinetic.
 
 =cut
 
-# XXX The numbers are subject to change. Change them in t/01state.t,
-# and Kinetic, too.
+# The numbers are subject to change. Change them in t/01state.t, and Kinetic,
+# too. Order is important here; the state numbers match their positions in the
+# array--so don't change them unless the values change!
+
 my @states = (
     bless( [ 0,  'Inactive'  ] ),
     bless( [ 1,  'Active'    ] ),
