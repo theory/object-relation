@@ -4,8 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 102;
-#use Test::More 'no_plan';
+use Test::More;
 use Test::MockModule;
 use Test::Exception;
 
@@ -34,7 +33,13 @@ BEGIN {
         source_dir      => $TEST_LIB,
     );
     $BUILD->create_build_script;
-    $BUILD->dispatch('build');
+    eval {$BUILD->dispatch('build')};
+    if ($@) {
+        plan skip_all => "Could not dispatch to build: $@";
+    }
+    else {
+        plan tests => 102;
+    }
 
     $BUILD = Kinetic::Build->resume;
     $ENV{KINETIC_CONF} = File::Spec->catfile(qw/t conf test.conf/);

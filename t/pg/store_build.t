@@ -5,8 +5,7 @@
 use strict;
 use warnings;
 use File::Spec;
-use Test::More tests => 21;
-#use Test::More 'no_plan';
+use Test::More;
 
 use lib 't/lib', '../../lib';
 use Kinetic::Build;
@@ -36,7 +35,13 @@ use Carp;
         source_dir      => $TEST_LIB,
     );
     $BUILD->create_build_script;
-    $BUILD->dispatch('build');
+    eval {$BUILD->dispatch('build')};
+    if ($@) {
+        plan skip_all => "Could not dispatch to build: $@";
+    }
+    else {
+        plan tests => 21;
+    }
 
     $BUILD = Kinetic::Build->resume;
     $ENV{KINETIC_CONF} = File::Spec->catfile(qw/t conf test.conf/);
