@@ -13,6 +13,7 @@ my $build = Kinetic::Build->new(
     dist_author          => 'Kineticode, Inc. <info@kineticode.com>',
     recursive_test_files => 1,
     requires             => {
+        'aliased'               => 0.11,
         'Class::Meta'           => 0.44,
         'Data::UUID'            => 0.11,
         'DateTime'              => 0.24,

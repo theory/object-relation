@@ -1045,6 +1045,29 @@ Because the hash reference cannot be part of an C<OR> search expression.
 
 These methods are designed to be used by subclasses.
 
+##############################################################################
+
+=head3 _dbh
+
+  my $dbh = Kinetic::Store->_dbh;
+  Kinetic::Store->_dbh($some_dbh);;
+
+This is merely a hack to get this going until the exact implementation is
+nailed down.  As all database interaction should be encapsulated by this
+class, no one should ever need to call this method (yeah, right).
+
+=cut
+
+my $DBH;
+sub _dbh {
+    my $proto = shift;
+    return $DBH if $DBH;
+    $DBH = shift if @_;
+    return $proto;
+}
+
+##############################################################################
+
 =head3 _search_params
 
   my ($target, $search, $options) = Kinetic::Store->_search_params(@_);

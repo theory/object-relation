@@ -5,11 +5,18 @@ package TEST::Kinetic::Store;
 use strict;
 use warnings;
 
-use base 'Test::Class';
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
 use Test::More;
-use Kinetic::Build::Schema;
-use constant Schema => 'Kinetic::Build::Schema'; # temporary until Aliased.pm is resolved
+use base 'Test::Class';
+use lib '../../lib';
+
+# we load Schema first because this class tells the others
+# to use their appropriate Schema counterparts.  This is not
+# intuitive and will possibly have to be changed at some point.
+use aliased 'Kinetic::Build::Schema';
+use aliased 'Kinetic::Build';
+use aliased 'Kinetic::Store';
+use aliased 'Kinetic::Build::Store' => 'BStore';
 
 __PACKAGE__->runtests;
 sub runtests {
@@ -18,21 +25,66 @@ sub runtests {
 }
 
 sub load_classes : Test(startup) {
-    # should only be needed once?
+    # this is a bit of a hack until such time
+    # that I can figure a better way for Kinetic::Store
+    # to get the dbh.  The DSN is currently not being stored
+    # in the conf file.
     my $schema = Schema->new;
     $schema->load_classes('t/lib');
-    shift->{schema} = $schema;
+    my $test = shift;
+    $test->{schema} = $schema;
+    chdir 't';
+    chdir 'build_sample';
+    my $test_lib = File::Spec->catfile(qw/.. lib/);
+
+    my $build = Build->new( 
+        module_name     => 'KineticBuildOne',
+        conf_file       => 'test.conf', # always writes to t/ and blib/
+        accept_defaults => 1,
+        source_dir      => $test_lib, 
+    );
+    $build->dispatch('build');
+    chdir '..';
+    chdir '..';
+    $test->{dbh} = BStore->new->_dbh;
+    Store->_dbh($test->{dbh});
 }
 
 sub save : Test {
     my $schema = shift->{schema}; 
     ok $schema, 'testing, testing, 1,2,3';
-    foreach my $class ($schema->classes) {
-        diag $class->name;
+#   One
+# * simple_one
+#         guid
+#       * guid
+#         name
+#       * name
+#         description
+#       * description
+#         state
+#       * state
+#         bool
+#       * bool
+    my ($class) = grep { $_->name eq 'One' } $schema->classes;
+    my ($ctor)  = $class->constructors;
+    my $one = $ctor->call;
+    use Data::Dumper;
+    diag Dumper $one;
+
+    if (0) {
+        # debugging info
+        foreach my $class ($schema->classes) {
+            diag "  ", $class->name;
+            diag "* ", $class->table;
+            foreach my $attribute ($class->attributes) {
+                diag "\t  ", $attribute->name;
+                diag "\t* ", $attribute->column;
+            }
+        }
     }
 }
 
-sub schema_can_load_classes : Test(9) {
+sub schema_can_load_classes : Test(10) {
     my $sg = shift->{schema};
     isa_ok $sg, 'Kinetic::Build::Schema';
     isa_ok $sg, 'Kinetic::Build::Schema::DB';
