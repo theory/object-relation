@@ -781,7 +781,16 @@ sub _make_where_token {
     $comparator ||=  'ARRAY' eq ref $value ? 'BETWEEN' : 'EQ';
     my $token_handler = $self->_comparison_handler($comparator)
         or croak "Don't know how to search for ($field $negated $comparator $value)";
-    if (ref $value && ('ARRAY' ne ref $value || grep {ref} @$value)) {
+
+    # if it's blessed, assume that it's an object whose overloading will
+    # provide the correct search data
+    if (
+        ref $value 
+            && 
+        ! blessed($value) 
+            && 
+        ('ARRAY' ne ref $value || grep {ref && ! blessed($_)} @$value)
+    ) {
         croak "Don't know how to search for ($field $negated $comparator $value)";
     }
     return $token_handler->($self, $field, $negated, $comparator, $value);

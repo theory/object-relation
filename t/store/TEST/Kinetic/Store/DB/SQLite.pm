@@ -23,6 +23,7 @@ use aliased 'Kinetic::Util::State';
 
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
+use aliased 'TestApp::Simple::Three'; # points to a DateTime object
 
 # Skip all of the tests in this class if SQLite isn't supported.
 __PACKAGE__->SKIP_CLASS(
@@ -85,6 +86,19 @@ sub _clear_database {
     $test->{dbh}->begin_work;
     $test->{dbi_mock}->mock(begin_work => 1);
     $test->{dbi_mock}->mock(commit => 1);
+}
+
+sub search_dates : Test(no_plan) {
+    my $test = shift;
+    $test->_clear_database;
+    my $three1 = Three->new;
+    diag $three1->date;
+    my $date = DateTime->new( 
+        year  => 1968,
+        month => 12,
+        day   => 19 
+    );
+    diag $date;
 }
 
 sub search_compound : Test(9) {
@@ -284,7 +298,7 @@ sub where_token : Test(2) {
         'Trying to use a regex match with SQLite should croak even if we are trying to negate it';
 }
 
-sub search_or : Test(9) {
+sub search_or : Test(13) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
@@ -320,6 +334,23 @@ sub search_or : Test(9) {
     is @items, 2, 'OR matches should return the correct number of items';
     is_deeply \@items, [$foo, $bar],
         'and should include the correct items';
+
+    ok $iterator = $store->search(
+        $class,
+        name => 'foo', OR description => NOT undef,
+    );
+    @items = sort {$a->name cmp $b->name} _all_items($iterator);
+    is @items, 2, 'OR should succeed even without parens';
+    is_deeply \@items, [$bar, $foo],
+        'and should include the correct items';
+
+    throws_ok { $iterator = $store->search(
+        $class,
+        name => 'foo', OR description => NOT undef,
+        {order_by => 'name'}
+    ) }
+    qr/\QI don't know what to do with a HASH for (description IS NOT NULL)\E/,
+    'but it will choke without parens if you pass constraints';
 }
 
 sub search_and : Test(15) {
@@ -380,6 +411,84 @@ sub search_and : Test(15) {
     is @items, 2, 'ComplexAND/OR matches should return the correct number of items';
     is_deeply \@items, [$foo, $bar],
         'and should include the correct items';
+}
+
+sub search_overloaded : Test(no_plan) {
+    {
+        package Test::String;
+        use overload '""' => \&to_string;
+        sub new       { bless \$_[1] => $_[0]; }
+        sub to_string { ${$_[0]} }
+    }
+    my $test = shift;
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my $class = $foo->my_class;
+    my $store = Store->new;
+
+    $bar->description('giggling pastries');
+    Store->save($bar);
+    my $bname = Test::String->new('bar');
+    ok my $iterator = $store->search(
+        $class,
+        AND(name => $bname, description => NOT undef),
+        {order_by => 'name', sort_order => DESC}
+    );
+    my @items = _all_items($iterator);
+    is @items, 1, 'OR matches should return the correct number of items';
+    is_deeply \@items, [$bar],
+        'and should include the correct items';
+   
+    $foo->description('We Want Revolution');
+    Store->save($foo);
+    ok $iterator = $store->search(
+        $class,
+        AND(description => NOT undef, OR(name => 'foo', name => $bname)),
+        {order_by => 'name', sort_order => DESC}
+    );
+    @items = _all_items($iterator);
+    is @items, 2, 'ComplexAND/OR matches should return the correct number of items';
+    is_deeply \@items, [$foo, $bar],
+        'and should include the correct items';
+
+    ok $iterator = $store->search(
+        $class,
+        description => NOT undef,
+        OR (name => 'foo', name => $bname),
+        {order_by => 'name', sort_order => DESC}
+    );
+    is @items, 2, 'ComplexAND/OR matches should return the correct number of items';
+    is_deeply \@items, [$foo, $bar],
+        'and should include the correct items';
+
+    {
+        package Test::Number;
+        use overload '""' => \&to_string;
+        sub new       { bless \$_[1] => $_[0]; }
+        sub to_string { ${$_[0]} }
+    }
+    $foo = Two->new;
+    $foo->name('foo');
+    $foo->age(13);
+    $foo->one->name('foo_name');
+    Store->save($foo);
+    $bar = Two->new;
+    $bar->name('bar');
+    $bar->age(29);
+    $bar->one->name('bar_name');
+    Store->save($bar);
+    $baz = Two->new;
+    $baz->age(33);
+    $baz->name('snorfleglitz');
+    $baz->one->name('snorfleglitz_rulez_d00d');
+    Store->save($baz);
+    $class   = $foo->my_class;
+    my $twelve = Test::Number->new(12);
+    my $thirty = Test::Number->new(30);
+    $iterator = Store->search($class, age => [$twelve => $thirty]);
+    my @results = _all_items($iterator);
+    is @results, 2, 'Searching on a range should return the correct number of results';
+    @results = sort { $a->age <=> $b->age } @results;
+    is_deeply \@results, [$foo, $bar], '... and the correct results';
 }
 
 sub save : Test(10) {
