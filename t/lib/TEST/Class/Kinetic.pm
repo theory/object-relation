@@ -8,8 +8,53 @@ use utf8;
 use base 'Test::Class';
 use Test::More;
 use Cwd;
+use DBI;
 use File::Path ();
 use File::Spec::Functions;
+
+use aliased 'Kinetic::Build';
+use aliased 'Test::MockModule';
+
+my ($STARTDIR, $DSN, $DBH, $DBFILE);
+
+BEGIN { 
+    $STARTDIR = getcwd;
+    $DBFILE = "$STARTDIR/t/data/kinetic.db";
+    if (-e $DBFILE && -f _) {
+        unlink $DBFILE or die "Cannot unlink $DBFILE: $!";
+    }
+    my $info = MockModule->new('App::Info::RDBMS::SQLite');
+    $info->mock(installed => 1);
+    $info->mock(version => '3.0.8');
+
+    my $builder;
+    my $mb = MockModule->new('Kinetic::Build');
+    $mb->mock(resume => sub { $builder });
+    $mb->mock(check_manifest => sub { return });
+
+    local @INC = (catdir(updir, updir, 'lib'), @INC);
+
+    #chdir 't';
+    #chdir 'sample';
+    $ENV{KINETIC_CONF} = 't/conf/kinetic.conf';
+    $builder = Build->new(
+        dist_name       => 'Testing::Kinetic',
+        dist_version    => '1.0',
+        quiet           => 1,
+        accept_defaults => 1,
+        run_dev_tests   => 1,
+    );
+    $builder->source_dir('t/sample/lib');
+    $builder->dispatch('setup_test');
+    $DSN = "dbi:SQLite:dbname=$DBFILE";
+    $DBH = DBI->connect($DSN, '', '', {RaiseError => 1});
+}
+
+END {}
+
+sub _dbh     { $DBH    }
+sub _dsn     { $DSN    }
+sub _db_file { $DBFILE }
 
 my $builder;
 sub builder {
@@ -59,6 +104,34 @@ sub mkpath {
 }
 
 sub data_dir { catdir 't', 'data' }
+
+##############################################################################
+
+=head3 _start_dir
+
+  my $start_dir = $test->_start_dir;
+
+Read only.  Returns absolute path to the directory the tests are run from.
+
+=cut
+
+sub _start_dir { $STARTDIR }
+
+##############################################################################
+
+=head3 _test_lib
+
+  my $test_lib = $test->_test_lib;
+
+Returns absolute path to the test lib directory that Kinetic ojbects will use.
+May be overridden.
+
+=cut
+
+sub _test_lib {
+    return File::Spec->catfile(shift->_start_dir, qw/t lib/);
+}
+
 
 1;
 __END__

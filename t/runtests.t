@@ -5,7 +5,7 @@ use Carp qw/croak/;
 use File::Find;
 use File::Spec;
 use Kinetic::Build;
-use lib 't/lib';
+use lib 't/lib', 't/sample/lib';
 use TEST::Class::Kinetic;
 
 my @classes;

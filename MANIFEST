@@ -43,9 +43,6 @@ README
 t/accessors.t
 t/badconfig.t
 t/basic.t
-t/build.t
-t/build_sample/conf/test.conf
-t/build_sample/lib/KineticBuildOne.pm
 t/clone.t
 t/config.t
 t/context.t

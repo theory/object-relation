@@ -49,22 +49,28 @@ later, and L<Kinetic::Store::LDAP|Kinetic::Store::LDAP>.
 # Here are the functions we'll need to export to get the search parameter
 # syntax to work.
 
+my %tokens;
 BEGIN {
-    foreach my $sub (qw(AND OR ANY)) {
-        no strict 'refs';
-        *{$sub} = sub { bless [$sub, \@_] => 'Kinetic::Store::Search' };
-    }
+    $tokens{comparison} = [qw/EQ NOT LIKE GT LT GE LE/];
+    $tokens{logical}    = [qw/AND OR ANY/];
+    $tokens{sorting}    = [qw/ASC DESC/];
 
-    foreach my $sub (qw(NOT LIKE GT LT GE LE)) {
+    foreach my $token (map @$_ => @tokens{qw/comparison sorting/}) {
         no strict 'refs';
-        *{$sub} = sub ($) { bless [$sub, \@_] => 'Kinetic::Store::Search' };
+        *$token = sub($) { bless [$token, \@_] => 'Kinetic::Store::Search' };
+    }
+    foreach my $token (map @$_ => $tokens{logical}) {
+        no strict 'refs';
+        *$token = sub    { bless [$token, \@_] => 'Kinetic::Store::Search' };
     }
 }
+use Exporter::Tidy
+   comparison => $tokens{comparison},
+   logical    => $tokens{logical},
+   sorting    => $tokens{sorting};
 
 # These are simple constants we can use for the sort_order parameter. These
 # are used for the DBI storage classes only.
-use constant ASC  => 'ASC';
-use constant DESC => 'DESC';
 
 ##############################################################################
 # Constructors
@@ -303,6 +309,11 @@ B<Throws:>
 =back
 
 =cut
+
+sub save {
+    require Carp;
+    Carp::croak("Kinetic::Store::save must be overridden in a subclass");
+}
 
 ##############################################################################
 
