@@ -23,7 +23,7 @@ my $build = Kinetic::Build->new(
     store           => 'sqlite',
     module_name     => 'KineticBuildOne',
 );
-my $dbh   = get_dbh($build);
+my $dbh = get_dbh($build);
 $build->_dbh($dbh);
 
 my $info = Test::MockModule->new($CLASS->info_class);
@@ -71,12 +71,12 @@ throws_ok {$rules->validate}
 $mock_rules->mock('_is_required_version', sub {1});
 my $mock_build = Test::MockModule->new('Kinetic::Build');
 $mock_build->mock('prompt', sub {'fooness'});
-$build->db_name('');
+$build->db_file('');
 
 ok $rules->validate, 
   '... and it should return a true value if everything is ok';
-is $build->db_name, 'fooness',
-  '... and set the db_name correctly';
+is $build->db_file, 'fooness',
+  '... and set the db_file correctly';
 
 sub get_dbh {
     my $build = shift;

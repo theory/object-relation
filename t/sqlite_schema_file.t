@@ -5,7 +5,8 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
-use Test::More tests => 29;
+#use Test::More 'no_plan';
+use Test::More tests => 23;
 
 BEGIN { use_ok 'Kinetic::Build::Schema' or die };
 
@@ -24,12 +25,6 @@ open my $schema, '<', $fn or die "Cannot open '$fn': $!\n";
 my @schema = <$schema>;
 close $schema;
 ok @schema, "... File has contents";
-is $schema[0], "BEGIN;\n", "... Schema file starts with BEGIN.";
-is $schema[-1], "COMMIT;\n", "... Schema file ends with BEGIN.";
-
-# Test writing out class schemas in the proper order
-is $schema[0], "BEGIN;\n", "... Schema file starts with BEGIN.";
-is $schema[-1], "COMMIT;\n", "... Schema file ends with BEGIN.";
 
 my @class_keys = qw(simple one two composed comp_comp);
 test_contains_order(\@schema, @class_keys);
@@ -42,16 +37,14 @@ open $schema, '<', $fn or die "Cannot open '$fn': $!\n";
 @schema = <$schema>;
 close $schema;
 ok @schema, "... Got schema file contents";
-is $schema[0], "BEGIN;\n", "... Schema file starts with BEGIN.";
-is $schema[-1], "COMMIT;\n", "... Schema file ends with BEGIN.";
 
-isnt $schema[0], "CREATE SEQUENCE seq_kinetic;\n",
-  "... Got no setup SQL";
+is $schema[0], "CREATE TABLE _simple (\n",
+  "... Got first create table statement";
 test_contains_order(\@schema, @class_keys);
 
 ##############################################################################
 # Cleanup our mess.
-#END { File::Path::rmtree(File::Spec->catdir(qw(t data))) }
+END { File::Path::rmtree(File::Spec->catdir(qw(t data))) }
 
 sub test_contains {
     my ($contents, $find) = @_;

@@ -163,8 +163,6 @@ SQLite data store.
 
 =cut
 
-#__PACKAGE__->add_property(db_name => 'kinetic');
-
 sub db_name {
     my ($self, $db_name) = @_;
     return $self->notes('db_name') || 'kinetic' unless $db_name;

@@ -102,21 +102,40 @@ sub create_db {
     my $dbh = $self->_dbh;
     $dbh->do(qq{CREATE DATABASE "$db_name" WITH ENCODING = 'UNICODE'});
     $dbh->disconnect;
+    return $self;
+}
 
+##############################################################################
+
+=head3 add_plpgsql_to_db
+
+  $kbs->add_plpgsql_to_db($db_name);
+
+Given a database name, this method will attemt to add C<plpgsql> to the
+database.
+
+=cut
+
+sub add_plpgsql_to_db {
+    my ($self, $db_name) = @_;
     # createlang -U postgres plpgsql template1
     my $metadata    = $self->metadata;
     my $info        = App::Info::RDBMS::PostgreSQL->new;
     my $createlang  = $info->createlang or die "Cannot find createlang";
     my $root_user   = $metadata->db_root_user;
     my @options;
-    push @options => ('-h', $metadata->db_host)      if defined $metadata->db_host;
-    push @options => ('-p', $metadata->db_port)      if defined $metadata->db_port;
-    push @options => ('-U', $metadata->db_root_user) if defined $metadata->db_root_user;
+    my %options = (
+        db_host      => '-h',
+        db_port      => '-p',
+        db_root_user => '-U',
+    );
+    while (my ($method, $switch) = each %options) {
+        push @options => ($switch, $metadata->$method) if defined $metadata->$method;
+    }
     
     my $language = 'plpgsql';
     my @add_plpgsql = ($createlang, @options, $language, $db_name);
     system(@add_plpgsql) && die "system(@add_plpgsql) failed: $?";
-
     return $self;
 }
 

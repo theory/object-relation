@@ -124,9 +124,9 @@ sub _state_machine {
             do => sub {
                 my $state = shift;
                 my $build = $self->build;
-                my $filename = $build->db_name
+                my $filename = $build->db_file
                   || $build->prompt('Please enter a filename for the SQLite database');
-                $self->build->db_name($filename);
+                $self->build->db_file($filename);
                 $state->result($filename);
             },
             rules => [
@@ -146,7 +146,7 @@ sub _state_machine {
                 my $build   = $self->build;
                 my $machine = $state->machine;
                 push @{$machine->{actions}} => ['build_db'];
-                foreach my $attribute (qw/db_name actions user pass db_name/) {
+                foreach my $attribute (qw/db_file actions user pass/) {
                     $build->notes($attribute => $machine->{$attribute})
                       if $machine->{$attribute};
                 }
