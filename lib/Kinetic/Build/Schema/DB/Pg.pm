@@ -200,7 +200,7 @@ sub delete_for_class {
       . "  WHERE  id = OLD.id;\n);\n";
 }
 
-sub setup_sql {
+sub setup_code {
 
 'CREATE SEQUENCE seq_kinetic;
 

@@ -22,7 +22,7 @@ for my $class ($sg->classes) {
 
 ##############################################################################
 # Check Setup SQL.
-is $sg->setup_sql, undef, "SQLite etup SQL is undefined";
+is $sg->setup_code, undef, "SQLite setup SQL is undefined";
 
 ##############################################################################
 # Grab the simple class.

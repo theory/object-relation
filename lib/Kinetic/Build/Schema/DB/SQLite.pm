@@ -43,6 +43,34 @@ information.
 
 =cut
 
+##############################################################################
+
+=head3 begin_schema
+
+  my $code = $sg->begin_schema;
+
+Overrides the base class method to output "BEGIN;" at the beginning of all
+SQLite schema files.
+
+=cut
+
+sub begin_schema { 'BEGIN;' }
+
+##############################################################################
+
+=head3 end_schema
+
+  my $code = $sg->end_schema;
+
+Overrides the base class method to output "COMMIT;" at the end of all SQLite
+schema files.
+
+=cut
+
+sub end_schema { 'COMMIT;' }
+
+##############################################################################
+
 my %types = (
     string   => 'TEXT',
     guid     => 'TEXT',

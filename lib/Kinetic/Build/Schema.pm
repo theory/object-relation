@@ -37,9 +37,9 @@ Kinetic::Build::Schema - Kinetic data store schema generation
 
 =head1 Synopsis
 
-  use Kinetic::Schema;
-  my $sg = Kinetic::Schema->new;
-  $sg->generate_to_file($file_name);
+  use Kinetic::Build::Schema;
+  my $sg = Kinetic::::Build::Schema->new;
+  $sg->write_schema($file_name);
 
 =head1 Description
 
@@ -61,13 +61,10 @@ directive.
 =head3 new
 
   my $sg = Kinetic::Build::Schema->new;
-  my $sg = Kinetic::Build::Schema->new( $store_class );
 
 Creates and returns a new Schema object. This is a factory constructor; it
 will return the subclass appropriate to the currently selected store class as
-configured in F<kinetic.conf>. Pass in a specific store class name or call
-C<new()> directly on a store subclass to override the class selected from
-configuration.
+configured in F<kinetic.conf>.
 
 =cut
 
@@ -166,7 +163,7 @@ parameter.
 =item with_kinetic
 
 If set to a true value, this parameter causes the Kinetic framework's class
-schema and setup SQL to be written to the file, as well. This is useful for
+schema and setup code to be written to the file, as well. This is useful for
 setting up a Kinetic application with a new database.
 
 =back
@@ -183,9 +180,12 @@ sub write_schema {
     mkpath $dir;
     open my $fh, '>', $file or die "Cannot open '$file': $!\n";
 
+    if (my $begin = $self->begin_schema) {
+        print $fh $begin, "\n";
+    }
     if ($params->{with_kinetic}) {
-        if (my $sql = $self->setup_sql) {
-            print $fh $sql, "\n";
+        if (my $code = $self->setup_code) {
+            print $fh $code, "\n";
         }
         # XXX Add code to load the Kinetic classes here.
     }
@@ -204,11 +204,51 @@ sub write_schema {
         next if $seen{$class->key};
         print $fh $self->schema_for_class($class), "\n";
     }
+    print $fh $self->end_schema, "\n";
+
     close $fh;
     return $self;
 }
 
-sub setup_sql { return }
+##############################################################################
+
+=head3 begin_schema
+
+  my $code = $sg->begin_schema;
+
+Returns any schema code necessary for output at the beginning of a schema
+file. Returns C<undef> by default, but subclasses may override it.
+
+=cut
+
+sub begin_schema { return }
+
+##############################################################################
+
+=head3 end_schema
+
+  my $code = $sg->end_schema;
+
+Returns any schema code necessary for output at the endning of a schema
+file. Returns C<undef> by default, but subclasses may override it.
+
+=cut
+
+sub end_schema { return }
+
+##############################################################################
+
+=head3 setup_code
+
+  my $code = $sg->setup_code;
+
+Returns any schema code necessary for setting up a data store. This code will
+be output by C<write_schema()> before any of the class schema code. Returns
+C<undef> by default, but subclasses may override it.
+
+=cut
+
+sub setup_code { return }
 
 ##############################################################################
 
