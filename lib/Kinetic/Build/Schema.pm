@@ -125,6 +125,7 @@ inherit from C<Kinetic>.
 sub load_classes {
     my $self = shift;
     my $dir = File::Spec->catdir(split m{/}, shift);
+    unshift @INC, $dir;
     my @classes;
     my $find_classes = sub {
         return if /\.svn/;
