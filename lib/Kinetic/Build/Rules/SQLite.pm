@@ -77,71 +77,73 @@ sub info_class { 'App::Info::RDBMS::SQLite' }
 
   my ($state_machine, $start_state, $end_func) = $rules->_state_machine;
 
-This method returns arguments that the C<Kinetic::Util::DFA> constructor
+This method returns arguments that the C<FSA::Rules> constructor
 requires.
 
 =cut
 
 sub _state_machine {
     my $self = shift;
-    my ($message, $done, $filename);
-    my %state_machine = (
+    my ($done, $filename);
+    my $fail    = sub {! shift->result };
+    my $succeed = sub {  shift->result };
+    my @state_machine = (
         start => {
-            enter => sub { 
-                $message = $self->app_name ." does not appear to be installed" 
-                  unless $self->_is_installed;
+            on_enter => sub { 
+                my $machine = shift;
+                $machine->set_result($self->_is_installed);
+                $machine->set_message($self->app_name ." does not appear to be installed" )
+                  unless $machine->result;
             },
-            goto  => [
-                fail          => [ sub {! $self->_is_installed} ],
-                check_version => [ sub {  $self->_is_installed} ],
+            rules => [
+                fail          => $fail,
+                check_version => $succeed,
             ],
         },
         check_version => {
-            enter => sub { 
-                $message = $self->app_name . " is not the minimum required version"
-                  unless $self->_is_required_version;
+            on_enter => sub { 
+                my $machine = shift;
+                $machine->set_result($self->_is_required_version);
+                $machine->set_message($self->app_name . " is not the minimum required version")
+                  unless $machine->result;
             },
-            goto  => [
-                fail           => [ sub { ! $self->_is_required_version } ],
-                check_executable => [ sub { $self->_is_required_version } ],
+            rules  => [
+                fail             => $fail,
+                check_executable => $succeed,
             ],
         },
         check_executable => {
-            enter => sub {
-                $message = "DBD::SQLite is installed but we require the sqlite3 executable"
-                  unless $self->_has_executable;
+            on_enter => sub {
+                my $machine = shift;
+                $machine->set_result($self->_has_executable);
+                $machine->set_message("DBD::SQLite is installed but we require the sqlite3 executable")
+                  unless $machine->result;
             },
-            leave => sub {
-                use Devel::StackTrace;
-                #warn Devel::StackTrace->new;
-                #warn "leaving the check_executable state";
-            },
-            goto => [
-                fail      => [
-                    sub {
-                        my $dfa = shift;
-                        #use Data::Dumper::Simple;
-                        #warn Dumper($dfa, $self->{dfa}{names});
-                        return ! $self->_has_executable;
-                    },
-                ],
-                file_name => [ sub { $self->_has_executable } ],
+            rules => [
+                fail      => $fail,
+                file_name => $succeed,
             ],
         },
         file_name => {
-            enter => sub {
+            on_enter => sub {
+                my $machine = shift;
                 my $build = $self->build;
                 $filename = $build->db_name 
                   || $build->prompt('Please enter a filename for the SQLite database');
                 $self->build->db_name($filename);
+                $machine->result($filename);
             },
-            goto => [ file_name => [ sub { ! $filename } ] ],
+            rules => [ file_name => $fail ],
         },
         fail => {
-            enter => sub { $message ||= "no message supplied"; die $message },
+            on_enter => sub { 
+                my $machine = shift;
+                die $machine->message($machine->prev_state) 
+                  || "no message supplied";
+            },
         },
     );
-    return (\%state_machine, 'start', sub {$filename});
+    return (\@state_machine, sub {$filename});
 }
 
 1;

@@ -291,29 +291,14 @@ sub ACTION_check_store {
     my $self = shift;
     return $self if $self->notes('got_store');
 
-    my $app_info_module = $CONFIG{$self->store}{app_info};
-    eval "require $app_info_module";
-    $self->_fatal_error("Could not require $app_info_module: $@") if $@;
-    my $store_info = $app_info_module->new($self->_app_info_params);
-    my $store_name = $store_info->key_name;
-
-    unless ($store_info->installed) {
-        $self->_fatal_error("$store_name is not installed. Please download and ",
-          "install the latest from ", $store_info->download_url );
-    }
-
-    # XXX Move to top after M::B releases version with build_class parameter.
-    require version;
-    my $req_version = version->new($self->_required_version);
-    my $got_version = version->new($store_info->version);
-    unless ($got_version >= $req_version) {
-        $self->_fatal_error("$store_name version $got_version is installed, ",
-          "but we need version $req_version or newer");
-    }
-
     # Check the specific store.
-    my $method = 'check_' . lc $self->store;
-    $self->$method($store_info);
+    my $rules_class = $CONFIG{$self->store}{rules};
+    eval "use $rules_class";
+    $self->_fatal_error("Cannot use class ($rules_class): $@") if $@;
+    my $rules = $rules_class->new($self);
+    $self->_rules($rules); # cached as a test hook
+    $rules->validate; 
+
     $self->notes(got_store => 1);
     return $self;
 }
@@ -687,7 +672,6 @@ sub check_sqlite {
     $self->_fatal_error("Cannot use class ($rules_class): $@") if $@;
     my $rules = $rules_class->new($self);
     $rules->validate; 
-
     return $self;
 }
 
@@ -738,6 +722,18 @@ sub _copy_to {
         }
     }
 }
+
+##############################################################################
+
+=head3 _rules
+
+  my $rules = $build->_rules;
+
+Debugging hook.  This returns a copy of the Kinetic::Build::Rules object;
+
+=cut
+
+__PACKAGE__->add_property('_rules');
 
 ##############################################################################
 
@@ -792,152 +788,6 @@ sub _fetch_store_class {
     my ($self) = @_;
     return $CONFIG{$self->store}{store}
       or $self->_fatal_error("Class not found for " . $self->store);
-}
-
-##############################################################################
-
-=head3 _user_exists
-
-  $build->_user_exists($user);
-
-This method tells whether a particular user exists for a given database
-handle.
-
-=cut
-
-sub _user_exists {
-    my ($self, $user) = @_;
-    $self->_pg_says_true(
-        $self->_dbh,
-        "select usename from pg_catalog.pg_user where usename = ?",
-        $user
-    );
-}
-
-##############################################################################
-
-=head3 _is_root_user
-
-  $build->_is_root_user($user);
-
-This method tells whether a particular user is the "root" user for a given
-database handle.
-
-=cut
-
-sub _is_root_user {
-    my ($self, $user) = @_;
-    $self->_pg_says_true(
-        $self->_dbh,
-        "select usesuper from pg_catalog.pg_user where usename = ?",
-        $user
-    );
-}
-
-##############################################################################
-
-=head3 _can_create_db
-
-  $build->_can_create_db($user);
-
-This method tells whether a particular user has permissions to create
-databases for a given database handle.
-
-=cut
-
-sub _can_create_db {
-    my ($self, $user) = @_;
-    $self->_pg_says_true(
-        $self->_dbh,
-        "select usecreatedb from pg_catalog.pg_user where usename = ?",
-        $user
-    );
-}
-
-##############################################################################
-
-=head3 _db_exists
-
-  $build->_db_exists;
-
-This method tells whether the default database exists.
-
-=cut
-
-sub _db_exists {
-    my ($self, $db_name) = @_;
-    $db_name ||= $self->db_name;
-    $self->_pg_says_true(
-        $self->_dbh,
-        "select datname from pg_catalog.pg_database where datname = ?",
-        $db_name
-    );
-}
-
-##############################################################################
-
-=head3 _pg_says_true
-
-  $build->_pg_says_true($dbh, $sql, @bind_params);
-
-This slightly misnamed method executes the given sql with the bind params. It
-expects that the SQL will return one and only one value.
-
-=cut
-
-sub _pg_says_true {
-    my ($self, $dbh, $sql, @bind_params) = @_;
-    return ($dbh->selectrow_array($sql, undef, @bind_params));
-}
-
-##############################################################################
-
-=head3 _connect_as_user
-
-  $build->_connect_as_user($db_name);
-
-This method attempts to connect to the database as a normal user. It returns a
-database handle on success and undef on failure.
-
-=cut
-
-sub _connect_as_user {
-    my ($self, $db_name) = @_;
-    $self->_connect_to_pg($db_name, $self->db_user, $self->db_pass);
-}
-
-##############################################################################
-
-=head3 _connect_as_root
-
-  $build->_connect_as_root($db_name);
-
-This method attempts to connect to the database as a root user. It returns a
-database handle on success and undef on failure.
-
-=cut
-
-sub _connect_as_root {
-    my ($self, $db_name) = @_;
-    $self->_connect_to_pg($db_name, $self->db_root_user, $self->db_root_pass);
-}
-
-##############################################################################
-
-=head3 _connect_to_pg
-
-  $build->_connect_to_pg($db_name, $user, $pass);
-
-This method attempts to connect to the database as a given user. It returns a
-database handle on success and undef on failure.
-
-=cut
-
-sub _connect_to_pg {
-    my ($self, $db_name, $user, $pass) = @_;
-    my $dbh;
-    eval { $dbh = DBI->connect($self->_dsn, $user, $pass) };
-    return $dbh;
 }
 
 ##############################################################################

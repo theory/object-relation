@@ -3,9 +3,10 @@
 # $Id$
 
 use strict;
+use Test::Exception;
 use Test::MockModule;
 #use Test::More 'no_plan';
-use Test::More tests => 80;
+use Test::More tests => 82;
 use Test::File;
 use Test::File::Contents;
 use lib 't/lib', '../../lib';;
@@ -156,7 +157,7 @@ is $build->_fetch_store_class, 'Kinetic::Store::DB::Pg',
 my $module = newmock('DBI');
 $module->mock('connect', sub {1});
 my $mockclass = newmock($CLASS);
-$mockclass->mock('check_pg', sub {1});
+$mockclass->mock('ACTION_check_store', sub {1});
 $build->dispatch('build');
 undef $module;
 undef $mockclass;
@@ -190,22 +191,21 @@ file_not_exists_ok 'blib/conf/test.conf',
 
     my $sqlite = newmock('App::Info::RDBMS::SQLite');
     $sqlite->mock(installed => sub {0} );
-    like checkstore($build),
-      qr/SQLite is not installed./,
+    throws_ok {$build->ACTION_check_store}
+      qr/SQLite does not appear to be installed./,
       '... and it should warn you if SQLite is not installed';
 
     $sqlite->mock(installed => sub { 1 });
     $sqlite->mock(version =>  sub { '2.0.0' });
-    like checkstore($build),
-      qr/SQLite version 2.0.0 is installed, but we need version .* or newer/,
+    throws_ok {$build->ACTION_check_store}
+      qr/SQLite is not the minimum required version.*/,
       '... and it should warn you if SQLite is not a new enough version';
 
-    $sqlite->mock(version => sub { 4.0 } );
+    $sqlite->mock(version    => sub { '4.0.0' } );
     $sqlite->mock(executable => sub { 0 } );
-    like checkstore($build),
+    throws_ok {$build->ACTION_check_store}
       qr/DBD::SQLite is installed but we require the sqlite3 executable/,
       '... and it should warn you if the sqlite executable is not installed';
-
     $sqlite->mock(executable => sub {1} );
     ok !checkstore($build),
        '... and if all parameters are correct, we should have no errors';
@@ -213,7 +213,7 @@ file_not_exists_ok 'blib/conf/test.conf',
 
 {
     # Check the PostgreSQL installation.
-    can_ok($CLASS, 'check_pg');
+
     $build = $CLASS->new(
         accept_defaults => 1,
         module_name     => 'KineticBuildOne',
@@ -222,81 +222,75 @@ file_not_exists_ok 'blib/conf/test.conf',
 
     my $pg = newmock('App::Info::RDBMS::PostgreSQL');
     $pg->mock(installed => sub {0} );
-    my $class = newmock($CLASS);
-    like checkstore($build),
-      qr/PostgreSQL is not installed./,
-      '... and it should warn you if Postgres is not installed';
+    my $rules = newmock('Kinetic::Build::Rules::Pg');
+    
+    throws_ok {$build->ACTION_check_store}
+      qr/PostgreSQL does not appear to be installed./,
+      'It should warn you if Postgres is not installed';
 
     $pg->mock(installed => sub { 1 } );
     $pg->mock(version => sub { '2.0.0' } );
-    like checkstore($build),
-        qr/PostgreSQL version 2.0.0 is installed, but we need version .* or newer/,
+    throws_ok {$build->ACTION_check_store}
+        qr/\QPostgreSQL required version 7.4.5 but you have 2.0.0\E/,
         '... and it should warn you if PostgreSQL is not a new enough version';
-
     $pg->mock(version => sub { '7.4.5' });
     $pg->mock(createlang => sub {''});
-    like checkstore($build), qr/createlang must be available for plpgsql support/,
+    throws_ok {$build->ACTION_check_store}
+      qr/createlang is required for plpgsql support/,
       '... and it should warn you if createlang is not available';
+
+    TODO: {
+        local $TODO = 'Need metadata tests';
+        ok(0);
+    }
 
     $pg->mock(createlang => sub {1});
     $build->notes(got_store => 0);
-    $build->db_root_user('');
-    $class->mock(_connect_as_user => sub {0});
-    like checkstore($build), qr/Can't connect as kinetic to template1.*/,
-      'If we do not have a root user: it should warn us if the normal user cannot connect';
+    $rules->mock(_connect_as_user => sub {0});
+    eval {$build->ACTION_check_store};
 
-    # XXX Actually, if the db_name exists, the db_user should be able to connect to
-    # it (no need to connect to template1). If db_name doesn't exist, then db_user
-    # needs to be able to connect to template1 and must have permission to create
-    # databases. If you attempt to connect to db_name, it will fail with 'database
-    # "db_name" does not exist' even if db_user does not exist.
+    my $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
+    my $message = $fsa->message('user');
+    is $message, 'Could not connect as normal user',
+      '... and we should have an informational message letting us know that we could not connect as a normal user';
+    unlike $@, qr/$message/, '... but this should not be fatal';
+    like $@, qr/\QUser (postgres) is not a root user or does not exist.\E/,
+      '... but it should die if we cannot connect as the root user';
 
-    $class->mock(_connect_as_user => sub {1});
-    $class->mock(_db_exists => sub {0});
-    $class->mock(_can_create_db => sub {0});
-    like checkstore($build),
-      qr/User kinetic does not have permission to create databases/,
-      '... or if the normal user does not have permission to create databases';
+    $rules->mock(_connect_as_root => 1);
+    ok $build->ACTION_check_store,
+      '... and if we have a root user, everything should be fine';
 
-    $class->mock(_can_create_db => sub {1});
-    ok !checkstore($build),
+    $build->notes(got_store => 0); # must reset
+    $rules->mock(_connect_as_user => 1);
+    $rules->mock(_db_exists       => 0);
+    $rules->mock(_can_create_db   => 0);
+    $rules->mock(_connect_as_root => 0);
+    throws_ok {$build->ACTION_check_store}
+      qr/\QUser (postgres) is not a root user or does not exist.\E/,
+      'We should fail if the database does not exist and the user cannot created it';
+    $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
+    
+    is $fsa->message('database_exists'), 'The default database does not exist',
+      '... and we should have a message that the default database does not exist';
+    
+    is $fsa->message('can_create_database'), 'Normal user does not have the right to create the database',
+      '... and that the normal user does not have the right to create the database';
+
+    $rules->mock(_can_create_db   => 1);
+    ok $build->ACTION_check_store,
+      '... but if the user can create the database, all is well';
+
+    $rules->mock(_can_create_db => sub {1});
+    ok $build->ACTION_check_store,
       '... but we should have no error messages if normal user can create the db';
 
-    $build->notes(got_store => 0);
-    $build->db_root_user('postgres');
-    $class->mock(_connect_as_root => sub {0});
-    like checkstore($build), qr/Can't connect as postgres to template1/,
-        'If we have a root user, we should die if they cannot connect';
-
-    # XXX Actually, if the db_name exists, the db_root_user should be able to
-    # connect to it (no need to connect to template1). If db_name doesn't exist,
-    # then db_root_user needs to be able to connect to template1 and must have
-    # permission to create databases.
-
-    $class->mock(_connect_as_root => sub {1});
-    $class->mock(_is_root_user => sub {0});
-    like checkstore($build), qr/We thought postgres was root, but it is not/,
-      '... and we should die if the root user is not really the root user';
-
-    $class->mock(_is_root_user => sub {1});
-    $class->mock(_db_exists => sub {0});
-    $class->mock(_can_create_db => sub {0});
-    like checkstore($build),
-      qr/User postgres does not have permission to create databases/,
-      '... or if they do not have permission to create databases';
-
-    $class->mock(_db_exists => sub {1});
-    $class->mock(_user_exists => sub {0});
-    ok !checkstore($build), '... if the user does not exist, we should not die';
-    is $build->notes('default_user'), 'kinetic does not exist',
-      '... but the notes should let us know';
-
-    $build->notes(default_user => '');
-    $class->mock(_user_exists => sub {1});
-    ok !checkstore($build), '... and the build should complete without error';
-    ok !$build->notes('default_user'),
-      '... but if the user exists, we should not have notes';
-    # XXX We should verify the contents of the notes, I think.
+    TODO: {
+        local $TODO = 'Need to implement these states later';
+        ok 0, 'Check plsql';
+        ok 0, 'Can add plsql';
+        ok 0, 'Check permissions';
+    }
 }
 
 can_ok $build, '_dsn';

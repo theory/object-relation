@@ -23,7 +23,7 @@ use warnings;
 use Carp;
 use version;
 
-use Kinetic::Util::DFA;
+use FSA::Rules;
 use App::Info::RDBMS::SQLite;
 
 =head1 Name
@@ -152,17 +152,19 @@ sub info { $_[0]->{info} }
 This method will validate the store rules.  Returns true if the store can be
 used.  Otherwise it will C<croak()>.
 
-Internally this called C<_state_machine()>.  See that method for details.
-If you do not wish to use a C<Kinetic::Util::DFA> for rules validation,
-you will need to override this method.
+Internally this called C<_state_machine()>.  See that method for details.  If
+you do not wish to use C<FSA::Rules> for rules validation, you will need to
+override this method.
 
 =cut
 
 sub validate {
     my $self = shift;
-    my $dfa = Kinetic::Util::DFA->new($self->_state_machine);
-    $self->{dfa} = $dfa; # internal only.  Used for debugging
-    $dfa->next_state while ! $dfa->done;
+    my ($state_machine, $done) = $self->_state_machine; 
+    my $machine = FSA::Rules->new(@$state_machine);
+    $machine->start;
+    $self->{machine} = $machine; # internal only.  Used for debugging
+    $machine->switch while ! $done->();
     return $self;
 }
 
@@ -186,6 +188,23 @@ sub _is_required_version {
     my $req_version = version->new($self->build->_required_version);
     my $got_version = version->new($self->info->version);
     return $got_version >= $req_version;
+}
+
+##############################################################################
+
+=head3 _dbh
+
+ $rules->_dbh([$dbh]);  
+
+A convenient place to cache a database handle, if necessary.  Always returns
+the database handle, even when setting it.
+
+=cut
+
+sub _dbh {
+    my $self = shift;
+    $self->{_dbh} = shift if @_;
+    return $self->{_dbh};
 }
 
 ##############################################################################
@@ -250,10 +269,10 @@ Description
 
 =head3 _state_machine
 
-  my ($state_machine, $start_state, $end_func) = $rules->_state_machine;
+  my ($state_machine, $end_func) = $rules->_state_machine;
 
 This is a protected method that must be overridden in a subclass.  By default
-it must return arguments that the C<Kinetic::Util::DFA> engine requires.
+it must return arguments that the C<FSA::Rules> engine requires.
 
 =cut
 

@@ -30,14 +30,15 @@ my $build = Kinetic::Build->new(
     },
     build_requires     => {
         'App::Info'             => 0.42,
-        'DFA::Simple'           => 0.32,
+        'DFA::Rules'            => 0.02,
         'Module::Build'         => 0.26,
         'Sub::Override'         => 0.05,
-        'Test::MockModule'      => 0.03,
-        'Test::More'            => 0.17,
         'Test::Differences'     => 0.47,
+        'Test::Exception'       => 0.20,
         'Test::File'            => 1.06, # XXX Update if OS patch applied.
         'Test::File::Contents'  => 0.02, # XXX Update if OS patch applied.
+        'Test::MockModule'      => 0.04,
+        'Test::More'            => 0.17,
     },
 );
 
