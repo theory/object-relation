@@ -125,185 +125,184 @@ file_not_exists_ok 't/conf/test.conf',
 
     ok $build = $CLASS->new( module_name => 'KineticBuildOne' ),
       "Create another build object";
-    ok $build->accept_defaults,
-      "... The accept_defaults option should be true with --accept_defaults";
-    is $build->store, 'pg',
-      "... The store option can be specified on the command-line";
-    is $build->db_name, 'wild',
-      '... The db_name attribute should be "wild"';
-    is $build->db_user, 'wild',
-      '... The db_user attribute should be "wild"';
-    is $build->db_pass, 'wild',
-      '... The db_pass attribute should be "wild"';
-    is $build->db_host, 'db.example.com',
-      '... The db_host attribute should be "db.example.com"';
-    is $build->db_port, 2222,
-      '... The db_port attribute should be 2222';
-    is $build->db_root_user, undef,
-      '... The db_root_user attribute should be undefined';
-    is $build->db_root_pass, '',
-      '... The db_root_pass attribute should be an empty string by default';
-    is $build->db_file, 'wild.db',
-      '... The db_file attribute should be set to "wild.db"';
-    is $build->conf_file, 'test.conf',
-      '... The conf_file attribute should be set to "test.conf"';
-    is $build->fetch_store_class, 'Kinetic::Store::DB::Pg',
-      '... The store class attribute should be correct';
-
-    # Build it.
-    my $module = newmock('DBI');
-    $module->mock('connect', sub {1});
-    my $mockclass = newmock($CLASS);
-    $mockclass->mock('check_pg', sub {1});
-    $build->dispatch('build');
-    undef $module;
-    undef $mockclass;
-    ok $stdout->read, '... There should be output to STDOUT after build';
-
-    # We should not have files for SQLite databases.
-    file_not_exists_ok 'blib/store/test.db',
-      '... There should not be a database file for installation';
-    file_not_exists_ok 't/store/test.db',
-      '... There should not be a database file for testing';
-
-    # We should have copies of the configuration file.
-    file_exists_ok 'blib/conf/test.conf',
-      '... There should be a config file for installation';
-    file_exists_ok 't/conf/test.conf',
-      '... There should be a config file for testing';
-    file_contents_like 'blib/conf/test.conf', qr/db_name\s+=>\s+'wild',/,
-      '... The database name should be set properly';
-    file_contents_like 'blib/conf/test.conf', qr/#\s*sqlite\s+=>\s+{/,
-      '... The SQLite section should be commented out.';
-    file_contents_like 'blib/conf/test.conf', qr/\n\s*store\s*=>\s*{\s*class\s*=>\s*'Kinetic::Store::DB::Pg'/,
-      '... The store should point to the correct data store';
-    $build->dispatch('realclean');
-    file_not_exists_ok 'blib/conf/test.conf',
-      '... There should no longer be a config file for installation';
 }
 
+ok $build->accept_defaults,
+  "... The accept_defaults option should be true with --accept_defaults";
+is $build->store, 'pg',
+  "... The store option can be specified on the command-line";
+is $build->db_name, 'wild',
+  '... The db_name attribute should be "wild"';
+is $build->db_user, 'wild',
+  '... The db_user attribute should be "wild"';
+is $build->db_pass, 'wild',
+  '... The db_pass attribute should be "wild"';
+is $build->db_host, 'db.example.com',
+  '... The db_host attribute should be "db.example.com"';
+is $build->db_port, 2222,
+  '... The db_port attribute should be 2222';
+is $build->db_root_user, undef,
+  '... The db_root_user attribute should be undefined';
+is $build->db_root_pass, '',
+  '... The db_root_pass attribute should be an empty string by default';
+is $build->db_file, 'wild.db',
+  '... The db_file attribute should be set to "wild.db"';
+is $build->conf_file, 'test.conf',
+  '... The conf_file attribute should be set to "test.conf"';
+is $build->fetch_store_class, 'Kinetic::Store::DB::Pg',
+  '... The store class attribute should be correct';
+
+# Build it.
+my $module = newmock('DBI');
+$module->mock('connect', sub {1});
+my $mockclass = newmock($CLASS);
+$mockclass->mock('check_pg', sub {1});
+$build->dispatch('build');
+undef $module;
+undef $mockclass;
+ok $stdout->read, '... There should be output to STDOUT after build';
+
+# We should not have files for SQLite databases.
+file_not_exists_ok 'blib/store/test.db',
+  '... There should not be a database file for installation';
+file_not_exists_ok 't/store/test.db',
+  '... There should not be a database file for testing';
+
+# We should have copies of the configuration file.
+file_exists_ok 'blib/conf/test.conf',
+  '... There should be a config file for installation';
+file_exists_ok 't/conf/test.conf',
+  '... There should be a config file for testing';
+file_contents_like 'blib/conf/test.conf', qr/db_name\s+=>\s+'wild',/,
+  '... The database name should be set properly';
+file_contents_like 'blib/conf/test.conf', qr/#\s*sqlite\s+=>\s+{/,
+  '... The SQLite section should be commented out.';
+file_contents_like 'blib/conf/test.conf', qr/\n\s*store\s*=>\s*{\s*class\s*=>\s*'Kinetic::Store::DB::Pg'/,
+  '... The store should point to the correct data store';
+$build->dispatch('realclean');
+file_not_exists_ok 'blib/conf/test.conf',
+  '... There should no longer be a config file for installation';
+
 {
+    # Check SQLite installation.
     can_ok($CLASS, 'check_sqlite');
     $build = $CLASS->new(module_name => 'KineticBuildOne', accept_defaults => 1);
 
-    my @error;
     my $sqlite = newmock('App::Info::RDBMS::SQLite');
-    $sqlite->mock( 'installed', sub {0} );
-    my $class  = newmock($CLASS);
-    my $error = checkstore($build);
-    like $error,
-        qr/SQLite is not installed./,
-        '... and it should warn you if SQLite is not installed';
+    $sqlite->mock(installed => sub {0} );
+    like checkstore($build),
+      qr/SQLite is not installed./,
+      '... and it should warn you if SQLite is not installed';
 
-    $sqlite->mock('installed', sub { 1 } );
-    $sqlite->mock('version',   sub { '2.0.0' } );
-    $error = checkstore($build);
-    like $error,
-        qr/SQLite version 2.0.0 is installed, but we need version .* or newer/,
-        '... and it should warn you if SQLite is not a new enough version';
-    
-    $sqlite->mock('version', sub { 4.0 } );
-    $sqlite->mock('executable', sub { 0 } );
-    $error = checkstore($build);
-    like $error,
-        qr/DBD::SQLite is installed but we require the sqlite3 executable/,
-        '... and it should warn you if the sqlite executable is not installed';
+    $sqlite->mock(installed => sub { 1 });
+    $sqlite->mock(version =>  sub { '2.0.0' });
+    like checkstore($build),
+      qr/SQLite version 2.0.0 is installed, but we need version .* or newer/,
+      '... and it should warn you if SQLite is not a new enough version';
 
-    $sqlite->mock('executable' => sub {1} );
-    $error = checkstore($build);
-    ok(!$error, '... and if all parameters are correct, we should have no errors');
+    $sqlite->mock(version => sub { 4.0 } );
+    $sqlite->mock(executable => sub { 0 } );
+    like checkstore($build),
+      qr/DBD::SQLite is installed but we require the sqlite3 executable/,
+      '... and it should warn you if the sqlite executable is not installed';
+
+    $sqlite->mock(executable => sub {1} );
+    ok(!checkstore($build),
+       '... and if all parameters are correct, we should have no errors');
 }
 
 {
+    # Check the PostgreSQL installation.
     can_ok($CLASS, 'check_pg');
     $build = $CLASS->new(
         accept_defaults => 1,
-        module_name     => 'KineticBuildOne', 
+        module_name     => 'KineticBuildOne',
         store           => 'pg',
     );
 
-    my @error;
     my $pg = newmock('App::Info::RDBMS::PostgreSQL');
-    $pg->mock( 'installed', sub {0} );
-    my $class  = newmock($CLASS);
-    my $error = checkstore($build);
-    like $error,
-        qr/PostgreSQL is not installed./,
-        '... and it should warn you if Postgres is not installed';
+    $pg->mock(installed => sub {0} );
+    my $class = newmock($CLASS);
+    like checkstore($build),
+      qr/PostgreSQL is not installed./,
+      '... and it should warn you if Postgres is not installed';
 
-    $pg->mock('installed', sub { 1 } );
-    $pg->mock('version',   sub { '2.0.0' } );
-    $error = checkstore($build);
-    like $error,
+    $pg->mock(installed => sub { 1 } );
+    $pg->mock(version => sub { '2.0.0' } );
+    like checkstore($build),
         qr/PostgreSQL version 2.0.0 is installed, but we need version .* or newer/,
         '... and it should warn you if PostgreSQL is not a new enough version';
 
-    $pg->mock('version' => sub { '7.4.5' });
-    $pg->mock('createlang' => sub {''});
-    $error = checkstore($build);
-    like $error, qr/createlang must be available for plpgsql support/,
-        '... and it should warn you if createlang is not available';
-    
-    $pg->mock('createlang' => sub {1});
-    $build->notes(got_store => 0); 
+    $pg->mock(version => sub { '7.4.5' });
+    $pg->mock(createlang => sub {''});
+    like checkstore($build), qr/createlang must be available for plpgsql support/,
+      '... and it should warn you if createlang is not available';
+
+    $pg->mock(createlang => sub {1});
+    $build->notes(got_store => 0);
     $build->db_root_user('');
-    $class->mock('_connect_as_user', sub {0});
-    $error = checkstore($build);
-    like $error, qr/Can't connect as kinetic to template1.*/,
-        'If we do not have a root user: it should warn us if the normal user cannot connect';
-    
-    $class->mock('_connect_as_user', sub {1});
-    $class->mock('_db_exists', sub {0});
-    $class->mock('_can_create_db', sub {0});
-    $error = checkstore($build);
-    like $error, qr/User kinetic does not have permission to create databases/,
-        '... or if the normal user does not have permission to create databases';
+    $class->mock(_connect_as_user => sub {0});
+    like checkstore($build), qr/Can't connect as kinetic to template1.*/,
+      'If we do not have a root user: it should warn us if the normal user cannot connect';
 
-    $class->mock('_can_create_db', sub {1});
-    $error = checkstore($build);
-    ok ! $error, '... but we should have no error messages if normal user can create the db';
+    # XXX Actually, if the db_name exists, the db_user should be able to connect to
+    # it (no need to connect to template1). If db_name doesn't exist, then db_user
+    # needs to be able to connect to template1 and must have permission to create
+    # databases. If you attempt to connect to db_name, it will fail with 'database
+    # "db_name" does not exist' even if db_user does not exist.
 
-    $build->notes(got_store => 0); 
+    $class->mock(_connect_as_user => sub {1});
+    $class->mock(_db_exists => sub {0});
+    $class->mock(_can_create_db => sub {0});
+    like checkstore($build),
+      qr/User kinetic does not have permission to create databases/,
+      '... or if the normal user does not have permission to create databases';
+
+    $class->mock(_can_create_db => sub {1});
+    ok !checkstore($build),
+      '... but we should have no error messages if normal user can create the db';
+
+    $build->notes(got_store => 0);
     $build->db_root_user('postgres');
-    $class->mock('_connect_as_root', sub {0});
-    $error = checkstore($build);
-    like $error, qr/Can't connect as postgres to template1/,
+    $class->mock(_connect_as_root => sub {0});
+    like checkstore($build), qr/Can't connect as postgres to template1/,
         'If we have a root user, we should die if they cannot connect';
 
-    $class->mock('_connect_as_root', sub {1});
-    $class->mock('_is_root_user', sub {0});
-    $error = checkstore($build);
-    like $error, qr/We thought postgres was root, but it is not/,
-        '... and we should die if the root user is not really the root user';
-    
-    $class->mock('_is_root_user', sub {1});
-    $class->mock('_db_exists', sub {0});
-    $class->mock('_can_create_db', sub {0});
-    $error = checkstore($build);
-    like $error, qr/User postgres does not have permission to create databases/,
-        '... or if they do not have permission to create databases';
+    # XXX Actually, if the db_name exists, the db_root_user should be able to
+    # connect to it (no need to connect to template1). If db_name doesn't exist,
+    # then db_root_user needs to be able to connect to template1 and must have
+    # permission to create databases.
 
-    $class->mock('_db_exists', sub {1});
-    $class->mock('_user_exists', sub {0});
-    $error = checkstore($build);
-    ok ! $error, '... if the user does not exist, we should not die';
+    $class->mock(_connect_as_root => sub {1});
+    $class->mock(_is_root_user => sub {0});
+    like checkstore($build), qr/We thought postgres was root, but it is not/,
+      '... and we should die if the root user is not really the root user';
+
+    $class->mock(_is_root_user => sub {1});
+    $class->mock(_db_exists => sub {0});
+    $class->mock(_can_create_db => sub {0});
+    like checkstore($build),
+      qr/User postgres does not have permission to create databases/,
+      '... or if they do not have permission to create databases';
+
+    $class->mock(_db_exists => sub {1});
+    $class->mock(_user_exists => sub {0});
+    ok !checkstore($build), '... if the user does not exist, we should not die';
     is $build->notes('default_user'), 'kinetic does not exist',
-        '... but the notes should let us know';
+      '... but the notes should let us know';
 
-    $build->notes('default_user' => '');
-    $class->mock('_user_exists', sub {1});
-    $error = checkstore($build);
+    $build->notes(default_user => '');
+    $class->mock(_user_exists => sub {1});
+    ok !checkstore($build), '... and the build should complete without error';
     ok !$build->notes('default_user'),
-        '... but if the user exists, we should not have notes';
-    
-    ok !$error, '... and the build should complete without error';
-    
+      '... but if the user exists, we should not have notes';
+    # XXX We should verify the contents of the notes, I think.
 }
 
 sub checkstore {
     my $mock = newmock($CLASS);
     my $error;
-    $mock->mock('_fatal_error', sub { shift; $error = join '' => @_; die });
+    $mock->mock(_fatal_error => sub { shift; $error = join '' => @_; die });
     eval { local $^W; shift->ACTION_check_store };
     return $error;
 }

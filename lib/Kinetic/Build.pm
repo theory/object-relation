@@ -279,13 +279,14 @@ sub ACTION_check_store {
     eval "require $app_info_module";
     $self->_fatal_error("Could not require $app_info_module: $@") if $@;
     require App::Info::Handler::Carp;
+    # XXX Maybe on_fatal should call _fatal_error() instead of Carp::Croak.
     my @params = ( on_error => 'croak' );
 
     unless ($self->accept_defaults) {
         require App::Info::Handler::Prompt;
         require App::Info::Handler::Print;
         push @params,
-          on_info    => 'stdout',
+          on_info    => 'stdout', # XXX Print info when not accept_defaults?
           on_unknown => 'prompt',
           on_confirm => 'prompt';
     }
@@ -298,14 +299,16 @@ sub ACTION_check_store {
           "install the latest from ", $store_info->download_url );
     }
 
+    # XXX Move to top after M::B releases version with build_class parameter.
     require version;
     my $req_version = version->new($CONFIG{$self->store}{version});
     my $got_version = version->new($store_info->version);
     unless ($got_version >= $req_version) {
-        $self->_fatal_error("$store_name version $got_version is installed, but we ",
-          "need version $req_version or newer");
+        $self->_fatal_error("$store_name version $got_version is installed, ",
+          "but we need version $req_version or newer");
     }
-    
+
+    # Check the specific store.
     my $method = 'check_' . lc $self->store;
     $self->$method($store_info);
     $self->notes(got_store => 1);
@@ -466,10 +469,11 @@ given store.
 
 =cut
 
+# XXX Make private?
 sub fetch_store_class {
     my ($self) = @_;
     return $CONFIG{$self->store}{store}
-        or $self->_fatal_error("Class not found for " . $self->store);
+      or $self->_fatal_error("Class not found for " . $self->store);
 }
 
 ##############################################################################
@@ -608,10 +612,10 @@ sub check_pg {
     my $db_name   = $self->db_name;
 
     if ($root) {
-        # We should be able to connect to template1 as db_rootuser
+        # We should be able to connect to template1 as db_root_user
         my $dbh = $self->_connect_as_root($template1)
-            or $self->_fatal_error("Can't connect as $root to $template1: $DBI::errstr");
-         
+	  or $self->_fatal_error("Can't connect as $root to $template1: $DBI::errstr");
+
         # root user should really be root user
         unless ($self->_is_root_user($dbh, $root)) {
             $self->_fatal_error("We thought $root was root, but it is not.");
@@ -620,29 +624,29 @@ sub check_pg {
         # if db_name does not exist, db_root_user should have permission to create it.
         unless ($self->_db_exists($dbh)) {
             $self->_can_create_db($dbh, $root)
-                or $self->_fatal_error("User $root does not have permission to create databases");
-        }    
+	      or $self->_fatal_error("User $root does not have permission to create databases");
+        }
 
         # if db_user does not exist, make a note so the build process can know
         unless ($self->_user_exists($dbh, $user)) {
             $self->notes(default_user => "$user does not exist");
         }
-    } 
-    else {
+    } else {
         # We should be able to connect to template1 as db_user
-        my $dbh = $self->_connect_as_user($template1) 
-            or $self->_fatal_error("Can't connect as $user to $template1: $DBI::errstr");
+        my $dbh = $self->_connect_as_user($template1)
+	  or $self->_fatal_error("Can't connect as $user to $template1: $DBI::errstr");
 
         # If db_name does not exist, db_user should have permission to create it.
         unless ($self->_db_exists($dbh)) {
             $self->_can_create_db($dbh, $user)
-                or $self->_fatal_error("User $user does not have permission to create databases");
-        }    
+	      or $self->_fatal_error("User $user does not have permission to create databases");
+        }
     }
 
     # We're good to go. Collect the configuration data.
     my %info = (
         psql    => $pg->executable,
+	createlang => $pg->createlang,
         version => version->new($pg->version),
     );
 
@@ -803,8 +807,8 @@ sub _db_exists {
 
   $build->_pg_says_true($dbh, $sql, @bind_params);
 
-This slightly misnamed method executes the given sql with the bind params.  It
-expects that the sql will return one and only one value.
+This slightly misnamed method executes the given sql with the bind params. It
+expects that the SQL will return one and only one value.
 
 =cut
 
@@ -812,15 +816,15 @@ sub _pg_says_true {
     my ($self, $dbh, $sql, @bind_params) = @_;
     return ($dbh->selectrow_array($sql, undef, @bind_params));
 }
-    
+
 ##############################################################################
 
 =head3 _connect_as_user
 
   $build->_connect_as_user($db_name);
 
-This method attempts to connect to the database as a normal user.  It
-returns a database handle on success and undef on failure.
+This method attempts to connect to the database as a normal user. It returns a
+database handle on success and undef on failure.
 
 =cut
 
@@ -835,8 +839,8 @@ sub _connect_as_user {
 
   $build->_connect_as_root($db_name);
 
-This method attempts to connect to the database as a root user.  It
-returns a database handle on success and undef on failure.
+This method attempts to connect to the database as a root user. It returns a
+database handle on success and undef on failure.
 
 =cut
 
@@ -851,8 +855,8 @@ sub _connect_as_root {
 
   $build->_connect_to_pg($db_name, $user, $pass);
 
-This method attempts to connect to the database as a given user.  It
-returns a database handle on success and undef on failure.
+This method attempts to connect to the database as a given user. It returns a
+database handle on success and undef on failure.
 
 =cut
 
