@@ -42,7 +42,7 @@ sub test_class_methods : Test(6) {
       'rules() needs to be overridden';
 }
 
-sub test_instance : Test(18) {
+sub test_instance : Test(32) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -77,6 +77,29 @@ sub test_instance : Test(18) {
     $store->mock(min_version => 2 );
     ok ! $kbs->is_required_version, "The version number should be too low";
 
+    # Check actions.
+    is_deeply [$kbs->actions], [], "There should be no actions";
+    is $kbs->add_actions('foo'), $kbs, "We should be able to add an action";
+    is_deeply [$kbs->actions], ['foo'], "There should now be one action";
+    is $kbs->add_actions('bar', 'bat'), $kbs,
+      "We should be able to add multiple actions";
+    is_deeply [$kbs->actions], ['foo', 'bar', 'bat'],
+      "There should now be three actions";
+    is $kbs->add_actions('foo'), $kbs, "We can try adding an existing action";
+    is_deeply [$kbs->actions], ['foo', 'bar', 'bat'],
+      "But it should make no difference";
+    is $kbs->del_actions('foo'), $kbs,
+      "We can try deleting an existing action";
+    is_deeply [$kbs->actions], ['bar', 'bat'],
+      "And it should be gone";
+    is $kbs->del_actions('bat', 'bar'), $kbs,
+      "We should be able to delete multiple actions";
+    is_deeply [$kbs->actions], [], 'And now there should be no more actions';
+    is $kbs->add_actions('foo'), $kbs,
+      "We should be able to add a deleted one again";
+    is_deeply [$kbs->actions], ['foo'], "There should now be one action";
+    is $kbs->del_actions($kbs->actions), $kbs, "Clean out actions";
+
     # Config methods need to be overridden.
   SKIP: {
         skip "Build and config methods should be tested by subclasses", 6
@@ -89,7 +112,7 @@ sub test_instance : Test(18) {
           'test_config() needs to be overridden';
 
         # Test build() and test_build().
-        $kbs->{actions} = [['config']];
+        $kbs->add_actions('config');
         my $meth = 'build';
         $store->mock(config => sub {
             ok 1, "Config should be called by $meth() actions"

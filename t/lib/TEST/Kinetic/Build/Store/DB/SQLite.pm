@@ -70,7 +70,7 @@ sub test_rules : Test(27) {
       '... and it should return a true value if everything is ok';
     is $kbs->db_file, 'fooness',
       '... and set the db_file correctly';
-    is_deeply $kbs->{actions}, [['build_db']],
+    is_deeply [$kbs->actions], ['build_db'],
       "... and the actions should be set up";
 
     # Check the DSNs. Make the install base is the same as the test base

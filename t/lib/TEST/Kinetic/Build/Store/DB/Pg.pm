@@ -198,7 +198,7 @@ sub test_rules : Test(159) {
 
     ##########################################################################
     # Test "Check database"
-    $kbs->{actions} = [];
+    $kbs->del_actions($kbs->actions);
 
     # Success will trigger the do action for the Check plpgsql state, so set
     # it up to succeed.
@@ -213,7 +213,7 @@ sub test_rules : Test(159) {
     is $fsa->prev_state->message,
       'Database "fooness" exists; checking for PL/pgSQL',
       'Message should reflect success';
-    is_deeply $kbs->{actions},  [], 'Actions should be empty';
+    is_deeply [$kbs->actions],  [], 'Actions should be empty';
 
     # Now try with database not existing.
     $db_exists = 0;
@@ -225,9 +225,9 @@ sub test_rules : Test(159) {
       'Database "fooness" does not exist but will be created; checking '
       . 'template database for PL/pgSQL',
       'Message should reflect success';
-    is_deeply $kbs->{actions},  [['create_db']],
+    is_deeply [$kbs->actions],  ['create_db'],
       'Actions should have create_db';
-    $kbs->{actions} = [];
+    $kbs->del_actions($kbs->actions);
 
     # Now try with database not existing and not super user.
     $db_exists = 0;
@@ -239,7 +239,7 @@ sub test_rules : Test(159) {
     is $fsa->prev_state->message,
       'Database "fooness" does not exist; checking permissions to create it',
       'Message should reflect success';
-    is_deeply $kbs->{actions},  [['create_db']],
+    is_deeply [$kbs->actions],  ['create_db'],
       'Actions should have create_db';
 
     ##########################################################################
@@ -343,7 +343,7 @@ sub test_rules : Test(159) {
     ##########################################################################
     # Test "Find createlang"
     my $createlang = 1;
-    $kbs->{actions} = [];
+    $kbs->del_actions($kbs->actions);
     $info->mock(createlang => sub { $createlang });
     ok $fsa->reset->curr_state('Find createlang'),
       'Reset to "Find createlang"';
@@ -354,9 +354,9 @@ sub test_rules : Test(159) {
       'We should switch to "Check user"';
     is $fsa->prev_state->message, 'Found createlang',
       "Message should note finding of createlang";
-    is_deeply $kbs->{actions},  [['add_plpgsql']],
+    is_deeply [$kbs->actions],  ['add_plpgsql'],
       'Actions should have add_plpgsql';
-    $kbs->{actions} = [];
+    $kbs->del_actions($kbs->actions);
 
     # Now try failure.
     $createlang = 0;
@@ -364,11 +364,11 @@ sub test_rules : Test(159) {
       'Reset to "Find createlang"';
     throws_ok { $fsa->switch } qr'Cannot find createlang',
       'We should die if we cannot find createlang';
-    is_deeply $kbs->{actions},  [], 'Actions should be empty';
+    is_deeply [$kbs->actions],  [], 'Actions should be empty';
 
     ##########################################################################
     # Test "Check user"
-    $kbs->{actions} = [];
+    $kbs->del_actions($kbs->actions);
     ok $fsa->reset->curr_state('Check user'), 'Reset to "Check user"';
 
     # Start with success.
@@ -377,21 +377,21 @@ sub test_rules : Test(159) {
     is $fsa->curr_state->name, 'Done', 'We should be done';
     is $fsa->prev_state->message, 'User "kinetic" exists',
       "Message should note that user exists";
-    is_deeply $kbs->{actions},  [['build_db']],
+    is_deeply [$kbs->actions],  ['build_db'],
       'Actions should have build_db only';
 
     # Check for no user.
     $user_exists = 0;
-    $kbs->{actions} = [];
+    $kbs->del_actions($kbs->actions);
     ok $fsa->reset->curr_state('Check user'), 'Reset to "Check user"';
     ok $fsa->switch, 'Switch out of "Check user again"';
     is $fsa->curr_state->name, 'Done', 'We should be done again';
     is $fsa->prev_state->message,
       'User "kinetic" does not exist but will be created',
       "Message should note that user will be created";
-    is_deeply $kbs->{actions},  [['create_user'], ['build_db']],
+    is_deeply [$kbs->actions],  ['create_user', 'build_db'],
       'Actions should have create_user and build_db';
-    $kbs->{actions} = [];
+    $kbs->del_actions($kbs->actions);
 
     ##########################################################################
     # Test "Connect user"
@@ -522,9 +522,10 @@ sub test_rules : Test(159) {
 
     ##########################################################################
     # Test "Done"
-    $kbs->{actions} = [];
+    $kbs->del_actions($kbs->actions);
     ok $fsa->reset->curr_state('Done'), 'Reset to "Done"';
-    is_deeply $kbs->{actions}, [['build_db']];
+    is_deeply [$kbs->actions], ['build_db'],
+      'We should have the "build_db" action set up';
     $kbs->_dbh(undef); # Prevent ugly deaths during cleanup.
 }
 
@@ -573,7 +574,7 @@ sub test_validate_user_db : Test(12) {
     ok my $kbs = $class->new, "Create new $class object";
     isa_ok $kbs, $class;
     ok $kbs->validate, "We should be able to validate";
-    is_deeply $kbs->{actions}, [['build_db']],
+    is_deeply [$kbs->actions], ['build_db'],
       'We should have just the "build_db" action';
     is $kbs->db_host, undef, 'Database host is undefined';
     is $kbs->db_port, undef, 'Port is undefined';
@@ -638,8 +639,8 @@ sub test_validate_super_user : Test(12) {
     ok my $kbs = $class->new, "Create new $class object";
     isa_ok $kbs, $class;
     ok $kbs->validate, "We should be able to validate";
-    is_deeply $kbs->{actions}, [['create_db'], ['add_plpgsql'], ['create_user'],
-                                ['build_db']],
+    is_deeply [$kbs->actions], ['create_db', 'add_plpgsql', 'create_user',
+                                'build_db'],
       "We should have the right actions";
     is $kbs->db_host, undef, 'Database host is undefined';
     is $kbs->db_port, undef, 'Port is undefined';
@@ -700,7 +701,7 @@ sub test_validate_super_user_arg : Test(12) {
     ok my $kbs = $class->new, "Create new $class object";
     isa_ok $kbs, $class;
     ok $kbs->validate, "We should be able to validate";
-    is_deeply $kbs->{actions}, [['add_plpgsql'], ['create_user'], ['build_db']],
+    is_deeply [$kbs->actions], ['add_plpgsql', 'create_user', 'build_db'],
       "We should have the right actions";
     is $kbs->db_host, undef, 'Database host is undefined';
     is $kbs->db_port, undef, 'Port is undefined';
@@ -718,7 +719,6 @@ sub test_validate_super_user_arg : Test(12) {
 # * Test config() and test_config().
 # * Create and test methods to create the database.
 # * Create and test build() and test_build().
-# * Add methods for actions instead of direct hash access.
 
 1;
 __END__

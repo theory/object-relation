@@ -160,7 +160,7 @@ sub new {
     my $builder = eval { Kinetic::Build->resume }
       or die "Cannot resume build: $@";
 
-    my $self = bless {} => $class;
+    my $self = bless {actions => []} => $class;
     $private{$self} = {
         builder => $builder,
         info    => $class->info_class->new($builder->_app_info_params)
@@ -281,11 +281,7 @@ specified by C<Kinetic::Build::source_dir()>.
 
 sub build {
     my $self = shift;
-    my $actions = $self->{actions} or return $self;
-    foreach my $action (@$actions) {
-        my ($method, @args) = @$action;
-        $self->$method(@args);
-    }
+    $self->$_ for $self->actions;
     return $self;
 }
 
@@ -337,6 +333,59 @@ C<builder> attribute.
 sub resume {
     my $self = shift;
     $private{$self}->{builder} = shift if @_;
+    return $self;
+}
+
+##############################################################################
+
+=head3 actions
+
+  my @ations = $kbs->actions;
+
+Returns a list of the actions set up for the build by calls to the
+C<add_actions()> method. Used internally by C<build()> to build a data store.
+
+=cut
+
+sub actions {
+    my $self = shift;
+    return @{$self->{actions}};
+}
+
+##############################################################################
+
+=head3 add_actions
+
+  $kbs->add_actions(@actions);
+
+Adds actions to the list of actions returned by C<actions()>. Used internally
+by the rules specified by C<rules()> to set up actions later called by
+C<build()> to build a data store.
+
+=cut
+
+sub add_actions {
+    my $self = shift;
+    push @{$self->{actions}}, grep { !$self->{seen_actions}{$_}++ } @_;
+    return $self;
+}
+
+##############################################################################
+
+=head3 del_actions
+
+  $kbs->del_actions(@actions);
+
+Removes actions from the list of actions returned by C<actions()>. Used
+internally by the rules specified by C<rules()> to prevent actions from being
+called by C<build()> to build a data store.
+
+=cut
+
+sub del_actions {
+    my $self = shift;
+    my %delete = map { $_ => delete $self->{seen_actions}{$_} } @_;
+    $self->{actions} = [ grep { ! exists $delete{$_} } @{$self->{actions} } ];
     return $self;
 }
 

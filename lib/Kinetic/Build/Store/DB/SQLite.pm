@@ -104,7 +104,6 @@ sub rules {
         start => {
             do => sub {
                 my $state = shift;
-                $self->{actions} = []; # must never return to start
                 $state->result($self->info->installed);
              },
             rules => [
@@ -155,7 +154,7 @@ sub rules {
         },
         Done => {
             do => sub {
-                push @{$self->{actions}} => ['build_db'];
+                $self->add_actions('build_db');
             }
         },
         fail => {

@@ -281,7 +281,7 @@ sub rules {
                         # This is for the non-super user
                         return if $self->db_super_user;
                         # Note need to create database.
-                        push @{$self->{actions}}, ['create_db'];
+                        $self->add_actions('create_db');
                         $state->message(
                             'Database "' . $self->db_name
                             . '" does not exist; checking permissions to create it'
@@ -295,7 +295,7 @@ sub rules {
                         # This is for the super user
                         return unless $self->db_super_user;
                         # Note need to create database.
-                        push @{$self->{actions}}, ['create_db'];
+                        $self->add_actions('create_db');
                         $state->message(
                             'Database "' . $self->db_name
                               . '" does not exist but will be created; checking '
@@ -414,7 +414,7 @@ sub rules {
                         # in the database.
                         $self->{createlang} = $self->info->createlang
                           or return;
-                        push @{$self->{actions}}, ['add_plpgsql'];
+                        $self->add_actions('add_plpgsql');
                     },
                     message => "Found createlang",
                 },
@@ -440,7 +440,7 @@ sub rules {
                         my $state = shift;
                         return if $state->result;
                         # Note need to create user.
-                        push @{$self->{actions}}, ['create_user'];
+                        $self->add_actions('create_user');
                         $state->message(
                             'User "' . $self->db_user
                             . '" does not exist but will be created'
@@ -578,7 +578,7 @@ sub rules {
 
         Done => {
             do => sub {
-                push @{$self->{actions}} => ['build_db'];
+                $self->add_actions('build_db');
             }
         },
     );
