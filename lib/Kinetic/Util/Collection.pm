@@ -20,6 +20,10 @@ package Kinetic::Util::Collection;
 
 use strict;
 use Kinetic::Util::Exceptions qw(throw_invalid);
+use aliased 'Kinetic::Util::Iterator';
+
+# to simplify the code, we use -1 instead of undef for "null" indexes
+use constant NULL => -1;
 
 =head1 Name
 
@@ -73,16 +77,32 @@ B<Throws:>
 
 sub new {
     my ($class, $iter) = @_;
-    $iter ||= '';
-    throw_invalid ['Argument "[_1]" is not a valid [_2] object', $iter,
-                   'Kinetic::Util::Iterator']
-      unless UNIVERSAL::isa($iter, 'Kinetic::Util::Iterator');
+    { 
+        local $^W; # suppress uninitialized warnings
+        throw_invalid ['Argument "[_1]" is not a valid [_2] object', $iter, Iterator]
+          unless UNIVERSAL::isa($iter, Iterator);
+    }
     bless { 
         iter  => $iter, 
-        index => -1,
+        index => NULL,
         array => [], 
-        got   => -1,
+        got   => NULL,
     }, $class;
+}
+
+##############################################################################
+
+=head3 from_list
+
+  my $coll = Kinetic::Util::Collection->from_list(@list);
+
+When passed a list, returns a collection object for said list.
+
+=cut
+
+sub from_list {
+    my ($class, @list) = @_;
+    return $class->new(Iterator->new(sub {shift @list}));
 }
 
 ##############################################################################
@@ -113,15 +133,14 @@ position of the index.
 
 sub next {
     my $self = shift;
-    if ($self->{got} > $self->{index}) {
+    if (defined $self->{got} && $self->{got} > $self->{index}) {
         # we've been here before
         $self->{index}++;
         return $self->{array}[$self->{index}];
     }
     my $result = $self->iter->next;
     return unless defined $result;
-    $self->{index}++;
-    $self->{got} = $self->{index};
+    $self->{got} = ++$self->{index};
     push @{$self->{array}} => $result;
     return $result;
 }
@@ -139,9 +158,21 @@ Returns the value at the current position of the collection.
 
 sub curr { 
     my $self = shift;
-    my $index = $self->{index};
-    return $self->{array}[$index];
+    return if $self->{index} == NULL;
+    return $self->{array}[$self->{index}];
 }
+
+##############################################################################
+
+=head3 current
+
+ my $current = $coll->current;
+
+A convenient alias for C<curr>.
+
+=cut
+
+*current = \&curr;
 
 ##############################################################################
 
@@ -158,8 +189,7 @@ the collection, this method returns undef and does not change the position.
 sub prev {
     my $self = shift;
     return unless $self->{index} > 0;
-    $self->{index}--;
-    return $self->{array}[$self->{index}];
+    return $self->{array}[--$self->{index}];
 } 
 
 ##############################################################################
@@ -178,15 +208,16 @@ sub iter { $_[0]->{iter} }
 
 =head3 get
 
+ my $item = $coll->get($index);
+
+Returns the item in the collection slot for the numeric C<$index>.  Sets the
+current position of the collection to C<$index>.
+
 =cut
 
 sub get {
     my ($self, $index) = @_;
-    if (defined $self->{got} && $index > $self->{got}) {
-        push @{$self->{array}}, $self->{iter}->next
-          while $self->{iter}->peek && $index > $self->{got}++;
-        $self->{got} = undef unless defined $self->{iter}->current;
-    }
+    $self->_fill_to($index);
     return $self->{array}[$index];
 }
 
@@ -194,11 +225,17 @@ sub get {
 
 =head3 set
 
+ $coll->set($index, $value);
+
+Sets the value of the collection at C<$index> to C<$value>.
+
 =cut
+
+# Should we allow optional typing?
 
 sub set {
     my ($self, $index, $value) = @_;
-    $self->_fill if defined $self->{got};
+    $self->_fill_to($index);
     $self->{array}[$index] = $value;
 }
 
@@ -206,40 +243,63 @@ sub set {
 
 =head3 index
 
+ my $index = $coll->index;
+
+Returns the current numeric value of the index.  Returns undef if the collection
+is not yet pointing at anything.
+
 =cut
 
-sub index { shift->{index} }
+sub index { 
+    my $self = shift;
+    return if $self->{index} == NULL;
+    return $self->{index};   
+}
 
 ##############################################################################
 
 =head3 reset
 
+ $coll->reset;
+
+C<reset> resets the collection.  The collection will now behave like a new
+collection has been created with the same iterator.
+
 =cut
 
-sub reset { shift->{index} = -1 }
+sub reset { shift->{index} = NULL }
 
 ##############################################################################
 
 =head3 size
 
+ my $size = $coll->size;
+
+Returns the number of items in the collection.
+
 =cut
 
 sub size {
     my $self = shift;
-    $self->_fill if defined $self->{got};
-    return $#{$self->{array}} + 1;
+    $self->_fill;
+    return scalar @{$self->{array}};
 }
 
 ##############################################################################
 
 =head3 clear
 
+ $coll->clear;
+
+Empties the collection.
+
 =cut
 
 sub clear {
     my $self = shift;
     $self->{iter}->all if defined $self->{got};
-    $self->{got} = undef;
+    $self->{got}   = undef;
+    $self->{index} = NULL;
     @{$self->{array}} = ();
 }
 
@@ -247,41 +307,44 @@ sub clear {
 
 =head3 splice
 
+ my @list = $coll->splice(@splice_args);
+
+Operates just like C<splice>. 
+
 =cut
 
 sub splice {
     my $self = shift;
     return unless @_;
-    $self->_fill if defined $self->{got};
-    CORE::splice @{$self->{array}}, @_;
+    $self->_fill;
+    return CORE::splice(@{$self->{array}}, shift           ) if 1 == @_;
+    return CORE::splice(@{$self->{array}}, shift, shift    ) if 2 == @_;
+    return CORE::splice(@{$self->{array}}, shift, shift, @_);
 }
 
 ##############################################################################
 
 =head3 extend
 
-=cut
-
-sub extend {
-    my ($self, $index) = @_;
-    $#{$self->{array}} = $index unless $#{$self->{array}} >= $index;
-}
-
-##############################################################################
-
-=head3 current
+XXX we can't implement this.  Since we cannot return undef elements, there is
+no way to extend the array.  This will be deleted unless David has a different
+viewpoint.
 
 =cut
 
-sub current {
-    my $self = shift;
-    return if $self->{index} == -1;
-    return $self->get($self->{index});
-}
+#sub extend {
+#    my ($self, $index) = @_;
+#    $#{$self->{array}} = $index unless $#{$self->{array}} >= $index;
+#}
+
 
 ##############################################################################
 
 =head3 peek
+
+ my $item = $coll->peek;
+
+Peek at the next item of the list without advancing the collection.
 
 =cut
 
@@ -294,11 +357,16 @@ sub peek {
 
 =head3 all
 
+ my @all = $coll->all;
+
+Return a list of all items in the collection.  Returns an array reference in
+scalar context.
+
 =cut
 
 sub all {
     my $self = shift;
-    $self->_fill if defined $self->{got};
+    $self->_fill;
     $self->reset;
     return wantarray ? @{$self->{array}} : $self->{array};
 }
@@ -307,12 +375,16 @@ sub all {
 
 =head3 do
 
+ $code->do($anon_sub);
+
+Call a function with each element of the list until the function returns false.
+
 =cut
 
 sub do {
     my ($self, $code) = @_;
     $self->reset;
-    while (my $item = $self->next) {
+    while (defined (my $item = $self->next)) {
         return unless $code->($item);
     }
 }
@@ -337,10 +409,31 @@ implicitly by C<clear()>, which calls C<all()>.
 
 sub _fill {
     my $self = shift;
+    return unless defined $self->{got};
     push @{$self->{array}}, $self->{iter}->all;
-    $self->{got} = undef;
 }
 
+##############################################################################
+
+=head3 _fill_to
+
+  $coll->_fill_to($index);t
+
+Like C<_fill>, but only fills the collection up to the specified index.  This
+is usefull when you must fill part of the collection but filling all of it
+would be expensive.
+
+=cut
+
+sub _fill_to {
+    my ($self, $index) = @_;
+    if (defined $self->{got} && $index > $self->{got}) {
+        push @{$self->{array}}, $self->{iter}->next
+          while $self->{iter}->peek && $index > $self->{got}++;
+        $self->{got} = undef unless defined $self->{iter}->current;
+    }
+    return $self;
+}
 =end private
 
 =cut

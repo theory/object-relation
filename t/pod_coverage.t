@@ -16,9 +16,10 @@ diag "Don't forget to update the pod at some point"
 # This was *not* fun to debug
 
 my %exceptions = (
-    'Kinetic::Store'         => qr/^(ASC|DESC|EQ|NE)$/,
-    'Kinetic::Store::DB'     => qr/^(Incomplete|Iterator|Meta|Search)$/,
-    'Kinetic::Store::Search' => qr/^(Incomplete)$/,
+    'Kinetic::Util::Collection' => qr/^(Iterator)$/,
+    'Kinetic::Store'            => qr/^(ASC|DESC|EQ|NE)$/,
+    'Kinetic::Store::DB'        => qr/^(Incomplete|Iterator|Meta|Search)$/,
+    'Kinetic::Store::Search'    => qr/^(Incomplete)$/,
 );
 
 my @modules = grep { ! exists $exceptions{$_} } Test::Pod::Coverage::all_modules();
