@@ -90,7 +90,7 @@ sub import {
 
 END {
     return unless $backup;
-    unlink $conf_file;
+    unlink $conf_file or die "Cannot unlink ($conf_file) :$!";
     File::Copy::move($backup, $conf_file);
 }
 
