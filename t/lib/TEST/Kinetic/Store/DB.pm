@@ -378,7 +378,8 @@ sub update : Test(7) {
 }
 
 sub build_object_from_hashref : Test(2) {
-    can_ok Store, '_build_object_from_hashref';
+    my $store = Store->new;
+    can_ok $store, '_build_object_from_hashref';
     my $ref = {
         guid        => '4162F712-1DD2-11B2-B17E-C09EFE1DC403',
         name        => 'whozit',
@@ -386,7 +387,8 @@ sub build_object_from_hashref : Test(2) {
         state       => 1, # Active
         bool        => 0,
     };
-    my $object = Store->_build_object_from_hashref(One->new->my_class => $ref);
+    $store->{search_class} = One->new->my_class;
+    my $object = $store->_build_object_from_hashref($ref);
     isa_ok $object, One, 'and it should be able to build an object of the correct type';
 }
 
@@ -458,6 +460,7 @@ sub constraints : Test(4) {
 
 sub search : Test(1) {
     can_ok Store, 'search';
+
 }
 
 1;

@@ -282,7 +282,7 @@ sub lookup : Test(8) {
         'or if you search on a non-unique field';
 }
 
-sub search : Test(9) {
+sub search : Test(13) {
     my $test = shift;
     can_ok Store, 'search';
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
@@ -299,9 +299,17 @@ sub search : Test(9) {
     is_deeply $iterator->next, $foo, 
         'and the first item should match the correct object';
     ok ! $iterator->next, 'and there should be the correct number of objects';
+    
+    ok $iterator = Store->search($class, name => 'foo'), 
+        'We should also be able to call search as a class method';
+    isa_ok $iterator, Iterator, 'and the object it returns';
+    is_deeply $iterator->next, $foo, 
+        'and it should return the same results as an instance method';
+    ok ! $iterator->next, 'and there should be the correct number of objects';
+
     $iterator = $store->search($class, name => 'foo', description => 'asdf');
     ok ! $iterator->next,
-        'but searching for non-existent iterator will return no results';
+        'but searching for non-existent values will return no results';
     $foo->description('asdf');
     Store->save($foo);
     $iterator = $store->search($class, name => 'foo', description => 'asdf');
@@ -603,12 +611,23 @@ sub save_compound : Test(3) {
     Store->save($baz);
     my $class   = $foo->my_class;
     my $store = Store->new; 
-    my $iterator = $store->search($class, age => [12 => 30]);
+    #use Data::Dumper::Simple;
+    #$Data::Dumper::Indent = 1;
+    #diag(Dumper(Store->_from_proto, $class));
+    #<STDIN>;
+    my $iterator = Store->search($class, age => [12 => 30]);
     my @results = _all_items($iterator);
     is @results, 2, 'Searching on a range should return the correct number of results';
     @results = sort { $a->age <=> $b->age } @results;
     is_deeply \@results, [$foo, $bar], '... and the correct results';
 }
+# TEST::Kinetic::Store::DB::SQLite->save_compound
+#ok 155 - Kinetic::Store::DB::SQLite->can('search')
+#ok 156 - Searching on a range should return the correct number of results
+#not ok 157 - save_compound died (Can't locate object method "age" via package 
+# "TestApp::Simple::One" at t/lib/TEST/Kinetic/Store/DB/SQLite.pm line 617.)
+#     Failed test (t/lib//TEST/Class/Kinetic.pm at line 93)
+#
 
 sub order_by : Test(4) {
     my $test = shift;

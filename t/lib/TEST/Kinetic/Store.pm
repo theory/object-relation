@@ -14,13 +14,16 @@ use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Store' => 'Store', ':all';
 __PACKAGE__->runtests;
 
-sub constructor : Test(4) {
+sub constructor : Test(5) {
     my $test = shift;
     (my $class = ref $test) =~ s/^TEST:://;
     can_ok $class => 'new';
     ok my $store = $class->new;
     isa_ok $store, $class;
     isa_ok $store, 'Kinetic::Store';
+
+    my $store2 = $class->new;
+    isnt "$store", "$store2", '... and a singleton should not be returned';
 }
 
 sub save : Test(2) {

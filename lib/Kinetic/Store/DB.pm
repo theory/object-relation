@@ -47,26 +47,35 @@ C<Kinetic::Store::DB::Pg> and C<Kinetic::Store::DBI::SQLite> classes.
 =cut
 
 sub save {
-    my ($class, $object) = @_;
+    my ($proto, $object) = @_;
+    my $self = $proto->_from_proto;
     #return $class unless $object->changed;
+    # XXX this needs to go away
     my %data = (
         names  => [],
         values => [],
-        class  => $object->my_class,
+        class  => $object->my_class
     );
+    $self->{search_class} = $object->my_class;
     $data{view} = $data{class}->key;
     foreach my $attr ($data{class}->attributes) {
         if ($attr->references) {
             my $attr_name = $attr->name;
             my $contained_object = $object->$attr_name;
-            $class->save($contained_object);
+            $self->save($contained_object);
         }
-        push @{$data{names}}  => $class->_get_name($attr);
-        push @{$data{values}} => $class->_get_raw_value($object, $attr);
+        push @{$data{names}}  => $self->_get_name($attr);
+        push @{$data{values}} => $self->_get_raw_value($object, $attr);
     }
     return exists $object->{id}
-        ? $class->_update($object, \%data)
-        : $class->_insert($object, \%data);
+        ? $self->_update($object, \%data)
+        : $self->_insert($object, \%data);
+}
+
+sub _from_proto {
+    my $proto = shift;
+    my $self = ref $proto ? $proto : $proto->new;
+    return $self;
 }
 
 sub _insert {
@@ -124,21 +133,21 @@ sub _do_sql {
 # XXX note the encapsulation violation.  This may change in the future.
 
 sub _build_object_from_hashref {
-    my ($class, $search_class, $hashref) = @_;
-    $hashref->{state} = $class->_get_kinetic_value('state', $hashref->{state})
+    my ($self, $hashref) = @_;
+    $hashref->{state} = $self->_get_kinetic_value('state', $hashref->{state})
         if exists $hashref->{state};
     my %object;
     while (my ($key, $value) = each %$hashref) {
         if ($key =~ /^(.*)__id$/) {
             my $field   = $1;
-            my $collection = $class->search(Meta->for_key($field), id => $value);
+            my $collection = $self->search(Meta->for_key($field), id => $value);
             $object{$field} = $collection->next;
         }
         else {
             $object{$key} = $value;
         }
     }
-    bless \%object => $search_class->package;
+    bless \%object => $self->{search_class}->package;
 }
 
 sub _get_kinetic_value {
@@ -148,6 +157,17 @@ sub _get_kinetic_value {
     }
     return $value;
 }
+
+##############################################################################
+
+=head3 lookup
+
+  my $object = Store->lookup($class_object, $unique_property, $value);
+
+Returns a single object whose value matches the specified property.  This method
+will croak if the property does not exist or if it is not unique.
+
+=cut
 
 sub lookup {
     my ($class, $search_class, $property, $value) = @_;
@@ -159,50 +179,48 @@ sub lookup {
     return $collection->next;
 }
 
+##############################################################################
+
+=head3 search
+
+  my $iter = $store->search($class_object, @search_params);
+
+Returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> of all object
+which match the search params.  See L<Kinetic::Store|Kinetic::Store> for more
+information about search params.
+
+=cut
+
 sub search {
-    my ($class, $search_class, @search_params) = @_;
+    my ($proto, $search_class, @search_params) = @_;
+    my $self = $proto->_from_proto;
+    $self->{search_class} = $search_class;
     my $constraints  = pop @search_params if ref $search_params[-1] eq 'HASH';
     my @attributes   = $search_class->attributes;
-    my $attributes   = join ', ' => map { $class->_get_name($_) } @attributes;
+    my $attributes   = join ', ' => map { $self->_get_name($_) } @attributes;
     my $view         = $search_class->view;
     
     my ($where_clause, $bind_params) = 
-        $class->_make_where_clause(\@search_params, $constraints);
+        $self->_make_where_clause(\@search_params, $constraints);
     $where_clause = '' if $where_clause eq '()';
     $where_clause = "WHERE $where_clause" if $where_clause;
     my $sql       = "SELECT id, $attributes FROM $view $where_clause";
-    $sql .= $class->_constraints($constraints) if $constraints;
+    $sql .= $self->_constraints($constraints) if $constraints;
     #warn "# *** $sql ***\n";
     #warn "# *** @$bind_params ***\n";
     
-    my @results;
-    my $sth = $class->_dbh->prepare($sql);
-    $sth->execute(@$bind_params);
-    while (my $result = $sth->fetchrow_hashref) {
-        push @results => $class->_build_object_from_hashref($search_class, $result);
-    }
-    return Iterator->new(sub {shift @results});
+    return $self->_get_iterator_for_sql($sql, $bind_params);
 }
 
-sub _constraints {
-    my ($class, $constraints) = @_;
-    my $sql = ' ';
-    while (my ($constraint, $value) = each %$constraints) {
-        if ('order_by' eq $constraint) {
-            $sql .= 'ORDER BY ';
-            my $sort_order = $constraints->{sort_order};
-            $value      = [$value]      unless 'ARRAY' eq ref $value;
-            $sort_order = [$sort_order] unless 'ARRAY' eq ref $sort_order;
-            my @sorts;
-            for my $i (0 .. $#$value) {
-                my $sort = $value->[$i];
-                $sort .= ' ' . uc $sort_order->[$i]->() if defined $sort_order->[$i];
-                push @sorts => $sort;
-            }
-            $sql .= join ', ' => @sorts;
-        }
+sub _get_iterator_for_sql {
+    my ($self, $sql, $bind_params) = @_;
+    my $sth = $self->_dbh->prepare($sql);
+    $sth->execute(@$bind_params);
+    my @results;
+    while (my $result = $sth->fetchrow_hashref) {
+        push @results => $self->_build_object_from_hashref($result);
     }
-    return $sql;
+    return Iterator->new(sub {shift @results});
 }
 
 sub _make_where_clause {
@@ -215,13 +233,16 @@ sub _make_where_clause {
     while (@$attributes) {
         my $curr_attribute = shift @$attributes;
         unless (ref $curr_attribute) {
+            # name => 'foo'
             my $value = shift @$attributes;
             ($where_token, $bindings) = $self->_make_where_token($curr_attribute, $value);
         }
         elsif ('ARRAY' eq ref $curr_attribute) {
+            # [ name => 'foo', description => 'bar' ]
             ($where_token, $bindings) = $self->_make_where_clause($curr_attribute);
         }
         elsif ('CODE' eq ref $curr_attribute) {
+            # OR(name => 'foo') || AND(name => 'foo')
             my $values;
             ($op, $values) = $curr_attribute->();
             unless ($op =~ GROUP_OP) {
@@ -230,16 +251,16 @@ sub _make_where_clause {
             ($where_token, $bindings) = $self->_make_where_clause($values);
         }
         else {
-            croak sprintf "I know what to do with a %s for (@{$self->{where}})"
+            croak sprintf "I don't know what to do with a %s for (@{$self->{where}})"
                 => ref $curr_attribute;
         }
-        $self->_store_where_data($op, $where_token, $bindings);
+        $self->_save_where_data($op, $where_token, $bindings);
     }
-    my $where = "(".join(' ' => @{$self->{where}}).")";
+    my $where = "(".join(' ' => @{ $self->{where} }).")";
     return $where, $self->{bind_params};
 }
 
-sub _store_where_data {
+sub _save_where_data {
     my ($self, $op, $where_token, $bindings) = @_;
     if (@{$self->{where}} && $self->{where}[-1] !~ GROUP_OP) {
         push @{$self->{where}} => $op if $op;
@@ -275,6 +296,7 @@ sub _comparison_operator {
 
 sub _make_where_token {
     my ($class, $field, $attribute) = @_;
+    
     my ($comparator, $value) = $class->_expand_attribute($attribute);
 
                # simple compare         #       NULL            # BETWEEN
@@ -323,6 +345,27 @@ sub _expand_attribute {
         croak "($type $name) has no meaning.";
     }
     return ("$type $name", $value2);
+}
+
+sub _constraints {
+    my ($class, $constraints) = @_;
+    my $sql = ' ';
+    while (my ($constraint, $value) = each %$constraints) {
+        if ('order_by' eq $constraint) {
+            $sql .= 'ORDER BY ';
+            my $sort_order = $constraints->{sort_order};
+            $value      = [$value]      unless 'ARRAY' eq ref $value;
+            $sort_order = [$sort_order] unless 'ARRAY' eq ref $sort_order;
+            my @sorts;
+            for my $i (0 .. $#$value) {
+                my $sort = $value->[$i];
+                $sort .= ' ' . uc $sort_order->[$i]->() if defined $sort_order->[$i];
+                push @sorts => $sort;
+            }
+            $sql .= join ', ' => @sorts;
+        }
+    }
+    return $sql;
 }
 
 1;
