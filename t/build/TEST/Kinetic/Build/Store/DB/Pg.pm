@@ -59,6 +59,7 @@ sub test_rules : Test(161) {
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
     my $builder = $self->new_builder;
+    $self->{builder} = $builder;
     $mb->mock(resume => $builder);
     $mb->mock(_app_info_params => sub { } );
     my (@replies, @args);
@@ -582,6 +583,7 @@ sub test_validate_user_db : Test(27) {
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
     my $builder = $self->new_builder;
+    $self->{builder} = $builder;
     $builder->source_dir('lib');
     $mb->mock(resume => $builder);
     $mb->mock(_app_info_params => sub { } );
@@ -670,7 +672,9 @@ sub test_validate_super_user : Test(27) {
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
+    $mb->mock(check_store => 1);
     my $builder = $self->new_builder;
+    $self->{builder} = $builder;
     $mb->mock(resume => $builder);
     $mb->mock(_app_info_params => sub { } );
     my @replies = ('pgme', '5433', 'kinetic', 'kinetic', 'asdfasdf',
@@ -694,7 +698,7 @@ sub test_validate_super_user : Test(27) {
     $pg->mock(_is_super_user => 1);
 
     # Construct the object.
-    ok my $kbs = $class->new, "Create new $class object";
+    ok my $kbs = $class->new($builder), "Create new $class object";
     isa_ok $kbs, $class;
     ok $kbs->validate, "We should be able to validate";
     is_deeply [$kbs->actions], ['create_db', 'add_plpgsql', 'create_user',
@@ -760,7 +764,9 @@ sub test_validate_super_user_arg : Test(27) {
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
+    $mb->mock(check_store => 1);
     my $builder = $self->new_builder;
+    $self->{builder} = $builder;
     $mb->mock(resume => $builder);
     $mb->mock(_app_info_params => sub { } );
     my @replies = ('localhost', '5432', 'howdy', 'howdy', 'asdfasdf',
@@ -838,7 +844,9 @@ sub test_helpers : Test(15) {
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
+    $mb->mock(check_store => 1);
     my $builder = $self->new_builder;
+    $self->{builder} = $builder;
     $mb->mock(resume => $builder);
     $mb->mock(_app_info_params => sub { } );
 
@@ -929,7 +937,9 @@ sub test_db_helpers : Test(28) {
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
+    $mb->mock(check_store => 1);
     my $builder = $self->new_builder;
+    $self->{builder} = $builder;
     $mb->mock(resume => $builder);
     $mb->mock(_app_info_params => sub { } );
 
@@ -1039,14 +1049,18 @@ sub test_build_meths : Test(20) {
 
     $pg->mock(validate => 1);
 
+    $mb->mock(check_store => 1);
     my $builder = $self->new_builder;
+    $self->{builder} = $builder;
     $mb->mock(resume => $builder);
     $builder->source_dir('lib'); # We're in t/sample
-    $builder->dispatch('code');
 
     # Construct the object.
     ok my $kbs = $class->new, "Create new $class object";
     isa_ok $kbs, $class;
+
+    $builder->notes(build_store => $kbs);
+    $builder->dispatch('code');
 
     isa_ok $self->{tdbh} = $kbs->_connect(
         $kbs->_dsn($self->{conf}{pg}{template_db_name}),

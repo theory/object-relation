@@ -148,16 +148,19 @@ sub rules { die "rules() must be overridden in the subclass" }
 =head3 new
 
   my $kbs = Kinetic::Build::Store->new;
+  my $kbs = Kinetic::Build::Store->new($builder);
 
-Creates and returns a new Store builder object. This is a factory constructor;
-it will return the subclass appropriate to the currently selected store class
-as configured in F<kinetic.conf>.
+Creates and returns a new Store builder object. Pass in the Kinetic::Build
+object being used to validate the data store. If no Kinetic::Build object is
+passed, one will be instantiated by a call to C<< Kinetic::Build->resume >>.
+This is a factory constructor; it will return the subclass appropriate to the
+currently selected store class as configured in F<kinetic.conf>.
 
 =cut
 
 sub new {
     my $class = shift;
-    my $builder = eval { Kinetic::Build->resume }
+    my $builder = shift || eval { Kinetic::Build->resume }
       or die "Cannot resume build: $@";
 
     my $self = bless {actions => []} => $class;

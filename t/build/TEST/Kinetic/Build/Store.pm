@@ -48,6 +48,7 @@ sub test_instance : Test(32) {
 
     # Fake the Kinetic::Build interface.
     my $builder = MockModule->new(Build);
+    $self->{builder} = $builder;
     $builder->mock(resume => sub { bless {}, Build });
     $builder->mock(_app_info_params => sub { } );
     my $store = MockModule->new($class);
@@ -128,10 +129,6 @@ sub test_instance : Test(32) {
     is $kbs->resume($builder), $kbs, "resume() should return itself";
     is $kbs->builder, $builder, "... And now the builder should be back";
 }
-
-package TEST::Kinetic::TestInfo;
-sub new { bless {} };
-sub version { 1 }
 
 1;
 __END__

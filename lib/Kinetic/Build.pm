@@ -111,7 +111,9 @@ sub add_property {
 
   my $cm = Kinetic::Build->new(%init);
 
-Overrides Module::Build's constructor to add Kinetic-specific build elements.
+Overrides Module::Build's constructor to add Kinetic-specific build elements
+and to run methods that collect data necessary to build the Kinetic framework,
+such as data store information.
 
 =cut
 
@@ -132,6 +134,7 @@ sub new {
         $self->$prop($self->get_reply(%$prompt, default => $self->$prop));
     }
 
+    $self->check_store;
     return $self;
 }
 
@@ -279,36 +282,6 @@ __PACKAGE__->add_property(dev_tests => 0);
 
 =head2 Actions
 
-=head3 check_store
-
-=begin comment
-
-=head3 ACTION_check_store
-
-=end comment
-
-This action checks for the presence of the data store using the C<check_*_>
-methods, and prompts for relevant information unless the C<accept_defaults>
-attribute has been set to a true value.
-
-=cut
-
-sub ACTION_check_store {
-    my $self = shift;
-    return $self if $self->notes('build_store');
-    # Check the specific store.
-    my $build_store_class = $STORES{$self->store}
-      or $self->_fatal_error("I'm not familiar with the " . $self->store
-                             . ' data store');
-    eval "require $build_store_class" or $self->_fatal_error($@);
-    my $build_store = $build_store_class->new($self);
-    $build_store->validate;
-    $self->notes(build_store => $build_store);
-    return $self;
-}
-
-##############################################################################
-
 =head3 config
 
 =begin comment
@@ -390,28 +363,6 @@ sub ACTION_build {
 
 ##############################################################################
 
-=head3 code
-
-=begin comment
-
-=head3 ACTION_code
-
-=end comment
-
-Overrides Module::Build's C<code> action to add the C<check_store> action as a
-dependency.
-
-=cut
-
-sub ACTION_code {
-    my $self = shift;
-    $self->depends_on('check_store');
-    $self->SUPER::ACTION_code(@_);
-    return $self;
-}
-
-##############################################################################
-
 =head3 test
 
 =begin comment
@@ -475,6 +426,31 @@ sub ACTION_help {
 ##############################################################################
 
 =head2 Methods
+
+=head3 check_store
+
+This method checks for the presence of the data store using the C<check_*_>
+methods, and prompts for relevant information unless the C<accept_defaults>
+attribute has been set to a true value. Executed by C<new()> (and therefore
+the call to C<perl Build.PL>.
+
+=cut
+
+sub check_store {
+    my $self = shift;
+    return $self if $self->notes('build_store');
+    # Check the specific store.
+    my $build_store_class = $STORES{$self->store}
+      or $self->_fatal_error("I'm not familiar with the " . $self->store
+                             . ' data store');
+    eval "require $build_store_class" or $self->_fatal_error($@);
+    my $build_store = $build_store_class->new($self);
+    $build_store->validate;
+    $self->notes(build_store => $build_store);
+    return $self;
+}
+
+##############################################################################
 
 =head3 process_conf_files
 

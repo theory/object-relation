@@ -42,12 +42,14 @@ sub test_rules : Test(27) {
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
     my $builder = $self->new_builder;
+    $self->{builder} = $builder;
     $mb->mock(resume => $builder);
     $mb->mock(_app_info_params => sub { } );
 
     # Construct the object.
     ok my $kbs = $class->new, "Create new $class object";
     isa_ok $kbs, $class;
+    $builder->notes(build_store => $kbs);
 
     # Test behavior if SQLite is not installed
     my $info = MockModule->new($class->info_class);
@@ -133,7 +135,6 @@ sub test_rules : Test(27) {
     }
     $dbh->disconnect;
     unlink $db_file;
-    $builder->dispatch('clean');
 }
 
 1;

@@ -15,6 +15,13 @@ use File::Spec::Functions;
 
 __PACKAGE__->runtests unless caller;
 
+sub teardown_builder : Test(teardown) {
+    my $self = shift;
+    if (my $builder = delete $self->{builder}) {
+        $builder->dispatch('realclean');
+    }
+}
+
 sub atest_process_conf_files : Test(14) {
     my $self = shift;
     my $class = $self->test_class;
@@ -40,6 +47,7 @@ sub atest_process_conf_files : Test(14) {
     $mb->mock(store => 'sqlite');
     $mb->mock(store_config => { class => undef });
     $builder = $self->new_builder;
+    $self->{builder} = $builder;
 
     # Building should create these things.
     is $builder->dispatch('build'), $builder, "Run the build action";
@@ -78,10 +86,10 @@ sub atest_process_conf_files : Test(14) {
 sub test_props : Test(10) {
     my $self = shift;
     my $class = $self->test_class;
-
     my $mb = MockModule->new($class);
     $mb->mock(check_manifest => sub { return });
     my $builder = $self->new_builder;
+    $self->{builder} = $builder;
     is $builder->accept_defaults, 1, 'Accept Defaults should be enabled';
     is $builder->store, 'sqlite', 'Default store should be "SQLite"';
     is $builder->source_dir, 'lib', 'Default source dir should be "lib"';
@@ -101,6 +109,9 @@ sub test_props : Test(10) {
     my @msgs;
     $mb->mock(_readline => '1');
     $mb->mock(_prompt => sub { shift; push @msgs, @_; });
+    my $store = MockModule->new('Kinetic::Build::Store::DB::Pg');
+    $store->mock(validate => 1);
+    $store->mock(info_class => 'TEST::Kinetic::TestInfo');
     $builder = $self->new_builder(accept_defaults => 0);
     is join('', @msgs),
       "  1> pg\n  2> sqlite\nWhich data store back end shold I use? [2]: ",
@@ -108,7 +119,7 @@ sub test_props : Test(10) {
     is $builder->store, 'pg', 'Data store should now be "pg"';
 }
 
-sub test_check_store_action : Test(7) {
+sub test_check_store : Test(6) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -117,8 +128,7 @@ sub test_check_store_action : Test(7) {
     my $mb = MockModule->new($class);
     $mb->mock(resume => sub { $builder });
     $mb->mock(check_manifest => sub { return });
-    $builder = $self->new_builder(store => 'foo');
-    throws_ok { $builder->dispatch('check_store') }
+    throws_ok { $self->new_builder(store => 'foo') }
       qr"I'm not familiar with the foo data store",
       "We should get an error for a bogus data store";
 
@@ -128,12 +138,13 @@ sub test_check_store_action : Test(7) {
     $info->mock(version => '3.0.8');
 
     $builder = $self->new_builder;
-    can_ok $builder, 'ACTION_check_store';
-    ok $builder->dispatch('code'), "Run code action";
+    can_ok $builder, 'check_store';
+    $builder->dispatch('code');
     isa_ok $builder->notes('build_store'), 'Kinetic::Build::Store';
 
     # Make sure that the build action relies on check_store.
     $builder = $self->new_builder;
+    $self->{builder} = $builder;
     $mb->mock('ACTION_docs' => 0);
     ok $builder->dispatch('build'), "Run build";
     isa_ok $builder->notes('build_store'), 'Kinetic::Build::Store';
@@ -161,6 +172,7 @@ sub test_config_action : Test(4) {
     $mb->mock('ACTION_code' => 0);
     my $base = catdir '', 'foo', 'bar';
     $builder = $self->new_builder(install_base => $base);
+    $self->{builder} = $builder;
     can_ok $builder, 'ACTION_config';
     ok $builder->dispatch('config'),
       "We should be able to dispatch to the config action";
@@ -179,6 +191,8 @@ sub test_get_reply : Test(49) {
 
     my $kb = MockModule->new($class);
     $kb->mock(check_manifest => sub { return });
+    my $store = MockModule->new('Kinetic::Build::Store');
+    $store->mock(validate => 1);
     local @ARGV = qw'--store pg foo=bar';
     my $mb = MockModule->new('Module::Build');
     $kb->mock(_prompt => sub { shift; $self->{output} .= join '', @_; });
@@ -191,7 +205,8 @@ sub test_get_reply : Test(49) {
 
     # Start not quiet and with defaults accepted.
     my $builder = $self->new_builder(quiet => 0);
-    is delete $self->{info}, "Data store: pg\n",
+    $self->{builder} = $builder;
+    is delete $self->{info}, "Data store: pg\nLooking for pg_config\n",
       "Should have data store set by command-line option";
 
     # We should be told what the setting is, but not prompted.
@@ -455,6 +470,10 @@ sub new_builder {
         @_,
     );
 }
+
+package TEST::Kinetic::TestInfo;
+sub new { bless {} };
+sub version { 1 }
 
 1;
 __END__
