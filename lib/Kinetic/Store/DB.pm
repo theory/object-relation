@@ -267,15 +267,74 @@ sub count {
 
 =head3 _date_handler
 
-  $store->_date_handler($date);
+  my ($where_token, $bind_params) = $store->_date_handler($date);
 
 This method is used for returning the proper SQL and bind params for handling
-incomplete dates.  This must be overridden in a subclass.
+incomplete dates.  
+
+Ultimately, all it does is dispatch on the operator to the correct date handing
+method.
 
 =cut
 
 sub _date_handler {
-    croak "You must override _date_handler in a subclass";
+    my ($self, $search) = @_;
+    my $operator = $search->operator;
+    return 'EQ'      eq $operator ? $self->_eq_date_handler($search)
+        :  'BETWEEN' eq $operator ? $self->_between_date_handler($search)
+        :  'ANY'     eq $operator ? $self->_any_date_handler($search)
+        :                           $self->_gt_lt_date_handler($search);
+}
+
+sub _eq_date_handler {
+    my ($self, $search) = @_;
+    my $date     = $search->data;
+    my $token    = $self->_field_format($search->attr, $date);
+    my $operator = $search->negated? '!=' : '=';
+    return ("$token $operator ?", [$date->sort_string]);
+}
+
+sub _gt_lt_date_handler {
+    my ($self, $search) = @_;
+    my ($date, $operator) = ($search->data, $search->operator);
+    unless ($date->contiguous) {
+        require Carp;
+        Carp::croak "You cannot do GT or LT type searches with non-contiguous dates";
+    }
+    my $token = $self->_field_format($search->attr, $date);
+    my $value = $date->sort_string;
+    return ("$token $operator ?", [$value]);
+}
+
+sub _between_date_handler {
+    my ($self, $search) = @_;
+    my $data = $search->data;
+    my ($date1, $date2) = @$data;
+    unless ($date1->contiguous && $date2->contiguous) {
+        require Carp;
+        Carp::croak "You cannot do range searches with non-contiguous dates";
+    }
+    unless ($date1->same_segments($date2)) {
+        require Carp;
+        Carp::croak "BETWEEN search dates must have identical segments defined";
+    }
+    my ($negated, $operator) = ($search->negated, $search->operator);
+    my $token = $self->_field_format($search->attr, $date1);
+    return ("$token $negated $operator ? AND ?", [$date1->sort_string, $date2->sort_string])
+}
+
+sub _any_date_handler {
+    my ($self, $search)   = @_;
+    my ($negated, $value) = ($search->negated, $search->data);
+    my (@tokens, @values);
+    my $field = $search->attr;
+    foreach my $date (@$value) {
+        my $token = $self->_field_format($field, $date);
+        push @tokens => "$token = ?";
+        push @values => $date->sort_string;
+    }
+    my $token = join ' OR ' => @tokens;
+    return ($token, \@values);
 }
 
 sub _get_select_sql_and_bind_params {
@@ -288,6 +347,29 @@ sub _get_select_sql_and_bind_params {
     $sql         .= $self->_constraints($constraints) if $constraints;
     return ($sql, $bind_params);
 }
+
+my @DATE = (
+    [year   => [1, 4]],
+    [month  => [6, 2]],
+    [day    => [9, 2]],
+    [hour   => [12,2]],
+    [minute => [15,2]],
+    [second => [18,2]],
+); 
+
+sub _field_format {
+    my ($self, $field, $date) = @_;
+    my @tokens;
+    foreach my $date_data (@DATE) {
+        my ($segment, $idx) = @$date_data;
+        my $value = $date->$segment;
+        next unless defined $value;
+        push @tokens => "substr($field, $idx->[0], $idx->[1])";
+    }
+    return $self->_cast_as_int(@tokens);
+}
+
+##############################################################################
 ##############################################################################
 
 =begin private
@@ -506,7 +588,7 @@ sub _get_sql_results {
     my $sth = $self->_dbh->$dbi_method($sql);
 #use Data::Dumper::Simple;
 #warn Dumper($sql, $bind_params);
-    $sth->execute(@$bind_params);
+    $self->_execute($sth, $bind_params);
     my @results;
     # XXX Fetching directly into the appropriate data structure would be
     # faster, but so would an array ref, since you aren't really using
@@ -517,6 +599,11 @@ sub _get_sql_results {
     return $self->_create_iterator
         ? Iterator->new(sub {shift @results})
         : \@results;
+}
+
+sub _execute {
+    my ($self, $sth, $bind_params) = @_;
+    $sth->execute(@$bind_params);
 }
 
 sub _fetchrow_hashref {

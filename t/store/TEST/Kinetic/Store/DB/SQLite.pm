@@ -565,18 +565,6 @@ sub search_guids : Test(10) {
     is_deeply \@guids, [$foo->guid, $baz->guid], 'and return the correct guids';
 }
 
-sub where_token : Test(2) {
-    my $store = Store->new;
-    $store->{search_data}{fields} = ['name']; # so it doesn't think it's an object search
-    throws_ok {$store->_make_where_token('name', MATCH '(a|b)%')}
-        qr/MATCH:  SQLite does not support regular expressions/,
-        'Trying to use a regex match with SQLite should croak';
-
-    throws_ok {$store->_make_where_token('name', NOT MATCH '(a|b)%')}
-        qr/MATCH:  SQLite does not support regular expressions/,
-        'Trying to use a regex match with SQLite should croak even if we are trying to negate it';
-}
-
 sub search_or : Test(13) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};

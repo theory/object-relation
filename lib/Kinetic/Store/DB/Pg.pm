@@ -22,6 +22,7 @@ use strict;
 use base qw(Kinetic::Store::DB);
 use Kinetic::Util::Config qw(:pg);
 use Exception::Class::DBI;
+use overload;
 use constant _connect_args => (
     PG_DSN, PG_DB_USER, PG_DB_PASS, {
         RaiseError     => 0,
@@ -73,6 +74,29 @@ sub _set_id {
     #$object->{id}  = $self->_dbh->last_insert_id(undef, undef, undef, undef, {sequence => 'seq_kinetic' });
     ($object->{id}) = $self->_dbh->selectrow_array("SELECT CURRVAL('seq_kinetic')"); # XXX Aack!
     return $self;
+}
+
+##############################################################################
+
+=head3 _execute
+
+  $self->_execute($sth, \@bind_params);
+
+L<DBD::Pg|DBD::Pg> does not allow references in bind params, thus disallowing
+objects overloaded for stringification.  This method converts all objects
+who've had their stringify method overloaded into the overloaded form.
+
+=cut
+
+sub _execute {
+    my ($self, $sth, $bind_params) = @_;
+    @$bind_params = map { (ref && overload::Method($_, '""'))? "$_" : $_ } @$bind_params;
+    $sth->execute(@$bind_params);
+}
+
+sub _cast_as_int {
+    my ($self, @tokens) = @_;
+    return 'CAST('. join(' || ' => @tokens) .' AS int8)';
 }
 
 sub _comparison_operator_for_single {

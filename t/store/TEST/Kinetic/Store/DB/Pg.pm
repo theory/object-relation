@@ -13,12 +13,8 @@ use Test::More;
 use Test::Exception;
 
 use aliased 'Test::MockModule';
-use aliased 'Sub::Override';
 
 use Kinetic::Store qw/:all/;
-use aliased 'Kinetic::Build';
-use aliased 'Kinetic::Build::Store::DB::Pg';
-use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Util::State';
 use aliased 'Kinetic::DateTime';
@@ -41,6 +37,9 @@ sub _all_items {
     my $iterator = shift;
     my @iterator;
     while (my $object = $iterator->next) {
+        if ($object->can('date')) {
+            $object->date(_convert_to_datetime($object->date));
+        }
         push @iterator => $object;
     }
     return @iterator;
@@ -100,6 +99,32 @@ sub _clear_database {
     $test->{dbh}->begin_work;
     $test->{dbi_mock}->mock(begin_work => 1);
     $test->{dbi_mock}->mock(commit => 1);
+}
+
+sub search_match : Test(6) {
+    my $test = shift;
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my $store = Store->new;
+    my $iterator = $store->search( $foo->my_class, 
+        name => MATCH '^(f|ba)',
+        { order_by => 'name' }
+    );
+    my @items = _all_items($iterator);
+    is @items, 2, 'Searches should accept regular expressions';
+    is_deeply \@items, [$bar, $foo], 'and should include the correct items';
+
+    $iterator = $store->search( $foo->my_class, 
+        name => NOT MATCH '^(f|ba)',
+        { order_by => 'name' }
+    );
+    @items = _all_items($iterator);
+    is @items, 1, 'and regexes should return the correct number of items';
+    is_deeply \@items, [$baz], 'and should include the correct items';
+
+    $iterator = $store->search($foo->my_class, name => MATCH 'z$');
+    @items = _all_items($iterator);
+    is @items, 1, 'and regexes should return the correct number of items';
+    is_deeply \@items, [$baz], 'and should include the correct items';
 }
 
 sub save : Test(10) {
@@ -223,7 +248,6 @@ sub search_or : Test(13) {
 }
 
 sub search_incomplete_date_boundaries : Test(6) {
-    return; # XXX testing
     my $test = shift;
     $test->_clear_database;
 
@@ -272,9 +296,8 @@ sub search_incomplete_date_boundaries : Test(6) {
 
     my $date1    = Incomplete->new( month => 6, day   => 17 );
     my $iterator = Store->search($class, date => GE $date1);
-    my @results  =
-        map  { $_->date(_convert_to_datetime($_->date)) }
-            _all_items($iterator);
+    my @results  = _all_items($iterator);
+            
     is @results, 2, 'We should be able to search on incomplete dates';
     is_deeply \@results, [$june17, $july16], '... and get the correct results';
 
@@ -284,7 +307,6 @@ sub search_incomplete_date_boundaries : Test(6) {
 }
 
 sub search_incomplete_dates : Test(25) {
-    return; # XXX testing
     my $test = shift;
     $test->_clear_database;
     my $theory = Two->new;
@@ -422,54 +444,56 @@ sub search_incomplete_dates : Test(25) {
     is_deeply \@results, [$ovid, $lil, $usa], '... and get the correct results';
 }
 
-# we had 19 tests, but this appears to be running 20 of them
-sub search : Test(no_plan) {
-    return; # XXX testing
+sub search : Test(19) {
     my $test = shift;
     can_ok Store, 'search';
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
-    my $class = $foo->my_class;
     my $store = Store->new;
+    foreach ($foo, $bar, $baz) {
+        $_->name($_->name.chr(0x100));
+        $store->save($_);
+    }
+    my $class = $foo->my_class;
     ok my $iterator = $store->search($class),
         'A search with only a class should succeed';
     my @results = _all_items($iterator);
     is @results, 3, 'returning all instances in the class';
+
     foreach my $result (@results) {
         ok is_utf8($result->name), '... and the data should be unicode strings';
     }
 
-    ok $iterator = $store->search($class, name => 'foo'),
+    ok $iterator = $store->search($class, name => $foo->name),
         'and an exact match should succeed';
     isa_ok $iterator, Iterator, 'and the object it returns';
     is_deeply $iterator->next, $foo,
         'and the first item should match the correct object';
     ok ! $iterator->next, 'and there should be the correct number of objects';
 
-    ok $iterator = Store->search($class, name => 'foo'),
+    ok $iterator = Store->search($class, name => $foo->name),
         'We should also be able to call search as a class method';
     isa_ok $iterator, Iterator, 'and the object it returns';
     is_deeply $iterator->next, $foo,
         'and it should return the same results as an instance method';
     ok ! $iterator->next, 'and there should be the correct number of objects';
 
-    ok $iterator = Store->search($class, name => 'Foo'),
-        'Case-insensitive searches should work with SQLite';
+    ok $iterator = Store->search($class, name => ucfirst $foo->name),
+        'Case-insensitive searches should work with Postgres';
     isa_ok $iterator, Iterator, 'and the object it returns';
     is_deeply $iterator->next, $foo,
          'and they should return data even if the case does not match';
 
-    $iterator = $store->search($class, name => 'foo', description => 'asdf');
+    $iterator = $store->search($class, name => $foo->name, description => 'asdf');
     ok ! $iterator->next,
         'but searching for non-existent values will return no results';
     $foo->description('asdf');
     Store->save($foo);
-    $iterator = $store->search($class, name => 'foo', description => 'asdf');
+    $iterator = $store->search($class, name => $foo->name, description => 'asdf');
     is_deeply $iterator->next, $foo,
         '... and it should be the correct results';
 }
 
 sub search_dates : Test(8) {
-    return; # XXX debugging
     my $test = shift;
     $test->_clear_database;
     my $theory = Two->new;
@@ -501,9 +525,7 @@ sub search_dates : Test(8) {
     my $class   = $ovid->my_class;
     my $store = Store->new;
     my $iterator = Store->search($class, date => GT $theory->date);
-    my @results =
-        map  { $_->date(_convert_to_datetime($_->date)) }
-            _all_items($iterator);
+    my @results = _all_items($iterator);
     is @results, 1, 'We should be able to search on date fields of objects';
     is_deeply \@results, [$usa], '... and get the correct results';
 
@@ -511,22 +533,17 @@ sub search_dates : Test(8) {
         date => GE $theory->date,
         { order_by => 'date' }
     );
-    @results =
-        map  { $_->date(_convert_to_datetime($_->date)) }
-            _all_items($iterator);
+    @results = _all_items($iterator);
     is @results, 2, 'We should be able to search on date fields of objects';
     is_deeply \@results, [$theory, $usa], '... and get the correct results';
 
     ok $iterator = Store->search($class, date => $theory->date);
-    @results =
-        map  { $_->date(_convert_to_datetime($_->date)) }
-            _all_items($iterator);
+    @results = _all_items($iterator);
     is @results, 1, 'We should be able to search on date fields of objects';
     is_deeply \@results, [$theory], '... and get the correct results';
 }
 
 sub search_compound : Test(9) {
-    return; # XXX testing
     my $test = shift;
     $test->_clear_database;
     can_ok Store, 'search';
@@ -659,8 +676,8 @@ sub full_text_search : Test(1) {
     my $class = $foo->my_class;
     my $store = Store->new;
     throws_ok {$store->search($class => 'full text search string')}
-        qr/SQLite does not support full-text searches/,
-        'SQLite should die if a full text search is attempted';
+        qr/Postgres does not support full-text searches/,
+        'Postgres should die if a full text search is attempted';
 }
 
 sub count : Test(8) {
@@ -711,20 +728,6 @@ sub search_guids : Test(10) {
         'search_guids should behave correctly in list context';
     is_deeply \@guids, [$foo->guid, $baz->guid], 'and return the correct guids';
 }
-
-sub where_token : Test(2) {
-    return; # XXX testing
-    my $store = Store->new;
-    $store->{search_data}{fields} = ['name']; # so it doesn't think it's an object search
-    throws_ok {$store->_make_where_token('name', MATCH '(a|b)%')}
-        qr/MATCH:  SQLite does not support regular expressions/,
-        'Trying to use a regex match with SQLite should croak';
-
-    throws_ok {$store->_make_where_token('name', NOT MATCH '(a|b)%')}
-        qr/MATCH:  SQLite does not support regular expressions/,
-        'Trying to use a regex match with SQLite should croak even if we are trying to negate it';
-}
-
 
 sub search_and : Test(15) {
     my $test = shift;
@@ -787,7 +790,6 @@ sub search_and : Test(15) {
 }
 
 sub search_overloaded : Test(11) {
-    return; # XXX testing
     {
         package Test::String;
         no warnings 'redefine'; # other stores might use this
@@ -1103,16 +1105,6 @@ sub search_like : Test(6) {
         'and should include the correct items';
 }
 
-sub search_match : Test(1) {
-    return; # XXX testing
-    my $test = shift;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
-    my $store = Store->new;
-    throws_ok {$store->search( $foo->my_class, name => MATCH '(a|b)%' ) }
-        qr/MATCH:  SQLite does not support regular expressions/,
-        'SQLite should croak() if a MATCH search is attempted';
-}
-
 sub search_in : Test(6) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
@@ -1162,15 +1154,11 @@ sub save_compound : Test(3) {
     my $iterator = Store->search($class, age => [12 => 30]);
     my @results = _all_items($iterator);
     is @results, 2, 'Searching on a range should return the correct number of results';
-    @results = 
-        sort { $a->age <=> $b->age }
-        map  { $_->date(_convert_to_datetime($_->date)) }
-            @results;
+    @results = sort { $a->age <=> $b->age } @results;
     is_deeply \@results, [$foo, $bar], '... and the correct results';
 }
 
 sub order_by : Test(4) {
-    return; # XXX testing
     my $test = shift;
     my $foo = Two->new;
     $foo->name('foo');
