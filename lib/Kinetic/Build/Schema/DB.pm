@@ -344,6 +344,34 @@ __END__
 
 ##############################################################################
 
+=head1 To Do
+
+=over
+
+=item *
+
+Get SQLite support working againg.
+
+=item *
+
+Use triggers to add FKs to SQLite schema.
+
+=item *
+
+Test on delete constraints (CASCADE, RESTRICT, etc.)
+
+=item *
+
+Add support for "once" attribute. Use an insert trigger when a value is
+required, and an update trigger (or a check?) when it is not required.
+
+=item *
+
+Allow contained item to be NOT NULL--use a left join in the view to get this
+to work properly.
+
+=back
+
 =head1 Copyright and License
 
 Copyright (c) 2004 Kineticode, Inc. <info@kineticode.com>
