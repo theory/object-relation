@@ -449,19 +449,44 @@ sub expand_search_param : Test(45) {
     is_deeply $value, 'bar', 'and the scalar arg';
 }
 
-sub save : Test(3) {
+# Use DBI's example driver for non-database testing.
+my $dbh = DBI->connect(
+    'dbi:ExampleP:dummy', '', '', {
+        PrintError => 0,
+        RaiseError => 1,
+    }
+);
+
+sub save : Test(12) {
     my $test = shift;
     my $mock = MockModule->new(Store);
-    my ($update, $insert);
+    my ($update, $insert, $begin, $commit, $rollback);
     $mock->mock(_update => sub { $update = 1; $insert = 0 });
     $mock->mock(_insert => sub { $update = 0; $insert = 1 });
+    $mock->mock(_dbh => $dbh );
+    my $dbi = MockModule->new('DBI::db', no_auto => 1);
+    $dbi->mock(begin_work => sub { $begin++ });
+    $dbi->mock(commit => sub { $commit++ });
+    $dbi->mock(rollback => sub { $rollback++ });
     my $object = One->new;
     can_ok Store, 'save';
     Store->save($object);
+    is $begin, 1, 'it should have started work';
+    is $commit, 1, 'it should have commited the work';
+    is $rollback, undef, 'it should not have rolled back the work';
     ok $insert, 'and calling it with an object with no id key should call _insert()';
     $object->{id} = 1;
     Store->save($object);
     ok $update, 'and calling it with an object with an id key should call _update()';
+    is $begin, 2, 'it should have started work';
+    is $commit, 2, 'it should have commited the work';
+    is $rollback, undef, 'it should not have rolled back the work';
+    # Now trigger an exception.
+    $dbi->mock(commit => sub { die 'Yow!' });
+    eval { Store->save($object) };
+    is $begin, 3, 'it should have started work';
+    is $commit, 2, 'it should have not commited the work';
+    is $rollback, 1, 'it should have rolled back the work';
 }
 
 sub save_contained : Test(1) {
@@ -472,6 +497,7 @@ sub save_contained : Test(1) {
     my ($update, $insert);
     $mock->mock(_update => sub { $update = 1; $insert = 0 });
     $mock->mock(_insert => sub { $update = 0; $insert = 1 });
+    $mock->mock(_dbh => $dbh );
     Store->save($object2);
     ok $insert, 'Saving a new object with a contained object should insert';
 }

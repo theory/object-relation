@@ -1,4 +1,4 @@
-package Kinetic::Store::DB;
+bpackage Kinetic::Store::DB;
 
 # $Id$
 
@@ -68,15 +68,29 @@ objects to the data store at the same time.
 =cut
 
 sub save {
-    my ($proto, $object) = @_;
-    my $self = $proto->_from_proto;
+    my $self = shift->_from_proto;
+    my $dbh = $self->_dbh;
+    $dbh->begin_work;
+    eval {
+        $self->_save(@_);
+        $dbh->commit;
+    };
+    if (my $err = $@) {
+        $dbh->rollback;
+        die $err;
+    }
+    return $self;
+}
+
+sub _save {
+    my ($self, $object) = @_;
     # XXX So this is something we need to get implemented.
     #return $class unless $object->changed;
     local $self->{search_class} = $object->my_class;
     local $self->{view}         = $self->{search_class}->key;
     local @{$self}{qw/names values/};
     foreach my $attr ($self->{search_class}->attributes) {
-        $self->save($attr->get($object)) if $attr->references;
+        $self->_save($attr->get($object)) if $attr->references;
         push @{$self->{names}}  => $self->_get_name($attr);
         push @{$self->{values}} => $self->_get_raw_value($object, $attr);
     }
@@ -991,6 +1005,7 @@ sub _constraints {
 }
 
 sub _dbh { DBI->connect_cached(shift->_connect_args) }
+
 sub _connect_args {
     require Carp;
     Carp::croak("Kinetic::Store::DB::_connect_args must be overridden in "

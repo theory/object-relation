@@ -29,7 +29,7 @@ __PACKAGE__->SKIP_CLASS(
       ? 0
       : "Not testing SQLite"
 );
-__PACKAGE__->runtests;
+#__PACKAGE__->runtests;
 
 sub Store () { 'Kinetic::Store::DB::SQLite' }
 
@@ -51,6 +51,9 @@ sub _num_recs {
 sub setup : Test(setup) {
     my $test = shift;
     $test->test_class->_dbh->begin_work;
+    $test->{mock} = MockModule->new('DBI::db', no_auto => 1);
+    $test->{mock}->mock(begin_work => 1);
+    $test->{mock}->mock(commit => 1);
     my $foo = One->new;
     $foo->name('foo');
     Store->save($foo);
@@ -65,6 +68,7 @@ sub setup : Test(setup) {
 
 sub teardown : Test(teardown) {
     my $test = shift;
+    delete($test->{mock})->unmock_all;
     # XXX We shouldn't need to check AutoCommit, but connect_cached is a bit
     # funky. See http://www.nntp.perl.org/group/perl.dbi.dev/3892
     $test->test_class->_dbh->rollback
@@ -75,11 +79,13 @@ sub _clear_database {
     # call this if you have a test which needs an empty
     # database
     my $test = shift;
+    $test->{mock}->unmock_all;
     $test->test_class->_dbh->rollback;
     $test->test_class->_dbh->begin_work;
+    $test->{mock}->mock(begin_work => 1);
+    $test->{mock}->mock(commit => 1);
 }
 
-__END__
 sub count : Test(8) {
     my $test = shift;
     can_ok Store, 'count';
