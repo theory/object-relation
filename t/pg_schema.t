@@ -8,8 +8,6 @@ use lib 't/lib';
 use Kinetic::TestSetup store => { class => 'Kinetic::Store::DB::Pg' };
 use Test::More tests => 19;
 
-package main;
-
 BEGIN { use_ok 'Kinetic::Build::Schema' };
 
 ok my $sg = Kinetic::Build::Schema->new, 'Get new Schema';
@@ -42,7 +40,7 @@ CREATE INDEX idx_simple_name ON simple (LOWER(name));
 CREATE INDEX idx_simple_state ON simple (state);
 
 ALTER TABLE simple
- ADD CONSTRAINT pk_simple PRIMARY KEY (id);
+ ADD CONSTRAINT pk_simple_id PRIMARY KEY (id);
 
 }) =~ s/[ ]+/ /g;
 
@@ -60,7 +58,7 @@ my $one = $classes{'TestApp::Simple::One'};
 );
 
 ALTER TABLE simple_one
- ADD CONSTRAINT pk_one PRIMARY KEY (id);
+ ADD CONSTRAINT pk_one_id PRIMARY KEY (id);
 
 ALTER TABLE simple_one
  ADD CONSTRAINT pfk_simple_id FOREIGN KEY (id)
@@ -115,7 +113,7 @@ my $two = $classes{'TestApp::Simple::Two'};
 CREATE INDEX idx_two_one_id ON simple_two (one_id);
 
 ALTER TABLE simple_two
- ADD CONSTRAINT pk_two PRIMARY KEY (id);
+ ADD CONSTRAINT pk_two_id PRIMARY KEY (id);
 
 ALTER TABLE simple_two
  ADD CONSTRAINT pfk_simple_id FOREIGN KEY (id)
@@ -181,7 +179,7 @@ CREATE INDEX idx_composed_state ON _composed (state);
 CREATE INDEX idx_composed_one_id ON _composed (one_id);
 
 ALTER TABLE _composed
- ADD CONSTRAINT pk_composed PRIMARY KEY (id);
+ ADD CONSTRAINT pk_composed_id PRIMARY KEY (id);
 
 ALTER TABLE _composed
   ADD CONSTRAINT fk_one_id FOREIGN KEY (one_id)
