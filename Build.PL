@@ -43,6 +43,7 @@ my $build = Kinetic::Build->new(
         'Test::MockModule'      => 0.04,
         'Test::More'            => 0.17,
         'Test::Pod::Coverage'   => 0.08,    # this is recommended, not required.
+        'Test::XML'             => 0.06,
     },
 );
 
