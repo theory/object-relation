@@ -6,6 +6,7 @@ use strict;
 use warnings;
 
 use Kinetic::Util::Config ':pg';
+use Kinetic::Util::Exceptions;
 use DBI;
 my $dsn = 'dbi:Pg:dbname=' . PG_TEMPLATE_DB_NAME;
 # I have to use the &s to prevent "Use of uninitialized value in concatenation
@@ -13,8 +14,10 @@ my $dsn = 'dbi:Pg:dbname=' . PG_TEMPLATE_DB_NAME;
 $dsn .= ':host=' . &PG_HOST if PG_HOST;
 $dsn .= ':port=' . &PG_PORT if PG_PORT;
 my $dbh = DBI->connect( $dsn, PG_DB_SUPER_USER, PG_DB_SUPER_PASS, {
-    RaiseError => 1,
-    PrintError => 1
+    RaiseError     => 0,
+    PrintError     => 0,
+    pg_enable_utf8 => 1,
+    HandleError    => Kinetic::Util::Exception::DBI->handler,
 });
 
 for (0..1) {

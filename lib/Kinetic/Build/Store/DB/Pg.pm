@@ -21,6 +21,7 @@ package Kinetic::Build::Store::DB::Pg;
 use strict;
 use base 'Kinetic::Build::Store::DB';
 use Kinetic::Build;
+use Kinetic::Util::Exceptions;
 use App::Info::RDBMS::PostgreSQL;
 
 =head1 Name
@@ -1078,7 +1079,12 @@ sub _connect {
     my $self = shift;
     require DBI;
     my $dbh = eval {
-        DBI->connect_cached(@_, { RaiseError => 1, PrintError => 0 })
+        DBI->connect_cached( @_, {
+            RaiseError     => 0,
+            PrintError     => 0,
+            pg_enable_utf8 => 1,
+            HandleError    => Kinetic::Util::Exception::DBI->handler,
+        });
     };
     return $dbh;
 }

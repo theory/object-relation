@@ -958,7 +958,12 @@ sub test_db_helpers : Test(21) {
     isa_ok my $dbh = $kbs->_connect(
         $dsn,
         $self->{conf}{pg}{db_super_user},
-        $self->{conf}{pg}{db_super_pass},
+        $self->{conf}{pg}{db_super_pass}, {
+            RaiseError     => 0,
+            PrintError     => 0,
+            pg_enable_utf8 => 1,
+            HandleError    => Kinetic::Util::Exception::DBI->handler,
+        }
     ), 'DBI::db';
 
     $pg->mock(_dbh => $dbh);
@@ -1065,7 +1070,12 @@ sub test_build_meths : Test(20) {
     isa_ok $self->{tdbh} = $kbs->_connect(
         $kbs->_dsn($self->{conf}{pg}{template_db_name}),
         $self->{conf}{pg}{db_super_user},
-        $self->{conf}{pg}{db_super_pass}
+        $self->{conf}{pg}{db_super_pass}, {
+            RaiseError     => 0,
+            PrintError     => 0,
+            pg_enable_utf8 => 1,
+            HandleError    => Kinetic::Util::Exception::DBI->handler,
+        }
     ), 'DBI::db';
 
     $pg->mock(_dbh => $self->{tdbh});
@@ -1081,8 +1091,12 @@ sub test_build_meths : Test(20) {
     $self->{dbh} = DBI->connect_cached(
         $kbs->_dsn($self->{conf}{pg}{db_name}),
         $self->{conf}{pg}{db_super_user},
-        $self->{conf}{pg}{db_super_pass},
-        { RaiseError => 1, PrintError => 0 }
+        $self->{conf}{pg}{db_super_pass}, {
+            RaiseError     => 0,
+            PrintError     => 0,
+            pg_enable_utf8 => 1,
+            HandleError    => Kinetic::Util::Exception::DBI->handler,
+        }
     );
 
     # Test add_plpgsql.
@@ -1199,8 +1213,12 @@ sub _run_build_tests {
     isa_ok $self->{tdbh} = $kbs->_connect(
         $kbs->_dsn($kbs->template_db_name),
         $kbs->db_super_user,
-        $kbs->db_super_pass,
-        { RaiseError => 1, PrintError => 0 }
+        $kbs->db_super_pass, {
+            RaiseError     => 0,
+            PrintError     => 0,
+            pg_enable_utf8 => 1,
+            HandleError    => Kinetic::Util::Exception::DBI->handler,
+        }
     ), 'DBI::db';
 
     $pg->mock(_dbh => $self->{tdbh});

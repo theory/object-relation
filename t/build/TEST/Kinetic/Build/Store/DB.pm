@@ -146,7 +146,12 @@ sub test_rules : Test(27) {
     file_exists_ok $test_file, "The test database file should now exist";
 
     # Make sure that the views were created.
-    my $dbh = DBI->connect($kbs->test_dsn, '', '');
+    my $dbh = DBI->connect($kbs->test_dsn, '', '', {
+        RaiseError     => 0,
+        PrintError     => 0,
+        HandleError    => Kinetic::Util::Exception::DBI->handler,
+    });
+
     for my $view (qw'simple one two composed comp_comp') {
         is_deeply $dbh->selectall_arrayref(
             "SELECT 1 FROM sqlite_master WHERE type ='view' AND name = ?",
@@ -164,7 +169,12 @@ sub test_rules : Test(27) {
 
     # Make sure that the views were created.
     $dbh->disconnect;
-    $dbh = DBI->connect($kbs->dsn, '', '');
+    $dbh = DBI->connect($kbs->dsn, '', '', {
+        RaiseError     => 0,
+        PrintError     => 0,
+        HandleError    => Kinetic::Util::Exception::DBI->handler,
+    });
+
     for my $view (qw'simple one two composed comp_comp') {
         is_deeply $dbh->selectall_arrayref(
             "SELECT 1 FROM sqlite_master WHERE type ='view' AND name = ?",

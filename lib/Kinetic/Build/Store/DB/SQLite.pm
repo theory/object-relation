@@ -22,6 +22,7 @@ use strict;
 use base 'Kinetic::Build::Store::DB';
 use DBI;
 use Kinetic::Build;
+use Kinetic::Util::Exceptions;
 use App::Info::RDBMS::SQLite;
 use File::Spec::Functions;
 
@@ -259,7 +260,12 @@ a database handle for use during the build.
 
 sub build {
     my $self = shift;
-    $self->_dbh(my $dbh = DBI->connect($self->dsn, '', ''));
+    $self->_dbh(my $dbh = DBI->connect($self->dsn, '', '', {
+        RaiseError     => 0,
+        PrintError     => 0,
+        HandleError    => Kinetic::Util::Exception::DBI->handler,
+    }));
+
     $self->SUPER::build(@_);
     $dbh->disconnect;
     return $self;
@@ -278,7 +284,11 @@ set up a database handle for use during the build.
 
 sub test_build {
     my $self = shift;
-    $self->_dbh(my $dbh = DBI->connect($self->test_dsn, '', ''));
+    $self->_dbh(my $dbh = DBI->connect($self->test_dsn, '', '', {
+        RaiseError     => 0,
+        PrintError     => 0,
+        HandleError    => Kinetic::Util::Exception::DBI->handler,
+    }));
     $self->SUPER::test_build(@_);
     $dbh->disconnect;
     return $self;

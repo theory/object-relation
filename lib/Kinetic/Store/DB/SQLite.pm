@@ -30,7 +30,7 @@ use constant _connect_args => (
     'dbi:SQLite:dbname=' . SQLITE_FILE, '', '', {
         RaiseError  => 0,
         PrintError  => 0,
-        HandleError => Exception::Class::DBI->handler
+        HandleError => Kinetic::Util::Exception::DBI->handler,
     }
 );
 

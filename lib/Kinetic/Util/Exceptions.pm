@@ -40,7 +40,7 @@ which provides a robust exception implementation. It extends Exception::Class
 by requiring localizable error messages. All error messages must be
 represented in the appropriate Kinetic::Util::Language lexicons.
 
-There currently three major classes of exceptions:
+There currently four major classes of exceptions:
 
 =over
 
@@ -63,6 +63,11 @@ be thrown by libraries not under direct Kinetic control and therefore are not
 localizable. This class is also used for the global C<$SIG{__DIE__}> and
 C<$SIG{__WARN__}> handlers, so that error messages and warnings always include
 a nicely formatted stack trace.
+
+=item Kinetic::Util::Exception::DBI
+
+This class is used solely for handling exceptions thrown by L<DBI|DBI>. You
+should never need to access it directly.
 
 =back
 
@@ -350,7 +355,7 @@ sub new {
     # Localize the error message.
     $p{error} = Kinetic::Util::Context->language->maketext(
         ref $p{error} ? @{$p{error}} : $p{error}
-    ) unless $class eq 'Kinetic::Util::Exception::ExternalLib';
+    );
     $class->SUPER::new(%p);
 }
 
@@ -433,6 +438,17 @@ sub _filtered_frames {
     }
     return @frames;
 }
+
+# Make Exception::Class::DBI inherit from this class, too.
+package Kinetic::Util::Exception::DBI;
+use base qw(Kinetic::Util::Exception::Fatal Exception::Class::DBI);
+
+# XXX Fool class that shouldn't have localized messages into not calling
+# our new() method. I'd rather not reference Excption::Class::Base::new directly
+# here, but SUPER::SUPER doesn't quite to the job. Schwern says he'd be willing
+# to write a module to make SUPER::SUPER work...
+sub new { Exception::Class::Base::new(@_) }
+sub Kinetic::Util::Exception::ExternalLib::new { Exception::Class::Base::new(@_) }
 
 1;
 __END__

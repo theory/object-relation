@@ -28,7 +28,7 @@ use constant _connect_args => (
         RaiseError     => 0,
         PrintError     => 0,
         pg_enable_utf8 => 1,
-#        HandleError    => Exception::Class::DBI->handler,
+        HandleError    => Kinetic::Util::Exception::DBI->handler,
     }
 );
 

@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 56;
+use Test::More tests => 66;
 
 BEGIN {
     use_ok('Kinetic::Util::Exceptions') or die;
@@ -132,6 +132,26 @@ GLOBAL: {
       'Warnings should start with the warning message';
     stderr_like { warn "Oof"} qr{^\[t/exceptions\.t:\d+\]\Z}ms,
       'Warnings should end with the stack trace';
+}
+
+DBI: {
+    package Kinetic::Util::Exceptions::TestDBI;
+    use Kinetic::Util::Exceptions;
+    use Test::More;
+    ok my $err = Kinetic::Util::Exception::DBI->new('DBI error'),
+      "Create DBI error";
+    isa_ok $err, 'Kinetic::Util::Exception::DBI';
+    isa_ok $err, 'Kinetic::Util::Exception::Fatal';
+    isa_ok $err, 'Kinetic::Util::Exception';
+    isa_ok $err, 'Exception::Class::DBI';
+    isa_ok $err, 'Exception::Class::Base';
+    ok my $str = "$err", "Get the stringified version";
+    is $str, $err->as_string,
+      "The stringified version should be the same as that returned by as_string";
+    like $str, qr{\ADBI error}ms,
+      "The error message should be the first thing in the output";
+    like $str, qr{^\[t/exceptions\.t:\d+\]\Z}ms,
+      "The stack trace should be the last thing in the output";
 }
 
 1;

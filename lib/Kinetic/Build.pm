@@ -669,8 +669,13 @@ all we do is C<croak()> bold-faced red text.
 
 sub _fatal_error {
     my $class = shift;
-    require Carp;
     require Term::ANSIColor;
+    if (ref $_[0]) {
+        print STDERR Term::ANSIColor::BOLD(), Term::ANSIColor::RED(),
+          shift->as_string, Term::ANSIColor::RESET();
+        exit 1;
+    }
+    require Carp;
     Carp::croak Term::ANSIColor::BOLD(), Term::ANSIColor::RED(), @_,
       Term::ANSIColor::RESET();
 }
