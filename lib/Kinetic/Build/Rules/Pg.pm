@@ -344,19 +344,6 @@ sub _state_machine {
     return (\@state_machine);
 }
 
-=head3 _dummy_state
-
-Creates dummy states to act as placeholders during development.
-
-=cut
-
-sub _dummy_state {
-    my ($self, $state, $next, $note) = @_;
-    #warn "# dummy state transition from $state to $next";
-    #warn "# In state $state:  $note" if $note;
-    return $state => { rules => [ $next => sub { 1 } ] };
-}
-
 ##############################################################################
 
 =head3 _user_exists
