@@ -4,10 +4,11 @@ package Kinetic::Meta::DataTypes;
 
 use strict;
 use Class::Meta::Type;
+use Data::UUID;
 use Data::Types;
+use Kinetic::DateTime;
 use Kinetic::Exceptions qw(throw_invalid);
 use Kinetic::Meta::AccessorBuilder;
-use Data::UUID;
 
 =head1 Name
 
@@ -114,6 +115,23 @@ A boolean value.
 =cut
 
 use Class::Meta::Types::Boolean;
+
+##############################################################################
+
+=item datetime
+
+A Kinetic::DateTime object.
+
+=cut
+
+BEGIN {
+    Class::Meta::Type->add(
+        key     => "datetime",
+        name    => "DateTime",
+        builder => 'Kinetic::Meta::AccessorBuilder',
+        check   => _make_isa_check('Kinetic::DateTime')
+    );
+}
 
 ##############################################################################
 

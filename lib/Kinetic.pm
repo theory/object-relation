@@ -302,7 +302,7 @@ sub clone {
     while (my ($k, $v) = each %$self) {
         # XXX Will need to account for collections here...
         # XXX Need to account for circular references?
-        $new->{$k} = UNIVERSAL::isa($v, __PACKAGE__)
+        $new->{$k} = UNIVERSAL::can($v, 'clone')
           ? $v->clone
           : $v;
     }

@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 18;
+use Test::More tests => 23;
 use Data::UUID;
 
 package Kinetic::TestTypes;
@@ -54,6 +54,14 @@ BEGIN {
                           ),
         "Add boolean attribute" );
 
+    # Add DateTime attribute.
+    ok( $cm->add_attribute( name     => 'datetime',
+                            view     => Class::Meta::PUBLIC,
+                            type     => 'datetime',
+                            required => 1,
+                          ),
+        "Add datetime attribute" );
+
 
     ok($cm->build, "Build class" );
 }
@@ -90,3 +98,9 @@ ok( $@, "Got error with undef for state object" );
 ok( $t->bool, "Check bool" );
 $t->bool(undef);
 ok( ! $t->bool, "Check false bool" );
+
+# Test DateTime accessor.
+is( $t->datetime, undef, 'Check for no DateTime' );
+ok( $t->datetime(Kinetic::DateTime->now), "Add DateTime object" );
+isa_ok($t->datetime, 'Kinetic::DateTime');
+isa_ok($t->datetime, 'DateTime');
