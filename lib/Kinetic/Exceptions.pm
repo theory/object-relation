@@ -196,7 +196,7 @@ sub isa_kinetic_exception {
     if ($name) {
         $class .= "::$name";
         throw_fatal qq{No such exception class "$class"}
-          unless $class->VERSION;
+          unless isa_exception($class);
     }
 
     return UNIVERSAL::isa($err, $class);
