@@ -46,6 +46,28 @@ C<Kinetic::Store::DB::Pg> and C<Kinetic::Store::DBI::SQLite> classes.
 
 =cut
 
+##############################################################################
+
+=head2 Public methods
+
+It should be noted that although many methods in this class may be called as
+class methods, instances are used internally for bookkeeping while parsing the
+data and assembling information necessary to respond to user messages.  Thus,
+many public class methods instantiate an object prior to doing work.
+
+=cut
+
+##############################################################################
+
+=head3 save
+
+  Store->save($object);
+
+This method saves an object to the data store.  It also saves all contained
+objects to the data store at the same time.
+
+=cut
+
 sub save {
     my ($proto, $object) = @_;
     my $self = $proto->_from_proto;
@@ -67,72 +89,33 @@ sub save {
         : $self->_insert($object);
 }
 
-sub _from_proto {
-    my $proto = shift;
-    my $self = ref $proto ? $proto : $proto->new;
-    return $self;
-}
+##############################################################################
 
-sub _insert {
-    my ($self, $object) = @_;
-    my $fields       = join ', ' => @{$self->{names}};
-    my $placeholders = join ', ' => (('?') x @{$self->{names}});
-    my $sql = "INSERT INTO $self->{view} ($fields) VALUES ($placeholders)";
-    $self->_do_sql($sql, $self->{values});
-    $self->_set_id($object);
-    return $self;
-}
+=head3 search_class
 
-sub _get_name {
-    my ($self, $attr) = @_;
-    my $name = $attr->name;
-    $name   .= '__id' if $attr->references;
-    return $name;
-}
+  my $search_class = $store->search_class;
+  $store->search_class($search_class);
 
-sub _get_raw_value {
-    my ($self, $object, $attr) = @_;
-    return $attr->raw($object) unless $attr->references;
-    my $name = $attr->name;
-    my $contained_object = $object->$name;
-    return $contained_object->{id};  # this needs to be fixed
-}
+This is a getter/setter for the class object representing the latest search.
+Returns C<$self> if used as a setter.
 
-# may be overridden in subclasses
-sub _set_id {
-    my ($self, $object) = @_;
-    $object->{id} = $self->_dbh->last_insert_id(undef, undef, undef, undef);
-    return $self;
-}
+Generally the programmer will know which search class she is working with, but
+if not, this method is avaible.  Note that it is only available externally if
+the programmer first creates an instances of store prior to doing a search.
 
-sub _update {
-    my ($self, $object) = @_;
-    my $fields = join ', '  => map { "$_ = ?" } @{$self->{names}};
-    push @{$self->{values}} => $object->{id};
-    my $sql = "UPDATE $self->{view} SET $fields WHERE id = ?";
-    $self->_do_sql($sql, $self->{values});
-    return $self;
-}
+ my $store = Kinetic::Store->new;
+ my $iter  = $store->search($some_class, name => 'foo');
+ my $class = $store->search_class; # returns $some_class
 
-sub _do_sql {
-    my ($self, $sql, $bind_params) = @_;
- 
-    # XXX this is to prevent the use of
-    # uninit values in subroutine entry warnings
-    # Is there a better way?
-    local $^W;
-    $self->_dbh->do($sql, {}, @$bind_params); 
-    return $self;
-}
+=cut
 
-# XXX note the encapsulation violation.  This may change in the future.
-
-sub _get_kinetic_value {
-    my ($self, $name, $value) = @_;
-    if ('state' eq $name) {
-        return State->new($value);
+sub search_class {
+    my ($self, $class) = @_;
+    if ($class) {
+        $self->{search_class} = $class;
+        return $self;
     }
-    return $value;
+    return $self->{search_class};
 }
 
 ##############################################################################
@@ -160,11 +143,17 @@ sub lookup {
 
 =head3 search
 
-  my $iter = $store->search($class_object, @search_params);
+  my $iter = Store->search($class_object, @search_params);
 
-Returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> of all object
-which match the search params.  See L<Kinetic::Store|Kinetic::Store> for more
-information about search params.
+Returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> containing all
+objects which match the search params.  See L<Kinetic::Store|Kinetic::Store>
+for more information about search params.
+
+See notes for C<_set_search_data> and C<_build_object_from_hashref> for more
+information about how this method works internally.  For a given search, all
+objects and their contained objects are fetched with a single SQL statement.
+While this complicates the code, it is far more efficient than issuing multiple
+SQL calls to assemble the data.
 
 =cut
 
@@ -173,20 +162,180 @@ sub search {
     my $self = $proto->_from_proto;
     local $self->{search_class} = $search_class;
     my $constraints  = pop @search_params if ref $search_params[-1] eq 'HASH';
-    $self->{search_data} = $self->_get_search_data;
-    my $attributes       = join ', ' => @{$self->{search_data}{fields}};
-    my $view             = $search_class->view;
+    $self->_set_search_data;
+    my $attributes = join ', ' => @{$self->{search_data}{fields}};
+    my $view       = $search_class->view;
     
     my ($where_clause, $bind_params) = 
         $self->_make_where_clause(\@search_params, $constraints);
-    $where_clause = '' if $where_clause eq '()';
     $where_clause = "WHERE $where_clause" if $where_clause;
     my $sql       = "SELECT id, $attributes FROM $view $where_clause";
-    $sql .= $self->_constraints($constraints) if $constraints;
-    #warn "# *** $sql ***\n";
-    #warn "# *** @$bind_params ***\n";
+    $sql         .= $self->_constraints($constraints) if $constraints;
     return $self->_get_iterator_for_sql($sql, $bind_params);
 }
+
+##############################################################################
+
+=head2 Private methods
+
+All private methods are considered instance methods.
+
+=cut
+
+##############################################################################
+
+=head3 _from_proto
+
+  my $self = $proto->_from_proto;
+
+Returns a new instance of a $store object regardless of whether the method
+called was called as a class or an instance.  This is used because many methods
+can be called as class methods but use instances internally to maintain state
+through recursive calls.
+
+=cut
+
+sub _from_proto {
+    my $proto = shift;
+    my $self = ref $proto ? $proto : $proto->new;
+    return $self;
+}
+
+##############################################################################
+
+=head3 _insert
+
+  $store->_insert($object);
+
+This should only be called by C<save>.
+
+Creates and executes an C<INSERT> sql statement for the given object.  This
+assumes we have a new object with no C<id> stored internally.  Adds the ID
+to the object hash.
+
+Please note that the C<id> is only used for internal bookkeepping.  The objects
+themselves are unaware of their C<id> and this should not be use externally for
+any purpose.
+
+=cut
+
+sub _insert {
+    my ($self, $object) = @_;
+    my $fields       = join ', ' => @{$self->{names}};
+    my $placeholders = join ', ' => (('?') x @{$self->{names}});
+    my $sql = "INSERT INTO $self->{view} ($fields) VALUES ($placeholders)";
+    $self->_do_sql($sql, $self->{values});
+    $self->_set_id($object);
+    return $self;
+}
+
+##############################################################################
+
+=head3 _get_name
+
+  my $name = $store->_get_name($attribute);
+
+Given an attribute object, C<_get_name> will return the SQL column name.
+
+=cut
+
+sub _get_name {
+    my ($self, $attr) = @_;
+    my $name = $attr->name;
+    $name   .= '__id' if $attr->references;
+    return $name;
+}
+
+##############################################################################
+
+=head3 _get_raw_value
+
+  my $value = $store->_get_raw_value($object, $attribute);
+
+Returns the raw value of a given attribute.  If the attribute references
+another object, it returns the contained object.
+
+=cut
+
+sub _get_raw_value {
+    my ($self, $object, $attr) = @_;
+    return $attr->raw($object) unless $attr->references;
+    my $name = $attr->name;
+    my $contained_object = $object->$name;
+    return $contained_object->{id};  # this needs to be fixed
+}
+
+##############################################################################
+
+=head3 _set_id
+
+  $store->_set_id($object);
+
+This method is used by C<_insert> to set the C<id> of an object.  This is
+frequently database specific, so this method may have to be overridden in a
+subclass.  See C<_insert> for caveats about object C<id>s.
+
+=cut
+
+sub _set_id {
+    my ($self, $object) = @_;
+    $object->{id} = $self->_dbh->last_insert_id(undef, undef, undef, undef);
+    return $self;
+}
+
+##############################################################################
+
+=head3 _update
+
+  $store->_update($object);
+
+This should only be called by C<save>.
+
+Creates and executes an C<UPDATE> sql statement for the given object.
+
+=cut
+
+sub _update {
+    my ($self, $object) = @_;
+    my $fields = join ', '  => map { "$_ = ?" } @{$self->{names}};
+    push @{$self->{values}} => $object->{id};
+    my $sql = "UPDATE $self->{view} SET $fields WHERE id = ?";
+    $self->_do_sql($sql, $self->{values});
+    return $self;
+}
+
+##############################################################################
+
+=head3 _do_sql
+
+  $store->_do_sql($sql, \@bind_params);
+
+Executes the given sql with the supplied bind params.  Returns the store
+object.  Used for sql that is not expected to return data.
+
+=cut
+
+sub _do_sql {
+    my ($self, $sql, $bind_params) = @_;
+ 
+    # XXX this is to prevent the use of
+    # uninit values in subroutine entry warnings
+    # Is there a better way?
+    local $^W;
+    $self->_dbh->do($sql, {}, @$bind_params); 
+    return $self;
+}
+
+##############################################################################
+
+=head3 _get_iterator_for_sql
+
+  my $iter = $store->_get_iterator_for_sql($sql, \@bind_params);
+
+Returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> representing the
+results of a given C<search>.
+
+=cut
 
 sub _get_iterator_for_sql {
     my ($self, $sql, $bind_params) = @_;
@@ -199,6 +348,21 @@ sub _get_iterator_for_sql {
     return Iterator->new(sub {shift @results});
 }
 
+##############################################################################
+
+=head3 _build_object_from_hashref
+
+  my $object = $store->_build_object_from_hashref($hashref);
+
+For a given hashref returned by C<$sth-E<gt>fetchrow_hashref>, this method will
+return an object representing that row.  Note that the hashref may represent
+multiple objects because an object can contain other objects.
+C<_build_object_from_hashref> resolves this by utilizing the metadata assembled
+by C<_set_search_data> to match the fields for each object and pull them off of
+the hashref with hash slices.
+
+=cut
+
 sub _build_object_from_hashref {
     my ($self, $hashref) = @_;
     my %objects;
@@ -210,8 +374,8 @@ sub _build_object_from_hashref {
         my @object_fields = @{$fields}{@sql_fields};
         my %object;
         @object{@object_fields} = @{$hashref}{@sql_fields};
-        $object{state} = $self->_get_kinetic_value('state', $object{state})
-            if exists $object{state};
+        # XXX ugh.  I hate doing this :(
+        $object{state} = State->new($object{state}) if exists $object{state};
         # XXX didn't work.  Phooey.
         # Tried to use Lexical::Alias.  The problem here is that we cannot
         # guarantee that the contained object has been instantiated yet, thus
@@ -244,14 +408,22 @@ sub _build_object_from_hashref {
     return $objects{$self->search_class->package};
 }
 
-sub search_class {
-    my $self = shift;
-    $self->{search_class} = shift if @_;
-    return $self->{search_class};
-}
+##############################################################################
+
+=head3 _set_search_data
+
+ $store->_set_search_data;
+
+This method sets the search data used for the current search.  Since this is
+expensive, we cache search data for each search class.  The search data
+consists of the sql fields that will be used in the search sql and metadata
+that C<_build_object_from_hashref> will use to break the returned sql data down
+into objects and its contained subobjects.
+
+=cut
 
 my %SEARCH_DATA;
-sub _get_search_data {
+sub _set_search_data {
     my ($self) = @_;
     my $package = $self->search_class->package;
     unless (exists $SEARCH_DATA{$package}) {
@@ -288,10 +460,71 @@ sub _get_search_data {
         $SEARCH_DATA{$package}{fields}   = \@fields;
         $SEARCH_DATA{$package}{metadata} = \%packages;
     }
-    return $SEARCH_DATA{$package};
+    $self->_search_data($SEARCH_DATA{$package});
+    return $self;
 }
 
+##############################################################################
+
+=head3 _search_data
+
+  $store->_search_data($search_data); # returns self
+  my $search_data = $store->_search_data;
+
+Getter/setter for search data generated by C<_set_search_data>.
+
+Returns C<$self> if used as a setter.
+
+=cut
+
+sub _search_data {
+    my ($self, $data) = @_;
+    if ($data) {
+        $self->{search_data} = $data;
+        return $self;
+    }
+    return $self->{search_data};
+}
+
+##############################################################################
+
+=head3 _make_where_clause
+
+ my ($where_clause, $bind_params) = $self->_make_where_clause(\@attributes); 
+
+This method returns a where clause and an arrayref of any appropriate bind 
+params for that where clause.  Returns an empty string if no where clause
+can be generated.
+
+This is merely a wrapper around C<_make_where_clause_recursive>.
+
+=cut
+
 sub _make_where_clause {
+    my ($self, $attributes) = @_;
+    my ($where_clause, $bind_params) = $self->_make_where_clause_recursive($attributes);
+    $where_clause = '' if '()' eq $where_clause;
+    return ($where_clause, $bind_params);
+}
+
+##############################################################################
+
+=head3 _make_where_clause_recursive
+
+  my ($where_clause, $bind_params) = 
+     $store->_make_where_clause_recursive(\@attributes);
+
+This method returns a where clause and an arrayref of any appropriate bind
+params for that where clause.  Due to its recursive nature, it returns a pair
+of empty parentheses "()" if no where clause can be generated, hence the
+C<_make_where_clause> wrapper.
+
+This method is essentially a data structure parser for the small search
+language outlined in L<Kinetic::Store|Kinetic::Store>
+
+=cut
+
+sub _make_where_clause_recursive {
     my ($self, $attributes)     = @_;
     local $self->{where}        = [];
     local $self->{bind_params}  = [];
@@ -307,7 +540,7 @@ sub _make_where_clause {
         }
         elsif ('ARRAY' eq ref $curr_attribute) {
             # [ name => 'foo', description => 'bar' ]
-            ($where_token, $bindings) = $self->_make_where_clause($curr_attribute);
+            ($where_token, $bindings) = $self->_make_where_clause_recursive($curr_attribute);
         }
         elsif ('CODE' eq ref $curr_attribute) {
             # OR(name => 'foo') || AND(name => 'foo')
@@ -316,7 +549,7 @@ sub _make_where_clause {
             unless ($op =~ GROUP_OP) {
                 croak("Grouping operators must be AND or OR, not ($op)");
             }
-            ($where_token, $bindings) = $self->_make_where_clause($values);
+            ($where_token, $bindings) = $self->_make_where_clause_recursive($values);
         }
         else {
             croak sprintf "I don't know what to do with a %s for (@{$self->{where}})"
@@ -327,6 +560,17 @@ sub _make_where_clause {
     my $where = "(".join(' ' => @{ $self->{where} }).")";
     return $where, $self->{bind_params};
 }
+
+##############################################################################
+
+=head3 _save_where_data
+
+  $self->_save_where_data($op, $where_token, $bindings);
+
+This is a utility method used to cache data accumulated by the
+C<_make_where_clause_recursive> method.
+
+=cut
 
 sub _save_where_data {
     my ($self, $op, $where_token, $bindings) = @_;
@@ -357,15 +601,68 @@ my %COMPARE = (
     'NOT LE'    => '>',
 );
 
+##############################################################################
+
+=head3 _comparison_operator
+
+  my $op = $store->_comparison_operator($key);
+
+For a given snippet of the search language described in L<Kinetic::Store>, this
+method will return the comparison operator for the where clause.  Note that
+this method should be subclassed when a given data store needs custom ops or
+cannot provide the requested operator (such as C<MATCH>).
+
+For example:
+
+ $store->_comparison_operator('NE');     # returns '!='
+ $store->_comparison_operator('LIKE');   # returns 'LIKE'
+ $store->_comparison_operator('NOT LT'); # returns '>='
+
+=cut
+
 sub _comparison_operator {
     my ($self, $key) = @_;
     return $COMPARE{$key};
 }
 
+##############################################################################
+
+=head3 _case_insensitive_types
+
+  my @types = $store->_case_insensitive_types;
+
+Returns a list of the C<Kinetic::Meta> types for which searches are to be
+case-insensitive.
+
+=cut
+
 sub _case_insensitive_types {
     my ($self) = @_;
     return qw/string/;
 }
+
+##############################################################################
+
+=head3 _make_where_token
+
+  my ($where_token, $value) = $store->_make_where_token($field, $attribute);
+
+This method returns individual tokens that will be assembled to form the final
+where clause.  The C<$value> is always an arrayref of the values that will be
+bound to the bind parameters in the token.  It takes a $field and its
+$attribute.  Due to the nature of the mini search language, the attribute may
+be either a string or a code ref.
+
+Examples of returned tokens:
+
+ 'name = ?' and the $value will be an array ref with the single value that
+            binds to it
+
+ 'description IS NULL' and the value will be an empty array ref.
+
+ 'age BETWEEN ? and ?' and the value will be an array ref of two elements.
+
+=cut
 
 sub _make_where_token {
     my ($self, $field, $attribute) = @_;
@@ -408,8 +705,26 @@ sub _make_where_token {
     }
 }
 
+##############################################################################
+
+=head3 _expand_attribute
+
+  my ($op_key, $value) = $store->_expand_attribute($attribute);
+
+When given an attribute, this method returns the op key that will be used to
+determine the comparison operator used in a where token.  It also returns the
+value(s) that will be used in the bind params.  If there are multiple values,
+they will be returned as an arrayref.
+
+The attribute passed to this method may be a code ref.  Attribute code refs
+return a string and another attribute.  The new attribute may be the value used
+or it may, in turn, be another code ref.  Attribute code refs are never more
+than two deep.
+
+=cut
+
 sub _expand_attribute {
-    # we assume only two levesl of code refs
+    # we assume only two levels of code refs
     my ($self, $attribute) = @_;
     unless ('CODE' eq ref $attribute) {
         return ('', undef)        unless defined $attribute;
@@ -433,6 +748,18 @@ sub _expand_attribute {
     }
     return ("$type $name", $value2);
 }
+
+##############################################################################
+
+=head3 _constraints
+
+ my $constraints = $store->_constraints(\%constraints); 
+
+This method takes a hash ref of "order by" and "limit" constraints as described
+in L<Kinetic::Store|Kinetic::Store> and return an sql snippet representing
+those constraints.
+
+=cut
 
 sub _constraints {
     my ($self, $constraints) = @_;

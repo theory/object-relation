@@ -29,7 +29,7 @@ Kinetic::Store - The Kinetic data storage class
 
   use Kinetic::Store;
   use Kinetic::Biz::Subclass;
-  my $coll = Kinetic::Store->search('Kinetic::Biz::SubClass' =>
+  my $iter = Kinetic::Store->search('Kinetic::Biz::SubClass' =>
                                       attr => 'value');
 
 =head1 Description
@@ -135,8 +135,8 @@ B<Throws:>
 
 =head3 search
 
-  my $coll = $store->search( $class => @search_params );
-  $coll = $store->search( $class => @search_params,
+  my $iter = $store->search( $class => @search_params );
+  $iter = $store->search( $class => @search_params,
                           \%constraints );
 
 Use this method to search the Kinetic data store for all of the objects of a
@@ -146,7 +146,7 @@ highly recommended (otherwise it will "find" I<all> of the objects in the
 class). See L<Search Parameters Explained|"SEARCH PARAMETERS EXPLAINED"> for
 details on specifying search parameters. Returns a Kinetic::Util::Collection
 object that may be used to fetch each of the objects found by the search. If
-no objects are found, C<search()> returns an empty collection. See
+no objects are found, C<search()> returns an empty iterator. See
 L<Kinetic::Util::Collection|Kinetic::Util::Collection> for details on its
 interface. See the documentation for the C<search()> method in a particular
 class for a list of object attributes to search by in that class.
@@ -158,7 +158,7 @@ argument to C<search()>. The available search modifiers are:
 
 =item order_by
 
-  my $coll = $store->search( $class, @search_params,
+  my $iter = $store->search( $class, @search_params,
                              { order_by => $attr } );
 
 The name of an object attribute or an array reference of object attributes to
@@ -171,7 +171,7 @@ default attributes to sort by.
 =item sort_order
 
 
-  my $coll = $store->search( $class, @search_params,
+  my $iter = $store->search( $class, @search_params,
                              { order_by   => $attr,
                                sort_order => ASC } );
 
@@ -185,7 +185,7 @@ attribute will default to C<ASC>. By default, all searches will be C<ASC>.
 
 =item limit
 
-  my $coll = $store->search( $class, @search_params,
+  my $iter = $store->search( $class, @search_params,
                              { limit => 50 } );
 
 Limits the number of objects returned to a given number. This is useful for
@@ -195,16 +195,16 @@ combination with C<offset>.
 
 =item offset
 
-  my $coll = $store->search( $class, @search_params,
+  my $iter = $store->search( $class, @search_params,
                              { limit  => 50 } );
                                offset => 200 );
 
-Returns a collection of Kinetic objects starting with the number C<offset>
-in the search results. In the above example, the call to C<search()> would
-return only 50 objects, starting with the 200th object found in the
-search. This is implemented in such a way that the data store does all the
-work and returns only the results desired. It is therefore a very efficient
-way to fetch results for pagination.
+Returns an iterator of Kinetic objects starting with the number C<offset> in
+the search results. In the above example, the call to C<search()> would return
+only 50 objects, starting with the 200th object found in the search. This is
+implemented in such a way that the data store does all the work and returns
+only the results desired. It is therefore a very efficient way to fetch results
+for pagination.
 
 =back
 
@@ -375,7 +375,7 @@ objects, which have the following attributes:
 
 At its simplest, a search  can be a simple keyword search:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'Perl inventor');
 
 Pasing a single string as the search parameter triggers a full text search of
@@ -394,7 +394,7 @@ you'll need to do an attribute search, instead.
 The most common use of the search interface is to specify certain object
 attributes to search against.
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             last_name  => 'Wall',
                             first_name => 'larry');
 
@@ -426,7 +426,7 @@ In our example classes, phony person objects can contain any number of phony
 contact objects. If the value returned by
 C<< Kinetic::Phony::Contact->my_key >> is "contact", then this search:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                              contact => $contact);
 
 Would return the phony person object or objects with which the contact was
@@ -437,14 +437,14 @@ In addition, searches can be made based on the I<attributes> of contained or
 related objects by specifying the contained class key name plus the attribute
 of that class to search, separated by a dot. For example, this search:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'contact.type' => 'email');
 
 Will return all phony person objects containing a contact with its type
 attribute set to 'email'. This approach can be used for any combination of
 attributes on the object or contained objects. For example, this search:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'last_name'     => 'Wall',
                             'contact.type'  => 'email',
                             'contact.value' => 'larry@wall.org');
@@ -462,7 +462,7 @@ Attentive readers will realize that the first example, wherein we passed in a
 <$contact> object as the search criterion, is actually a shortcut for using
 its C<guid> attribute. The equivalent would be:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'contact.guid' => $contact->get_guid);
 
 =head3 Attribute Types
@@ -483,11 +483,11 @@ DateTime objects to be passed as their values.
 We've already had a quick look at searching on strings, but let's do it
 again, just for fun:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             last_name => 'Conway',
                             fist_name => 'Damian');
 
-This search will return a collection of all phony person objects with the
+This search will return an iterator of all phony person objects with the
 first name attribute 'Damian' and the last name attribute 'Conway'. String
 searches are always case-insensitive, so searches will also succeed with the
 last names "conway", "CONWAY", and "cOnWAy".
@@ -496,14 +496,14 @@ last names "conway", "CONWAY", and "cOnWAy".
 
 So let's look at numbers:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             fav_number  => 42);
 
 This search returns all phony person objects with the C<fav_number> attribute
 set to the number 42. Pretty simple, eh? You can of course also combine
 numeric attribute search parameters with other types of search parameters:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             last_name   => 'Adams',
                             fav_number  => 42);
 
@@ -520,7 +520,7 @@ objects:
                             month => 12,
                             day   => 19 );
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             birthday => $date);
 
 This search will return all phony person objects with a birth date of December
@@ -542,7 +542,7 @@ For datetime fields, you can of course specify more exact times:
                             minute => 42,
                             second => 18 );
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                                       birthday => $date);
 
 This search of course returns all the phony person objects with a birth date
@@ -557,7 +557,7 @@ without regard to year, you can do it like this:
   my $date = DateTime::Incomplete->new( month => 12,
                                         day   => 19 );
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             birthday => $date);
 
 =back
@@ -578,14 +578,14 @@ Perl point of view, C<undef> is roughly equivalent to null (and after all,
 what works for DBI will surely work for us, eh?), so just use undef to
 search for null attributes:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             birthday => undef);
 
 This search will return all phony person objects for which the C<birthday>
 attribute has no value -- that is, it is "undefined" or "null". And of course,
 this value can be used in combination with other search parameters:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'last_name'     => 'wall',
                             'contact.value' => undef);
 
@@ -599,14 +599,14 @@ context will automatically have their strings used for the value if you pass
 in the overloaded object as the search parameter value. For example:
 
   my $string_obj = Kinetic::Biz::Value::String->new("Salzenberg");
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             last_name => $string_obj);
 
 This search will find all of the phony person objects with their C<last_name>
 attributes set to "Salzenberg". The same deal works for numbers, too:
 
   my $numb_obj = Kinetic::Biz::Value::Number->new(42);
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             fav_number => $numb_obj);
 
 It's effectively the same for dates, as well, only a DateTime-inherited object
@@ -619,20 +619,20 @@ argument to a C<contact> search parameter will always search by the contact
 object ID:
 
   # Search by contact object GUID.
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'contact' => $contact);
 
 To search against the value, you would need to specify the C<value> search
 parameter explicitly:
 
   # Search by contact object value.
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'contact.value' => $contact);
 
 But then, in case such as this, it may be best to just to be explicit:
 
   # Search by contact object value.
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'contact.value' => $contact->get_value);
 
 =head3 Value Ranges
@@ -643,7 +643,7 @@ objects returned will have the attribute in question set to a value between
 those two values, inclusive. For example, to find all of the phony person
 objects with favorite numbers between 1 and 100, do this:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'fav_number' => [1 => 100]);
 
 Yes, that's it. Any values in the array beyond the second will be ignored.
@@ -651,13 +651,13 @@ It works on dates and strings, too:
 
   my $date1 = DateTime->now;
   my $date2 = $date1->clone->subtract( years => 1 );
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'birthday' => [$date2 => $date1]);
 
 This search returns all phony person objects with their C<birthday> attributes
 set for sometime in the last year.
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'last_name' => ['l' => 'm']);
 
 And this search returns all phony person objects with their C<last_name>
@@ -687,7 +687,7 @@ I<not> have a value matching our parameters. For example, say you want to find
 all the phony person objects whose last name is I<not> "Wall". Here's how you
 do it:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'last_name' => NOT 'wall');
 
 Simple, eh? It can be used with value ranges, as well. To find all of the
@@ -695,44 +695,61 @@ persons whose birthday did I<not> occur in the last year, try this:
 
   my $date1 = DateTime->now;
   my $date2 = $date1->clone->subtract( years => 1 );
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'birthday' => NOT [$date2 => $date1]);
 
 And naturally it works with numbers, too:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'fav_number' => NOT 42); # Sillies.
 
 =item LIKE
 
-The C<LIKE> operator (not to be confused with SQL C<LIKE> patterns) will be
-familiar to anyone who has used the famous Test::More module. It indicates
-that the search value is a regular expression. That's right, as long as the
-type of attribute you're searching is a string data type (or your data store
-can use regular expressions on numeric and date data), you can specify a
-regular expression to match against it (provided, of course, that the data
-store supports regular expressions at all). All regular expression matching is
-implicitly case-insensitive. Otherwise, consult the documentation for your
-data storage engine for its supported regular expression syntax.
+The C<LIKE> operator is used to do a simple pattern match against a value.  Please
+consult your actual data store's documentation for exact implementation. 
+
+In the case of a RDBMs data store, this translates directly to an SQL C<LIKE>
+operator.
+
+  my $iter = $store->search('Kinetic::Phony::Person' =>
+                            'first_name' => LIKE '_arry'); # Barry, Harry, or Larry
+
+  my $iter = $store->search('Kinetic::Phony::Person' =>
+                            'first_name' => LIKE '%ry'); # also matches Gary and Terry
+
+=item MATCH
+
+B<Note:>  Not all data stores will support the MATCH operator.  For those that
+do, please read the documentation for that data store to understand how it is
+to be used.
+
+The C<MATCH> operator indicates that the search value is a regular expression.
+That's right, as long as the type of attribute you're searching is a string
+data type (or your data store can use regular expressions on numeric and date
+data), you can specify a regular expression to match against it (provided, of
+course, that the data store supports regular expressions at all). All regular
+expression matching is implicitly case-insensitive. Otherwise, consult the
+documentation for your data storage engine for its supported regular expression
+syntax.
 
 Here are a couple of simple examples to get you started.
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
-                            'last_name' => LIKE '^wa');
+  my $iter = $store->search('Kinetic::Phony::Person' =>
+                            'last_name' => MATCH '^wa');
 
 This search returns all phony person objects with their C<last_name> attribute
 matching the regular expression C</^wa/>, that is, that start with the string
 "wa".
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
-                            'contact.type'  => LIKE 'email',
-                            'contact.value' => LIKE '@wall\.org$');
+  my $iter = $store->search('Kinetic::Phony::Person' =>
+                            'contact.type'  => MATCH 'email',
+                            'contact.value' => MATCH '@wall\.org$');
 
 This search returns all person objects with a contact type matching C</email/>
 and a contact value matching C</@wall\.org$/>, that is, everyone with an email
 address in the "wall.org" domain.
 
-Note that the same caveat as that for SQL C<LIKE> patterns applies here, too:
+Note that the same caveat as that for SQL C<MATCH> patterns applies here, too:
 if your data store is an RDBMS, some databases don't have full-text indexes on
 their columns. So even if there is an index on the "value" column of the
 contact table in the database (not a sure thing by any stretch of the
@@ -742,15 +759,15 @@ C</@wall\.org$/> may trigger a full table scan, which, if you have tens of
 thousands of records or more, could be a very inefficient way to search,
 indeed.
 
-The C<LIKE> operator can also be used in combination with the C<NOT> operator,
+The C<MATCH> operator can also be used in combination with the C<NOT> operator,
 so that you can search for objects with attributes that I<fail> to match a
 regular expression. For example, we slightly change the last example to find
 all persons with email addresses outside of the "wall.org" domain like this:
 
-  my $coll = $store->search(
+  my $iter = $store->search(
      'Kinetic::Phony::Person' =>
-     'contact.type'  => LIKE 'email',
-     'contact.value' => NOT LIKE '@wall\.org$'
+     'contact.type'  => MATCH 'email',
+     'contact.value' => NOT MATCH '@wall\.org$'
   );
 
 =item GT
@@ -759,20 +776,20 @@ The C<GT> operator can be used to find objects with an attribute set to a
 value greater than the specified value. For example, to find all phony person
 objects with a favorite number greater than 42, use this syntax:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'fav_number' => GT 42);
 
 The C<GT> operator also operates on date and string data. To find all phony
 person objects with birthdays since exactly a year ago, try this approach:
 
   my $date = DateTime->now->subtract( years => 1 );
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'birthday' => GT $date);
 
 And to find all phony person objects with a last name greater than "za" (for
 however your data store interprets that expression), this should do the trick:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'last_name' => GT 'za');
 
 You could also use C<GT> in combination with C<NOT>, but why, when you can
@@ -784,20 +801,20 @@ This operator specifies a search for a value less than the value specified in
 the search parameters. So to find all pyony person objects with a favorite
 number less than 42, do this:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'fav_number' => LT 42);
 
 Like C<GT>, C<LT> works on dates and strings, too. To find all the phony
 person objects with birthdays preceding a year ago, try this:
 
   my $date = DateTime->now->subtract( years => 1 );
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'birthday' => LT $date);
 
 And to find all phony person objects with a last name less than "bz" (for
 however your data store interprets that expression), this should do the trick:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'last_name' => LT 'bz');
 
 =item GE
@@ -807,7 +824,7 @@ the objects for which the attribute value searched is greater than or equal to
 the search criterion value. You probably get the idea now, but let's show off
 the fact that we can combine different types of operators in a single search:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             'fav_number'    => GE 42,
                             'contact.type'  => LIKE 'email',
                             'contact.value' => LIKE '@wall\.org$');
@@ -852,13 +869,13 @@ As we've mentioned, serach parameters are implicitly C<AND>ed when you perform
 a search. It is possible to also explicitly C<AND> them together using the
 C<AND> function. For example, this familiar search:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             last_name  => 'Conway',
                             first_name => 'Damian');
 
 Could also be written like so:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             last_name       => 'Conway',
                             AND ( first_name => 'Damian' ));
 
@@ -879,7 +896,7 @@ flexible and efficient searches. To take our earlier example, if you wanted to
 find all phony person objects with the C<last_name> attribute set to "Wall" or
 to "Conway", you can use the C<OR> function to do so in a single search:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             last_name      => 'Wall',
                             OR ( last_name => 'Conway' ));
 
@@ -887,7 +904,7 @@ Of course you can use more than one C<OR>, too. Say that you needed to find
 all phony person objects with the last name of "Wall" or the last name of
 "Conway" or the first name of "Bartholomew". Just add another C<OR>:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             last_name       => 'Wall',
                             OR ( last_name  => 'Conway' ),
                             OR ( first_name => 'Bartholomew' ));
@@ -898,7 +915,7 @@ to find all of the phony person objects with their C<last_name> attribute set
 to "Wall", I<or> their C<last_name> attributes set to "Conway" and their
 C<first_name> attributes set to "Damian", initiate the search like so:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             last_name       => 'Wall',
                             OR ( last_name  => 'Conway',
                                  first_name => 'Damian' ));
@@ -909,7 +926,7 @@ the phony user objects with the last name "Wall" and either an email address
 in the "wall.org" domain, or an email address in the "cpan.org" domain. By
 combining C<OR> with C<AND> it's a piece of cake:
 
-  my $coll = $store->search(
+  my $iter = $store->search(
     'Kinetic::Phony::Person' =>
     last_name                  => 'Wall',
     AND ( 'contact.value'      => LIKE '@wall\.org$',
@@ -923,7 +940,7 @@ related objects you search against (those with the dot notation for the search
 parameter) will add complexity to the search and slow it down. But sometimes
 that's just what you need.
 
-  my $coll = $store->search(
+  my $iter = $store->search(
     'Kinetic::Phony::Person' =>
     last_name                  => 'Wall',
     first_name                 => 'Larry',
@@ -948,7 +965,7 @@ so be careful with the power tools!
 Now you may have noticed some redundancy in some of the above examples. For
 example, the first example for the C<OR> operator was:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             last_name      => 'Wall',
                             OR ( last_name => 'Conway' ));
 
@@ -956,7 +973,7 @@ But this can get redundant really fast. What if you have a list of 5 last
 names that you need to match against, any one of which is a legitimate search
 result?
 
-  my $coll = $store->search(
+  my $iter = $store->search(
       'Kinetic::Phony::Person' =>
       last_name      => 'Wall',
       OR ( last_name => 'Conway' )
@@ -973,7 +990,7 @@ not always feasible. Sometimes you just have a simple list of values to search
 for, and that's all there is to it. For those circumstances, we offer the
 C<ANY> operator:
 
-  my $coll = $store->search(
+  my $iter = $store->search(
     'Kinetic::Phony::Person' =>
     last_name => ANY(qw(Wall Conway Randall Cawley Sugalski))
   );
@@ -984,7 +1001,7 @@ out exactly the same as if you'd use multiple C<OR> operators. And the great
 thing about it is that, like the C<AND> and C<OR> operators, you can use
 C<ANY> with any of the comparison operators. C<LIKE> can be especially useful:
 
-  my $coll = $store->search(
+  my $iter = $store->search(
     'Kinetic::Phony::Person' =>
     last_name => LIKE ANY(qw(wall.* con[wv]ay rand(all|one) cawle[yi]
                           sugalsk[yi]))
@@ -1003,7 +1020,7 @@ arguments to the end of the search parameter to be included in a search, the
 parentheses can be left out. For example, this search is identical to the very
 first C<OR> example:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             last_name      => 'Wall',
                             OR last_name => 'Conway');
 
@@ -1013,7 +1030,7 @@ recommend that in all but the simplest queries, you use the parentheses
 anyway, if only to prevent unexpected problems. For example, this search may
 not do what you at first expect:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             last_name       => 'Wall',
                             OR  last_name   => 'Conway',
                             AND first_name  => 'Larry');
@@ -1025,7 +1042,7 @@ the first name "Larry"? The second interpretation is the correct one, because
 the C<OR> will suck up all of the arguments all the way to the end of the
 search parameters, included the C<AND>ed parameters. So unless you meant:
 
-  my $coll = $store->search(
+  my $iter = $store->search(
       'Kinetic::Phony::Person' =>
       last_name            => 'Wall',
       OR (
@@ -1036,7 +1053,7 @@ search parameters, included the C<AND>ed parameters. So unless you meant:
 
 You're better off using explicit parentheses:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             last_name         => 'Wall',
                             OR  ( last_name   => 'Conway' ),
                             AND ( first_name  => 'Larry'  );
@@ -1046,7 +1063,7 @@ to the C<search_guids()> and C<count()> methods) when used with its optional
 final hash reference argument. This search, for example, will likely trigger an
 exception:
 
-  my $coll = $store->search('Kinetic::Phony::Person' =>
+  my $iter = $store->search('Kinetic::Phony::Person' =>
                             last_name       => 'Wall',
                             OR  last_name   => 'Conway',
                             { order_by      => 'first_name' });

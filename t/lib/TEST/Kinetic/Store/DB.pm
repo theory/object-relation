@@ -25,13 +25,14 @@ use aliased 'Hash::AsObject';
 
 __PACKAGE__->runtests;
 
-sub get_search_data : Test(9) {
-    my $method = '_get_search_data';
+sub set_search_data : Test(9) {
+    my $method = '_set_search_data';
     can_ok Store, $method;
     my $one_class = One->new->my_class;
     my $store     = Store->new;
     $store->search_class($one_class);
-    ok my $results = $store->$method,
+    $store->$method;
+    ok my $results = $store->_search_data,
         "Calling $method for simple types should succeed";
     my @keys      = sort keys %$results;
     is_deeply \@keys, [qw/fields metadata/],
@@ -56,7 +57,7 @@ sub get_search_data : Test(9) {
 
     my $two_class = Two->new->my_class;
     $store->search_class($two_class);
-    ok $results = $store->$method,
+    ok $results = $store->$method->_search_data,
         "Calling $method for complex types should succeed";
     @keys      = sort keys %$results;
     is_deeply \@keys, [qw/fields metadata/],
@@ -599,16 +600,6 @@ sub get_value : Test(3) {
     $object     = bless {} => 'Faux::Attribute';
     is Store->_get_raw_value($object, $attribute), 23,
         'and if it references another object, it should return the object id';
-}
-
-sub get_kinetic_value : Test(5) {
-    can_ok Store, '_get_kinetic_value';
-    is Store->_get_kinetic_value('name', 3), 3,
-        'ordinary values should simply be returned';
-    ok my $state = Store->_get_kinetic_value('state', 1),
-        'and getting a "state" value should succeed';
-    isa_ok $state, State, 'and the value returned';
-    is int $state, 1, 'and its integer value should be the value passed in';
 }
 
 sub constraints : Test(4) {
