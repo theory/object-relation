@@ -24,9 +24,10 @@ sub test_interface : Test(18) {
 sub test_class_methods : Test(6) {
     my $self = shift;
     my $class = $self->test_class;
-    is $class->store_class, 'Kinetic::Store', "Store class should correct";
-    is $class->schema_class, 'Kinetic::Build::Schema',
-      "Schema class should correct";
+    (my $store_class = $class) =~ s/Build:://;
+    is $class->store_class, $store_class, "Store class should correct";
+    (my $schema_class = $class) =~ s/Store/Schema/;
+    is $class->schema_class, $schema_class, "Schema class should correct";
     is $class->max_version, 0, 'max_version should default to 0';
     throws_ok { $class->info_class }
       qr'info_class\(\) must be overridden in the subclass',
@@ -75,22 +76,26 @@ sub test_instance : Test(21) {
     ok ! $kbs->is_required_version, "The version number should be too low";
 
     # Config methods need to be overridden.
-    throws_ok { $class->config }
-      qr'config\(\) must be overridden in the subclass',
-      'config() needs to be overridden';
-    throws_ok { $class->test_config }
-      qr'test_config\(\) must be overridden in the subclass',
-      'test_config() needs to be overridden';
+  SKIP: {
+        skip "Build and config methods should be tested by subclasses", 6
+          unless $class eq 'Kinetic::Build::Store';
+        throws_ok { $kbs->config }
+          qr'config\(\) must be overridden in the subclass',
+          'config() needs to be overridden';
+        throws_ok { $kbs->test_config }
+          qr'test_config\(\) must be overridden in the subclass',
+          'test_config() needs to be overridden';
 
-    # Test build() and test_build().
-    $kbs->{actions} = [['config']];
-    my $meth = 'build';
-    $store->mock(config => sub {
-        ok 1, "Config should be called by $meth() actions"
-    });
-    ok $kbs->build, 'Build should return true';
-    $meth = 'test_build';
-    ok $kbs->test_build, 'test_build should return true';
+        # Test build() and test_build().
+        $kbs->{actions} = [['config']];
+        my $meth = 'build';
+        $store->mock(config => sub {
+            ok 1, "Config should be called by $meth() actions"
+        });
+        ok $kbs->build, 'Build should return true';
+        $meth = 'test_build';
+        ok $kbs->test_build, 'test_build should return true';
+    }
 
     is $kbs->test_cleanup, $kbs, 'test_cleanup should just return';
 
