@@ -5,7 +5,6 @@ package Kinetic::Base;
 use strict;
 use Kinetic;
 use Kinetic::Meta;
-use Widget::Meta;
 
 =head1 Name
 

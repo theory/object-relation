@@ -4,10 +4,10 @@ package Kinetic::Meta;
 
 use strict;
 use base 'Class::Meta';
-#use Kinetic::Meta::DataTypes;
+use Kinetic::Meta::DataTypes;
 use Kinetic::Meta::Attribute;
 use Kinetic::Meta::Class;
-#use Kinetic::Exceptions qw(throw_exlib);
+use Kinetic::Exceptions qw(throw_exlib);
 use Class::Meta::Types::String; # Move to DataTypes.
 
 =head1 Name
@@ -55,6 +55,8 @@ class class be Kinetic::Meta::Class and that the attribute class be
 Kinetic::Meta::Attribute.
 
 =cut
+
+__PACKAGE__->default_error_handler(\&throw_exlib);
 
 sub new {
     shift->SUPER::new(

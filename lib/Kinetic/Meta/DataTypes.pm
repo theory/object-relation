@@ -7,7 +7,6 @@ use Class::Meta::Type;
 use Data::Types;
 use Kinetic::Exceptions qw(throw_invalid);
 use Kinetic::Meta::AccessorBuilder;
-use Kinetic::Config qw(:api);
 use Data::UUID;
 
 =head1 Name
@@ -114,8 +113,6 @@ A boolean value.
 
 =cut
 
-# XXX Need to change to allow affordance accessors to be created if the
-# AFFORDANCE_ACCESSORS directive is true.
 use Class::Meta::Types::Boolean;
 
 ##############################################################################

@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 use strict;
-use Test::More tests => 21;
+use Test::More tests => 25;
 
 package MyTestThingy;
 
@@ -10,6 +10,8 @@ BEGIN {
     use_ok('Kinetic::Meta');
     use_ok('Kinetic::Meta::Class');
     use_ok('Kinetic::Meta::Attribute');
+    use_ok('Kinetic::Meta::AccessorBuilder');
+    use_ok('Kinetic::Meta::Widget');
 }
 
 BEGIN {
@@ -23,9 +25,9 @@ BEGIN {
         name        => 'foo',
         type        => 'string',
         label       => 'Foo',
-        widget_meta => Widget::Meta->new(
+        widget_meta => Kinetic::Meta::Widget->new(
             type => 'text',
-            tip  => 'Foogoo',
+            tip  => 'Kinetic',
         )
     ), "Add attribute";
 
@@ -51,6 +53,8 @@ is $attr->type, 'string', "Check attr type";
 is $attr->label, 'Foo', "Check attr label";
 
 ok my $wm = $attr->widget_meta, "Get widget meta object";
+isa_ok $wm, 'Kinetic::Meta::Widget';
 isa_ok $wm, 'Widget::Meta';
+is $wm->tip, 'Kinetic', "Check tip";
 
 

@@ -3,8 +3,8 @@ package Kinetic::Meta::AccessorBuilder;
 # $Id$
 
 use strict;
-use Kinetic::Config qw(:api);
 use Kinetic::Exceptions qw(throw_invalid throw_read_only);
+use Class::Meta;
 
 =head1 Name
 
@@ -69,11 +69,7 @@ my $req_chk = sub {
 
 This function builds the accessor or accessors for an attribute for a
 Kinetic class. For most attributes, a single accessor will be created with
-the same name as the attribute itself. If the <AFFORDANCE_ACCESSORS>
-F<kinetic.conf> directive is set to a true value, then each attribute will
-also have C<get_> and C<set_> accessors, as well. We generally only recommend
-the use of this feature for backwards compatability in templates ported from
-Kinetic 1.x.
+the same name as the attribute itself.
 
 =cut
 
@@ -96,8 +92,6 @@ sub build {
                   if @_ > 1;
                 $data;
             };
-            *{"${pkg}::get_$name"} = \&{"${pkg}::$name"}
-              if AFFORDANCE_ACCESSORS;
 
         } else {
             # Create GETSET accessor(s).
@@ -118,10 +112,6 @@ sub build {
                     $data = shift;
                 };
             }
-            if (AFFORDANCE_ACCESSORS) {
-                *{"${pkg}::get_$name"} = eval "sub { shift->$name }";
-                *{"${pkg}::set_$name"} = \&{"${pkg}::$name"}
-            }
         }
         return;
     }
@@ -136,8 +126,6 @@ sub build {
               if @_ > 1;
             $_[0]->{$name};
         };
-        *{"${pkg}::get_$name"} = \&{"${pkg}::$name"}
-          if AFFORDANCE_ACCESSORS;
 
     } else {
         # Create GETSET accessor(s).
@@ -157,10 +145,6 @@ sub build {
                 # Assign the value.
                 return $self->{$name} = shift;
             };
-        }
-        if (AFFORDANCE_ACCESSORS) {
-            *{"${pkg}::get_$name"} = eval "sub { shift->$name }";
-            *{"${pkg}::set_$name"} = \&{"${pkg}::$name"}
         }
     }
 }
