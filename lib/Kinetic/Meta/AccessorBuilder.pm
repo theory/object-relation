@@ -156,33 +156,9 @@ __END__
 
 ##############################################################################
 
-=head1 Author
-
-Kineticode, Inc. <info@kineticode.com>
-
-=head1 See Also
-
-=over 4
-
-=item <LKinetic::Meta::DataTypes|Kinetic::Meta::DataTypes>
-
-This module defines the data types used for Kinetic object attributes.
-
-=item L<Class::Meta|Class::Meta>
-
-This module provides the interface for the Kinetic class automation and
-introspection defined here.
-
-=item L<Kinetic::Base|Kinetic::Base>
-
-The Kinetic base class. All Kinetic classes that store data in the data store
-inherit from this class.
-
-=back
-
 =head1 Copyright and License
 
-Copyright (c) 2004 Kineticode, Inc.
+Copyright (c) 2004 Kineticode, Inc. <info@kineticode.com>
 
 This library is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.

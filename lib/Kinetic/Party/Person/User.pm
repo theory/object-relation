@@ -165,28 +165,6 @@ __END__
 
 ##############################################################################
 
-=head1 Author
-
-Kineticode, Inc. <info@kineticode.com>
-
-=head1 See Also
-
-=over 4
-
-=item L<Kinetic::|Kinetic::>
-
-The class from which Kinetic::::Party inherits.
-
-=item L<Kinetic::::Party::Person|Kinetic::::Party::Person>
-
-A concrete base class that inerites from Kinetic::::Party.
-
-=item L<Kinetic::::Party::Org|Kinetic::::Party::Org>
-
-Another concrete base class that inerites from Kinetic::::Party.
-
-=back
-
 =head1 Copyright and License
 
 Copyright (c) 2004 Kineticode, Inc. See

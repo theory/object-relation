@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 23;
+use Test::More tests => 25;
 use Data::UUID;
 
 package Kinetic::TestTypes;
@@ -104,3 +104,6 @@ is( $t->datetime, undef, 'Check for no DateTime' );
 ok( $t->datetime(Kinetic::DateTime->now), "Add DateTime object" );
 isa_ok($t->datetime, 'Kinetic::DateTime');
 isa_ok($t->datetime, 'DateTime');
+eval { $t->datetime('foo') };
+ok my $err = $@, "Caught bad DateTime exception";
+isa_ok $err, 'Kinetic::Exception::Fatal::Invalid';

@@ -2,6 +2,22 @@ package Kinetic::Meta::DataTypes;
 
 # $Id$
 
+# CONTRIBUTION SUBMISSION POLICY:
+#
+# (The following paragraph is not intended to limit the rights granted to you
+# to modify and distribute this software under the terms of the GNU General
+# Public License Version 2, and is only of importance to you if you choose to
+# contribute your changes and enhancements to the community by submitting them
+# to Kineticode, Inc.)
+#
+# By intentionally submitting any modifications, corrections or
+# derivatives to this work, or any other work intended for use with the
+# Kinetic framework, to Kineticode, Inc., you confirm that you are the
+# copyright holder for those contributions and you grant Kineticode, Inc.
+# a nonexclusive, worldwide, irrevocable, royalty-free, perpetual license to
+# use, copy, create derivative works based on those contributions, and
+# sublicense and distribute those contributions and any derivatives thereof.
+
 use strict;
 use Class::Meta::Type;
 use Data::UUID;
@@ -38,13 +54,15 @@ attributes of the types defined by this module.
 
 sub _make_isa_check {
     my $pkg = shift;
-    return sub {
+    return [ sub {
         return unless defined $_[0];
         UNIVERSAL::isa($_[0], $pkg)
           or throw_invalid(['Value "[_1]" is not a valid [_2] object',
                             $_[0], $pkg]);
-    };
+    } ];
 };
+
+Class::Meta::Type->class_validation_generator(\&_make_isa_check);
 
 ##############################################################################
 
@@ -125,14 +143,12 @@ A Kinetic::DateTime object.
 
 =cut
 
-BEGIN {
-    Class::Meta::Type->add(
-        key     => "datetime",
-        name    => "DateTime",
-        builder => 'Kinetic::Meta::AccessorBuilder',
-        check   => _make_isa_check('Kinetic::DateTime')
-    );
-}
+Class::Meta::Type->add(
+    key     => "datetime",
+    name    => "DateTime",
+    builder => 'Kinetic::Meta::AccessorBuilder',
+    check   => 'Kinetic::DateTime',
+);
 
 ##############################################################################
 
@@ -142,14 +158,12 @@ A Kinetic::Party::Person::User object.
 
 =cut
 
-BEGIN {
-    Class::Meta::Type->add(
-        key     => "user",
-        name    => "User",
-        builder => 'Kinetic::Meta::AccessorBuilder',
-        check   => _make_isa_check('Kinetic::Party::Person::User')
-    );
-}
+Class::Meta::Type->add(
+    key     => "user",
+    name    => "User",
+    builder => 'Kinetic::Meta::AccessorBuilder',
+    check   => 'Kinetic::Party::Person::User',
+);
 
 ##############################################################################
 
@@ -159,20 +173,18 @@ A Kinetic::State object.
 
 =cut
 
-BEGIN {
-    Class::Meta::Type->add(
-        key     => "state",
-        name    => "State",
-        builder => 'Kinetic::Meta::AccessorBuilder',
-        check   => sub {
-            UNIVERSAL::isa($_[0], 'Kinetic::State')
-              or throw_invalid(['Value "[_1]" is not a valid [_2] object',
-                                 $_[0], 'Kinetic::State']);
-            throw_invalid(['Cannot assign permanent state'])
-              if $_[0] == Kinetic::State->PERMANENT;
-        }
-    );
-}
+Class::Meta::Type->add(
+    key     => "state",
+    name    => "State",
+    builder => 'Kinetic::Meta::AccessorBuilder',
+    check   => sub {
+        UNIVERSAL::isa($_[0], 'Kinetic::State')
+            or throw_invalid(['Value "[_1]" is not a valid [_2] object',
+                              $_[0], 'Kinetic::State']);
+        throw_invalid(['Cannot assign permanent state'])
+          if $_[0] == Kinetic::State->PERMANENT;
+    }
+);
 
 =back
 
@@ -183,30 +195,19 @@ __END__
 
 ##############################################################################
 
-=head1 Author
-
-Kineticode, Inc. <info@kineticode.com>
-
-=head1 See Also
-
-=over 4
-
-=item L<Kinetic::Meta|Kinetic::Meta>
-
-The Kinetic metadata class.
-
-=item L<Class::Meta|Class::Meta>
-
-Class automation, introspection, and data type validation. Used to generate
-Kinetic classes.
-
-=back
-
 =head1 Copyright and License
 
-Copyright (c) 2004 Kineticode, Inc.
+Copyright (c) 2004 Kineticode, Inc. <info@kineticode.com>
 
-This Library is free software; you can redistribute it and/or modify it under
-the same terms as Perl itself.
+This work is made available under the terms of Version 2 of the GNU General
+Public License. You should have received a copy of the GNU General Public
+License along with this program; if not, download it from
+L<http://www.gnu.org/licenses/gpl.txt> or write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+This work is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
+details.
 
 =cut

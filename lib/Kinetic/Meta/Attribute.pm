@@ -76,35 +76,9 @@ __END__
 
 ##############################################################################
 
-=head1 Author
-
-Kineticode, Inc. <info@kineticode.com>
-
-=head1 See Also
-
-=over 4
-
-=item L<Kinetic::Base|Kinetic::Base>
-
-The Kinetic base class.
-
-=item L<Kinetic::Meta|Kinetic::Meta>
-
-The class for Kinetic class automation, introspection, and data validation.
-
-=item L<Kinetic::Meta::Class|Kinetic::Meta::Class>
-
-Kinetic class introspection.
-
-=item L<Widget::Meta|Widget::Meta>
-
-Metadata for user interface widgets.
-
-=back
-
 =head1 Copyright and License
 
-Copyright (c) 2004 Kineticode, Inc.
+Copyright (c) 2004 Kineticode, Inc. <info@kineticode.com>
 
 This library is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.

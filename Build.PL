@@ -5,10 +5,11 @@ use 5.005003;
 
 my $build = Module::Build->new(
     module_name        => 'Kinetic',
-    license            => 'perl', # Switch to GPL?
+    license            => 'gpl',
     create_makefile_pl => 'passthrough',
+    dist_author        => 'Kineticode, Inc. <info@kineticode.com>',
     requires => {
-        'Class::Meta'           => 0.43,
+        'Class::Meta'           => 0.44,
         'Data::UUID'            => 0,
         'DateTime'              => 0.1705,
         'DateTime::Incomplete'  => 0,
