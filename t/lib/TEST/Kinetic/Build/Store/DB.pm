@@ -50,7 +50,6 @@ sub test_db_instance_methods : Test(4) {
   SKIP: {
         skip "DSN methods should be tested in subclasses", 3
           unless $class eq 'Kinetic::Build::Store::DB';
-
         throws_ok { $kbs->dsn }
           qr'dsn\(\) must be overridden in the subclass',
           'dsn() needs to be overridden';

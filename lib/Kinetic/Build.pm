@@ -40,6 +40,9 @@ my %CONFIG = (
             },
         },
     },
+    pg => {
+        build => 'Kinetic::Build::Store::DB::Pg',
+    },
     sqlite => {
         build => 'Kinetic::Build::Store::DB::SQLite',
     },

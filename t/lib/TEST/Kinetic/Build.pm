@@ -91,7 +91,7 @@ sub test_test_actions : Test(9) {
     $mb->mock(resume => sub { $builder });
     $mb->mock(check_manifest => sub { return });
     $mb->mock('ACTION_code' => 0);
-    my $data_dir = File::Spec->catdir(Cwd::getcwd, $self->data_dir, 'data');
+    my $data_dir = catdir(Cwd::getcwd, $self->data_dir, 'data');
     $mb->mock(test_data_dir => sub () { $data_dir });
     $self->chdirs($self->data_dir);
     local @INC = (catdir(updir, updir, 'lib'), @INC);
@@ -106,7 +106,7 @@ sub test_test_actions : Test(9) {
 
     # Turn the dev tests on.
     $builder = $self->new_builder( run_dev_tests => 1);
-    $builder->source_dir('t/sample');
+    $builder->source_dir(catdir updir, 'sample');
     ok $builder->dispatch('setup_test'), "Run setup_test action";
     file_exists_ok $data_dir . '/kinetic.db',
       'SQLite database should now exist';
