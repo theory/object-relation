@@ -516,15 +516,203 @@ sub test_rules : Test(159) {
     eval { $fsa->switch }; # Trigger an error;
     is $error, 'I need the super user name to configure PostgreSQL',
       'Error should have been passed to Build->_fatal_error()';
-    $mb->unmock('_fatal_error'); # XXX This doesn't seem to get freed up for some reason...
+    # XXX This doesn't seem to get freed up for some reason and it leads to
+    # failures elsewhere. Why isn't it freed up when $mb goes out of scope?
+    $mb->unmock('_fatal_error');
 
     ##########################################################################
     # Test "Done"
     $kbs->{actions} = [];
     ok $fsa->reset->curr_state('Done'), 'Reset to "Done"';
     is_deeply $kbs->{actions}, [['build_db']];
-
+    $kbs->_dbh(undef); # Prevent ugly deaths during cleanup.
 }
+
+##############################################################################
+# User provides own username and password, database already exists with
+# PL/pgSQL and they can add objects to it. States we'll visit:
+#
+# Start
+# Check version
+# server info
+# Connect user
+# Check database
+# Check plpgsql
+# Check schema permissions
+# Done
+
+sub test_validate_user_db : Test(12) {
+    my $self = shift;
+    my $class = $self->test_class;
+    # Supply username and password when prompted, database exists and has
+    # pl/pgsql.
+
+    # Override builder methods to keep things quiet.
+    my $mb = MockModule->new(Build);
+    $mb->mock(check_manifest => sub { return });
+    my $builder = $self->new_builder;
+    $mb->mock(resume => $builder);
+    $mb->mock(_app_info_params => sub { } );
+    my @replies = ('localhost', '5432', 'kinetic', 'kinetic', 'asdfasdf');
+    $mb->mock(get_reply => sub { shift @replies });
+    $mb->mock(args => 0);
+
+    # Override App::Info methods to keep things quiet.
+    my $info = MockModule->new($class->info_class);
+    $info->mock(installed => 1);
+    $info->mock(version => '8.0.0');
+
+    # Override $class methods to keep things quiet.
+    my $pg = MockModule->new($class);
+    $pg->mock(_connect => 1);
+    $pg->mock(_db_exists => 1);
+    $pg->mock(_plpgsql_available => 1);
+    $pg->mock(_has_schema_permissions => 1);
+
+    # Construct the object.
+    ok my $kbs = $class->new, "Create new $class object";
+    isa_ok $kbs, $class;
+    ok $kbs->validate, "We should be able to validate";
+    is_deeply $kbs->{actions}, [['build_db']],
+      'We should have just the "build_db" action';
+    is $kbs->db_host, undef, 'Database host is undefined';
+    is $kbs->db_port, undef, 'Port is undefined';
+    is $kbs->db_name, 'kinetic', 'Database name is "kinetic"';
+    is $kbs->db_user, 'kinetic', 'Database user is "kinetic"';
+    is $kbs->db_pass, 'asdfasdf', 'Database user is "asdfasdf"';
+    is $kbs->db_super_user, undef, "Super user is undefined";
+    is $kbs->db_super_pass, undef, "Super user password is undefined";
+    is $kbs->template_db_name, undef, "Template name is undefined";
+    $kbs->_dbh(undef); # Prevent ugly deaths during cleanup.
+}
+
+##############################################################################
+# User provides username and password but user doesn't exist. So we prompt
+# them for the super user name and password. Super user set up to create the
+# database and add PL/pgSQL. States we'll visit:
+#
+# Start
+# Check version
+# server info
+# Connect user
+# Get super user
+# Connect super user
+# Check database
+# Check template plpgsql
+# Find createlang
+# Check user
+# Done
+
+sub test_validate_super_user : Test(12) {
+    my $self = shift;
+    my $class = $self->test_class;
+    # Supply username and password when prompted, database exists and has
+    # pl/pgsql.
+
+    # Override builder methods to keep things quiet.
+    my $mb = MockModule->new(Build);
+    $mb->mock(check_manifest => sub { return });
+    my $builder = $self->new_builder;
+    $mb->mock(resume => $builder);
+    $mb->mock(_app_info_params => sub { } );
+    my @replies = ('localhost', '5432', 'kinetic', 'kinetic', 'asdfasdf',
+                   'template1', 'postgres', 'postgres');
+    $mb->mock(get_reply => sub { shift @replies });
+    $mb->mock(args => 0);
+
+    # Override App::Info methods to keep things quiet.
+    my $info = MockModule->new($class->info_class);
+    $info->mock(installed => 1);
+    $info->mock(version => '8.0.0');
+    $info->mock(createlang => 1);
+
+    # Override $class methods to keep things quiet.
+    my $pg = MockModule->new($class);
+    my @connect = (0, 0, 0, 1);
+    $pg->mock(_connect => sub { shift @connect });
+    $pg->mock(_db_exists => 0);
+    $pg->mock(_plpgsql_available => 0);
+    $pg->mock(_user_exists => 0);
+
+    # Construct the object.
+    ok my $kbs = $class->new, "Create new $class object";
+    isa_ok $kbs, $class;
+    ok $kbs->validate, "We should be able to validate";
+    is_deeply $kbs->{actions}, [['create_db'], ['add_plpgsql'], ['create_user'],
+                                ['build_db']],
+      "We should have the right actions";
+    is $kbs->db_host, undef, 'Database host is undefined';
+    is $kbs->db_port, undef, 'Port is undefined';
+    is $kbs->db_name, 'kinetic', 'Database name is "kinetic"';
+    is $kbs->db_user, 'kinetic', 'Database user is "kinetic"';
+    is $kbs->db_pass, 'asdfasdf', 'Database user is "asdfasdf"';
+    is $kbs->db_super_user, 'postgres', 'Super user is "postgres"';
+    is $kbs->db_super_pass, 'postgres', 'Super user password is "postgres"';
+    is $kbs->template_db_name, 'template1', 'Template name is "template1"';
+    $kbs->_dbh(undef); # Prevent ugly deaths during cleanup.
+}
+
+##############################################################################
+# User provides username and password on the command-line. Database exists,
+# so super user set up to add PL/pgSQL. States we'll visit:
+#
+# Start
+# Check version
+# server info
+# Connect super user
+# Check database
+# Check plpgsql
+# Check user
+# Done
+
+sub test_validate_super_user_arg : Test(12) {
+    my $self = shift;
+    my $class = $self->test_class;
+    # Supply username and password when prompted, database exists and has
+    # pl/pgsql.
+
+    # Override builder methods to keep things quiet.
+    my $mb = MockModule->new(Build);
+    $mb->mock(check_manifest => sub { return });
+    my $builder = $self->new_builder;
+    $mb->mock(resume => $builder);
+    $mb->mock(_app_info_params => sub { } );
+    my @replies = ('localhost', '5432', 'kinetic', 'kinetic', 'asdfasdf',
+                   'template1');
+    $mb->mock(get_reply => sub { shift @replies });
+    my @args = ('postgres', 'postgres');
+    $mb->mock(args => sub { shift @args });
+
+    # Override App::Info methods to keep things quiet.
+    my $info = MockModule->new($class->info_class);
+    $info->mock(installed => 1);
+    $info->mock(version => '8.0.0');
+
+    # Override $class methods to keep things quiet.
+    my $pg = MockModule->new($class);
+    my @connect = (1);
+    $pg->mock(_connect => sub { shift @connect });
+    $pg->mock(_db_exists => 1);
+    $pg->mock(_plpgsql_available => 0);
+    $pg->mock(_user_exists => 0);
+
+    # Construct the object.
+    ok my $kbs = $class->new, "Create new $class object";
+    isa_ok $kbs, $class;
+    ok $kbs->validate, "We should be able to validate";
+    is_deeply $kbs->{actions}, [['add_plpgsql'], ['create_user'], ['build_db']],
+      "We should have the right actions";
+    is $kbs->db_host, undef, 'Database host is undefined';
+    is $kbs->db_port, undef, 'Port is undefined';
+    is $kbs->db_name, 'kinetic', 'Database name is "kinetic"';
+    is $kbs->db_user, 'kinetic', 'Database user is "kinetic"';
+    is $kbs->db_pass, 'asdfasdf', 'Database user is "asdfasdf"';
+    is $kbs->db_super_user, 'postgres', 'Super user is "postgres"';
+    is $kbs->db_super_pass, 'postgres', 'Super user password is "postgres"';
+    is $kbs->template_db_name, undef, "Template name is undefined";
+    $kbs->_dbh(undef); # Prevent ugly deaths during cleanup.
+}
+
 
 1;
 __END__

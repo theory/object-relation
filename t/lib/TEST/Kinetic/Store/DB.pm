@@ -207,9 +207,9 @@ sub get_kinetic_value : Test(5) {
     is int $state, 1, 'and its integer value should be the value passed in';
 }
 
-sub constraints : Test(no_plan) {
+sub constraints : Test(4) {
     can_ok Store, '_constraints';
-    is Store->_constraints({order_by => 'name'}), ' ORDER BY name', 
+    is Store->_constraints({order_by => 'name'}), ' ORDER BY name',
         'and it should build a valid order by clause';
     is Store->_constraints({order_by => [qw/foo bar/]}),
         ' ORDER BY foo, bar',
@@ -219,7 +219,7 @@ sub constraints : Test(no_plan) {
         'and ORDER BY can be ascending or descending';
 }
 
-sub search : Test(no_plan) {
+sub search : Test(1) {
     can_ok Store, 'search';
 }
 
