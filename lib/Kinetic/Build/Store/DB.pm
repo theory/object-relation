@@ -32,10 +32,103 @@ See L<Kinetic::Build::Store|Kinetic::Build::Store>.
 =head1 Description
 
 This module inherits from Kinetic::Build::Store to function as the base class
-for all store builder classes that builds a data store in a database. Its interface
-is defined entirely by Kinetic::Build::Store.
+for all store builder classes that builds a data store in a database. Its
+interface is defined entirely by Kinetic::Build::Store.
 
 =cut
+
+##############################################################################
+
+=head3 build_db
+
+Builds the database. Called as an action during C<./Build install>.
+
+=cut
+
+sub build_db {
+    my $self = shift;
+
+    my $schema_class = $self->_schema_class;
+    eval "use $schema_class";
+    die $@ if $@;
+
+    my $dbh = $self->_dbh;
+    $dbh->begin_work;
+
+    eval {
+        local $SIG{__WARN__} = sub {
+            my $message = shift;
+            return if $message =~ /NOTICE:/; # ignore postgres warnings
+            warn $message;
+        };
+        my $sg = $schema_class->new;
+
+        $sg->load_classes($self->metadata->source_dir);
+
+        $dbh->do($_) foreach
+          $sg->begin_schema,
+          $sg->setup_code,
+          (map { $sg->schema_for_class($_) } $sg->classes),
+          $sg->end_schema;
+        $dbh->commit;
+    };
+    if (my $err = $@) {
+        $dbh->rollback;
+        die $err;
+    }
+
+    return $self;
+}
+
+##############################################################################
+
+=head3 switch_to_db
+
+This action switches the database connection for building a database to a
+different database. Used when switching between a template database for
+creating a new database, and the database to be built.
+
+=cut
+
+sub switch_to_db {
+    my ($self, $db_name) = @_;
+    $self->metadata->db_name($db_name);
+    $self->metadata->notes(db_name => $db_name);
+    $self->_dbh->disconnect if $self->_dbh;
+    $self->_dbh(undef); # clear wherever we were
+    return $self;
+}
+
+=begin private
+
+##############################################################################
+
+=head1 Private Interface
+
+=head2 Private Instance Methods
+
+=head3 _dbh
+
+  $kbs->_dbh;
+
+Returns the database handle to connect to the data store.
+
+=cut
+
+sub _dbh {
+    my $self = shift;
+    my $dsn  = $self->metadata->_dsn;
+    my $user = $self->metadata->db_user;
+    my $pass = $self->metadata->db_pass;
+    my $dbh = DBI->connect(
+        $dsn,
+        $user,
+        $pass,
+        {RaiseError => 1, AutoCommit => 1}
+    ) or require Carp && Carp::croak $DBI::errstr;
+    $self->{dbh} = $dbh;
+    return $dbh;
+}
 
 1;
 __END__

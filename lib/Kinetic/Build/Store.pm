@@ -99,41 +99,6 @@ sub build {
     $self->do_actions;
 }
 
-sub build_db {
-    my $self = shift;
-
-    my $schema_class = $self->_schema_class;
-    eval "use $schema_class";
-    die $@ if $@;
-
-    my $dbh = $self->_dbh;
-    $dbh->begin_work;
-
-    eval {
-        local $SIG{__WARN__} = sub {
-            my $message = shift;
-            return if $message =~ /NOTICE:/; # ignore postgres warnings
-            warn $message;
-        };
-        my $sg = $schema_class->new;
-
-        $sg->load_classes($self->metadata->source_dir);
-
-        $dbh->do($_) foreach 
-          $sg->begin_schema,
-          $sg->setup_code,
-          (map { $sg->schema_for_class($_) } $sg->classes),
-          $sg->end_schema;
-        $dbh->commit;
-    };
-    if (my $err = $@) {
-        $dbh->rollback;
-        die $err;
-    }
-
-    return $self;
-}
-
 ##############################################################################
 
 =head3 do_actions
@@ -153,44 +118,6 @@ sub do_actions {
         $self->$method(@args);
     }
     return $self;
-}
-
-sub switch_to_db {
-    my ($self, $db_name) = @_;
-    $self->metadata->db_name($db_name);
-    $self->metadata->notes(db_name => $db_name);
-    $self->_dbh->disconnect if $self->_dbh;
-    $self->_dbh(undef); # clear wherever we were
-    return $self;
-}
-
-##############################################################################
-
-=head2 Private Methods
-
-=cut
-
-=head3 _dbh
-
-  $kbs->_dbh;
-
-Returns the database handle to connect to the data store.
-
-=cut
-
-sub _dbh {
-    my $self = shift;
-    my $dsn  = $self->metadata->_dsn;
-    my $user = $self->metadata->db_user;
-    my $pass = $self->metadata->db_pass;
-    my $dbh = DBI->connect(
-        $dsn,
-        $user,
-        $pass,
-        {RaiseError => 1, AutoCommit => 1}
-    ) or require Carp && Carp::croak $DBI::errstr;
-    $self->{dbh} = $dbh;
-    return $dbh;
 }
 
 1;
