@@ -1,4 +1,4 @@
-package App::Kinetic;
+package Kinetic;
 
 # $Id$
 
@@ -22,11 +22,11 @@ other than all uppercase.
 
 =end comment
 
-App::Kinetic - The Kinetic enterprise application framework
+Kinetic - The Kinetic enterprise application framework
 
 =head1 Description
 
-This is App::Kinetic, the Kinetic enterprise application framework.
+This is Kinetic, the Kinetic enterprise application framework.
 
 =head1 Author
 

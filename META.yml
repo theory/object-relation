@@ -6,7 +6,7 @@ author:
 abstract: The Kinetic enterprise application framework
 license: perl
 provides:
-  App::Kinetic:
+  Kinetic:
     file: lib/App/Kinetic.pm
     version: 0.0.1
 generated_by: Module::Build version 0.26

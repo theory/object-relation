@@ -1,28 +1,28 @@
-package App::Kinetic::Meta;
+package Kinetic::Meta;
 
 # $Id$
 
 use strict;
 use base 'Class::Meta';
-#use App::Kinetic::Meta::DataTypes;
-use App::Kinetic::Meta::Attribute;
-use App::Kinetic::Meta::Class;
-#use App::Kinetic::Util::Exceptions qw(throw_exlib);
+#use Kinetic::Meta::DataTypes;
+use Kinetic::Meta::Attribute;
+use Kinetic::Meta::Class;
+#use Kinetic::Util::Exceptions qw(throw_exlib);
 use Class::Meta::Types::String; # Move to DataTypes.
 
 =head1 Name
 
-App::Kinetic::Meta - Kinetic class automation, introspection, and data validation
+Kinetic::Meta - Kinetic class automation, introspection, and data validation
 
 =head1 Synopsis
 
-  package MyApp::Thingy;
+  package MyThingy;
 
   use strict;
-  use base 'App::Kinetic::Base';
+  use base 'Kinetic::Base';
 
   BEGIN {
-      my $cm = App::Kinetic::Meta->new(
+      my $cm = Kinetic::Meta->new(
         key         => 'thingy',
         name        => 'Thingy',
         plural_name => 'Thingies',
@@ -35,7 +35,7 @@ App::Kinetic::Meta - Kinetic class automation, introspection, and data validatio
 This class inherits from L<Class::Meta|Class::Meta> to provide class
 automation, introspection, and data validation for Kinetic classes. It
 overrides the behavior of Class::Meta to specify the use of the
-L<App::Kinetic::Meta::Class|App::Kinetic::Meta::Class> subclass in place of
+L<Kinetic::Meta::Class|Kinetic::Meta::Class> subclass in place of
 Class::Meta::Class.
 
 ##############################################################################
@@ -48,11 +48,11 @@ Class::Meta::Class.
 
 =head3 new
 
-  my $cm = App::Kinetic::Meta->new(%init);
+  my $cm = Kinetic::Meta->new(%init);
 
 Overrides the parent Class::Meta constructor in order to specify that the
-class class be App::Kinetic::Meta::Class and that the attribute class be
-App::Kinetic::Meta::Attribute.
+class class be Kinetic::Meta::Class and that the attribute class be
+Kinetic::Meta::Attribute.
 
 =cut
 
@@ -61,8 +61,8 @@ sub new {
         # We must specify the package
         package         => scalar caller,
         @_,
-        class_class     => 'App::Kinetic::Meta::Class',
-        attribute_class => 'App::Kinetic::Meta::Attribute',
+        class_class     => 'Kinetic::Meta::Class',
+        attribute_class => 'Kinetic::Meta::Attribute',
     );
 }
 
@@ -79,11 +79,11 @@ Kineticode, Inc. <info@kineticode.com>
 
 =over 4
 
-=item L<App::Kinetic::Base|App::Kinetic::Base>
+=item L<Kinetic::Base|Kinetic::Base>
 
 The Kinetic base class.
 
-=item L<App::Kinetic::Meta::Class|App::Kinetic::Meta::Class>
+=item L<Kinetic::Meta::Class|Kinetic::Meta::Class>
 
 The Kinetic class metadata class.
 

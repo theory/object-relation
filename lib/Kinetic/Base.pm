@@ -1,20 +1,20 @@
-package App::Kinetic::Base;
+package Kinetic::Base;
 
 # $Id$
 
 use strict;
-use App::Kinetic;
-use App::Kinetic::Meta;
+use Kinetic;
+use Kinetic::Meta;
 use Widget::Meta;
 
 =head1 Name
 
-App::Kinetic::Biz - Kinetic application framework base class
+Kinetic::Biz - Kinetic application framework base class
 
 =head1 Synopsis
 
-  package MyApp::Biz;
-  use base qw(App::Kinetic::Base);
+  package MyBiz;
+  use base qw(Kinetic::Base);
 
 =head1 Description
 
@@ -25,7 +25,7 @@ data store access methods required by the subclasses.
 =cut
 
 BEGIN {
-    my $cm = App::Kinetic::Meta->new(
+    my $cm = Kinetic::Meta->new(
         key         => 'base',
         name        => 'Base',
         plural_name => 'Base',
@@ -42,8 +42,8 @@ BEGIN {
 
 =head3 new
 
-  my $biz_obj = App::Kinetic::Base->new;
-  $kinetic = App::Kinetic::Base->new(%init);
+  my $biz_obj = Kinetic::Base->new;
+  $kinetic = Kinetic::Base->new(%init);
 
 The universal Kinetic object constructor. It takes a list of parameters as its
 arguments, constructs a new Kinetic object with its attributes set to the
@@ -67,18 +67,18 @@ parameters set to default values.
 
 =head3 my_class
 
-  my $class = App::Kinetic::Base->my_class;
+  my $class = Kinetic::Base->my_class;
 
-Returns the App::Kinetic::Meta::Class object that describes this class. See
+Returns the Kinetic::Meta::Class object that describes this class. See
 L<Class::Meta|Class::Meta> for more information.
 
 =head3 my_key
 
-  my $key = App::Kinetic::Base->my_key;
+  my $key = Kinetic::Base->my_key;
 
 Returns the key that uniquely identifies this class. The class key is used in
 the Kinetic UI, and by the SOAP server. Equivalent to
-C<< App::Kinetic::Base->my_class->key >>.
+C<< Kinetic::Base->my_class->key >>.
 
 =cut
 

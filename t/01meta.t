@@ -3,17 +3,17 @@
 use strict;
 use Test::More tests => 21;
 
-package MyApp::TestThingy;
+package MyTestThingy;
 
 BEGIN {
     Test::More->import;
-    use_ok('App::Kinetic::Meta');
-    use_ok('App::Kinetic::Meta::Class');
-    use_ok('App::Kinetic::Meta::Attribute');
+    use_ok('Kinetic::Meta');
+    use_ok('Kinetic::Meta::Class');
+    use_ok('Kinetic::Meta::Attribute');
 }
 
 BEGIN {
-    ok my $km = App::Kinetic::Meta->new(
+    ok my $km = Kinetic::Meta->new(
         key         => 'thingy',
         name        => 'Thingy',
         plural_name => 'Thingies',
@@ -34,17 +34,17 @@ BEGIN {
 
 package main;
 
-ok my $class = MyApp::TestThingy->my_class, "Get meta class object";
-isa_ok $class, 'App::Kinetic::Meta::Class';
+ok my $class = MyTestThingy->my_class, "Get meta class object";
+isa_ok $class, 'Kinetic::Meta::Class';
 isa_ok $class, 'Class::Meta::Class';
 
 is $class->key, 'thingy', 'Check key';
-is $class->package, 'MyApp::TestThingy', 'Check package';
+is $class->package, 'MyTestThingy', 'Check package';
 is $class->name, 'Thingy', 'Check name';
 is $class->plural_name, 'Thingies', 'Check plural name';
 
 ok my $attr = $class->attributes('foo'), "Get foo attribute";
-isa_ok $attr, 'App::Kinetic::Meta::Attribute';
+isa_ok $attr, 'Kinetic::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
 is $attr->name, 'foo', "Check attr name";
 is $attr->type, 'string', "Check attr type";

@@ -1,19 +1,19 @@
-package App::Kinetic::Meta::Class;
+package Kinetic::Meta::Class;
 
 # $Id$
 
 use strict;
 use base 'Class::Meta::Class';
-#use App::Kinetic::Util::Context;
+#use Kinetic::Util::Context;
 
 =head1 Name
 
-App::Kinetic::Meta::Class - Kinetic class metadata class.
+Kinetic::Meta::Class - Kinetic class metadata class.
 
 =head1 Synopsis
 
-  my $class = MyApp::Thingy->my_class;
-  my $thingy = MyApp::Thingy->new;
+  my $class = MyThingy->my_class;
+  my $thingy = MyThingy->new;
 
   print "Examining object of ", ($class->abstract ? "abstract " : ''),
     "class ", $class->package, $/;
@@ -57,7 +57,7 @@ Returns the localized form of the name of the class, such as "Thingy".
 =cut
 
 #sub name {
-#    App::Kinetic::Util::Context->language->maketext(shift->SUPER::name);
+#    Kinetic::Util::Context->language->maketext(shift->SUPER::name);
 #}
 
 ##############################################################################
@@ -72,7 +72,7 @@ Returns the localized plural form of the name of the class, such as
 =cut
 
 sub plural_name {
-#    App::Kinetic::Util::Context->language->maketext(shift->{plural_name});
+#    Kinetic::Util::Context->language->maketext(shift->{plural_name});
     shift->{plural_name};
 }
 
@@ -89,15 +89,15 @@ Kineticode, Inc. <info@kineticode.com>
 
 =over 4
 
-=item L<App::Kinetic::Base|App::Kinetic::Base>
+=item L<Kinetic::Base|Kinetic::Base>
 
 The Kinetic base class.
 
-=item L<App::Kinetic::Meta|App::Kinetic::Meta>
+=item L<Kinetic::Meta|Kinetic::Meta>
 
 The class for Kinetic class automation, introspection, and data validation.
 
-=item L<App::Kinetic::Meta::Attribute|App::Kinetic::Meta::Attribute>
+=item L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>
 
 Kinetic object attribute introspection class.
 
