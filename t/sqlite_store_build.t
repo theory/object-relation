@@ -29,9 +29,7 @@ BEGIN {
         module_name     => 'KineticBuildOne',
         conf_file       => 'test.conf', # always writes to t/ and blib/
         accept_defaults => 1,
-        #store           => 'pg'
-        # if we do this, it dies saying we can't connect as normal user
-        # this needs to be copied to pg_store_build and run from there
+        source_dir      => $TEST_LIB, 
     );
     $BUILD->create_build_script;
     $BUILD->dispatch('build');

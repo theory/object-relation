@@ -94,7 +94,7 @@ sub _validate {
         Carp::croak "This module must be subclassed.";
     }
     unless (UNIVERSAL::isa($build, 'Kinetic::Build')) {
-        Carp::croak "Thhe argument to the constructor must be a Kinetic::Build object";
+        Carp::croak "The argument to the constructor must be a Kinetic::Build object";
     }
     return $class;
 }

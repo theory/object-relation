@@ -96,15 +96,19 @@ specified by C<Kinetic::Build>.
 =cut
 
 sub build {
-    my ($self, $dir) = @_;
+    my ($self) = @_;
     $self->do_actions;
+}
+
+sub build_db {
+    my $self = shift;
     
     my $schema_class = $self->_schema_class;
     eval "use $schema_class";
     die $@ if $@;
     my $sg = $schema_class->new;
 
-    $sg->load_classes($dir);
+    $sg->load_classes($self->metadata->source_dir);
     my (@tables, @behaviors);
     my %seen;
     for my $class ($sg->classes) {

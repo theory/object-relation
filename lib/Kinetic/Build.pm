@@ -141,6 +141,18 @@ __PACKAGE__->add_property(store => 'sqlite');
 
 ##############################################################################
 
+=head3 source_dir
+
+  my $source_dir = $build->source_dir;
+
+The directory where the Kinetic Store libraries will be found.
+
+=cut
+
+__PACKAGE__->add_property('source_dir');
+
+##############################################################################
+
 =head3 db_name
 
   my $db_name = $build->db_name;

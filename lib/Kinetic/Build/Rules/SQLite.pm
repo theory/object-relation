@@ -141,8 +141,17 @@ sub _state_machine {
             ],
         },
         done => {
-            # XXX Is this redundant?
-            do => sub {},
+            do => sub {
+                my $state   = shift;
+                my $build   = $self->build;
+                my $machine = $state->machine;
+                push @{$machine->{actions}} => ['build_db'];
+                foreach my $attribute (qw/db_name actions user pass db_name/) {
+                    $build->notes($attribute => $machine->{$attribute})
+                      if $machine->{$attribute};
+                }
+                $self->_dbh->disconnect if $self->_dbh;
+            }
         },
         fail => {
             do => sub {

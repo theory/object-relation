@@ -324,10 +324,12 @@ sub _state_machine {
                 my $state   = shift;
                 my $build   = $self->build;
                 my $machine = $state->machine;
+                push @{$machine->{actions}} => ['build_db'];
                 foreach my $attribute (qw/db_name actions user pass db_name/) {
-                    $build->notes($attribute => $machine->{$attribute});
+                    $build->notes($attribute => $machine->{$attribute})
+                      if $machine->{$attribute};
                 }
-                $self->_dbh->disconnect;
+                $self->_dbh->disconnect if $self->_dbh;
             }
         },
     );
