@@ -145,14 +145,56 @@ sub search_incomplete_dates : Test(no_plan) {
     @results = _all_items($iterator);
     ok ! @results, '... but searching in a non-existent date should fail, even if it is an incomplete date';
 
-    #$june = Incomplete->new(
-    #    month => 6,
-    #    day   => 21,
-    #);
-    #$iterator = $store->search($class, date => GE $june, {order_by => 'date'});
-    #@results = _all_items($iterator);
-    #is @results, 2, 'Incomplete dates should recognize GE';
-    #is_deeply \@results, [$theory, $usa], '... and get the correct results';
+    diag "DBD::SQLite binds these values as numbers, but we need them bound as strings";
+    $june = Incomplete->new(
+        month => '06',
+        day   => '16',
+    );
+    $iterator = $store->search($class, date => GE $june, {order_by => 'date'});
+    @results = _all_items($iterator);
+    is @results, 2, 'Incomplete dates should recognize GE';
+    is_deeply \@results, [$theory, $usa], '... and get the correct results';
+}
+
+sub search : Test(16) {
+    my $test = shift;
+    can_ok Store, 'search';
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my $class = $foo->my_class;
+    my $store = Store->new;
+    ok my $iterator = $store->search($class),
+        'A search with only a class should succeed';
+    my @results = _all_items($iterator);
+    is @results, 3, 'returning all instances in the class';
+
+    ok $iterator = $store->search($class, name => 'foo'),
+        'and an exact match should succeed';
+    isa_ok $iterator, Iterator, 'and the object it returns';
+    is_deeply $iterator->next, $foo,
+        'and the first item should match the correct object';
+    ok ! $iterator->next, 'and there should be the correct number of objects';
+
+    ok $iterator = Store->search($class, name => 'foo'),
+        'We should also be able to call search as a class method';
+    isa_ok $iterator, Iterator, 'and the object it returns';
+    is_deeply $iterator->next, $foo,
+        'and it should return the same results as an instance method';
+    ok ! $iterator->next, 'and there should be the correct number of objects';
+
+    ok $iterator = Store->search($class, name => 'Foo'),
+        'Case-insensitive searches should work with SQLite';
+    isa_ok $iterator, Iterator, 'and the object it returns';
+    is_deeply $iterator->next, $foo,
+         'and they should return data even if the case does not match';
+
+    $iterator = $store->search($class, name => 'foo', description => 'asdf');
+    ok ! $iterator->next,
+        'but searching for non-existent values will return no results';
+    $foo->description('asdf');
+    Store->save($foo);
+    $iterator = $store->search($class, name => 'foo', description => 'asdf');
+    is_deeply $iterator->next, $foo,
+        '... and it should be the correct results';
 }
 
 sub search_dates : Test(8) {
@@ -655,46 +697,6 @@ sub lookup : Test(8) {
     throws_ok {Store->lookup($two->my_class, 'name' => 1)}
         qr/\QProperty "name" is not unique\E/,
         'or if you search on a non-unique field';
-}
-
-sub search : Test(16) {
-    my $test = shift;
-    can_ok Store, 'search';
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
-    my $class = $foo->my_class;
-    my $store = Store->new;
-    ok my $iterator = $store->search($class),
-        'A search with only a class should succeed';
-    my @results = _all_items($iterator);
-    is @results, 3, 'returning all instances in the class';
-
-    ok $iterator = $store->search($class, name => 'foo'),
-        'and an exact match should succeed';
-    isa_ok $iterator, Iterator, 'and the object it returns';
-    is_deeply $iterator->next, $foo,
-        'and the first item should match the correct object';
-    ok ! $iterator->next, 'and there should be the correct number of objects';
-
-    ok $iterator = Store->search($class, name => 'foo'),
-        'We should also be able to call search as a class method';
-    isa_ok $iterator, Iterator, 'and the object it returns';
-    is_deeply $iterator->next, $foo,
-        'and it should return the same results as an instance method';
-    ok ! $iterator->next, 'and there should be the correct number of objects';
-
-    ok $iterator = Store->search($class, name => 'Foo'),
-        'Case-insensitive searches should not work with SQLite';
-    isa_ok $iterator, Iterator, 'and the object it returns';
-    ok ! $iterator->next, 'and they should not return data if the case does not match';
-
-    $iterator = $store->search($class, name => 'foo', description => 'asdf');
-    ok ! $iterator->next,
-        'but searching for non-existent values will return no results';
-    $foo->description('asdf');
-    Store->save($foo);
-    $iterator = $store->search($class, name => 'foo', description => 'asdf');
-    is_deeply $iterator->next, $foo,
-        '... and it should be the correct results';
 }
 
 sub search_between : Test(6) {

@@ -27,7 +27,7 @@ my $build = Kinetic::Build->new(
         'Widget::Meta'          => 0.03,
 #        'XML::Genx'             => 0.05,
 #        'DBD::Pg'               => 1.32, # XXX Change to option.
-#        'DBD::SQLite'           => 1.07, # XXX Change to option.
+#        'DBD::SQLite'           => 1.08, # XXX Change to option.
     },
     build_requires       => {
         'App::Info'             => 0.42,

@@ -57,12 +57,12 @@ store's search mechanism.
 =cut
 
 my %date = (
-    year   => [0, 4],
-    month  => [5, 2],
-    day    => [8, 2],
-    hour   => [11,2],
-    minute => [14,2],
-    second => [17,2],
+    year   => [1, 4],
+    month  => [6, 2],
+    day    => [9, 2],
+    hour   => [12,2],
+    minute => [15,2],
+    second => [18,2],
 ); 
 
 sub date_handler {
@@ -72,8 +72,9 @@ sub date_handler {
     while (my ($segment, $idx) = each %date) {
         my $value = $date->$segment;
         next unless defined $value;
-        push @tokens => "substr($field, $idx->[0], $idx->[1]) $comparator ?";
-        push @values => $value;
+        my ($position, $length) = @$idx;
+        push @tokens => "substr($field, $position, $length) $comparator ?";
+        push @values => sprintf "%0${length}d" => $value;
     }
     my $token = join ' AND ' => @tokens;
     return $token, \@values;
