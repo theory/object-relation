@@ -21,6 +21,7 @@ package Kinetic::Build;
 use strict;
 use 5.008003;
 use base 'Module::Build';
+use DBI;
 use File::Spec;
 use File::Path ();
 use File::Copy ();
@@ -600,20 +601,44 @@ sub check_pg {
     $pg->createlang
         or $self->_fatal_error("createlang must be available for plpgsql support");
 
-    # * If the database in the db_name property exists, we must be able to
-    #   access it with db_user and be able to create tables, views, sequences,
-    #   functions, triggers, rules, etc.
-### --- not sure how to test this --- ###
-    # * If the database doesn't exist, we must have db_root_user so that
-    #   we can create it. We might also need a value for db_root_pass, too.
+    my $template1 = 'template1';
+    my $root      = $self->db_root_user;
+    my $user      = $self->db_user;
+    my $pass      = $self->db_pass;
+    my $db_name   = $self->db_name;
 
-    require DBI;
-    my $dbi = DBI->connect(
-        "dbi:Pg:dbname=".$self->db_name, 
-        $self->db_user, 
-        $self->db_pass,
-    );
-    $self->_fatal_error('DBI->connect failed: '.DBI->errstr) if DBI->errstr;
+    if ($root) {
+        # We should be able to connect to template1 as db_rootuser
+        my $dbh = $self->_connect_as_root($template1)
+            or $self->_fatal_error("Can't connect as $root to $template1: $DBI::errstr");
+         
+        # root user should really be root user
+        unless ($self->_is_root_user($dbh, $root)) {
+            $self->_fatal_error("We thought $root was root, but it is not.");
+        }
+
+        # if db_name does not exist, db_root_user should have permission to create it.
+        unless ($self->_db_exists($dbh)) {
+            $self->_can_create_db($dbh, $root)
+                or $self->_fatal_error("User $root does not have permission to create databases");
+        }    
+
+        # if db_user does not exist, make a note so the build process can know
+        unless ($self->_user_exists($dbh, $user)) {
+            $self->notes(default_user => "$user does not exist");
+        }
+    } 
+    else {
+        # We should be able to connect to template1 as db_user
+        my $dbh = $self->_connect_as_user($template1) 
+            or $self->_fatal_error("Can't connect as $user to $template1: $DBI::errstr");
+
+        # If db_name does not exist, db_user should have permission to create it.
+        unless ($self->_db_exists($dbh)) {
+            $self->_can_create_db($dbh, $user)
+                or $self->_fatal_error("User $user does not have permission to create databases");
+        }    
+    }
 
     # We're good to go. Collect the configuration data.
     my %info = (
@@ -691,6 +716,149 @@ sub _copy_to {
                                     to => File::Spec->catfile($dir, $dest) );
         }
     }
+}
+
+##############################################################################
+
+=head3 _user_exists
+
+  $build->_user_exists($dbh, $user);
+
+This method tells whether a particular user exists for a given database
+handle.
+
+=cut
+
+sub _user_exists {
+    my ($self, $dbh, $user) = @_;
+    $self->_pg_says_true(
+        $dbh,
+        "select usename from pg_catalog.pg_user where usename = ?",
+        $user
+    );
+}
+
+##############################################################################
+
+=head3 _is_root_user
+
+  $build->_is_root_user($dbh, $user);
+
+This method tells whether a particular user is the "root" user for a given
+database handle.
+
+=cut
+
+sub _is_root_user {
+    my ($self, $dbh, $user) = @_;
+    $self->_pg_says_true(
+        $dbh,
+        "select usesuper from pg_catalog.pg_user where usename = ?",
+        $user
+    );
+}
+
+##############################################################################
+
+=head3 _can_create_db
+
+  $build->_can_create_db($dbh, $user);
+
+This method tells whether a particular user has permissions to create
+databases for a given database handle.
+
+=cut
+
+sub _can_create_db {
+    my ($self, $dbh, $user) = @_;
+    $self->_pg_says_true(
+        $dbh,
+        "select usecreatedb from pg_catalog.pg_user where usename = ?",
+        $user
+    );
+}
+
+##############################################################################
+
+=head3 _db_exists
+
+  $build->_db_exists($dbh);
+
+This method tells whether a particular database exists.
+
+=cut
+
+sub _db_exists {
+    my ($self, $dbh) = @_;
+    $self->_pg_says_true(
+        $dbh,
+        "select datname from pg_catalog.pg_database where datname = ?",
+        $self->db_name
+    );
+}
+
+##############################################################################
+
+=head3 _pg_says_true
+
+  $build->_pg_says_true($dbh, $sql, @bind_params);
+
+This slightly misnamed method executes the given sql with the bind params.  It
+expects that the sql will return one and only one value.
+
+=cut
+
+sub _pg_says_true {
+    my ($self, $dbh, $sql, @bind_params) = @_;
+    return ($dbh->selectrow_array($sql, undef, @bind_params));
+}
+    
+##############################################################################
+
+=head3 _connect_as_user
+
+  $build->_connect_as_user($db_name);
+
+This method attempts to connect to the database as a normal user.  It
+returns a database handle on success and undef on failure.
+
+=cut
+
+sub _connect_as_user {
+    my ($self, $db_name) = @_;
+    $self->_connect_to_pg($db_name, $self->db_user, $self->db_pass);
+}
+
+##############################################################################
+
+=head3 _connect_as_root
+
+  $build->_connect_as_root($db_name);
+
+This method attempts to connect to the database as a root user.  It
+returns a database handle on success and undef on failure.
+
+=cut
+
+sub _connect_as_root {
+    my ($self, $db_name) = @_;
+    $self->_connect_to_pg($db_name, $self->db_root_user, $self->db_root_pass);
+}
+
+##############################################################################
+
+=head3 _connect_to_pg
+
+  $build->_connect_to_pg($db_name, $user, $pass);
+
+This method attempts to connect to the database as a given user.  It
+returns a database handle on success and undef on failure.
+
+=cut
+
+sub _connect_to_pg {
+    my ($self, $db_name, $user, $pass) = @_;
+    return DBI->connect("dbi:Pg:dbname=$db_name", $user, $pass);
 }
 
 ##############################################################################

@@ -5,7 +5,7 @@
 use strict;
 use Test::MockModule;
 #use Test::More 'no_plan';
-use Test::More tests => 66;
+use Test::More tests => 74;
 use Test::File;
 use Test::File::Contents;
 use lib 't/lib';
@@ -26,7 +26,7 @@ my $stdin  = tie *STDIN,  'TieOut' or die "Cannot tie STDIN: $!\n";
 
 # Make sure that inheritance is working properly for the property methods.
 ok( $CLASS->valid_property('accept_defaults'),
-    "accept_defatuls is a valid property" );
+    "accept_defaults is a valid property" );
 ok( $CLASS->valid_property('module_name'),
     "module_name is a valid property" );
 ok my @props = $CLASS->valid_properties,
@@ -150,11 +150,14 @@ file_not_exists_ok 't/conf/test.conf',
     is $build->fetch_store_class, 'Kinetic::Store::DB::Pg',
       '... The store class attribute should be correct';
 
-    # Built it.
-    my $module = Test::MockModule->new('DBI');
+    # Build it.
+    my $module = newmock('DBI');
     $module->mock('connect', sub {1});
+    my $mockclass = newmock($CLASS);
+    $mockclass->mock('check_pg', sub {1});
     $build->dispatch('build');
     undef $module;
+    undef $mockclass;
     ok $stdout->read, '... There should be output to STDOUT after build';
 
     # We should not have files for SQLite databases.
@@ -184,35 +187,31 @@ file_not_exists_ok 't/conf/test.conf',
     $build = $CLASS->new(module_name => 'KineticBuildOne', accept_defaults => 1);
 
     my @error;
-    my $sqlite = Test::MockModule->new('App::Info::RDBMS::SQLite');
+    my $sqlite = newmock('App::Info::RDBMS::SQLite');
     $sqlite->mock( 'installed', sub {0} );
-    my $class  = Test::MockModule->new($CLASS);
-    $class->mock("_fatal_error" => sub { shift; @error = @_; die });
-    eval {$build->ACTION_check_store};
-    like $error[0],
+    my $class  = newmock($CLASS);
+    my $error = checkstore($build);
+    like $error,
         qr/SQLite is not installed./,
         '... and it should warn you if SQLite is not installed';
 
-    @error = ();
     $sqlite->mock('installed', sub { 1 } );
     $sqlite->mock('version',   sub { '2.0.0' } );
-    eval {$build->ACTION_check_store};
-    like $error[0].$error[1],
+    $error = checkstore($build);
+    like $error,
         qr/SQLite version 2.0.0 is installed, but we need version .* or newer/,
         '... and it should warn you if SQLite is not a new enough version';
     
-    @error = ();
     $sqlite->mock('version', sub { 4.0 } );
     $sqlite->mock('executable', sub { 0 } );
-    eval {$build->ACTION_check_store};
-    like $error[0],
+    $error = checkstore($build);
+    like $error,
         qr/DBD::SQLite is installed but we require the sqlite3 executable/,
         '... and it should warn you if the sqlite executable is not installed';
 
-   @error = ();
-   $sqlite->mock('executable' => sub {1} );
-   isa_ok $build->ACTION_check_store => $CLASS;
-   ok(!@error, '... and if all parameters are correct, we should have no errors');
+    $sqlite->mock('executable' => sub {1} );
+    $error = checkstore($build);
+    ok(!$error, '... and if all parameters are correct, we should have no errors');
 }
 
 {
@@ -224,45 +223,92 @@ file_not_exists_ok 't/conf/test.conf',
     );
 
     my @error;
-    my $pg = Test::MockModule->new('App::Info::RDBMS::PostgreSQL');
+    my $pg = newmock('App::Info::RDBMS::PostgreSQL');
     $pg->mock( 'installed', sub {0} );
-    my $class  = Test::MockModule->new($CLASS);
-    $class->mock("_fatal_error" => sub { shift; @error = @_; die });
-    eval {$build->ACTION_check_store};
-    like $error[0],
+    my $class  = newmock($CLASS);
+    my $error = checkstore($build);
+    like $error,
         qr/PostgreSQL is not installed./,
         '... and it should warn you if Postgres is not installed';
 
-    @error = ();
     $pg->mock('installed', sub { 1 } );
     $pg->mock('version',   sub { '2.0.0' } );
-    eval {$build->ACTION_check_store};
-    like $error[0].$error[1],
+    $error = checkstore($build);
+    like $error,
         qr/PostgreSQL version 2.0.0 is installed, but we need version .* or newer/,
         '... and it should warn you if PostgreSQL is not a new enough version';
 
-    @error = ();
     $pg->mock('version' => sub { '7.4.5' });
     $pg->mock('createlang' => sub {''});
-
-    my $mockdbi = Test::MockModule->new('DBI');
-    $mockdbi->mock('connect', sub {1});
-    eval {$build->ACTION_check_store};
-    like $error[0], qr/createlang must be available for plpgsql support/,
+    $error = checkstore($build);
+    like $error, qr/createlang must be available for plpgsql support/,
         '... and it should warn you if createlang is not available';
     
-    @error = ();
-    $mockdbi->unmock('connect');
     $pg->mock('createlang' => sub {1});
-    $build->db_name('no_such_database');
     $build->notes(got_store => 0); 
-    eval{
-        local $SIG{__WARN__} = sub{}; # we know the DBI warning is there.  We don't care.
-        $build->ACTION_check_store;
-    };
-    like $error[0], qr/DBI->connect failed: FATAL:  database "no_such_database" does not exist/,
-        '... and if it cannot find the database, it will tell us this';
+    $build->db_root_user('');
+    $class->mock('_connect_as_user', sub {0});
+    $error = checkstore($build);
+    like $error, qr/Can't connect as kinetic to template1.*/,
+        'If we do not have a root user: it should warn us if the normal user cannot connect';
+    
+    $class->mock('_connect_as_user', sub {1});
+    $class->mock('_db_exists', sub {0});
+    $class->mock('_can_create_db', sub {0});
+    $error = checkstore($build);
+    like $error, qr/User kinetic does not have permission to create databases/,
+        '... or if the normal user does not have permission to create databases';
+
+    $class->mock('_can_create_db', sub {1});
+    $error = checkstore($build);
+    ok ! $error, '... but we should have no error messages if normal user can create the db';
+
+    $build->notes(got_store => 0); 
+    $build->db_root_user('postgres');
+    $class->mock('_connect_as_root', sub {0});
+    $error = checkstore($build);
+    like $error, qr/Can't connect as postgres to template1/,
+        'If we have a root user, we should die if they cannot connect';
+
+    $class->mock('_connect_as_root', sub {1});
+    $class->mock('_is_root_user', sub {0});
+    $error = checkstore($build);
+    like $error, qr/We thought postgres was root, but it is not/,
+        '... and we should die if the root user is not really the root user';
+    
+    $class->mock('_is_root_user', sub {1});
+    $class->mock('_db_exists', sub {0});
+    $class->mock('_can_create_db', sub {0});
+    $error = checkstore($build);
+    like $error, qr/User postgres does not have permission to create databases/,
+        '... or if they do not have permission to create databases';
+
+    $class->mock('_db_exists', sub {1});
+    $class->mock('_user_exists', sub {0});
+    $error = checkstore($build);
+    ok ! $error, '... if the user does not exist, we should not die';
+    is $build->notes('default_user'), 'kinetic does not exist',
+        '... but the notes should let us know';
+
+    $build->notes('default_user' => '');
+    $class->mock('_user_exists', sub {1});
+    $error = checkstore($build);
+    ok !$build->notes('default_user'),
+        '... but if the user exists, we should not have notes';
+    
+    ok !$error, '... and the build should complete without error';
+    
 }
+
+sub checkstore {
+    my $mock = newmock($CLASS);
+    my $error;
+    $mock->mock('_fatal_error', sub { shift; $error = join '' => @_; die });
+    eval { local $^W; shift->ACTION_check_store };
+    return $error;
+}
+
+sub newmock { Test::MockModule->new(shift) }
 
 END {
     # Clean up our mess.
