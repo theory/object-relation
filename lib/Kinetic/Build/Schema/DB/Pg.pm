@@ -388,6 +388,8 @@ tables.
 
 =back
 
+=cut
+
 sub setup_code {
 
 'CREATE SEQUENCE seq_kinetic;

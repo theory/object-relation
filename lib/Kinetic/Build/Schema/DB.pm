@@ -434,7 +434,7 @@ sub view_for_class {
             push @wheres, "$last.id = $tables[-1].id" if $last;
             $last = $tables[-1];
             push @cols,
-              $self->_view_columns($last, \@tables, \@wheres,
+              $self->view_columns($last, \@tables, \@wheres,
                                    $class->parent_attributes($parent));
 
         }
@@ -462,15 +462,9 @@ sub view_for_class {
 
 ##############################################################################
 
-=begin private
+=head3 view_columns
 
-=head1 Private Interface
-
-=head3 Private Instance Methods
-
-=head3 _view_columns
-
-  my @view_col_sql = $kbs->_view_columns($table, $tables, $wheres, @attrs);
+  my @view_col_sql = $kbs->view_columns($table, $tables, $wheres, @attrs);
 
 Used by the C<view_for_class()> method to generate and return the SQL
 expressions for all of the columns used in a view. This method may be
@@ -489,13 +483,13 @@ may be used to create C<JOIN>s.
 =item * $tables
 
 A reference to an array of all the tables used in the view to the point that
-C<_view_columns()> was called. C<_view_columns> may add new table names to
+C<view_columns()> was called. C<view_columns> may add new table names to
 this array, so calling code must be sure to include them all in the view.
 
 =item * $wheres
 
 A reference to an array of all the C<WHERE> statements used in the view to the
-point that C<_view_columns()> was called. C<_view_columns> may add new
+point that C<view_columns()> was called. C<view_columns> may add new
 C<WHERE> statements to this array, so calling code must be sure to include
 them all in the view.
 
@@ -506,7 +500,9 @@ by the C<$table> argument.
 
 =back
 
-sub _view_columns {
+=cut
+
+sub view_columns {
     my ($self, $table, $tables, $wheres) = (shift, shift, shift, shift);
     my @cols;
     for my $attr (@_) {
@@ -536,17 +532,25 @@ sub _view_columns {
 
 ##############################################################################
 
+=begin private
+
+=head1 Private Interface
+
+=head3 Private Instance Methods
+
 =head3 _map_ref_columns
 
   my @cols_sql = $kbs->_map_ref_columns($class, $key, @keys);
 
-This method is called by C<_view_columns()> to create the column names for
+This method is called by C<view_columns()> to create the column names for
 contained objects in a view. It may be called recursively if the contained
 object itself has one or more contained objects. Contained object column names
 are the key name of the class, a dot, and then the name of the column. The dot
 distinguishes contained object column names from the columns for the primary
 attributes of a class. But since they have the dot, they must be
 double-quoted.
+
+=cut
 
 sub _map_ref_columns {
     my ($self, $class, $key, @keys) = @_;
