@@ -1,4 +1,4 @@
-package TEST::Kinetic::Store;
+package TEST::Kinetic::Store::DB::SQLite;
 
 # $Id$
 
@@ -32,7 +32,7 @@ sub _load_classes : Test(startup => 4) {
     my $test     = shift;
     $test->{cwd} = getcwd;
     my $db = File::Spec->catfile($test->{cwd}, qw/t build_sample kinetic.db/);
-    if (-e) {
+    if (-e $db) {
         # a previous test failure might not unlink this properly
         unlink $db or die "Cannot unlink ($db): $!";
     }
