@@ -20,6 +20,8 @@ package Kinetic::Build::Schema::DB::SQLite;
 
 use strict;
 use base 'Kinetic::Build::Schema::DB';
+use Kinetic::Meta;
+use Carp;
 
 =head1 Name
 
@@ -40,6 +42,86 @@ L<Kinetic::Build::Schema::DB|Kinetic::Build::Schema::DB> for more
 information.
 
 =cut
+
+my %types = (
+    string   => 'TEXT',
+    guid     => 'TEXT',
+    boolean  => 'INTEGER',
+    whole    => 'INTEGER',
+    state    => 'INTEGER',
+    datetime => 'TEXT',
+);
+
+sub column_name {
+    my ($self, $attr) = @_;
+    return $self->SUPER::column_name($attr) if $types{$attr->type};
+    # Assume it's an object reference.
+    return $attr->name . '_id';
+}
+
+sub column_type {
+    my ($self, $attr) = @_;
+    my $type = $attr->type;
+    return $types{$type} if $types{$type};
+    croak "No such data type: $type" unless Kinetic::Meta->for_key($type);
+    return "INTEGER";
+}
+
+sub pk_column {
+    my ($self, $class) = @_;
+    if (my $fk_table = $self->{$class->key}{table_data}{parent}) {
+        return "id INTEGER NOT NULL PRIMARY KEY REFERENCES $fk_table(id)";
+    } else {
+        return "id INTEGER NOT NULL PRIMARY KEY";
+    }
+}
+
+sub generate_insert_rule {
+    my ($self, $class) = @_;
+    my $key = $class->key;
+    # Output the INSERT rule.
+    $self->{$key}{buffer} .= "CREATE TRIGGER insert_$key\n"
+      . "INSTEAD OF INSERT ON $key\nFOR EACH ROW BEGIN";
+    my $pk = '';
+    for my $table (@{$self->{table_data}{tables}}) {
+        my $cols = $self->{table_data}{colmap}{$table} or next;
+        $self->{$key}{buffer} .= "\n  INSERT INTO $table ("
+          . ($pk ? 'id, ' : '')
+          . join(', ', @$cols) . ")\n  VALUES ($pk"
+          . join(', ', map { "NEW.$_" } @$cols) . ");\n";
+        $pk ||= 'last_insert_rowid(), ';
+    }
+    $self->{$key}{buffer} .= "END;\n\n";
+    return $self;
+}
+
+sub generate_update_rule {
+    my ($self, $class) = @_;
+    my $key = $class->key;
+    # Output the UPDATE rule.
+    $self->{$key}{buffer} .= "CREATE TRIGGER update_$key\n"
+      . "INSTEAD OF UPDATE ON $key\nFOR EACH ROW BEGIN";
+    for my $table (@{$self->{table_data}{tables}}) {
+        my $cols = $self->{table_data}{colmap}{$table} or next;
+        $self->{$key}{buffer} .= "\n  UPDATE $table\n  SET    "
+          . join(', ', map { "$_ = NEW.$_" } @$cols)
+          . "\n  WHERE  id = OLD.id;\n";
+    }
+    $self->{$key}{buffer} .= "END;\n\n";
+    return $self;
+}
+
+sub generate_delete_rule {
+    my ($self, $class) = @_;
+    my $key = $class->key;
+    # Output the DELETE rule.
+    $self->{$key}{buffer} .= "CREATE TRIGGER delete_$key\n"
+      . "INSTEAD OF DELETE ON $key\nFOR EACH ROW BEGIN\n"
+      . "  DELETE FROM $self->{$key}{table_data}{name}\n"
+      . "  WHERE  id = OLD.id;\nEND;\n\n";
+
+    return $self;
+}
 
 1;
 __END__

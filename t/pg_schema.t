@@ -164,7 +164,7 @@ is $sql, $testsql, "Check Two class SQL";
 # Check the SQL generated for the composed class.
 my $composed = $classes{'TestApp::Composed'};
 
-( my $testsql = q{CREATE TABLE _composed (
+( $testsql = q{CREATE TABLE _composed (
     id          INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
     guid        TEXT    NOT NULL,
     name        TEXT    NOT NULL,
@@ -211,7 +211,7 @@ ON DELETE TO composed DO INSTEAD (
 
 }) =~ s/[ ]+/ /g;
 
-ok my $sql = $sg->schema_for_class($composed), "Get schema for Composed class";
+ok $sql = $sg->schema_for_class($composed), "Get schema for Composed class";
 $sql =~ s/[ ]+/ /g;
 is $sql, $testsql, "Check Composed class SQL";
 

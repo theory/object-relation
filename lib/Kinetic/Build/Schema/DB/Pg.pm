@@ -76,6 +76,9 @@ sub pk_column {
     }
 }
 
+# Pg handles FKs in constraints.
+sub column_reference { return }
+
 sub index_on {
     my ($self, $col) = @_;
     my $name = $col->{name};
@@ -111,64 +114,43 @@ sub generate_constraints {
     return $self;
 }
 
-sub generate_view {
+sub generate_insert_rule {
     my ($self, $class) = @_;
     my $key = $class->key;
-    return $self unless $self->{$key}{table_data}{parent}
-      || $self->{$key}{table_data}{refs};
-
-    my (@tables, @wheres, %seen, $cols);
-    for my $col (@{$self->{$key}{col_data}}) {
-        unless ($seen{$col->{table}}) {
-            push @tables, $col->{table};
-            push @wheres, "$tables[-2].id = $tables[-1].id"
-              if @tables > 1;
-        }
-        push @{$seen{$col->{table}}}, $col->{name};
-        $cols .= $cols ? ', ' : "$col->{table}.id, ";
-        $cols .= "$col->{table}.$col->{name}";
-        if ($col->{refs}) {
-            my $fkey = $col->{refs}->key;
-            push @tables, $fkey unless $seen{$fkey};
-            push @wheres, "$col->{table}.$col->{name} = $fkey.id";
-            $cols .= qq{, $fkey.$_->{name} AS "$fkey.$_->{name}"}
-              for @{$self->{$fkey}{col_data}}
-        }
-    }
-
-    my $from = join ', ', @tables;
-    my $where = join ' AND ', @wheres;
-
-    # Output the view.
-    $self->{$key}{buffer} .= "CREATE VIEW $key AS\n"
-      . "  SELECT $cols\n"
-      . "  FROM   $from\n"
-      . "  WHERE  $where;\n\n";
-
     # Output the INSERT rule.
     $self->{$key}{buffer} .= "CREATE RULE insert_$key AS\n"
       . "ON INSERT TO $key DO INSTEAD (";
     my $func = 'NEXTVAL';
-    for my $table (@tables) {
-        my $cols = $seen{$table} or next;
+    for my $table (@{$self->{table_data}{tables}}) {
+        my $cols = $self->{table_data}{colmap}{$table} or next;
         $self->{$key}{buffer} .= "\n  INSERT INTO $table (id, "
           . join(', ', @$cols) . ")\n  VALUES ($func('seq_kinetic'), "
           . join(', ', map { "NEW.$_" } @$cols) . ");\n";
         $func = 'CURRVAL';
     }
     $self->{$key}{buffer} .= ");\n\n";
+    return $self;
+}
 
+sub generate_update_rule {
+    my ($self, $class) = @_;
+    my $key = $class->key;
     # Output the UPDATE rule.
     $self->{$key}{buffer} .= "CREATE RULE update_$key AS\n"
       . "ON UPDATE TO $key DO INSTEAD (";
-    for my $table (@tables) {
-        my $cols = $seen{$table} or next;
+    for my $table (@{$self->{table_data}{tables}}) {
+        my $cols = $self->{table_data}{colmap}{$table} or next;
         $self->{$key}{buffer} .= "\n  UPDATE $table\n  SET    "
           . join(', ', map { "$_ = NEW.$_" } @$cols)
           . "\n  WHERE  id = OLD.id;\n";
     }
     $self->{$key}{buffer} .= ");\n\n";
+    return $self;
+}
 
+sub generate_delete_rule {
+    my ($self, $class) = @_;
+    my $key = $class->key;
     # Output the DELETE rule.
     $self->{$key}{buffer} .= "CREATE RULE delete_$key AS\n"
       . "ON DELETE TO $key DO INSTEAD (\n"

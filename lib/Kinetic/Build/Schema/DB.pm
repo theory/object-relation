@@ -285,9 +285,19 @@ sub declare_column {
     my ($self, $class, $col) = @_;
     my $null = $self->column_null($col->{attr});
     my $def  = $self->column_default($col->{attr});
+    my $fk   = $self->column_reference($col);
     return "    $col->{name} $col->{type}"
       . ($null ? " $null" : '')
       . ($def ? " $def" : '')
+      . ($fk ? " $fk" : '')
+}
+
+sub column_reference {
+    my ($self, $col) = @_;
+    return unless $col->{refs};
+    my $fk_key = $col->{refs}->key;
+    my $fk_table = $self->{$fk_key}{table_data}{name};
+    return "REFERENCES $fk_table(id)";
 }
 
 sub column_name {
@@ -339,9 +349,53 @@ sub index_name {
 
 sub index_on {
     my ($self, $col) = @_;
-    return $col->{attr}->name;
+    return $col->{name};
 }
 
+sub generate_view {
+    my ($self, $class) = @_;
+    my $key = $class->key;
+    return $self unless $self->{$key}{table_data}{parent}
+      || $self->{$key}{table_data}{refs};
+
+    my (@tables, @wheres, %seen, $cols);
+    for my $col (@{$self->{$key}{col_data}}) {
+        unless ($seen{$col->{table}}) {
+            push @tables, $col->{table};
+            push @wheres, "$tables[-2].id = $tables[-1].id"
+              if @tables > 1;
+        }
+        push @{$seen{$col->{table}}}, $col->{name};
+        $cols .= $cols ? ', ' : "$col->{table}.id, ";
+        $cols .= "$col->{table}.$col->{name}";
+        if ($col->{refs}) {
+            my $fkey = $col->{refs}->key;
+            push @tables, $fkey unless $seen{$fkey};
+            push @wheres, "$col->{table}.$col->{name} = $fkey.id";
+            $cols .= qq{, $fkey.$_->{name} AS "$fkey.$_->{name}"}
+              for @{$self->{$fkey}{col_data}}
+        }
+    }
+
+    my $from = join ', ', @tables;
+    my $where = join ' AND ', @wheres;
+
+    # Output the view.
+    $self->{$key}{buffer} .= "CREATE VIEW $key AS\n"
+      . "  SELECT $cols\n"
+      . "  FROM   $from\n"
+      . "  WHERE  $where;\n\n";
+
+    $self->{table_data}{colmap} = \%seen;
+    $self->{table_data}{tables} = \@tables;
+    $self->generate_insert_rule($class);
+    $self->generate_update_rule($class);
+    $self->generate_delete_rule($class);
+}
+
+sub generate_insert_rule { shift }
+sub generate_update_rule { shift }
+sub generate_delete_rule { shift }
 sub generate_constraints { shift }
 
 1;
