@@ -19,7 +19,7 @@ package Kinetic::Meta::DataTypes;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use Class::Meta::Type;
+use Kinetic::Meta::Type;
 use Data::UUID;
 use Data::Types;
 use Kinetic::DateTime;
@@ -62,7 +62,7 @@ sub _make_isa_check {
     } ];
 };
 
-Class::Meta::Type->class_validation_generator(\&_make_isa_check);
+Kinetic::Meta::Type->class_validation_generator(\&_make_isa_check);
 
 ##############################################################################
 
@@ -79,7 +79,7 @@ A globally unique identifier as generated to Data::UUID.
 =cut
 
 my $ug = Data::UUID->new;
-Class::Meta::Type->add(
+Kinetic::Meta::Type->add(
     key     => "guid",
     name    => "Globally Unique Identifier",
     builder => 'Kinetic::Meta::AccessorBuilder',
@@ -95,7 +95,7 @@ A Perl string, decoded to its internal, utf8 format.
 
 =cut
 
-Class::Meta::Type->add(
+Kinetic::Meta::Type->add(
     key     => "string",
     name    => "String",
     builder => 'Kinetic::Meta::AccessorBuilder',
@@ -114,7 +114,7 @@ number.
 
 =cut
 
-Class::Meta::Type->add(
+Kinetic::Meta::Type->add(
     key     => "whole",
     name    => "Whole Number",
     builder => 'Kinetic::Meta::AccessorBuilder',
@@ -143,9 +143,11 @@ A Kinetic::DateTime object.
 
 =cut
 
-Class::Meta::Type->add(
+my $utc = DateTime::TimeZone::UTC->new;
+Kinetic::Meta::Type->add(
     key     => "datetime",
     name    => "DateTime",
+    raw     => sub { shift->clone->set_time_zone($utc)->iso8601 },
     builder => 'Kinetic::Meta::AccessorBuilder',
     check   => 'Kinetic::DateTime',
 );
@@ -158,7 +160,7 @@ A Kinetic::Party::Person::User object.
 
 =cut
 
-Class::Meta::Type->add(
+Kinetic::Meta::Type->add(
     key     => "user",
     name    => "User",
     builder => 'Kinetic::Meta::AccessorBuilder',
@@ -173,10 +175,11 @@ A Kinetic::Util::State object.
 
 =cut
 
-Class::Meta::Type->add(
+Kinetic::Meta::Type->add(
     key     => "state",
     name    => "State",
     builder => 'Kinetic::Meta::AccessorBuilder',
+    raw     => sub { shift->value },
     check   => sub {
         UNIVERSAL::isa($_[0], 'Kinetic::Util::State')
             or throw_invalid(['Value "[_1]" is not a valid [_2] object',

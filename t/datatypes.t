@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 25;
+use Test::More tests => 27;
 use Data::UUID;
 
 package Kinetic::TestTypes;
@@ -18,7 +18,7 @@ BEGIN {
 }
 
 BEGIN {
-    ok( my $cm = Class::Meta->new(
+    ok( my $cm = Kinetic::Meta->new(
         key     => 'types',
         name    => 'Testing DataTypes',
     ), "Create new CM object" );
@@ -85,6 +85,9 @@ ok( $@, "Got error setting GUID" );
 # Test state accessor.
 ok( $t->state(Kinetic::Util::State->ACTIVE), "Set state" );
 isa_ok( $t->state, 'Kinetic::Util::State' );
+# Make sure we get its raw value.
+is $t->my_class->attributes('state')->raw($t),
+  $t->state->value, "Make sure the raw value is a number";
 
 # Make sure an invalid value throws an exception.
 eval { $t->state('foo') };
@@ -101,9 +104,13 @@ ok( ! $t->bool, "Check false bool" );
 
 # Test DateTime accessor.
 is( $t->datetime, undef, 'Check for no DateTime' );
-ok( $t->datetime(Kinetic::DateTime->now), "Add DateTime object" );
+ok( $t->datetime(Kinetic::DateTime->now->set_time_zone('America/Los_Angeles')),
+    "Add DateTime object" );
 isa_ok($t->datetime, 'Kinetic::DateTime');
 isa_ok($t->datetime, 'DateTime');
+is $t->my_class->attributes('datetime')->raw($t),
+  $t->datetime->clone->set_time_zone('UTC')->iso8601,
+  "Make sure the raw value is a UTC string";
 eval { $t->datetime('foo') };
 ok my $err = $@, "Caught bad DateTime exception";
 isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';

@@ -5,6 +5,7 @@ package Kinetic::Meta::Attribute;
 use strict;
 use base 'Class::Meta::Attribute';
 use Kinetic::Util::Context;
+use Kinetic::Meta::Type;
 use Widget::Meta;
 
 =head1 Name
@@ -114,6 +115,58 @@ attribute is set to a true value.
 
 sub indexed { shift->{indexed} }
 
+##############################################################################
+
+=head2 Instance methods
+
+=head3 raw
+
+  my $raw_value = $attr->raw($thingy);
+
+This method returns the raw value of an attribute. This value will most often
+be the same as that returned by C<get()>, but when the attribute fetched is an
+object, it might return a raw value suitable for serialization or storage in a
+database. For example, if the attribute was a C<DateTime> object, the C<get()>
+metod will return the object, but the C<raw()> method might return an ISO-8601
+formatted string using the UTC time zone, instead.
+
+=cut
+
+sub raw {
+    my $self = shift;
+    my $code = $self->{_raw} or $self->class->handle_error(
+        sprintf 'Cannot get raw value for attribute "%s"', $self->name
+    );
+    goto &$code;
+}
+
+##############################################################################
+
+=head3 build
+
+This private method overrides the parent C<build()> method in order to set up
+the C<raw()> accessor interface.
+
+=cut
+
+# XXX Move references() from Build::Schema to here? Or move it to C::M::A?
+
+sub build {
+    my $self = shift;
+    $self->SUPER::build(@_);
+
+    my $type = Kinetic::Meta::Type->new($self->{type});
+    # Create the attribute object get code reference.
+    if ($self->authz >= Class::Meta::READ) {
+        my $get = $type->make_attr_get($self);
+        if (my $raw = $type->raw) {
+            $self->{_raw} = sub { $raw->($get->(shift)) };
+        } else {
+            $self->{_raw} = $get;
+        }
+    }
+    return $self;
+}
 1;
 __END__
 

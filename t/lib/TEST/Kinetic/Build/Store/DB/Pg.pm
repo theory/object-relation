@@ -713,6 +713,12 @@ sub test_validate_super_user_arg : Test(12) {
     $kbs->_dbh(undef); # Prevent ugly deaths during cleanup.
 }
 
+# To Do:
+# * Test helper methods used by rules
+# * Test config() and test_config().
+# * Create and test methods to create the database.
+# * Create and test build() and test_build().
+# * Add methods for actions instead of direct hash access.
 
 1;
 __END__

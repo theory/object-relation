@@ -4,10 +4,13 @@
 
 use strict;
 use warnings;
-use Test::More tests => 70;
+use Test::More tests => 92;
+#use Test::More 'no_plan';
+use Kinetic::Util::State qw(:all);
 
 package Kinetic::TestAccessors;
 use strict;
+use Kinetic::Util::State qw(:all);
 
 BEGIN {
     Test::More->import;
@@ -78,6 +81,16 @@ BEGIN {
                           ),
         "Add READWRITE attribute" );
 
+    # Add a READWRITE state attribute, so we can test the raw accessor.
+    ok( $cm->add_attribute( name     => 'state',
+                            context  => Class::Meta::OBJECT,
+                            view     => Class::Meta::PUBLIC,
+                            type     => 'state',
+                            required => 1,
+                            default  => ACTIVE,
+                          ),
+        "Add READWRITE attribute" );
+
     # Add a nocheck class attribute.
     ok( $cm->add_attribute( name     => 'cnc',
                             context  => Class::Meta::CLASS,
@@ -108,6 +121,7 @@ eval { $t->ro(2) };
 ok( $@, "Cannot set ro attribute" );
 ok( my $attr = $class->attributes('ro'), "Get ro attribute" );
 is( $attr->get($t), 1, "Check ro via attribute object" );
+is( $attr->raw($t), 1, "Check ro raw value");
 eval { $attr->set($t, 2) };
 ok( $@, "Cannot set ro attribute via object" );
 
@@ -121,8 +135,10 @@ eval { $t->set_rw(3) };
 ok( $@, "Cannot set_rw" );
 ok( $attr = $class->attributes('rw'), "Get rw attribute" );
 is( $attr->get($t), 2, "Check rw via attribute object" );
+is( $attr->raw($t), 2, "Check rw raw value");
 is( $attr->set($t, 3), $t, "Set rw via attribue object" );
 is( $attr->get($t), 3, "Check rw via attribute object for new value" );
+is( $attr->raw($t), 3, "Check rw raw value for the new value");
 
 # Try nocheck attribute.
 is( $t->nc, 'foo', "Check nocheck" );
@@ -134,8 +150,10 @@ eval { $t->set_nc('bat') };
 ok( $@, "Cannot set_nc" );
 ok( $attr = $class->attributes('nc'), "Get nc attribute" );
 is( $attr->get($t), 'bar', "Check nc via attribute object" );
+is( $attr->raw($t), 'bar', "Check nc raw value");
 is( $attr->set($t, 'bif'), $t, "Set nc via attribue object" );
 is( $attr->get($t), 'bif', "Check nc via attribute object for new value" );
+is( $attr->raw($t), 'bif', "Check nc raw value for the new value");
 
 # Try the read-only class attribute.
 is( Kinetic::TestAccessors->cro, 1, "Check cro" );
@@ -149,6 +167,7 @@ ok( $@, "Cannot set cro attribute" );
 ok( $attr = $class->attributes('cro'), "Get cro attribute" );
 is( $attr->get('Kinetic::TestAccessors'), 1,
  "Check cro via attribute object" );
+is( $attr->raw('Kinetic::TestAccessors'), 1, "Check cro raw value");
 eval { $attr->set('Kinetic::TestAccessors', 'fan') };
 ok( $@, "Cannot set cro attribute via attribute" );
 
@@ -166,12 +185,17 @@ ok( $@, "Cannot get_crw via object" );
 ok( $attr = $class->attributes('crw'), "Get crw attribute" );
 is( $attr->get('Kinetic::TestAccessors'), 2,
  "Check crw via attribute object" );
+is( $attr->raw('Kinetic::TestAccessors'), 2, "Check crw raw value");
 ok( $attr->set('Kinetic::TestAccessors', 4),
     "Set crw via attribue object" );
 is( $attr->get('Kinetic::TestAccessors'), 4,
     "Check crw via attribute object for new value" );
+is( $attr->raw('Kinetic::TestAccessors'), 4,
+    "Check crw raw value for new value");
 is( $attr->get($t), 4,
     "Check crw via attribute object for new value via object" );
+is( $attr->raw($t), 4,
+    "Check crw raw value via attribute object for new value");
 
 # Try nocheck class attribute.
 is( Kinetic::TestAccessors->cnc, 'whee', "Check class nocheck" );
@@ -187,12 +211,34 @@ ok( $@, "Cannot get_cnc via object" );
 ok( $attr = $class->attributes('cnc'), "Get cnc attribute" );
 is( $attr->get('Kinetic::TestAccessors'), 'fun',
  "Check cnc via attribute object" );
+is( $attr->raw('Kinetic::TestAccessors'), 'fun',
+ "Check cnc raw value via attribute object" );
 ok( $attr->set('Kinetic::TestAccessors', 'fan'),
     "Set cnc via attribue object" );
 is( $attr->get('Kinetic::TestAccessors'), 'fan',
     "Check cnc via attribute object for new value" );
+is( $attr->raw('Kinetic::TestAccessors'), 'fan',
+ "Check cnc raw value via attribute object for new value" );
 is( $attr->get($t), 'fan',
     "Check cnc via attribute object for new value via object" );
+is( $attr->raw($t), 'fan',
+ "Check cnc raw value via attribute object for new value via object" );
 
-1;
-__END__
+# Now test the state attribute, especially for its raw value, which will
+# be different. overload::StrVal($k2)
+my $active_str = overload::StrVal(ACTIVE);
+my $inactive_str = overload::StrVal(INACTIVE);
+
+is( overload::StrVal($t->state), $active_str,
+    "Check state for ACTIVE object" );
+is( $t->state(INACTIVE), $t, "Set state to INACTIVE" );
+is( overload::StrVal($t->state), $inactive_str,
+    "Check state for INACTIVE object" );
+ok( $attr = $class->attributes('state'), "Get state attribute" );
+is( overload::StrVal($attr->get($t)), $inactive_str,
+    "Check state via attribute object" );
+is( $attr->raw($t), 0, "Check state raw value");
+is( $attr->set($t, ACTIVE), $t, "Set state via attribue object" );
+is( overload::StrVal($attr->get($t)), $active_str,
+    "Check state via attribute object for new value" );
+is( $attr->raw($t), 1, "Check state raw value for the new value");
