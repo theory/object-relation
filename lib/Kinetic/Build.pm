@@ -495,6 +495,31 @@ sub ACTION_teardown_test {
 
 ##############################################################################
 
+=head3 help
+
+=begin comment
+
+=head3 ACTION_help
+
+=end comment
+
+Provides help for the user, including a list of all supported command-line
+options.
+
+=cut
+
+sub ACTION_help {
+    my $self = shift;
+    # XXX To be done. The way Module::Build implements this method rathe
+    # sucks (it expects its own specific POD format), so we'll likely have to
+    # hack our own. :-( We'll also want to add something to pull in options
+    # specified by the classes referenced in %STORES.
+    $self->SUPER::ACTION_help(@_);
+    return $self;
+}
+
+##############################################################################
+
 =head2 Methods
 
 =head3 process_conf_files
