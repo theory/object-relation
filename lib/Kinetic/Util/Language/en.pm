@@ -75,7 +75,7 @@ our %Lexicon = (
   "Argument “[_1]” is not a code reference",
 
   'Argument "[_1]" is not a valid [_2] object',
-  "Argument “[_1]” is not a valid[_2] object",
+  "Argument “[_1]” is not a valid [_2] object",
 
   'Cannot assign permanent state',
   'Cannot assign permanent state',
