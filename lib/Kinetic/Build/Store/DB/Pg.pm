@@ -797,59 +797,63 @@ my %createlang = (
 
 =head3 config
 
-This method is called by C<process_conf_files()> to populate the PostgreSQL
-section of the configuration files. It returns a list of lines to be included
-in the section, configuring the "db_name", "db_user", "db_pass", "host", and
-"port" directives.
+  my $config = $kbs->config;
+
+Returns a hash reference to be used in the configuration file's "pg" block.
+Called during the build to set up the PostgreSQL store configuration
+directives to be used by the Kinetic store at run time. Returns C<undef> if
+the data store selected during the build is not PostgreSQL.
 
 =cut
 
 sub config {
     my $self = shift;
-    return unless $self->store eq 'pg';
-    return (
-        "    db_name => '" . $self->db_name . "',\n",
-        "    db_user => '" . $self->db_user . "',\n",
-        "    db_pass => '" . $self->db_pass . "',\n",
-        "    host    => " . (defined $self->db_host ? "'" . $self->db_host . "'" : 'undef'), ",\n",
-        "    port    => " . (defined $self->db_port ? "'" . $self->db_port . "'" : 'undef'), ",\n",
-    );
+    return unless $self->builder->store eq 'pg';
+    return {
+        db_name => $self->db_name,
+        db_user => $self->db_user,
+        db_pass => $self->db_pass,
+        host    => $self->db_host,
+        port    => $self->db_port,
+    };
 }
 
 ##############################################################################
 
 =head3 test_config
 
-This method is called by C<process_conf_files()> to populate the PostgreSQL
-section of the configuration file used during testing. It returns a list of
-lines to be included in the section, configuring the "db_name", "db_user", and
-"db_pass" directives, which are each set to the temporary value
+  my $test_config = $kbs->test_config;
+
+Returns a hash reference to be used in the test configuration file's "pg"
+block. Called during the build to set up the PostgreSQL store configuration
+directives to be used during testing, it configures the "db_name", "db_user",
+and "db_pass" directives, which are each set to the temporary value
 "__kinetic_test__"; and "host", and "port" directives as specified via the
-"db_host" and "db_port" properties.
+"db_host" and "db_port" attributes (set during the evaluation of rules).
 
 =cut
 
+# XXX To be paranoid, we should probably make sure that no username or
+# database exist with the name "__kinetic__".
+
 sub test_config {
     my $self = shift;
-    return unless $self->store eq 'pg';
-    return (
-        "    db_name => '__kinetic_test__',\n",
-        "    db_user => '__kinetic_test__',\n",
-        "    db_pass => '__kinetic_test__',\n",
-        "    host    => " . (defined $self->db_host ? "'" . $self->db_host . "'" : 'undef'), ",\n",
-        "    port    => " . (defined $self->db_port ? "'" . $self->db_port . "'" : 'undef'), ",\n",
-    );
+    return {
+        db_name => '__kinetic_test__',
+        db_user => '__kinetic_test__',
+        db_pass => '__kinetic_test__',
+        host    => $self->db_host,
+        port    => $self->db_port,
+    };
 }
 
-=begin private
-
 ##############################################################################
+
+=begin private
 
 =head1 Private Interface
 
 =head2 Private Instance Methods
-
-##############################################################################
 
 =head3 _connect
 

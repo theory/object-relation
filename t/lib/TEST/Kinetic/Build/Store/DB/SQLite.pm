@@ -84,9 +84,10 @@ sub test_rules : Test(27) {
       "as should the test DSN";
 
     # Check the configs.
-    is $kbs->config, "    file => '$db_file',\n",
+    $mb->mock(store => 'sqlite');
+    is_deeply $kbs->config, {file => $db_file},
       "... and the configuration should be set";
-    is $kbs->test_config, "    file => '$test_file',\n",
+    is_deeply $kbs->test_config, {file => $test_file},
       "... as should the test configuration";
 
     # Try building the test database.

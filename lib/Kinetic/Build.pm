@@ -457,7 +457,9 @@ dependency.
 sub ACTION_test {
     my $self = shift;
     $self->depends_on('setup_test');
-    local $ENV{KINETIC_CONF} = $self->notes('test_conf_file');
+    # This should always return a value here, but sometimes it doesn't...
+    # Not sure why; fix if it becomes a problem.
+    local $ENV{KINETIC_CONF} = $self->notes('test_conf_file') || '';
     $self->SUPER::ACTION_test(@_);
     $self->depends_on('teardown_test');
 }
@@ -556,8 +558,9 @@ sub process_conf_files {
                 # Let the store builder set up the configuration.
                 my $store = $self->notes('build_store');
                 if (my $method = $store->can($prefix . "config")) {
-                    if (my @section = $store->$method) {
-                        push @conf, @section, "},\n";
+                    if (my $section = $store->$method) {
+                        push @conf, $self->_serialize_conf_hash($section),
+                          "},\n";
                     }
                 }
             } elsif ($STORES{$1}) {
@@ -565,11 +568,12 @@ sub process_conf_files {
                 $conf[-1] = "# $conf[-1]";
                 push @conf, "# }\n";
             } elsif (my $method = $self->can($prefix . $1 . '_config')
-              || $self->can($1 . '_config')) {
+                     || $self->can($1 . '_config'))
+            {
                 # There's a configuration method for it in this class.
-                if (my @section = $self->$method) {
+                if (my $section = $self->$method) {
                     # Insert the section contents using the *_config method.
-                    push @conf, @section, "},\n";
+                    push @conf, $self->_serialize_conf_hash($section), "},\n";
                 }
             } else {
                 # Continue with the next line to grab the default contents
@@ -607,7 +611,7 @@ sub store_config {
                              . ' data store');
     eval "require $build_store_class" or $self->_fatal_error($@);
     my $store_class = $build_store_class->store_class;
-    return "    class => '$store_class',\n";
+    return {class => $store_class};
 }
 
 ##############################################################################
@@ -763,10 +767,11 @@ sub _copy_to {
     my @ret;
     while (my ($file, $dest) = each %$files) {
         for my $dir (@_) {
-            push @ret, $self->copy_if_modified(
+            my $file = $self->copy_if_modified(
                 from => $file,
                 to   => File::Spec->catfile($dir, $dest)
             );
+            push @ret, $file if defined $file;
         }
     }
     return @ret;
@@ -860,6 +865,25 @@ sub _readline {
         $self->_prompt("\n");
     }
     return $ans;
+}
+
+##############################################################################
+
+=head3 _serialize_conf_hash
+
+  my @config_lines = $build->_serialize_conf_hash($hashref);
+
+Converts the contents of a hash reference returned by a config method (such as
+C<store_config()> or the C<config()> method in Kinetic::Store) to lines
+suitable for output to a configuration file.
+
+=cut
+
+sub _serialize_conf_hash {
+    my ($self, $conf) = @_;
+    map { "    $_ => "
+          . (defined $conf->{$_} ? "'$conf->{$_}'" : 'undef') . ",\n"
+    } sort keys %$conf;
 }
 
 ##############################################################################

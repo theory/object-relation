@@ -542,7 +542,7 @@ sub test_rules : Test(159) {
 # Check schema permissions
 # Done
 
-sub test_validate_user_db : Test(12) {
+sub test_validate_user_db : Test(14) {
     my $self = shift;
     my $class = $self->test_class;
     # Supply username and password when prompted, database exists and has
@@ -585,6 +585,24 @@ sub test_validate_user_db : Test(12) {
     is $kbs->db_super_pass, undef, "Super user password is undefined";
     is $kbs->template_db_name, undef, "Template name is undefined";
     $kbs->_dbh(undef); # Prevent ugly deaths during cleanup.
+
+    # Test config.
+    is_deeply $kbs->test_config, {
+        db_name => '__kinetic_test__',
+        db_user => '__kinetic_test__',
+        db_pass => '__kinetic_test__',
+        host    => undef,
+        port    => undef,
+    }, "As should the test configuration.";
+
+    $mb->mock(store => 'pg');
+    is_deeply $kbs->config, {
+        db_name => 'kinetic',
+        db_user => 'kinetic',
+        db_pass => 'asdfasdf',
+        host    => undef,
+        port    => undef,
+    }, "The configuration should be set up properly.";
 }
 
 ##############################################################################
@@ -604,7 +622,7 @@ sub test_validate_user_db : Test(12) {
 # Check user
 # Done
 
-sub test_validate_super_user : Test(12) {
+sub test_validate_super_user : Test(14) {
     my $self = shift;
     my $class = $self->test_class;
     # Supply username and password when prompted, database exists and has
@@ -616,7 +634,7 @@ sub test_validate_super_user : Test(12) {
     my $builder = $self->new_builder;
     $mb->mock(resume => $builder);
     $mb->mock(_app_info_params => sub { } );
-    my @replies = ('localhost', '5432', 'kinetic', 'kinetic', 'asdfasdf',
+    my @replies = ('pgme', '5433', 'kinetic', 'kinetic', 'asdfasdf',
                    'template1', 'postgres', 'postgres');
     $mb->mock(get_reply => sub { shift @replies });
     $mb->mock(args => 0);
@@ -642,8 +660,8 @@ sub test_validate_super_user : Test(12) {
     is_deeply [$kbs->actions], ['create_db', 'add_plpgsql', 'create_user',
                                 'build_db'],
       "We should have the right actions";
-    is $kbs->db_host, undef, 'Database host is undefined';
-    is $kbs->db_port, undef, 'Port is undefined';
+    is $kbs->db_host, 'pgme', 'Database host is undefined';
+    is $kbs->db_port, '5433', 'Port is undefined';
     is $kbs->db_name, 'kinetic', 'Database name is "kinetic"';
     is $kbs->db_user, 'kinetic', 'Database user is "kinetic"';
     is $kbs->db_pass, 'asdfasdf', 'Database user is "asdfasdf"';
@@ -651,6 +669,24 @@ sub test_validate_super_user : Test(12) {
     is $kbs->db_super_pass, 'postgres', 'Super user password is "postgres"';
     is $kbs->template_db_name, 'template1', 'Template name is "template1"';
     $kbs->_dbh(undef); # Prevent ugly deaths during cleanup.
+
+    # Test config.
+    is_deeply $kbs->test_config, {
+        db_name => '__kinetic_test__',
+        db_user => '__kinetic_test__',
+        db_pass => '__kinetic_test__',
+        host    => 'pgme',
+        port    => '5433',
+    }, "As should the test configuration.";
+
+    $mb->mock(store => 'pg');
+    is_deeply $kbs->config, {
+        db_name => 'kinetic',
+        db_user => 'kinetic',
+        db_pass => 'asdfasdf',
+        host    => 'pgme',
+        port    => '5433',
+    }, "The configuration should be set up properly.";
 }
 
 ##############################################################################
@@ -666,7 +702,7 @@ sub test_validate_super_user : Test(12) {
 # Check user
 # Done
 
-sub test_validate_super_user_arg : Test(12) {
+sub test_validate_super_user_arg : Test(14) {
     my $self = shift;
     my $class = $self->test_class;
     # Supply username and password when prompted, database exists and has
@@ -678,7 +714,7 @@ sub test_validate_super_user_arg : Test(12) {
     my $builder = $self->new_builder;
     $mb->mock(resume => $builder);
     $mb->mock(_app_info_params => sub { } );
-    my @replies = ('localhost', '5432', 'kinetic', 'kinetic', 'asdfasdf',
+    my @replies = ('localhost', '5432', 'howdy', 'howdy', 'asdfasdf',
                    'template1');
     $mb->mock(get_reply => sub { shift @replies });
     my @args = ('postgres', 'postgres');
@@ -705,18 +741,35 @@ sub test_validate_super_user_arg : Test(12) {
       "We should have the right actions";
     is $kbs->db_host, undef, 'Database host is undefined';
     is $kbs->db_port, undef, 'Port is undefined';
-    is $kbs->db_name, 'kinetic', 'Database name is "kinetic"';
-    is $kbs->db_user, 'kinetic', 'Database user is "kinetic"';
+    is $kbs->db_name, 'howdy', 'Database name is "howdy"';
+    is $kbs->db_user, 'howdy', 'Database user is "howdy"';
     is $kbs->db_pass, 'asdfasdf', 'Database user is "asdfasdf"';
     is $kbs->db_super_user, 'postgres', 'Super user is "postgres"';
     is $kbs->db_super_pass, 'postgres', 'Super user password is "postgres"';
     is $kbs->template_db_name, undef, "Template name is undefined";
     $kbs->_dbh(undef); # Prevent ugly deaths during cleanup.
+
+    # Test config.
+    is_deeply $kbs->test_config, {
+        db_name => '__kinetic_test__',
+        db_user => '__kinetic_test__',
+        db_pass => '__kinetic_test__',
+        host    => undef,
+        port    => undef,
+    }, "As should the test configuration.";
+
+    $mb->mock(store => 'pg');
+    is_deeply $kbs->config, {
+        db_name => 'howdy',
+        db_user => 'howdy',
+        db_pass => 'asdfasdf',
+        host    => undef,
+        port    => undef,
+    }, "The configuration should be set up properly.";
 }
 
 # To Do:
 # * Test helper methods used by rules
-# * Test config() and test_config().
 # * Create and test methods to create the database.
 # * Create and test build() and test_build().
 

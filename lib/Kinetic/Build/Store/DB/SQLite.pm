@@ -217,29 +217,34 @@ sub test_dsn {
 
 =head3 config
 
-  my @config = $kbs->config;
+  my $config = $kbs->config;
 
-Returns a list of lines to include in the configuration file's "sqlite" block.
-Called during the build to set up the SQLite store configuration directives to
-be used by the Kinetic store at run time.
+Returns a hash reference to be used in the configuration file's "sqlite"
+block. Called during the build to set up the SQLite store configuration
+directives to be used by the Kinetic store at run time. Returns C<undef> if
+the data store selected during the build is not SQLite.
 
 =cut
 
-sub config { "    file => '" . shift->_path . "',\n" }
+sub config {
+    my $self = shift;
+    return unless $self->builder->store eq 'sqlite';
+    return {file => $self->_path };
+}
 
 ##############################################################################
 
 =head3 test_config
 
-  my @test_config = $kbs->test_config;
+  my $test_config = $kbs->test_config;
 
-Returns a list of lines to include in the test configuration file's "sqlite"
+Returns a hash reference to be used in the test configuration file's "sqlite"
 block. Called during the build to set up the SQLite store configuration
 directives to be used during testing.
 
 =cut
 
-sub test_config { "    file => '" . shift->_test_path . "',\n" }
+sub test_config { {file => shift->_test_path } }
 
 ##############################################################################
 

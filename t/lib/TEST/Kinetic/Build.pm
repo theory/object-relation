@@ -38,7 +38,9 @@ sub atest_process_conf_files : Test(14) {
     my $builder;
     my $mb = MockModule->new($class);
     $mb->mock(resume => sub { $builder });
-    $mb->mock('ACTION_docs' => 0);
+    $mb->mock(ACTION_docs => 0);
+    $mb->mock(store => 'sqlite');
+    $mb->mock(store_config => { class => undef });
     $builder = $self->new_builder;
 
     # Building should create these things.
@@ -57,7 +59,7 @@ sub atest_process_conf_files : Test(14) {
     file_contents_like 'blib/conf/kinetic.conf', qr/#\s*pg\s+=>\s+{/,
       '... The PostgreSQL section should be commented out';
     file_contents_like 'blib/conf/kinetic.conf',
-      qr/\n\s*store\s*=>\s*{\s*class\s*=>\s*'Kinetic::Store::DB::SQLite'/,
+      qr/\n\s*store\s*=>\s*{\s*class\s*=>\s*undef/,
       '... The store should point to the correct data store';
 
     # Check the test config file.
@@ -67,7 +69,7 @@ sub atest_process_conf_files : Test(14) {
     file_contents_like 't/conf/kinetic.conf', qr/#\s*pg\s+=>\s+{/,
       '... The PostgreSQL section should be commented out in the test conf';
     file_contents_like 't/conf/kinetic.conf',
-      qr/\n\s*store\s*=>\s*{\s*class\s*=>\s*'Kinetic::Store::DB::SQLite'/,
+      qr/\n\s*store\s*=>\s*{\s*class\s*=>\s*undef/,
       '... The store should point to the correct data store in the test conf';
 
     # Make sure we clean up our mess.
@@ -95,7 +97,7 @@ sub test_props : Test(11) {
       'The test data directory should consistent';
     like $builder->install_base, qr/kinetic$/,
       'The install base should end with "kinetic"';
-    is $builder->store_config, "    class => 'Kinetic::Store::DB::SQLite',\n",
+    is_deeply $builder->store_config, {class => 'Kinetic::Store::DB::SQLite'},
       "The store_config method should set up the SQLite store";
 
     # Make sure we clean up our mess.
