@@ -15,7 +15,7 @@ isa_ok $sg, 'Kinetic::Build::Schema';
 isa_ok $sg, 'Kinetic::Build::Schema::DB';
 isa_ok $sg, 'Kinetic::Build::Schema::DB::SQLite';
 
-ok $sg->load_classes('t/lib'), "Load classes";
+ok $sg->load_classes('t/sample'), "Load classes";
 my $file = 't/data/SQLite.sql';
 ok $sg->write_schema($file), "Write schema file";
 my $fn = File::Spec->catfile(split m{/}, $file);
@@ -44,7 +44,7 @@ test_contains_order(\@schema, @class_keys);
 
 ##############################################################################
 # Cleanup our mess.
-#END { File::Path::rmtree(File::Spec->catdir(qw(t data))) }
+END { unlink $file }
 
 sub test_contains {
     my ($contents, $find) = @_;
