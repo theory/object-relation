@@ -121,6 +121,102 @@ sub _clear_database {
     $test->{dbh}->begin_work;
 } 
 
+sub search_or : Test(9) {
+    my $test = shift;
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my $class = $foo->my_class;
+    ok my $iterator = Store->search(
+        $class,
+        OR(name => 'foo', name => LIKE 'snorf%'),
+        {order_by => 'name', sort_order => DESC}
+    );
+    my @items = _all_items($iterator);
+    is @items, 2, 'OR should return the correct number of items';
+    is_deeply \@items, [$baz, $foo], 
+        'and should include the correct items';
+    
+    ok $iterator = Store->search(
+        $class,
+        OR(name => 'foo', description => NOT undef),
+        {order_by => 'name', sort_order => DESC}
+    );
+    @items = _all_items($iterator);
+    is @items, 1, 'OR matches should return the correct number of items';
+    is_deeply \@items, [$foo], 
+        'and should include the correct items';
+
+    $bar->description('giggling pastries');
+    Store->save($bar);
+    ok $iterator = Store->search(
+        $class,
+        OR(name => 'foo', description => NOT undef),
+        {order_by => 'name', sort_order => DESC}
+    );
+    @items = _all_items($iterator);
+    is @items, 2, 'OR matches should return the correct number of items';
+    is_deeply \@items, [$foo, $bar], 
+        'and should include the correct items';
+}
+
+sub search_and : Test(no_plan) {
+    my $test = shift;
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my $class = $foo->my_class;
+    ok my $iterator = Store->search(
+        $class,
+        AND(name => 'foo', name => LIKE 'snorf%'),
+        {order_by => 'name', sort_order => DESC}
+    );
+    my @items = _all_items($iterator);
+    is @items, 0, 'AND should return the correct number of items';
+    is_deeply \@items, [], 
+        'and should include the correct items';
+
+    ok $iterator = Store->search(
+        $class,
+        AND(name => 'foo', description => NOT undef),
+        {order_by => 'name', sort_order => DESC}
+    );
+    @items = _all_items($iterator);
+    is @items, 0, 'AND matches should return the correct number of items';
+    is_deeply \@items, [], 
+        'and should include the correct items';
+
+    $bar->description('giggling pastries');
+    Store->save($bar);
+    ok $iterator = Store->search(
+        $class,
+        AND(name => 'bar', description => NOT undef),
+        {order_by => 'name', sort_order => DESC}
+    );
+    @items = _all_items($iterator);
+    is @items, 1, 'OR matches should return the correct number of items';
+    is_deeply \@items, [$bar], 
+        'and should include the correct items';
+    
+    $foo->description('We Want Revolution');
+    Store->save($foo);
+    ok $iterator = Store->search(
+        $class,
+        AND(description => NOT undef, OR(name => 'foo', name => 'bar')),
+        {order_by => 'name', sort_order => DESC}
+    );
+    @items = _all_items($iterator);
+    is @items, 2, 'ComplexAND/OR matches should return the correct number of items';
+    is_deeply \@items, [$foo, $bar], 
+        'and should include the correct items';
+
+    ok $iterator = Store->search(
+        $class,
+        description => NOT undef,
+        OR (name => 'foo', name => 'bar'),
+        {order_by => 'name', sort_order => DESC}
+    );
+    is @items, 2, 'ComplexAND/OR matches should return the correct number of items';
+    is_deeply \@items, [$foo, $bar], 
+        'and should include the correct items';
+}
+
 sub save : Test(10) {
     my $test  = shift;
     $test->_clear_database;
@@ -395,7 +491,7 @@ sub search_like : Test(6) {
         $class, 
         name => LIKE 'f%', 
         {order_by => 'name'}
-    );
+    ), 'and calling search should succeed';
     my @items = _all_items($iterator);
     is @items, 1, 'and LIKE should return the correct number of items';
     is_deeply \@items, [$foo], 

@@ -204,13 +204,25 @@ sub _constraints {
 
 sub _make_where_clause {
     my ($class, $attributes, $constraints) = @_;
+    $constraints ||= {};
     my (@where, @bind);
     while (my ($field, $attribute) = splice @$attributes => 0, 2) {
+        if ('CODE' eq ref $field) { # handle AND/OR
+            # we need to back up one because AND and OR are not preceded
+            # by the name of a field:
+            # Store->search($class, OR(name => 'foo', desc => 'bar'));
+            unshift @$attributes => $attribute;
+            $attribute = $field;
+            $field     = undef;
+        }
         my ($token, $params) = $class->_make_where_token($field, $attribute);
-        push @where => $token;
-        push @bind  => @$params;
+        push @where => $token   if defined $token;
+        push @bind  => @$params if defined $params;
     }
-    my $where = join(' AND ' => @where) || '';
+    my $join  = $constraints->{negated}
+        ? 'OR'
+        : 'AND';
+    my $where = join(" $join " => @where) || '';
     return $where, @bind;
 }
 
@@ -218,14 +230,14 @@ my %COMPARE = (
     EQ          => '=',
     NOT         => '!=',
     LIKE        => 'LIKE',
-    MATCH       => 'SIMILAR TO', # postgresql specific
+    MATCH       => '~*', # postgresql specific
     GT          => '>',
     LT          => '<',
     GE          => '>=',
     LE          => '<=',
     NE          => '!=',
     'NOT LIKE'  => 'NOT LIKE',
-    'NOT MATCH' => 'NOT SIMILAR TO', # see MATCH
+    'NOT MATCH' => '!~*', # see MATCH
     'NOT EQ'    => '!=',
     'NOT GT'    => '<=',
     'NOT LT'    => '>=',
@@ -241,6 +253,7 @@ sub _comparison_operator {
 sub _make_where_token {
     my ($class, $field, $attribute) = @_;
     my ($comparator, $value) = $class->_expand_attribute($attribute);
+
                # simple compare         #       NULL            # BETWEEN
     if ((my $op = $class->_comparison_operator($comparator)) && defined $value && ! ref $value) {
         return ("$field $op ?", [$value]);
@@ -252,7 +265,18 @@ sub _make_where_token {
         my $place_holders = join ', ' => ('?') x @$value;
         return ("$field $comparator IN ($place_holders)", $value);
     }
+    elsif ($comparator eq 'AND') {
+        my ($where_clause, @bindings) = $class->_make_where_clause($value);
+        return ("($where_clause)", \@bindings);
+    }
+    elsif ($comparator eq 'OR') {
+        my ($where_clause, @bindings) = $class->_make_where_clause($value, {negated => 1});
+        return ("($where_clause)", \@bindings);
+    }
     elsif (! defined $value) {
+        # XXX I don't know how we're getting here with an undefined
+        # field but it happens with AND/OR searches :/
+        return unless defined $field;
         return ("$field IS $comparator NULL", []); 
     }
     elsif ($comparator =~ /LIKE/) {

@@ -7,6 +7,7 @@ use warnings;
 
 use Test::More;
 use base 'TEST::Kinetic::Store';
+#use base 'TEST::Class::Kinetic';
 use lib 't/lib';
 use Kinetic::Build::Schema;
 use aliased 'Test::MockModule';
@@ -20,12 +21,22 @@ use aliased 'Hash::AsObject';
 
 __PACKAGE__->runtests;
 
-sub where_token : Test(26) {
+sub where_token : Test(30) {
     can_ok Store, '_make_where_token';
     
     my ($token, $bind) = Store->_make_where_token('name', 'foo');
     is $token, 'name = ?', 'and a basic match should return the correct where snippet';
     is_deeply $bind, ['foo'], 'and a proper bind param';
+
+    ($token, $bind) = Store->_make_where_token(undef, AND(name => 'bar', desc => 'baz'));
+    is $token, '(name = ? AND desc = ?)', 
+        'and an AND search should return the correct where snippet';
+    is_deeply $bind, [qw/bar baz/], 'and a proper bind param';
+    
+    ($token, $bind) = Store->_make_where_token(undef, OR(name => 'bar', desc => 'baz'));
+    is $token, '(name = ? OR desc = ?)', 
+        'and an OR search should return the correct where snippet';
+    is_deeply $bind, [qw/bar baz/], 'and a proper bind param';
 
     ($token, $bind) = Store->_make_where_token('name', NOT 'foo');
     is $token, 'name != ?', 
@@ -73,15 +84,15 @@ sub where_token : Test(26) {
     is_deeply $bind, ['%foo'], 'and a proper bind param';
 
     ($token, $bind) = Store->_make_where_token('name', MATCH '(a|b)%');
-    is $token, 'name SIMILAR TO ?', 'and a MATCH search should return the correct where snippet';
+    is $token, 'name ~* ?', 'and a MATCH search should return the correct where snippet';
     is_deeply $bind, ['(a|b)%'], 'and a proper bind param';
 
     ($token, $bind) = Store->_make_where_token('name', NOT MATCH '(a|b)%');
-    is $token, 'name NOT SIMILAR TO ?', 'and a negated MATCH search should return the correct where snippet';
+    is $token, 'name !~* ?', 'and a negated MATCH search should return the correct where snippet';
     is_deeply $bind, ['(a|b)%'], 'and a proper bind param';
 }
 
-sub expand_attribute : Test(29) {
+sub expand_attribute : Test(33) {
     can_ok Store, '_expand_attribute';
 
     my ($type, $value) = Store->_expand_attribute('bar');
@@ -108,6 +119,20 @@ sub expand_attribute : Test(29) {
     ($type, $value) = Store->_expand_attribute(ANY('bar'));
     is $type, 'ANY', 'an ANY expansion will return ANY for the type';
     is_deeply $value, ['bar'], 'and the values will be an array ref';
+
+    ($type, $value) = Store->_expand_attribute(NOT ANY('bar', 'baz'));
+    is $type, 'NOT ANY', 'a NOT ANY expansion will return NOT ANY for the type';
+    is_deeply $value, ['bar', 'baz'], 'and the args as an array ref';
+
+    ($type, $value) = Store->_expand_attribute(OR(name => 'bar', desc => 'baz'));
+    is $type, 'OR', 'an OR expansion will return OR for the type';
+    is_deeply $value, [name => 'bar', desc => 'baz'],
+        'and the values will be an array ref';
+
+    ($type, $value) = Store->_expand_attribute(AND(name => 'bar', desc => 'baz'));
+    is $type, 'AND', 'an AND expansion will return AND for the type';
+    is_deeply $value, [name => 'bar', desc => 'baz'],
+        'and the values will be an array ref';
 
     ($type, $value) = Store->_expand_attribute(GT 'bar');
     is $type, 'GT', 'an GT expansion will return NOT GT for the type';
@@ -136,10 +161,6 @@ sub expand_attribute : Test(29) {
     ($type, $value) = Store->_expand_attribute(NOT 'bar');
     is $type, 'NOT', 'a NOT expansion with a scalar arg will return NOT for the type';
     is_deeply $value, 'bar', 'and the scalar arg';
-
-    ($type, $value) = Store->_expand_attribute(NOT ANY('bar', 'baz'));
-    is $type, 'NOT ANY', 'a NOT ANY expansion will return NOT ANY for the type';
-    is_deeply $value, ['bar', 'baz'], 'and the args as an array ref';
 }
 
 {
