@@ -24,7 +24,6 @@ use Kinetic::Store qw/:all/;
 use aliased 'Kinetic::Build';
 use aliased 'Kinetic::Build::Store::DB::SQLite' => 'SQLiteBuild';
 use aliased 'Kinetic::Meta';
-use aliased 'Kinetic::Store' => 'DOESNT_MATTER', ':all';
 use aliased 'Kinetic::Store::DB::SQLite' => 'Store';
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Util::State';
@@ -33,8 +32,6 @@ use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
 
 __PACKAGE__->runtests;
-
-my ($DBH, $DBFILE);
 
 sub _all_items {
     my $iterator = shift;
@@ -120,6 +117,69 @@ sub _clear_database {
     $test->{dbh}->rollback;
     $test->{dbh}->begin_work;
 } 
+
+sub where_token : Test(24) {
+    my $store = Store->new;
+    can_ok $store, '_make_where_token';
+    $store->{search_class} = One->new->my_class;
+    
+    my ($token, $bind) = $store->_make_where_token('name', 'foo');
+    is $token, 'name = ?', 'and a basic match should return the correct where snippet';
+    is_deeply $bind, ['foo'], 'and a proper bind param';
+
+    ($token, $bind) = $store->_make_where_token('name', NOT 'foo');
+    is $token, 'name != ?', 
+        'and a negated basic match should return the correct where snippet';
+    is_deeply $bind, ['foo'], 'and a proper bind param';
+
+    eval { $store->_make_where_token('name', {}) };
+    ok $@, "We should not make a where token if it doesn't know how to make one";
+
+    ($token, $bind) = $store->_make_where_token('name', ['bar', 'foo']);
+    is $token, 'name  BETWEEN ? AND ?',
+        'and a range search should return the correct where snippet';
+    is_deeply $bind, ['bar', 'foo'], 'and a proper bind param';
+
+    ($token, $bind) = $store->_make_where_token('name', NOT ['bar', 'foo']);
+    is $token, 'name NOT BETWEEN ? AND ?',
+        'and a negated range search should return the correct where snippet';
+    is_deeply $bind, ['bar', 'foo'], 'and a proper bind param';
+    
+    ($token, $bind) = $store->_make_where_token('name', undef);
+    is $token, 'name IS  NULL', 'and a NULL search  should return the correct where snippet';
+    is_deeply $bind, [], 'and a proper bind param';
+
+    ($token, $bind) = $store->_make_where_token('name', NOT undef);
+    is $token, 'name IS NOT NULL', 
+        'and a negated NULL search should return the correct where snippet';
+    is_deeply $bind, [], 'and a proper bind param';
+
+    ($token, $bind) = $store->_make_where_token('name', ANY(qw/foo bar baz/));
+    is $token, 'name  IN (?, ?, ?)', 
+        'and an IN search should return the correct where snippet';
+    is_deeply $bind, [qw/foo bar baz/], 'and a proper bind param';
+
+    ($token, $bind) = $store->_make_where_token('name', NOT ANY(qw/foo bar baz/));
+    is $token, 'name NOT IN (?, ?, ?)', 
+        'and a negated IN search should return the correct where snippet';
+    is_deeply $bind, [qw/foo bar baz/], 'and a proper bind param';
+    
+    ($token, $bind) = $store->_make_where_token('name', LIKE '%foo');
+    is $token, 'name LIKE ?', 'and a LIKE search should return the correct where snippet';
+    is_deeply $bind, ['%foo'], 'and a proper bind param';
+
+    ($token, $bind) = $store->_make_where_token('name', NOT LIKE '%foo');
+    is $token, 'name NOT LIKE ?', 'and a negated LIKE search should return the correct where snippet';
+    is_deeply $bind, ['%foo'], 'and a proper bind param';
+
+    throws_ok {$store->_make_where_token('name', MATCH '(a|b)%')}
+        qr/MATCH:  SQLite does not support regular expressions/,
+        'Trying to use a regex match with SQLite should croak';
+
+    throws_ok {$store->_make_where_token('name', NOT MATCH '(a|b)%')}
+        qr/MATCH:  SQLite does not support regular expressions/,
+        'Trying to use a regex match with SQLite should croak even if we are trying to negate it';
+}
 
 sub search_or : Test(9) {
     my $test = shift;
@@ -281,7 +341,7 @@ sub lookup : Test(8) {
         'or if you search on a non-unique field';
 }
 
-sub search : Test(13) {
+sub search : Test(16) {
     my $test = shift;
     can_ok Store, 'search';
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
@@ -305,6 +365,11 @@ sub search : Test(13) {
     is_deeply $iterator->next, $foo, 
         'and it should return the same results as an instance method';
     ok ! $iterator->next, 'and there should be the correct number of objects';
+
+    ok $iterator = Store->search($class, name => 'Foo'), 
+        'Case-insensitive searches should not work with SQLite';
+    isa_ok $iterator, Iterator, 'and the object it returns';
+    ok ! $iterator->next, 'and they should not return data if the case does not match';
 
     $iterator = $store->search($class, name => 'foo', description => 'asdf');
     ok ! $iterator->next,

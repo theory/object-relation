@@ -289,20 +289,20 @@ sub _comparison_operator {
     return $COMPARE{$key};
 }
 
-sub _case_insensitive_fields {
+sub _case_insensitive_types {
     my ($self) = @_;
-    #return qw/guid string/;
     return qw/string/;
 }
 
 sub _make_where_token {
     my ($self, $field, $attribute) = @_;
+    my $case_insensitive = 0;
     if ($self->{search_class} && $field ne 'id') {
-    #if ($self->{search_class} && $field ne 'guid' && $field ne 'id') {
         my $type = $self->{search_class}->attributes($field)->type;
-        foreach my $ifield ($self->_case_insensitive_fields) {
+        foreach my $ifield ($self->_case_insensitive_types) {
             if ($type eq $ifield) {
                 $field = "lower($field)";
+                $case_insensitive = 1;
                 last;
             }
         }
@@ -310,22 +310,25 @@ sub _make_where_token {
     
     my ($comparator, $value) = $self->_expand_attribute($attribute);
 
-               # simple compare         #       NULL            # BETWEEN
+    my $place_holder = $case_insensitive
+        ? 'lower(?)'
+        : '?';
+                                   # simple compare         #       NULL            # BETWEEN
     if ((my $op = $self->_comparison_operator($comparator)) && defined $value && ! ref $value) {
-        return ("$field $op ?", [$value]);
+        return ("$field $op $place_holder", [$value]);
     }
     elsif (($comparator eq '' || $comparator eq 'NOT')  && 'ARRAY' eq ref $value) {
-        return ("$field $comparator BETWEEN ? AND ?", $value);
+        return ("$field $comparator BETWEEN $place_holder AND $place_holder", $value);
     }
     elsif ($comparator =~ s/ ?ANY//) {
-        my $place_holders = join ', ' => ('?') x @$value;
+        my $place_holders = join ', ' => ($place_holder) x @$value;
         return ("$field $comparator IN ($place_holders)", $value);
     }
     elsif (! defined $value) {
         return ("$field IS $comparator NULL", []); 
     }
     elsif ($comparator =~ /LIKE/) {
-        return ("$field $comparator ?", [$value]);
+        return ("$field $comparator $place_holder", [$value]);
     }
     else {
         croak "I don't know how to make a where token from '$field' and '$attribute'";

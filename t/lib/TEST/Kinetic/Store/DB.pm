@@ -25,7 +25,6 @@ use aliased 'Hash::AsObject';
 __PACKAGE__->runtests;
 
 sub where_clause : Test(no_plan) {
-local $SIG{__DIE__} = \&Carp::cluck;
     my $store = Store->new;
     $store->{search_class} = One->new->my_class;
     my $my_class = MockModule->new('Kinetic::Meta::Class::Schema');
@@ -52,7 +51,7 @@ local $SIG{__DIE__} = \&Carp::cluck;
         name => 'foo',
         desc => 'bar',
     ]);
-    is $where, '(lower(name) = ? AND lower(desc) = ?)',
+    is $where, '(lower(name) = lower(?) AND lower(desc) = lower(?))',
         'and simple compound where snippets should succeed';
     is_deeply $bind, [qw/foo bar/],
         'and return the correct bind params';
@@ -64,7 +63,7 @@ local $SIG{__DIE__} = \&Carp::cluck;
             this => 'that',
         ],
     ]);
-    is $where, '(lower(name) = ? AND (lower(desc) = ? AND this = ?))',
+    is $where, '(lower(name) = lower(?) AND (lower(desc) = lower(?) AND this = ?))',
         'and compound where snippets with array refs should succeed';
     is_deeply $bind, [qw/foo bar that/],
         'and return the correct bind params';
@@ -76,7 +75,7 @@ local $SIG{__DIE__} = \&Carp::cluck;
             this => 'that',
         ),
     ]);
-    is $where, '(lower(name) = ? OR (lower(desc) = ? AND this = ?))',
+    is $where, '(lower(name) = lower(?) OR (lower(desc) = lower(?) AND this = ?))',
         'and compound where snippets with array refs should succeed';
     is_deeply $bind, [qw/foo bar that/],
         'and return the correct bind params';
@@ -124,11 +123,11 @@ sub where_token : Test(26) {
     $store->{search_class} = One->new->my_class;
     
     my ($token, $bind) = $store->_make_where_token('name', 'foo');
-    is $token, 'lower(name) = ?', 'and a basic match should return the correct where snippet';
+    is $token, 'lower(name) = lower(?)', 'and a basic match should return the correct where snippet';
     is_deeply $bind, ['foo'], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', NOT 'foo');
-    is $token, 'lower(name) != ?', 
+    is $token, 'lower(name) != lower(?)', 
         'and a negated basic match should return the correct where snippet';
     is_deeply $bind, ['foo'], 'and a proper bind param';
 
@@ -136,12 +135,12 @@ sub where_token : Test(26) {
     ok $@, "We should not make a where token if it doesn't know how to make one";
 
     ($token, $bind) = $store->_make_where_token('name', ['bar', 'foo']);
-    is $token, 'lower(name)  BETWEEN ? AND ?',
+    is $token, 'lower(name)  BETWEEN lower(?) AND lower(?)',
         'and a range search should return the correct where snippet';
     is_deeply $bind, ['bar', 'foo'], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', NOT ['bar', 'foo']);
-    is $token, 'lower(name) NOT BETWEEN ? AND ?',
+    is $token, 'lower(name) NOT BETWEEN lower(?) AND lower(?)',
         'and a negated range search should return the correct where snippet';
     is_deeply $bind, ['bar', 'foo'], 'and a proper bind param';
     
@@ -155,29 +154,33 @@ sub where_token : Test(26) {
     is_deeply $bind, [], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', ANY(qw/foo bar baz/));
-    is $token, 'lower(name)  IN (?, ?, ?)', 
+    is $token, 'lower(name)  IN (lower(?), lower(?), lower(?))', 
         'and an IN search should return the correct where snippet';
     is_deeply $bind, [qw/foo bar baz/], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', NOT ANY(qw/foo bar baz/));
-    is $token, 'lower(name) NOT IN (?, ?, ?)', 
+    is $token, 'lower(name) NOT IN (lower(?), lower(?), lower(?))', 
         'and a negated IN search should return the correct where snippet';
     is_deeply $bind, [qw/foo bar baz/], 'and a proper bind param';
     
     ($token, $bind) = $store->_make_where_token('name', LIKE '%foo');
-    is $token, 'lower(name) LIKE ?', 'and a LIKE search should return the correct where snippet';
+    is $token, 'lower(name) LIKE lower(?)',
+        'and a LIKE search should return the correct where snippet';
     is_deeply $bind, ['%foo'], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', NOT LIKE '%foo');
-    is $token, 'lower(name) NOT LIKE ?', 'and a negated LIKE search should return the correct where snippet';
+    is $token, 'lower(name) NOT LIKE lower(?)', 
+        'and a negated LIKE search should return the correct where snippet';
     is_deeply $bind, ['%foo'], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', MATCH '(a|b)%');
-    is $token, 'lower(name) ~* ?', 'and a MATCH search should return the correct where snippet';
+    is $token, 'lower(name) ~* lower(?)', 
+        'and a MATCH search should return the correct where snippet';
     is_deeply $bind, ['(a|b)%'], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', NOT MATCH '(a|b)%');
-    is $token, 'lower(name) !~* ?', 'and a negated MATCH search should return the correct where snippet';
+    is $token, 'lower(name) !~* lower(?)', 
+        'and a negated MATCH search should return the correct where snippet';
     is_deeply $bind, ['(a|b)%'], 'and a proper bind param';
 }
 

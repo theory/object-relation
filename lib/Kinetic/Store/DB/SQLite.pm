@@ -38,6 +38,16 @@ overriding C<Kinetic::Store::DB> methods as needed.
 
 =cut
 
+##############################################################################
+
+=head3 _set_id
+
+  $store->_set_id($kinetic_object);
+
+SQLite-specific implementation of C<Kinetic::Store::DB::_set_id>.
+
+=cut
+
 sub _set_id {
     my ($class, $object) = @_;
     my $view = $object->my_class->key;
@@ -49,6 +59,18 @@ sub _set_id {
     return $class;
 }
 
+##############################################################################
+
+=head3 _comparison_operator
+
+  my $op = $store->_comparison_operator($key);
+
+Works like C<Kinetic::Store::DB::_comparison_operator> but it croaks if a
+C<MATCH> operator is requested.  This is because regular expressions are not
+supported on SQLite.
+
+=cut
+
 sub _comparison_operator {
     my ($class, $key) = @_;
     if ($key =~ /MATCH/) {
@@ -57,6 +79,19 @@ sub _comparison_operator {
     }
     return $class->SUPER::_comparison_operator($key);
 }
+
+##############################################################################
+
+=head3 _case_insensitive_types
+
+  my @fields = $store->_case_insensitive_types;
+
+For SQLite, case-insensitivity only works for ASCII, not UNICODE.  Thus, we
+will make no fields case-insensitive.
+
+=cut
+
+sub _case_insensitive_types {}
 
 1;
 __END__
