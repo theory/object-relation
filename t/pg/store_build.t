@@ -14,20 +14,14 @@ use Cwd;
 
 my ($TEST_LIB, $CLASS, $BUILD);
 
-BEGIN { 
-use Carp;
-#    $SIG{__DIE__} = \&Carp::confess;
+BEGIN {
+#   use Carp; $SIG{__DIE__} = \&Carp::confess;
     $CLASS = 'Kinetic::Build::Store';
     chdir 't';
     chdir 'build_sample';
-    $TEST_LIB = File::Spec->catfile(qw/.. lib/);
+    $TEST_LIB = File::Spec->catfile(File::Spec->updir, 'lib');
 
-    # tell Kinetic::Build where to read the conf file
-    Kinetic::Build
-        ->new(module_name => 'KineticBuildOne')
-        ->dispatch('realclean');
-    
-    $BUILD = Kinetic::Build->new( 
+    $BUILD = Kinetic::Build->new(
         module_name     => 'KineticBuildOne',
         conf_file       => 'test.conf', # always writes to t/ and blib/
         accept_defaults => 1,
@@ -38,9 +32,8 @@ use Carp;
     eval {$BUILD->dispatch('build')};
     if ($@) {
         plan skip_all => "Could not dispatch to build: $@";
-    }
-    else {
-        plan tests => 21;
+    } else {
+        plan tests    => 21;
     }
 
     $BUILD = Kinetic::Build->resume;
@@ -51,7 +44,7 @@ use Carp;
 #use Kinetic::Util::Config;
 can_ok $CLASS, 'new';
 ok my $bstore = $CLASS->new, '... and calling it should succeed';
-isa_ok $bstore, $CLASS, => "... and the object it returns";
+isa_ok $bstore, $CLASS, "... and the object it returns";
 isa_ok $bstore, 'Kinetic::Build::Store::DB::Pg',
   '... and the object it returns';
 
@@ -64,15 +57,15 @@ is_deeply $metadata, $BUILD,
 SKIP: {
     skip 'Bad store', undef unless $BUILD->notes('got_store');
     can_ok $bstore, 'build';
-    ok $bstore->build, '... and calling it should succeed';    
-    
+    ok $bstore->build, '... and calling it should succeed';
+
     can_ok $bstore, '_schema_class';
     my $schema_class = $bstore->_schema_class;
     eval "use $schema_class";
     ok ! $@, '... and "use"ing the class should not die';
     my $schema = $schema_class->new;
     $schema->load_classes($TEST_LIB);
-    my @tables = map { $_->table } $schema->classes;
+    my @tables = map { $_->view } $schema->classes;
 
     can_ok $bstore, '_dbh';
     ok my $dbh = $bstore->_dbh, 'We should have a database handle';
