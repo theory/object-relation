@@ -75,7 +75,7 @@ sub info_class { 'App::Info::RDBMS::PostgreSQL' }
 
 =head3 _state_machine
 
-  my ($state_machine, $start_state, $end_func) = $rules->_state_machine;
+  my ($state_machine, $end_func) = $rules->_state_machine;
 
 This method returns arguments that the C<DFA::Rules> constructor
 requires.
@@ -87,14 +87,14 @@ sub _state_machine {
     my $template = 'template1'; # default postgresql template
     my $done;
     my $fail    = sub {! shift->result };
-    my $succeed = sub {  shift->result } ;
+    my $succeed = sub {  shift->result };
     my @state_machine = (
         installed => {
-            on_enter => sub { 
-                my $machine = shift;
-                $machine->set_result($self->_is_installed);
-                $machine->set_message($self->app_name ." does not appear to be installed" )
-                  unless $machine->result;
+            do => sub { 
+                my $state = shift;
+                $state->result($self->_is_installed);
+                $state->message($self->app_name ." does not appear to be installed" )
+                  unless $state->result;
             },
             rules  => [
                 fail    => $fail,
@@ -102,13 +102,13 @@ sub _state_machine {
             ],
         },
         version => {
-            on_enter => sub { 
-                my $machine = shift;
-                $machine->set_result($self->_is_required_version);
-                unless ($machine->result) {
+            do => sub { 
+                my $state = shift;
+                $state->result($self->_is_required_version);
+                unless ($state->result) {
                     my $required = $self->build->_required_version;
                     my $actual   = $self->info->version;
-                    $machine->set_message($self->app_name 
+                    $state->message($self->app_name 
                         . " required version $required but you have $actual");
                 }
             },
@@ -118,90 +118,89 @@ sub _state_machine {
             ],
         },
         createlang => {
-            on_enter => sub {
-                my $machine = shift;
-                $machine->set_result($self->info->createlang);
-                $machine->set_message("createlang is required for plpgsql support")
-                  unless $machine->result;
+            do => sub {
+                my $state = shift;
+                $state->result($self->info->createlang);
+                $state->message("createlang is required for plpgsql support")
+                  unless $state->result;
             },
             rules => [
                 fail     => $fail,
                 metadata => $succeed,
             ],
         },
-        $self->_dummy_state('metadata', 'user'),
+        $self->_dummy_state('metadata', 'root_user'),
+        root_user => {
+            do => sub {
+                my $state = shift;
+                my $root = $self->build->db_root_user || 'postgres';
+                my $dbh  = $self->_connect_as_root($template);
+                $state->result($dbh);
+                $self->_dbh($dbh);
+                $state->message("User ($root) is not a root user or does not exist.")
+                  unless $state->result;
+                $self->build->db_root_user($root);
+            },
+            rules => [
+                user => $fail,
+                done => $succeed,
+            ],
+        },
         user => {
-            on_enter => sub {
-                my $machine = shift;
+            do => sub {
+                my $state = shift;
                 my $dbh = $self->_connect_as_user($template);
-                $machine->set_result($dbh);
-                $machine->set_message("Could not connect as normal user")
+                $state->result($dbh);
+                $state->message("Could not connect as normal user")
                   unless $dbh;
                 $self->_dbh($dbh);
             },
             rules => [
-                root_user       => $fail,
+                fail            => $fail,
                 database_exists => $succeed
             ],
         },
-        root_user => {
-            on_enter => sub {
-                my $machine = shift;
-                my $root = $self->build->db_root_user || 'postgres';
-                $machine->set_result($root);
-                $self->build->db_root_user($root);
+        database_exists => {
+            do => sub {
+                my $state = shift;
+                $state->result($self->_db_exists($self->build->db_name));
+                $state->message("The default database does not exist")
+                  unless $state->result;
             },
             rules => [
-                #fail               => $fail,
-                validate_root_user => $succeed,
+                can_create_database => $fail,
+                plpgsql             => $succeed,
             ],
         },
-        validate_root_user => {
-            on_enter => sub {
-                my $machine = shift;
-                my $root = $self->build->db_root_user;
-                my $dbh  = $self->_connect_as_root($template);
-                $machine->set_result($dbh);
-                $self->_dbh($dbh);
-                $machine->set_message("User ($root) is not a root user or does not exist.")
-                  unless $machine->result;
+        can_create_database => {
+            do => sub {
+                my $state = shift;
+                $state->result($self->_can_create_db($self->build->db_user));
+                $state->message("Normal user does not have the right to create the database")
+                  unless $state->result;
             },
             rules => [
                 fail => $fail,
                 done => $succeed,
             ],
         },
-        database_exists => {
-            on_enter => sub {
-                my $machine = shift;
-                $machine->set_result($self->_db_exists($self->build->db_name));
-                $machine->set_message("The default database does not exist")
-                  unless $machine->result;
+        plpgsql => {
+            do => sub {
+                my $state = shift;
+                $state->result($self->_plpgsql_available);
+                $state->message("plpgsql not available.  Must be root user to install.")
+                  unless $state->result;
             },
             rules => [
-                can_create_database => $fail,
-                plsql               => $succeed,
+                fail              => $fail,
+                check_permissions => $succeed,
             ],
         },
-        can_create_database => {
-            on_enter => sub {
-                my $machine = shift;
-                $machine->set_result($self->_can_create_db($self->build->db_user));
-                $machine->set_message("Normal user does not have the right to create the database")
-                  unless $machine->result;
-            },
-            rules => [
-                root_user => $fail,
-                done      => $succeed,
-            ],
-        },
-        $self->_dummy_state('plsql',         'check_permissions', 'fail should goto can_add_plsql'),
-        $self->_dummy_state('can_add_plsql', 'check_permissions', 'this state currently cannot be reached'),
         $self->_dummy_state('check_permissions', 'done', 'fail should goto root_user'),
         fail => {
-            on_enter => sub { 
-                my $machine = shift;
-                die $machine->message($machine->prev_state) || 'no message supplied';
+            do => sub { 
+                my $state = shift;
+                die $state->prev_state->message || 'no message supplied';
             },
         },
         done => { do => sub { $done = 1 } }
@@ -289,6 +288,25 @@ sub _db_exists {
     $self->_pg_says_true(
         "select datname from pg_catalog.pg_database where datname = ?",
         $db_name
+    );
+}
+
+##############################################################################
+
+=head3 _plpgsql_available
+
+  $rules->_plpgsql_available;
+
+Returns boolean value indicating whether C<plpgsql> is available.  If it's not,
+super user must control install.
+
+=cut
+
+sub _plpgsql_available {
+    my $self = shift;
+    $self->_pg_says_true(
+        'select 1 from pg.catalog.pg_language where lanname = ?',
+        'plpgsql'
     );
 }
 

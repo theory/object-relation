@@ -5,8 +5,8 @@
 use strict;
 use Test::Exception;
 use Test::MockModule;
-#use Test::More 'no_plan';
-use Test::More tests => 82;
+use Test::More 'no_plan';
+#use Test::More tests => 82;
 use Test::File;
 use Test::File::Contents;
 use lib 't/lib', '../../lib';;
@@ -250,31 +250,30 @@ file_not_exists_ok 'blib/conf/test.conf',
     eval {$build->ACTION_check_store};
 
     my $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
-    my $message = $fsa->message('user');
+    my $message = $fsa->state('user')->message;
     is $message, 'Could not connect as normal user',
       '... and we should have an informational message letting us know that we could not connect as a normal user';
-    unlike $@, qr/$message/, '... but this should not be fatal';
-    like $@, qr/\QUser (postgres) is not a root user or does not exist.\E/,
-      '... but it should die if we cannot connect as the root user';
+    like $@, qr/$message/, '... and this should be fatal';
 
     $rules->mock(_connect_as_root => 1);
     ok $build->ACTION_check_store,
       '... and if we have a root user, everything should be fine';
 
     $build->notes(got_store => 0); # must reset
+    $rules->mock(_connect_as_root => 0);
     $rules->mock(_connect_as_user => 1);
     $rules->mock(_db_exists       => 0);
     $rules->mock(_can_create_db   => 0);
-    $rules->mock(_connect_as_root => 0);
     throws_ok {$build->ACTION_check_store}
-      qr/\QUser (postgres) is not a root user or does not exist.\E/,
+      qr/Normal user does not have the right to create the database/,
       'We should fail if the database does not exist and the user cannot created it';
     $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
     
-    is $fsa->message('database_exists'), 'The default database does not exist',
+    is $fsa->state('database_exists')->message, 'The default database does not exist',
       '... and we should have a message that the default database does not exist';
     
-    is $fsa->message('can_create_database'), 'Normal user does not have the right to create the database',
+    is $fsa->state('can_create_database')->message,
+      'Normal user does not have the right to create the database',
       '... and that the normal user does not have the right to create the database';
 
     $rules->mock(_can_create_db   => 1);
