@@ -128,7 +128,7 @@ sub _state_machine {
                     $template,
                     $build->db_root_user,
                     $build->db_root_pass
-                ) ;
+                );
                 if ($dbh) {
                     $self->_dbh($dbh);
                     $state->result('can_use_root');
@@ -177,8 +177,10 @@ sub _state_machine {
                 if ($state->result) {
                     $self->build->db_name($db_name);
                     $self->build->notes(db_name => $db_name);
-                }
-                else {
+                } else {
+                    # Set template1 as the db name so we start out by
+                    # connecting to it when it comes time to create
+                    # the database.
                     $self->build->db_name($template);
                     push @{$state->machine->{actions}} => ['create_db', $db_name];
                 }
@@ -187,6 +189,7 @@ sub _state_machine {
             rules => [
                 "Check user db for plpgsql" => {
                     rule    => $succeed,
+                    # XXX Yes, please do.
                     message => "Database kinetic exists",  # XXX fix this
                 },
                 "Check template1 for plpgsql and is root" => {
@@ -200,11 +203,11 @@ sub _state_machine {
                 my $state = shift;
                 if ($self->_plpgsql_available) {
                     $state->result('template1 has plpgsql');
-                }
-                elsif ($self->info->createlang) {
+                } elsif ($self->info->createlang) {
                     $state->result('No plpgsql but we have createlang');
                     push @{$state->machine->{actions}} => [
-                        'add_plpgsql_to_db', 
+                        'add_plpgsql_to_db',
+                        # XXX Are you sure that this is template1?
                         $self->build->notes('kinetic_db_name')
                     ];
                 }
@@ -212,7 +215,7 @@ sub _state_machine {
             rules => [
                 Fail => {
                     rule    => sub { shift->machine->{db_name} ne $template },
-                    message => "Panic state.  Cannot check template1 for plpgsql if we're not connected to it.",
+                    message => "Panic state. Cannot check template1 for plpgsql if we're not connected to it.",
                 },
                 Fail => {
                     rule    => $fail,
@@ -325,12 +328,15 @@ sub _state_machine {
             },
             rules => [
                 Done => {
-                    rule    => sub {
+                    rule => sub {
                         my $state = shift;
                         return $state->result && $state->machine->{is_root};
                     },
                     # XXX Love to see the database name in these messages. Are
                     # messages printed out as we go along?
+                    # XXX They should be! Use a package-scoped scalar to set the
+                    # DB name for these messages, eh? You'll want to modify them
+                    # to be appropriate for output during installation, too.
                     message => "Database has plpgsql",
                 },
                 "Check for createlang" => {
