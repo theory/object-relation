@@ -20,6 +20,7 @@ BEGIN {
         my @classes;
         my $wanted = sub {
             my $file = $File::Find::name;
+print $file, $/;
             return if /^\.(?:svn|cvs)/;
             return unless /\.pm$/;
             return if /#/; # Ignore old backup files.
@@ -48,7 +49,6 @@ BEGIN {
         qw{
             t/build_sample
             t/conf
-            t/store
             t/lib
         }
     }

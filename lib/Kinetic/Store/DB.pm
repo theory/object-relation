@@ -21,7 +21,6 @@ package Kinetic::Store::DB;
 use strict;
 use base qw(Kinetic::Store);
 use Kinetic::Util::Collection;
-#use Kinetic::DBCatalog;
 use DBI;
 use Exception::Class::DBI;
 use Scalar::Util qw(blessed);
