@@ -6,7 +6,6 @@ use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
 use Test::More tests => 31;
-use Test::Differences;
 
 BEGIN { use_ok 'Kinetic::Build::Schema' };
 
