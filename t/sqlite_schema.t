@@ -120,7 +120,7 @@ eq_or_diff $sg->delete_for_class($simple), $delete,
   "... Schema class generates view DELETE rule";
 
 # Check that a complete schema is properly generated.
-eq_or_diff $sg->schema_for_class($simple),
+eq_or_diff join("\n", $sg->schema_for_class($simple)),
   join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
   "... Schema class generates complete schema";
 
@@ -240,7 +240,7 @@ eq_or_diff $sg->delete_for_class($one), $delete,
   "... Schema class generates view DELETE rule";
 
 # Check that a complete schema is properly generated.
-eq_or_diff $sg->schema_for_class($one),
+eq_or_diff join("\n", $sg->schema_for_class($one)),
   join("\n", $table, $constraints, $view, $insert, $update, $delete),
   "... Schema class generates complete schema";
 
@@ -366,7 +366,7 @@ eq_or_diff $sg->delete_for_class($two), $delete,
   "... Schema class generates view DELETE rule";
 
 # Check that a complete schema is properly generated.
-eq_or_diff $sg->schema_for_class($two),
+eq_or_diff join("\n", $sg->schema_for_class($two)),
   join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
   "... Schema class generates complete schema";
 
@@ -496,7 +496,7 @@ eq_or_diff $sg->delete_for_class($composed), $delete,
   "... Schema class generates view DELETE rule";
 
 # Check that a complete schema is properly generated.
-eq_or_diff $sg->schema_for_class($composed),
+eq_or_diff join("\n", $sg->schema_for_class($composed)),
   join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
   "... Schema class generates complete schema";
 
@@ -631,7 +631,7 @@ eq_or_diff $sg->delete_for_class($comp_comp), $delete,
   "... Schema class generates view DELETE rule";
 
 # Check that a complete schema is properly generated.
-eq_or_diff $sg->schema_for_class($comp_comp),
+eq_or_diff join("\n", $sg->schema_for_class($comp_comp)),
   join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
   "... Schema class generates complete schema";
 

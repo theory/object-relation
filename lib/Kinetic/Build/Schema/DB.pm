@@ -58,17 +58,16 @@ methods that define these names, and documentation for the naming conventions.
 
 =head3 schema_for_class
 
-  my $sql = $kbs->schema_for_class($class);
+  my @sql = $kbs->schema_for_class($class);
 
-Returns a string with the SQL statements that can be used to build the tables,
+Returns a list of the SQL statements that can be used to build the tables,
 indexes, and constraints necessary to manage a class in a database.
 
 =cut
 
 sub schema_for_class {
     my ($self, $class) = @_;
-    return join "\n",
-      grep { $_ }
+    return grep { $_ }
       $self->table_for_class($class),
       $self->indexes_for_class($class),
       $self->constraints_for_class($class),

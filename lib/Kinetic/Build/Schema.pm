@@ -92,7 +92,13 @@ sub new {
   $sg->classes(@classes);
 
 The C<Kinetic::Meta::Class> objects representing classes loaded by the
-C<load_classes()> method. Pass in a list of classes to set them specifically.
+C<load_classes()> method. The classes will be returned in an order appropriate
+for satisfying dependencies; that is, classes that depend on other classes
+will be returned after the classes on which they depend.
+
+Pass in a list of classes to set them explicitly. Dependency ordering will not
+be guaranteed after setting the classes, so be sure to pass them in in the
+order you need them.
 
 =cut
 
@@ -148,24 +154,6 @@ sub load_classes {
 
     $self->{classes} = \@sorted;
     return $self;
-}
-
-sub _sort_class {
-    my ($self, $seen, $class) = @_;
-    my @sorted;
-    # Grab all parent classes.
-    if (my $parent = $class->parent) {
-        push @sorted, $self->_sort_class($seen, $parent)
-          unless $seen->{$parent->key}++;
-    }
-
-    # Grab all referenced classes.
-    for my $attr ($class->table_attributes) {
-        my $ref = $attr->references or next;
-        push @sorted, $self->_sort_class($seen, $ref)
-          unless $seen->{$ref->key}++;
-    }
-    return @sorted, $class;
 }
 
 ##############################################################################
@@ -285,11 +273,11 @@ sub setup_code { return }
 
 =head3 schema_for_class
 
-  my $schema = $sg->schema_for_class($class);
+  my @schema = $sg->schema_for_class($class);
 
-Returns the schema that can be used to build the data store for the class
-passed as an argument. The class can be either a class name or a
-C<Kinetic::Meta::Class> object, but must have been loaded by
+Returns a list of the schema statements that can be used to build the data
+store for the class passed as an argument. The class can be either a class
+name or a C<Kinetic::Meta::Class> object, but must have been loaded by
 C<load_classes()>. This method is abstract; it must be implemented by
 subclasses.
 
@@ -318,6 +306,42 @@ sub file_to_mod {
         shift @dirs;
     }
     join '::', @dirs;
+}
+
+=begin private
+
+=head1 Private Methods
+
+=head2 Private Instance Methods
+
+=head3 _sort_class
+
+  my @classes = $schema->_sort_class(\%seen, $class);
+
+Returns the Kinetic::Meta::Class::Schema object passed in, as well as any
+other classes that are dependencies of the class. Dependencies are returned
+before the classes that depend on them. This method is called recursively, so
+it's important to pass a hash reference to keep track of all the classes seen
+to prevent duplicates. This method is used by C<load_classes()>.
+
+=cut
+
+sub _sort_class {
+    my ($self, $seen, $class) = @_;
+    my @sorted;
+    # Grab all parent classes.
+    if (my $parent = $class->parent) {
+        push @sorted, $self->_sort_class($seen, $parent)
+          unless $seen->{$parent->key}++;
+    }
+
+    # Grab all referenced classes.
+    for my $attr ($class->table_attributes) {
+        my $ref = $attr->references or next;
+        push @sorted, $self->_sort_class($seen, $ref)
+          unless $seen->{$ref->key}++;
+    }
+    return @sorted, $class;
 }
 
 1;
