@@ -39,6 +39,70 @@ L<Kinetic::Build::Schema|Kinetic::Build::Schema> for more information
 and the subclasses of Kinetic::Schema::DB for database-specific
 implementations.
 
+=head1 Naming Conventions
+
+The rules for naming database objects are as follows.
+
+=over
+
+=item Classes
+
+All objects that represent a class of objects shall be named for the key names
+of the classes they represent. The objects that represent classes will
+typically be either tables or views. Typical names include "party", "usr",
+"person", "contact_type", etc.
+
+=item Tables
+
+Tables will either be named for the key name of the classes they represent,
+such as "party", or will be named for their inheritance relationship, such as
+"party_person". Any class that has attributes that are actually other objects
+such as a "contact" class having a "contact_type" attribute, the table will be
+named with a preceding underscore, e.g., "_contact".
+
+=item Indexes
+
+Indexes shall be named for the class key name plus the column(s) that they put
+an index one. They shall be preceded with the string "idx_" or, for unique
+indexes, "udx_". For example, an index for the "last_name" attribute of the
+"person" class would be named "idx_person_last_name" and be applied to the
+"party_person" table. A unique index on the GUID attribute of the "party"
+class would be named "udx_party_guid".
+
+=item Primary Keys
+
+For database platforms that support naming primary keys, they shall be named
+for the class key plus "_id" (the primary key column name), and be preceded by
+"pk_". For example, the primary key for the "person" class shall be named
+"pk_person_id" and be applied to the "party_person" table. The primary key for
+the "party" class shall be named "pk_party_id" and be applied to the "party"
+table.
+
+=item Foreign Keys
+
+For database platforms that support the naming of foreign keys, they shall be
+named for the class and attribute they reference, and be preceded by "fk_".
+For example, the foreign key for the "contact_type" attribute of the "contact"
+class shall be named "fk_contact_type_id" and be applied to the "contact"
+table and referencing, of course, the "id" column of the "contact_type" table.
+
+=item Foreign Keys on Primary Key Columns
+
+For database platforms that support the naming of foreign keys, the foreign
+keys created to point to the primary key of a parent table, and therefore
+applied to the primary key of the referring table, shall be named for the
+class that they refer to. They will also be preceeded by the string "pfk_".
+
+For example, the foreign key applied to the primary key column created for the
+"person" class to point to the primary key for the "party" class (the class
+from which "person" inherits) shall be named "pfk_party_id", apply to the "id"
+column of the "party_person" table, and refer to the "id" column of the party
+table. For multiple inheritance, the foreign key shall use the key name of the
+class from which it inherits, but will of course point to the "id" column of
+the base (concrete) class. For example, the foreign key for "usr" class, which
+inherits from the "person" class, shall be named "pfk_person_id" but actually
+point to the "id" column of the "party" table.
+
 =cut
 
 ##############################################################################

@@ -89,7 +89,7 @@ sub generate_constraints {
     my $key = $class->key;
     my $table = $self->{$key}{table_data}{name};
     my @cons = ( "ALTER TABLE $table\n"
-                 . "  ADD CONSTRAINT pk_$key PRIMARY KEY (id);"
+                 . "  ADD CONSTRAINT pk_$key\_id PRIMARY KEY (id);"
     );
 
     if (my $fk_table = $self->{$key}{table_data}{parent}) {
