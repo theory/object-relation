@@ -7,7 +7,8 @@ use warnings;
 
 use Test::More;
 use Test::Exception;
-use base 'TEST::Kinetic::Store';
+#use base 'TEST::Kinetic::Store';
+use base 'TEST::Class::Kinetic';
 use lib 't/lib';
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Meta';
@@ -20,6 +21,8 @@ use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';
 
 __PACKAGE__->runtests unless caller;
+
+sub foo : Test(1) { ok 1 }
 
 sub test_dbh : Test(2) {
     my $self = shift;
@@ -37,7 +40,9 @@ sub test_dbh : Test(2) {
         # Only run the next test if we're testing a live data store.
         (my $store = $class) =~ s/.*:://;
         return "Not testing $store" unless $self->supported(lc $store);
-        isa_ok $class->new->_dbh, 'DBI::db';
+        my $dbh = $class->new->_dbh;
+        isa_ok $dbh, 'DBI::db';
+        $dbh->disconnect;
     }
 }
 
@@ -461,16 +466,10 @@ sub expand_search_param : Test(45) {
     is_deeply $value, 'bar', 'and the scalar arg';
 }
 
-# Use DBI's example driver for non-database testing.
-my $dbh = DBI->connect(
-    'dbi:ExampleP:dummy', '', '', {
-        PrintError => 0,
-        RaiseError => 1,
-    }
-);
-
 sub save : Test(12) {
     my $test = shift;
+    my $store = Kinetic::Store->new;
+    my $dbh   = $store->_dbh;
     my $mock = MockModule->new(Store);
     my ($update, $insert, $begin, $commit, $rollback);
     $mock->mock(_update => sub { $update = 1; $insert = 0 });
@@ -499,6 +498,7 @@ sub save : Test(12) {
     is $begin, 3, 'it should have started work';
     is $commit, 2, 'it should have not commited the work';
     is $rollback, 1, 'it should have rolled back the work';
+    $dbh->disconnect;
 }
 
 sub save_contained : Test(1) {
@@ -509,9 +509,12 @@ sub save_contained : Test(1) {
     my ($update, $insert);
     $mock->mock(_update => sub { $update = 1; $insert = 0 });
     $mock->mock(_insert => sub { $update = 0; $insert = 1 });
+    my $store = Kinetic::Store->new;
+    my $dbh   = $store->_dbh;
     $mock->mock(_dbh => $dbh );
-    Store->save($object2);
+    $store->save($object2);
     ok $insert, 'Saving a new object with a contained object should insert';
+    $dbh->disconnect;
 }
 
 sub insert : Test(7) {

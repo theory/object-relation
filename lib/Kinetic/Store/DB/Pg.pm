@@ -78,6 +78,20 @@ sub _set_id {
 
 ##############################################################################
 
+=head3 _full_text_search
+
+  ...
+
+TBD.
+
+=cut
+
+sub _full_text_search {
+    # XXX not yet implemented
+}
+
+##############################################################################
+
 =head3 _execute
 
   $self->_execute($sth, \@bind_params);

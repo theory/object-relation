@@ -197,8 +197,8 @@ sub _search {
     my ($self, @search_params) = @_;
     return $self->_full_text_search(@search_params) 
         if 1 == @search_params && ! ref $search_params[0];
-    $self->_set_search_data unless exists $self->{search_data};
-    my $attributes = join ', ' => @{$self->{search_data}{fields}};
+    $self->_set_search_data;
+    my $attributes = join ', ' => $self->_search_data_fields;
     my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
         $attributes,
         \@search_params
@@ -226,7 +226,7 @@ sub search_guids {
     $self->_create_iterator(0);
     local $self->{search_class} = $search_class;
     $self->_set_search_data;
-    my $attributes = join ', ' => @{$self->{search_data}{fields}};
+    my $attributes = join ', ' => $self->_search_data_fields;
     my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
         "guid",
         \@search_params
@@ -254,7 +254,7 @@ sub count {
     my $self = $proto->_from_proto;
     $self->_cache_statement(0);
     local $self->{search_class} = $search_class;
-    $self->_set_search_data unless exists $self->{search_data};
+    $self->_set_search_data;
     my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
         'count(*)',
         \@search_params
@@ -629,23 +629,20 @@ the hashref with hash slices.
 sub _build_object_from_hashref {
     my ($self, $hashref) = @_;
     my %objects;
-    my $metadata = $self->{search_data}{metadata};
-    while (my ($package, $data) = each %$metadata) {
+    my %metadata = $self->_search_data_metadata;
+    while (my ($package, $data) = each %metadata) {
         my $fields = $data->{fields};
         # XXX Is the distinction here due to IDs?
         my @sql_fields    = keys %$fields;
         my @object_fields = @{$fields}{@sql_fields};
         my %object;
-        # XXX Isn't this where one could use an array, since the columns should
-        # be in the same order as the attributes? Oh, does field eq attribute
-        # && field eq column?
         @object{@object_fields} = @{$hashref}{@sql_fields};
         # XXX ugh.  I hate doing this :(
         $object{state} = State->new($object{state}) if exists $object{state};
         $objects{$package} = bless \%object => $package;
     }
     # XXX Aack!  This is fugly.
-    while (my ($package, $data) = each %$metadata) {
+    while (my ($package, $data) = each %metadata) {
         if (defined (my $contains = $data->{contains})) {
             while (my ($key, $contained) = each %$contains) {
                 delete $objects{$package}{$key};
@@ -735,6 +732,30 @@ sub _search_data {
     $self->{search_data} = shift;
     return $self;
 }
+
+##############################################################################
+
+=head3 _search_data_fields 
+
+  my @fields = $store->_search_data_fields;
+
+Returns a list of the search data fields.  See C<_set_search_data>.
+
+=cut
+
+sub _search_data_fields { @{shift->{search_data}{fields}} }
+
+##############################################################################
+
+=head3 _search_data_metadata 
+
+  my @metadata = $store->_search_data_metadata;
+
+Returns a list of the search data metadata.  See C<_set_search_data>.
+
+=cut
+
+sub _search_data_metadata { %{shift->{search_data}{metadata}} }
 
 ##############################################################################
 
@@ -876,10 +897,10 @@ sub _make_where_token {
     my ($self, $field, $search_param) = @_;
 
     my ($negated, $operator, $value) = $self->_expand_search_param($search_param);
-    unless (grep $_ eq $field => @{$self->{search_data}{fields}}) {
+    unless (grep $_ eq $field => $self->_search_data_fields) {
         # special case for searching on a contained object id ...
         my $id_field = $field . OBJECT_DELIMITER . 'id';
-        unless (grep $_ eq $id_field => @{$self->{search_data}{fields}}) {
+        unless (grep $_ eq $id_field => $self->_search_data_fields) {
             croak "Don't know how to search for ($field $negated $operator $value)";
         }
         $field = $id_field;
