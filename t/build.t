@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Sub::Override;
+use Test::MockModule;
 #use Test::More 'no_plan';
 use Test::More tests => 61;
 use Test::File;
@@ -181,35 +181,33 @@ file_not_exists_ok 't/conf/test.conf',
     $build = $CLASS->new(module_name => 'KineticBuildOne', accept_defaults => 1);
 
     my @error;
-    my $token = Sub::Override
-        ->new( 'App::Info::RDBMS::SQLite::installed', sub {0} )
-        ->replace("${CLASS}::_fatal_error" => sub { @error = @_; die });
+    my $sqlite = Test::MockModule->new('App::Info::RDBMS::SQLite');
+    $sqlite->mock( 'installed', sub {0} );
+    my $class  = Test::MockModule->new($CLASS);
+    $class->mock("_fatal_error" => sub { @error = @_; die });
     eval {$build->check_sqlite};
     like $error[1],
         qr/SQLite is not installed./,
         '... and it should warn you if SQLite is not installed';
 
     @error = ();
-    $token->restore('App::Info::RDBMS::SQLite::installed')
-          ->replace('App::Info::RDBMS::SQLite::installed', sub { 1 } )
-          ->replace('App::Info::RDBMS::SQLite::version',   sub { '2.0.0' } );
+    $sqlite->mock('installed', sub { 1 } );
+    $sqlite->mock('version',   sub { '2.0.0' } );
     eval {$build->check_sqlite};
     like $error[1].$error[2],
         qr/SQLite version 2.0.0 is installed, but we need version .* or newer/,
         '... and it should warn you if SQLite is not a new enough version';
     
     @error = ();
-    $token->restore('App::Info::RDBMS::SQLite::version')
-          ->replace('App::Info::RDBMS::SQLite::version', sub { 4.0 } )
-          ->replace('App::Info::RDBMS::SQLite::bin_dir', sub { 0 } );
+    $sqlite->mock('version', sub { 4.0 } );
+    $sqlite->mock('bin_dir', sub { 0 } );
     eval {$build->check_sqlite};
     like $error[1],
         qr/DBD::SQLite is installed but we require the sqlite3 executable/,
         '... and it should warn you if the sqlite executable is not installed';
 
    @error = ();
-   $token->restore('App::Info::RDBMS::SQLite::bin_dir')
-         ->replace('App::Info::RDBMS::SQLite::bin_dir' => sub {1} );
+   $sqlite->mock('bin_dir' => sub {1} );
    isa_ok $build->check_sqlite => $CLASS;
    ok(!@error, '... and if all parameters are correct, we should have no errors');
 }
