@@ -503,7 +503,7 @@ by the C<$table> argument.
 =cut
 
 sub view_columns {
-    my ($self, $table, $tables, $wheres) = (shift, shift, shift, shift);
+    my ($self, $table, $tables, $wheres) = splice @_, 0, 4;
     my @cols;
     for my $attr (@_) {
         my $col = $attr->column;

@@ -20,11 +20,159 @@ use aliased 'Kinetic::Util::State';
 
 use lib 't/sample/lib'; # temporary
 use aliased 'TestApp::Simple::One';
+use aliased 'TestApp::Simple::Two';
 use aliased 'Hash::AsObject';
 
 __PACKAGE__->runtests;
 
-sub where_clause : Test(no_plan) {
+sub get_search_data : Test(9) {
+    my $method = '_get_search_data';
+    can_ok Store, $method;
+    my $one_class = One->new->my_class;
+    my $store     = Store->new;
+    $store->search_class($one_class);
+    ok my $results = $store->$method,
+        "Calling $method for simple types should succeed";
+    my @keys      = sort keys %$results;
+    is_deeply \@keys, [qw/fields metadata/],
+        'and it should return the types of data that we are looking for';
+    is_deeply [sort @{$results->{fields}}],
+        [qw/bool description guid id name state/],
+        'which correctly identify the sql field names';
+    is_deeply $results->{metadata},
+        {
+            'TestApp::Simple::One' => {
+                fields => {
+                    bool        => 'bool',
+                    description => 'description',
+                    guid        => 'guid',
+                    id          => 'id',
+                    name        => 'name',
+                    state       => 'state',
+                }
+            }
+        },
+        'and the metadata needed to build the objects';
+
+    my $two_class = Two->new->my_class;
+    $store->search_class($two_class);
+    ok $results = $store->$method,
+        "Calling $method for complex types should succeed";
+    @keys      = sort keys %$results;
+    is_deeply \@keys, [qw/fields metadata/],
+        'and it should return the types of data that we are looking for';
+    is_deeply [sort @{$results->{fields}}],
+    [qw/ age description guid id name one__bool one__description one__guid
+         one__id one__name one__state state /],
+        'which correctly identify the sql field names';
+    my $metadata = {
+        'TestApp::Simple::One' => {
+            fields => {
+                one__bool        => 'bool',
+                one__description => 'description',
+                one__guid        => 'guid',
+                one__id          => 'id',
+                one__name        => 'name',
+                one__state       => 'state',
+            }
+        },
+        'TestApp::Simple::Two' => {
+            contains => {
+                one__id => One->new->my_class
+            },
+            fields => {
+                age         => 'age',
+                description => 'description',
+                guid        => 'guid',
+                id          => 'id',
+                name        => 'name',
+                one__id     => 'one__id',
+                state       => 'state',
+            }
+        }
+    };
+    is_deeply $results->{metadata}, $metadata,
+        'and the necessary information to build the multiple objects';
+}
+
+sub search : Test(1) {
+    my $method = 'search';
+    can_ok Store, $method;
+
+}
+
+sub build_objects : Test(16) {
+    my $method = '_build_object_from_hashref';
+    can_ok Store, $method;
+    my %sql_data =(
+        id               => 2,
+        guid             => 'two asdfasdfasdfasdf',
+        name             => 'two name',
+        description      => 'two fake description',
+        state            => 1,
+        one__id          => 17,
+        age              => 23,
+        one__guid        => 'one ASDFASDFASDFASDF',
+        one__name        => 'one name',
+        one__description => 'one fake description',
+        one__state       => 1,
+        one__bool        => 0
+    );
+    my $store = Store->new;
+    $store->{search_data} = {
+      metadata => {
+        'TestApp::Simple::One' => {
+          fields => {
+            one__bool        => 'bool',
+            one__description => 'description',
+            one__guid        => 'guid',
+            one__id          => 'id',
+            one__name        => 'name',
+            one__state       => 'state',
+          }
+        },
+        'TestApp::Simple::Two' => {
+          contains => {
+            one__id => One->new->my_class,
+          },
+          fields => {
+            age         => 'age',
+            description => 'description',
+            guid        => 'guid',
+            id          => 'id',
+            name        => 'name',
+            one__id     => 'one__id',
+            state       => 'state',
+          }
+        }
+      }
+    };
+    my $two_class = Two->new->my_class;
+    $store->search_class($two_class);
+    my $object = $store->$method(\%sql_data);
+    isa_ok $object, $two_class->package, 'and the object it returns';
+    foreach my $attr (qw/guid name description age/) {
+        is $object->$attr, $sql_data{$attr},
+            'and basic attributes should be correct';
+    }
+    isa_ok $object->state, 'Kinetic::Util::State',
+        'and Kinetic::Util::State objects should be handled correctly';
+
+    ok my $one = $object->one,
+        "and we should be able to fetch the contained object";
+    isa_ok $one, One->new->my_class->package,
+        "and the contained object";
+    is $one->{id}, 17, 'and it should have the correct id';
+    is $one->guid, 'one ASDFASDFASDFASDF', 'and basic attributes should be correct';
+    is $one->name, 'one name', 'and basic attributes should be correct';
+    is $one->description, 'one fake description', 'and basic attributes should be correct';
+    is $one->bool, 0, 'and basic attributes should be correct';
+    is $one->state+0, 1, 'and basic attributes should be correct';
+    isa_ok $one->state, 'Kinetic::Util::State',
+        'and Kinetic::Util::State objects should be handled correctly';
+}
+
+sub where_clause : Test(11) {
     my $store = Store->new;
     $store->{search_class} = One->new->my_class;
     my $my_class = MockModule->new('Kinetic::Meta::Class::Schema');
@@ -409,21 +557,6 @@ sub update : Test(7) {
     is $one->{id}, 42, 'and the private id should not be changed';
 }
 
-sub build_object_from_hashref : Test(2) {
-    my $store = Store->new;
-    can_ok $store, '_build_object_from_hashref';
-    my $ref = {
-        guid        => '4162F712-1DD2-11B2-B17E-C09EFE1DC403',
-        name        => 'whozit',
-        description => 'some desc',
-        state       => 1, # Active
-        bool        => 0,
-    };
-    $store->{search_class} = One->new->my_class;
-    my $object = $store->_build_object_from_hashref($ref);
-    isa_ok $object, One, 'and it should be able to build an object of the correct type';
-}
-
 sub get_name : Test(3) {
     can_ok Store, '_get_name';
     my $attribute = AsObject->new({references => 0, name => 'dead_pig'});
@@ -488,11 +621,6 @@ sub constraints : Test(4) {
     is Store->_constraints({order_by => 'name', sort_order => ASC}),
         ' ORDER BY name ASC',
         'and ORDER BY can be ascending or descending';
-}
-
-sub search : Test(1) {
-    can_ok Store, 'search';
-
 }
 
 1;

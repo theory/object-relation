@@ -127,24 +127,6 @@ sub _do_sql {
 
 # XXX note the encapsulation violation.  This may change in the future.
 
-sub _build_object_from_hashref {
-    my ($self, $hashref) = @_;
-    $hashref->{state} = $self->_get_kinetic_value('state', $hashref->{state})
-        if exists $hashref->{state};
-    my %object;
-    while (my ($key, $value) = each %$hashref) {
-        if ($key =~ /^(.*)__id$/) {
-            my $field   = $1;
-            my $collection = $self->search(Meta->for_key($field), id => $value);
-            $object{$field} = $collection->next;
-        }
-        else {
-            $object{$key} = $value;
-        }
-    }
-    bless \%object => $self->{search_class}->package;
-}
-
 sub _get_kinetic_value {
     my ($self, $name, $value) = @_;
     if ('state' eq $name) {
@@ -191,9 +173,9 @@ sub search {
     my $self = $proto->_from_proto;
     local $self->{search_class} = $search_class;
     my $constraints  = pop @search_params if ref $search_params[-1] eq 'HASH';
-    my @attributes   = $search_class->attributes;
-    my $attributes   = join ', ' => map { $self->_get_name($_) } @attributes;
-    my $view         = $search_class->view;
+    $self->{search_data} = $self->_get_search_data;
+    my $attributes       = join ', ' => @{$self->{search_data}{fields}};
+    my $view             = $search_class->view;
     
     my ($where_clause, $bind_params) = 
         $self->_make_where_clause(\@search_params, $constraints);
@@ -203,7 +185,6 @@ sub search {
     $sql .= $self->_constraints($constraints) if $constraints;
     #warn "# *** $sql ***\n";
     #warn "# *** @$bind_params ***\n";
-    
     return $self->_get_iterator_for_sql($sql, $bind_params);
 }
 
@@ -216,6 +197,98 @@ sub _get_iterator_for_sql {
         push @results => $self->_build_object_from_hashref($result);
     }
     return Iterator->new(sub {shift @results});
+}
+
+sub _build_object_from_hashref {
+    my ($self, $hashref) = @_;
+    my %objects;
+    my $metadata = $self->{search_data}{metadata};
+    @objects{keys %$metadata} = undef;
+    while (my ($package, $data) = each %$metadata) {
+        my $fields = $data->{fields};
+        my @sql_fields    = keys %$fields;
+        my @object_fields = @{$fields}{@sql_fields};
+        my %object;
+        @object{@object_fields} = @{$hashref}{@sql_fields};
+        $object{state} = $self->_get_kinetic_value('state', $object{state})
+            if exists $object{state};
+        # XXX didn't work.  Phooey.
+        # Tried to use Lexical::Alias.  The problem here is that we cannot
+        # guarantee that the contained object has been instantiated yet, thus
+        # forcing us to iterate over the same data twice.  Still, it's far
+        # faster than our previous work with hitting the database repeatedly
+        # for contained objects (which would kill us when a large search is
+        # performed.  I might revisit this if we need to -- Ovid
+
+        #if (my $contains = $data->{contains}) {
+        #    while (my ($key, $contained) = each %$contains) {
+        #        delete $object{$key};
+        #        my $contained_package = $contained->package;
+        #        my $view = $contained->view;
+        #        alias $objects{$package}{$view}, $objects{$contained_package};
+        #    }
+        #}
+        $objects{$package} = bless \%object => $package;
+    }
+    # XXX Aack!  This is fugly.
+    while (my ($package, $data) = each %{$self->{search_data}{metadata}}) {
+        if (my $contains = $data->{contains}) {
+            while (my ($key, $contained) = each %$contains) {
+                delete $objects{$package}{$key};
+                my $contained_package = $contained->package;
+                my $view = $contained->view;
+                $objects{$package}{$view} = $objects{$contained_package};
+            }
+        }
+    }
+    return $objects{$self->search_class->package};
+}
+
+sub search_class {
+    my $self = shift;
+    $self->{search_class} = shift if @_;
+    return $self->{search_class};
+}
+
+my %SEARCH_DATA;
+sub _get_search_data {
+    my ($self) = @_;
+    my $package = $self->search_class->package;
+    unless (exists $SEARCH_DATA{$package}) {
+        my @fields   = 'id'; # ID of main view
+        my %packages = (
+            $package => {
+                fields => { id => 'id' }
+            }
+        );
+        my @classes_to_process = {
+            class  => $self->search_class,
+            prefix => '',
+        };
+        while (@classes_to_process) {
+            my @data = splice @classes_to_process, 0; 
+            foreach my $data (@data) {
+                my $package = $data->{class}->package;
+                foreach my $attr ($data->{class}->attributes) {
+                    my $name     = $self->_get_name($attr);
+                    my $field    = "$data->{prefix}$name";
+                    push @fields => $field;
+                    $packages{$package}{fields}{$field} = $name;
+                    if (my $class = $attr->references) {
+                        $packages{$class->package}{fields}{$field} = 'id';
+                        push @classes_to_process => {
+                            class  => $class,
+                            prefix => $class->view.'__',
+                        };
+                        $packages{$package}{contains}{$name} = $class;
+                    }
+                }
+            }
+        }
+        $SEARCH_DATA{$package}{fields}   = \@fields;
+        $SEARCH_DATA{$package}{metadata} = \%packages;
+    }
+    return $SEARCH_DATA{$package};
 }
 
 sub _make_where_clause {
