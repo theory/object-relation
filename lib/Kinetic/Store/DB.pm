@@ -912,7 +912,7 @@ sub _BETWEEN_SEARCH {
 
 sub _MATCH_SEARCH {
     my ($self, $search) = @_;
-    my ($field, $place_holder) = $self->_is_case_insensitive($self->attr);
+    my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
     my $operator = $search->negated ? '!~*' : '~*';
     return ("$field $operator $place_holder", [$search->data]);
 }

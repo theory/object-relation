@@ -572,7 +572,7 @@ sub test_rules : Test(161) {
 # Check schema permissions
 # Done
 
-sub test_validate_user_db : Test(28) {
+sub test_validate_user_db : Test(27) {
     my $self = shift;
     my $class = $self->test_class;
     # Supply username and password when prompted, database exists and has
@@ -627,6 +627,7 @@ sub test_validate_user_db : Test(28) {
         db_super_user => undef,
         db_super_pass => undef,
         template_db_name => undef,
+        dsn     => 'dbi:Pg:dbname=__kinetic_test__',
     }, "As should the test configuration.";
 
     $mb->mock(store => 'pg');
@@ -636,6 +637,7 @@ sub test_validate_user_db : Test(28) {
         db_pass => 'asdfasdf',
         host    => undef,
         port    => undef,
+        dsn     => 'dbi:Pg:dbname=kinetic',
     }, "The configuration should be set up properly.";
 
     # Test the actions.
@@ -659,7 +661,7 @@ sub test_validate_user_db : Test(28) {
 # Check user
 # Done
 
-sub test_validate_super_user : Test(28) {
+sub test_validate_super_user : Test(27) {
     my $self = shift;
     my $class = $self->test_class;
     # Supply username and password when prompted, database exists and has
@@ -718,6 +720,7 @@ sub test_validate_super_user : Test(28) {
         db_super_user => 'postgres',
         db_super_pass => 'postgres',
         template_db_name => 'template1',
+        dsn     => 'dbi:Pg:dbname=__kinetic_test__;host=pgme;port=5433',
     }, "As should the test configuration.";
 
     $mb->mock(store => 'pg');
@@ -727,6 +730,7 @@ sub test_validate_super_user : Test(28) {
         db_pass => 'asdfasdf',
         host    => 'pgme',
         port    => '5433',
+        dsn     => 'dbi:Pg:dbname=kinetic;host=pgme;port=5433',
     }, "The configuration should be set up properly.";
 
     # Test the actions.
@@ -747,7 +751,7 @@ sub test_validate_super_user : Test(28) {
 # Check user
 # Done
 
-sub test_validate_super_user_arg : Test(28) {
+sub test_validate_super_user_arg : Test(27) {
     my $self = shift;
     my $class = $self->test_class;
     # Supply username and password when prompted, database exists and has
@@ -806,6 +810,7 @@ sub test_validate_super_user_arg : Test(28) {
         db_super_user => 'postgres',
         db_super_pass => 'postgres',
         template_db_name => undef,
+        dsn     => 'dbi:Pg:dbname=__kinetic_test__',
     }, "As should the test configuration.";
 
     $mb->mock(store => 'pg');
@@ -815,6 +820,7 @@ sub test_validate_super_user_arg : Test(28) {
         db_pass => 'asdfasdf',
         host    => undef,
         port    => undef,
+        dsn     => 'dbi:Pg:dbname=howdy',
     }, "The configuration should be set up properly.";
 
     # Test the actions.
@@ -1068,6 +1074,7 @@ sub test_build_meths : Test(20) {
     # Test add_plpgsql.
     SKIP : {
         skip "PL/pgSQL already installed", 2 if $kbs->_plpgsql_available;
+        $kbs->{createlang} = $kbs->info->createlang;
         ok $kbs->add_plpgsql($kbs->test_db_name), "Add PL/pgSQL";
         $pg->mock(_dbh => $self->{dbh});
         ok $kbs->_plpgsql_available, 'PL/pgSQL should be added';
@@ -1116,37 +1123,44 @@ sub test_build_meths : Test(20) {
     $builder->dispatch('clean');
 }
 
-sub db_cleanup : Test(teardown) {
+sub teardown_db : Test(teardown) {
+    my $self = shift->db_cleanup(@_);
+    if (my $dbh = delete $self->{tdbh}) {
+        $dbh->disconnect;
+    }
+}
+
+sub db_cleanup {
     my $self = shift;
     if (my $dbh = delete $self->{dbh}) {
         $dbh->disconnect;
     }
-    if (my $dbh = delete $self->{tdbh}) {
-        # Wait until the other connection has been dropped.
-        sleep 1 while $dbh->selectrow_array(
-            'SELECT 1 FROM pg_stat_activity where datname = ?',
-            undef, $self->{conf}{pg}{db_name}
-        );
+    if (my $dbh = $self->{tdbh}) {
+        # Wait until the other connection has been dropped. Throw in an extra
+        # query to kill a bit of time, just to make sure that we really are
+        # fully disconnted. It seems like it sometimes thinks there are still
+        # connections even after the query returns false.
+        for (0..1) {
+            sleep 1 while $dbh->selectrow_array(
+                'SELECT 1 FROM pg_stat_activity where datname = ?',
+                undef, $self->{conf}{pg}{db_name}
+            );
+        }
+
         $dbh->do(qq{DROP DATABASE "$self->{conf}{pg}{db_name}"});
         $dbh->do(qq{DROP user "$self->{conf}{pg}{db_user}"});
-        $dbh->disconnect;
     }
+    return $self;
 }
 
 sub _run_build_tests {
     my ($self, $kbs, $pg) = @_;
-    $pg->unmock('_connect');
-    $pg->unmock('_plpgsql_available');
-    $self->_test_build('build', $kbs, $pg);
-    $self->db_cleanup;
-    $self->_test_build('test_build', $kbs, $pg);
-}
-
-sub _test_build {
-    my ($self, $meth, $kbs, $pg) = @_;
     # From here on in, we'll test actually creating the database.
     return "Not testing PostgreSQL" unless $self->supported('pg');
 
+    $pg->unmock('_connect');
+    $pg->unmock('_plpgsql_available');
+    $kbs->{createlang} = $kbs->info->createlang;
     # Test the build_db action by building the database. First make sure
     # that everything we need to build the databse is actually in place.
     my %mock = (
@@ -1189,12 +1203,33 @@ sub _test_build {
     $pg->unmock('_dbh');
 
     # Now test creating the new database.
-    ok $kbs->$meth;
+    ok $kbs->build;
 
     # Grab the database handle and check it out.
     $self->{dbh} = $kbs->_dbh;
     my $sg = $kbs->schema_class->new;
     $sg->load_classes($kbs->builder->source_dir);
+    for my $class ($sg->classes) {
+        my $view = $class->key;
+        is_deeply $self->{dbh}->selectall_arrayref("
+            SELECT 1
+            FROM   pg_catalog.pg_class c
+            WHERE  c.relname = ? and c.relkind = 'v'
+            ", {}, $view
+        ), [[1]], "View $view should exist";
+    }
+
+    # Now clean up our mess and try building the test database.
+    $self->db_cleanup;
+
+    # We might have to add plpgsql.
+    $pg->mock(_dbh => $self->{tdbh});
+    $kbs->add_actions('add_plpgsql') unless $kbs->_plpgsql_available;
+    $pg->unmock('_dbh');
+
+    # Run the test build.
+    ok $kbs->test_build;
+    $self->{dbh} = $kbs->_dbh;
     for my $class ($sg->classes) {
         my $view = $class->key;
         is_deeply $self->{dbh}->selectall_arrayref("

@@ -822,7 +822,7 @@ sub add_plpgsql {
     my ($self, $db_name) = @_;
     $db_name ||= $self->_build_db_name || $self->db_name;
     # createlang -U postgres plpgsql template1
-    my $createlang = $self->info->createlang or die "Cannot find createlang";
+    my $createlang = $self->{createlang} or die "Cannot find createlang";
     my @options;
     my %options = (
         db_host       => '-h',
@@ -950,7 +950,7 @@ sub grant_permissions {
 
     $dbh->do('GRANT SELECT, UPDATE, INSERT, DELETE ON '
              . join(', ', @$objects) . ' TO "'
-             . $self->db_user . '"');
+             . ($self->_build_db_user || $self->db_user) . '"');
     return $self;
 }
 
@@ -976,6 +976,7 @@ sub config {
         db_pass => $self->db_pass,
         host    => $self->db_host,
         port    => $self->db_port,
+        dsn     => $self->_dsn($self->db_name),
     };
 }
 
@@ -1002,6 +1003,7 @@ sub test_config {
         db_pass => $self->test_db_pass,
         host    => $self->db_host,
         port    => $self->db_port,
+        dsn     => $self->_dsn($self->test_db_name),
         # Well need these during tests.
         db_super_user => $self->db_super_user,
         db_super_pass => $self->db_super_pass,
@@ -1044,7 +1046,15 @@ sub test_build {
     $self->_build_db_name($self->test_db_name);
     $self->_build_db_user($self->test_db_user);
     $self->_build_db_user($self->test_db_pass);
-    $self->SUPER::build(@_);
+    my %actions = map { $_ => 1 } $self->actions;
+    # The test database must do everything, with the possible exception of
+    # adding PL/pgSQL.
+    $self->create_db;
+    $self->add_plpgsql if $actions{add_plpgsql};
+    $self->create_user;
+    $self->build_db;
+    $self->grant_permissions;
+    return $self;
 }
 
 ##############################################################################

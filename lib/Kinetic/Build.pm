@@ -152,6 +152,11 @@ sub resume {
     if (my $conf = $self->notes('build_conf_file')) {
         $ENV{KINETIC_CONF} = $conf;
     }
+    if (my $store = $self->store) {
+        my $build_store_class = $STORES{$store}
+          or $self->_fatal_error("I'm not familiar with the $store data store");
+        eval "require $build_store_class" or $self->_fatal_error($@);
+    }
     return $self;
 }
 

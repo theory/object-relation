@@ -582,7 +582,7 @@ sub search_and : Test(15) {
     is @items, 1, 'OR matches should return the correct number of items';
     is_deeply \@items, [$bar],
         'and should include the correct items';
-   
+
     $foo->description('We Want Revolution');
     Store->save($foo);
     ok $iterator = $store->search(
@@ -610,7 +610,7 @@ sub search_overloaded : Test(no_plan) {
     {
         package Test::String;
         use overload '""' => \&to_string;
-        sub new       { bless \$_[1] => $_[0]; }
+        sub new       { my ($pkg, $val) = @_; bless \$val => $pkg; }
         sub to_string { ${$_[0]} }
     }
     my $test = shift;
@@ -630,7 +630,7 @@ sub search_overloaded : Test(no_plan) {
     is @items, 1, 'OR matches should return the correct number of items';
     is_deeply \@items, [$bar],
         'and should include the correct items';
-   
+
     $foo->description('We Want Revolution');
     Store->save($foo);
     ok $iterator = $store->search(
@@ -656,7 +656,7 @@ sub search_overloaded : Test(no_plan) {
     {
         package Test::Number;
         use overload '""' => \&to_string;
-        sub new       { bless \$_[1] => $_[0]; }
+        sub new       { my ($pkg, $val) = @_; bless \$val => $pkg; }
         sub to_string { ${$_[0]} }
     }
     $foo = Two->new;

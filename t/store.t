@@ -6,10 +6,11 @@ use warnings;
 use strict;
 use File::Spec::Functions;
 
-my @scripts;
+my (@scripts, $conf);
 BEGIN {
     # Run setup scripts for all supported databases unless we're asked
     # not to do so.
+    $conf = $ENV{KINETIC_CONF};
     return if $ENV{NOSETUP} || !$ENV{KINETIC_SUPPORTED};
     for my $feature (split /\s+/, $ENV{KINETIC_SUPPORTED}) {
         my $script = catfile 't', 'store', $feature;
@@ -22,6 +23,7 @@ BEGIN {
 END {
     # Run complementary teardown scripts.
     return if $ENV{NOSETUP};
+    $ENV{KINETIC_CONF} = $conf;
     for my $script (@scripts) {
         next unless -e "$script\_teardown.pl";
         system $^X, "$script\_teardown.pl" and die;

@@ -57,11 +57,11 @@ sub where_token : Test(26) {
     is_deeply $bind, ['foo'], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', undef);
-    is $token, 'LOWER(name) IS  NULL', 'and a NULL search should return the correct where snippet';
+    is $token, 'name IS  NULL', 'and a NULL search should return the correct where snippet';
     is_deeply $bind, [], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', NOT undef);
-    is $token, 'LOWER(name) IS NOT NULL',
+    is $token, 'name IS NOT NULL',
         'and a negated NULL search should return the correct where snippet';
     is_deeply $bind, [], 'and a proper bind param';
 

@@ -20,11 +20,15 @@ package Kinetic::Store::DB::Pg;
 
 use strict;
 use base qw(Kinetic::Store::DB);
-#use Kinetic::Util::Config qw(:pg);
-#use constant _dsn => 'dbi:Pg:dbname=' . PG_DB_NAME
-#  . (PG_HOST ? eval "';host=' . PG_HOST" : '')
-#  . (PG_PORT ? eval "';port=' . PG_PORT" : ''),
-#  PG_DB_USER, PG_DB_PASS;
+use Kinetic::Util::Config qw(:pg);
+use Exception::Class::DBI;
+use constant _connect_args => (
+    PG_DSN, PG_DB_USER, PG_DB_PASS, {
+        RaiseError  => 0,
+        PrintError  => 0,
+        HandleError => Exception::Class::DBI->handler
+    }
+);
 
 =head1 Name
 
