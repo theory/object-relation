@@ -513,23 +513,6 @@ sub _build_object_from_hashref {
         @object{@object_fields} = @{$hashref}{@sql_fields};
         # XXX ugh.  I hate doing this :(
         $object{state} = State->new($object{state}) if exists $object{state};
-        # XXX didn't work.  Phooey.
-        # Tried to use Lexical::Alias.  The problem here is that we cannot
-        # guarantee that the contained object has been instantiated yet, thus
-        # forcing us to iterate over the same data twice.  Still, it's far
-        # faster than our previous work with hitting the database repeatedly
-        # for contained objects (which would kill us when a large search is
-        # performed.  I might revisit this if we need to -- Ovid
-        # Implementation of Kinetic::Util::ObjectCache may help here. --Theory
-
-        #if (my $contains = $data->{contains}) {
-        #    while (my ($key, $contained) = each %$contains) {
-        #        delete $object{$key};
-        #        my $contained_package = $contained->package;
-        #        my $view = $contained->key;
-        #        alias $objects{$package}{$view}, $objects{$contained_package};
-        #    }
-        #}
         $objects{$package} = bless \%object => $package;
     }
     # XXX Aack!  This is fugly.
@@ -628,7 +611,7 @@ sub _search_data {
 
 =head3 _make_where_clause
 
- my ($where_clause, $bind_params) = $self->_make_where_clause(\@attributes);
+ my ($where_clause, $bind_params) = $self->_make_where_clause(\@search_params);
 
 This method returns a where clause and an arrayref of any appropriate bind
 params for that where clause. Returns an empty string if no where clause can
@@ -639,11 +622,8 @@ This is merely a wrapper around C<_make_where_clause_recursive>.
 =cut
 
 sub _make_where_clause {
-    # XXX I find the name $attributes confusing here, since above they were
-    # @search_params. Attributes are Kinetic::Meta::Attribute objects, at
-    # least in my mind.
-    my ($self, $attributes) = @_;
-    my ($where_clause, $bind_params) = $self->_make_where_clause_recursive($attributes);
+    my ($self, $search_paramss) = @_;
+    my ($where_clause, $bind_params) = $self->_make_where_clause_recursive($search_paramss);
     $where_clause = '' if '()' eq $where_clause;
     return ($where_clause, $bind_params);
 }
@@ -653,7 +633,7 @@ sub _make_where_clause {
 =head3 _make_where_clause_recursive
 
   my ($where_clause, $bind_params) =
-     $store->_make_where_clause_recursive(\@attributes);
+     $store->_make_where_clause_recursive(\@search_params);
 
 This method returns a where clause and an arrayref of any appropriate bind
 params for that where clause.  Due to its recursive nature, it returns a pair
@@ -666,27 +646,27 @@ language outlined in L<Kinetic::Store|Kinetic::Store>
 =cut
 
 sub _make_where_clause_recursive {
-    my ($self, $attributes)     = @_;
+    my ($self, $search_params)     = @_;
     local $self->{where}        = [];
     local $self->{bind_params}  = [];
 
     my ($where_token, $bindings);
     my $op = 'AND';
-    while (@$attributes) {
-        my $curr_attribute = shift @$attributes;
-        unless (ref $curr_attribute) {
+    while (@$search_params) {
+        my $curr_search_param = shift @$search_params;
+        unless (ref $curr_search_param) {
             # name => 'foo'
-            my $value = shift @$attributes;
-            ($where_token, $bindings) = $self->_make_where_token($curr_attribute, $value);
+            my $value = shift @$search_params;
+            ($where_token, $bindings) = $self->_make_where_token($curr_search_param, $value);
         }
-        elsif ('ARRAY' eq ref $curr_attribute) {
+        elsif ('ARRAY' eq ref $curr_search_param) {
             # [ name => 'foo', description => 'bar' ]
-            ($where_token, $bindings) = $self->_make_where_clause_recursive($curr_attribute);
+            ($where_token, $bindings) = $self->_make_where_clause_recursive($curr_search_param);
         }
-        elsif ('CODE' eq ref $curr_attribute) {
+        elsif ('CODE' eq ref $curr_search_param) {
             # OR(name => 'foo') || AND(name => 'foo')
             my $values;
-            ($op, $values) = $curr_attribute->();
+            ($op, $values) = $curr_search_param->();
             unless ($op =~ GROUP_OP) {
                 croak("Grouping operators must be AND or OR, not ($op)");
             }
@@ -694,7 +674,7 @@ sub _make_where_clause_recursive {
         }
         else {
             croak sprintf "I don't know what to do with a %s for (@{$self->{where}})"
-                => ref $curr_attribute;
+                => ref $curr_search_param;
         }
         $self->_save_where_data($op, $where_token, $bindings);
     }
@@ -725,49 +705,6 @@ sub _save_where_data {
 
 ##############################################################################
 
-my %COMPARE = (
-    EQ          => '=',
-    NOT         => '!=',
-    LIKE        => 'LIKE',
-    MATCH       => '~*', # postgresql specific
-    GT          => '>',
-    LT          => '<',
-    GE          => '>=',
-    LE          => '<=',
-    NE          => '!=',
-    'NOT LIKE'  => 'NOT LIKE',
-    'NOT MATCH' => '!~*', # see MATCH
-    'NOT EQ'    => '!=',
-    'NOT GT'    => '<=',
-    'NOT LT'    => '>=',
-    'NOT GE'    => '<',
-    'NOT LE'    => '>',
-);
-
-=head3 _comparison_operator
-
-  my $op = $store->_comparison_operator($key);
-
-For a given snippet of the search language described in L<Kinetic::Store>, this
-method will return the comparison operator for the where clause.  Note that
-this method should be subclassed when a given data store needs custom ops or
-cannot provide the requested operator (such as C<MATCH>).
-
-For example:
-
- $store->_comparison_operator('NE');     # returns '!='
- $store->_comparison_operator('LIKE');   # returns 'LIKE'
- $store->_comparison_operator('NOT LT'); # returns '>='
-
-=cut
-
-sub _comparison_operator {
-    my ($self, $key) = @_;
-    return $COMPARE{$key};
-}
-
-##############################################################################
-
 =head3 _case_insensitive_types
 
   my @types = $store->_case_insensitive_types;
@@ -786,13 +723,13 @@ sub _case_insensitive_types {
 
 =head3 _make_where_token
 
-  my ($where_token, $value) = $store->_make_where_token($field, $attribute);
+  my ($where_token, $value) = $store->_make_where_token($field, $search_param);
 
 This method returns individual tokens that will be assembled to form the final
 where clause.  The C<$value> is always an arrayref of the values that will be
 bound to the bind parameters in the token.  It takes a $field and its
-$attribute.  Due to the nature of the mini search language, the attribute may
-be either a string or a code ref.
+$search_param.  Due to the nature of the mini search language, the search
+parameter may be either a string or a code ref.
 
 Examples of returned tokens:
 
@@ -806,77 +743,193 @@ Examples of returned tokens:
 =cut
 
 sub _make_where_token {
-    my ($self, $field, $attribute) = @_;
-    my $case_insensitive = 0;
+    my ($self, $field, $search_param) = @_;
+
+    my ($negated, $comparator, $value) = $self->_expand_search_param($search_param);
+
+    $comparator ||=  'ARRAY' eq ref $value ? 'BETWEEN' : 'EQ';
+    my $token_handler = $self->_comparison_handler($comparator)
+        or croak "Don't know how to make do a search for ($negated $comparator $value)";
+    if (ref $value && ('ARRAY' ne ref $value || grep {ref} @$value)) {
+        croak "Don't know how to make do a search for ($negated $comparator $value)";
+    }
+    return $token_handler->($self, $field, $negated, $comparator, $value);
+}
+
+sub _is_case_insensitive {
+    my ($self, $field) = @_;
+    my $orig_field = $field;
     if ($self->{search_class} && $field ne 'id') {
         my $type = $self->{search_class}->attributes($field)->type;
         foreach my $ifield ($self->_case_insensitive_types) {
             if ($type eq $ifield) {
-                # XXX Please make it "LOWER" instead of "lower". The basic
-                # rule is for SQL keywords and functions should be uc while
-                # entities (tables, views, columns, etc.) should be lc.
-                $field = "lower($field)";
-                $case_insensitive = 1;
+                $field = "LOWER($field)";
                 last;
             }
         }
     }
+    my $place_holder =  $field eq $orig_field ? '?' : 'LOWER(?)';
+    return ($field, $place_holder);
+}
 
-    my ($comparator, $value) = $self->_expand_attribute($attribute);
+sub _expand_search_param {
+    # we assume only two levels of code refs
+    my ($self, $search_param) = @_;
+    my $negated = '';
+    unless ('CODE' eq ref $search_param) {
+        return ($negated, '', undef)        unless defined $search_param;
+        return ($negated, '', $search_param)   if 'ARRAY' eq ref $search_param;
+        return ($negated, 'EQ', $search_param);
+    }
 
-    my $place_holder = $case_insensitive
-        ? 'lower(?)'
-        : '?';
-                                   # simple compare         #       NULL            # BETWEEN
-    if ((my $op = $self->_comparison_operator($comparator)) && defined $value && ! ref $value) {
-        return ("$field $op $place_holder", [$value]);
+    my ($type, $value) = $search_param->();
+    unless ('CODE' eq ref $value) {
+        if ($type =~ GROUP_OP) {
+            # need a better error message XXX ?
+            croak "($type) cannot be a value.";
+        }
+        if ('NOT' eq $type) {
+            $negated = 'NOT';
+            $type    = '';
+        }
+        return ($negated, $type, $value);
     }
-    elsif (($comparator eq '' || $comparator eq 'NOT')  && 'ARRAY' eq ref $value) {
-        return ("$field $comparator BETWEEN $place_holder AND $place_holder", $value);
+
+    $negated = $type;
+    ($type, $value) = $value->();
+    if ($type =~ GROUP_OP) {
+        # need a better error message XXX ?
+        croak "($negated $type) has no meaning.";
     }
-    elsif ($comparator =~ s/ ?ANY//) {
-        my $place_holders = join ', ' => ($place_holder) x @$value;
-        return ("$field $comparator IN ($place_holders)", $value);
+    if ('CODE' eq ref $value) {
+        my ($bad, $new_value) = $value->();
+        croak "Search operators can never be more than two deep: ($negated $type $bad $new_value)";
     }
-    elsif (! defined $value) {
-        return ("$field IS $comparator NULL", []); 
+    if ('NOT' eq $type) {
+        croak "NOT must always be first when used as a search operator: ($negated $type $value)";
     }
-    elsif ($comparator =~ /LIKE/) {
-        return ("$field $comparator $place_holder", [$value]);
+    if ($negated ne 'NOT') {
+        croak "Two search operators not allowed unless NOT is the first operator: ($negated $type $value)";
     }
-    else {
-        croak "I don't know how to make a where token from '$field' and '$attribute'";
-    }
+    return ($negated, $type, $value);
+}
+
+my %COMPARE_DISPATCH = (
+    EQ          => \&_EQ_SEARCH,
+    NOT         => \&_EQ_SEARCH,
+    LIKE        => \&_LIKE_SEARCH,
+    MATCH       => \&_MATCH_SEARCH, # postgresql specific
+    BETWEEN     => \&_BETWEEN_SEARCH,
+    GT          => \&_GT_SEARCH,
+    LT          => \&_LT_SEARCH,
+    GE          => \&_GE_SEARCH,
+    LE          => \&_LE_SEARCH,
+    NE          => \&_NE_SEARCH,
+    ANY         => \&_ANY_SEARCH,
+);
+
+sub _comparison_handler {
+    my ($self, $key) = @_;
+    return $COMPARE_DISPATCH{$key};
+}
+
+sub _ANY_SEARCH {
+    my ($self, $orig_field, $negated, $comparator, $value) = @_;
+    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
+    $comparator = $negated ? '<=' : '>';
+    my $place_holders = join ', ' => ($place_holder) x @$value;
+    return ("$field $negated IN ($place_holders)", $value);
+}
+
+sub _EQ_SEARCH {
+    my ($self, $orig_field, $negated, $comparator, $value) = @_;
+    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
+    $comparator = $negated ? '!=' : '=';
+    return defined $value
+        ? ("$field $comparator $place_holder", [$value])
+        : ("$field IS $negated NULL", []); 
+}
+
+sub _NE_SEARCH {
+    my ($self, $orig_field, $negated, $comparator, $value) = @_;
+    return $self->_EQ_SEARCH($orig_field, 'NOT', 'EQ', $value);
+}
+
+sub _GT_SEARCH {
+    my ($self, $orig_field, $negated, $comparator, $value) = @_;
+    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
+    $comparator = $negated ? '<=' : '>';
+    return ("$field $comparator $place_holder", [$value]);
+}
+
+sub _GE_SEARCH {
+    my ($self, $orig_field, $negated, $comparator, $value) = @_;
+    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
+    $comparator = $negated ? '<' : '>=';
+    return ("$field $comparator $place_holder", [$value]);
+}
+
+sub _LE_SEARCH {
+    my ($self, $orig_field, $negated, $comparator, $value) = @_;
+    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
+    $comparator = $negated ? '>' : '<=';
+    return ("$field $comparator $place_holder", [$value]);
+}
+
+sub _LT_SEARCH {
+    my ($self, $orig_field, $negated, $comparator, $value) = @_;
+    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
+    $comparator = $negated ? '>=' : '<';
+    return ("$field $comparator $place_holder", [$value]);
+}
+
+sub _MATCH_SEARCH {
+    my ($self, $orig_field, $negated, $comparator, $value) = @_;
+    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
+    $comparator = $negated ? '!~*' : '~*';
+    return ("$field $comparator $place_holder", [$value]);
+}
+
+sub _LIKE_SEARCH {
+    my ($self, $orig_field, $negated, $comparator, $value) = @_;
+    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
+    return ("$field $negated $comparator $place_holder", [$value]);
+}
+
+sub _BETWEEN_SEARCH {
+    my ($self, $orig_field, $negated, $comparator, $value) = @_;
+    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
+    return ("$field $negated $comparator $place_holder AND $place_holder", $value)
 }
 
 ##############################################################################
 
-=head3 _expand_attribute
+=head3 _expand_search_param
 
-  my ($op_key, $value) = $store->_expand_attribute($attribute);
+  my ($op_key, $value) = $store->_expand_search_param($search_param);
 
-When given an attribute, this method returns the op key that will be used to
+When given an search_param, this method returns the op key that will be used to
 determine the comparison operator used in a where token.  It also returns the
 value(s) that will be used in the bind params.  If there are multiple values,
 they will be returned as an arrayref.
 
-The attribute passed to this method may be a code ref.  Attribute code refs
-return a string and another attribute.  The new attribute may be the value used
+The search_param passed to this method may be a code ref.  Attribute code refs
+return a string and another search_param.  The new search_param may be the value used
 or it may, in turn, be another code ref.  Attribute code refs are never more
 than two deep.
 
 =cut
 
-sub _expand_attribute {
+sub _expand_search_param_OLD {
     # we assume only two levels of code refs
-    my ($self, $attribute) = @_;
-    unless ('CODE' eq ref $attribute) {
-        return ('', undef)        unless defined $attribute;
-        return ('', $attribute)   if 'ARRAY' eq ref $attribute;
-        return ('EQ', $attribute);
+    my ($self, $search_param) = @_;
+    unless ('CODE' eq ref $search_param) {
+        return ('', undef)        unless defined $search_param;
+        return ('', $search_param)   if 'ARRAY' eq ref $search_param;
+        return ('EQ', $search_param);
     }
 
-    my ($type, $value) = $attribute->();
+    my ($type, $value) = $search_param->();
     unless ('CODE' eq ref $value) {
         if ($type =~ GROUP_OP) {
             # need a better error message XXX ?

@@ -168,60 +168,8 @@ sub search_guids : Test(10) {
     is_deeply \@guids, [$foo->guid, $baz->guid], 'and return the correct guids';
 }
 
-sub where_token : Test(24) {
+sub where_token : Test(2) {
     my $store = Store->new;
-    can_ok $store, '_make_where_token';
-    $store->{search_class} = One->new->my_class;
-    
-    my ($token, $bind) = $store->_make_where_token('name', 'foo');
-    is $token, 'name = ?', 'and a basic match should return the correct where snippet';
-    is_deeply $bind, ['foo'], 'and a proper bind param';
-
-    ($token, $bind) = $store->_make_where_token('name', NOT 'foo');
-    is $token, 'name != ?', 
-        'and a negated basic match should return the correct where snippet';
-    is_deeply $bind, ['foo'], 'and a proper bind param';
-
-    eval { $store->_make_where_token('name', {}) };
-    ok $@, "We should not make a where token if it doesn't know how to make one";
-
-    ($token, $bind) = $store->_make_where_token('name', ['bar', 'foo']);
-    is $token, 'name  BETWEEN ? AND ?',
-        'and a range search should return the correct where snippet';
-    is_deeply $bind, ['bar', 'foo'], 'and a proper bind param';
-
-    ($token, $bind) = $store->_make_where_token('name', NOT ['bar', 'foo']);
-    is $token, 'name NOT BETWEEN ? AND ?',
-        'and a negated range search should return the correct where snippet';
-    is_deeply $bind, ['bar', 'foo'], 'and a proper bind param';
-    
-    ($token, $bind) = $store->_make_where_token('name', undef);
-    is $token, 'name IS  NULL', 'and a NULL search  should return the correct where snippet';
-    is_deeply $bind, [], 'and a proper bind param';
-
-    ($token, $bind) = $store->_make_where_token('name', NOT undef);
-    is $token, 'name IS NOT NULL', 
-        'and a negated NULL search should return the correct where snippet';
-    is_deeply $bind, [], 'and a proper bind param';
-
-    ($token, $bind) = $store->_make_where_token('name', ANY(qw/foo bar baz/));
-    is $token, 'name  IN (?, ?, ?)', 
-        'and an IN search should return the correct where snippet';
-    is_deeply $bind, [qw/foo bar baz/], 'and a proper bind param';
-
-    ($token, $bind) = $store->_make_where_token('name', NOT ANY(qw/foo bar baz/));
-    is $token, 'name NOT IN (?, ?, ?)', 
-        'and a negated IN search should return the correct where snippet';
-    is_deeply $bind, [qw/foo bar baz/], 'and a proper bind param';
-    
-    ($token, $bind) = $store->_make_where_token('name', LIKE '%foo');
-    is $token, 'name LIKE ?', 'and a LIKE search should return the correct where snippet';
-    is_deeply $bind, ['%foo'], 'and a proper bind param';
-
-    ($token, $bind) = $store->_make_where_token('name', NOT LIKE '%foo');
-    is $token, 'name NOT LIKE ?', 'and a negated LIKE search should return the correct where snippet';
-    is_deeply $bind, ['%foo'], 'and a proper bind param';
-
     throws_ok {$store->_make_where_token('name', MATCH '(a|b)%')}
         qr/MATCH:  SQLite does not support regular expressions/,
         'Trying to use a regex match with SQLite should croak';

@@ -61,23 +61,23 @@ sub _set_id {
 
 ##############################################################################
 
-=head3 _comparison_operator
+=head3 _comparison_handler
 
-  my $op = $store->_comparison_operator($key);
+  my $op = $store->_comparison_handler($key);
 
-Works like C<Kinetic::Store::DB::_comparison_operator> but it croaks if a
-C<MATCH> operator is requested.  This is because regular expressions are not
+Works like C<Kinetic::Store::DB::_comparison_handler> but it croaks if a
+C<MATCH> handler is requested.  This is because regular expressions are not
 supported on SQLite.
 
 =cut
 
-sub _comparison_operator {
+sub _comparison_handler {
     my ($class, $key) = @_;
     if ($key =~ /MATCH/) {
         require Carp;
         Carp::croak("$key:  SQLite does not support regular expressions");
     }
-    return $class->SUPER::_comparison_operator($key);
+    return $class->SUPER::_comparison_handler($key);
 }
 
 ##############################################################################
