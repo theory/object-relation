@@ -19,7 +19,9 @@ package Kinetic::XML;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use aliased 'XML::Genx::Simple' => 'XML';
+use XML::Genx::Simple;
+
+use constant XML_VERSION => '0.01';
 
 =head1 Name
 
@@ -51,10 +53,6 @@ sub new {
     my ($class, $object) = @_;
     my $self = bless {}, $class;
     return $self unless $object;
-    unless (UNIVERSAL::isa($object, 'Kinetic')) {
-        require Carp;
-        Carp::croak "The object supplied must be a Kinetic object or subclass";
-    }
     $self->object($object);
 }
 
@@ -70,6 +68,13 @@ sub new {
 
 Loads the data in an XML representation of the Kinetic business object as a
 new object.
+
+=cut
+
+sub new_from_xml {
+    my ($class, $xml) = @_;
+    return;
+}
 
 ##############################################################################
 
@@ -115,7 +120,11 @@ sub write_xml {
 
   my $xml = $xml->dump_xml;
 
-Dumps an XML representation of the object.
+Returns an XML representation of the object.  If called in list context, 
+it returns a list of all XML sections produced (if more than one).  Otherwise,
+it joins the XML sections with an empty string and returns them together.
+
+Multiple XML sections might be obtained if C<with_contained> is false.
 
 =over 4
 
@@ -134,13 +143,22 @@ then contained objects will merely be referenced by GUID and name.
 =back
 =cut
 
+my @OBJECTS;
 sub dump_xml {
     my $self   = shift;
-    my $xml    = XML::Genx::Simple->new;
+    my $params = shift || {};
     my $object = $self->object;
+    push @OBJECTS => $object;
+    local $self->{params} = $params;
+    my $xml    = XML::Genx::Simple->new;
     eval {
         $xml->StartDocString;
-        $self->_add_object_to_xml($xml, $object);
+        $xml->StartElementLiteral('kinetic');
+        $xml->AddAttributeLiteral(version => XML_VERSION);
+        while (my $object = shift @OBJECTS) {
+            $self->_add_object_to_xml($xml, $object);
+        }
+        $xml->EndElement;
         $xml->EndDocument;
     };
     die "Writing XML failed: $@" if $@;
@@ -155,10 +173,22 @@ sub _add_object_to_xml {
         my $name = $attr->name;
         next if 'guid' eq $name;
         if ($attr->references) {
-            $self->_add_object_to_xml($xml, $attr->get($object));
+            my $object = $attr->get($object);
+            if (exists $self->{params}{with_contained} && ! $self->{params}{with_contained}) {
+                # just guid 
+                my $name = $object->my_class->key;
+                $xml->StartElementLiteral('',$name);
+                $xml->AddAttributeLiteral('', guid => $object->guid);
+                $xml->AddAttributeLiteral('', relative => 1);
+                $xml->EndElement;
+                push @OBJECTS => $object;
+            }
+            else {
+                $self->_add_object_to_xml($xml, $object);
+            }
         }
         else {
-            $xml->Element( $name => $object->$name );
+            $xml->Element( $name => ($attr->raw($object) || '') );
         }
     }
     $xml->EndElement;

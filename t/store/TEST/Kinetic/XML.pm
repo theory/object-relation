@@ -37,7 +37,7 @@ sub constructor : Test(5) {
     isa_ok $xml, XML, '... but feeding it a valid Kinetic object should succeed';
 }
 
-sub object : Test(no_plan) {
+sub object : Test(5) {
     my $xml = XML->new;
     my $one = One->new;
     can_ok $xml, 'object';
@@ -55,7 +55,7 @@ sub object : Test(no_plan) {
         '... and passing the object into the constructor should succeed';
 }
 
-sub dump_xml : Test(no_plan) {
+sub dump_xml : Test(4) {
     my $one = One->new;
     $one->name('some name');
     $one->description('some description');
@@ -63,12 +63,14 @@ sub dump_xml : Test(no_plan) {
     my $xml = XML->new($one);
     can_ok $xml, 'dump_xml';
     is_xml $xml->dump_xml, <<'    END_XML', '... and it should return the correct XML';
-    <one guid="Fake guid">
-      <name>some name</name>
-      <description>some description</description>
-      <state>Active</state>
-      <bool>1</bool>
-    </one>
+    <kinetic version="0.01">
+      <one guid="Fake guid">
+        <name>some name</name>
+        <description>some description</description>
+        <state>1</state>
+        <bool>1</bool>
+      </one>
+    </kinetic>
     END_XML
     my $two = Two->new;
     $two->name('june17');
@@ -80,20 +82,43 @@ sub dump_xml : Test(no_plan) {
     $two->one($one);
     $two->{guid} = 'another fake guid';
     $xml->object($two);
-    is_xml $xml->dump_xml, <<'    END_XML', '... contained object should also be represented correctly';
-    <two guid="another fake guid">
-      <name>june17</name>
-      <description></description>
-      <state>Active</state>
+    is_xml $xml->dump_xml({with_contained => 1}), <<'    END_XML', '... contained object should also be represented correctly';
+    <kinetic version="0.01">
+      <two guid="another fake guid">
+        <name>june17</name>
+        <description></description>
+        <state>1</state>
+        <one guid="Fake guid">
+          <name>some name</name>
+          <description>some description</description>
+          <state>1</state>
+          <bool>1</bool>
+        </one>
+        <age></age>
+        <date>1968-06-17T00:00:00</date>
+      </two>
+    </kinetic>
+    END_XML
+    is_xml $xml->dump_xml({with_contained => 0}), <<'    END_XML', 'with_contained=0 should refer to contained objects by GUID';
+    <kinetic version="0.01">
+      <two guid="another fake guid">
+        <name>june17</name>
+        <description></description>
+        <state>1</state>
+        <one guid="Fake guid" relative="1"/>
+        <age></age>
+        <date>1968-06-17T00:00:00</date>
+      </two>
       <one guid="Fake guid">
         <name>some name</name>
         <description>some description</description>
-        <state>Active</state>
+        <state>1</state>
         <bool>1</bool>
       </one>
-      <age></age>
-      <date>1968-06-17T00:00:00</date>
-    </two>
+    </kinetic>
     END_XML
-    diag "You ain't done, foo!  See \%params";
+}
+
+sub new_from_xml : Test(no_plan) {
+    can_ok XML, 'new_from_xml';
 }
