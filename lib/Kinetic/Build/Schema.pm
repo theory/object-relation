@@ -141,16 +141,13 @@ sub load_classes {
     };
 
     find({ wanted => $find_classes, no_chdir => 1 }, $dir);
-    # XXX Determine dependency ordering for classes.
+
+    # Store classes according to dependency order.
     my (@sorted, %seen);
     for my $class (@classes) {
         push @sorted, $self->_sort_class(\%seen, $class)
           unless $seen{$class->key}++;
     }
-
-    # For each class, if there's a parent, the parent must come first. Go through
-    # parents recursively. And for each attribute, if there's a contained object,
-    # the contained object's class must come first.
 
     $self->{classes} = \@sorted;
     return $self;
