@@ -5,7 +5,8 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
-use Test::More tests => 68;
+#use Test::More tests => 68;
+use Test::More qw/no_plan/;
 use Test::Differences;
 
 BEGIN { use_ok 'Kinetic::Build::Schema' or die };
@@ -253,9 +254,11 @@ is $two->table, 'simple_two', "... Two class has table 'simple_two'";
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE simple_two (
     id INTEGER NOT NULL PRIMARY KEY REFERENCES _simple(id) ON DELETE CASCADE,
-    one_id INTEGER NOT NULL REFERENCES simple_one(id) ON DELETE CASCADE
+    one_id INTEGER NOT NULL REFERENCES simple_one(id) ON DELETE CASCADE,
+    age INTEGER
 );
 };
+
 eq_or_diff $sg->table_for_class($two), $table,
   "... Schema class generates CREATE TABLE statement";
 
@@ -317,7 +320,7 @@ eq_or_diff $sg->constraints_for_class($two), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW two AS
-  SELECT simple.id, simple.guid, simple.name, simple.description, simple.state, simple_two.one_id AS "one__id", one.guid AS "one__guid", one.name AS "one__name", one.description AS "one__description", one.state AS "one__state", one.bool AS "one__bool"
+  SELECT simple.id, simple.guid, simple.name, simple.description, simple.state, simple_two.one_id AS "one__id", one.guid AS "one__guid", one.name AS "one__name", one.description AS "one__description", one.state AS "one__state", one.bool AS "one__bool", simple_two.age
   FROM   simple, simple_two, one
   WHERE  simple.id = simple_two.id AND simple_two.one_id = one.id;
 };
@@ -331,8 +334,8 @@ FOR EACH ROW BEGIN
   INSERT INTO _simple (guid, name, description, state)
   VALUES (NEW.guid, NEW.name, NEW.description, NEW.state);
 
-  INSERT INTO simple_two (id, one_id)
-  VALUES (last_insert_rowid(), NEW.one__id);
+  INSERT INTO simple_two (id, one_id, age)
+  VALUES (last_insert_rowid(), NEW.one__id, NEW.age);
 END;
 };
 eq_or_diff $sg->insert_for_class($two), $insert,
@@ -347,7 +350,7 @@ FOR EACH ROW BEGIN
   WHERE  id = OLD.id;
 
   UPDATE simple_two
-  SET    one_id = NEW.one__id
+  SET    one_id = NEW.one__id, age = NEW.age
   WHERE  id = OLD.id;
 END;
 };

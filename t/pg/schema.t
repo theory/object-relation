@@ -202,7 +202,8 @@ is $two->table, 'simple_two', "... Two class has table 'simple_two'";
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE simple_two (
     id INTEGER NOT NULL,
-    one_id INTEGER NOT NULL
+    one_id INTEGER NOT NULL,
+    age INTEGER
 );
 };
 eq_or_diff $sg->table_for_class($two), $table,
@@ -231,21 +232,20 @@ eq_or_diff $sg->constraints_for_class($two), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW two AS
-  SELECT simple.id, simple.guid, simple.name, simple.description, simple.state, simple_two.one_id AS "one__id", one.guid AS "one__guid", one.name AS "one__name", one.description AS "one__description", one.state AS "one__state", one.bool AS "one__bool"
+  SELECT simple.id, simple.guid, simple.name, simple.description, simple.state, simple_two.one_id AS "one__id", one.guid AS "one__guid", one.name AS "one__name", one.description AS "one__description", one.state AS "one__state", one.bool AS "one__bool", simple_two.age
   FROM   simple, simple_two, one
   WHERE  simple.id = simple_two.id AND simple_two.one_id = one.id;
 };
 eq_or_diff $sg->view_for_class($two), $view,
   "... Schema class generates CREATE VIEW statement";
-
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_two AS
 ON INSERT TO two DO INSTEAD (
   INSERT INTO _simple (id, guid, name, description, state)
   VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state);
 
-  INSERT INTO simple_two (id, one_id)
-  VALUES (CURRVAL('seq_kinetic'), NEW.one__id);
+  INSERT INTO simple_two (id, one_id, age)
+  VALUES (CURRVAL('seq_kinetic'), NEW.one__id, NEW.age);
 );
 };
 eq_or_diff $sg->insert_for_class($two), $insert,
@@ -259,7 +259,7 @@ ON UPDATE TO two DO INSTEAD (
   WHERE  id = OLD.id;
 
   UPDATE simple_two
-  SET    one_id = NEW.one__id
+  SET    one_id = NEW.one__id, age = NEW.age
   WHERE  id = OLD.id;
 );
 };

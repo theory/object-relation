@@ -22,6 +22,13 @@ BEGIN {
         )
     );
 
+    $km->add_attribute(
+        name     => 'age',
+        type     => 'whole',
+        label    => 'Age',
+        default  => undef,
+    );
+
     $km->build;
 }
 

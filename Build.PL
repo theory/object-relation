@@ -15,6 +15,7 @@ my $build = Kinetic::Build->new(
     requires             => {
         'aliased'               => 0.11,
         'Class::Meta'           => 0.44,
+        'Clone'                 => 0.15,
         'Data::UUID'            => 0.11,
         'DateTime'              => 0.24,
 #        'DateTime::Incomplete'  => 0.02,
