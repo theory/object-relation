@@ -4,7 +4,7 @@
 use strict;
 use Test::MockModule;
 #use Test::More 'no_plan';
-use Test::More tests => 66;
+use Test::More tests => 70;
 use Test::File;
 use Test::File::Contents;
 use lib 't/lib';
@@ -237,11 +237,32 @@ file_not_exists_ok 't/conf/test.conf',
         qr/PostgreSQL version 2.0.0 is installed, but we need version .* or newer/,
         '... and it should warn you if PostgreSQL is not a new enough version';
 
-   @error = ();
-   $pg->mock('version' => sub { '7.4.5' });
-   $pg->mock('executable' => sub {1} );
-   isa_ok $build->ACTION_check_store => $CLASS;
-   ok(!@error, '... and if all parameters are correct, we should have no errors');
+    @error = ();
+    $pg->mock('version' => sub { '7.4.5' });
+    $pg->mock('createlang' => sub {''});
+    eval {$build->ACTION_check_store};
+    like $error[1], qr/createlang must be available for plpgsql support/,
+        '... and it should warn you if createlang is not available';
+    
+    @error = ();
+    $pg->mock('createlang' => sub {'createlang'});
+    $build->db_port(2222);
+    $build->db_host(undef);
+    $pg->mock('executable' => sub {'pgsql'} );
+    isa_ok $build->ACTION_check_store => $CLASS;
+    is $build->db_host, 'localhost',
+        '... if db_port is set and db_host is not, the latter should default to localhost';
+    ok(!@error, '... and if all parameters are correct, we should have no errors');
+
+    @error = ();
+    $pg->mock('createlang' => sub {'createlang'});
+    $build->db_port(2222);
+    $build->db_host('some.host');
+    $pg->mock('executable' => sub {'pgsql'} );
+    $build->ACTION_check_store;
+    is $build->db_host, 'some.host',
+        '... if db_port and db_host are both set, the latter should not default to localhost';
+    ok(!@error, '... and if all parameters are correct, we should have no errors');
 }
 
 END {

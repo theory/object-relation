@@ -597,19 +597,16 @@ sub check_pg {
     my ($self, $pg) = @_;
 
     # Check for database accessibility. Rules:
-    # * There must be psql so that we can load the database.
-    # * There must be createlang so that we can add plpgsql support.
+    $pg->createlang
+        or $self->_fatal_error("createlang must be available for plpgsql support");
     # * If the database in the db_name property exists, we must be able to
     #   access it with db_user and be able to create tables, views, sequences,
     #   functions, triggers, rules, etc.
+### --- not sure how to test this --- ###
     # * If the database doesn't exist, we must have db_root_user so that
     #   we can create it. We might also need a value for db_root_pass, too.
-    # * db_port and db_host can be undefined if we're using Unix sockets to
-    #   connect to a local server. Otherwise, they must be defined.
 
-    #   If db_port is defined, db_host *must* (test (or default to localhost))
-    #   be defined.  If db_host is not defined, we *must* (no test) be using
-    #   Unix sockets.
+    $self->db_host('localhost') if $self->db_port and ! defined $self->db_host;
 
     # We're good to go. Collect the configuration data.
     my %info = (

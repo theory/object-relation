@@ -46,8 +46,6 @@ classes. See L<Kinetic::Meta::Class::Schema|Kinetic::Meta::Class::Schema> and
 L<Kinetic::Meta::Attribute::Schema|Kinetic::Meta::Attribute::Schema> for the
 methods that define these names, and documentation for the naming conventions.
 
-=back
-
 =cut
 
 ##############################################################################

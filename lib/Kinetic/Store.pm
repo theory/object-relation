@@ -1078,7 +1078,6 @@ sub _search_params {
         }
     }
 
-
     return ($target, \@search, $options);
 }
 
