@@ -28,6 +28,7 @@ use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Util::State';
 use aliased 'Kinetic::DateTime::Incomplete';
+use aliased 'Kinetic::Store::Search';
 
 use constant GROUP_OP => qr/^(?:AND|OR)$/;
 use constant OBJECT_DELIMITER => '__';
@@ -262,6 +263,20 @@ sub count {
     return $count;
 }
 
+##############################################################################
+
+=head3 date_handler
+
+  $store->date_handler($date);
+
+This method is used for returning the proper SQL and bind params for handling
+incomplete dates.  This must be overridden in a subclass.
+
+=cut
+
+sub date_handler {
+    croak "You must override date_handler in a subclass";
+}
 
 sub _get_select_sql_and_bind_params {
     my ($self, $fields, $params) = @_;
@@ -766,12 +781,12 @@ Examples of returned tokens:
 sub _make_where_token {
     my ($self, $field, $search_param) = @_;
 
-    my ($negated, $comparator, $value) = $self->_expand_search_param($search_param);
+    my ($negated, $operator, $value) = $self->_expand_search_param($search_param);
     unless (grep $_ eq $field => @{$self->{search_data}{fields}}) {
         # special case for searching on a contained object id ...
         my $id_field = $field . OBJECT_DELIMITER . 'id';
         unless (grep $_ eq $id_field => @{$self->{search_data}{fields}}) {
-            croak "Don't know how to search for ($field $negated $comparator $value)";
+            croak "Don't know how to search for ($field $negated $operator $value)";
         }
         $field = $id_field;
         $value = 'ARRAY' eq ref $value
@@ -779,22 +794,17 @@ sub _make_where_token {
             : $self->_get_id_from_object($value);
     }
 
-    $comparator ||=  'ARRAY' eq ref $value ? 'BETWEEN' : 'EQ';
-    my $token_handler = $self->_comparison_handler($comparator)
-        or croak "Don't know how to search for ($field $negated $comparator $value)";
+    $operator ||=  'ARRAY' eq ref $value ? 'BETWEEN' : 'EQ';
+    my $search = Search->new(
+        attr     => $field,
+        operator => $operator,
+        negated  => $negated,
+        data     => $value,
+    );
+    my $search_method = $search->search_method
+        or croak "Don't know how to search for ($field $negated $operator $value)";
 
-    # if it's blessed, assume that it's an object whose overloading will
-    # provide the correct search data
-    if (
-        ref $value 
-            && 
-        ! blessed($value) 
-            && 
-        ('ARRAY' ne ref $value || grep {ref && ! blessed($_)} @$value)
-    ) {
-        croak "Don't know how to search for ($field $negated $comparator $value)";
-    }
-    return $token_handler->($self, $field, $negated, $comparator, $value);
+    return $self->$search_method($search);
 }
 
 sub _get_id_from_object {
@@ -831,6 +841,106 @@ sub _is_case_insensitive {
         return ($orig_field, '?');
     }
 }
+
+sub _ANY_SEARCH {
+    my ($self, $search)        = @_;
+    my ($negated, $value)      = ($search->negated, $search->data);
+    my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
+    my $place_holders = join ', ' => ($place_holder) x @$value;
+    return ("$field $negated IN ($place_holders)", $value);
+}
+
+sub _EQ_SEARCH {
+    my ($self, $search) = @_;
+    my ($negated, $value) = ($search->negated, $search->data);
+    my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
+    my $operator = $negated ? '!=' : '=';
+    return 
+          UNIVERSAL::isa($value, Incomplete) ? ("$field $negated LIKE ?", [$self->date_handler($value)])
+        :                                      ("$field $operator $place_holder", [$value]);
+}
+
+sub _NULL_SEARCH {
+    my ($self, $search)   = @_;
+    my ($field, $negated) = ($search->attr, $search->negated);
+    return ("$field IS $negated NULL", []);
+}
+
+sub _GT_SEARCH {
+    my ($self, $search) = @_;
+    $search->operator($search->negated ? '<=' : '>');
+    $self->_gt_lt_handler($search);
+}
+
+sub _GE_SEARCH {
+    my ($self, $search) = @_;
+    $search->operator($search->negated ? '<' : '>=');
+    $self->_gt_lt_handler($search);
+}
+
+sub _LE_SEARCH {
+    my ($self, $search) = @_;
+    $search->operator($search->negated ? '>' : '<=');
+    $self->_gt_lt_handler($search);
+}
+
+sub _LT_SEARCH {
+    my ($self, $search) = @_;
+    $search->operator($search->negated ? '>=' : '<');
+    $self->_gt_lt_handler($search);
+}
+
+sub _gt_lt_handler {
+    my ($self, $search) = @_;
+    my ($orig_field, $operator, $value) =
+        ($search->attr, $search->operator, $search->data);
+    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
+    if (UNIVERSAL::isa($value, Incomplete)) {
+        return $self->date_handler($value, $field, $operator);
+    }
+    else {
+        return ("$field $operator $place_holder", [$value]);
+    }
+}
+
+sub _BETWEEN_SEARCH {
+    my ($self, $search) = @_;
+    my ($negated, $operator) = ($search->negated, $search->operator);
+    my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
+    return ("$field $negated $operator $place_holder AND $place_holder", $search->data)
+}
+
+sub _MATCH_SEARCH {
+    my ($self, $search) = @_;
+    my ($field, $place_holder) = $self->_is_case_insensitive($self->attr);
+    my $operator = $search->negated ? '!~*' : '~*';
+    return ("$field $operator $place_holder", [$search->data]);
+}
+
+sub _LIKE_SEARCH {
+    my ($self, $search) = @_;
+    my ($negated, $operator) = ($search->negated, $search->operator);
+    my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
+    return ("$field $negated $operator $place_holder", [$search->data]);
+}
+
+##############################################################################
+
+=head3 _expand_search_param
+
+  my ($op_key, $value) = $store->_expand_search_param($search_param);
+
+When given an search_param, this method returns the op key that will be used to
+determine the comparison operator used in a where token.  It also returns the
+value(s) that will be used in the bind params.  If there are multiple values,
+they will be returned as an arrayref.
+
+The search_param passed to this method may be a code ref.  Attribute code refs
+return a string and another search_param.  The new search_param may be the value used
+or it may, in turn, be another code ref.  Attribute code refs are never more
+than two deep.
+
+=cut
 
 sub _expand_search_param {
     # we assume only two levels of code refs
@@ -872,154 +982,6 @@ sub _expand_search_param {
         croak "Two search operators not allowed unless NOT is the first operator: ($negated $type $value)";
     }
     return ($negated, $type, $value);
-}
-
-my %COMPARE_DISPATCH = (
-    EQ          => \&_EQ_SEARCH,
-    NOT         => \&_EQ_SEARCH,
-    LIKE        => \&_LIKE_SEARCH,
-    MATCH       => \&_MATCH_SEARCH, # postgresql specific
-    BETWEEN     => \&_BETWEEN_SEARCH,
-    GT          => \&_GT_SEARCH,
-    LT          => \&_LT_SEARCH,
-    GE          => \&_GE_SEARCH,
-    LE          => \&_LE_SEARCH,
-    NE          => \&_NE_SEARCH,
-    ANY         => \&_ANY_SEARCH,
-);
-
-sub _comparison_handler {
-    my ($self, $key) = @_;
-    return $COMPARE_DISPATCH{$key};
-}
-
-sub _ANY_SEARCH {
-    my ($self, $orig_field, $negated, $comparator, $value) = @_;
-    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
-    $comparator = $negated ? '<=' : '>';
-    my $place_holders = join ', ' => ($place_holder) x @$value;
-    return ("$field $negated IN ($place_holders)", $value);
-}
-
-sub _EQ_SEARCH {
-    my ($self, $orig_field, $negated, $comparator, $value) = @_;
-    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
-    $comparator = $negated ? '!=' : '=';
-    return 
-        ! defined $value                     ? ("$field IS $negated NULL", []) 
-        : UNIVERSAL::isa($value, Incomplete) ? ("$field $negated LIKE ?", [$self->date_handler($value)])
-        :                                      ("$field $comparator $place_holder", [$value]);
-}
-
-sub _NE_SEARCH {
-    my ($self, $orig_field, $negated, $comparator, $value) = @_;
-    return $self->_EQ_SEARCH($orig_field, 'NOT', 'EQ', $value);
-}
-
-sub _GT_SEARCH {
-    my ($self, $orig_field, $negated, $comparator, $value) = @_;
-    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
-    $comparator = $negated ? '<=' : '>';
-    return ("$field $comparator $place_holder", [$value]);
-}
-
-sub _GE_SEARCH {
-    my ($self, $orig_field, $negated, $comparator, $value) = @_;
-    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
-    $comparator = $negated ? '<' : '>=';
-    if (UNIVERSAL::isa($value, Incomplete)) {
-        my ($where_token, $value) = $self->date_handler($value, $field, $comparator);
-    }
-    else {
-        return ("$field $comparator $place_holder", [$value]);
-    }
-}
-
-sub _LE_SEARCH {
-    my ($self, $orig_field, $negated, $comparator, $value) = @_;
-    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
-    $comparator = $negated ? '>' : '<=';
-    return ("$field $comparator $place_holder", [$value]);
-}
-
-sub _LT_SEARCH {
-    my ($self, $orig_field, $negated, $comparator, $value) = @_;
-    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
-    $comparator = $negated ? '>=' : '<';
-    return ("$field $comparator $place_holder", [$value]);
-}
-
-sub _MATCH_SEARCH {
-    my ($self, $orig_field, $negated, $comparator, $value) = @_;
-    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
-    $comparator = $negated ? '!~*' : '~*';
-    return ("$field $comparator $place_holder", [$value]);
-}
-
-sub _LIKE_SEARCH {
-    my ($self, $orig_field, $negated, $comparator, $value) = @_;
-    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
-    return ("$field $negated $comparator $place_holder", [$value]);
-}
-
-sub _BETWEEN_SEARCH {
-    my ($self, $orig_field, $negated, $comparator, $value) = @_;
-    my ($field, $place_holder) = $self->_is_case_insensitive($orig_field);
-    return ("$field $negated $comparator $place_holder AND $place_holder", $value)
-}
-
-##############################################################################
-
-=head3 _expand_search_param
-
-  my ($op_key, $value) = $store->_expand_search_param($search_param);
-
-When given an search_param, this method returns the op key that will be used to
-determine the comparison operator used in a where token.  It also returns the
-value(s) that will be used in the bind params.  If there are multiple values,
-they will be returned as an arrayref.
-
-The search_param passed to this method may be a code ref.  Attribute code refs
-return a string and another search_param.  The new search_param may be the value used
-or it may, in turn, be another code ref.  Attribute code refs are never more
-than two deep.
-
-=cut
-
-sub _expand_search_param_OLD {
-    # we assume only two levels of code refs
-    my ($self, $search_param) = @_;
-    unless ('CODE' eq ref $search_param) {
-        return ('', undef)        unless defined $search_param;
-        return ('', $search_param)   if 'ARRAY' eq ref $search_param;
-        return ('EQ', $search_param);
-    }
-
-    my ($type, $value) = $search_param->();
-    unless ('CODE' eq ref $value) {
-        if ($type =~ GROUP_OP) {
-            # need a better error message XXX ?
-            croak "($type) cannot be a value.";
-        }
-        return ($type, $value);
-    }
-
-    my ($name, $value2) = $value->();
-    if ($name =~ GROUP_OP) {
-        # need a better error message XXX ?
-        croak "($type $name) has no meaning.";
-    }
-    if ('CODE' eq ref $value2) {
-        my ($bad, $new_value) = $value2->();
-        croak "Search operators can never be more than two deep: ($type $name $bad $new_value)";
-    }
-    if ('NOT' eq $name) {
-        croak "NOT must always be first when used as a search operator: ($type $name $value2)";
-    }
-    if ($type ne 'NOT') {
-        croak "Two search operators not allowed unless NOT is the first operator: ($type $name $value2)";
-    }
-    return ("$type $name", $value2);
 }
 
 ##############################################################################

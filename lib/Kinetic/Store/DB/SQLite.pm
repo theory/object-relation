@@ -20,6 +20,7 @@ package Kinetic::Store::DB::SQLite;
 
 use strict;
 use base qw(Kinetic::Store::DB);
+use Kinetic::Store qw(:logical);
 use Kinetic::Util::Config qw(:sqlite);
 use Exception::Class::DBI;
 use constant _connect_args => (
@@ -67,20 +68,31 @@ my %date = (
 
 sub date_handler {
     my ($self, $date, $field, $comparator) = @_;
-    return $self->_like_string($date) unless defined $field; 
-    my (@tokens,@values);
-    while (my ($segment, $idx) = each %date) {
-        my $value = $date->$segment;
-        next unless defined $value;
-        my ($position, $length) = @$idx;
-        push @tokens => "substr($field, $position, $length) $comparator ?";
-        push @values => sprintf "%0${length}d" => $value;
+    return $self->_eq_handler($date) unless defined $field; 
+    unless (ref $comparator) {
+        my (@tokens,@values);
+        while (my ($segment, $idx) = each %date) {
+            my $value = $date->$segment;
+            next unless defined $value;
+            # that "+0" forces SQLite to cast the result as a number, thus allowing
+            # a proper numeric comparison.  Otherwise, the substr forces SQLite to 
+            # treat it as a string, causing the SQL to not match our expectations.
+            push @tokens => "substr($field, $idx->[0], $idx->[1])+0 $comparator ?";
+            push @values => $value;
+        }
+        my $token = join ' AND ' => @tokens;
+        return $token, \@values;
     }
-    my $token = join ' AND ' => @tokens;
-    return $token, \@values;
+    elsif ('ARRAY' eq ref $comparator){
+        return $self->_between_handler($field, $date);
+    }
 }
 
-sub _like_string {
+sub _between_handler {
+    my ($self, $field, $date) = @_;
+}
+
+sub _eq_handler {
     my ($self, $date) = @_;
     # 2005-03-14T23:01:26
     # YYYY-MM-DD{T}hh:mm:ss
@@ -141,13 +153,10 @@ supported on SQLite.
 
 =cut
 
-sub _comparison_handler {
-    my ($class, $key) = @_;
-    if ($key =~ /MATCH/) {
-        require Carp;
-        Carp::croak("$key:  SQLite does not support regular expressions");
-    }
-    return $class->SUPER::_comparison_handler($key);
+sub _MATCH_SEARCH {
+    my ($class, $search) = @_;
+    require Carp;
+    Carp::croak("MATCH:  SQLite does not support regular expressions");
 }
 
 ##############################################################################
