@@ -6,6 +6,7 @@ use strict;
 use warnings;
 
 use Test::More;
+use Test::Exception;
 use base 'TEST::Kinetic::Store';
 #use base 'TEST::Class::Kinetic';
 use lib 't/lib';
@@ -16,27 +17,90 @@ use aliased 'Kinetic::Store' => 'DONT_USE', ':all';
 use aliased 'Kinetic::Store::DB' => 'Store';
 use aliased 'Kinetic::Util::State';
 
+use lib 't/sample/lib'; # temporary
 use aliased 'TestApp::Simple::One';
 use aliased 'Hash::AsObject';
 
 __PACKAGE__->runtests;
 
-sub where_token : Test(30) {
+sub where_clause : Test(no_plan) {
+    my $store = Store->new;
+    can_ok $store, '_make_where_clause';
+    my ($where, $bind) = $store->_make_where_clause([
+        name => 'foo',
+        desc => 'bar',
+    ]);
+    is $where, '(name = ? AND desc = ?)',
+        'and simple compound where snippets should succeed';
+    is_deeply $bind, [qw/foo bar/],
+        'and return the correct bind params';
+    ($where, $bind) = $store->_make_where_clause([
+        name => 'foo',
+        [
+            desc => 'bar',
+            this => 'that',
+        ],
+    ]);
+    is $where, '(name = ? AND (desc = ? AND this = ?))',
+        'and compound where snippets with array refs should succeed';
+    is_deeply $bind, [qw/foo bar that/],
+        'and return the correct bind params';
+
+    ($where, $bind) = $store->_make_where_clause([
+        name => 'foo',
+        OR( 
+            desc => 'bar',
+            this => 'that',
+        ),
+    ]);
+    is $where, '(name = ? OR (desc = ? AND this = ?))',
+        'and compound where snippets with array refs should succeed';
+    is_deeply $bind, [qw/foo bar that/],
+        'and return the correct bind params';
+
+    ($where, $bind) = $store->_make_where_clause([
+        [
+            last_name  => 'Wall',
+            first_name => 'Larry',
+        ],
+        OR( bio => LIKE '%perl%'),
+        OR(
+          'contact.type'  => LIKE 'email',
+          'contact.value' => LIKE '@cpan\.org$',
+          'fav_number'    => GE 42
+        )
+    ]);
+    is $where, '((last_name = ? AND first_name = ?) OR (bio LIKE ?) OR '
+              .'(contact.type LIKE ? AND contact.value LIKE ? AND fav_number >= ?))',
+        'Even very complex conditions should be manageable';
+    is_deeply $bind, [qw/Wall Larry %perl% email @cpan\.org$ 42/],
+        'and be able to generate the correct bindings';
+
+    ($where, $bind) = $store->_make_where_clause([
+        AND( 
+            last_name  => 'Wall',
+            first_name => 'Larry',
+        ),
+        OR( bio => LIKE '%perl%'),
+        OR(
+          'contact.type'  => LIKE 'email',
+          'contact.value' => LIKE '@cpan\.org$',
+          'fav_number'    => GE 42
+        )
+    ]);
+    is $where, '((last_name = ? AND first_name = ?) OR (bio LIKE ?) OR '
+              .'(contact.type LIKE ? AND contact.value LIKE ? AND fav_number >= ?))',
+        'Even very complex conditions should be manageable';
+    is_deeply $bind, [qw/Wall Larry %perl% email @cpan\.org$ 42/],
+        'and be able to generate the correct bindings';
+}
+
+sub where_token : Test(26) {
     can_ok Store, '_make_where_token';
     
     my ($token, $bind) = Store->_make_where_token('name', 'foo');
     is $token, 'name = ?', 'and a basic match should return the correct where snippet';
     is_deeply $bind, ['foo'], 'and a proper bind param';
-
-    ($token, $bind) = Store->_make_where_token(undef, AND(name => 'bar', desc => 'baz'));
-    is $token, '(name = ? AND desc = ?)', 
-        'and an AND search should return the correct where snippet';
-    is_deeply $bind, [qw/bar baz/], 'and a proper bind param';
-    
-    ($token, $bind) = Store->_make_where_token(undef, OR(name => 'bar', desc => 'baz'));
-    is $token, '(name = ? OR desc = ?)', 
-        'and an OR search should return the correct where snippet';
-    is_deeply $bind, [qw/bar baz/], 'and a proper bind param';
 
     ($token, $bind) = Store->_make_where_token('name', NOT 'foo');
     is $token, 'name != ?', 
@@ -92,7 +156,7 @@ sub where_token : Test(30) {
     is_deeply $bind, ['(a|b)%'], 'and a proper bind param';
 }
 
-sub expand_attribute : Test(33) {
+sub expand_attribute : Test(31) {
     can_ok Store, '_expand_attribute';
 
     my ($type, $value) = Store->_expand_attribute('bar');
@@ -124,15 +188,13 @@ sub expand_attribute : Test(33) {
     is $type, 'NOT ANY', 'a NOT ANY expansion will return NOT ANY for the type';
     is_deeply $value, ['bar', 'baz'], 'and the args as an array ref';
 
-    ($type, $value) = Store->_expand_attribute(OR(name => 'bar', desc => 'baz'));
-    is $type, 'OR', 'an OR expansion will return OR for the type';
-    is_deeply $value, [name => 'bar', desc => 'baz'],
-        'and the values will be an array ref';
+    throws_ok {Store->_expand_attribute(OR(name => 'bar'))}
+        qr/\Q(OR) cannot be a value\E/,
+        'and OR should never be parsed as a value';
 
-    ($type, $value) = Store->_expand_attribute(AND(name => 'bar', desc => 'baz'));
-    is $type, 'AND', 'an AND expansion will return AND for the type';
-    is_deeply $value, [name => 'bar', desc => 'baz'],
-        'and the values will be an array ref';
+    throws_ok {Store->_expand_attribute(AND(name => 'bar'))}
+        qr/\Q(AND) cannot be a value\E/,
+        'and AND should never be parsed as a value';
 
     ($type, $value) = Store->_expand_attribute(GT 'bar');
     is $type, 'GT', 'an GT expansion will return NOT GT for the type';

@@ -113,7 +113,7 @@ or not to skip a set of tests.
 
 =cut
 
-my %SUPPORTED = map { $_ => undef } split /\s+/, $ENV{KINETIC_SUPPORTED};
+my %SUPPORTED = map { $_ => undef } split /\s+/, $ENV{KINETIC_SUPPORTED} || '';
 
 sub supported { exists $SUPPORTED{$_[1]} }
 

@@ -28,6 +28,8 @@ use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Util::State';
 
+use constant GROUP_OP => qr/^(?:AND|OR)$/;
+
 =head1 Name
 
 Kinetic::Store::DB - The Kinetic database store base class
@@ -164,17 +166,18 @@ sub search {
     my $attributes   = join ', ' => map { $class->_get_name($_) } @attributes;
     my $view         = $search_class->view;
     
-    my ($where_clause, @bind_params) = 
+    my ($where_clause, $bind_params) = 
         $class->_make_where_clause(\@search_params, $constraints);
+    $where_clause = '' if $where_clause eq '()';
     $where_clause = "WHERE $where_clause" if $where_clause;
-    my $sql          = "SELECT id, $attributes FROM $view $where_clause";
+    my $sql       = "SELECT id, $attributes FROM $view $where_clause";
     $sql .= $class->_constraints($constraints) if $constraints;
-    # warn "# *** $sql ***\n";
-    # warn "# *** @bind_params ***\n";
+    #warn "# *** $sql ***\n";
+    #warn "# *** @$bind_params ***\n";
     
     my @results;
     my $sth = $class->_dbh->prepare($sql);
-    $sth->execute(@bind_params);
+    $sth->execute(@$bind_params);
     while (my $result = $sth->fetchrow_hashref) {
         push @results => $class->_build_object_from_hashref($search_class, $result);
     }
@@ -203,27 +206,47 @@ sub _constraints {
 }
 
 sub _make_where_clause {
-    my ($class, $attributes, $constraints) = @_;
-    $constraints ||= {};
-    my (@where, @bind);
-    while (my ($field, $attribute) = splice @$attributes => 0, 2) {
-        if ('CODE' eq ref $field) { # handle AND/OR
-            # we need to back up one because AND and OR are not preceded
-            # by the name of a field:
-            # Store->search($class, OR(name => 'foo', desc => 'bar'));
-            unshift @$attributes => $attribute;
-            $attribute = $field;
-            $field     = undef;
+    my ($self, $attributes)     = @_;
+    local $self->{where}        = [];
+    local $self->{bind_params}  = [];
+
+    my ($where_token, $bindings);
+    my $op = 'AND';
+    while (@$attributes) {
+        my $curr_attribute = shift @$attributes;
+        unless (ref $curr_attribute) {
+            my $value = shift @$attributes;
+            ($where_token, $bindings) = $self->_make_where_token($curr_attribute, $value);
         }
-        my ($token, $params) = $class->_make_where_token($field, $attribute);
-        push @where => $token   if defined $token;
-        push @bind  => @$params if defined $params;
+        elsif ('ARRAY' eq ref $curr_attribute) {
+            ($where_token, $bindings) = $self->_make_where_clause($curr_attribute);
+        }
+        elsif ('CODE' eq ref $curr_attribute) {
+            my $values;
+            ($op, $values) = $curr_attribute->();
+            unless ($op =~ GROUP_OP) {
+                croak("Grouping operators must be AND or OR, not ($op)");
+            }
+            ($where_token, $bindings) = $self->_make_where_clause($values);
+        }
+        else {
+            croak sprintf "I know what to do with a %s for (@{$self->{where}})"
+                => ref $curr_attribute;
+        }
+        $self->_store_where_data($op, $where_token, $bindings);
     }
-    my $join  = $constraints->{negated}
-        ? 'OR'
-        : 'AND';
-    my $where = join(" $join " => @where) || '';
-    return $where, @bind;
+    my $where = "(".join(' ' => @{$self->{where}}).")";
+    return $where, $self->{bind_params};
+}
+
+sub _store_where_data {
+    my ($self, $op, $where_token, $bindings) = @_;
+    if (@{$self->{where}} && $self->{where}[-1] !~ GROUP_OP) {
+        push @{$self->{where}} => $op if $op;
+    }
+    push @{$self->{where}}        => $where_token;
+    push @{$self->{bind_params}}  => @$bindings if @$bindings;
+    return $self;
 }
 
 my %COMPARE = (
@@ -265,18 +288,7 @@ sub _make_where_token {
         my $place_holders = join ', ' => ('?') x @$value;
         return ("$field $comparator IN ($place_holders)", $value);
     }
-    elsif ($comparator eq 'AND') {
-        my ($where_clause, @bindings) = $class->_make_where_clause($value);
-        return ("($where_clause)", \@bindings);
-    }
-    elsif ($comparator eq 'OR') {
-        my ($where_clause, @bindings) = $class->_make_where_clause($value, {negated => 1});
-        return ("($where_clause)", \@bindings);
-    }
     elsif (! defined $value) {
-        # XXX I don't know how we're getting here with an undefined
-        # field but it happens with AND/OR searches :/
-        return unless defined $field;
         return ("$field IS $comparator NULL", []); 
     }
     elsif ($comparator =~ /LIKE/) {
@@ -298,10 +310,18 @@ sub _expand_attribute {
 
     my ($type, $value) = $attribute->();
     unless ('CODE' eq ref $value) {
+        if ($type =~ GROUP_OP) {
+            # need a better error message XXX ?
+            croak "($type) cannot be a value.";
+        }
         return ($type, $value);
     }
 
     my ($name, $value2) = $value->();
+    if ($name =~ GROUP_OP) {
+        # need a better error message XXX ?
+        croak "($type $name) has no meaning.";
+    }
     return ("$type $name", $value2);
 }
 
