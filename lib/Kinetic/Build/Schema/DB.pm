@@ -522,7 +522,8 @@ sub view_columns {
                     push @$tables, $join;
                 }
             }
-            push @cols, "$table.$col", $self->_map_ref_columns($ref, $key);
+            push @cols, qq{$table.$col AS "$key\__id"},
+              $self->_map_ref_columns($ref, $key);
         } else {
             push @cols, "$table.$col";
         }
@@ -558,7 +559,7 @@ sub _map_ref_columns {
     my ($ckey, $q) = @keys ? (join ('.', @keys, ''), '"') : ('', '');
     for my $attr ($class->attributes) {
         my $col = $attr->column;
-        push @cols, qq{$key.$q$ckey$col$q AS "$key.$ckey$col"};
+        push @cols, qq{$key.$q$ckey$col$q AS "$key\__$ckey$col"};
         if (my $ref = $attr->references) {
             push @cols, $self->_map_ref_columns($ref, $key, @keys, $ref->key);
         }

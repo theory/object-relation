@@ -231,7 +231,7 @@ eq_or_diff $sg->constraints_for_class($two), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW two AS
-  SELECT simple.id, simple.guid, simple.name, simple.description, simple.state, simple_two.one_id, one.guid AS "one.guid", one.name AS "one.name", one.description AS "one.description", one.state AS "one.state", one.bool AS "one.bool"
+  SELECT simple.id, simple.guid, simple.name, simple.description, simple.state, simple_two.one_id AS "one__id", one.guid AS "one__guid", one.name AS "one__name", one.description AS "one__description", one.state AS "one__state", one.bool AS "one__bool"
   FROM   simple, simple_two, one
   WHERE  simple.id = simple_two.id AND simple_two.one_id = one.id;
 };
@@ -335,7 +335,7 @@ eq_or_diff $sg->constraints_for_class($composed), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW composed AS
-  SELECT _composed.id, _composed.guid, _composed.name, _composed.description, _composed.state, _composed.one_id, one.guid AS "one.guid", one.name AS "one.name", one.description AS "one.description", one.state AS "one.state", one.bool AS "one.bool"
+  SELECT _composed.id, _composed.guid, _composed.name, _composed.description, _composed.state, _composed.one_id AS "one__id", one.guid AS "one__guid", one.name AS "one__name", one.description AS "one__description", one.state AS "one__state", one.bool AS "one__bool"
   FROM   _composed LEFT JOIN one ON _composed.one_id = one.id;
 };
 eq_or_diff $sg->view_for_class($composed), $view,
@@ -431,7 +431,7 @@ eq_or_diff $sg->constraints_for_class($comp_comp), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW comp_comp AS
-  SELECT _comp_comp.id, _comp_comp.guid, _comp_comp.name, _comp_comp.description, _comp_comp.state, _comp_comp.composed_id, composed.guid AS "composed.guid", composed.name AS "composed.name", composed.description AS "composed.description", composed.state AS "composed.state", composed.one_id AS "composed.one_id", composed."one.guid" AS "composed.one.guid", composed."one.name" AS "composed.one.name", composed."one.description" AS "composed.one.description", composed."one.state" AS "composed.one.state", composed."one.bool" AS "composed.one.bool"
+  SELECT _comp_comp.id, _comp_comp.guid, _comp_comp.name, _comp_comp.description, _comp_comp.state, _comp_comp.composed_id AS "composed__id", composed.guid AS "composed__guid", composed.name AS "composed__name", composed.description AS "composed__description", composed.state AS "composed__state", composed.one_id AS "composed__one_id", composed."one.guid" AS "composed__one.guid", composed."one.name" AS "composed__one.name", composed."one.description" AS "composed__one.description", composed."one.state" AS "composed__one.state", composed."one.bool" AS "composed__one.bool"
   FROM   _comp_comp, composed
   WHERE  _comp_comp.composed_id = composed.id;
 };
