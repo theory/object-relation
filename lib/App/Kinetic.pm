@@ -1,8 +1,11 @@
 package App::Kinetic;
 
+# $Id$
+
+use 5.008003;
 use strict;
-use 5.005003;
 use version;
+use encoding 'utf8';
 our $VERSION = version->new('0.0.1');
 
 1;
@@ -10,20 +13,31 @@ __END__
 
 =head1 Name
 
-App::Kinetic - The Kinetic application framework
+=begin comment
+
+Fake-out Module::Build. Delete if it ever changes to support =head1 headers
+other than all uppercase.
+
+=head1 NAME
+
+=end comment
+
+App::Kinetic - The Kinetic enterprise application framework
 
 =head1 Description
 
 This is App::Kinetic, the Kinetic enterprise application framework.
 
-=cut
-
-1;
-__END__
-
-##############################################################################
-
 =head1 Author
+
+=begin comment
+
+Fake-out Module::Build. Delete if it ever changes to support =head1 headers
+other than all uppercase.
+
+=head1 AUTHOR
+
+=end comment
 
 Kineticode, Inc. <info@kineticode.com>
 

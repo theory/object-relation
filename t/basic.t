@@ -1,5 +1,7 @@
 #!perl -w
 
+# $Id$
+
 use strict;
 use Test::More tests => 2;
 

@@ -2,9 +2,9 @@
 name: App-Kinetic
 version: 0.0.1
 author:
-  - Kineticode <info@kineticode.com>
-abstract: The Kinetic application framework
-license: gpl
+  - Kineticode, Inc. <info@kineticode.com>
+abstract: The Kinetic enterprise application framework
+license: perl
 provides:
   App::Kinetic:
     file: lib/App/Kinetic.pm
