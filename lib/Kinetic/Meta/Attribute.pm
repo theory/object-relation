@@ -142,6 +142,20 @@ sub raw {
 
 ##############################################################################
 
+=head3 references
+
+  my $references = $attr->references;
+
+If the attribute is a reference to a class of Kinetic object, this method
+returns a Kinetic::Meta::Class::Schema object representing that class. This is
+useful for creating views that include a referenced object.
+
+=cut
+
+sub references { shift->{references} }
+
+##############################################################################
+
 =head3 build
 
 This private method overrides the parent C<build()> method in order to set up
@@ -154,6 +168,10 @@ the C<raw()> accessor interface.
 sub build {
     my $self = shift;
     $self->SUPER::build(@_);
+
+    # Figure out if the attribute is a reference to another object in a
+    # Kinetic::Meta class.
+    $self->{references} = Kinetic::Meta->for_key($self->type);
 
     my $type = Kinetic::Meta::Type->new($self->{type});
     # Create the attribute object get code reference.

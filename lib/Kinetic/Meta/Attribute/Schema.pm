@@ -63,20 +63,6 @@ are not otherwise useful when an application is actually in use.
 
 =head2 Accessor Methods
 
-=head3 references
-
-  my $references = $attr->references;
-
-If the attribute is a reference to a class of Kinetic object, this method
-returns a Kinetic::Meta::Class::Schema object representing that class. This is
-useful for creating views that include a referenced object.
-
-=cut
-
-sub references { shift->{references} }
-
-##############################################################################
-
 =head3 on_delete
 
   my $on_delete = $attr->on_delete;
@@ -209,7 +195,7 @@ extra metadata information necessary for building a data store schema.
 sub build {
     my $self = shift;
     $self->SUPER::build(@_);
-    if ($self->{references} = Kinetic::Meta->for_key($self->type)) {
+    if ($self->references) {
         # XXX We should probably default to RESTRICT here.
         $self->{on_delete} ||= 'CASCADE';
     } else {
