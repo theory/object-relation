@@ -24,9 +24,10 @@ use Kinetic::Util::Config qw(:pg);
 use Exception::Class::DBI;
 use constant _connect_args => (
     PG_DSN, PG_DB_USER, PG_DB_PASS, {
-        RaiseError  => 0,
-        PrintError  => 0,
-        HandleError => Exception::Class::DBI->handler
+        RaiseError     => 0,
+        PrintError     => 0,
+        pg_enable_utf8 => 1,
+        HandleError    => Exception::Class::DBI->handler,
     }
 );
 
