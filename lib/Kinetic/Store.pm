@@ -282,8 +282,8 @@ B<Throws:>
 
 sub save {
     my ($class, $object) = @_;
-    return $class unless $object->changed;
-    return defined $object->guid
+    #return $class unless $object->changed;
+    return exists $object->{_id}
         ? $class->_update($object)
         : $class->_insert($object);
 }
@@ -291,31 +291,47 @@ sub save {
 sub _insert {
     my ($class, $object) = @_;
     my $my_class     = $object->my_class;
-    my $table        = $my_class->table;
+    my $view         = $my_class->view;
     my @attributes   = $my_class->attributes;
     my $attributes   = join ', ' => map { $_->column } @attributes;
     my $placeholders = join ', ' => (('?') x @attributes);
-    my @values       = map { my $attr = $_->name; $object->$attr } @attributes;
-    my $sql = "INSERT INTO $table ($attributes) VALUES ($placeholders)";
+    my @values       = map { my $attr = $_->name; $class->_get_value($object, $attr) } @attributes;
+    my $sql = "INSERT INTO $view ($attributes) VALUES ($placeholders)";
     $class->_do_sql($sql, \@values);
-    $object->{_id}   = $class->_dbh->last_insert_id;
+    $class->_set_id($object);
+    return $class;
+}
+
+# may be overridden in subclasses
+sub _set_id {
+    my ($class, $object) = @_;
+    $object->{id} = $class->_dbh->last_insert_id(undef, undef, undef, undef);
     return $class;
 }
 
 sub _update {
     my ($class, $object) = @_;
     my $my_class      = $object->my_class;
-    my $table         = $my_class->table;
+    my $view          = $my_class->view;
     my @attributes    = $my_class->attributes;
     my $column_values =
         join ', ' =>
         map { $_->column .' = ?' }
             @attributes;;
-    my @values = map { my $attr = $_->name; $object->$attr } @attributes;
+    my @values = map { my $attr = $_->name; $class->_get_value($object, $attr) } @attributes;
     push @values => $object->guid;
-    my $sql = "UPDATE $table SET $column_values WHERE guid = ?";
+    my $sql = "UPDATE $view SET $column_values WHERE guid = ?";
     $class->_do_sql($sql, \@values);
     return $class;
+}
+
+sub _get_value {
+    my ($class, $object, $attr) = @_;
+    my $value = $object->$attr;
+    if (ref $value && $value->isa('Kinetic::Util::State')) {
+        $value = int $value;
+    }
+    return $value;
 }
 
 sub _do_sql {

@@ -20,6 +20,7 @@ use aliased 'Test::MockModule';
 use aliased 'Sub::Override';
 
 use aliased 'Kinetic::Build';
+use aliased 'Kinetic::Util::State';
 use aliased 'Kinetic::Store::DB::SQLite' => 'Store';
 use aliased 'Kinetic::Build::Store'      => 'BStore';
 
@@ -45,6 +46,7 @@ sub _load_classes : Test(startup => 4) {
         conf_file       => 'test.conf', # always writes to t/ and blib/
         accept_defaults => 1,
         source_dir      => $test_lib,
+        quiet           => 1,
     );
     $build->dispatch('build');
     # we must call "create_build_script" because bstore calls resume()
@@ -97,30 +99,27 @@ sub insert : Test(8) {
         sub { 
             my $self = shift; 
             $SQL     = shift; 
-            $BIND    = _stringify(shift);
+            $BIND    = shift;
             $self 
         } 
     );
 
-    # can't use MockModule here because it tries to locate the package
-    # in @INC
-    my $mock_dbi = Override->new('DBI::db::last_insert_id' => sub{2002});
-
     my $class = Kinetic::Meta->for_key('one');
     my $ctor  = $class->constructors('new');
     my $one = $ctor->call($class->package);
+    $mock_store->mock(_set_id => sub { $one->{id} = 2002 } );
     $one->name('Ovid');
     $one->description('test class');
 
     can_ok Store, '_insert';
-    my $expected    = q{INSERT INTO simple_one (guid, name, description, state, bool) VALUES (?, ?, ?, ?, ?)};
+    my $expected    = q{INSERT INTO one (guid, name, description, state, bool) VALUES (?, ?, ?, ?, ?)};
     my $bind_params = [
         'Ovid',
         'test class',
-        'Active',
-        '1'
+        '1', # state: Active
+        '1'  # bool
     ];
-    ok ! exists $one->{_id}, 'And a new object should not have an id';
+    ok ! exists $one->{id}, 'And a new object should not have an id';
     ok Store->_insert($one),
         'and calling it should succeed';
     is $SQL, $expected,
@@ -129,14 +128,8 @@ sub insert : Test(8) {
     like $uuid, UUID, 'with the UUID in the bind params';
     is_deeply $BIND, $bind_params,
         'and the correct bind params';
-    ok exists $one->{_id}, 'and an id should be created';
-    is $one->{_id}, 2002, 'and it should have the last insert id the database returned';
-}
-
-sub _stringify {
-    my $ref = shift;
-    $_ = "$_" foreach @$ref;
-    return $ref;
+    ok exists $one->{id}, 'and an id should be created';
+    is $one->{id}, 2002, 'and it should have the last insert id the database returned';
 }
 
 sub update : Test(7) {
@@ -146,7 +139,7 @@ sub update : Test(7) {
         sub { 
             my $self = shift; 
             $SQL     = shift; 
-            $BIND    = _stringify(shift);
+            $BIND    = shift;
             $self 
         } 
     );
@@ -157,16 +150,16 @@ sub update : Test(7) {
     $one->name('Ovid');
     $one->description('test class');
     can_ok Store, '_update';
-    $one->{_id} = 42;
+    $one->{id} = 42;
     # XXX The guid should not change, should it?  I should 
     # exclude it from this?
-    my $expected = "UPDATE simple_one SET guid = ?, name = ?, description = ?, "
+    my $expected = "UPDATE one SET guid = ?, name = ?, description = ?, "
                   ."state = ?, bool = ? WHERE guid = ?";
     my $bind_params = [
         'Ovid',
         'test class',
-        'Active',
-        '1'
+        '1', # state: Active
+        '1'  # bool
     ];
     ok Store->_update($one),
         'and calling it should succeed';
@@ -178,10 +171,11 @@ sub update : Test(7) {
     like $uuid, UUID, 'with the UUID in the bind params';
     is_deeply $BIND, $bind_params,
         'and the correct bind params';
-    is $one->{_id}, 42, 'and the private id should not be changed';
+    is $one->{id}, 42, 'and the private id should not be changed';
 }
 
 sub save : Test(no_plan) {
+    my $test  = shift;
     my $class = Kinetic::Meta->for_key('one');
     my $ctor  = $class->constructors('new');
     my $one = $ctor->call($class->package);
@@ -189,6 +183,30 @@ sub save : Test(no_plan) {
     $one->description('test class');
 
     can_ok Store, 'save';
+    my $dbh = Store->_dbh;
+    my $result = $dbh->selectrow_hashref('SELECT id, guid, name, description, state, bool FROM one');
+    ok ! $result, 'We should start with a fresh database';
+    ok Store->save($one), 'and saving an object should be successful';
+    $result = $dbh->selectrow_hashref('SELECT id, guid, name, description, state, bool FROM one');
+    $result->{state} = State->new($result->{state});
+    # XXX this works, but it might be a bit fragile
+    is_deeply $one, $result, 'and the data should match what we pull from the database';
+    is $test->_num_recs('one'), 1, 'and we should have one record in the view';
+
+    my $two = $ctor->call($class->package);
+    $two->name('bob');
+    $two->description('some description');
+    Store->save($two);
+    is $test->_num_recs('one'), 2, 'and we should have two records in the view';
+    $result = $dbh->selectrow_hashref('SELECT id, guid, name, description, state, bool FROM one WHERE name = \'bob\'');
+    $result->{state} = State->new($result->{state});
+    is_deeply $two, $result, 'and the data should match what we pull from the database';
+}
+
+sub _num_recs {
+    my ($self, $table) = @_;
+    my $result = Store->_dbh->selectrow_arrayref("SELECT count(*) FROM $table");
+    return $result->[0];
 }
 
 1;

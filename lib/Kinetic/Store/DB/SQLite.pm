@@ -54,6 +54,14 @@ sub _comparison_operator_for_single {
     }
 }
 
+sub _set_id {
+    my ($class, $object) = @_;
+    my $view = $object->my_class->view;
+    my $result = $class->_dbh->selectcol_arrayref("SELECT id FROM $view WHERE guid = ?", undef, $object->guid);
+    $object->{id} = $result->[0];
+    return $class;
+}
+
 1;
 __END__
 
