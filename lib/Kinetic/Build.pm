@@ -31,11 +31,13 @@ my %CONFIG = (
         version  => '7.4.5',
         store    => 'Kinetic::Store::DB::Pg',
         app_info => 'App::Info::RDBMS::PostgreSQL',
+        dsn      => 'dbi:Pg:dbname=%s',
     },
     sqlite => {
         version  => '3.0.8',
         store    => 'Kinetic::Store::DB::SQLite',
         app_info => 'App::Info::RDBMS::SQLite',
+        dsn      => 'dbi:SQLite:dbname=%s',
     },
 );
 
@@ -279,14 +281,16 @@ sub ACTION_check_store {
     eval "require $app_info_module";
     $self->_fatal_error("Could not require $app_info_module: $@") if $@;
     require App::Info::Handler::Carp;
+    require App::Info::Handler::Print;
     # XXX Maybe on_fatal should call _fatal_error() instead of Carp::Croak.
-    my @params = ( on_error => 'croak' );
+    my @params = ( 
+        on_info  => 'stdout', 
+        on_error => 'croak',
+    );
 
     unless ($self->accept_defaults) {
         require App::Info::Handler::Prompt;
-        require App::Info::Handler::Print;
         push @params,
-          on_info    => 'stdout', # XXX Print info when not accept_defaults?
           on_unknown => 'prompt',
           on_confirm => 'prompt';
     }
@@ -462,22 +466,6 @@ sub process_conf_files {
 
 ##############################################################################
 
-=head3 fetch_store_class
-
-This method is called by C<store_config()>  determine the class that handles a
-given store.
-
-=cut
-
-# XXX Make private?
-sub fetch_store_class {
-    my ($self) = @_;
-    return $CONFIG{$self->store}{store}
-      or $self->_fatal_error("Class not found for " . $self->store);
-}
-
-##############################################################################
-
 =head3 store_config
 
 This method is called by C<process_conf_files()> to populate the store
@@ -488,7 +476,7 @@ in the section, configuring the "class" directive.
 
 sub store_config {
     my $self = shift;
-    return "    class => '" . $self->fetch_store_class . "',\n";
+    return "    class => '" . $self->_fetch_store_class . "',\n";
 }
 
 ##############################################################################
@@ -614,39 +602,41 @@ sub check_pg {
     if ($root) {
         # We should be able to connect to template1 as db_root_user
         my $dbh = $self->_connect_as_root($template1)
-	  or $self->_fatal_error("Can't connect as $root to $template1: $DBI::errstr");
+          or $self->_fatal_error("Can't connect as $root to $template1: $DBI::errstr");
+
+        $self->_dbh($dbh);
 
         # root user should really be root user
-        unless ($self->_is_root_user($dbh, $root)) {
+        unless ($self->_is_root_user($root)) {
             $self->_fatal_error("We thought $root was root, but it is not.");
         }
 
         # if db_name does not exist, db_root_user should have permission to create it.
-        unless ($self->_db_exists($dbh)) {
-            $self->_can_create_db($dbh, $root)
-	      or $self->_fatal_error("User $root does not have permission to create databases");
+        unless ($self->_db_exists) {
+            $self->_can_create_db($root)
+              or $self->_fatal_error("User $root does not have permission to create databases");
         }
 
         # if db_user does not exist, make a note so the build process can know
-        unless ($self->_user_exists($dbh, $user)) {
+        unless ($self->_user_exists($user)) {
             $self->notes(default_user => "$user does not exist");
         }
     } else {
         # We should be able to connect to template1 as db_user
         my $dbh = $self->_connect_as_user($template1)
-	  or $self->_fatal_error("Can't connect as $user to $template1: $DBI::errstr");
+          or $self->_fatal_error("Can't connect as $user to $template1: $DBI::errstr");
 
         # If db_name does not exist, db_user should have permission to create it.
-        unless ($self->_db_exists($dbh)) {
-            $self->_can_create_db($dbh, $user)
-	      or $self->_fatal_error("User $user does not have permission to create databases");
+        unless ($self->_db_exists) {
+            $self->_can_create_db($user)
+              or $self->_fatal_error("User $user does not have permission to create databases");
         }
     }
 
     # We're good to go. Collect the configuration data.
     my %info = (
         psql    => $pg->executable,
-	createlang => $pg->createlang,
+        createlang => $pg->createlang,
         version => version->new($pg->version),
     );
 
@@ -717,16 +707,59 @@ sub _copy_to {
     while (my ($file, $dest) = each %$files) {
         for my $dir (@_) {
             $self->copy_if_modified(from => $file,
-                                    to => File::Spec->catfile($dir, $dest) );
+                                    to   => File::Spec->catfile($dir, $dest) );
         }
     }
 }
 
 ##############################################################################
 
+=head3 _dbh
+
+  $build->_dbh([$dbh]);
+
+Use this method to store and retrieve the database handle.
+
+=cut
+
+__PACKAGE__->add_property('_dbh');
+
+##############################################################################
+
+=head3 _dsn
+
+  $build->_dsn;
+
+This method returns the dsn for the current build
+
+=cut
+
+sub _dsn {
+    my $self = shift;
+    my $dsn  = $CONFIG{$self->store}{dsn};
+    return sprintf $dsn => $self->db_name;
+}
+
+##############################################################################
+
+=head3 _fetch_store_class
+
+This method is called by C<store_config()>  determine the class that handles a
+given store.
+
+=cut
+
+sub _fetch_store_class {
+    my ($self) = @_;
+    return $CONFIG{$self->store}{store}
+      or $self->_fatal_error("Class not found for " . $self->store);
+}
+
+##############################################################################
+
 =head3 _user_exists
 
-  $build->_user_exists($dbh, $user);
+  $build->_user_exists($user);
 
 This method tells whether a particular user exists for a given database
 handle.
@@ -734,9 +767,9 @@ handle.
 =cut
 
 sub _user_exists {
-    my ($self, $dbh, $user) = @_;
+    my ($self, $user) = @_;
     $self->_pg_says_true(
-        $dbh,
+        $self->_dbh,
         "select usename from pg_catalog.pg_user where usename = ?",
         $user
     );
@@ -746,7 +779,7 @@ sub _user_exists {
 
 =head3 _is_root_user
 
-  $build->_is_root_user($dbh, $user);
+  $build->_is_root_user($user);
 
 This method tells whether a particular user is the "root" user for a given
 database handle.
@@ -754,9 +787,9 @@ database handle.
 =cut
 
 sub _is_root_user {
-    my ($self, $dbh, $user) = @_;
+    my ($self, $user) = @_;
     $self->_pg_says_true(
-        $dbh,
+        $self->_dbh,
         "select usesuper from pg_catalog.pg_user where usename = ?",
         $user
     );
@@ -766,7 +799,7 @@ sub _is_root_user {
 
 =head3 _can_create_db
 
-  $build->_can_create_db($dbh, $user);
+  $build->_can_create_db($user);
 
 This method tells whether a particular user has permissions to create
 databases for a given database handle.
@@ -774,9 +807,9 @@ databases for a given database handle.
 =cut
 
 sub _can_create_db {
-    my ($self, $dbh, $user) = @_;
+    my ($self, $user) = @_;
     $self->_pg_says_true(
-        $dbh,
+        $self->_dbh,
         "select usecreatedb from pg_catalog.pg_user where usename = ?",
         $user
     );
@@ -786,16 +819,16 @@ sub _can_create_db {
 
 =head3 _db_exists
 
-  $build->_db_exists($dbh);
+  $build->_db_exists;
 
-This method tells whether a particular database exists.
+This method tells whether the default database exists.
 
 =cut
 
 sub _db_exists {
-    my ($self, $dbh) = @_;
+    my ($self) = @_;
     $self->_pg_says_true(
-        $dbh,
+        $self->_dbh,
         "select datname from pg_catalog.pg_database where datname = ?",
         $self->db_name
     );
@@ -862,7 +895,7 @@ database handle on success and undef on failure.
 
 sub _connect_to_pg {
     my ($self, $db_name, $user, $pass) = @_;
-    return DBI->connect("dbi:Pg:dbname=$db_name", $user, $pass);
+    return DBI->connect($self->_dsn, $user, $pass);
 }
 
 ##############################################################################

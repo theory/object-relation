@@ -5,7 +5,7 @@
 use strict;
 use Test::MockModule;
 #use Test::More 'no_plan';
-use Test::More tests => 74;
+use Test::More tests => 76;
 use Test::File;
 use Test::File::Contents;
 use lib 't/lib';
@@ -42,7 +42,7 @@ ok !$build->accept_defaults,
   "... The accept_defaults option should be false by default";
 is $build->store, 'sqlite',
   '... The store attribute should default to "sqlite"';
-is $build->fetch_store_class, 'Kinetic::Store::DB::SQLite',
+is $build->_fetch_store_class, 'Kinetic::Store::DB::SQLite',
   '... The store class attribute should be correct';
 is $build->db_name, 'kinetic',
   '... The db_name attribute should default to "kinetic"';
@@ -149,7 +149,7 @@ is $build->db_file, 'wild.db',
   '... The db_file attribute should be set to "wild.db"';
 is $build->conf_file, 'test.conf',
   '... The conf_file attribute should be set to "test.conf"';
-is $build->fetch_store_class, 'Kinetic::Store::DB::Pg',
+is $build->_fetch_store_class, 'Kinetic::Store::DB::Pg',
   '... The store class attribute should be correct';
 
 # Build it.
@@ -219,6 +219,11 @@ file_not_exists_ok 'blib/conf/test.conf',
         module_name     => 'KineticBuildOne',
         store           => 'pg',
     );
+
+    can_ok $build, '_dsn';
+    is $build->_dsn, 'dbi:Pg:dbname=kinetic',
+        '... and it should return a proper dsn';
+    diag "We need to improve the dsn method";
 
     my $pg = newmock('App::Info::RDBMS::PostgreSQL');
     $pg->mock(installed => sub {0} );
