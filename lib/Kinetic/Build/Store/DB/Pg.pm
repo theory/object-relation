@@ -320,7 +320,7 @@ sub rules {
 
         'Check plpgsql' => {
             do => sub {
-                $self->_dbh($self->_dsn($self->db_name));
+                $self->_connect_user($self->_dsn($self->db_name));
                 shift->result($self->_plpgsql_available);
             },
             rules => [
@@ -372,7 +372,7 @@ sub rules {
 
         'Check template plpgsql' => {
             do => sub {
-                $self->_dbh($self->_dsn($self->_get_template_db_name));
+                $self->_connect_user($self->_dsn($self->_get_template_db_name));
                 shift->result($self->_plpgsql_available);
             },
             rules => [
@@ -478,7 +478,7 @@ sub rules {
 
         'Check create permissions' => {
             do => sub {
-                $self->_dbh($self->_dsn($self->db_name));
+                $self->_connect_user($self->_dsn($self->db_name));
                 shift->result($self->_can_create_db);
             },
             rules => [
@@ -509,7 +509,7 @@ sub rules {
 
         'Check schema permissions' => {
             do => sub {
-                $self->_dbh($self->_dsn($self->db_name));
+                $self->_connect_user($self->_dsn($self->db_name));
                 shift->result($self->_has_schema_permissions);
             },
             rules => [
@@ -887,6 +887,31 @@ sub _connect {
 
 ##############################################################################
 
+=head3 _connect_user
+
+  my $dbh = $kbs->_connect_user($dsn);
+
+This method attempts to connect to PostgreSQL via a given DSN. It connects as
+the super user if the super user has been set; otherwise, it connects as the
+database user. It returns a database handle on success and C<undef> on
+failure. As a side effect, the C<_dbh()> method will also set to the returned
+value.
+
+
+=cut
+
+sub _connect_user {
+    my ($self, $dsn) = @_;
+    my @credentials;
+    if (my $super = $self->db_super_user) {
+        @credentials = ($super, $self->db_super_pass);
+    } else {
+        @credentials = ($self->db_user, $self->db_pass);
+    }
+    $self->_dbh($self->_connect($dsn, @credentials));
+}
+##############################################################################
+
 =head3 _dsn
 
   my $dsn = $kbs->_dsn($db_name);
@@ -908,24 +933,6 @@ sub _dsn {
         $dsn .= ";port=$port";
     }
     return $dsn;
-}
-
-##############################################################################
-
-=head3 _dbh
-
-  my $dbh = $kbs->_dbh;
-  $kbs->_dbh($dbh);
-
-Get or set a database handle.
-
-=cut
-
-sub _dbh {
-    my $self = shift;
-    return $self->{dbh} unless @_;
-    $self->{dbh} = shift;
-    return $self;
 }
 
 ##############################################################################
@@ -1005,7 +1012,7 @@ sub _get_template_db_name {
         name     => 'template_db_name',
         label    => 'Template database name',
         message  => "What template database should I use?",
-        default  => 'tempalte1',
+        default  => 'template1',
         callback => sub { $_ } # Must be a true value.
     );
 }

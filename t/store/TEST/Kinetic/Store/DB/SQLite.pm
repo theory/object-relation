@@ -17,14 +17,21 @@ use Kinetic::Store qw/:all/;
 use aliased 'Kinetic::Build';
 use aliased 'Kinetic::Build::Store::DB::SQLite' => 'SQLiteBuild';
 use aliased 'Kinetic::Meta';
-use aliased 'Kinetic::Store::DB::SQLite' => 'Store';
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Util::State';
 
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
 
+# Skip all of the tests in this class if SQLite isn't supported.
+__PACKAGE__->SKIP_CLASS(
+    __PACKAGE__->supported('sqlite')
+      ? 0
+      : "Not testing SQLite"
+);
 __PACKAGE__->runtests;
+
+sub Store () { 'Kinetic::Store::DB::SQLite' }
 
 sub _all_items {
     my $iterator = shift;
@@ -43,7 +50,6 @@ sub _num_recs {
 
 sub setup : Test(setup) {
     my $test = shift;
-    return "Not testing SQLite" unless $test->supported('sqlite');
     $test->test_class->_dbh->begin_work;
     my $foo = One->new;
     $foo->name('foo');
@@ -59,7 +65,6 @@ sub setup : Test(setup) {
 
 sub teardown : Test(teardown) {
     my $test = shift;
-    return "Not testing SQLite" unless $test->supported('sqlite');
     # XXX We shouldn't need to check AutoCommit, but connect_cached is a bit
     # funky. See http://www.nntp.perl.org/group/perl.dbi.dev/3892
     $test->test_class->_dbh->rollback

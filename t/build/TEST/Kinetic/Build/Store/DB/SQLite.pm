@@ -90,6 +90,7 @@ sub test_rules : Test(27) {
     is_deeply $kbs->test_config, {file => $test_file},
       "... as should the test configuration";
 
+    # Just skip the remaining tests if we can't test against a live database.
     return "Not testing SQLite" unless $self->supported('sqlite');
 
     # Try building the test database.
