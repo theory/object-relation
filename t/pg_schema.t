@@ -66,6 +66,33 @@ CREATE VIEW one AS
   SELECT simple.id, simple.guid, simple.name, simple.description, simple.state, simple_one.bool
   FROM   simple, simple_one
   WHERE  simple.id = simple_one.id;
+
+CREATE RULE insert_one AS
+ON INSERT TO one DO INSTEAD (
+  INSERT INTO simple (id, guid, name, description, state)
+  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state);
+
+  INSERT INTO simple_one (id, bool)
+  VALUES (CURRVAL('seq_kinetic'), NEW.bool);
+);
+
+CREATE RULE update_one AS
+ON UPDATE TO one DO INSTEAD (
+  UPDATE simple
+  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state
+  WHERE  id = OLD.id;
+
+  UPDATE simple_one
+  SET    bool = NEW.bool
+  WHERE  id = OLD.id;
+);
+
+CREATE RULE delete_one AS
+ON DELETE TO one DO INSTEAD (
+    DELETE FROM simple_one
+    WHERE  id = OLD.id;
+);
+
 }) =~ s/[ ]+/ /g;
 
 ok $sql = $sg->schema_for_class($one), "Get schema for One class";
@@ -95,9 +122,36 @@ ALTER TABLE simple_two
  REFERENCES simple_one(id) ON DELETE CASCADE;
 
 CREATE VIEW two AS
-  SELECT simple.id, simple.guid, simple.name, simple.description, simple.state, simple_two.one_id, one.guid, one.name, one.description, one.state, one.bool
-  FROM simple, simple_two, two
-  WHERE simple.id = simple_two.id, simple_two.one_id = one.id;
+  SELECT simple.id, simple.guid, simple.name, simple.description, simple.state, simple_two.one_id, one.guid AS "one.guid", one.name AS "one.name", one.description AS "one.description", one.state AS "one.state", one.bool AS "one.bool"
+  FROM simple, simple_two, one
+  WHERE simple.id = simple_two.id AND simple_two.one_id = one.id;
+
+CREATE RULE insert_two AS
+ON INSERT TO two DO INSTEAD (
+  INSERT INTO simple (id, guid, name, description, state)
+  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state);
+
+  INSERT INTO simple_two (id, one_id)
+  VALUES (CURRVAL('seq_kinetic'), NEW.one_id);
+);
+
+CREATE RULE update_two AS
+ON UPDATE TO two DO INSTEAD (
+  UPDATE simple
+  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state
+  WHERE  id = OLD.id;
+
+  UPDATE simple_two
+  SET    one_id = NEW.one_id
+  WHERE  id = OLD.id;
+);
+
+CREATE RULE delete_two AS
+ON DELETE TO two DO INSTEAD (
+    DELETE FROM simple_two
+    WHERE  id = OLD.id;
+);
+
 }) =~ s/[ ]+/ /g;
 
 ok $sql = $sg->schema_for_class($two), "Get schema for Two class";

@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 30;
+use Test::More tests => 31;
 
 package MyTestThingy;
 
@@ -30,6 +30,7 @@ BEGIN {
         type          => 'string',
         label         => 'Foo',
         indexed       => 1,
+        on_delete     => 'CASCADE',
         store_default => 'ick',
         widget_meta   => Kinetic::Meta::Widget->new(
             type => 'text',
@@ -69,6 +70,7 @@ is $attr->type, 'string', "Check attr type";
 is $attr->label, 'Foo', "Check attr label";
 is $attr->indexed, undef, "Indexed should be undef";
 is $attr->store_default, undef, "Store default should be undef";
+is $attr->on_delete, undef, "ON DELETE should be undef";
 
 ok my $wm = $attr->widget_meta, "Get widget meta object";
 isa_ok $wm, 'Kinetic::Meta::Widget';

@@ -62,7 +62,12 @@ L<Kinetic::Build::Schema|Kinetic::Build::Schema> for more information.
 
 sub new {
     my $self = shift->SUPER::new(@_);
-    delete @{$self}{qw(indexed store_default)} unless $build_mode;
+    if ($build_mode) {
+        $self->{on_delete} ||= 'CASCADE'
+          if Kinetic::Meta->for_key($self->type);
+    } else {
+        delete @{$self}{qw(indexed store_default on_delete)}
+    }
     return $self;
 }
 
@@ -139,6 +144,37 @@ is not loaded.
 =cut
 
 sub store_default { shift->{store_default} }
+
+##############################################################################
+
+=head3 on_delete
+
+  my $on_delete = $attr->on_delete;
+
+During date store schema generation, returns a string describing what to do
+with an object that links to another object when that other object is
+deleted. This is only relevant when the attribute object represents that
+relationship. The possible values for this attributes are:
+
+=over
+
+=item CASCADE
+
+=item RESTRICT
+
+=item SET NULL
+
+=item SET DEFAULT
+
+=item NO ACTION
+
+=back
+
+The default is "CASCADE".
+
+=cut
+
+sub on_delete { shift->{on_delete} }
 
 1;
 __END__

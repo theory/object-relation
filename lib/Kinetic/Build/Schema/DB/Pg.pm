@@ -117,28 +117,62 @@ sub generate_view {
 
     my (@tables, @wheres, %seen, $cols);
     for my $col (@{$self->{$key}{col_data}}) {
-        unless ($seen{$col->{table}}++) {
+        unless ($seen{$col->{table}}) {
             push @tables, $col->{table};
             push @wheres, "$tables[-2].id = $tables[-1].id"
               if @tables > 1;
         }
+        push @{$seen{$col->{table}}}, $col->{name};
         $cols .= $cols ? ', ' : "$col->{table}.id, ";
         $cols .= "$col->{table}.$col->{name}";
         if ($col->{refs}) {
             my $fkey = $col->{refs}->key;
-            push @tables, $key unless $seen{$fkey}++;
+            push @tables, $fkey unless $seen{$fkey};
             push @wheres, "$col->{table}.$col->{name} = $fkey.id";
-            $cols .= ", $fkey.$_->{name}" for @{$self->{$fkey}{col_data}}
+            $cols .= qq{, $fkey.$_->{name} AS "$fkey.$_->{name}"}
+              for @{$self->{$fkey}{col_data}}
         }
     }
 
     my $from = join ', ', @tables;
-    my $where = join ', ', @wheres;
+    my $where = join ' AND ', @wheres;
 
+    # Output the view.
     $self->{$key}{buffer} .= "CREATE VIEW $key AS\n"
       . "  SELECT $cols\n"
       . "  FROM   $from\n"
-      . "  WHERE  $where;\n";
+      . "  WHERE  $where;\n\n";
+
+    # Output the INSERT rule.
+    $self->{$key}{buffer} .= "CREATE RULE insert_$key AS\n"
+      . "ON INSERT TO $key DO INSTEAD (";
+    my $func = 'NEXTVAL';
+    for my $table (@tables) {
+        my $cols = $seen{$table} or next;
+        $self->{$key}{buffer} .= "\n  INSERT INTO $table (id, "
+          . join(', ', @$cols) . ")\n  VALUES ($func('seq_kinetic'), "
+          . join(', ', map { "NEW.$_" } @$cols) . ");\n";
+        $func = 'CURRVAL';
+    }
+    $self->{$key}{buffer} .= ");\n\n";
+
+    # Output the UPDATE rule.
+    $self->{$key}{buffer} .= "CREATE RULE update_$key AS\n"
+      . "ON UPDATE TO $key DO INSTEAD (";
+    for my $table (@tables) {
+        my $cols = $seen{$table} or next;
+        $self->{$key}{buffer} .= "\n  UPDATE $table\n  SET    "
+          . join(', ', map { "$_ = NEW.$_" } @$cols)
+          . "\n  WHERE  id = OLD.id;\n";
+    }
+    $self->{$key}{buffer} .= ");\n\n";
+
+    # Output the DELETE rule.
+    $self->{$key}{buffer} .= "CREATE RULE delete_$key AS\n"
+      . "ON DELETE TO $key DO INSTEAD (\n"
+      . "  DELETE FROM $self->{$key}{table_data}{name}\n"
+      . "  WHERE  id = OLD.id;\n);\n\n";
+
     return $self;
 }
 
