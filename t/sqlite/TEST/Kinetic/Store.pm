@@ -19,29 +19,25 @@ use aliased 'Kinetic::Store';
 use aliased 'Kinetic::Build::Store' => 'BStore';
 
 __PACKAGE__->runtests;
-sub runtests {
-    my ($class, $build) = @_;
-    $class->SUPER::runtests;
-}
 
-sub load_classes : Test(startup) {
+sub _load_classes : Test(startup) {
+    my $test = shift;
     # this is a bit of a hack until such time
     # that I can figure a better way for Kinetic::Store
     # to get the dbh.  The DSN is currently not being stored
     # in the conf file.
     my $schema = Schema->new;
     $schema->load_classes('t/lib');
-    my $test = shift;
     $test->{schema} = $schema;
     chdir 't';
     chdir 'build_sample';
     my $test_lib = File::Spec->catfile(qw/.. lib/);
 
-    my $build = Build->new( 
+    my $build = Build->new(
         module_name     => 'KineticBuildOne',
         conf_file       => 'test.conf', # always writes to t/ and blib/
         accept_defaults => 1,
-        source_dir      => $test_lib, 
+        source_dir      => $test_lib,
     );
     $build->dispatch('build');
     chdir '..';
@@ -50,8 +46,9 @@ sub load_classes : Test(startup) {
     Store->_dbh($test->{dbh});
 }
 
-sub save : Test {
-    my $schema = shift->{schema}; 
+sub save : Test(7) {
+    my $schema = shift->{schema};
+    isa_ok $schema, 'Kinetic::Build::Schema::DB::SQLite';
     ok $schema, 'testing, testing, 1,2,3';
 #   One
 # * simple_one
@@ -65,11 +62,11 @@ sub save : Test {
 #       * state
 #         bool
 #       * bool
-    my ($class) = grep { $_->name eq 'One' } $schema->classes;
-    my ($ctor)  = $class->constructors;
-    my $one = $ctor->call;
-    use Data::Dumper;
-    diag Dumper $one;
+    ok my $class = Kinetic::Meta->for_key('one'), "Get class object";
+    isa_ok $class, 'Kinetic::Meta::Class';
+    ok my $ctor  = $class->constructors('new'), "Get construtor object";
+    ok my $one = $ctor->call($class->package), "Construct one object";
+    isa_ok $one, 'TestApp::Simple::One';
 
     if (0) {
         # debugging info
@@ -84,7 +81,7 @@ sub save : Test {
     }
 }
 
-sub schema_can_load_classes : Test(10) {
+sub schema_can_load_classes : Test(9) {
     my $sg = shift->{schema};
     isa_ok $sg, 'Kinetic::Build::Schema';
     isa_ok $sg, 'Kinetic::Build::Schema::DB';
