@@ -5,7 +5,7 @@
 use strict;
 use Sub::Override;
 #use Test::More 'no_plan';
-use Test::More tests => 57;
+use Test::More tests => 61;
 use Test::File;
 use Test::File::Contents;
 use lib 't/lib';
@@ -22,7 +22,6 @@ chdir 'build_sample';
 
 # First, tie off our file handles.
 my $stdout = tie *STDOUT, 'TieOut' or die "Cannot tie STDOUT: $!\n";
-my $stderr = tie *STDERR, 'TieOut' or die "Cannot tie STDERR: $!\n";
 my $stdin  = tie *STDIN,  'TieOut' or die "Cannot tie STDIN: $!\n";
 
 # Make sure that inheritance is working properly for the property methods.
@@ -43,6 +42,8 @@ ok !$build->accept_defaults,
   "... The accept_defaults option should be false by default";
 is $build->store, 'sqlite',
   '... The store attribute should default to "sqlite"';
+is $build->fetch_store_class, 'Kinetic::Store::DB::SQLite',
+  '... The store class attribute should be correct';
 is $build->db_name, 'kinetic',
   '... The db_name attribute should default to "kinetic"';
 is $build->db_user, 'kinetic',
@@ -102,7 +103,8 @@ file_contents_like 'blib/conf/test.conf', qr/file\s+=>\s+'test\.db',/,
   '... The database file name should be set properly';
 file_contents_like 'blib/conf/test.conf', qr/#\s*pg\s+=>\s+{/,
   '... The PostgreSQL section should be commented out.';
-
+file_contents_like 'blib/conf/test.conf', qr/\n\s*store\s*=>\s*{\s*class\s*=>\s*'Kinetic::Store::DB::SQLite'/,
+  '... The store should point to the correct data store';
 $build->dispatch('realclean');
 file_not_exists_ok 't/conf/test.conf',
   '... The test config file should be gone';
@@ -111,7 +113,7 @@ file_not_exists_ok 't/conf/test.conf',
     # Set up some parameters.
     local @ARGV = (
         '--accept_defaults' => 1,
-        '--store'           => 'postgresql',
+        '--store'           => 'pg',
         '--db_name'         => 'wild',
         '--db_user'         => 'wild',
         '--db_pass'         => 'wild',
@@ -125,7 +127,7 @@ file_not_exists_ok 't/conf/test.conf',
       "Create another build object";
     ok $build->accept_defaults,
       "... The accept_defaults option should be true with --accept_defaults";
-    is $build->store, 'postgresql',
+    is $build->store, 'pg',
       "... The store option can be specified on the command-line";
     is $build->db_name, 'wild',
       '... The db_name attribute should be "wild"';
@@ -145,6 +147,8 @@ file_not_exists_ok 't/conf/test.conf',
       '... The db_file attribute should be set to "wild.db"';
     is $build->conf_file, 'test.conf',
       '... The conf_file attribute should be set to "test.conf"';
+    is $build->fetch_store_class, 'Kinetic::Store::DB::Pg',
+      '... The store class attribute should be correct';
 
     # Built it.
     $build->dispatch('build');
@@ -165,7 +169,8 @@ file_not_exists_ok 't/conf/test.conf',
       '... The database name should be set properly';
     file_contents_like 'blib/conf/test.conf', qr/#\s*sqlite\s+=>\s+{/,
       '... The SQLite section should be commented out.';
-
+    file_contents_like 'blib/conf/test.conf', qr/\n\s*store\s*=>\s*{\s*class\s*=>\s*'Kinetic::Store::DB::Pg'/,
+      '... The store should point to the correct data store';
     $build->dispatch('realclean');
     file_not_exists_ok 'blib/conf/test.conf',
       '... There should no longer be a config file for installation';

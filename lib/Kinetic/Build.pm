@@ -26,8 +26,13 @@ use File::Path ();
 use File::Copy ();
 
 my %VERSIONS = (
-    postgresql => '7.4.5',
-    sqlite     => '3.0.8',
+    pg     => '7.4.5',
+    sqlite => '3.0.8',
+);
+
+my %STORES = (
+    pg     => 'Kinetic::Store::DB::Pg',
+    sqlite => 'Kinetic::Store::DB::SQLite',
 );
 
 =head1 Name
@@ -110,7 +115,7 @@ __PACKAGE__->add_property(accept_defaults => 0);
   $build->store($store);
 
 The type of data store to be used for the application. Possible values are
-"postgresql" and "sqlite" Defaults to "sqlite".
+"pg" and "sqlite" Defaults to "sqlite".
 
 =cut
 
@@ -396,9 +401,9 @@ sub process_conf_files {
             my $method = $self->can($1 . '_config') or next;
             # Dump the default contents of the section.
             while (<CONF>) { last if /^},?$/; }
-            if (my $section = $self->$method) {
+            if (my @section = $self->$method) {
                 # Insert the section contents using the *_config method.
-                push @conf, $self->$method, "},\n\n";
+                push @conf, @section, "},\n\n";
             } else {
                 # Comment out this section.
                 $conf[-1] = "# $conf[-1]";
@@ -414,6 +419,36 @@ sub process_conf_files {
         File::Copy::move($tmp, $conf_file);
     }
     return $self;
+}
+
+##############################################################################
+
+=head3 fetch_store_class
+
+This method is called by C<store_config()>  determine the class that handles a
+given store.
+
+=cut
+
+sub fetch_store_class {
+    my ($self) = @_;
+    return $STORES{$self->store} 
+        or $self->_fatal_error("Class not found for " . $self->store);
+}
+
+##############################################################################
+
+=head3 store_config
+
+This method is called by C<process_conf_files()> to populate the store
+section of the configuration files. It returns a list of lines to be included
+in the section, configuring the "class" directive.
+
+=cut
+
+sub store_config {
+    my $self = shift;
+    return "    class => '" . $self->fetch_store_class . "',\n";
 }
 
 ##############################################################################
@@ -445,7 +480,7 @@ in the section, configuring the "db_name", "db_user", "db_pass", "host", and
 
 sub pg_config {
     my $self = shift;
-    return unless $self->store eq 'postgresql';
+    return unless $self->store eq 'pg';
     return (
         "    db_name => '" . $self->db_name . "',\n",
         "    db_user => '" . $self->db_user . "',\n",
@@ -513,9 +548,9 @@ sub prompt {
 
 ##############################################################################
 
-=head3 check_postgresql
+=head3 check_pg
 
-  $build->check_postgresql;
+  $build->check_pg;
 
 This method checks that the necessary PostgreSQL client libraries and
 programs are present to build the database. It uses
@@ -523,7 +558,7 @@ L<App::Info::RDBMS::PostgreSQL|App::Info::RDBMS::PostgreSQL> to do this.
 
 =cut
 
-sub check_postgresql {
+sub check_pg {
     my $self = shift;
     require App::Info::RDBMS::PostgreSQL;
     require App::Info::Handler::Carp;
@@ -549,7 +584,7 @@ sub check_postgresql {
 
     # Make sure that we have the appropriate version.
     require version;
-    my $req_version = version->new($VERSIONS{postgresql});
+    my $req_version = version->new($VERSIONS{pg});
     my $got_version = version->new($pg->version);
     unless ($got_version >= $req_version) {
         print STDERR "PostgreSQL version $got_version is installed, but we ",
