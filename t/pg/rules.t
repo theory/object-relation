@@ -26,7 +26,7 @@ BEGIN {
     chdir 'build_sample';
     $TEST_LIB = File::Spec->catfile(qw/.. lib/);
 
-    $BUILD = Kinetic::Build->new( 
+    $BUILD = Kinetic::Build->new(
         module_name     => 'KineticBuildOne',
         conf_file       => 'test.conf', # always writes to t/ and blib/
         accept_defaults => 1,
@@ -52,12 +52,13 @@ is ref $machine, 'ARRAY', '... and it should return an array ref';
 is @$machine %2, 0, '... with an even number of elements';
 
 if (0) {
+    # XXX Generate a graph for troubleshooting.
     my $machine2 = clone($machine);
     my $temp = FSA::Rules->new(@$machine2);
     $temp->graph(
         {
             wrap_labels => 1,
-        }, 
+        },
         concentrate => 1,
         bgcolor     => 'Wheat',
     )->as_png('new_pg_rules.png');
@@ -107,6 +108,7 @@ while (my ($state, $definition) = splice @$machine => 0, 2) {
       '... and it should die if createlang cannot be found';
     no warnings 'redefine';
     my @system;
+    # XXX I think you should use local here. No C<no warnings 'redefine'> needed.
     *CORE::GLOBAL::system = sub {@system = @_; 0};
     $info->mock(createlang => '/usr/bin/createlang');
     $build->add_plpgsql_to_db('foo');
@@ -121,32 +123,32 @@ while (my ($state, $definition) = splice @$machine => 0, 2) {
 
 {
     # full path test:
-    # start 
-    #  -> determine user 
-    #  -> check for db and is not root 
-    #  -> Check template1 for plpgsql and is not root 
+    # start
+    #  -> determine user
+    #  -> check for db and is not root
+    #  -> Check template1 for plpgsql and is not root
     #  -> Done
 
     my $machine = FSA::Rules->new(@{clone($rules->_state_machine)});
     my $module  = Test::MockModule->new($CLASS);
     # start
     $module->mock(_is_installed => 1);
-    
-    # -> determine user 
+
+    # -> determine user
     $module->mock(_connect_to_pg => sub {'kinetic' eq $_[2]});
-    
-    # -> check for db and is not root 
+
+    # -> check for db and is not root
     $module->mock(_db_exists     => 0);
     $module->mock(_can_create_db => 1);
 
-    # -> Check template1 for plpgsql and is not root 
+    # -> Check template1 for plpgsql and is not root
     $module->mock(_plpgsql_available => 1);
 
     # -> Done
     my $dbi = Test::MockModule->new('DBI');
     $dbi->mock(disconnect => 0);
     $module->mock(_dbh => 0);
-    
+
     $machine->done(sub { $machine->at('Done') });
     ok $machine->run,
       'No root, can create db and plpgsql available should succeed';
@@ -173,30 +175,30 @@ while (my ($state, $definition) = splice @$machine => 0, 2) {
 
 {
     # full path test
-    # start 
-    #  -> determine user 
-    #  -> check for user db and is root 
-    #  -> check template1 for plpgsql and is root 
+    # start
+    #  -> determine user
+    #  -> check for user db and is root
+    #  -> check template1 for plpgsql and is root
     #  -> Done
     my $machine = FSA::Rules->new(@{clone($rules->_state_machine)});
     my $module  = Test::MockModule->new($CLASS);
     # start
     $module->mock(_is_installed => 1);
-    
-    # -> determine user 
+
+    # -> determine user
     $module->mock(_connect_to_pg => sub {'postgres' eq $_[2]});
-    
-    # -> check for db and is root 
+
+    # -> check for db and is root
     $module->mock(_db_exists     => 0);
 
-    # -> Check template1 for plpgsql and is root 
+    # -> Check template1 for plpgsql and is root
     $module->mock(_plpgsql_available => 1);
 
     # -> Done
     my $dbi = Test::MockModule->new('DBI');
     $dbi->mock(disconnect => 0);
     $module->mock(_dbh => 0);
-    
+
     $machine->done(sub { $machine->at('Done') });
     ok $machine->run,
       'Is root, user db does not exist and plpgsql available should succeed';
@@ -308,7 +310,7 @@ sub TEST_determine_user {
       '... and set the machine pass correctly';
     ok $machine->{is_root},
       '... and add a note that it is operating as the root user';
-    
+
     $module->mock(_connect_to_pg => sub {
         ($self, $template, $user, $pass) = @_;
         return $user eq 'kinetic';
@@ -346,7 +348,7 @@ sub TEST_check_template1_for_plpgsql {
     throws_ok { $machine->switch }
       qr/Template1 does not have plpgsql/,
       '... and it should fail if we do not have plpgsql available';
-    
+
     $module->mock(_plpgsql_available => 1);
     $machine->reset;
     $machine->{db_name} = 'template1';
@@ -383,7 +385,7 @@ sub TEST_check_if_user_db_exists {
     is @$actions, 2, '... and there should be one action cached';
     is_deeply $actions, [['create_db', 'kinetic'],['switch_to_db','kinetic']],
       '... telling us to create the user database';
-    
+
     $module->mock(_db_exists => 1);
     $machine->reset->curr_state($state);
     $machine->switch until $machine->at($db_exists_state); 
@@ -496,7 +498,7 @@ sub TEST_Done {
     $dbi->mock(disconnect => sub { $disconnect = 1 } );
     my $rules = Test::MockModule->new($CLASS);
     $rules->mock(_dbh => sub { bless {} => 'DBI' });
-    
+
     @{$machine}{qw/user pass db_name/} = qw/ovid divo rome/;
     $machine->start;
     $machine->switch;
@@ -539,7 +541,7 @@ sub TEST_Fail {
     $machine = FSA::Rules->new(
         faux_state => {
             do    => sub { shift->message('foo bar baz') },
-            rules => [ Fail => 1 ] 
+            rules => [ Fail => 1 ]
         },
         $state     => $def2,
     );
@@ -631,7 +633,7 @@ sub TEST_check_for_createlang {
     throws_ok {$machine->switch}
       qr/Must have createlang to add plpgsql/,
       "\"$state\" should fail if createlang cannot be found";
-    
+
     $module->mock(createlang => 1);
     $machine->reset->curr_state($state);
     $machine->switch until $machine->at('Done');
