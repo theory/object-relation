@@ -261,10 +261,10 @@ __PACKAGE__->add_property(conf_file => 'kinetic.conf');
   $build->run_dev_tests($run_dev_tests);
 
 Triggers the execution of developer tests. What this means is that, if this
-property is set to a true value, a temporary database will be built by the
-C<setup_test> action and dropped by the C<teardown_test> action. Tests will
-then be run that connect to and make changes to this database. The
-C<run_dev_tests> method is set to a false value by default.
+property is set to a true value, some tests will build temporary databases for
+comprehensive testing of all features. Tests will then be run that connect to
+and make changes to this database. The C<run_dev_tests> method is set to a
+false value by default.
 
 =cut
 
@@ -407,47 +407,6 @@ sub ACTION_code {
 
 ##############################################################################
 
-=head3 setup_test
-
-=begin comment
-
-=head3 ACTION_setup_test
-
-=end comment
-
-Sets things up for the test action. For example, if the C<dev_tests> property
-has been set to at true value, this action creates the F<t/data> directory for
-tests to use as a temporary directory, and sets up a database for testing.
-
-=cut
-
-sub ACTION_setup_test {
-    my $self = shift;
-    return $self if $self->notes('ACTION_setup_test');
-    $self->depends_on('code');
-    $self->depends_on('config');
-
-    # Set up t/data for tests to fill with junk. We'll clean it up.
-    my $data = $self->test_data_dir;
-    File::Path::mkpath $data;
-    $self->add_to_cleanup($data);
-
-    return $self unless $self->run_dev_tests;
-
-    # Build a test data store.
-    my $build_store_class = $STORES{$self->store}
-      or $self->_fatal_error("I'm not familiar with the " . $self->store
-                             . ' data store');
-    eval "require $build_store_class" or $self->_fatal_error($@);
-    my $build_store = $self->notes('build_store');
-    $build_store->resume($self);
-    $build_store->test_build;
-    $self->notes(ACTION_setup_test => 1);
-    return $self;
-}
-
-##############################################################################
-
 =head3 test
 
 =begin comment
@@ -463,42 +422,12 @@ dependency.
 
 sub ACTION_test {
     my $self = shift;
-    $self->depends_on('setup_test');
+    $self->depends_on('code');
+    $self->depends_on('config');
     local $ENV{KINETIC_CONF} = $self->notes('test_conf_file');
-    local $ENV{KINETIC_SUPPORTED} = $self->store;
+    # XXX I'm sure we'll add other supported features to this list.
+    local $ENV{KINETIC_SUPPORTED} = join ' ', $self->store;
     $self->SUPER::ACTION_test(@_);
-    $self->depends_on('teardown_test');
-}
-
-##############################################################################
-
-=head3 teardown_test
-
-=begin comment
-
-=head3 ACTION_teardown_test
-
-=end comment
-
-Tears down any test infratructure set up during the C<setup_test> action.
-This might involve dropping a database, for example.
-
-=cut
-
-sub ACTION_teardown_test {
-    my $self = shift;
-    return $self unless $self->run_dev_tests;
-
-    # Tear down test data store.
-    my $build_store_class = $STORES{$self->store}
-      or $self->_fatal_error("I'm not familiar with the " . $self->store
-                             . ' data store');
-    eval "require $build_store_class" or $self->_fatal_error($@);
-    my $build_store = $self->notes('build_store');
-    $build_store->resume($self);
-    $build_store->test_cleanup;
-    $self->notes(ACTION_setup_test => 0);
-    return $self;
 }
 
 ##############################################################################

@@ -6,16 +6,9 @@ use strict;
 use warnings;
 use DBI;
 
-# we load Schema first because this class tells the others
-# to use their appropriate Schema counterparts.  This is not
-# intuitive and will possibly have to be changed at some point.
 use base 'TEST::Kinetic::Store::DB';
-#use base 'TEST::Class::Kinetic';
-use Kinetic::Build::Schema::DB::SQLite; # this seems a bit weird
 use Test::More;
 use Test::Exception;
-use File::Spec::Functions;
-use Cwd;
 
 use aliased 'Test::MockModule';
 use aliased 'Sub::Override';
@@ -48,51 +41,9 @@ sub _num_recs {
     return $result->[0];
 }
 
-sub startup : Test(startup) {
-    my $self = shift;
-
-    $self->chdirs('t', 'sample');
-    local @INC = (catdir(updir, updir, 'lib'), @INC);
-
-    my $builder;
-    my $build = MockModule->new(Build);
-    $build->mock(resume => sub { $builder });
-    $build->mock(_app_info_params => sub {});
-    $builder = Build->new(
-        dist_name       => 'Testing::Kinetic',
-        dist_version    => '1.0',
-        quiet           => 1,
-        accept_defaults => 1,
-        source_dir      => 'lib',
-    );
-
-    # Construct the SQLite Builder.
-    my $db_file = 'sqlite_test.db';
-    my $sqlite = MockModule->new(SQLiteBuild);
-    $sqlite->mock(db_file => $db_file);
-    $sqlite->mock(_path => $db_file);
-
-    my $kbs = SQLiteBuild->new;
-    $kbs->add_actions('build_db');
-    $kbs->build;
-    die "$db_file doesn't exist!" unless -e $db_file;
-    my $dsn = "dbi:SQLite:dbname=$db_file";
-    my $dbh = DBI->connect($dsn, '', '', {RaiseError => 1});
-    $self->{dbh} = $dbh;
-    no warnings 'redefine';
-    *Kinetic::Store::DB::_dbh = sub {$dbh};
-}
-
-sub shutdown : Test(shutdown) {
-    my $self = shift;
-    $self->{dbh}->disconnect;
-    delete $self->{dbh};
-    unlink catfile 't', 'sample', 'sqlite_test.db';
-}
-
-sub setup : Test(setup) {  
+sub setup : Test(setup) {
     my $test = shift;
-    $test->{dbh}->begin_work;
+    $test->test_class->_dbh->begin_work;
     my $foo = One->new;
     $foo->name('foo');
     Store->save($foo);
@@ -107,17 +58,21 @@ sub setup : Test(setup) {
 
 sub teardown : Test(teardown) {
     my $test = shift;
-    $test->{dbh}->rollback;
+    # XXX We shouldn't need to check AutoCommit, but connect_cached is a bit
+    # funky. See http://www.nntp.perl.org/group/perl.dbi.dev/3892
+    $test->test_class->_dbh->rollback
+      unless $test->test_class->_dbh->{AutoCommit};
 }
 
 sub _clear_database {
     # call this if you have a test which needs an empty
     # database
     my $test = shift;
-    $test->{dbh}->rollback;
-    $test->{dbh}->begin_work;
-} 
+    $test->test_class->_dbh->rollback;
+    $test->test_class->_dbh->begin_work;
+}
 
+__END__
 sub count : Test(8) {
     my $test = shift;
     can_ok Store, 'count';
@@ -126,8 +81,7 @@ sub count : Test(8) {
     ok my $count = Store->count($class),
         'A search with only a class should succeed';
     is $count, 3, 'returning a count of all instances';
-
-    ok $count = Store->count($class, name => 'foo'), 
+    ok $count = Store->count($class, name => 'foo'),
         'We should be able to count with a simple search';
     is $count, 1, 'returning the correct count';
 
@@ -151,7 +105,7 @@ sub search_guids : Test(10) {
     is_deeply $guids, \@expected,
         'and it should return the correct list of guids';
 
-    ok $guids = Store->search_guids($class, name => 'foo'), 
+    ok $guids = Store->search_guids($class, name => 'foo'),
         'We should be able to search guids with a simple search';
     is_deeply $guids, [$foo->guid], 'and return the correct guids';
 
@@ -183,7 +137,7 @@ sub search_or : Test(9) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
-    my $store = Store->new; 
+    my $store = Store->new;
     ok my $iterator = $store->search(
         $class,
         name => 'foo', OR(name => LIKE 'snorf%'),
@@ -191,9 +145,9 @@ sub search_or : Test(9) {
     );
     my @items = _all_items($iterator);
     is @items, 2, 'OR should return the correct number of items';
-    is_deeply \@items, [$baz, $foo], 
+    is_deeply \@items, [$baz, $foo],
         'and should include the correct items';
-    
+   
     ok $iterator = $store->search(
         $class,
         name => 'foo', OR(description => NOT undef),
@@ -201,7 +155,7 @@ sub search_or : Test(9) {
     );
     @items = _all_items($iterator);
     is @items, 1, 'OR matches should return the correct number of items';
-    is_deeply \@items, [$foo], 
+    is_deeply \@items, [$foo],
         'and should include the correct items';
 
     $bar->description('giggling pastries');
@@ -213,7 +167,7 @@ sub search_or : Test(9) {
     );
     @items = _all_items($iterator);
     is @items, 2, 'OR matches should return the correct number of items';
-    is_deeply \@items, [$foo, $bar], 
+    is_deeply \@items, [$foo, $bar],
         'and should include the correct items';
 }
 
@@ -221,7 +175,7 @@ sub search_and : Test(15) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
-    my $store = Store->new; 
+    my $store = Store->new;
     ok my $iterator = $store->search(
         $class,
         AND(name => 'foo', name => LIKE 'snorf%'),
@@ -229,7 +183,7 @@ sub search_and : Test(15) {
     );
     my @items = _all_items($iterator);
     is @items, 0, 'AND should return the correct number of items';
-    is_deeply \@items, [], 
+    is_deeply \@items, [],
         'and should include the correct items';
 
     ok $iterator = $store->search(
@@ -239,7 +193,7 @@ sub search_and : Test(15) {
     );
     @items = _all_items($iterator);
     is @items, 0, 'AND matches should return the correct number of items';
-    is_deeply \@items, [], 
+    is_deeply \@items, [],
         'and should include the correct items';
 
     $bar->description('giggling pastries');
@@ -251,9 +205,9 @@ sub search_and : Test(15) {
     );
     @items = _all_items($iterator);
     is @items, 1, 'OR matches should return the correct number of items';
-    is_deeply \@items, [$bar], 
+    is_deeply \@items, [$bar],
         'and should include the correct items';
-    
+   
     $foo->description('We Want Revolution');
     Store->save($foo);
     ok $iterator = $store->search(
@@ -263,7 +217,7 @@ sub search_and : Test(15) {
     );
     @items = _all_items($iterator);
     is @items, 2, 'ComplexAND/OR matches should return the correct number of items';
-    is_deeply \@items, [$foo, $bar], 
+    is_deeply \@items, [$foo, $bar],
         'and should include the correct items';
 
     ok $iterator = $store->search(
@@ -273,7 +227,7 @@ sub search_and : Test(15) {
         {order_by => 'name', sort_order => DESC}
     );
     is @items, 2, 'ComplexAND/OR matches should return the correct number of items';
-    is_deeply \@items, [$foo, $bar], 
+    is_deeply \@items, [$foo, $bar],
         'and should include the correct items';
 }
 
@@ -285,7 +239,7 @@ sub save : Test(10) {
     $one->description('test class');
 
     can_ok Store, 'save';
-    my $dbh = $test->{dbh};
+    my $dbh = $test->test_class->_dbh;
     my $result = $dbh->selectrow_hashref('SELECT id, guid, name, description, state, bool FROM one');
     ok ! $result, 'We should start with a fresh database';
     ok Store->save($one), 'and saving an object should be successful';
@@ -344,27 +298,27 @@ sub search : Test(16) {
     can_ok Store, 'search';
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
-    my $store = Store->new; 
+    my $store = Store->new;
     ok my $iterator = $store->search($class),
         'A search with only a class should succeed';
     my @results = _all_items($iterator);
     is @results, 3, 'returning all instances in the class';
 
-    ok $iterator = $store->search($class, name => 'foo'), 
+    ok $iterator = $store->search($class, name => 'foo'),
         'and an exact match should succeed';
     isa_ok $iterator, Iterator, 'and the object it returns';
-    is_deeply $iterator->next, $foo, 
+    is_deeply $iterator->next, $foo,
         'and the first item should match the correct object';
     ok ! $iterator->next, 'and there should be the correct number of objects';
-    
-    ok $iterator = Store->search($class, name => 'foo'), 
+   
+    ok $iterator = Store->search($class, name => 'foo'),
         'We should also be able to call search as a class method';
     isa_ok $iterator, Iterator, 'and the object it returns';
-    is_deeply $iterator->next, $foo, 
+    is_deeply $iterator->next, $foo,
         'and it should return the same results as an instance method';
     ok ! $iterator->next, 'and there should be the correct number of objects';
 
-    ok $iterator = Store->search($class, name => 'Foo'), 
+    ok $iterator = Store->search($class, name => 'Foo'),
         'Case-insensitive searches should not work with SQLite';
     isa_ok $iterator, Iterator, 'and the object it returns';
     ok ! $iterator->next, 'and they should not return data if the case does not match';
@@ -375,7 +329,7 @@ sub search : Test(16) {
     $foo->description('asdf');
     Store->save($foo);
     $iterator = $store->search($class, name => 'foo', description => 'asdf');
-    is_deeply $iterator->next, $foo, 
+    is_deeply $iterator->next, $foo,
         '... and it should be the correct results';
 }
 
@@ -383,7 +337,7 @@ sub search_between : Test(6) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
-    my $store = Store->new; 
+    my $store = Store->new;
     my $iterator = $store->search($class, name => ['b' => 'g']);
 
     my @iterator = _all_items($iterator);
@@ -393,12 +347,12 @@ sub search_between : Test(6) {
 
     $iterator = $store->search($class, name => ['f' => 's']);
     @iterator = _all_items($iterator);
-    is @iterator, 1, 
+    is @iterator, 1,
         'and a BETWEEN match should return the correct number of objects';
     is_deeply $iterator[0], $foo, '... and they should be the correct ones';
 
     $iterator = $store->search(
-        $class, 
+        $class,
         name => NOT ['f' => 's'],
         { order_by => 'name' }
     );
@@ -411,20 +365,20 @@ sub search_gt : Test(6) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
-    my $store = Store->new; 
+    my $store = Store->new;
     ok my $iterator = $store->search(
-            $class, 
-            name => GT 'c', 
+            $class,
+            name => GT 'c',
             {order_by => 'name'}
         ),
         'We should be able to do a GT search';
     my @items = _all_items($iterator);
     is @items, 2, 'and get the proper number of items';
     is_deeply \@items, [$foo, $baz], 'not to mention the correct items';
-    
+   
     ok $iterator = $store->search(
-            $class, 
-            name => NOT GT 'c', 
+            $class,
+            name => NOT GT 'c',
             {order_by => 'name'}
         ),
         'We should be able to do a NOT GT search';
@@ -437,20 +391,20 @@ sub search_lt : Test(6) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
-    my $store = Store->new; 
+    my $store = Store->new;
     ok my $iterator = $store->search(
-            $class, 
-            name => LT 's', 
+            $class,
+            name => LT 's',
             {order_by => 'name'}
         ),
         'We should be able to do an LT search';
     my @items = _all_items($iterator);
     is @items, 2, 'and get the proper number of items';
     is_deeply \@items, [$bar, $foo], 'not to mention the correct items';
-    
+   
     ok $iterator = $store->search(
-            $class, 
-            name => NOT LT 's', 
+            $class,
+            name => NOT LT 's',
             {order_by => 'name'}
         ),
         'We should be able to do a NOT LT search';
@@ -464,10 +418,10 @@ sub search_eq : Test(14) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
-    my $store = Store->new; 
+    my $store = Store->new;
     ok my $iterator = $store->search(
-            $class, 
-            name => EQ 's', 
+            $class,
+            name => EQ 's',
             {order_by => 'name'}
         ),
         'We should be able to do an EQ search';
@@ -475,35 +429,35 @@ sub search_eq : Test(14) {
     is @items, 0, 'and we should get nothing if we do a bad match';
 
     ok $iterator = $store->search(
-        $class, 
-        name => EQ 'foo', 
+        $class,
+        name => EQ 'foo',
         {order_by => 'name'}
     );
     @items = _all_items($iterator);
     is @items, 1, 'but EQ should also function as syntactic sugar for $key => $value';
     is_deeply $items[0], $foo, 'and return the correct results';
     ok $iterator = $store->search(
-        $class, 
-        name => NOT EQ 'foo', 
+        $class,
+        name => NOT EQ 'foo',
         {order_by => 'name'}
     );
     @items = _all_items($iterator);
     is @items, 2, 'NOT EQ should also work as expected';
     is_deeply \@items, [$bar, $baz], 'and return the correct results';
-    
+   
     ok $iterator = $store->search(
-        $class, 
-        name => NE 'foo', 
+        $class,
+        name => NE 'foo',
         {order_by => 'name'}
     );
     @items = _all_items($iterator);
     is @items, 2, 'NE should also work as expected';
     is_deeply \@items, [$bar, $baz], 'and return the correct results';
 
-    $store = Store->new; 
+    $store = Store->new;
     ok $iterator = $store->search(
-        $class, 
-        name => NOT 'foo', 
+        $class,
+        name => NOT 'foo',
         {order_by => 'name'}
     );
     @items = _all_items($iterator);
@@ -515,25 +469,25 @@ sub search_ge : Test(6) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
-    my $store = Store->new; 
+    my $store = Store->new;
     ok my $iterator = $store->search(
-        $class, 
-        name => GE 'f', 
+        $class,
+        name => GE 'f',
         {order_by => 'name'}
     );
     my @items = _all_items($iterator);
     is @items, 2, 'and GE should return the correct number of items';
-    is_deeply \@items, [$foo, $baz], 
+    is_deeply \@items, [$foo, $baz],
         'and should include the correct items';
-    
+   
     ok $iterator = $store->search(
-        $class, 
-        name => NOT GE 'f', 
+        $class,
+        name => NOT GE 'f',
         {order_by => 'name'}
     );
     @items = _all_items($iterator);
     is @items, 1, 'NOT GE should return the correct number of items';
-    is_deeply \@items, [$bar], 
+    is_deeply \@items, [$bar],
         'and should include the correct items';
 }
 
@@ -541,25 +495,25 @@ sub search_le : Test(6) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
-    my $store = Store->new; 
+    my $store = Store->new;
     ok my $iterator = $store->search(
-        $class, 
-        name => LE 'foo', 
+        $class,
+        name => LE 'foo',
         {order_by => 'name'}
     );
     my @items = _all_items($iterator);
     is @items, 2, 'and LE should return the correct number of items';
-    is_deeply \@items, [$bar, $foo], 
+    is_deeply \@items, [$bar, $foo],
         'and should include the correct items';
-    
+   
     ok $iterator = $store->search(
-        $class, 
-        name => NOT LE 'foo', 
+        $class,
+        name => NOT LE 'foo',
         {order_by => 'name'}
     );
     @items = _all_items($iterator);
     is @items, 1, 'NOT LE should return the correct number of items';
-    is_deeply \@items, [$baz], 
+    is_deeply \@items, [$baz],
         'and should include the correct items';
 }
 
@@ -567,32 +521,32 @@ sub search_like : Test(6) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
-    my $store = Store->new; 
+    my $store = Store->new;
     ok my $iterator = $store->search(
-        $class, 
-        name => LIKE 'f%', 
+        $class,
+        name => LIKE 'f%',
         {order_by => 'name'}
     ), 'and calling search should succeed';
     my @items = _all_items($iterator);
     is @items, 1, 'and LIKE should return the correct number of items';
-    is_deeply \@items, [$foo], 
+    is_deeply \@items, [$foo],
         'and should include the correct items';
-    
+   
     ok $iterator = $store->search(
-        $class, 
-        name => NOT LIKE 'f%', 
+        $class,
+        name => NOT LIKE 'f%',
         {order_by => 'name'}
     );
     @items = _all_items($iterator);
     is @items, 2, 'NOT LIKE should return the correct number of items';
-    is_deeply \@items, [$bar, $baz], 
+    is_deeply \@items, [$bar, $baz],
         'and should include the correct items';
 }
 
 sub search_match : Test(1) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
-    my $store = Store->new; 
+    my $store = Store->new;
     throws_ok {$store->search( $foo->my_class, name => MATCH '(a|b)%' ) }
         qr/MATCH:  SQLite does not support regular expressions/,
         'SQLite should croak() if a MATCH search is attempted';
@@ -604,26 +558,26 @@ sub search_null : Test(6) {
     $foo->description('this is a description');
     Store->save($foo);
     my $class = $foo->my_class;
-    
-    my $store = Store->new; 
+   
+    my $store = Store->new;
     ok my $iterator = $store->search(
-        $class, 
-        description => undef, 
+        $class,
+        description => undef,
         {order_by => 'name'}
     );
     my @items = _all_items($iterator);
     is @items, 2, '"undef" should return the correct number of items';
-    is_deeply \@items, [$bar, $baz], 
+    is_deeply \@items, [$bar, $baz],
         'and should include the correct items';
-    
+   
     ok $iterator = $store->search(
-        $class, 
-        description => NOT undef, 
+        $class,
+        description => NOT undef,
         {order_by => 'name'}
     );
     @items = _all_items($iterator);
     is @items, 1, '"NOT undef" should return the correct number of items';
-    is_deeply \@items, [$foo], 
+    is_deeply \@items, [$foo],
         'and should include the correct items';
 }
 
@@ -631,25 +585,25 @@ sub search_in : Test(6) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
-    my $store = Store->new; 
+    my $store = Store->new;
     ok my $iterator = $store->search(
-        $class, 
-        name => ANY(qw/foo bar/), 
+        $class,
+        name => ANY(qw/foo bar/),
         {order_by => 'name'}
     );
     my @items = _all_items($iterator);
     is @items, 2, 'ANY should return the correct number of items';
-    is_deeply \@items, [$bar, $foo], 
+    is_deeply \@items, [$bar, $foo],
         'and should include the correct items';
 
     ok $iterator = $store->search(
-        $class, 
-        name => NOT ANY(qw/foo bar/), 
+        $class,
+        name => NOT ANY(qw/foo bar/),
         {order_by => 'name'}
     );
     @items = _all_items($iterator);
     is @items, 1, 'NOT ANY should return the correct number of items';
-    is_deeply \@items, [$baz], 
+    is_deeply \@items, [$baz],
         'and should include the correct items';
 }
 
@@ -672,7 +626,7 @@ sub save_compound : Test(3) {
     $baz->one->name('snorfleglitz_rulez_d00d');
     Store->save($baz);
     my $class   = $foo->my_class;
-    my $store = Store->new; 
+    my $store = Store->new;
     #use Data::Dumper::Simple;
     #$Data::Dumper::Indent = 1;
     #diag(Dumper(Store->_from_proto, $class));
@@ -704,7 +658,7 @@ sub order_by : Test(4) {
     $baz->one->name('snorfleglitz_rulez_d00d');
     Store->save($baz);
     my $class = $foo->my_class;
-    my $store = Store->new; 
+    my $store = Store->new;
     my $iterator = $store->search($class, {order_by => 'name'});
     my @results = _all_items($iterator);
     if ($results[0]->age < $results[1]->age) {
@@ -718,7 +672,7 @@ sub order_by : Test(4) {
     @results = _all_items($iterator);
     is_deeply \@results, [$bar, $foo, $baz],
         'even if we have more than one order_by constraint';
-    
+
     $iterator = $store->search($class, {
         order_by   => [qw/name age/],
         sort_order => [ASC, DESC],

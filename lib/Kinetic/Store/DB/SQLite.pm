@@ -21,7 +21,14 @@ package Kinetic::Store::DB::SQLite;
 use strict;
 use base qw(Kinetic::Store::DB);
 use Kinetic::Util::Config qw(:sqlite);
-use constant _dsn => ('dbi:SQLite:dbname=' . SQLITE_FILE, '', '');
+use Exception::Class::DBI;
+use constant _connect_args => (
+    'dbi:SQLite:dbname=' . SQLITE_FILE, '', '', {
+        RaiseError  => 0,
+        PrintError  => 0,
+        HandleError => Exception::Class::DBI->handler
+    }
+);
 
 =head1 Name
 

@@ -8,9 +8,7 @@ use warnings;
 use Test::More;
 use Test::Exception;
 use base 'TEST::Kinetic::Store';
-#use base 'TEST::Class::Kinetic';
 use lib 't/lib';
-use Kinetic::Build::Schema;
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Meta::Attribute';
@@ -18,23 +16,39 @@ use aliased 'Kinetic::Store' => 'DONT_USE', ':all';
 use aliased 'Kinetic::Store::DB' => 'Store';
 use aliased 'Kinetic::Util::State';
 
-use lib 't/sample/lib'; # temporary
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';
 
 __PACKAGE__->runtests;
 
+sub test_dbh : Test(2) {
+    my $self = shift;
+    my $class = $self->test_class;
+    if ($class eq 'Kinetic::Store::DB') {
+        throws_ok { $class->_connect_args }
+          qr/Kinetic::Store::DB::_connect_args must be overridden in a subclass/,
+          "_connect_args should throw an exception";
+        throws_ok { $class->_dbh }
+          qr/Kinetic::Store::DB::_connect_args must be overridden in a subclass/,
+          "_dbh should throw an exception";
+    } else {
+        ok @{[$class->new->_connect_args]},
+          "$class\::_connect_args should return values";
+        isa_ok $class->new->_dbh, 'DBI::db';
+    }
+}
+
 sub where_token : Test(26) {
     my $store = Store->new;
     can_ok $store, '_make_where_token';
     $store->{search_class} = One->new->my_class;
-    
+
     my ($token, $bind) = $store->_make_where_token('name', 'foo');
     is $token, 'LOWER(name) = LOWER(?)', 'and a basic match should return the correct where snippet';
     is_deeply $bind, ['foo'], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', NOT 'foo');
-    is $token, 'LOWER(name) != LOWER(?)', 
+    is $token, 'LOWER(name) != LOWER(?)',
         'and a negated basic match should return the correct where snippet';
     is_deeply $bind, ['foo'], 'and a proper bind param';
 
@@ -43,7 +57,7 @@ sub where_token : Test(26) {
     is_deeply $bind, [], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', NOT undef);
-    is $token, 'LOWER(name) IS NOT NULL', 
+    is $token, 'LOWER(name) IS NOT NULL',
         'and a negated NULL search should return the correct where snippet';
     is_deeply $bind, [], 'and a proper bind param';
 
@@ -59,34 +73,34 @@ sub where_token : Test(26) {
     is $token, 'LOWER(name) NOT BETWEEN LOWER(?) AND LOWER(?)',
         'and a negated range search should return the correct where snippet';
     is_deeply $bind, ['bar', 'foo'], 'and a proper bind param';
-    
+
     ($token, $bind) = $store->_make_where_token('name', LIKE '%foo');
     is $token, 'LOWER(name)  LIKE LOWER(?)',
         'and a LIKE search should return the correct where snippet';
     is_deeply $bind, ['%foo'], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', NOT LIKE '%foo');
-    is $token, 'LOWER(name) NOT LIKE LOWER(?)', 
+    is $token, 'LOWER(name) NOT LIKE LOWER(?)',
         'and a negated LIKE search should return the correct where snippet';
     is_deeply $bind, ['%foo'], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', MATCH '(a|b)%');
-    is $token, 'LOWER(name) ~* LOWER(?)', 
+    is $token, 'LOWER(name) ~* LOWER(?)',
         'and a MATCH search should return the correct where snippet';
     is_deeply $bind, ['(a|b)%'], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', NOT MATCH '(a|b)%');
-    is $token, 'LOWER(name) !~* LOWER(?)', 
+    is $token, 'LOWER(name) !~* LOWER(?)',
         'and a negated MATCH search should return the correct where snippet';
     is_deeply $bind, ['(a|b)%'], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', ANY(qw/foo bar baz/));
-    is $token, 'LOWER(name)  IN (LOWER(?), LOWER(?), LOWER(?))', 
+    is $token, 'LOWER(name)  IN (LOWER(?), LOWER(?), LOWER(?))',
         'and an IN search should return the correct where snippet';
     is_deeply $bind, [qw/foo bar baz/], 'and a proper bind param';
 
     ($token, $bind) = $store->_make_where_token('name', NOT ANY(qw/foo bar baz/));
-    is $token, 'LOWER(name) NOT IN (LOWER(?), LOWER(?), LOWER(?))', 
+    is $token, 'LOWER(name) NOT IN (LOWER(?), LOWER(?), LOWER(?))',
         'and a negated IN search should return the correct where snippet';
     is_deeply $bind, [qw/foo bar baz/], 'and a proper bind param';
 }
@@ -242,7 +256,7 @@ sub build_objects : Test(16) {
 sub where_clause : Test(11) {
     my $store = Store->new;
     $store->{search_class} = One->new->my_class;
-    my $my_class = MockModule->new('Kinetic::Meta::Class::Schema');
+    my $my_class = MockModule->new('Kinetic::Meta::Class');
     my $current_field;
     $my_class->mock(attributes => sub {
         $current_field = $_[1];
@@ -285,7 +299,7 @@ sub where_clause : Test(11) {
 
     ($where, $bind) = $store->_make_where_clause([
         name => 'foo',
-        OR( 
+        OR(
             desc => 'bar',
             this => 'that',
         ),
@@ -314,7 +328,7 @@ sub where_clause : Test(11) {
         'and be able to generate the correct bindings';
 
     ($where, $bind) = $store->_make_where_clause([
-        AND( 
+        AND(
             last_name  => 'Wall',
             first_name => 'Larry',
         ),
@@ -374,7 +388,7 @@ sub expand_search_param : Test(45) {
 
     ($negated, $type, $value) = Store->_expand_search_param(NOT [qw/foo bar/]);
     is $negated, 'NOT', 'negated is "NOT" if the search is negated';
-    is $type, '', 
+    is $type, '',
         'a negated range expansion will return them empty string for the type';
     is_deeply $value, [qw/foo bar/], 'and will not touch the value';
 
@@ -438,7 +452,7 @@ sub save : Test(3) {
     my ($update, $insert);
     $mock->mock(_update => sub { $update = 1; $insert = 0 });
     $mock->mock(_insert => sub { $update = 0; $insert = 1 });
-    my $object = One->new; 
+    my $object = One->new;
     can_ok Store, 'save';
     Store->save($object);
     ok $insert, 'and calling it with an object with no id key should call _insert()';

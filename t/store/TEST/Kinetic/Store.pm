@@ -12,6 +12,7 @@ use Test::Exception;
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Store' => 'Store', ':all';
+
 __PACKAGE__->runtests;
 
 sub constructor : Test(5) {

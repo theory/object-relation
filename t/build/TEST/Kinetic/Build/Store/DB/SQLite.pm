@@ -94,6 +94,7 @@ sub test_rules : Test(27) {
 
     # Try building the test database.
     $builder->source_dir('lib');
+    $builder->dispatch('code');
     $self->mkpath('t', 'data');
     file_not_exists_ok $test_file,
       "The test database file should not yet exist";
@@ -128,6 +129,7 @@ sub test_rules : Test(27) {
     }
     $dbh->disconnect;
     unlink $db_file;
+    $builder->dispatch('clean');
 }
 
 1;

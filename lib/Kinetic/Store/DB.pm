@@ -21,7 +21,6 @@ package Kinetic::Store::DB;
 use strict;
 use base qw(Kinetic::Store);
 use DBI;
-use Exception::Class::DBI;
 use Carp qw/croak/;
 
 use aliased 'Kinetic::Meta';
@@ -960,7 +959,7 @@ sub _expand_search_param_OLD {
 
 =head3 _constraints
 
- my $constraints = $store->_constraints(\%constraints); 
+ my $constraints = $store->_constraints(\%constraints);
 
 This method takes a hash ref of "order by" and "limit" constraints as described
 in L<Kinetic::Store|Kinetic::Store> and return an sql snippet representing
@@ -990,6 +989,15 @@ sub _constraints {
     }
     return $sql;
 }
+
+sub _dbh { DBI->connect_cached(shift->_connect_args) }
+sub _connect_args {
+    require Carp;
+    Carp::croak("Kinetic::Store::DB::_connect_args must be overridden in "
+                . "a subclass");
+}
+
+#DESTROY { shift->_dbh->disconnect }
 
 1;
 __END__

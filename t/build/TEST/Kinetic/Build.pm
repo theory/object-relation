@@ -173,51 +173,6 @@ sub test_config_action : Test(4) {
     unlink $config or die "Unable to delete $config: $!";
 }
 
-sub test_test_actions : Test(9) {
-    my $self = shift;
-    my $class = $self->test_class;
-
-    # We can make sure thing work with the default SQLite store.
-    my $info = MockModule->new('App::Info::RDBMS::SQLite');
-    $info->mock(installed => 1);
-    $info->mock(version => '3.0.8');
-
-    my $builder;
-    my $mb = MockModule->new($class);
-    $mb->mock(resume => sub { $builder });
-    $mb->mock(check_manifest => sub { return });
-    $builder = $self->new_builder;
-
-    # Dev tests are off.
-    file_not_exists_ok $builder->test_data_dir,
-      'We should not yet have a test data directory';
-    ok $builder->dispatch('setup_test'), "Run setup_test action";
-    file_exists_ok $builder->test_data_dir,
-      'Now we should have a test data directory';
-    file_not_exists_ok $builder->test_data_dir . '/kinetic.db',
-      '... but not a SQLite database, since dev tests are off';
-
-    # Turn the dev tests on.
-    $builder = $self->new_builder( run_dev_tests => 1);
-    $builder->source_dir('lib');
-    ok $builder->dispatch('setup_test'), "Run setup_test action";
-    file_exists_ok $builder->test_data_dir . '/kinetic.db',
-      'SQLite database should now exist';
-
-    # Make sure that the test_teardown action calls the store's test_cleanup
-    # method.
-    my $store = MockModule->new('Kinetic::Build::Store::DB::SQLite');
-    $store->mock('test_cleanup' =>
-                   sub { ok 1, "Store->test_cleanup should be called" });
-    ok $builder->dispatch('teardown_test'),
-      "We should be able to execute the teardown_test action";
-
-    # Make sure we clean up our mess.
-    $builder->dispatch('clean');
-    file_not_exists_ok $builder->test_data_dir,
-      'Data directory should be deleted';
-}
-
 sub test_get_reply : Test(49) {
     my $self = shift;
     my $class = $self->test_class;
