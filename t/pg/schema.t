@@ -53,7 +53,7 @@ eq_or_diff $sg->table_for_class($simple), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
-my $indexes = q{CREATE UNIQUE INDEX idx_simple_guid ON _simple (LOWER(guid));
+my $indexes = q{CREATE UNIQUE INDEX idx_simple_guid ON _simple (guid);
 CREATE INDEX idx_simple_name ON _simple (LOWER(name));
 CREATE INDEX idx_simple_state ON _simple (state);
 };
@@ -302,7 +302,7 @@ eq_or_diff $sg->table_for_class($composed), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
-$indexes = q{CREATE UNIQUE INDEX idx_composed_guid ON _composed (LOWER(guid));
+$indexes = q{CREATE UNIQUE INDEX idx_composed_guid ON _composed (guid);
 CREATE INDEX idx_composed_name ON _composed (LOWER(name));
 CREATE INDEX idx_composed_state ON _composed (state);
 CREATE INDEX idx_composed_one_id ON _composed (one_id);
@@ -398,7 +398,7 @@ eq_or_diff $sg->table_for_class($comp_comp), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
-$indexes = q{CREATE UNIQUE INDEX idx_comp_comp_guid ON _comp_comp (LOWER(guid));
+$indexes = q{CREATE UNIQUE INDEX idx_comp_comp_guid ON _comp_comp (guid);
 CREATE INDEX idx_comp_comp_name ON _comp_comp (LOWER(name));
 CREATE INDEX idx_comp_comp_state ON _comp_comp (state);
 CREATE INDEX idx_comp_comp_composed_id ON _comp_comp (composed_id);

@@ -156,7 +156,7 @@ sub index_on {
     my ($self, $attr) = @_;
     my $name = $attr->column;
     my $type = $attr->type;
-    return "LOWER($name)" if $type eq 'string' || $type eq 'guid';
+    return "LOWER($name)" if $type eq 'string';
     return $name;
 }
 
