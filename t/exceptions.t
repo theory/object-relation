@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 40;
+use Test::More tests => 47;
 
 BEGIN {
     use_ok('Kinetic::Util::Exceptions') or die;
@@ -92,6 +92,25 @@ L10N: { # 7 tests.
     isa_ok( $err, "Exception::Class::Base" );
     ok( isa_exception($err), "isa_exception" );
     ok( isa_kinetic_exception($err), "isa_kinetic_exception" );
+}
+
+STRING: {
+    package Kinetic::Util::Exceptions::TestString;
+    use Kinetic::Util::Exceptions qw(:all);
+    use Test::More;
+    ok(my $err = Kinetic::Util::Exception::Fatal->new('Attribute must be defined'),
+       "Get an exception object");
+    is( ($err->_filtered_frames)[-1]->filename, __FILE__,
+        "We should get this file in the last frame in the stack");
+    like $err->trace_as_text, qr{^\[t/exceptions\.t:\d+\]$},
+      "We should get the correct string from trace_as_text()";
+    ok my $str = "$err", "Get the stringified version";
+    is $str, $err->as_string,
+      "The stringified version should be the same as that returned by as_string";
+    like $str, qr{\AAttribute must be defined$}ms,
+      "The error message should be the first thing in the output";
+    like $str, qr{^\[t/exceptions\.t:\d+\]\Z}ms,
+      "The stack trace should be the last thing in the output";
 }
 
 1;

@@ -95,8 +95,6 @@ use Exception::Class(
 
 );
 
-Kinetic::Util::Exception->Trace(1);
-
 use Exporter::Tidy all => [
   qw(isa_kinetic_exception isa_exception throw_exlib throw_fatal throw_invalid
      throw_read_only throw_lang throw_stat throw_io throw_error
@@ -115,7 +113,7 @@ Kinetic::Util::Exceptions - Kinetic exception object definitions
   throw_fatal 'Whoops!';
 
   # The error is fully localizable.
-  throw_fatal ['Unknown value "[_1]", 'foo'];
+  throw_fatal ['Unknown value "[_1]"', 'foo'];
 
 =head1 Description
 
@@ -142,9 +140,9 @@ invalid.
 
 =item Kinetic::Util::Exception::ExternalLib
 
-This class inherits from Exception::Class rather than from Kinetic::Util::Exception
-so that it can be used for exceptions thrown by libraries not under direct
-Kinetic control and therefore are not localizable.
+This class inherits from Exception::Class rather than from
+Kinetic::Util::Exception so that it can be used for exceptions thrown by
+libraries not under direct Kinetic control and therefore are not localizable.
 
 =back
 
@@ -241,6 +239,31 @@ sub isa_exception {
 
 package Kinetic::Util::Exception;
 
+=head2 Constructors
+
+=head3 new
+
+  my $err = Kinetic::Util::Exception->new("Whoops!");
+  my $err = Kinetic::Util::Exception->new(error => 'Whoops!');
+  my $err = Kinetic::Util::Exception->new(['Unknown value "[_1]"', 'foo']);
+  my $err = Kinetic::Util::Exception->new(
+      error => ['Unknown value "[_1]"', 'foo']
+  );
+
+Creates and returns a new exception object. Use this method with C<die> to
+throw exceptions yourself, or if you don't want to import any C<throw_>
+functions into your namespace. Otherwise, a C<throw_> function is generally
+the preferred way to throw an exception. Besides, it requires less typting!
+
+The base class supports only a single parameter, C<error>, for the exception
+error message. If only a single argument is passed to C<new()>, it is assumed
+to be the C<error> parameter. Other exception classes may support other
+parameters; consult their <descriptions|"Exception Classes"> for details. All
+C<throw_> functions for the exception subclasses support the parameters that
+correspond to their respective classes.
+
+=cut
+
 sub new {
     my $class = shift;
     my %p =  @_ == 1 ? ( error => $_[0] ) : @_;
@@ -251,10 +274,92 @@ sub new {
     $class->SUPER::new(%p);
 }
 
+##############################################################################
+
+=head2 Instance Methods
+
+=head3 as_string
+
+  my $string $err->as_string;
+
+Returns a stringified representation of the exception, which includes the full
+error message and the stack trace. The method overrides stringification
+(double-quoted string context), so its return value is output whenever an
+exception object is printed.
+
+We override the base class version of this method in order to provide a nicer,
+more legible stack trace, rather than the default Carp-style trace.
+
+=cut
+
+sub as_string {
+    my $self = shift;
+    return sprintf("%s\n%s\n", $self->full_message, $self->trace_as_text);
+}
+
+##############################################################################
+
+=head3 trace_as_text
+
+  my $trace = $err->trace;
+
+Returns a stringified representation of the stack trace for the exception
+object. Used by C<as_string()> to pretty-print the stack trace.
+
+=cut
+
+sub trace_as_text {
+    my $self = shift;
+    return join "\n", map {
+        sprintf("[%s:%d]", $_->filename, $_->line);
+    } $self->_filtered_frames;
+}
+
+##############################################################################
+
+=begin private
+
+=head2 Private Instance Methods
+
+=head3 _filtered_frames
+
+  my @trace_frames = $err->_filtered_frames;
+
+Returns a list of stack trace frames, filtering out those that derive from
+Exception::Class::Base, Kinetic::Util::Exception::__ANON__ (the C<throw_>
+fucnctions), and C<(eval)>. Used by C<trace_as_text()>.
+
+=cut
+
+sub _filtered_frames {
+    my $self = shift;
+    my %ignore_subs = map { $_ => 1 } qw{
+         (eval)
+         Exception::Class::Base::throw
+         Kinetic::Util::Exception::__ANON__
+    };
+
+    my $faultregex = qr{/Kinetic/Util/Exception\.pm|/dev/null};
+    my @frames;
+    my $trace = $self->trace;
+    while (my $frame = $trace->next_frame) {
+        push @frames, $frame
+          unless $frame->filename =~ $faultregex
+          || $ignore_subs{$frame->subroutine};
+    }
+
+    unless (@frames) {
+        @frames = grep { $_->filename !~ $faultregex } $trace->frames;
+    }
+    return @frames;
+}
+
 1;
 __END__
 
 ##############################################################################
+
+=end private
 
 =head1 Copyright and License
 
