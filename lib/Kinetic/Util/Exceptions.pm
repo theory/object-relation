@@ -146,7 +146,7 @@ administrator or to the Kinetic developers.
 
 =item Kinetic::Util::Exception::Error
 
-This clas and its subclasses represent non-fatal errors triggered by invalid
+This class and its subclasses represent non-fatal errors triggered by invalid
 data. These can be used to let users know that the data they've entered is
 invalid.
 
@@ -155,6 +155,9 @@ invalid.
 This class inherits from Exception::Class rather than from
 Kinetic::Util::Exception so that it can be used for exceptions thrown by
 libraries not under direct Kinetic control and therefore are not localizable.
+This class is also used for the global C<$SIG{__DIE__}> and C<$SIG{__WARN__}>
+handlers, so that error messages and warnings always include a nicely
+formatted stack trace.
 
 =back
 
