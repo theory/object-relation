@@ -83,6 +83,21 @@ our %Lexicon = (
   'Cannot open file "[_1]": [_2]',
   "Cannot open file “[_1]”: [_2]",
 
+  'Required arg "[_1]" to [_2] not found',
+  "Required arg “[_1]” to [_2] not found",
+
+  'No version supplied in XML.',
+  'No version supplied in XML.',
+
+  "Cannot determine class for key '[_1]'",
+  "Cannot determine class for key “[_1]”",
+
+  "Writing XML failed: [_1]'",
+  "Writing XML failed: [_1]'",
+
+  "Could not find '[_1]' in data store for package [_2]",
+  "Could not find “[_1]” in the data store for package [_2]",
+
   # Kinetic Attribute labels and tips.
   'GUID' => 'GUID',
   'The globally unique identifier for this object',

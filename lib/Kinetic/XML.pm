@@ -21,6 +21,13 @@ package Kinetic::XML;
 use strict;
 use XML::Genx::Simple;
 use XML::Simple;
+use Kinetic::Util::Exceptions qw/
+    throw_invalid_class
+    throw_not_found
+    throw_required
+    throw_unknown_class
+    throw_xml
+/;
 
 use Kinetic::Meta;
 use Kinetic::Store;
@@ -84,6 +91,8 @@ object.
 
 sub new_from_xml {
     my ($class, $xml_string, $params) = @_;
+    throw_required ['Required arg "[_1]" to [_2] not found', 1, 'new_from_xml()']
+        unless $xml_string;
     my $self = $class->new;
     $self->{params} = $params || {};
     my $data = $self->_get_hash_from_xml($xml_string);
@@ -98,25 +107,17 @@ sub new_from_xml {
   my $hash = $xml->_get_hash_from_xml($xml_string);
 
 Given a string containing Kinetic XML, this method returns a hash representing
-that XML.  This method will die if either a version number is missing or if
-the XML is not valid Kinetic XML.
+that XML.  This method will throw an exception if either a version number is
+missing or if the XML is not valid Kinetic XML.
 
 =cut
 
 sub _get_hash_from_xml {
     my ($self, $xml_string) = @_;
-    unless ($xml_string) {
-        require Carp;
-        Carp::croak "You must supply valid XML to new_from_xml()";
-    }
     my $xml  = XML::Simple->new;
     my $data = $xml->XMLin($xml_string, suppressempty => undef, keyattr => []);
     my $version = delete $data->{version}
-        or die "No version supplied in XML!";
-    if (1 < keys %$data) {
-        # XXX we'll probably change this later
-        die "More than one object found in hash";
-    }
+        or throw_xml "No version supplied in XML.";
     return $data;
 }
 
@@ -140,15 +141,20 @@ sub _fetch_object {
         }
     }
     my $class = Kinetic::Meta->for_key($key)
-        or die "Cannot determine class for key ($key)";
+        or throw_unknown_class ["Cannot determine class for key '[_1]'", $key];
 
-    # XXX Bleh! There's not validation here. We need validation by using the
+    # XXX Bleh! There's no validation here. We need validation by using the
     # individual attribute accessors.
     my $object = $self->{params}{update}
-        ? $self->_fetch_object_from_store($class, $data->{guid})
+        ? Kinetic::Store->new->lookup($class, guid => $data->{guid})
         : $class->package->new;
     # XXX no mutator for guid, so I need to special case it and skip
     # validation
+    throw_not_found [
+        "Could not find '[_1]' in data store for package [_2]",
+        $data->{guid},
+        $class->package
+    ] unless $object;
     $object->{guid} = delete $data->{guid};
     while (my ($attr, $value) = each %$data) {
         # XXX for the time being, I need to assign directly instead of using
@@ -158,15 +164,6 @@ sub _fetch_object {
         #$object->$attr($value);
     }
     return $object;
-}
-
-sub _fetch_object_from_store {
-    my ($self, $class, $guid) = @_;
-    my $iter = Kinetic::Store->new->search($class, guid => $guid);
-    if ($iter && (my $found = $iter->next)) {
-        return $found;
-    }
-    die "Could not find guid '$guid' in the store";
 }
 
 ##############################################################################
@@ -270,7 +267,7 @@ sub dump_xml {
         $xml->EndElement;
         $xml->EndDocument;
     };
-    die "Writing XML failed: $@" if $@;
+    throw_xml ["Writing XML failed: [_1]", $@] if $@;
     return $xml->GetDocString;
 }
 
@@ -320,8 +317,11 @@ sub object {
     if (@_) {
         my $object = shift;
         unless (UNIVERSAL::isa($object, 'Kinetic')) {
-            require Carp;
-            Carp::croak "The object supplied must be a Kinetic object or subclass";
+            throw_invalid_class [
+                'Argument "[_1]" is not a valid [_2] object',
+                1,
+                'Kinetic'
+            ];
         }
         $self->{object} = $object;
         return $self;

@@ -13,7 +13,6 @@ use Test::XML;
 use Encode qw(is_utf8);
 
 use aliased 'Kinetic::DateTime';
-use aliased 'Kinetic::Store';
 use aliased 'Test::MockModule';
 
 use aliased 'TestApp::Simple::One';
@@ -21,16 +20,16 @@ use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
 
 use aliased 'Kinetic::XML';
 
-__PACKAGE__->SKIP_CLASS(
-    __PACKAGE__->any_supported(qw/pg sqlite/)
-      ? 0
-      : "Not testing Data Stores"
-) if caller; # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
+my $STORES_AVAILABLE;
 sub setup : Test(setup) {
+    if ($STORES_AVAILABLE = __PACKAGE__->any_supported(qw/pg sqlite/)) {
+        eval "use Kinetic::Store";
+    }
+    else { return }
     my $test = shift;
-    my $store = Store->new;
+    my $store = Kinetic::Store->new;
     $test->{dbh} = $store->_dbh;
     $test->{dbh}->begin_work;
     $test->{dbi_mock} = MockModule->new('DBI::db', no_auto => 1);
@@ -51,6 +50,7 @@ sub setup : Test(setup) {
 }
 
 sub teardown : Test(teardown) {
+    return unless $STORES_AVAILABLE;
     my $test = shift;
     delete($test->{dbi_mock})->unmock_all;
     $test->{dbh}->rollback;
@@ -58,11 +58,13 @@ sub teardown : Test(teardown) {
 }
 
 sub shutdown : Test(shutdown) {
+    return unless $STORES_AVAILABLE;
     my $test = shift;
     $test->{dbh}->disconnect;
 }
 
 sub update_from_xml : Test(3) {
+    return unless $STORES_AVAILABLE;
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     can_ok XML, 'update_from_xml';
@@ -81,15 +83,15 @@ sub update_from_xml : Test(3) {
     $xml = XML->new($updated_object); 
     $xml_string = $xml->dump_xml;
     throws_ok {XML->update_from_xml($xml_string)}
-        qr/Could not find guid 'No such guid' in the store/,
+        'Kinetic::Util::Exception::Fatal::NotFound',
         '... but a non-existing guid should throw an exception';
 }
 
-sub new_from_xml : Test(5) {
+sub new_from_xml : Test(6) {
     my $test = shift;
     can_ok XML, 'new_from_xml';
     throws_ok { XML->new_from_xml }
-        qr/You must supply valid XML to new_from_xml\(\)/,
+        'Kinetic::Util::Exception::Fatal::RequiredArguments',
         '... and calling it without an argument should fail';
 
     my $no_version = <<'    END_XML';
@@ -104,8 +106,23 @@ sub new_from_xml : Test(5) {
     END_XML
 
     throws_ok { XML->new_from_xml($no_version) }
-        qr/No version supplied in XML/,
+        'Kinetic::Util::Exception::Fatal::XML',
         '... and calling it with kinetic XML without a version should fail';
+
+    my $no_such_class = <<'    END_XML';
+    <kinetic version="0.01">
+      <no_such_class guid="Fake guid">
+        <name>some name</name>
+        <description>some description</description>
+        <state>1</state>
+        <bool>1</bool>
+      </no_such_class>
+    </kinetic>
+    END_XML
+
+    throws_ok { XML->new_from_xml($no_such_class) }
+        'Kinetic::Util::Exception::Fatal::UnknownClass',
+        '... and calling it with an unknown class should fail';
 
     my $one = One->new;
     $one->name('some name');
@@ -138,7 +155,7 @@ sub constructor : Test(5) {
 
     my $bogus = bless {} => 'bogosity';
     throws_ok { XML->new($bogus) }
-        qr/The object supplied must be a Kinetic object or subclass/,
+        'Kinetic::Util::Exception::Fatal::InvalidClass',
         '... but if you feed it a non-Kinetic object, it should die';
     $xml = XML->new($one);
     isa_ok $xml, XML, '... but feeding it a valid Kinetic object should succeed';
@@ -150,7 +167,7 @@ sub object : Test(5) {
     can_ok $xml, 'object';
     my $bogus = bless {} => 'bogosity';
     throws_ok { $xml->object($bogus) }
-        qr/The object supplied must be a Kinetic object or subclass/,
+        'Kinetic::Util::Exception::Fatal::InvalidClass',
         '... but if you feed it a non-Kinetic object, it should die';
     ok $xml->object($one), '... but feeding it a Kinetic object should succeed';
     my $uno = $xml->object;
@@ -226,6 +243,7 @@ sub dump_xml : Test(5) {
     </kinetic>
     END_XML
 
+    return unless $STORES_AVAILABLE;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     $xml->object($foo);
     my ($guid, $id) = ($foo->guid, $foo->{id});

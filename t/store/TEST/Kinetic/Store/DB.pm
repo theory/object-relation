@@ -45,7 +45,6 @@ sub test_id : Test(5) {
     }
 }
 
-
 sub test_dbh : Test(2) {
     my $self = shift;
     my $class = $self->test_class;

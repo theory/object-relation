@@ -37,8 +37,8 @@ Kinetic::Util::Exceptions - Kinetic exception object definitions
 
 This class defines Kinetic exception objects. It subclasses Exception::Class,
 which provides a robust exception implementation. It extends Exception::Class
-by requiring localizable error messages. All error messages must be
-represented in the appropriate Kinetic::Util::Language lexicons.
+by requiring localizable error messages. All error messages must be represented
+in the appropriate Kinetic::Util::Language lexicons.
 
 There currently four major classes of exceptions:
 
@@ -129,8 +129,8 @@ use Exception::Class(
 
 =item Kinetic::Util::Exception::Fatal::ReadOnly
 
-ReadOnly exception. Thrown when an someone attempts to assign a value to
-a read-only attribute. Alias: C<throw_read_only>.
+ReadOnly exception. Thrown when an someone attempts to assign a value to a
+read-only attribute. Alias: C<throw_read_only>.
 
 =cut
 
@@ -144,8 +144,8 @@ use Exception::Class(
 
 =item Kinetic::Util::Exception::Fatal::Language
 
-Localization exception. Thrown an error is encountered while attempting
-to localize a string. Alias: C<throw_lang>.
+Localization exception. Thrown if an error is encountered while attempting to
+localize a string. Alias: C<throw_lang>.
 
 =cut
 
@@ -159,8 +159,8 @@ use Exception::Class(
 
 =item Kinetic::Util::Exception::Fatal::Stat
 
-File status exception. Thrown an error is encountered while attempting
-to stat a file. Alias: C<throw_stat>.
+File status exception. Thrown if an error is encountered while attempting to
+stat a file. Alias: C<throw_stat>.
 
 =cut
 
@@ -174,8 +174,8 @@ use Exception::Class(
 
 =item Kinetic::Util::Exception::Fatal::IO
 
-IO exception. Thrown an error is encountered while attempting to read or write
-to a file. Alias: C<throw_io>.
+IO exception. Thrown if an error is encountered while attempting to read or
+write to a file. Alias: C<throw_io>.
 
 =cut
 
@@ -184,6 +184,83 @@ use Exception::Class(
         description => 'File IO exception',
         isa         => 'Kinetic::Util::Exception::Fatal',
         alias       => 'throw_io',
+    },
+);
+
+=item Kinetic::Util::Exception::Fatal::RequiredArguments
+
+Missing arguments exception. Thrown if required arguments to a method are not
+present.  Alias: C<throw_required>.
+
+=cut
+
+use Exception::Class(
+    'Kinetic::Util::Exception::Fatal::RequiredArguments' => {
+        description => 'Missing arguments to method call',
+        isa         => 'Kinetic::Util::Exception::Fatal',
+        alias       => 'throw_required',
+    },
+);
+
+=item Kinetic::Util::Exception::Fatal::NotFound
+
+Object Not Found exception.  Thrown if an object in a data store is not
+found.
+Alias: C<throw_not_found>.
+
+=cut
+
+use Exception::Class(
+    'Kinetic::Util::Exception::Fatal::NotFound' => {
+        description => 'Object not found exception',
+        isa         => 'Kinetic::Util::Exception::Fatal',
+        alias       => 'throw_not_found',
+    },
+);
+
+=item Kinetic::Util::Exception::Fatal::XML
+
+XML parse exception. Thrown if a problem is found parsing XML.
+Alias: C<throw_xml>.
+
+=cut
+
+use Exception::Class(
+    'Kinetic::Util::Exception::Fatal::XML' => {
+        description => 'Missing arguments to method call',
+        isa         => 'Kinetic::Util::Exception::Fatal',
+        alias       => 'throw_xml',
+    },
+);
+
+=item Kinetic::Util::Exception::Fatal::InvalidClass
+
+Invalid class exception. Thrown if an incorrect class is encountered.
+Alias: C<throw_invalid_class>.
+
+=cut
+
+use Exception::Class(
+    'Kinetic::Util::Exception::Fatal::InvalidClass' => {
+        description => 'Invalid class',
+        isa         => 'Kinetic::Util::Exception::Fatal',
+        alias       => 'throw_invalid_class',
+    },
+);
+
+=item Kinetic::Util::Exception::Fatal::UnknownClass
+
+Unknown class exception. Thrown if an unknown class is encountered.  This could
+happen via a require or searching for a Kinetic class by key.
+Alias: C<throw_unknown_class>.
+
+=cut
+
+use Exception::Class(
+    'Kinetic::Util::Exception::Fatal::UnknownClass' => {
+        description => 'Unknown class',
+        isa         => 'Kinetic::Util::Exception::Fatal',
+        alias       => 'throw_unknown_class',
     },
 );
 
@@ -208,8 +285,8 @@ use Exception::Class(
 
 =item Kinetic::Util::Exception::Error::Password
 
-Password error. Thrown for authentication failures. This exception class
-may or may not be retained. Alias: C<throw_password>.
+Password error. Thrown for authentication failures. This exception class may or
+may not be retained. Alias: C<throw_password>.
 
 =cut
 
@@ -246,7 +323,8 @@ use Exception::Class(
 use Exporter::Tidy all => [
   qw(isa_kinetic_exception isa_exception throw_exlib throw_fatal throw_invalid
      throw_read_only throw_lang throw_stat throw_io throw_error
-     throw_password)
+     throw_password throw_required throw_xml throw_unknown_class
+     throw_invalid_class throw_not_found)
 ];
 
 # Always use exception objects for excptions and warnings.
@@ -281,9 +359,9 @@ class.
       print "...and it was fatal!' if isa_kinetic_exception($@, 'Fatal');
   }
 
-This function returns true if the argument passed to it is a Kinetic
-exception. The optional second argument can be used to test for a specific
-Kinetic exception. If no such exception exists, an exception will be thrown.
+This function returns true if the argument passed to it is a Kinetic exception.
+The optional second argument can be used to test for a specific Kinetic
+exception. If no such exception exists, an exception will be thrown.
 
 =cut
 
@@ -336,8 +414,8 @@ package Kinetic::Util::Exception;
 
 Creates and returns a new exception object. Use this method with C<die> to
 throw exceptions yourself, or if you don't want to import any C<throw_>
-functions into your namespace. Otherwise, a C<throw_> function is generally
-the preferred way to throw an exception. Besides, it requires less typting!
+functions into your namespace. Otherwise, a C<throw_> function is generally the
+preferred way to throw an exception. Besides, it requires less typting!
 
 The base class supports only a single parameter, C<error>, for the exception
 error message. If only a single argument is passed to C<new()>, it is assumed
@@ -443,10 +521,11 @@ sub _filtered_frames {
 package Kinetic::Util::Exception::DBI;
 use base qw(Kinetic::Util::Exception::Fatal Exception::Class::DBI);
 
-# XXX Fool class that shouldn't have localized messages into not calling
-# our new() method. I'd rather not reference Excption::Class::Base::new directly
+# XXX Fool class that shouldn't have localized messages into not calling our
+# new() method. I'd rather not reference Exception::Class::Base::new directly
 # here, but SUPER::SUPER doesn't quite to the job. Schwern says he'd be willing
 # to write a module to make SUPER::SUPER work...
+
 sub new { Exception::Class::Base::new(@_) }
 sub Kinetic::Util::Exception::ExternalLib::new { Exception::Class::Base::new(@_) }
 
