@@ -1120,7 +1120,6 @@ sub db_cleanup : Test(teardown) {
         $dbh->disconnect;
     }
     if (my $dbh = delete $self->{tdbh}) {
-        $self->drop_db($dbh, );
         # Wait until the other connection has been dropped.
         sleep 1 while $dbh->selectrow_array(
             'SELECT 1 FROM pg_stat_activity where datname = ?',
