@@ -126,8 +126,9 @@ object for those modules that inherit from C<Kinetic>.
 =cut
 
 sub load_classes {
-    my $self = shift;
-    my $dir = File::Spec->catdir(split m{/}, shift);
+    my $self    = shift;
+    my $lib_dir = shift;
+    my $dir = File::Spec->catdir(split m{/}, $lib_dir);
     unshift @INC, $dir;
     my @classes;
     my $find_classes = sub {
@@ -135,7 +136,7 @@ sub load_classes {
         return if /\.svn/;
         return unless /\.pm$/;
         return if /#/; # Ignore old backup files.
-        my $class = $self->file_to_mod($File::Find::name);
+        my $class = $self->file_to_mod($lib_dir, $File::Find::name);
         eval "require $class" or die $@;
         unshift @classes, $class->my_class if UNIVERSAL::isa($class, 'Kinetic');
     };
@@ -269,20 +270,22 @@ subclasses.
 
 =head3 file_to_mod
 
-  my $module = $sg->file_to_mod($file);
+  my $module = $sg->file_to_mod($search_dir, $file);
 
-Converts a file name to a Perl module name. The file name is expected to be a
-relative file name ending in F<.pm>. If it starts with "t", "lib", or "t/lib",
-or any of those preceded with '..', C<file_to_mod()> will simply strip off
-those directory names.
+Converts a file name to a Perl module name. The file name may be an absolute or
+relative file name ending in F<.pm>.  C<file_to_mod()> will walk through both
+the C<$search_dir> directories and the C<$file> directories and remove matching
+elements of each from C<$file>.
 
 =cut
 
 sub file_to_mod {
-    my ($self, $file) = @_;
+    my ($self, $search_dir, $file) = @_;
     $file =~ s/\.pm$// or croak "$file is not a Perl module";
-    my (@dirs) = File::Spec->splitdir($file);
-    while ($dirs[0] && (grep { $dirs[0] eq $_ } qw/.. t lib/)) {
+    my (@dirs)      = File::Spec->splitdir($file);
+    my @search_dirs = split /\// => $search_dir;
+    while (defined $search_dirs[0] and $search_dirs[0] eq $dirs[0]) {
+        shift @search_dirs;
         shift @dirs;
     }
     join '::', @dirs;

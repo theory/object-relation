@@ -23,9 +23,6 @@ use base 'Kinetic::Build::Store::DB';
 use DBI;
 use Kinetic::Build;
 use App::Info::RDBMS::SQLite;
-use App::Info::Handler::Carp;
-use App::Info::Handler::Prompt;
-use App::Info::Handler::Print;
 
 =head1 Name
 

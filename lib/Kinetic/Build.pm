@@ -383,6 +383,8 @@ dependency.
 sub ACTION_build {
     my $self = shift;
     $self->depends_on('check_store');
+# XXX The pod says 'config' is a dependency, but it's commented out here.
+# Which is correct?
 #    $self->depends_on('config');
     $self->SUPER::ACTION_build(@_);
 }
@@ -405,6 +407,7 @@ dependency.
 sub ACTION_test {
     my $self = shift;
     $self->depends_on('check_store');
+# XXX Same note as for ACTION_build
 #    $self->depends_on('config');
     $self->SUPER::ACTION_test(@_);
 }

@@ -66,8 +66,13 @@ sub new {
         $class =~ s/^Kinetic::Store/Kinetic::Build::Store/;
         eval "require $class" or die $@;
     }
+    my $metadata;
+    eval { $metadata = Kinetic::Build->resume };
+    unless ($metadata) {
+        die "Cannot resume build: $@";
+    }
     bless {
-        metadata => Kinetic::Build->resume,
+        metadata => $metadata,
     } => $class;
 }
 
