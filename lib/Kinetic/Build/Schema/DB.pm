@@ -438,10 +438,10 @@ sub view_for_class {
                                    $class->parent_attributes($parent));
 
         }
-        unshift @cols, "$tables[0].id";
+        unshift @cols, "$tables[0].id AS id";
         push @wheres, "$last.id = $table.id";
     } else {
-        @cols = ("$table.id");
+        @cols = ("$table.id AS id");
     }
     push @tables, $class->table;
     push @cols, $self->view_columns($table, \@tables, \@wheres,
@@ -522,10 +522,10 @@ sub view_columns {
                     push @$tables, $join;
                 }
             }
-            push @cols, qq{$table.$col AS "$key\__id"},
+            push @cols, "$table.$col AS $key\__id",
               $self->_map_ref_columns($ref, $key);
         } else {
-            push @cols, "$table.$col";
+            push @cols, "$table.$col AS $col";
         }
     }
     return @cols;
@@ -546,20 +546,19 @@ sub view_columns {
 This method is called by C<view_columns()> to create the column names for
 contained objects in a view. It may be called recursively if the contained
 object itself has one or more contained objects. Contained object column names
-are the key name of the class, a dot, and then the name of the column. The dot
-distinguishes contained object column names from the columns for the primary
-attributes of a class. But since they have the dot, they must be
-double-quoted.
+are the key name of the class, a double underscore, and then the name of the
+column. The double underscore distinguishes contained object column names from
+the columns for the primary attributes of a class.
 
 =cut
 
 sub _map_ref_columns {
     my ($self, $class, $key, @keys) = @_;
     my @cols;
-    my ($ckey, $q) = @keys ? (join ('.', @keys, ''), '"') : ('', '');
+    my $ckey = @keys ? join ('__', @keys, '') : ('');
     for my $attr ($class->attributes) {
-        my $col = $attr->column;
-        push @cols, qq{$key.$q$ckey$col$q AS "$key\__$ckey$col"};
+        my $col = $attr->view_column;
+        push @cols, "$key.$ckey$col AS $key\__$ckey$col";
         if (my $ref = $attr->references) {
             push @cols, $self->_map_ref_columns($ref, $key, @keys, $ref->key);
         }

@@ -69,7 +69,7 @@ eq_or_diff $sg->constraints_for_class($simple), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 my $view = q{CREATE VIEW simple AS
-  SELECT _simple.id, _simple.guid, _simple.name, _simple.description, _simple.state
+  SELECT _simple.id AS id, _simple.guid AS guid, _simple.name AS name, _simple.description AS description, _simple.state AS state
   FROM   _simple;
 };
 eq_or_diff $sg->view_for_class($simple), $view,
@@ -143,7 +143,7 @@ eq_or_diff $sg->constraints_for_class($one), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW one AS
-  SELECT simple.id, simple.guid, simple.name, simple.description, simple.state, simple_one.bool
+  SELECT simple.id AS id, simple.guid AS guid, simple.name AS name, simple.description AS description, simple.state AS state, simple_one.bool AS bool
   FROM   simple, simple_one
   WHERE  simple.id = simple_one.id;
 };
@@ -232,7 +232,7 @@ eq_or_diff $sg->constraints_for_class($two), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW two AS
-  SELECT simple.id, simple.guid, simple.name, simple.description, simple.state, simple_two.one_id AS "one__id", one.guid AS "one__guid", one.name AS "one__name", one.description AS "one__description", one.state AS "one__state", one.bool AS "one__bool", simple_two.age
+  SELECT simple.id AS id, simple.guid AS guid, simple.name AS name, simple.description AS description, simple.state AS state, simple_two.one_id AS one__id, one.guid AS one__guid, one.name AS one__name, one.description AS one__description, one.state AS one__state, one.bool AS one__bool, simple_two.age AS age
   FROM   simple, simple_two, one
   WHERE  simple.id = simple_two.id AND simple_two.one_id = one.id;
 };
@@ -335,7 +335,7 @@ eq_or_diff $sg->constraints_for_class($composed), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW composed AS
-  SELECT _composed.id, _composed.guid, _composed.name, _composed.description, _composed.state, _composed.one_id AS "one__id", one.guid AS "one__guid", one.name AS "one__name", one.description AS "one__description", one.state AS "one__state", one.bool AS "one__bool"
+  SELECT _composed.id AS id, _composed.guid AS guid, _composed.name AS name, _composed.description AS description, _composed.state AS state, _composed.one_id AS one__id, one.guid AS one__guid, one.name AS one__name, one.description AS one__description, one.state AS one__state, one.bool AS one__bool
   FROM   _composed LEFT JOIN one ON _composed.one_id = one.id;
 };
 eq_or_diff $sg->view_for_class($composed), $view,
@@ -431,7 +431,7 @@ eq_or_diff $sg->constraints_for_class($comp_comp), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW comp_comp AS
-  SELECT _comp_comp.id, _comp_comp.guid, _comp_comp.name, _comp_comp.description, _comp_comp.state, _comp_comp.composed_id AS "composed__id", composed.guid AS "composed__guid", composed.name AS "composed__name", composed.description AS "composed__description", composed.state AS "composed__state", composed.one_id AS "composed__one_id", composed."one.guid" AS "composed__one.guid", composed."one.name" AS "composed__one.name", composed."one.description" AS "composed__one.description", composed."one.state" AS "composed__one.state", composed."one.bool" AS "composed__one.bool"
+  SELECT _comp_comp.id AS id, _comp_comp.guid AS guid, _comp_comp.name AS name, _comp_comp.description AS description, _comp_comp.state AS state, _comp_comp.composed_id AS composed__id, composed.guid AS composed__guid, composed.name AS composed__name, composed.description AS composed__description, composed.state AS composed__state, composed.one__id AS composed__one__id, composed.one__guid AS composed__one__guid, composed.one__name AS composed__one__name, composed.one__description AS composed__one__description, composed.one__state AS composed__one__state, composed.one__bool AS composed__one__bool
   FROM   _comp_comp, composed
   WHERE  _comp_comp.composed_id = composed.id;
 };
