@@ -131,12 +131,41 @@ sub load_classes {
         return if /#/; # Ignore old backup files.
         my $class = $self->file_to_mod($File::Find::name);
         eval "require $class" or die $@;
-        push @classes, $class->my_class if UNIVERSAL::isa($class, 'Kinetic');
+        unshift @classes, $class->my_class if UNIVERSAL::isa($class, 'Kinetic');
     };
 
     find({ wanted => $find_classes, no_chdir => 1 }, $dir);
-    $self->{classes} = \@classes;
+    # XXX Determine dependency ordering for classes.
+    my (@sorted, %seen);
+    for my $class (@classes) {
+        push @sorted, $self->_sort_class(\%seen, $class)
+          unless $seen{$class->key}++;
+    }
+
+    # For each class, if there's a parent, the parent must come first. Go through
+    # parents recursively. And for each attribute, if there's a contained object,
+    # the contained object's class must come first.
+
+    $self->{classes} = \@sorted;
     return $self;
+}
+
+sub _sort_class {
+    my ($self, $seen, $class) = @_;
+    my @sorted;
+    # Grab all parent classes.
+    if (my $parent = $class->parent) {
+        push @sorted, $self->_sort_class($seen, $parent)
+          unless $seen->{$parent->key}++;
+    }
+
+    # Grab all referenced classes.
+    for my $attr ($class->table_attributes) {
+        my $ref = $attr->references or next;
+        push @sorted, $self->_sort_class($seen, $ref)
+          unless $seen->{$ref->key}++;
+    }
+    return @sorted, $class;
 }
 
 ##############################################################################
@@ -202,18 +231,7 @@ sub write_schema {
         # XXX Add code to load the Kinetic classes here.
     }
 
-    my %seen;
-    if (my $keys = $params->{order}) {
-        for my $key (@$keys) {
-            $seen{$key} = 1;
-            my $class = Kinetic::Meta->for_key($key)
-              or croak "No such class for key '$key'";
-            print $fh $self->schema_for_class($class), "\n";
-        }
-    }
-
     for my $class ($self->classes) {
-        next if $seen{$class->key};
         print $fh $self->schema_for_class($class), "\n";
     }
     print $fh $self->end_schema, "\n";

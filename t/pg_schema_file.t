@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
-use Test::More tests => 31;
+use Test::More tests => 23;
 
 BEGIN { use_ok 'Kinetic::Build::Schema' or die };
 
@@ -25,24 +25,13 @@ my @schema = <$schema>;
 close $schema;
 ok @schema, "... File has contents";
 
-my @class_keys = qw(simple one two composed comp_comp);
-for (@class_keys) {
-    test_contains(\@schema, "CREATE VIEW $_");
-}
 
 # Test writing out class schemas in the proper order
-ok $sg->write_schema($file, { order => \@class_keys}),
-  "Write schema file with ordered classes";
-ok -e $fn, "... File exists";
-open $schema, '<', $fn or die "Cannot open '$fn': $!\n";
-@schema = <$schema>;
-close $schema;
-ok @schema, "... Got schema file contents";
-
+my @class_keys = qw(simple one two composed comp_comp);
 test_contains_order(\@schema, @class_keys);
 
 # Test outputting setup SQL at the beginning of the file.
-ok $sg->write_schema($file, { order => \@class_keys, with_kinetic => 1 }),
+ok $sg->write_schema($file, { with_kinetic => 1 }),
   "Write schema file with ordered classes and setup SQL";
 ok -e $fn, "... File exists";
 open $schema, '<', $fn or die "Cannot open '$fn': $!\n";

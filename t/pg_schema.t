@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
-use Test::More tests => 67;
+use Test::More tests => 68;
 use Test::Differences;
 
 BEGIN { use_ok 'Kinetic::Build::Schema' or die };
@@ -16,6 +16,10 @@ isa_ok $sg, 'Kinetic::Build::Schema::DB';
 isa_ok $sg, 'Kinetic::Build::Schema::DB::Pg';
 
 ok $sg->load_classes('t/lib'), "Load classes";
+is_deeply [ map { $_->key } $sg->classes ],
+  [qw(simple one two composed comp_comp)],
+  "classes() returns classes in their proper dependency order";
+
 for my $class ($sg->classes) {
     ok $class->is_a('Kinetic'), "Class is a Kinetic";
 }
