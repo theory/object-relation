@@ -187,6 +187,29 @@ sub test_process_conf_files : Test(13) {
     file_not_exists_ok 'blib', 'Build lib should be gone';
 }
 
+sub test_prompt : Test(1) {
+    my $self = shift;
+    my $class = $self->test_class;
+
+    my $kb = MockModule->new($class);
+    $kb->mock(check_manifest => sub { return });
+    my $mb = MockModule->new('Module::Build');
+
+    # Override Module::Build's prompt() method so that we can see what gets
+    # passed to it by Kinetic::Build.
+    my ($exp_prompt, $exp_default, $return_value);
+    $mb->mock(prompt => sub {
+        is $_[1], $exp_prompt, qq'Prompt should be "$exp_prompt"';
+        is $_[2], $exp_default, qq'Default should be "$exp_default"';
+        return $return_value;
+    });
+
+    # Go to town!
+#    ($exp_prmopt, $exp_default, $return_value) = ('Which data store would you like to use? [sqlite]', 'sqlite', 'pg')
+#    my $builder = $self->new_builder(accept_defaults => 0);
+    return "We still need to add prompt funtionality."
+}
+
 sub new_builder {
     my $self = shift;
     my $class = $self->test_class;
