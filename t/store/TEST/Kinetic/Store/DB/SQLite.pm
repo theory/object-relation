@@ -89,7 +89,7 @@ sub _clear_database {
     $test->{dbi_mock}->mock(commit => 1);
 }
 
-sub search_incomplete_dates : Test(no_plan) {
+sub search_incomplete_dates : Test(25) {
     my $test = shift;
     $test->_clear_database;
     my $theory = Two->new;
@@ -606,7 +606,7 @@ sub search_and : Test(15) {
         'and should include the correct items';
 }
 
-sub search_overloaded : Test(no_plan) {
+sub search_overloaded : Test(11) {
     {
         package Test::String;
         use overload '""' => \&to_string;
