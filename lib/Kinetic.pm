@@ -336,6 +336,152 @@ sub clone {
     return $new;
 }
 
+##############################################################################
+
+=head3 dump_xml
+
+  my $xml = $bric->dump_xml(%params);
+
+Returns an XML representation of the Kientic object. The XML is useful for
+serialization of all kinds, and is used extensively by the Kientic SOAP server
+and XSLT burner. A number of parameters are supported by C<dump_xml()>:
+
+=over 4
+
+=item with_contained
+
+If passed a true value, any contained Kinetic objects will be serialized
+within the XML for the main object. If it is false (the default), then
+contained objects will merely be referenced by GUID and name.
+
+=item with_collections
+
+If passed a true value, then collections of contained Kinetic objects will be
+serialized within the XML for the main object. If it is false (the default),
+then contained objects will merely be referenced by GUID and name.
+
+=back
+
+=cut
+
+sub dump_xml {
+    my $self = shift;
+    my %params = @_;
+    my $fh = IO::String->new(my $buf);
+    $self->_write_xml(_xml_writer($fh), \%params);
+    $fh->close;
+    return $buf;
+}
+
+##############################################################################
+
+=head3 write_xml
+
+  $self->write_xml(file   => $file_name, %params);
+  $self->write_xml(handle => $file_handle, %params);
+
+Writes the XML representation of the Kinetic object to the specified file or
+file handle. Accepts the same parameters as C<dump_xml()>. The XML output is
+the same as would be returned by C<dump_xml()>, but will be streamed to the
+file handle, potentially making the output more efficient. A file handle is
+simply any kind of object with a C<print()> method, but be sure to expect
+output decoded to Perl's internal C<utf8> string format to be output the file
+handle.
+
+B<Throws:>
+
+=over 4
+
+=item Exception::Fatal::IO
+
+=back
+
+=cut
+
+sub write_xml {
+    my $self = shift;
+    my %params = @_;
+    my $fh = delete $params{handle} || do {
+        my $file = delete $params{file};
+        IO::File->new($file, ">:utf8")
+          or throw_io ['Cannot open file "[_1]": [_2]', $file, $!];
+    };
+    $self->_write_xml(_xml_writer($fh), \%params);
+    $fh->close;
+    return $self;
+}
+
+##############################################################################
+
+=begin private
+
+=head2 Private Instance Methods
+
+=head3 _xml_writer
+
+  my $writer = $biz->_xml_writer($file_handle);
+
+Returns a new XML::Writer object set to write XML to the file handle passed as
+the first argument. An XML declaration will have already been written to the
+file handle. XXX Change to XML::Genx!
+
+=cut
+
+sub _xml_writer {
+    my $writer = XML::Writer->new(OUTPUT      => shift,
+                                  DATA_MODE   => 1,
+                                  DATA_INDENT => 2);
+    $writer->xmlDecl("UTF-8", 1);
+    return $writer;
+}
+
+##############################################################################
+
+=head3 _write_xml
+
+  $self->_write_xml($writer, $params);
+
+This method does the work of serializing a Kinetic object to XML. It will
+output the XML to the file handle contained in the XML::Writer object passed
+as its first argument. The second argument is a reference to the the hash of
+parameters documented for the C<dump_xml()> method. Note that this method is
+recursive. XXX Change to XML::Genx!
+
+=cut
+
+sub _write_xml {
+    my ($self, $writer, $params) = @_;
+    my $class = $self->my_class;
+    $writer->startTag($class->key_name, guid => $self->guid);
+    for my $attr ($class->attributes) {
+        next if $attr->context == Class::Meta::CLASS;
+        my $kn = $attr->key_name;
+        next if $kn eq 'guid';
+        my $val = $attr->get($self);
+        # XXX Need to guard against circular references here.
+        # XXX We will need to account for collections here.
+        if (UNIVERSAL::isa($val, __PACKAGE__)) {
+            if ($params->{with_contained}) {
+                $val->_write_xml($writer, $params);
+            } else {
+                $writer->dataElement($val->my_class->key_name, $val->name,
+                                     guid => $val->guid);
+            }
+        } else {
+            if (defined $val) {
+                $writer->dataElement($kn => $val);
+            } else {
+                $writer->emptyTag($kn);
+            }
+        }
+    }
+    $writer->endTag($class->key_name);
+}
+
+=end private
+
+=cut
+
 1;
 __END__
 
