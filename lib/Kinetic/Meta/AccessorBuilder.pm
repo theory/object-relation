@@ -73,17 +73,18 @@ the same name as the attribute itself.
 
 =cut
 
+my $ISO8601_TEMPLATE =  'a4 x a2 x a2 x a2 x a2 x a2 a*';
 my $thaw = sub {
-    $_[0] =~ m/^(\d\d\d\d).(\d\d).(\d\d).(\d\d).(\d\d).(\d\d)(\.\d*)?/;
-    return Kinetic::DateTime->new(
-        year       => $1,
-        month      => $2,
-        day        => $3,
-        hour       => $4,
-        minute     => $5,
-        second     => $6,
-        nanosecond => $7 ? $7 * 1.0E9 : 0
-    );
+    # It turns out that unpack() is faster than using a Regex. See
+    # http://www.justatheory.com/computers/programming/perl/pack_vs_regex.html
+    my %args;
+    @args{qw(year month day hour minute second nanosecond)}
+      = unpack $ISO8601_TEMPLATE, shift;
+    {
+        no warnings;
+        $args{nanosecond} *= 1.0E9;
+    }
+    return Kinetic::DateTime->new(%args);
 };
 
 my %builders = (
