@@ -13,7 +13,7 @@ use lib 't/lib', '../../lib';;
 use TieOut;
 
 my $CLASS;
-BEGIN { 
+BEGIN {
     $CLASS = 'Kinetic::Build';
     use_ok $CLASS or die;
 };
@@ -37,7 +37,7 @@ ok grep({ $_ eq 'accept_defaults' } @props),
   "accept_defaults is in the list of properties";
 
 # Check default values of attributes.
-ok my $build = $CLASS->new( module_name => 'KineticBuildOne' ),
+ok my $build = $CLASS->new( module_name => 'KineticBuildOne', quiet => 1 ),
   "Create build object";
 ok !$build->accept_defaults,
   "... The accept_defaults option should be false by default";
@@ -213,7 +213,7 @@ $build->db_name(undef);
 eval {$build->_dsn};
 like $@, qr/Cannot create dsn without a db_name/,
   '... and die if we do not have a db_name';
-  
+
 sub newmock { Test::MockModule->new(shift) }
 
 END {

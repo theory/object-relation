@@ -543,7 +543,7 @@ sub process_db_files {
     my $self = shift;
     # Do nothing unless the data store is SQLite.
     return $self unless lc $self->store eq 'sqlite';
-    #$self->add_to_cleanup('t/store');
+    $self->add_to_cleanup('t/store');
     for my $dir ($self->blib, 't') {
         my $path = $self->localize_file_path($dir . '/store');
         File::Path::mkpath($path, 0, 0777);
