@@ -449,8 +449,8 @@ sub check_template1_for_plpgsql_and_is_root {
       '... and we should not die if we have no plpgsql but we do have createlang';
     my $actions = $machine->{actions};
     is @$actions, 1, '... and we should have one action';
-    is_deeply $actions->[0], ['add_plpgsql_to_db', 'template1'],
-      '... tellling us to add plpgsql to template1';
+    is_deeply $actions->[0], ['add_plpgsql_to_db', 'kinetic'],
+      '... telling us to add plpgsql to the user db';
     foreach my $action (map {$_->[0]} @$actions) {
         can_ok $BUILD_CLASS, $action;
     }

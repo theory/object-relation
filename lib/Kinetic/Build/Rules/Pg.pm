@@ -197,7 +197,10 @@ sub _state_machine {
                 }
                 elsif ($self->info->createlang) {
                     $state->result('No plpgsql but we have createlang');
-                    push @{$state->machine->{actions}} => ['add_plpgsql_to_db', $template];
+                    push @{$state->machine->{actions}} => [
+                        'add_plpgsql_to_db', 
+                        $self->build->notes('kinetic_db_name')
+                    ];
                 }
             },
             rules => [

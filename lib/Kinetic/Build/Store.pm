@@ -116,7 +116,9 @@ sub build_db {
             warn $message;
         };
         my $sg = $schema_class->new;
+
         $sg->load_classes($self->metadata->source_dir);
+
         $dbh->do($_) foreach 
           $sg->begin_schema,
           $sg->setup_code,
@@ -156,6 +158,7 @@ sub do_actions {
 sub switch_to_db {
     my ($self, $db_name) = @_;
     $self->metadata->db_name($db_name);
+    $self->metadata->notes(db_name => $db_name);
     $self->_dbh->disconnect if $self->_dbh;
     $self->_dbh(undef); # clear wherever we were
     return $self;
