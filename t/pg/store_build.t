@@ -27,6 +27,7 @@ BEGIN {
         conf_file       => 'test.conf', # always writes to t/ and blib/
         accept_defaults => 1,
         store           => 'pg',
+        quiet           => 1,
         source_dir      => $TEST_LIB,
         db_name         => $DB_NAME,
         db_user         => $DB_NAME,

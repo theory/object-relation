@@ -646,19 +646,17 @@ Returns a list of params required for the C<App::Info> object.
 
 sub _app_info_params {
     my $self = shift;
-    require App::Info::Handler::Carp;
-    require App::Info::Handler::Print;
-    # XXX Maybe on_fatal should call _fatal_error() instead of Carp::Croak.
-    my @params = ( 
-        on_info  => 'stdout', 
-        on_error => 'croak',
-    );
+    my @params = ( on_error => Kinetic::Build::CroakHandler->new($self) );
+
+    unless ($self->quiet) {
+        push @params, on_info => Kinetic::Build::PrintHandler->new($self);
+    }
 
     unless ($self->accept_defaults) {
-        require App::Info::Handler::Prompt;
+        my $prompter = Kinetic::Build::PromptHandler->new($self);
         push @params,
-          on_unknown => 'prompt',
-          on_confirm => 'prompt';
+          on_unknown => $prompter,
+          on_confirm => $prompter,
     }
     return @params;
 }
@@ -752,6 +750,39 @@ sub _find_files_in_dir {
     return { map {$_, $_}
              map $self->localize_file_path($_),
              @{ $self->rscan_dir($dir, sub { -f && !/\.svn/ }) } };
+}
+
+package Kinetic::Build::AppInfoHandler;
+use base 'App::Info::Handler';
+
+sub new {
+    my $self = shift->SUPER::new;
+    $self->{builder} = shift;
+    return $self;
+}
+
+package Kinetic::Build::PrintHandler;
+use base 'Kinetic::Build::AppInfoHandler';
+
+sub handler {
+    my ($self, $req) = @_;
+    $self->{builder}->log_info($req->message)
+}
+
+package Kinetic::Build::CroakHandler;
+use base 'Kinetic::Build::AppInfoHandler';
+
+sub handler {
+    my ($self, $req) = @_;
+    $self->{builder}->_fatal_error($req->message);
+}
+
+package Kinetic::Build::PromptHandler;
+use base 'Kinetic::Build::AppInfoHandler';
+
+sub handler {
+    my ($self, $req) = @_;
+    $self->{builder}->prompt($req->message, $req->value);
 }
 
 1;

@@ -24,12 +24,13 @@ BEGIN {
     Kinetic::Build
         ->new(module_name => 'KineticBuildOne')
         ->dispatch('realclean');
-    
-    $BUILD = Kinetic::Build->new( 
+
+    $BUILD = Kinetic::Build->new(
         module_name     => 'KineticBuildOne',
         conf_file       => 'test.conf', # always writes to t/ and blib/
         accept_defaults => 1,
-        source_dir      => $TEST_LIB, 
+        source_dir      => $TEST_LIB,
+        quiet           => 1,
     );
     $BUILD->create_build_script;
     $BUILD->dispatch('build');
@@ -55,8 +56,8 @@ is_deeply $metadata, $BUILD,
 SKIP: {
     skip 'Bad store', undef unless $BUILD->notes('got_store');
     can_ok $bstore, 'build';
-    ok $bstore->build, '... and calling it should succeed';    
-    
+    ok $bstore->build, '... and calling it should succeed';
+
     can_ok $bstore, '_schema_class';
     my $schema_class = $bstore->_schema_class;
     eval "use $schema_class";

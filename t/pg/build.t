@@ -19,6 +19,7 @@ my $build = Kinetic::Build->new(
     accept_defaults => 1,
     store           => 'pg',
     module_name     => 'KineticBuildOne',
+    quiet           => 1,
 );
 my $dbh = get_dbh($build);
 

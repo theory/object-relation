@@ -31,6 +31,7 @@ BEGIN {
         accept_defaults => 1,
         store           => 'pg',
         source_dir      => $TEST_LIB,
+        quiet           => 1,
     );
     $BUILD->create_build_script;
     eval {$BUILD->dispatch('build')};
