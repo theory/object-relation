@@ -51,7 +51,9 @@ sub where_token : Test(26) {
     can_ok $store, '_make_where_token';
     $store->{search_class} = One->new->my_class;
 
-    $store->{search_data}{fields} = [qw/name desc/]; # so it doesn't think it's an object search
+    $store->{search_data}{columns} = [qw/name desc/]; # so it doesn't think it's an object search
+    $store->{search_data}{lookup} = {};
+    @{$store->{search_data}{lookup}}{@{$store->{search_data}{columns}}} = undef;
     my ($token, $bind) = $store->_make_where_token('name', 'foo');
     is $token, 'LOWER(name) = LOWER(?)', 'and a basic match should return the correct where snippet';
     is_deeply $bind, ['foo'], 'and a proper bind param';
@@ -124,15 +126,15 @@ sub set_search_data : Test(9) {
     ok my $results = $store->_search_data,
         "Calling $method for simple types should succeed";
     my @keys      = sort keys %$results;
-    is_deeply \@keys, [qw/fields metadata/],
+    is_deeply \@keys, [qw/columns lookup  metadata/],
         'and it should return the types of data that we are looking for';
-    is_deeply [sort @{$results->{fields}}],
+    is_deeply [sort @{$results->{columns}}],
         [qw/bool description guid id name state/],
-        'which correctly identify the sql field names';
+        'which correctly identify the sql column names';
     is_deeply $results->{metadata},
         {
             'TestApp::Simple::One' => {
-                fields => {
+                columns => {
                     bool        => 'bool',
                     description => 'description',
                     guid        => 'guid',
@@ -149,15 +151,15 @@ sub set_search_data : Test(9) {
     ok $results = $store->$method->_search_data,
         "Calling $method for complex types should succeed";
     @keys      = sort keys %$results;
-    is_deeply \@keys, [qw/fields metadata/],
+    is_deeply \@keys, [qw/columns lookup  metadata/],
         'and it should return the types of data that we are looking for';
-    is_deeply [sort @{$results->{fields}}],
+    is_deeply [sort @{$results->{columns}}],
     [qw/ age date description guid id name one__bool one__description one__guid
          one__id one__name one__state state /],
-        'which correctly identify the sql field names';
+        'which correctly identify the sql column names';
     my $metadata = {
         'TestApp::Simple::One' => {
-            fields => {
+            columns => {
                 one__bool        => 'bool',
                 one__description => 'description',
                 one__guid        => 'guid',
@@ -170,7 +172,7 @@ sub set_search_data : Test(9) {
             contains => {
                 one__id => One->new->my_class
             },
-            fields => {
+            columns => {
                 age         => 'age',
                 date        => 'date',
                 description => 'description',
@@ -213,7 +215,7 @@ sub build_objects : Test(16) {
     $store->{search_data} = {
       metadata => {
         'TestApp::Simple::One' => {
-          fields => {
+          columns => {
             one__bool        => 'bool',
             one__description => 'description',
             one__guid        => 'guid',
@@ -226,7 +228,7 @@ sub build_objects : Test(16) {
           contains => {
             one__id => One->new->my_class,
           },
-          fields => {
+          columns => {
             age         => 'age',
             description => 'description',
             guid        => 'guid',
@@ -267,13 +269,13 @@ sub where_clause : Test(11) {
     my $store = Store->new;
     $store->{search_class} = One->new->my_class;
     my $my_class = MockModule->new('Kinetic::Meta::Class');
-    my $current_field;
+    my $current_column;
     $my_class->mock(attributes => sub {
-        $current_field = $_[1];
+        $current_column = $_[1];
         bless {} => Attribute
     });
     my $attr = MockModule->new(Attribute);
-    my %fields = (
+    my %attributes = (
         name => 'string',
         desc => 'string',
         age  => 'int',
@@ -282,11 +284,12 @@ sub where_clause : Test(11) {
     );
     $attr->mock(type => sub {
         my ($self) = @_;
-        $current_field = 'bog' unless exists $fields{$current_field};
-        return $fields{$current_field};
+        $current_column = 'bog' unless exists $attributes{$current_column};
+        return $attributes{$current_column};
     });
     can_ok $store, '_make_where_clause';
-    $store->{search_data}{fields} = [qw/name desc/]; # so it doesn't think it's an object search
+    $store->{search_data}{columns} = [qw/name desc/]; # so it doesn't think it's an object search
+    $store->{search_data}{lookup}  = {name => undef, desc => undef}; # so it doesn't think it's an object search
     my ($where, $bind) = $store->_make_where_clause([
         name => 'foo',
         desc => 'bar',
@@ -296,7 +299,8 @@ sub where_clause : Test(11) {
     is_deeply $bind, [qw/foo bar/],
         'and return the correct bind params';
 
-    $store->{search_data}{fields} = [qw/name desc this/]; # so it doesn't think it's an object search
+    $store->{search_data}{columns} = [qw/name desc this/]; # so it doesn't think it's an object search
+    $store->{search_data}{lookup}  = {name => undef, desc => undef, this => undef}; # so it doesn't think it's an object search
     ($where, $bind) = $store->_make_where_clause([
         name => 'foo',
         [
@@ -321,7 +325,7 @@ sub where_clause : Test(11) {
     is_deeply $bind, [qw/foo bar that/],
         'and return the correct bind params';
 
-    $store->{search_data}{fields} = [qw/
+    $store->{search_data}{columns} = [qw/
         last_name
         first_name 
         bio 
@@ -329,6 +333,8 @@ sub where_clause : Test(11) {
         one__value 
         fav_number
     /]; # so it doesn't think it's an object search
+    $store->{search_data}{lookup} = {};
+    @{$store->{search_data}{lookup}}{@{$store->{search_data}{columns}}} = undef;
     ($where, $bind) = $store->_make_where_clause([
         [
             last_name  => 'Wall',

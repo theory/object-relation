@@ -21,6 +21,12 @@ package Kinetic::Store;
 use strict;
 use Kinetic::Util::Config qw(:store);
 
+#use base 'Class::Virtually::Abstract';
+#__PACKAGE__->virtual_methods(qw/
+#    search
+#    search_guids
+#/);
+
 =head1 Name
 
 Kinetic::Store - The Kinetic data storage class

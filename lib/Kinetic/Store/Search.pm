@@ -131,7 +131,6 @@ sub new {
         require Carp;
         Carp::croak "Unknown attributes to ${class}::new (@invalid)";
     }
-    no strict 'refs';
     my $self = bless {} => $class;
     while (my ($attribute, $value) = each %attributes) {
         $self->$attribute($value);
@@ -259,7 +258,7 @@ sub _am_i_eq_or_not {
 
   $search->attr([$attr]);
 
-Getter/Setter for the field attribute on wich you wish to search.
+Getter/Setter for the object attribute on which you wish to search.
 
 ##############################################################################
 

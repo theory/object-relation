@@ -113,8 +113,8 @@ sub _save {
   $store->search_class($search_class);
 
 This is an accessor method for the Kinetic::Meta::Class object representing
-the class searched in latest search. Returns the store object if used to set
-the search class.
+the class being searched in the current search.  This is usually the first
+argument to the C<search> method.
 
 Generally, the programmer will know which search class she is working with,
 but if not, this method is avaible. Note that it is only available externally
@@ -196,9 +196,9 @@ sub search {
 sub _search {
     my ($self, @search_params) = @_;
     return $self->_full_text_search(@search_params)
-        if 1 == @search_params && ! ref $search_par2ams[0];
+        if 1 == @search_params && ! ref $search_params[0];
     $self->_set_search_data;
-    my $attributes = join ', ' => $self->_search_data_fields;
+    my $attributes = join ', ' => $self->_search_data_columns;
     my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
         $attributes,
         \@search_params
@@ -226,7 +226,6 @@ sub search_guids {
     $self->_create_iterator(0);
     local $self->{search_class} = $search_class;
     $self->_set_search_data;
-    my $attributes = join ', ' => $self->_search_data_fields;
     my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
         "guid",
         \@search_params
@@ -309,12 +308,12 @@ sub _any_date_handler {
 }
 
 sub _get_select_sql_and_bind_params {
-    my ($self, $fields, $params) = @_;
+    my ($self, $columns, $params) = @_;
     my $constraints = pop @$params if 'HASH' eq ref $params->[-1];
     my $view        = $self->search_class->key;
     my ($where_clause, $bind_params) = $self->_make_where_clause($params);
     $where_clause = "WHERE $where_clause" if $where_clause;
-    my $sql       = "SELECT $fields FROM $view $where_clause";
+    my $sql       = "SELECT $columns FROM $view $where_clause";
     $sql         .= $self->_constraints($constraints) if $constraints;
     return ($sql, $bind_params);
 }
@@ -357,9 +356,9 @@ any purpose.
 
 sub _insert {
     my ($self, $object) = @_;
-    my $fields       = join ', ' => @{$self->{names}};
+    my $columns      = join ', ' => @{$self->{names}};
     my $placeholders = join ', ' => (('?') x @{$self->{names}});
-    my $sql = "INSERT INTO $self->{view} ($fields) VALUES ($placeholders)";
+    my $sql = "INSERT INTO $self->{view} ($columns) VALUES ($placeholders)";
     $self->_cache_statement(1);
     $self->_do_sql($sql, $self->{values});
     $self->_set_id($object);
@@ -433,9 +432,9 @@ Creates and executes an C<UPDATE> sql statement for the given object.
 
 sub _update {
     my ($self, $object) = @_;
-    my $fields = join ', '  => map { "$_ = ?" } @{$self->{names}};
+    my $columns = join ', '  => map { "$_ = ?" } @{$self->{names}};
     push @{$self->{values}} => $object->{id};
-    my $sql = "UPDATE $self->{view} SET $fields WHERE id = ?";
+    my $sql = "UPDATE $self->{view} SET $columns WHERE id = ?";
     $self->_cache_statement(1);
     return $self->_do_sql($sql, $self->{values});
 }
@@ -457,6 +456,8 @@ sub _do_sql {
         ? 'prepare_cached'
         : 'prepare';
     my $sth = $self->_dbh->$dbi_method($sql);
+    # The warning has been suppressed due to 
+    # "use of unitialized value in subroutine entry" warnings
     no warnings 'uninitialized';
     $sth->execute(@$bind_params);
     return $self;
@@ -525,16 +526,24 @@ sub _get_sql_results {
         : 'prepare';
     my $sth = $self->_dbh->$dbi_method($sql);
     $self->_execute($sth, $bind_params);
-    my @results;
-    # XXX Fetching directly into the appropriate data structure would be
-    # faster, but so would an array ref, since you aren't really using
-    # the hash keys.
-    while (my $result = $self->_fetchrow_hashref($sth)) {
-        push @results => $self->_build_object_from_hashref($result);
+    if ($self->_create_iterator) {
+        my $search_class = $self->{search_class};
+        return Iterator->new(sub {
+            my $result = $self->_fetchrow_hashref($sth) or return;
+            local $self->{search_class} = $search_class;
+            return $self->_build_object_from_hashref($result);
+        });
     }
-    return $self->_create_iterator
-        ? Iterator->new(sub {shift @results})
-        : \@results;
+    else {
+        my @results;
+        # XXX Fetching directly into the appropriate data structure would be
+        # faster, but so would an array ref, since you aren't really using
+        # the hash keys.
+        while (my $result = $self->_fetchrow_hashref($sth)) {
+            push @results => $self->_build_object_from_hashref($result);
+        }
+        return \@results;
+    }
 }
 
 sub _execute {
@@ -557,8 +566,8 @@ For a given hashref returned by C<$sth-E<gt>fetchrow_hashref>, this method will
 return an object representing that row.  Note that the hashref may represent
 multiple objects because an object can contain other objects.
 C<_build_object_from_hashref> resolves this by utilizing the metadata assembled
-by C<_set_search_data> to match the fields for each object and pull them off of
-the hashref with hash slices.
+by C<_set_search_data> to match the table columns for each object and pull them
+off of the hashref with hash slices.
 
 =cut
 
@@ -566,13 +575,17 @@ sub _build_object_from_hashref {
     my ($self, $hashref) = @_;
     my %objects;
     my %metadata = $self->_search_data_metadata;
+    # XXX I can have an array in metadata which has the objects in reverse
+    # order and simply iterate through them and ensure that in the first 
+    # while loop, I know a contained object is built by the time you get
+    # containing object(s)
     while (my ($package, $data) = each %metadata) {
-        my $fields = $data->{fields};
+        my $columns = $data->{columns};
         # XXX Is the distinction here due to IDs?
-        my @sql_fields    = keys %$fields;
-        my @object_fields = @{$fields}{@sql_fields};
+        my @object_columns    = keys %$columns;
+        my @object_attributes = @{$columns}{@object_columns};
         my %object;
-        @object{@object_fields} = @{$hashref}{@sql_fields};
+        @object{@object_attributes} = @{$hashref}{@object_columns};
         $objects{$package} = bless \%object => $package;
     }
     # XXX Aack!  This is fugly.
@@ -611,10 +624,10 @@ sub _set_search_data {
     my ($self) = @_;
     my $package = $self->search_class->package;
     unless (exists $SEARCH_DATA{$package}) {
-        my @fields   = 'id'; # ID of main view
+        my @columns   = 'id'; # ID of main view
         my %packages = (
             $package => {
-                fields => { id => 'id' }
+                columns => { id => 'id' }
             }
         );
         my @classes_to_process = {
@@ -625,12 +638,12 @@ sub _set_search_data {
             foreach my $data (splice @classes_to_process, 0) {
                 my $package = $data->{class}->package;
                 foreach my $attr ($data->{class}->attributes) {
-                    my $name     = $self->_get_name($attr);
-                    my $field    = "$data->{prefix}$name";
-                    push @fields => $field;
-                    $packages{$package}{fields}{$field} = $name;
+                    my $name      = $self->_get_name($attr);
+                    my $column    = "$data->{prefix}$name";
+                    push @columns => $column;
+                    $packages{$package}{columns}{$column} = $name;
                     if (my $class = $attr->references) {
-                        $packages{$class->package}{fields}{$field} = 'id';
+                        $packages{$class->package}{columns}{$column} = 'id';
                         push @classes_to_process => {
                             class  => $class,
                             prefix => $class->key . OBJECT_DELIMITER,
@@ -640,8 +653,11 @@ sub _set_search_data {
                 }
             }
         }
-        $SEARCH_DATA{$package}{fields}   = \@fields;
+        $SEARCH_DATA{$package}{columns}  = \@columns;
         $SEARCH_DATA{$package}{metadata} = \%packages;
+        $SEARCH_DATA{$package}{lookup}   = {};
+        # merely a hashset.  The values are useless
+        @{$SEARCH_DATA{$package}{lookup}}{@columns} = undef;
     }
     $self->_search_data($SEARCH_DATA{$package});
     return $self;
@@ -669,15 +685,34 @@ sub _search_data {
 
 ##############################################################################
 
-=head3 _search_data_fields
+=head3 _search_data_columns
 
-  my @fields = $store->_search_data_fields;
+  my @columns = $store->_search_data_columns;
 
-Returns a list of the search data fields.  See C<_set_search_data>.
+Returns a list of the search data columns.  See C<_set_search_data>.
 
 =cut
 
-sub _search_data_fields { @{shift->{search_data}{fields}} }
+sub _search_data_columns { @{shift->{search_data}{columns}} }
+
+##############################################################################
+
+=head3 _search_data_has_column
+
+  if ($store->_search_data_has_column($column)) {
+    ...
+  }
+
+This method returns true of false depending upon whether or not the current
+search class has a database column matching the column name passed as an
+argument.
+
+=cut
+
+sub _search_data_has_column {
+    my ($self, $column) = @_;
+    return exists $self->{search_data}{lookup}{$column};
+}
 
 ##############################################################################
 
@@ -812,11 +847,11 @@ sub _case_insensitive_types {
 
 =head3 _make_where_token
 
-  my ($where_token, $value) = $store->_make_where_token($field, $search_param);
+  my ($where_token, $value) = $store->_make_where_token($column, $search_param);
 
 This method returns individual tokens that will be assembled to form the final
 where clause.  The C<$value> is always an arrayref of the values that will be
-bound to the bind parameters in the token.  It takes a $field and its
+bound to the bind parameters in the token.  It takes a C<$column> and its
 $search_param.  Due to the nature of the mini search language, the search
 parameter may be either a string or a code ref.
 
@@ -832,23 +867,23 @@ Examples of returned tokens:
 =cut
 
 sub _make_where_token {
-    my ($self, $field, $search_param) = @_;
+    my ($self, $column, $search_param) = @_;
 
     my ($negated, $operator, $value) = $self->_expand_search_param($search_param);
-    unless (grep $_ eq $field => $self->_search_data_fields) {
+    unless ($self->_search_data_has_column($column)) {
         # special case for searching on a contained object id ...
-        my $id_field = $field . OBJECT_DELIMITER . 'id';
-        unless (grep $_ eq $id_field => $self->_search_data_fields) {
-            croak "Don't know how to search for ($field $negated $operator $value)";
+        my $id_column = $column . OBJECT_DELIMITER . 'id';
+        unless ($self->_search_data_has_column($id_column)) {
+            croak "Don't know how to search for ($column $negated $operator $value)";
         }
-        $field = $id_field;
+        $column = $id_column;
         $value = 'ARRAY' eq ref $value
             ? [map $self->_get_id_from_object($_) => @$value]
             : $self->_get_id_from_object($value);
     }
 
     my $search = Search->new(
-        attr     => $field,
+        attr     => $column,
         operator => $operator,
         negated  => $negated,
         data     => $value,
@@ -866,75 +901,76 @@ sub _get_id_from_object {
 }
 
 sub _is_case_insensitive {
-    my ($self, $field) = @_;
-    my $orig_field     = $field;
+    my ($self, $column) = @_;
+    # if 'type eq string' for attr (only relevent for postgres)
+    my $orig_column     = $column;
     my $search_class   = $self->{search_class};
-    if ($field =~ /@{[OBJECT_DELIMITER]}/) {
-        my ($key,$field2) = split /@{[OBJECT_DELIMITER]}/ => $field;
+    if ($column =~ /@{[OBJECT_DELIMITER]}/) {
+        my ($key,$column2) = split /@{[OBJECT_DELIMITER]}/ => $column;
         $search_class = Kinetic::Meta->for_key($key)
           or croak "Cannot determine class for key ($key)";
-        $field = $field2;
+        $column = $column2;
     }
-    if ($search_class && $field ne 'id') {
-        my $type = $search_class->attributes($field)->type;
-        foreach my $ifield ($self->_case_insensitive_types) {
-            if ($type eq $ifield) {
-                $field = "LOWER($orig_field)";
+    if ($search_class && $column ne 'id') {
+        my $type = $search_class->attributes($column)->type;
+        foreach my $icolumn ($self->_case_insensitive_types) {
+            if ($type eq $icolumn) {
+                $column = "LOWER($orig_column)";
                 last;
             }
         }
     }
-    return $field =~ /^LOWER/? ($field, 'LOWER(?)') : ($orig_field, '?');
+    return $column =~ /^LOWER/? ($column, 'LOWER(?)') : ($orig_column, '?');
 }
 
 sub _ANY_SEARCH {
     my ($self, $search)        = @_;
     my ($negated, $value)      = ($search->negated, $search->data);
-    my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
+    my ($column, $place_holder) = $self->_is_case_insensitive($search->attr);
     my $place_holders = join ', ' => ($place_holder) x @$value;
-    return ("$field $negated IN ($place_holders)", $value);
+    return ("$column $negated IN ($place_holders)", $value);
 }
 
 sub _EQ_SEARCH {
     my ($self, $search)        = @_;
-    my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
+    my ($column, $place_holder) = $self->_is_case_insensitive($search->attr);
     my $operator = $search->operator;
-    return ("$field $operator $place_holder", [$search->data]);
+    return ("$column $operator $place_holder", [$search->data]);
 }
 
 sub _NULL_SEARCH {
     my ($self, $search)   = @_;
-    my ($field, $negated) = ($search->attr, $search->negated);
-    return ("$field IS $negated NULL", []);
+    my ($column, $negated) = ($search->attr, $search->negated);
+    return ("$column IS $negated NULL", []);
 }
 
 sub _GT_LT_SEARCH {
     my ($self, $search) = @_;
     my $value = $search->data;
     my $operator = $search->operator;
-    my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
-    return ("$field $operator $place_holder", [$value]);
+    my ($column, $place_holder) = $self->_is_case_insensitive($search->attr);
+    return ("$column $operator $place_holder", [$value]);
 }
 
 sub _BETWEEN_SEARCH {
     my ($self, $search) = @_;
     my ($negated, $operator) = ($search->negated, $search->operator);
-    my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
-    return ("$field $negated $operator $place_holder AND $place_holder", $search->data)
+    my ($column, $place_holder) = $self->_is_case_insensitive($search->attr);
+    return ("$column $negated $operator $place_holder AND $place_holder", $search->data)
 }
 
 sub _MATCH_SEARCH {
     my ($self, $search) = @_;
-    my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
+    my ($column, $place_holder) = $self->_is_case_insensitive($search->attr);
     my $operator = $search->negated ? '!~*' : '~*';
-    return ("$field $operator $place_holder", [$search->data]);
+    return ("$column $operator $place_holder", [$search->data]);
 }
 
 sub _LIKE_SEARCH {
     my ($self, $search) = @_;
     my ($negated, $operator) = ($search->negated, $search->operator);
-    my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
-    return ("$field $negated $operator $place_holder", [$search->data]);
+    my ($column, $place_holder) = $self->_is_case_insensitive($search->attr);
+    return ("$column $negated $operator $place_holder", [$search->data]);
 }
 
 ##############################################################################

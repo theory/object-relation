@@ -883,11 +883,11 @@ sub lookup : Test(8) {
     foreach my $method (qw/name description guid state/) {
         is $thing->$method, $two->$method, "$method() should behave the same";
     }
-    throws_ok {$store->lookup($two->my_class, 'no_such_property' => 1)}
-        qr/\QNo such property "no_such_property" for TestApp::Simple::One\E/,
-        'but it should croak if you search for a non-existent property';
+    throws_ok {$store->lookup($two->my_class, 'no_such_attribute' => 1)}
+        qr/\QNo such attribute "no_such_attribute" for TestApp::Simple::One\E/,
+        'but it should croak if you search for a non-existent attribute';
     throws_ok {$store->lookup($two->my_class, 'name' => 1)}
-        qr/\QProperty "name" is not unique\E/,
+        qr/\QAttribute "name" is not unique\E/,
         'or if you search on a non-unique field';
 }
 
