@@ -10,12 +10,12 @@ use DBI;
 
 sub Diag;
 
-BEGIN {  
+BEGIN {
     chdir 't';
     chdir 'build_sample';
 };
 
-my $build = Kinetic::Build->new( 
+my $build = Kinetic::Build->new(
     accept_defaults => 1,
     store           => 'pg',
     module_name     => 'KineticBuildOne',
