@@ -20,6 +20,10 @@ package Kinetic::XML;
 
 use strict;
 use XML::Genx::Simple;
+use XML::Simple;
+
+use Kinetic::Meta;
+use Kinetic::Store;
 
 use constant XML_VERSION => '0.01';
 
@@ -66,14 +70,99 @@ sub new {
 
 =head3 new_from_xml
 
-Loads the data in an XML representation of the Kinetic business object as a
-new object.
+ my $kinetic_object = Kinetic::XML->new_from_xml($xml);
+
+Loads the data in an XML representation of the Kinetic business object as a new
+object.  This will return a B<Kinetic> object, not a C<Kinetic::XML> object.
 
 =cut
 
 sub new_from_xml {
+    my ($class, $xml_string, $params) = @_;
+    my $self = $class->new;
+    $self->{params} = $params || {};
+    my $data = $self->_get_hash_from_xml($xml_string);
+    my ($key) = keys %$data;
+    return $self->_fetch_object($key, $data->{$key}, $params);
+}
+
+##############################################################################
+
+=head3 _get_hash_from_xml
+
+  my $hash = $xml->_get_hash_from_xml($xml_string);
+
+Given a string containing Kinetic XML, this method returns a hash representing
+that XML.  This method will die if either a version number is missing or if
+the XML is not valid Kinetic XML.
+
+=cut
+
+sub _get_hash_from_xml {
+    my ($self, $xml_string) = @_;
+    unless ($xml_string) {
+        require Carp;
+        Carp::croak "You must supply valid XML to new_from_xml()";
+    }
+    my $xml  = XML::Simple->new;
+    my $data = $xml->XMLin($xml_string, suppressempty => undef, keyattr => []);
+    my $version = delete $data->{version}
+        or die "No version supplied in XML!";
+    if (1 < keys %$data) {
+        # XXX we'll probably change this later
+        die "More than one object found in hash";
+    }
+    return $data;
+}
+
+##############################################################################
+
+=head3 _fetch_object
+
+  my $object = $xml->_fetch_object($key, $data);
+
+This method takes a Kinetic::Meta key and a hashref for its data and will
+return an object for the appropriate class.  Contained objects will also be
+handled correctly.
+
+=cut
+
+sub _fetch_object {
+    my ($self, $key, $data) = @_;
+    foreach my $attribute (keys %$data) {
+        if ('HASH' eq ref $data->{$attribute}) {
+            $data->{$attribute} = $self->_fetch_object($attribute, $data->{$attribute});
+        }
+    }
+    my $class = Kinetic::Meta->for_key($key)
+        or die "Cannot determine class for key ($key)";
+    my $object = bless $data => $class->package;
+    if ($self->{params}{update}) {
+        my $iter  = Kinetic::Store->new->search($class, guid => $object->guid);
+        if (my $found = $iter->next) {
+            $object->{id} = $found->{id};
+        }
+        else {
+            die "Could not find guid '$object->{guid}' in the store";
+        }
+    }
+    return $object;
+}
+
+##############################################################################
+
+=head3 update_from_xml
+
+ my $object = Kinetic::XML->update_from_xml($xml);
+
+Loads the data in an XML representation of the Kinetic business object in
+order to update its values.
+
+=cut
+
+sub update_from_xml {
     my ($class, $xml) = @_;
-    return;
+    return $class->new_from_xml($xml, {update => 1});
 }
 
 ##############################################################################
@@ -169,6 +258,9 @@ sub _add_object_to_xml {
     my ($self, $xml, $object) = @_;
     $xml->StartElementLiteral($object->my_class->key);
     $xml->AddAttributeLiteral(guid => $object->guid);
+    if (exists $object->{id}) {
+        $xml->Element( id => ($object->{id} || '') );
+    }
     foreach my $attr ($object->my_class->attributes) {
         my $name = $attr->name;
         next if 'guid' eq $name;
@@ -193,13 +285,6 @@ sub _add_object_to_xml {
     }
     $xml->EndElement;
 }
-
-##############################################################################
-
-=head3 update_from_xml
-
-Loads the data in an XML representation of the Kinetic business object in
-order to update its values.
 
 ##############################################################################
 

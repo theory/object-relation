@@ -33,22 +33,6 @@ sub _all_items {
     return @iterator;
 }
 
-sub _force_inflation {
-    my ($test, $object) = @_;
-    return unless $object;
-    no warnings 'void';
-    foreach my $attr ($object->my_class->attributes) {
-        if ($attr->references) {
-            $test->_force_inflation($attr->get($object));
-        }
-        else {
-            my $name = $attr->name;
-            $object->$name; # this is what forces inflation
-        }
-    }
-    return $object;
-}
-
 sub _num_recs {
     my ($test, $table) = @_;
     my $result = $test->{dbh}->selectrow_arrayref("SELECT count(*) FROM $table");

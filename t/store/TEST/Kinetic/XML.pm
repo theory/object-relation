@@ -13,6 +13,7 @@ use Test::XML;
 use Encode qw(is_utf8);
 
 use aliased 'Kinetic::DateTime';
+use aliased 'Kinetic::Store';
 use aliased 'Test::MockModule';
 
 use aliased 'TestApp::Simple::One';
@@ -21,6 +22,109 @@ use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
 use aliased 'Kinetic::XML';
 
 __PACKAGE__->runtests unless caller;
+
+sub setup : Test(setup) {
+    my $test = shift;
+    my $store = Store->new;
+    $test->{dbh} = $store->_dbh;
+    $test->{dbh}->begin_work;
+    $test->{dbi_mock} = MockModule->new('DBI::db', no_auto => 1);
+    $test->{dbi_mock}->mock(begin_work => 1);
+    $test->{dbi_mock}->mock(commit => 1);
+    $test->{db_mock} = MockModule->new('Kinetic::Store::DB');
+    $test->{db_mock}->mock(_dbh => $test->{dbh});
+    my $foo = One->new;
+    $foo->name('foo');
+    $store->save($foo);
+    my $bar = One->new;
+    $bar->name('bar');
+    $store->save($bar);
+    my $baz = One->new;
+    $baz->name('snorfleglitz');
+    $store->save($baz);
+    $test->{test_objects} = [$foo, $bar, $baz];
+}
+
+sub teardown : Test(teardown) {
+    my $test = shift;
+    delete($test->{dbi_mock})->unmock_all;
+    $test->{dbh}->rollback;
+    delete($test->{db_mock})->unmock_all;
+}
+
+sub shutdown : Test(shutdown) {
+    my $test = shift;
+    $test->{dbh}->disconnect;
+}
+
+sub update_from_xml : Test(3) {
+    my $test = shift;
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    can_ok XML, 'update_from_xml';
+    my $updated_object = One->new;
+    $updated_object->{guid} = $foo->{guid};
+    $updated_object->name($foo->name);
+    $updated_object->state($foo->state);
+    $updated_object->bool($foo->bool);
+    $updated_object->description('This is not the same description');
+    my $xml = XML->new($updated_object); # note that one does not have an id
+    my $xml_string = $xml->dump_xml;
+    my $object = $test->_force_inflation(XML->update_from_xml($xml_string));
+    ok exists $object->{id}, '... and an existing guid should provide its ID for the update';
+    
+    $updated_object->{guid} = 'No such guid';
+    $xml = XML->new($updated_object); 
+    $xml_string = $xml->dump_xml;
+    throws_ok {XML->update_from_xml($xml_string)}
+        qr/Could not find guid 'No such guid' in the store/,
+        '... but a non-existing guid should throw an exception';
+}
+
+sub new_from_xml : Test(5) {
+    my $test = shift;
+    can_ok XML, 'new_from_xml';
+    throws_ok { XML->new_from_xml }
+        qr/You must supply valid XML to new_from_xml\(\)/,
+        '... and calling it without an argument should fail';
+
+    my $no_version = <<'    END_XML';
+    <kinetic>
+      <one guid="Fake guid">
+        <name>some name</name>
+        <description>some description</description>
+        <state>1</state>
+        <bool>1</bool>
+      </one>
+    </kinetic>
+    END_XML
+
+    throws_ok { XML->new_from_xml($no_version) }
+        qr/No version supplied in XML/,
+        '... and calling it with kinetic XML without a version should fail';
+    
+    my $one = One->new;
+    $one->name('some name');
+    $one->description('some description');
+    $one->{guid} = 'Fake guid'; # XXX yeah, I know.  If there's a better way ...
+    my $xml = XML->new($one);
+    my $xml_string = $xml->dump_xml;
+    my $object = $test->_force_inflation(XML->new_from_xml($xml_string));
+    is_deeply $object, $one, '... and it should return a valid object';
+
+    my $two = Two->new;
+    $two->name('june17');
+    $two->date(DateTime->new( 
+        year  => 1968,
+        month => 6,
+        day   => 17 
+    ));
+    $two->one($one);
+    $two->{guid} = 'another fake guid';
+    $xml->object($two);
+    $xml_string = $xml->dump_xml;
+    $object = $test->_force_inflation(XML->new_from_xml($xml_string));
+    is_deeply $object, $two, '... and contained objects should be deserializable, too';
+}
 
 sub constructor : Test(5) {
     my $test = shift;
@@ -55,7 +159,8 @@ sub object : Test(5) {
         '... and passing the object into the constructor should succeed';
 }
 
-sub dump_xml : Test(4) {
+sub dump_xml : Test(5) {
+    my $test = shift;
     my $one = One->new;
     $one->name('some name');
     $one->description('some description');
@@ -117,8 +222,21 @@ sub dump_xml : Test(4) {
       </one>
     </kinetic>
     END_XML
+
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    $foo->{guid} = 'fake guid';
+    $xml->object($foo);
+    is_xml $xml->dump_xml, <<'    END_XML', '... and if the object has an id, it should be in the XML';
+    <kinetic version="0.01">
+      <one guid="fake guid">
+        <id>1</id>
+        <name>foo</name>
+        <description></description>
+        <state>1</state>
+        <bool>1</bool>
+      </one>
+    </kinetic>
+    END_XML
 }
 
-sub new_from_xml : Test(no_plan) {
-    can_ok XML, 'new_from_xml';
-}
+1;
