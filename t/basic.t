@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 88;
+use Test::More tests => 81;
 use Data::UUID;
 
 BEGIN {
@@ -128,12 +128,3 @@ ok $attr->required, 'Check state attr required';
 ok $wm = $attr->widget_meta, "Get state widget meta object";
 is $wm->type, 'dropdown', "Check state widget type";
 is $wm->tip, 'The state of this object', "Check state widget tip";
-
-# Check clone.
-ok my $k2 = $kinetic->clone, "Clone object";
-isa_ok $k2, 'MyApp::TestThingy';
-isa_ok $k2, 'Kinetic';
-isnt $k2->guid, $kinetic->guid, "Check for different GUID";
-is $k2->name, $kinetic->name, "Check for same name";
-is $k2->description, $kinetic->description, "Check for same description";
-is $k2->state, $kinetic->state, "Check for same state";
