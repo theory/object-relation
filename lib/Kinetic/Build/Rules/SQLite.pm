@@ -67,6 +67,8 @@ sub info_class { 'App::Info::RDBMS::SQLite' }
 
 ##############################################################################
 
+=begin private
+
 =head1 Private Methods
 
 =head2 Private Instance Methods
@@ -114,6 +116,7 @@ sub _state_machine {
                 },
             ],
         },
+        # XXX This state can go now.
         check_executable => {
             do => sub { shift->result($self->_has_executable) },
             rules => [
@@ -131,12 +134,12 @@ sub _state_machine {
             do => sub {
                 my $state = shift;
                 my $build = $self->build;
-                $filename = $build->db_name 
+                $filename = $build->db_name
                   || $build->prompt('Please enter a filename for the SQLite database');
                 $self->build->db_name($filename);
                 $state->result($filename);
             },
-            rules => [ 
+            rules => [
                 file_name => {
                     rule    => $fail,
                     message => 'No filename for database',
@@ -148,11 +151,13 @@ sub _state_machine {
             ],
         },
         done => {
+            # XXX Is this redundant?
             do => sub {$self->build->notes(good_store => 1) },
         },
         fail => {
-            do => sub { 
+            do => sub {
                 my $state = shift;
+                # XXX Use $build->_fatal_error()?
                 die $state->prev_state->message
                   || "no message supplied";
             },
@@ -162,3 +167,26 @@ sub _state_machine {
 }
 
 1;
+
+__END__
+
+##############################################################################
+
+=end private
+
+=head1 Copyright and License
+
+Copyright (c) 2004 Kineticode, Inc. <info@kineticode.com>
+
+This work is made available under the terms of Version 2 of the GNU General
+Public License. You should have received a copy of the GNU General Public
+License along with this program; if not, download it from
+L<http://www.gnu.org/licenses/gpl.txt> or write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+This work is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
+details.
+
+=cut

@@ -294,8 +294,9 @@ sub ACTION_check_store {
     eval "use $rules_class";
     $self->_fatal_error("Cannot use class ($rules_class): $@") if $@;
     my $rules = $rules_class->new($self);
+    # XXX Huh? I hate test hooks in code. Is there no other way?
     $self->_rules($rules); # cached as a test hook
-    $rules->validate; 
+    $rules->validate;
 
     $self->notes(got_store => 1);
     return $self;

@@ -90,6 +90,7 @@ object is not a C<Kinetic::Build>, this method will C<croak()>.
 sub _validate {
     my ($class, $build) = @_;
     if (__PACKAGE__ eq $class) {
+        # What module? I think we need a more descriptive error message here.
         Carp::croak "This module must be subclassed.";
     }
     unless (UNIVERSAL::isa($build, 'Kinetic::Build')) {
@@ -111,7 +112,7 @@ sub _validate {
 =head3 build
 
   $rules->build;
- 
+
 Returns the build object;
 
 =cut
@@ -146,26 +147,31 @@ sub info { $_[0]->{info} }
 
 =head3 validate
 
-  $rules->validate; 
+  $rules->validate;
 
 This method will validate the store rules.  Returns true if the store can be
 used.  Otherwise it will C<croak()>.
 
-Internally this called C<_state_machine()>.  See that method for details.  If
-you do not wish to use C<FSA::Rules> for rules validation, you will need to
+Internally this method calls C<_state_machine()>. See that method for details.
+If you do not wish to use C<FSA::Rules> for rules validation, you will need to
 override this method.
 
 =cut
 
 sub validate {
     my $self = shift;
-    my ($state_machine, $done) = $self->_state_machine; 
+    # XXX Hrm. _state_machine() doesn't seem like quite the right name to
+    # me. More like states() or state_defs(). Also, why does it return two
+    # values?
+    my ($state_machine, $done) = $self->_state_machine;
     my $machine = FSA::Rules->new(@$state_machine);
     $machine->start;
     $self->{machine} = $machine; # internal only.  Used for debugging
-    $machine->switch while ! $machine->at('done');
+    $machine->switch until $machine->at('done');
     return $self;
 }
+
+=begin private
 
 =head2 Private Methods
 
@@ -193,7 +199,7 @@ sub _is_required_version {
 
 =head3 _dbh
 
- $rules->_dbh([$dbh]);  
+ $rules->_dbh([$dbh]);
 
 A convenient place to cache a database handle, if necessary.  Always returns
 the database handle, even when setting it.
@@ -248,7 +254,7 @@ sub _has_executable {
 
 =head3 info_class
 
- $rules->info_class  
+ $rules->info_class
 
 Returns the C<App::Info> class for the data store.
 
@@ -278,3 +284,26 @@ it must return arguments that the C<FSA::Rules> engine requires.
 sub _state_machine { die "_state_machine() must be overridden in the subclass" }
 
 1;
+
+__END__
+
+##############################################################################
+
+=end private
+
+=head1 Copyright and License
+
+Copyright (c) 2004 Kineticode, Inc. <info@kineticode.com>
+
+This work is made available under the terms of Version 2 of the GNU General
+Public License. You should have received a copy of the GNU General Public
+License along with this program; if not, download it from
+L<http://www.gnu.org/licenses/gpl.txt> or write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+This work is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
+details.
+
+=cut

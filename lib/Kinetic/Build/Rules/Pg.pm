@@ -67,6 +67,8 @@ sub info_class { 'App::Info::RDBMS::PostgreSQL' }
 
 ##############################################################################
 
+=begin private
+
 =head1 Private Methods
 
 =head2 Private Instance Methods
@@ -84,6 +86,8 @@ requires.
 
 sub _state_machine {
     my $self = shift;
+    # XXX There might be a place where we need template0. I'll have to check
+    # into that...
     my $template = 'template1'; # default postgresql template
     my $done;
     my $fail    = sub {! shift->result };
@@ -103,7 +107,7 @@ sub _state_machine {
             ],
         },
         version => {
-            do => sub { 
+            do => sub {
                 my $state = shift;
                 $state->result($self->_is_required_version);
                 unless ($state->result) {
@@ -134,6 +138,7 @@ sub _state_machine {
                 },
             ],
         },
+        # XXX Change this?
         $self->_dummy_state('metadata', 'root_user'),
         root_user => {
             do => sub {
@@ -431,3 +436,25 @@ sub _connect_to_pg {
 }
 
 1;
+__END__
+
+##############################################################################
+
+=end private
+
+=head1 Copyright and License
+
+Copyright (c) 2004 Kineticode, Inc. <info@kineticode.com>
+
+This work is made available under the terms of Version 2 of the GNU General
+Public License. You should have received a copy of the GNU General Public
+License along with this program; if not, download it from
+L<http://www.gnu.org/licenses/gpl.txt> or write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+This work is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
+details.
+
+=cut
