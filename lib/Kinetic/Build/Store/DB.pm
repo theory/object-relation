@@ -40,6 +40,85 @@ interface is defined entirely by Kinetic::Build::Store.
 
 ##############################################################################
 
+=head1 Class Interface
+
+=head2 Class Methods
+
+=head3 dbd_class
+
+  my $dbd_class = Kinetic::Build::Store::DB->dbd_class;
+
+This abstract class method returns the name of the DBI database driver class,
+such as "DBD::Pg" or "DBD::SQLite". Must be overridden in subclasses.
+
+=cut
+
+sub dbd_class { die "dbd() must be overridden in the subclass" }
+
+##############################################################################
+
+=head3 dsn_dbd
+
+  my $dsn_dbd = Kinetic::Build::Store::DB->dsn_dbd;
+
+Returns the part of the database driver class name suitable for use in a
+DBI DSN. By default, this method simply returns the value returned by
+C<dbd_class()>, but with the leading "DBD::" stripped off.
+
+=cut
+
+sub dsn_dbd {
+    (my $dbd = shift->dbd_class) =~ s/^DBD:://;
+    return $dbd;
+}
+
+##############################################################################
+
+=head1 Instance Interface
+
+=head2 Instance Methods
+
+=head3 dsn
+
+  my $dsn = $kbs->dsn;
+
+This abstract method returns the DSN to be used by the Kinetic::Store::DB
+subclass to connec to the database. Must be overridden in a subclass.
+
+=cut
+
+sub dsn { die "dsn() must be overridden in the subclass" }
+
+##############################################################################
+
+=head3 test_dsn
+
+  my $test_dsn = $kbs->test_dsn;
+
+This abstract method returns the DSN to be used by the Kinetic::Store::DB
+subclass to connect to a test database while C<./Build test> is running. Must
+be overridden in a subclass.
+
+=cut
+
+sub test_dsn { die "test_dsn() must be overridden in the subclass" }
+
+##############################################################################
+
+=head3 create_dsn
+
+  my $create_dsn = $kbs->create_dsn;
+
+Returns the DSN to be used to create the production database. By default, this
+is the same as the value returned by C<dsn()>; override C<create_dsn()> to
+change this behavior.
+
+=cut
+
+sub create_dsn { shift->dsn }
+
+##############################################################################
+
 =head3 build_db
 
 Builds the database. Called as an action during C<./Build install>.
@@ -49,7 +128,7 @@ Builds the database. Called as an action during C<./Build install>.
 sub build_db {
     my $self = shift;
 
-    my $schema_class = $self->_schema_class;
+    my $schema_class = $self->schema_class;
     eval "use $schema_class";
     die $@ if $@;
 

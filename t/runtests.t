@@ -5,6 +5,50 @@ use Carp qw/croak/;
 use File::Find;
 use File::Spec;
 use Kinetic::Build;
+use lib 't/lib';
+use TEST::Class::Kinetic;
+
+my @classes;
+TEST::Class::Kinetic->builder(Kinetic::Build->resume)->runtests(@classes);
+
+BEGIN {
+    my $test_dir = shift || File::Spec->catdir('t', 'lib', 'TEST');
+    my $wanted = sub {
+        my $file = $File::Find::name;
+        return if /^\.(?:svn|cvs)/;
+        return unless /\.pm$/;
+        return if /#/; # Ignore old backup files.
+        my $class = file_to_mod($file);
+        if ($class) {
+            eval "use $class";
+            die $@ if $@;
+            push @classes => $class;
+        }
+    };
+    find({ wanted => $wanted, no_chdir => 1 }, $test_dir);
+    return grep $_ => @classes;
+
+    sub file_to_mod {
+        my ($file) = @_;
+        $file =~ s/\.pm$// or croak "$file is not a Perl module";
+        my (@dirs) = File::Spec->splitdir($file);
+        # Assume that only test class file will be upper-cased.
+        shift @dirs while $dirs[0] && $dirs[0] !~ /^[[:upper:]]/;
+        my $class = join '::' => @dirs;
+        return $class;
+    }
+
+}
+
+__END__
+
+#!/usr/local/bin/perl
+use warnings;
+use strict;
+use Carp qw/croak/;
+use File::Find;
+use File::Spec;
+use Kinetic::Build;
 use Test::Class;
 use lib 't/test_lib';
 

@@ -53,8 +53,8 @@ SKIP: {
     can_ok $bstore, 'build';
     ok $bstore->build, '... and calling it should succeed';
 
-    can_ok $bstore, '_schema_class';
-    my $schema_class = $bstore->_schema_class;
+    can_ok $bstore, 'schema_class';
+    my $schema_class = $bstore->schema_class;
     eval "use $schema_class";
     ok ! $@, '... and "use"ing the class should not die';
     my $schema = $schema_class->new;

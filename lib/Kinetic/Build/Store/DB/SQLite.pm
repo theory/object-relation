@@ -41,21 +41,53 @@ store. Its interface is defined entirely by Kinetic::Build::Store.
 
 ##############################################################################
 
-=head3 _schema_class
+##############################################################################
+# Class Methods.
+##############################################################################
 
-  $class->_schema_class;
+=head1 Class Interface
 
-Returns a string representing the class that will define the schema in question;
+=head2 Class Methods
+
+=head3 info_class
+
+  my $info_class = Kinetic::Build::Store->info_class
+
+This abstract class method returns the name of the C<App::Info> class for the
+data store. Must be overridden in subclasses.
 
 =cut
 
-sub _schema_class { 'Kinetic::Build::Schema::DB::SQLite' }
+sub info_class { 'App::Info::RDBMS::SQLite' }
 
+##############################################################################
+
+=head3 min_version
+
+  my $version = Kinetic::Build::Store->min_version
+
+This abstract class method returns the minimum required version number of the
+data store application. Must be overridden in subclasses.
+
+=cut
+
+sub min_version { '3.0.8' }
+
+=head3 dbd_class
+
+  my $dbd_class = Kinetic::Build::Store::DB->dbd_class;
+
+This abstract class method returns the name of the DBI database driver class,
+such as "DBD::Pg" or "DBD::SQLite". Must be overridden in subclasses.
+
+=cut
+
+sub dbd_class { 'DBD::SQLite' }
+
+##############################################################################
 
 1;
 __END__
-
-##############################################################################
 
 =head1 Copyright and License
 

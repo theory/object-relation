@@ -40,18 +40,6 @@ store. Its interface is defined entirely by Kinetic::Build::Store.
 
 ##############################################################################
 
-=head3 _schema_class
-
-  $class->_schema_class;
-
-Returns a string representing the class that will define the schema in question;
-
-=cut
-
-sub _schema_class { 'Kinetic::Build::Schema::DB::Pg' }
-
-##############################################################################
-
 =head3 _dbh
 
   $kbs->_dbh;

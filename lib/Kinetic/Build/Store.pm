@@ -42,10 +42,71 @@ F<kinetic.conf> directive.
 =cut
 
 ##############################################################################
-# Constructors.
+# Class Methods.
 ##############################################################################
 
 =head1 Class Interface
+
+=head2 Class Methods
+
+=head3 info_class
+
+  my $info_class = Kinetic::Build::Store->info_class
+
+This abstract class method returns the name of the C<App::Info> class for the
+data store. Must be overridden in subclasses.
+
+=cut
+
+sub info_class { die "info_class() must be overridden in the subclass" }
+
+=head3 schema_class
+
+  my $schmea_class = Kinetic::Build::Store->schema_class
+
+Returns the name of the Kinetic::Build::Schema subclass that can be used
+to generate the schema code to build the data store. By default, this method
+returns the same name as the name of the Kinetic::Build::Store subclass,
+but with "Store" replaced with "Schema".
+
+=cut
+
+sub schema_class {
+    (my $class = ref $_[0] ? ref shift : shift)
+      =~ s/Kinetic::Build::Store/Kinetic::Build::Schema/;
+    return $class;
+}
+
+##############################################################################
+
+=head3 min_version
+
+  my $version = Kinetic::Build::Store->min_version
+
+This abstract class method returns the minimum required version number of the
+data store application. Must be overridden in subclasses.
+
+=cut
+
+sub min_version { die "min_version() must be overridden in the subclass" }
+
+##############################################################################
+
+=head3 max_version
+
+  my $version = Kinetic::Build::Store->max_version
+
+This abstract class method returns the maximum required version number of the
+data store application. Returns zero by default, meaning that there is no
+maximum version number.
+
+=cut
+
+sub max_version { 0 }
+
+##############################################################################
+# Constructors.
+##############################################################################
 
 =head2 Constructors
 
@@ -71,8 +132,11 @@ sub new {
     unless ($builder) {
         die "Cannot resume build: $@";
     }
+
+    my $info_object = $class->info_class->new($builder->_app_info_params);
     bless {
         builder => $builder,
+        info     => $info_object,
     } => $class;
 }
 
@@ -86,9 +150,86 @@ Returns the C<Kinetic::Build> object used to determine build properties.
 
 =cut
 
-# XXX This is a terrible name for this attribute. Why not builder()?
-
 sub builder { $_[0]->{builder} }
+
+##############################################################################
+
+=head3 info
+
+  my $info = $kbs->info;
+
+Returns the C<App::Info> object for the data store.
+
+=cut
+
+sub info { $_[0]->{info} }
+
+##############################################################################
+
+=head3 rules
+
+  my @rules = $kbs->rules;
+
+This is an abstract protected method that must be overridden in a subclass. By
+default it must return arguments that the C<FSA::Rules> constructor requirea.
+
+=cut
+
+sub rules { die "rules() must be overridden in the subclass" }
+
+##############################################################################
+
+=head3 validate
+
+  $kbs->validate;
+
+This method will validate the store rules. Returns true if the store can be
+used. Otherwise it will C<croak()>.
+
+Internally this method calls C<rules()>. See that method for details. If you
+do not wish to use C<FSA::Rules> for rules validation, you will need to
+override the C<validate()> method.
+
+=cut
+
+sub validate {
+    my $self = shift;
+    my $machine = FSA::Rules->new($self->rules);
+    $machine->start;
+    $self->{machine} = $machine; # internal only.  Used for debugging
+    $machine->switch until $machine->at('Done');
+    return $self;
+}
+
+##############################################################################
+
+=head3 config
+
+  my @config = $kbs->config;
+
+This abstract method is the interface for a data store to set up its
+configuration file directives. It functions just like the C<*_config> methods
+in C<Kinetic::Build>, but is specific to a data store.
+
+=cut
+
+sub config { die "config() must be overridden in the subclass" }
+
+##############################################################################
+
+=head3 test_config
+
+  my @test_config = $kbs->test_config;
+
+This abstract method is the interface for a data store to set up its testing
+configuration file directives. It functions just like the C<*_config> methods
+in C<Kinetic::Build>, but is specific to a data store and to the running
+of tests. It should therefore set up for a data store that will not be used
+in production.
+
+=cut
+
+sub test_config { die "test_config() must be overridden in the subclass" }
 
 ##############################################################################
 
