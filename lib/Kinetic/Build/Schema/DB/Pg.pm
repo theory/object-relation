@@ -44,7 +44,7 @@ information.
 my %types = (
     string   => 'TEXT',
     guid     => 'TEXT',
-    boolean  => 'BOOL',
+    boolean  => 'BOOLEAN',
     whole    => 'INTEGER',
     state    => 'INT2',
     datetime => 'TIMESTAMP',

@@ -121,6 +121,7 @@ sub load_classes {
     my $dir = File::Spec->catdir(split m{/}, shift);
     my @classes;
     my $find_classes = sub {
+        return if /\.svn/;
         return unless /\.pm$/;
         return if /#/; # Ignore old backup files.
         my $class = $self->file_to_mod($File::Find::name);

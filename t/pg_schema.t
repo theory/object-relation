@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use lib 't/lib';
 use Kinetic::TestSetup store => { class => 'Kinetic::Store::DB::Pg' };
-use Test::More tests => 10;
+use Test::More tests => 12;
 
 package main;
 
@@ -42,5 +42,20 @@ CREATE INDEX idx_simple_state ON simple (state);
 ok my $sql = $sg->schema_for_class($simple), "Get schema for Simple class";
 $sql =~ s/[ ]+/ /g;
 is $sql, $testsql, "Check Simple class SQL";
+
+##############################################################################
+# Check the SQL generated for the subclass.
+my $one = $classes[1];
+
+( $testsql = q{CREATE TABLE one (
+    simple_id   INTEGER  NOT NULL PRIMARY KEY,
+    bool        BOOLEAN  NOT NULL DEFAULT '1'
+);
+}) =~ s/[ ]+/ /g;
+
+ok $sql = $sg->schema_for_class($one), "Get schema for One class";
+$sql =~ s/[ ]+/ /g;
+is $sql, $testsql, "Check One class SQL";
+
 
 

@@ -62,14 +62,19 @@ sub schema_for_class {
     my ($self, $class) = @_;
     $class = $class->my_class
       unless UNIVERSAL::isa($class, 'Kinetic::Meta::Class');
+    my $key = $class->key;
 
+    # Prepare the attributes.
+    $self->prepare_attributes($class);
     # Generate the table.
     $self->table_for_class($class);
     # Generate the indexes.
     $self->output_indexes($class);
 
-    return delete($self->{$class->key . '_table'}) . "\n"
-      . delete($self->{$class->key . '_indexes'}) . "\n";
+    return delete($self->{"$key\_table"})
+      . ($self->{"$key\_indexes"}
+           ?  "\n" . delete($self->{$class->key . '_indexes'}) . "\n"
+           : '');
 }
 
 ##############################################################################
@@ -89,6 +94,30 @@ sub table_for_class {
     $self->start_table($class);
     $self->output_columns($class);
     $self->end_table($class);
+}
+
+sub prepare_attributes {
+    my ($self, $class) = @_;
+    my $key = $class->key;
+    if (my @parents = grep { ! $_->abstract } $class->parents) {
+        # This class inherits from one or more other classes.
+        # XXX This is probably naive.
+        $self->{"$key\_pk_fk_table"} = @parents[-1]->key;
+        $self->{"$key\_attrs"} =
+          [ grep { $_->class->key eq $key } $class->attributes ];
+    } else {
+        $self->{"$key\_attrs"} = [ $class->attributes ];
+    }
+
+}
+
+sub pk_column {
+    my ($self, $class) = @_;
+    if (my $table = $self->{$class->key . "_pk_fk_table"}) {
+        return "$table\_id INTEGER NOT NULL PRIMARY KEY"
+    } else {
+        return "id INTEGER NOT NULL PRIMARY KEY DEFAULT NEXTVAL('seq_kinetic')"
+    }
 }
 
 ##############################################################################
@@ -139,9 +168,10 @@ table.
 
 sub output_columns {
     my ($self, $class) = @_;
-    my @cols = ( "    id INTEGER NOT NULL PRIMARY KEY DEFAULT NEXTVAL('seq_kinetic')" );
-    push @cols, $self->generate_column($_) for $class->attributes;
-    $self->{$class->key . '_table'} .= join ",\n    ", @cols;
+    my $key = $class->key;
+    $self->{"$key\_table"} .= join ",\n    ",
+      "    " . $self->pk_column($class),
+      map { $self->generate_column($_) } @{$self->{"$key\_attrs"}};
     return $self;
 }
 
@@ -187,7 +217,7 @@ sub output_indexes {
     my ($self, $class) = @_;
     my $key = $class->key;
     $self->{"$key\_indexes"} =
-      join "\n", map { $self->output_index($key, $_) } $class->attributes;
+      join "\n", map { $self->output_index($key, $_) } @{$self->{"$key\_attrs"}};
     return $self;
 }
 
