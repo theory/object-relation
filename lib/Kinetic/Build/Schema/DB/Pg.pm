@@ -66,7 +66,7 @@ sub column_type {
       or croak "No such data type: $type";
     # We need to note that an FK constraint needs to be added to refer to the
     # table of this object.
-    push @{$self->{$class->key . "_fk_classes"}}, $fk_class;
+    push @{$self->{$class->key}{fk_classes}}, $fk_class;
     return " INTEGER";
 }
 
@@ -81,15 +81,22 @@ sub index_on {
 sub output_constraints {
     my ($self, $class) = @_;
     my $key = $class->key;
+    my $table = $self->{$key}{attrs}[-1][0];
     my @fks;
-    for my $fk_class (@{$self->{"$key\_fk_classes"}}) {
-        my $fk_table = $fk_class->key;
-        my $pk_col = $self->{"$fk_table\_pk"};
-        push @fks, "ALTER TABLE $key\n"
-          . "  ADD CONSTRAINT fk_$fk_table\_id FOREIGN KEY ($fk_table\_id)\n"
-          . "  REFERENCES $fk_table($pk_col) ON DELETE CASCADE;";
+    if (@{$self->{$key}{attrs}} > 1) {
+        my $fk_table = $self->{$key}{attrs}[-2][0];
+        push @fks, "ALTER TABLE $table\n"
+          . "  ADD CONSTRAINT pfk_$fk_table\_id FOREIGN KEY (id)\n"
+          . "  REFERENCES $fk_table(id) ON DELETE CASCADE;";
     }
-    $self->{"$key\_constraints"} = join "\n\n", @fks;
+    for my $fk_class (@{$self->{$key}{fk_classes}}) {
+        my $fk_key = $fk_class->key;
+        my $fk_table = $self->{$fk_key}{tablename};
+        push @fks, "ALTER TABLE $table\n"
+          . "  ADD CONSTRAINT fk_$fk_table\_id FOREIGN KEY ($fk_key\_id)\n"
+          . "  REFERENCES $fk_table(id) ON DELETE CASCADE;";
+    }
+    $self->{$key}{constraints} = join "\n\n", @fks;
 }
 
 sub start_schema {

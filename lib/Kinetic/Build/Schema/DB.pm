@@ -73,12 +73,12 @@ sub schema_for_class {
     # Generate the constraints.
     $self->output_constraints($class);
 
-    return delete($self->{"$key\_table"})
-      . ($self->{"$key\_indexes"}
-           ?  "\n" . delete($self->{$class->key . '_indexes'}) . "\n"
+    return delete($self->{$key}{table})
+      . ($self->{$key}{indexes}
+           ?  "\n" . delete($self->{$key}{indexes}) . "\n"
            : '')
-      . ($self->{"$key\_constraints"}
-           ?  "\n" . delete($self->{$class->key . '_constraints'}) . "\n"
+      . ($self->{$key}{constraints}
+           ?  "\n" . delete($self->{$key}{constraints}) . "\n"
            : '');
 }
 
@@ -104,28 +104,30 @@ sub table_for_class {
 sub prepare_attributes {
     my ($self, $class) = @_;
     my $key = $class->key;
-    if (my @parents = grep { ! $_->abstract } $class->parents) {
-        # This class inherits from one or more other classes.
-        # XXX This is probably naive.
-        $self->{"$key\_pk_fk_class"} = $parents[-1];
-        $self->{"$key\_attrs"} =
-          [ grep { $_->class->key eq $key } $class->attributes ];
-    } else {
-        $self->{"$key\_attrs"} = [ $class->attributes ];
-    }
+    # Get all of the non-abstract parents
 
+    my ($root, @parents) = grep { !$_->abstract } reverse $class->parents;
+    if ($root) {
+        # There are concrete parent classes from which we need to inherit.
+        my $table = $root->key;
+        $self->{$key}{attrs} = [ [ $table => [ $root->attributes ]] ];
+        for my $impl (@parents, $class) {
+            my $impl_key = $impl->key;
+            $table .= "_$impl_key";
+            push @{$self->{$key}{attrs}},
+              [ $table => [ grep { $_->class->key eq $impl_key } $impl->attributes ] ];
+        }
+    } else {
+        $self->{$key}{attrs} = [ [$key => [ $class->attributes ]] ];
+    }
 }
 
 sub pk_column {
     my ($self, $class) = @_;
     my $key = $class->key;
-    if (my $fk_class = $self->{$class->key . "_pk_fk_class"}) {
-        my $table = $fk_class->key;
-        push @{$self->{"$key\_fk_classes"}}, $fk_class;
-        $self->{"$key\_pk"} = "$table\_id";
-        return "$table\_id INTEGER NOT NULL PRIMARY KEY";
+    if (@{$self->{$key}{attrs}} > 1) {
+        return "id INTEGER NOT NULL PRIMARY KEY";
     } else {
-        $self->{"$key\_pk"} = "id";
         return "id INTEGER NOT NULL PRIMARY KEY DEFAULT NEXTVAL('seq_kinetic')";
     }
 }
@@ -144,7 +146,9 @@ statement for creating a table.
 sub start_table {
     my ($self, $class) = @_;
     my $key = $class->key;
-    $self->{"$key\_table"} = "CREATE TABLE $key (\n";
+    my $table = $self->{$key}{attrs}[-1][0];
+    $self->{$key}{tablename} = $table;
+    $self->{$key}{table} = "CREATE TABLE $table (\n";
     return $self;
 }
 
@@ -161,7 +165,7 @@ statement for creating a table.
 
 sub end_table {
     my ($self, $class) = @_;
-    $self->{$class->key . '_table'} .= "\n);\n";
+    $self->{$class->key}{table} .= "\n);\n";
     return $self;
 }
 
@@ -179,9 +183,9 @@ table.
 sub output_columns {
     my ($self, $class) = @_;
     my $key = $class->key;
-    $self->{"$key\_table"} .= join ",\n    ",
+    $self->{$key}{table} .= join ",\n    ",
       "    " . $self->pk_column($class),
-      map { $self->generate_column($class, $_) } @{$self->{"$key\_attrs"}};
+      map { $self->generate_column($class, $_) } @{$self->{$key}{attrs}[-1][1]};
     return $self;
 }
 
@@ -226,8 +230,8 @@ sub column_default {
 sub output_indexes {
     my ($self, $class) = @_;
     my $key = $class->key;
-    $self->{"$key\_indexes"} =
-      join "\n", map { $self->output_index($key, $_) } @{$self->{"$key\_attrs"}};
+    $self->{$key}{indexes} =
+      join "\n", map { $self->output_index($key, $_) } @{$self->{$key}{attrs}[-1][1]};
     return $self;
 }
 

@@ -47,13 +47,13 @@ is $sql, $testsql, "Check Simple class SQL";
 # Check the SQL generated for the One subclass.
 my $one = $classes[1];
 
-( $testsql = q{CREATE TABLE one (
-    simple_id   INTEGER  NOT NULL PRIMARY KEY,
-    bool        BOOLEAN  NOT NULL DEFAULT '1'
+( $testsql = q{CREATE TABLE simple_one (
+    id    INTEGER  NOT NULL PRIMARY KEY,
+    bool  BOOLEAN  NOT NULL DEFAULT '1'
 );
 
-ALTER TABLE one
- ADD CONSTRAINT fk_simple_id FOREIGN KEY (simple_id)
+ALTER TABLE simple_one
+ ADD CONSTRAINT pfk_simple_id FOREIGN KEY (id)
  REFERENCES simple(id) ON DELETE CASCADE;
 }) =~ s/[ ]+/ /g;
 
@@ -65,22 +65,20 @@ is $sql, $testsql, "Check One class SQL";
 # Check the SQL generated for the Two subclass.
 my $two = $classes[2];
 
-( $testsql = q{CREATE TABLE two (
-    simple_id   INTEGER  NOT NULL PRIMARY KEY,
-    one_id      INTEGER  NOT NULL
+( $testsql = q{CREATE TABLE simple_two (
+    id      INTEGER  NOT NULL PRIMARY KEY,
+    one_id  INTEGER  NOT NULL
 );
 
-ALTER TABLE two
- ADD CONSTRAINT fk_simple_id FOREIGN KEY (simple_id)
+ALTER TABLE simple_two
+ ADD CONSTRAINT pfk_simple_id FOREIGN KEY (id)
  REFERENCES simple(id) ON DELETE CASCADE;
 
-ALTER TABLE two
- ADD CONSTRAINT fk_one_id FOREIGN KEY (one_id)
- REFERENCES one(simple_id) ON DELETE CASCADE;
+ALTER TABLE simple_two
+ ADD CONSTRAINT fk_simple_one_id FOREIGN KEY (one_id)
+ REFERENCES simple_one(id) ON DELETE CASCADE;
 }) =~ s/[ ]+/ /g;
 
 ok $sql = $sg->schema_for_class($two), "Get schema for Two class";
 $sql =~ s/[ ]+/ /g;
 is $sql, $testsql, "Check Two class SQL";
-
-# XXX Need to add code to add updatable views...
