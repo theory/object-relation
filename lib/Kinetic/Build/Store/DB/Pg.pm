@@ -251,13 +251,25 @@ sub rules {
 
         'Connect super user' => {
             do => sub {
+                my $state = shift;
                 $self->_try_connect(
-                    shift, $self->db_super_user, $self->db_super_pass
+                    $state, $self->db_super_user, $self->db_super_pass
                 );
+                $state->result($self->_is_super_user) if $connected->($state);
             },
             rules => [
+                'Check database' => sub { shift->result },
                 Fail => $no_connect,
-                'Check database' => $connected,
+                Fail => sub {
+                    my $state = shift;
+                    return unless $self->_dbh;
+                    return if $state->result;
+                    $state->message(
+                        sprintf 'Connected to server via "%s", but "%s" is '
+                          . 'not a super user',
+                          $state->{dsn}[-1], $self->db_super_user
+                    );
+                },
             ]
         },
 
@@ -857,7 +869,7 @@ sub test_config {
 
 =head3 _connect
 
-  my $dbh = $build->_connect($dsn, $user, $pass);
+  my $dbh = $kbs->_connect($dsn, $user, $pass);
 
 This method attempts to connect to PostgreSQL via a given DSN and as a given
 user. It returns a database handle on success and C<undef> on failure.
@@ -1048,7 +1060,7 @@ sub _try_connect {
 
 =head3 _can_create_db
 
-  print "Iser can create database" if $build->_can_create_db;
+  print "Iser can create database" if $kbs->_can_create_db;
 
 This method tells whether a particular user has permissions to create
 databases.
@@ -1068,7 +1080,7 @@ sub _can_create_db {
 =head3 _has_schema_permissions
 
   print "User has schema permissions"
-    if $rules->_has_schema_permissions;
+    if $kbs->_has_schema_permissions;
 
 Returns boolean value indicating whether the database user has the permissions
 necessary to create functions, views, triggers, etc. in the database to which
@@ -1081,6 +1093,25 @@ sub _has_schema_permissions {
     $self->_pg_says_true(
         'select has_schema_privilege(?, current_schema(), ?)',
         $self->db_user, 'CREATE'
+    );
+}
+
+##############################################################################
+
+=head3 _is_super_user
+
+  print "User is super user" if $kbs->_is_super_user($user);
+
+Returns boolean value indicating whether the super user is, in fact, the
+super user.
+
+=cut
+
+sub _is_super_user {
+    my ($self, $user) = @_;
+    $self->_pg_says_true(
+        "select usesuper from pg_catalog.pg_user where usename = ?",
+        $user || $self->db_super_user
     );
 }
 

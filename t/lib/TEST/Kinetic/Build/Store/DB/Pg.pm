@@ -33,7 +33,7 @@ sub test_class_methods : Test(7) {
       'We should have the correct DSN DBD string';
 }
 
-sub test_rules : Test(159) {
+sub test_rules : Test(161) {
     my $self = shift;
     my $class = $self->test_class;
     $self->chdirs('t', 'data');
@@ -139,6 +139,8 @@ sub test_rules : Test(159) {
     my $pg = MockModule->new($class);
     my @connect;
     $pg->mock(_connect => sub { shift @connect });
+    my $is_super = 1;
+    $pg->mock(_is_super_user => sub { $is_super });
 
     # Okay, now set up with root information (as if it was passed as an option
     # on the command-line.
@@ -173,8 +175,18 @@ sub test_rules : Test(159) {
     my $db_exists = 1;
     $pg->mock(_db_exists => sub { $db_exists });
 
+    # Try again with _is_super_user returning false.
+    $is_super = 0;
+    @connect = (1);
+    ok $fsa->reset->curr_state('Connect super user'),
+      'Set up to connect super user';
+    throws_ok { $fsa->switch }
+      qr'Connected to server via "dbi:Pg:dbname=fooness", but "postgres" is not a super user',
+      'An attempt to swtich states should fail if the user is not a super user';
+
     # Try again with _connect() returning a database handle for
     # the user database.
+    $is_super = 1;
     @connect = (1);
     ok $fsa->reset->curr_state('Connect super user'),
       'Set up to connect super user';
@@ -655,6 +667,7 @@ sub test_validate_super_user : Test(14) {
     $pg->mock(_db_exists => 0);
     $pg->mock(_plpgsql_available => 0);
     $pg->mock(_user_exists => 0);
+    $pg->mock(_is_super_user => 1);
 
     # Construct the object.
     ok my $kbs = $class->new, "Create new $class object";
@@ -736,6 +749,7 @@ sub test_validate_super_user_arg : Test(14) {
     $pg->mock(_db_exists => 1);
     $pg->mock(_plpgsql_available => 0);
     $pg->mock(_user_exists => 0);
+    $pg->mock(_is_super_user => 1);
 
     # Construct the object.
     ok my $kbs = $class->new, "Create new $class object";
