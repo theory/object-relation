@@ -57,11 +57,11 @@ BEGIN {
 
     foreach my $token (map @$_ => @tokens{qw/comparison sorting/}) {
         no strict 'refs';
-        *$token = sub($) { bless [$token, \@_] => 'Kinetic::Store::Search' };
+        *$token = sub($) { my $value = shift; sub { $token, $value } };
     }
     foreach my $token (map @$_ => $tokens{logical}) {
         no strict 'refs';
-        *$token = sub    { bless [$token, \@_] => 'Kinetic::Store::Search' };
+        *$token = sub { sub { $token } };
     }
 }
 use Exporter::Tidy

@@ -11,50 +11,17 @@ use Cwd;
 use DBI;
 use File::Path ();
 use File::Spec::Functions;
+use lib 't/sample/lib';
 
-use aliased 'Kinetic::Build';
 use aliased 'Test::MockModule';
 
 my ($STARTDIR, $DSN, $DBH, $DBFILE);
 
-BEGIN { 
-    $STARTDIR = getcwd;
-    $DBFILE = "$STARTDIR/t/data/kinetic.db";
-    if (-e $DBFILE && -f _) {
-        unlink $DBFILE or die "Cannot unlink $DBFILE: $!";
-    }
-    my $info = MockModule->new('App::Info::RDBMS::SQLite');
-    $info->mock(installed => 1);
-    $info->mock(version => '3.0.8');
+__PACKAGE__->runtests;
 
-    my $builder;
-    my $mb = MockModule->new('Kinetic::Build');
-    $mb->mock(resume => sub { $builder });
-    $mb->mock(check_manifest => sub { return });
-
-    local @INC = (catdir(updir, updir, 'lib'), @INC);
-
-    #chdir 't';
-    #chdir 'sample';
-    $ENV{KINETIC_CONF} = 't/conf/kinetic.conf';
-    $builder = Build->new(
-        dist_name       => 'Testing::Kinetic',
-        dist_version    => '1.0',
-        quiet           => 1,
-        accept_defaults => 1,
-        run_dev_tests   => 1,
-    );
-    $builder->source_dir('t/sample/lib');
-    $builder->dispatch('setup_test');
-    $DSN = "dbi:SQLite:dbname=$DBFILE";
-    $DBH = DBI->connect($DSN, '', '', {RaiseError => 1});
+BEGIN {
+    $ENV{KINETIC_CONF} = catfile(qw/t conf kinetic.conf/);
 }
-
-END {}
-
-sub _dbh     { $DBH    }
-sub _dsn     { $DSN    }
-sub _db_file { $DBFILE }
 
 my $builder;
 sub builder {

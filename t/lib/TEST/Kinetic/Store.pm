@@ -33,14 +33,21 @@ sub save : Test(2) {
         'but calling it directly should croak()';
 }
 
-sub does_import : Test(no_plan) {
+sub does_import : Test(61) {
     can_ok Store, 'import';
-    foreach my $sub (qw/EQ NOT LIKE GT LT GE LE AND OR ANY ASC DESC/) {
+    foreach my $sub (qw/EQ NOT LIKE GT LT GE LE ASC DESC/) {
         can_ok __PACKAGE__, $sub;
         no strict 'refs';
-        my $result = &$sub(7, 3);
-        is_deeply $result, [$sub, [7,3]],
+        my $result = [&$sub(7)->()];
+        is_deeply $result, [$sub, 7],
             'and it should return its name and args';
+    }
+    foreach my $sub (qw/AND OR ANY/) {
+        can_ok __PACKAGE__, $sub;
+        no strict 'refs';
+        my $result = [&$sub->()];
+        is_deeply $result, [$sub],
+            'Not yet sure of the semantics of the logical operators';
     }
     {
         package Foo;

@@ -25,7 +25,6 @@ use Exception::Class::DBI;
 use Carp qw/croak/;
 
 use aliased 'Kinetic::Meta';
-use aliased 'Kinetic::Util::Collection';
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Util::State';
 
@@ -124,7 +123,12 @@ sub _update {
 
 sub _do_sql {
     my ($class, $sql, $bind_params) = @_;
-    $class->_dbh->do($sql, undef, @$bind_params); 
+    
+    # XXX this is to prevent the use of
+    # uninit values in subroutine entry warnings
+    # Is there a better way?
+    local $^W;
+    $class->_dbh->do($sql, {}, @$bind_params); 
     return $class;
 }
 
@@ -176,7 +180,9 @@ sub search {
     my ($where_clause, @bind_params) = 
         $class->_make_where_clause(\@search_params, $constraints);
     my $sql          = "SELECT id, $attributes FROM $view $where_clause";
-#warn "*** $sql ***";
+    if ($ENV{DEBUG}) {
+        warn "Calling sql ($sql) with (@bind_params)";
+    }
     $sql .= $class->_constraints($constraints) if $constraints;
     my @results;
     my $sth = $class->_dbh->prepare($sql);
@@ -184,7 +190,7 @@ sub search {
     while (my $result = $sth->fetchrow_hashref) {
         push @results => $class->_build_object_from_hashref($search_class, $result);
     }
-    return Collection->new(Iterator->new(sub {shift @results}));
+    return Iterator->new(sub {shift @results});
 }
 
 sub _constraints {
@@ -221,13 +227,32 @@ sub _make_where_clause {
     return $where, @bind;
 }
 
+# this may have to go into subclasses
+# at some point
+my %term_map = (
+    EQ    => '=',
+    NOT   => '!=',
+    LIKE  => 'LIKE',
+    GT    => '>',
+    LT    => '<',
+    GE    => '>=',
+    LE    => '<=',
+);
 sub _make_where_token {
     my ($class, $field, $attribute) = @_;
     # maybe a switch at some point
+    my $compared_to;
     if ('ARRAY' eq ref $attribute) {
         return $class->_make_range_token($field, $attribute);
     }
-    my $compared_to = $attribute =~ /%/ ? 'LIKE' : '=';
+    elsif ('CODE' eq ref $attribute) {
+        my ($name, $value) = $attribute->();
+        $compared_to = $term_map{$name} or die "No such search operator: $name";
+        $attribute   = $value;
+    }
+    unless ($compared_to) {
+        $compared_to = $attribute =~ /%/ ? 'LIKE' : '=';
+    }
     return "$field $compared_to ?", $attribute;
 }
 
