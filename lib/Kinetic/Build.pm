@@ -718,26 +718,6 @@ sub get_reply {
     return $params{default};
 }
 
-sub _prompt {
-    my $self = shift;
-    require Term::ANSIColor;
-    local $| = 1;
-    local $\;
-    print Term::ANSIColor::BOLD(), Term::ANSIColor::RED(), @_,
-      Term::ANSIColor::RESET();
-}
-
-sub _readline {
-    my $self = shift;
-    my $ans = <STDIN>;
-    if (defined $ans) {
-        chomp $ans;
-    } else { # user hit ctrl-D
-        $self->_prompt("\n");
-    }
-    return $ans;
-}
-
 ##############################################################################
 
 =begin private
@@ -750,15 +730,17 @@ sub _readline {
 
   Kinetic::Build->_fatal_error(@messages)
 
-This method is a standard way of reporting fatal errors.  At the current time,
-all we do is croak().
+This method is a standard way of reporting fatal errors. At the current time,
+all we do is C<croak()> bold-faced red text.
 
 =cut
 
 sub _fatal_error {
-    my ($package, @messages) = @_;
+    my $class = shift;
     require Carp;
-    Carp::croak @messages;
+    require Term::ANSIColor;
+    Carp::croak Term::ANSIColor::BOLD(), Term::ANSIColor::RED(), @_,
+      Term::ANSIColor::RESET();
 }
 
 ##############################################################################
@@ -835,6 +817,52 @@ sub _find_files_in_dir {
              map $self->localize_file_path($_),
              @{ $self->rscan_dir($dir, sub { -f && !/\.svn/ }) } };
 }
+
+##############################################################################
+
+=head3 _prompt
+
+  $build->prompt(@messages);
+
+Prompts the user for information with in boldfaced green text (if ANSI colors
+are supported).
+
+=cut
+
+sub _prompt {
+    my $self = shift;
+    require Term::ANSIColor;
+    local $| = 1;
+    local $\;
+    print Term::ANSIColor::BOLD(), Term::ANSIColor::GREEN(), @_,
+      Term::ANSIColor::RESET();
+    return $self;
+}
+
+##############################################################################
+
+=head3 _readline
+
+  my $answer = $build->_readline;
+
+Reads user input from C<STDIN> and returns the (chomped) value. If the user
+hits ctrl-D, C<_readline()> passes a newline to a call to C<_prompt()> before
+returning the input.
+
+=cut
+
+sub _readline {
+    my $self = shift;
+    my $ans = <STDIN>;
+    if (defined $ans) {
+        chomp $ans;
+    } else { # user hit ctrl-D
+        $self->_prompt("\n");
+    }
+    return $ans;
+}
+
+##############################################################################
 
 package Kinetic::Build::AppInfoHandler;
 use base 'App::Info::Handler';
