@@ -25,6 +25,9 @@ use Kinetic::Meta::Attribute::Schema;
 use Kinetic::Util::Config qw(:store);
 use File::Find;
 use File::Spec;
+use File::Path;
+use Carp;
+
 Kinetic::Meta->class_class('Kinetic::Meta::Class::Schema');
 Kinetic::Meta->attribute_class('Kinetic::Meta::Attribute::Schema');
 
@@ -136,6 +139,75 @@ sub load_classes {
     $self->{classes} = \@classes;
     return $self;
 }
+
+##############################################################################
+
+=head3 write_schema
+
+  $sg->write_schema($file_name);
+  $sg->write_schema($file_name, \%params);
+
+Writes storage schema generation code to C<$file_name>. All classes loaded by
+C<load_classes()> will have their schemas written to the file. The optional
+hash reference takes a number of possible keys:
+
+=over
+
+=item order
+
+An array refererence of class keys for classes to be written to the schema
+file in the order in which they appear in the array. This is important for
+classes that have dependencies on other classes (inheritance, composition).
+Classes loaded by C<load_classes()> but not in this list will have their
+schema generation code output after the classes specified by the C<order>
+parameter.
+
+=item with_kinetic
+
+If set to a true value, this parameter causes the Kinetic framework's class
+schema and setup SQL to be written to the file, as well. This is useful for
+setting up a Kinetic application with a new database.
+
+=back
+
+=cut
+
+sub write_schema {
+    my $self = shift;
+    my (@parts) = split m{/}, shift;
+    my $params = shift || {};
+    my $file = File::Spec->catfile(@parts);
+    pop @parts;
+    my $dir = File::Spec->catdir(@parts);
+    mkpath $dir;
+    open my $fh, '>', $file or die "Cannot open '$file': $!\n";
+
+    if ($params->{with_kinetic}) {
+        if (my $sql = $self->setup_sql) {
+            print $fh $sql, "\n";
+        }
+        # XXX Add code to load the Kinetic classes here.
+    }
+
+    my %seen;
+    if (my $keys = $params->{order}) {
+        for my $key (@$keys) {
+            $seen{$key} = 1;
+            my $class = Kinetic::Meta->for_key($key)
+              or croak "No such class for key '$key'";
+            print $fh $self->schema_for_class($class), "\n";
+        }
+    }
+
+    for my $class ($self->classes) {
+        next if $seen{$class->key};
+        print $fh $self->schema_for_class($class), "\n";
+    }
+    close $fh;
+    return $self;
+}
+
+sub setup_sql { return }
 
 ##############################################################################
 

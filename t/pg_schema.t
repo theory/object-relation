@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use lib 't/lib';
 use Kinetic::TestSetup store => { class => 'Kinetic::Store::DB::Pg' };
-use Test::More tests => 66;
+use Test::More tests => 67;
 use Test::Differences;
 
 BEGIN { use_ok 'Kinetic::Build::Schema' };
@@ -20,6 +20,16 @@ ok $sg->load_classes('t/lib'), "Load classes";
 for my $class ($sg->classes) {
     ok $class->is_a('Kinetic'), "Class is a Kinetic";
 }
+
+##############################################################################
+# Check Setup SQL.
+is $sg->setup_sql, 'CREATE SEQUENCE seq_kinetic;
+
+CREATE DOMAIN state AS SMALLINT NOT NULL DEFAULT 1
+CONSTRAINT ck_state CHECK (
+   VALUE BETWEEN -1 AND 2
+);
+', "Pg setup SQL has sequence, state domain";
 
 ##############################################################################
 # Grab the simple class.

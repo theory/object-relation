@@ -200,15 +200,16 @@ sub delete_for_class {
       . "  WHERE  id = OLD.id;\n);\n";
 }
 
-sub start_schema {
+sub setup_sql {
 
-'
-CREATE SEQUENCE seq_kinetic;
+'CREATE SEQUENCE seq_kinetic;
 
 CREATE DOMAIN state AS SMALLINT NOT NULL DEFAULT 1
-CONSTRAINT ck_state CHECK(
+CONSTRAINT ck_state CHECK (
    VALUE BETWEEN -1 AND 2
-);';
+);
+';
+
 }
 
 1;
