@@ -1,5 +1,7 @@
 package TEST::Class::Kinetic;
 
+# $Id$
+
 use strict;
 use warnings;
 use utf8;

@@ -1,5 +1,7 @@
 package TEST::Kinetic::Build::Store::DB;
 
+# $Id$
+
 use strict;
 use warnings;
 use base 'TEST::Kinetic::Build::Store';

@@ -1,5 +1,7 @@
 package TEST::Kinetic::Build::Store;
 
+# $Id$
+
 use strict;
 use warnings;
 use base 'TEST::Class::Kinetic';
