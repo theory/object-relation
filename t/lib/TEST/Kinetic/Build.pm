@@ -33,7 +33,7 @@ sub test_props : Test(8) {
       "The store_config method should set up the SQLite store";
 }
 
-sub test_check_store_action : Test(7) {
+sub test_check_store_action : Test(5) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -42,6 +42,8 @@ sub test_check_store_action : Test(7) {
     my $mb = MockModule->new($class);
     $mb->mock(resume => sub { $builder });
     $mb->mock(check_manifest => sub { return });
+    $self->chdirs($self->data_dir);
+    local @INC = (catdir(updir, updir, 'lib'), @INC);
     $builder = $self->new_builder(store => 'foo');
     throws_ok { $builder->dispatch('check_store') }
       qr"I'm not familiar with the foo data store",
@@ -54,20 +56,15 @@ sub test_check_store_action : Test(7) {
 
     $builder = $self->new_builder;
     ok $builder->dispatch('check_store'), "Run check_store";
-    is my $kbs_class = $builder->notes('build_store_class'),
-      'Kinetic::Build::Store::DB::SQLite',
-      '... The store class should be in the notes';
-    isa_ok $builder->notes('build_store'), $kbs_class;
+    isa_ok $builder->notes('build_store'), 'Kinetic::Build::Store';
 
     # Make sure that the build action relies on check_store.
     $builder = $self->new_builder;
     $mb->mock('ACTION_code' => 0);
     $mb->mock('ACTION_docs' => 0);
     ok $builder->dispatch('build'), "Run build";
-    is $kbs_class = $builder->notes('build_store_class'),
-      'Kinetic::Build::Store::DB::SQLite',
-      '... The store class should be in the notes';
-    isa_ok $builder->notes('build_store'), $kbs_class;
+    isa_ok $builder->notes('build_store'), 'Kinetic::Build::Store';
+    $builder->dispatch('clean');
 }
 
 sub test_config_action : Test(1){
@@ -76,6 +73,7 @@ sub test_config_action : Test(1){
     # XXX Add tests for ACTION_config().
     ok 1, " TODO: Add tests for ACTION_config().";
     $self->chdirs($self->data_dir);
+    local @INC = (catdir(updir, updir, 'lib'), @INC);
     # Copy Kinetic::Util::Config here and test it.
 }
 
@@ -93,20 +91,24 @@ sub test_test_actions : Test(9) {
     $mb->mock(resume => sub { $builder });
     $mb->mock(check_manifest => sub { return });
     $mb->mock('ACTION_code' => 0);
+    my $data_dir = File::Spec->catdir(Cwd::getcwd, $self->data_dir, 'data');
+    $mb->mock(test_data_dir => sub () { $data_dir });
+    $self->chdirs($self->data_dir);
+    local @INC = (catdir(updir, updir, 'lib'), @INC);
     $builder = $self->new_builder;
 
     # Dev tests are off.
+    file_not_exists_ok $data_dir, 'We should not yet have a test data directory';
     ok $builder->dispatch('setup_test'), "Run setup_test action";
-    file_exists_ok $self->data_dir, 'We should have a test data directory';
-    file_not_exists_ok $self->data_dir . '/kinetic.db',
+    file_exists_ok $data_dir, 'Now we should have a test data directory';
+    file_not_exists_ok $data_dir . '/kinetic.db',
       '... but not a SQLite database, since dev tests are off';
 
     # Turn the dev tests on.
     $builder = $self->new_builder( run_dev_tests => 1);
     $builder->source_dir('t/sample');
     ok $builder->dispatch('setup_test'), "Run setup_test action";
-    file_exists_ok $self->data_dir, 'We should have a testing data directory';
-    file_exists_ok $self->data_dir . '/kinetic.db',
+    file_exists_ok $data_dir . '/kinetic.db',
       'SQLite database should now exist';
 
     # Make sure that the test_teardown action calls the store's test_cleanup
@@ -119,10 +121,10 @@ sub test_test_actions : Test(9) {
 
     # Make sure we clean up our mess.
     $builder->dispatch('clean');
-    file_not_exists_ok $self->data_dir, 'Data directory should be deleted';
+    file_not_exists_ok $data_dir, 'Data directory should be deleted';
 }
 
-sub test_process_conf_files : Test(12) {
+sub test_process_conf_files : Test(13) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -177,6 +179,10 @@ sub test_process_conf_files : Test(12) {
     file_contents_like 't/conf/kinetic.conf',
       qr/\n\s*store\s*=>\s*{\s*class\s*=>\s*'Kinetic::Store::DB::SQLite'/,
       '... The store should point to the correct data store in the test conf';
+
+    # Make sure we clean up our mess.
+    $builder->dispatch('clean');
+    file_not_exists_ok 'blib', 'Build lib should be gone';
 }
 
 sub new_builder {
@@ -190,3 +196,6 @@ sub new_builder {
         @_,
     );
 }
+
+1;
+__END__

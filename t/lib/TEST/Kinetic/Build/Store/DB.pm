@@ -47,7 +47,10 @@ sub test_db_instance_methods : Test(4) {
     # Create an object and try basic accessors.
     ok my $kbs = $class->new, "Create new $class object";
 
-    if ($class eq 'Kinetic::Build::Store::DB') {
+  SKIP: {
+        skip "DSN methods should be tested in subclasses", 3
+          unless $class eq 'Kinetic::Build::Store::DB';
+
         throws_ok { $kbs->dsn }
           qr'dsn\(\) must be overridden in the subclass',
           'dsn() needs to be overridden';
@@ -57,10 +60,6 @@ sub test_db_instance_methods : Test(4) {
         throws_ok { $kbs->create_dsn }
           qr'dsn\(\) must be overridden in the subclass',
           'create_dsn should use dsn()';
-    } else {
-        ok $kbs->dsn, "We should have a DSN";
-        ok $kbs->test_dsn, "We should have a test dsn";
-        ok $kbs->create_dsn, "We should have a create dsn";
     }
 }
 

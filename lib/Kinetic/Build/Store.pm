@@ -23,6 +23,7 @@ use Kinetic::Build;
 use Kinetic::Util::Config qw(:store);
 use FSA::Rules;
 use version;
+my %private;
 
 =head1 Name
 
@@ -160,11 +161,12 @@ sub new {
     my $builder = eval { Kinetic::Build->resume }
       or die "Cannot resume build: $@";
 
-    my $info_object = $class->info_class->new($builder->_app_info_params);
-    bless {
+    my $self = bless {} => $class;
+    $private{$self} = {
         builder => $builder,
-        info    => $info_object,
-    } => $class;
+        info    => $class->info_class->new($builder->_app_info_params)
+    };
+    return $self;
 }
 
 ##############################################################################
@@ -177,7 +179,7 @@ Returns the C<Kinetic::Build> object used to determine build properties.
 
 =cut
 
-sub builder { $_[0]->{builder} ||= Kinetic::Build->resume }
+sub builder { $private{shift()}->{builder} ||= Kinetic::Build->resume }
 
 ##############################################################################
 
@@ -189,7 +191,7 @@ Returns the C<App::Info> object for the data store.
 
 =cut
 
-sub info { $_[0]->{info} }
+sub info { $private{shift()}->{info} }
 
 ##############################################################################
 
@@ -323,38 +325,19 @@ sub test_cleanup { shift }
 
 ##############################################################################
 
-=head3 serializable
-
-  $kbs->serializable;
-
-Modifies the Kinetic::Build::Store object so that it can be serialized by
-Module::Build. Essentially this means removing the Kinetic::Build object and
-the App::Info object.
-
-=cut
-
-sub serializable {
-    my $self = shift;
-    delete $self->{builder};
-    delete $self->{info};
-    return $self;
-}
-
-##############################################################################
-
 =head3 resume
 
   $kbs->resume($builder);
 
 Resumes the state of the Kinetic::Build::Store object after it has been
-retreived from a serializable state. Pass a Kinetic::Build object to set the
+retreived from a serialized state. Pass a Kinetic::Build object to set the
 C<builder> attribute.
 
 =cut
 
 sub resume {
     my $self = shift;
-    $self->{builder} = shift if @_;
+    $private{$self}->{builder} = shift if @_;
     return $self;
 }
 

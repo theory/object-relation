@@ -9,13 +9,13 @@ use aliased 'Test::MockModule';
 use aliased 'Kinetic::Build';
 
 __PACKAGE__->runtests;
-sub test_interface : Test(18) {
+sub test_interface : Test(17) {
     my $self = shift;
     my $class = $self->test_class;
     for my $method (qw'new builder build test_build info_class info rules
                        validate config test_config min_version max_version
                        schema_class is_required_version store_class
-                       serializable resume test_cleanup',
+                       resume test_cleanup',
                     @_) {
         can_ok $class, $method;
     }
@@ -40,7 +40,7 @@ sub test_class_methods : Test(6) {
       'rules() needs to be overridden';
 }
 
-sub test_instance : Test(21) {
+sub test_instance : Test(18) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -99,10 +99,7 @@ sub test_instance : Test(21) {
 
     is $kbs->test_cleanup, $kbs, 'test_cleanup should just return';
 
-    # Check serializable and resume.
-    is $kbs->serializable, $kbs, 'serializable should return itself';
-    is $kbs->builder, undef, '... And now there should be no builder';
-    is $kbs->info, undef, '... or App::Info object.';
+    # Check resume.
     is $kbs->resume($builder), $kbs, "resume() should return itself";
     is $kbs->builder, $builder, "... And now the builder should be back";
 }

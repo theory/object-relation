@@ -333,7 +333,6 @@ attribute has been set to a true value.
 sub ACTION_check_store {
     my $self = shift;
     return $self if $self->notes('build_store');
-
     # Check the specific store.
     my $build_store_class = $CONFIG{$self->store}{build}
       or $self->_fatal_error("I'm not familiar with the " . $self->store
@@ -342,8 +341,7 @@ sub ACTION_check_store {
     $self->_fatal_error($@) if $@;
     my $build_store = $build_store_class->new($self);
     $build_store->validate;
-    $self->notes(build_store => $build_store->serializable);
-    $self->notes(build_store_class => $build_store_class);
+    $self->notes(build_store => $build_store);
     return $self;
 }
 
@@ -439,21 +437,26 @@ tests to use as a temporary directory, and sets up a database for testing.
 
 sub ACTION_setup_test {
     my $self = shift;
+    return $self if $self->notes('ACTION_setup_test');
     $self->depends_on('check_store');
     $self->depends_on('config');
 
     # Set up t/data for tests to fill with junk. We'll clean it up.
-    my $data = $self->localize_file_path('t/data');
+    my $data = $self->test_data_dir;
     File::Path::mkpath $data;
     $self->add_to_cleanup($data);
 
-    # XXX  Setup t/conf for tests to use a test configuration file.
     return $self unless $self->run_dev_tests;
 
     # Build a test data store.
+    my $build_store_class = $CONFIG{$self->store}{build}
+      or $self->_fatal_error("I'm not familiar with the " . $self->store
+                             . ' data store');
+    eval "use $build_store_class";
     my $build_store = $self->notes('build_store');
     $build_store->resume($self);
     $build_store->test_build;
+    $self->notes(ACTION_setup_test => 1);
     return $self;
 }
 
@@ -502,6 +505,8 @@ sub ACTION_teardown_test {
     my $build_store = $self->notes('build_store');
     $build_store->resume($self);
     $build_store->test_cleanup;
+    $self->notes(ACTION_setup_test => 0);
+    return $self;
 }
 
 ##############################################################################
@@ -524,7 +529,6 @@ sub process_conf_files {
     return unless %$files;
 
     for my $conf_file ($self->_copy_to($files, $self->blib, 't')) {
-        Test::More::diag "File: $conf_file";
         my $prefix = $conf_file =~ /^blib/ ? '' : 'test_';
         open CONF, '<', $conf_file or die "cannot open $conf_file: $!";
         my @conf;

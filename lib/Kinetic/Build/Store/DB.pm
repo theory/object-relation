@@ -22,6 +22,7 @@ use strict;
 use base 'Kinetic::Build::Store';
 use Kinetic::Store::DB;
 use DBI;
+my %private;
 
 =head1 Name
 
@@ -199,8 +200,8 @@ Returns the database handle to connect to the data store.
 
 sub _dbh {
     my $self = shift;
-    return $self->{dbh} unless @_;
-    return $self->{dbh} = shift;
+    return $private{$self}->{dbh} unless @_;
+    return $private{$self}->{dbh} = shift;
 }
 
 1;
