@@ -26,7 +26,7 @@ use App::Info::RDBMS::PostgreSQL;
 
 =head1 Name
 
-Kinetic::Build::Rules::Pg - Validate Pg installation
+Kinetic::Build::Rules::Pg - Validate PostgreSQL installation
 
 =head1 Synopsis
 
@@ -39,18 +39,18 @@ Kinetic::Build::Rules::Pg - Validate Pg installation
 =head1 Description
 
 Merely provides the C<App::Info> class and the state machine necessary to
-validate the Pg install.
+validate the PostgreSQL install.
 
-This is a subclass of C<Kinetic::Build::Rules>.  See that module for more
+This is a subclass of C<Kinetic::Build::Rules>. See that module for more
 information.
 
 =cut
 
 ##############################################################################
 
-=head1 Class Methods
+=head1 Class Interface
 
-=head2 Public Class Methods
+=head2 Class Methods
 
 =cut
 
@@ -58,7 +58,7 @@ information.
 
  Kinetic::Build::Rules::Pg->info_class;
 
-Returns the class of the C<App::Info> object necessary for gather Pg
+Returns the class of the C<App::Info> object necessary for gather PostgreSQL
 metadata.
 
 =cut
@@ -79,14 +79,13 @@ sub info_class { 'App::Info::RDBMS::PostgreSQL' }
 
   my $state_machine = $rules->_state_machine;
 
-This method returns arguments that the C<FSA::Rules> constructor requires.
+This method returns an array reference to the state arguments that the
+C<FSA::Rules> constructor requires.
 
 =cut
 
 sub _state_machine {
     my $self = shift;
-    # XXX There might be a place where we need template0. I'll have to check
-    # into that...
     my $template = 'template1'; # default postgresql template
     my $done;
     my $fail    = sub {! shift->result };
@@ -118,14 +117,15 @@ sub _state_machine {
 
                 my $root = $build->db_root_user || 'postgres';
                 $build->db_root_user($root);
-                # note that we're caching the db name and altering it!
-                $self->build->notes(kinetic_db_name => $build->db_name);
+                # Note that we're caching the db name and altering it!
+                $build->notes(kinetic_db_name => $build->db_name);
+                # Try connecting as root user.
                 my $dbh = $self->_connect_to_pg(
                     $template,
                     $build->db_root_user,
                     $build->db_root_pass
                 ) ;
-                $self->build->notes(db_name => $template);
+                $build->notes(db_name => $template);
                 if ($dbh) {
                     $self->_dbh($dbh);
                     $state->result('can_use_root');
@@ -134,6 +134,7 @@ sub _state_machine {
                     $machine->{is_root} = 1;
                     return;
                 }
+                # If we get here, try connecting as app user.
                 $dbh = $self->_connect_to_pg(
                     $template,
                     $build->db_user,
@@ -164,7 +165,7 @@ sub _state_machine {
             ]
         },
         can_use_root => {
-            do => sub { 
+            do => sub {
                 my $state = shift;
                 my $db_name = $self->build->notes('kinetic_db_name');
                 $state->result($self->_db_exists($db_name));
@@ -180,16 +181,18 @@ sub _state_machine {
             rules => [
                 database_exists => {
                     rule    => $succeed,
-                    message => "Database exists",
+                    message => qq{Database "$db_name" exists},
                 },
                 no_database => {
                     rule    => $fail,
-                    message => 'Database does not exist',
+                    message => qq{Database "$db_name" does not exist},
                 }
             ],
         },
         no_database => {
             do => sub {
+                # XXX When you check the pg_language table, it's for the database
+                # to which you're currently connected.
                 warn "I don't know how to tie plpgsql to a particular database,\n"
                     ."so I am skipping this for now.\n\n"
                     ."We must also handle the 'createlang' part";
@@ -206,7 +209,7 @@ sub _state_machine {
                 },
                 fail => {
                     rule    => $fail,
-                    message => 'Template1 does not have plpgsql and we do  not have createlang',
+                    message => 'Template1 does not have plpgsql and we do not have createlang',
                 }
             ],
         },
@@ -229,7 +232,7 @@ sub _state_machine {
         can_use_db_user => {
             do => sub {
                 warn "can use db user implementation being deferred";
-                shift->result(0); # should not get here; 
+                shift->result(0); # should not get here;
             },
             rules => [
                 database_exists => {
@@ -279,7 +282,10 @@ sub _state_machine {
                 my $state   = shift;
                 my $machine = $state->machine;
                 unless ($self->_dbh) {
-                    my $dbh = $self->_connect_to_pg($template, $machine->{user}, $machine->{pass});
+                    # XXX If the database exists, do you really want to connect
+                    # to template1?
+                    my $dbh = $self->_connect_to_pg($template, $machine->{user},
+                                                    $machine->{pass});
                     $self->_dbh($dbh);
                 }
                 $state->result($self->_plpgsql_available);
@@ -287,28 +293,30 @@ sub _state_machine {
             },
             rules => [
                 done => {
-                    rule    => sub { 
+                    rule    => sub {
                         my $state = shift;
                         return $state->result && $state->machine->{is_root};
                     },
+                    # XXX Love to see the database name in these messages. Are
+                    # messages printed out as we go along?
                     message => "Database has plpgsql",
                 },
                 no_plpgsql => {
-                    rule    => sub { 
+                    rule    => sub {
                         my $state = shift;
                         return ! $state->result && $state->machine->{is_root};
                     },
                     message => 'Database does not have plpgsql',
                 },
                 has_plpgsql => {
-                    rule    => sub { 
+                    rule    => sub {
                         my $state = shift;
                         return $state->result && ! $state->machine->{is_root};
                     },
                     message => 'Database has plpgsql but not root',
                 },
                 fail => {
-                    rule    => sub { 
+                    rule    => sub {
                         my $state = shift;
                         return ! $state->result && ! $state->machine->{is_root};
                     },
@@ -319,7 +327,7 @@ sub _state_machine {
         fail => {
             do => sub { die shift->prev_state->message || 'no message supplied' },
         },
-        done => { 
+        done => {
             do => sub {
                 my $state   = shift;
                 my $build   = $self->build;
@@ -336,6 +344,12 @@ sub _state_machine {
     return (\@state_machine);
 }
 
+=head3 _dummy_state
+
+Creates dummy states to act as placeholders during development.
+
+=cut
+
 sub _dummy_state {
     my ($self, $state, $next, $note) = @_;
     #warn "# dummy state transition from $state to $next";
@@ -347,10 +361,9 @@ sub _dummy_state {
 
 =head3 _user_exists
 
-  $build->_user_exists($user);
+  print "User exists" if $build->_user_exists($user);
 
-This method tells whether a particular user exists for a given database
-handle.
+This method tells whether a particular PostgreSQL user exists.
 
 =cut
 
@@ -366,10 +379,9 @@ sub _user_exists {
 
 =head3 _is_root_user
 
-  $build->_is_root_user($user);
+  print "User is root user" if $build->_is_root_user($user);
 
-This method tells whether a particular user is the "root" user for a given
-database handle.
+This method tells whether a particular user is the PostgreSQL "root" user.
 
 =cut
 
@@ -385,10 +397,10 @@ sub _is_root_user {
 
 =head3 _can_create_db
 
-  $build->_can_create_db($user);
+  print "$user can create database" if $build->_can_create_db($user);
 
 This method tells whether a particular user has permissions to create
-databases for a given database handle.
+databases.
 
 =cut
 
@@ -404,9 +416,9 @@ sub _can_create_db {
 
 =head3 _db_exists
 
-  $build->_db_exists;
+  print "Database '$db_name' exists" if $build->_db_exists($db_name);
 
-This method tells whether the default database exists.
+This method tells whether the given database exists.
 
 =cut
 
@@ -423,10 +435,11 @@ sub _db_exists {
 
 =head3 _plpgsql_available
 
-  $rules->_plpgsql_available;
+  print "PL/pgSQL is available" if $rules->_plpgsql_available;
 
-Returns boolean value indicating whether C<plpgsql> is available.  If it's not,
-super user must control install.
+Returns boolean value indicating whether PL/pgSQL is installed in the database
+to which we're currently connected. If it's not, super user must control
+the install.
 
 =cut
 
@@ -442,12 +455,14 @@ sub _plpgsql_available {
 
 =head3 _has_create_permissions
 
-  $rules->_has_create_permissions($user);
+  print "$user has create permissions"
+    if $rules->_has_create_permissions($user);
 
-Returns boolean value indicating whether given user has permissions to create
-functions, views, triggers, etc.
+Returns boolean value indicating whether the given user has the permissions
+necessary to create functions, views, triggers, etc.
 
 =cut
+
 sub _has_create_permissions {
     my ($self, $user) = @_;
     $self->_pg_says_true(
@@ -460,10 +475,12 @@ sub _has_create_permissions {
 
 =head3 _pg_says_true
 
-  $build->_pg_says_true($dbh, $sql, @bind_params);
+  print "PostgreSQL says it's true"
+    if $build->_pg_says_true($sql, @bind_params);
 
 This slightly misnamed method executes the given sql with the bind params. It
-expects that the SQL will return one and only one value.
+expects that the SQL will return one and only one value, and in turn returns
+that value.
 
 =cut
 
@@ -478,7 +495,7 @@ sub _pg_says_true {
 
 =head3 _connect_to_pg
 
-  $build->_connect_to_pg($db_name, $user, $pass);
+  my $dbh = $build->_connect_to_pg($db_name, $user, $pass);
 
 This method attempts to connect to the database as a given user. It returns a
 database handle on success and undef on failure.
