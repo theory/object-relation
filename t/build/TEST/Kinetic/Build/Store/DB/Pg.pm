@@ -17,12 +17,12 @@ __PACKAGE__->runtests;
 sub get_pg_auth : Test(startup) {
     my $self = shift;
     return unless $self->supported('pg');
-    # We need to read in the test configuration file, in t/conf.
-    # This is to circumvent the use of the test configuration file
-    # in t/sample/conf, just so that we can get the full username
-    # and password of the super user to test actul connections to
-    # the database. These are set up by the main ./Build.
-    # We're in t/sample, so we need to get ../conf/kinetic.conf.
+    # We need to read in the test configuration file, in t/conf. This is to
+    # circumvent the use of the test configuration file in t/sample/conf, just
+    # so that we can get the full username and password of the super user and
+    # the template database name to test actual connections to the database.
+    # These are set up by the main ./Build. We're in t/sample, so we need to
+    # get ../conf/kinetic.conf.
     my $conf_file = catfile updir, 'conf', 'kinetic.conf';
     open my $conf, '<', $conf_file or die "Cannot open $conf_file: $!";
     local $/;
