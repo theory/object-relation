@@ -1,4 +1,4 @@
-package Kinetic::State;
+package Kinetic::Util::State;
 
 # $Id$
 
@@ -19,7 +19,7 @@ package Kinetic::State;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use Kinetic::Context;
+use Kinetic::Util::Context;
 use overload '""'     => \&name,
              '<=>'    => \&compare,
              'cmp'    => \&compare,
@@ -29,21 +29,21 @@ use overload '""'     => \&name,
 
 =head1 Name
 
-Kinetic::State - Kinetic object states
+Kinetic::Util::State - Kinetic object states
 
 =head1 Synopsis
 
 Use class methods:
 
-  use Kinetic::State;
+  use Kinetic::Util::State;
 
-  if ($kinetic_obj->state->compare(Kinetic::State->ACTIVE)) {
-      $kinetic->obj->set_state(Kinetic::State->ACTIVE);
+  if ($kinetic_obj->state->compare(Kinetic::Util::State->ACTIVE)) {
+      $kinetic->obj->set_state(Kinetic::Util::State->ACTIVE);
   }
 
 Or use constants:
 
-  use Kinetic::State qw(:all);
+  use Kinetic::Util::State qw(:all);
 
   if ($kinetic_obj->state->compare(ACTIVE)) {
       $kinetic->obj->set_state(ACTIVE);
@@ -116,9 +116,9 @@ versions.
 
 =back
 
-Kinetic::State has constants with these names, which may be accessed
+Kinetic::Util::State has constants with these names, which may be accessed
 as either class methods or as exportable functions. The constants return
-singleton Kinetic::State objects that represent the various states.
+singleton Kinetic::Util::State objects that represent the various states.
 These same objects are returned by the state attribute accessors of
 Kinetic.
 
@@ -152,9 +152,9 @@ use Exporter::Tidy all => [qw(PERMANENT ACTIVE INACTIVE DELETED PURGED)];
 
 =head3 new
 
-  my $state = Kinetic::State->new($value);
+  my $state = Kinetic::Util::State->new($value);
 
-Returns a Kinetic::State object corresponding to the state value
+Returns a Kinetic::Util::State object corresponding to the state value
 passed to it.
 
 =cut
@@ -167,7 +167,7 @@ sub new { return $states[ $_[1] ] }
 
 =head2 Instance Methods
 
-Kinetic::State overloads a number of Perl operators in order to ease
+Kinetic::Util::State overloads a number of Perl operators in order to ease
 its use in various contexts. Each instance method overloads one or more
 operations.
 
@@ -310,11 +310,11 @@ sub compare { $_[0]->[0] <=> $_[1]->[0] }
 
 Outputs a localized string representation the name of the state object. This
 method overloads the double-quoted string context (C<""> for
-Kinetic::State objects.
+Kinetic::Util::State objects.
 
 =cut
 
-sub name { Kinetic::Context->language->maketext($_[0]->[1]) }
+sub name { Kinetic::Util::Context->language->maketext($_[0]->[1]) }
 
 ##############################################################################
 

@@ -1,4 +1,4 @@
-package Kinetic::Exceptions;
+package Kinetic::Util::Exceptions;
 
 # $Id$
 
@@ -19,10 +19,10 @@ package Kinetic::Exceptions;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use Kinetic::Context;
+use Kinetic::Util::Context;
 
 use Exception::Class(
-    'Kinetic::Exception' => {
+    'Kinetic::Util::Exception' => {
         description => 'Kinetic Exception',
     },
 
@@ -31,7 +31,7 @@ use Exception::Class(
     ##########################################################################
     # XXX Perhaps there's a way to get Class::Meta and others to localize
     # exceptions?
-    'Kinetic::Exception::ExternalLib' => {
+    'Kinetic::Util::Exception::ExternalLib' => {
         description => 'External library exception',
         alias       => 'throw_exlib',
     },
@@ -40,39 +40,39 @@ use Exception::Class(
     # Fatal exceptions.
     ##########################################################################
 
-    'Kinetic::Exception::Fatal' => {
+    'Kinetic::Util::Exception::Fatal' => {
         description => 'Kinetic fatal exception',
-        isa         => 'Kinetic::Exception',
+        isa         => 'Kinetic::Util::Exception',
         alias       => 'throw_fatal',
     },
 
-    'Kinetic::Exception::Fatal::Invalid' => {
+    'Kinetic::Util::Exception::Fatal::Invalid' => {
         description => 'Invalid data',
-        isa         => 'Kinetic::Exception::Fatal',
+        isa         => 'Kinetic::Util::Exception::Fatal',
         alias       => 'throw_invalid',
     },
 
-    'Kinetic::Exception::Fatal::ReadOnly' => {
+    'Kinetic::Util::Exception::Fatal::ReadOnly' => {
         description => 'Assignment to read-only value',
-        isa         => 'Kinetic::Exception::Fatal',
+        isa         => 'Kinetic::Util::Exception::Fatal',
         alias       => 'throw_read_only',
     },
 
-    'Kinetic::Exception::Fatal::Language' => {
+    'Kinetic::Util::Exception::Fatal::Language' => {
         description => 'Localization exception',
-        isa         => 'Kinetic::Exception::Fatal',
+        isa         => 'Kinetic::Util::Exception::Fatal',
         alias       => 'throw_lang',
     },
 
-    'Kinetic::Exception::Fatal::Stat' => {
+    'Kinetic::Util::Exception::Fatal::Stat' => {
         description => 'File status exception',
-        isa         => 'Kinetic::Exception::Fatal',
+        isa         => 'Kinetic::Util::Exception::Fatal',
         alias       => 'throw_stat',
     },
 
-    'Kinetic::Exception::Fatal::IO' => {
+    'Kinetic::Util::Exception::Fatal::IO' => {
         description => 'File IO exception',
-        isa         => 'Kinetic::Exception::Fatal',
+        isa         => 'Kinetic::Util::Exception::Fatal',
         alias       => 'throw_io',
     },
 
@@ -80,22 +80,22 @@ use Exception::Class(
     # Non-fatal errors.
     ##########################################################################
 
-    'Kinetic::Exception::Error' => {
+    'Kinetic::Util::Exception::Error' => {
         description => 'Kinetic error',
-        isa         => 'Kinetic::Exception',
+        isa         => 'Kinetic::Util::Exception',
         alias       => 'throw_error',
     },
 
-    'Kinetic::Exception::Error::Password' => {
+    'Kinetic::Util::Exception::Error::Password' => {
         description => 'Kinetic password error',
-        isa         => 'Kinetic::Exception::Error',
+        isa         => 'Kinetic::Util::Exception::Error',
         alias       => 'throw_password',
     },
 
 
 );
 
-Kinetic::Exception->Trace(1);
+Kinetic::Util::Exception->Trace(1);
 
 use Exporter::Tidy all => [
   qw(isa_kinetic_exception isa_exception throw_exlib throw_fatal throw_invalid
@@ -107,11 +107,11 @@ use Exporter::Tidy all => [
 
 =head1 Name
 
-Kinetic::Exceptions - Kinetic exception object definitions
+Kinetic::Util::Exceptions - Kinetic exception object definitions
 
 =head1 Synopsis
 
-  use Kinetic::Exceptions ':all';
+  use Kinetic::Util::Exceptions ':all';
   throw_fatal 'Whoops!';
 
   # The error is fully localizable.
@@ -122,27 +122,27 @@ Kinetic::Exceptions - Kinetic exception object definitions
 This class defines Kinetic exception objects. It subclasses Exception::Class,
 which provides a robust exception implementation. It extends Exception::Class
 by requiring localizable error messages. All error messages must be
-represented in the appropriate Kinetic::Language lexicons.
+represented in the appropriate Kinetic::Util::Language lexicons.
 
 There currently three major classes of exceptions:
 
 =over
 
-=item Kinetic::Exception::Fatal
+=item Kinetic::Util::Exception::Fatal
 
 This class and its subclasses represent fatal, non-recoverable errors.
 Exceptions of this sort are unexpected, and should be reported to an
 administrator or to the Kinetic developers.
 
-=item Kinetic::Exception::Error
+=item Kinetic::Util::Exception::Error
 
 This clas and its subclasses represent non-fatal errors triggered by invalid
 data. These can be used to let users know that the data they've entered is
 invalid.
 
-=item Kinetic::Exception::ExternalLib
+=item Kinetic::Util::Exception::ExternalLib
 
-This class inherits from Exception::Class rather than from Kinetic::Exception
+This class inherits from Exception::Class rather than from Kinetic::Util::Exception
 so that it can be used for exceptions thrown by libraries not under direct
 Kinetic control and therefore are not localizable.
 
@@ -158,21 +158,21 @@ The exception classes generated by this module are as follows:
 
 =over 4
 
-=item Kinetic::Exception
+=item Kinetic::Util::Exception
 
 Kinetic exception base class. It generally should not be thrown, only its
 subclasses.
 
-=item Kinetic::Exception::Fatal
+=item Kinetic::Util::Exception::Fatal
 
 Base class for fatal exceptions. Alias: C<throw_fatal>.
 
-=item Kinetic::Exception::Fatal::Invalid
+=item Kinetic::Util::Exception::Fatal::Invalid
 
 Invalid data exception. Thrown when an invalid value is assigned to a Kinetic
 class attribute. Alias: C<throw_invalid>.
 
-=item Kinetic::Exception::Error
+=item Kinetic::Util::Exception::Error
 
 Base class for error exceptions. These are non-fatal errors, generally
 triggered by problems with data entered by users. Alias: C<throw_error>.
@@ -208,7 +208,7 @@ sub isa_kinetic_exception {
     my ($err, $name) = @_;
     return unless $err;
 
-    my $class = "Kinetic::Exception";
+    my $class = "Kinetic::Util::Exception";
     if ($name) {
         $class .= "::$name";
         throw_fatal qq{No such exception class "$class"}
@@ -239,13 +239,13 @@ sub isa_exception {
 ##############################################################################
 # From here on in, we're modifying the behavior of Exception::Class::Base.
 
-package Kinetic::Exception;
+package Kinetic::Util::Exception;
 
 sub new {
     my $class = shift;
     my %p =  @_ == 1 ? ( error => $_[0] ) : @_;
     # Localize the error message.
-    $p{error} = Kinetic::Context->language->maketext(
+    $p{error} = Kinetic::Util::Context->language->maketext(
         ref $p{error} ? @{$p{error}} : $p{error}
     );
     $class->SUPER::new(%p);

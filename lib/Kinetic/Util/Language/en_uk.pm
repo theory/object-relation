@@ -1,4 +1,4 @@
-package Kinetic::Context;
+package Kinetic::Util::Language::en_uk;
 
 # $Id$
 
@@ -19,39 +19,40 @@ package Kinetic::Context;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
+use base 'Kinetic::Util::Language::en';
+use encoding 'utf8';
+
+=encoding utf8
 
 =head1 Name
 
-Kinetic::Cache - Kinetic caching
-
-=head1 Synopsis
-
-  use Kinetic::Cache;
-
-  # XXX TBD.
+Kinetic::Util::Language::en_uk - Kinetic UK English localization
 
 =head1 Description
 
-This class provides an interface for caching data in Kinetic.
-
-To be written.
+This class handles Kinetic UK English localization. See
+L<Kinetic::Util::Language|Kinetic::Util::Language> for a complete description of the
+Kinetic localization interface.
 
 =cut
+
+our %Lexicon = (
+  # Attribute labels and tips.
+  'Last Name' => 'Surname',
+  "The person's last name",
+  "The person's surname",
+
+  'First Name', => 'Given Name',
+  "The person's first name",
+  "The person's given name",
+);
 
 1;
 __END__
 
 ##############################################################################
 
-=head1 See Also
-
-=over 4
-
-=item L<Kinetic::Context|Kinetic::Context>
-
-Kinetic utility object context
-
-=back
+##############################################################################
 
 =head1 Copyright and License
 
@@ -69,5 +70,3 @@ A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
 details.
 
 =cut
-
-

@@ -4,9 +4,9 @@ package Kinetic::::Party::Person;
 
 use strict;
 use base qw(Kinetic::::Party);
-use Kinetic::Context;
+use Kinetic::Util::Context;
 use Lingua::Strfname ();
-use Kinetic::Config qw(:api);
+use Kinetic::Util::Config qw(:api);
 
 =head1 Name
 
@@ -207,7 +207,7 @@ documentation for details on its formats to pass in custom formats.
     sub name {
         my ($self, $format) = @_;
         $format ||=
-          Kinetic::Language->get_handle->maketext('strfname_format');
+          Kinetic::Util::Language->get_handle->maketext('strfname_format');
         return Lingua::Strfname::strfname(
             $format,
             $self->last_name,

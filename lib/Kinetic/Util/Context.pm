@@ -1,4 +1,4 @@
-package Kinetic::Context;
+package Kinetic::Util::Context;
 
 # $Id$
 
@@ -19,21 +19,21 @@ package Kinetic::Context;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use Kinetic::Cache;
-use Kinetic::Language;
+use Kinetic::Util::Cache;
+use Kinetic::Util::Language;
 
 =head1 Name
 
-Kinetic::Context - Kinetic utility object context
+Kinetic::Util::Context - Kinetic utility object context
 
 =head1 Synopsis
 
-  use Kinetic::Context;
+  use Kinetic::Util::Context;
 
   # Use class methods.
-  my $user = Kinetic::Context->current_user;
-  my $lang = Kinetic::Context->language;
-  my $cache = Kinetic::Context->cache;
+  my $user = Kinetic::Util::Context->current_user;
+  my $lang = Kinetic::Util::Context->language;
+  my $cache = Kinetic::Util::Context->cache;
 
   # Use the singleton object.
   my $cx = $cx->new;
@@ -53,7 +53,7 @@ in as a user.
 
 my $cx = bless {
     current_user => undef, # XXX TBD.
-    language     => Kinetic::Language->get_handle,
+    language     => Kinetic::Util::Language->get_handle,
     cache        => undef, # XXX TBD.
 }, __PACKAGE__;
 
@@ -67,7 +67,7 @@ my $cx = bless {
 
 =head3 new
 
-  my $cx = Kinetic::Context->new;
+  my $cx = Kinetic::Util::Context->new;
 
 Returns a singleton object that can provide a handy shortcut for accessing
 the class methods.
@@ -84,7 +84,7 @@ sub new { $cx }
 
   my $language = $cx->language;
 
-Returns the L<Kinetic::Language|Kinetic::Language> object to be used for all
+Returns the L<Kinetic::Util::Language|Kinetic::Util::Language> object to be used for all
 localization. The language object will be appropriate to the user logged in.
 
 =cut
@@ -92,9 +92,9 @@ localization. The language object will be appropriate to the user logged in.
 sub language {
     shift;
     return $cx->{language} unless @_;
-    UNIVERSAL::isa($_[0], 'Kinetic::Language')
+    UNIVERSAL::isa($_[0], 'Kinetic::Util::Language')
       or throw_invalid(['Value "[_1]" is not a valid [_2] object', $_[0],
-                        'Kinetic::Language']);
+                        'Kinetic::Util::Language']);
     return $cx->{language} = shift;
 }
 
@@ -104,7 +104,7 @@ sub language {
 
   my $cache = $cx->cache;
 
-Returns the L<Kinetic::Cache|Kinetic::Cache> object to be used for all
+Returns the L<Kinetic::Util::Cache|Kinetic::Util::Cache> object to be used for all
 non-object caching.
 
 =cut
@@ -112,9 +112,9 @@ non-object caching.
 sub cache {
     shift;
     return $cx->{cache} unless @_;
-    UNIVERSAL::isa($_[0], 'Kinetic::Cache')
+    UNIVERSAL::isa($_[0], 'Kinetic::Util::Cache')
       or throw_invalid(['Value "[_1]" is not a valid [_2] object', $_[0],
-                        'Kinetic::Cache']);
+                        'Kinetic::Util::Cache']);
     return $cx->{cache} = shift;
 }
 

@@ -7,23 +7,23 @@ use warnings;
 use Test::More tests => 94;
 
 BEGIN {
-    use_ok('Kinetic::State');
+    use_ok('Kinetic::Util::State');
 }
 
 IMPORT: { # 10 tests.
-    package Kinetic::State::TestImport;
-    use Kinetic::State qw(:all);
+    package Kinetic::Util::State::TestImport;
+    use Kinetic::Util::State qw(:all);
     use Test::More;
 
     for my $state (PERMANENT, ACTIVE, INACTIVE, DELETED, PURGED) {
         ok(ref $state, "Got $state" );
-        isa_ok($state, 'Kinetic::State');
+        isa_ok($state, 'Kinetic::Util::State');
     }
 }
 
 NOIMPORT: { # 5 tests.
-    package Kinetic::State::TestNoImport;
-    use Kinetic::State;
+    package Kinetic::Util::State::TestNoImport;
+    use Kinetic::Util::State;
     use Test::More;
     for my $state qw(PERMANENT ACTIVE INACTIVE DELETED PURGED) {
         eval "my \$foo = $state;";
@@ -32,22 +32,22 @@ NOIMPORT: { # 5 tests.
 }
 
 NEW: { # 20 tests.
-    package Kinetic::State::TestNew;
-    use Kinetic::State;
+    package Kinetic::Util::State::TestNew;
+    use Kinetic::Util::State;
     use Test::More;
     for my $val (-2..2) {
-        my $state = Kinetic::State->new($val);
+        my $state = Kinetic::Util::State->new($val);
         ok(ref $state, "new($val)");
         is( $state->value, $val, "Value is $val" );
         is( int($state), $val, "Numeric context gets $val" );
-        unlike( "$state", qr/Kinetic::State=ARRAY/,
+        unlike( "$state", qr/Kinetic::Util::State=ARRAY/,
                 "Stringify $state");
     }
 }
 
 BOOL: { # 10 tests.
-    package Kinetic::State::TestBool;
-    use Kinetic::State qw(:all);
+    package Kinetic::Util::State::TestBool;
+    use Kinetic::Util::State qw(:all);
     use Test::More;
 
     ok( PERMANENT, "Permanent is true" );
@@ -63,8 +63,8 @@ BOOL: { # 10 tests.
 }
 
 COMPARE: { # 48 tests.
-    package Kinetic::State::TestCompare;
-    use Kinetic::State qw(:all);
+    package Kinetic::Util::State::TestCompare;
+    use Kinetic::Util::State qw(:all);
     use Test::More;
 
     my $state = INACTIVE;

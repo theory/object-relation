@@ -4,7 +4,7 @@ package Kinetic::Store::DBI;
 
 use strict;
 use base qw(Kinetic::Store);
-use Kinetic::Collection;
+use Kinetic::Util::Collection;
 use Kinetic::DBCatalog;
 use DBI;
 use Exception::Class::DBI;
@@ -126,7 +126,7 @@ sub search {
 
     my $sth = $self->_make_sth(sql => $sql, bind => $bind);
 
-    return Kinetic::Collection::Sth->new(return => $_[0], sth => $sth);
+    return Kinetic::Util::Collection::Sth->new(return => $_[0], sth => $sth);
 }
 
 sub list_guids {

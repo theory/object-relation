@@ -1,4 +1,4 @@
-package Kinetic::Collection;
+package Kinetic::Util::Collection;
 
 # $Id$
 
@@ -19,17 +19,17 @@ package Kinetic::Collection;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use Kinetic::Exceptions qw(throw_invalid);
+use Kinetic::Util::Exceptions qw(throw_invalid);
 
 =head1 Name
 
-Kinetic::Collection - Kinetic collection class
+Kinetic::Util::Collection - Kinetic collection class
 
 =head1 Synopsis
 
-  use Kinetic::Collection;
+  use Kinetic::Util::Collection;
 
-  my $coll = Kinetic::Collection->new($iterator);
+  my $coll = Kinetic::Util::Collection->new($iterator);
   while (my $thing = $coll->next) {
       # Do something with $thing.
   }
@@ -55,10 +55,10 @@ objects related to an object.
 
 =head3 new
 
-  my $coll = Kinetic::Collection->new($iterator);
+  my $coll = Kinetic::Util::Collection->new($iterator);
 
 Constructs and returns a new collection object. The only argument is a
-Kinetic::Iterator object, which will provide the list of items in the
+Kinetic::Util::Iterator object, which will provide the list of items in the
 collection.
 
 B<Throws:>
@@ -74,8 +74,8 @@ B<Throws:>
 sub new {
     my ($class, $iter) = @_;
     throw_invalid ['Argument "[_1]" is not a valid [_2] object', $iter,
-                   'Kinetic::Iterator']
-      unless UNIVERSAL::isa($iter, 'Kinetic::Iterator');
+                   'Kinetic::Util::Iterator']
+      unless UNIVERSAL::isa($iter, 'Kinetic::Util::Iterator');
     bless { iter => $code, index => -1, array => [], got => -1 }, $class;
 }
 

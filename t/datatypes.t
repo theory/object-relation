@@ -8,7 +8,7 @@ use Data::UUID;
 
 package Kinetic::TestTypes;
 use strict;
-use Kinetic::State;
+use Kinetic::Util::State;
 
 BEGIN {
     Test::More->import;
@@ -83,8 +83,8 @@ eval { $t->guid($guid) };
 ok( $@, "Got error setting GUID" );
 
 # Test state accessor.
-ok( $t->state(Kinetic::State->ACTIVE), "Set state" );
-isa_ok( $t->state, 'Kinetic::State' );
+ok( $t->state(Kinetic::Util::State->ACTIVE), "Set state" );
+isa_ok( $t->state, 'Kinetic::Util::State' );
 
 # Make sure an invalid value throws an exception.
 eval { $t->state('foo') };
@@ -106,4 +106,4 @@ isa_ok($t->datetime, 'Kinetic::DateTime');
 isa_ok($t->datetime, 'DateTime');
 eval { $t->datetime('foo') };
 ok my $err = $@, "Caught bad DateTime exception";
-isa_ok $err, 'Kinetic::Exception::Fatal::Invalid';
+isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';

@@ -1,4 +1,4 @@
-package Kinetic::Iterator;
+package Kinetic::Util::Iterator;
 
 # $Id$
 
@@ -19,17 +19,17 @@ package Kinetic::Iterator;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use Kinetic::Exceptions qw(throw_invalid);
+use Kinetic::Util::Exceptions qw(throw_invalid);
 
 =head1 Name
 
-Kinetic::Iterator - Kinetic iterator class
+Kinetic::Util::Iterator - Kinetic iterator class
 
 =head1 Synopsis
 
-  use Kinetic::Iterator;
+  use Kinetic::Util::Iterator;
 
-  my $iter = Kinetic::Iterator->new(\&closure);
+  my $iter = Kinetic::Util::Iterator->new(\&closure);
   while (my $thing = $iter->next) {
       # Do something with $thing.
   }
@@ -59,7 +59,7 @@ when there are no more items. Therefore, no item can actually be C<undef>.
 
 =head3 new
 
-  my $iter = Kinetic::Iterator->new(\&closure);
+  my $iter = Kinetic::Util::Iterator->new(\&closure);
 
 Constructs and returns a new iterator object. The closure passed in must
 return the next item to iterate over each time it is called, and C<undef> when

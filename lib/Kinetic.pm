@@ -24,7 +24,7 @@ use version;
 use encoding 'utf8';
 use Kinetic::Meta;
 use Kinetic::Meta::Widget;
-use Kinetic::State qw(:all);
+use Kinetic::Util::State qw(:all);
 
 our $VERSION = version->new('0.0.1');
 
@@ -237,7 +237,7 @@ The description of the Kinetic object.
 
 The state of the Kinetic object. Kinetic objects always have one of the
 several states representing whether they're active, inactive, or deleted. See
-L<Kinetic::State|Kinetic::State> for details on the various supported states.
+L<Kinetic::Util::State|Kinetic::Util::State> for details on the various supported states.
 
 A number of shortcut methods are provided to simplify checking for whether a
 Kinetic object is in a particular state, or to set it to a particular state.
@@ -270,7 +270,7 @@ Those methods are:
         label       => 'State',
         type        => 'state',
         required    => 1,
-        default     => Kinetic::State::ACTIVE,
+        default     => Kinetic::Util::State::ACTIVE,
         widget_meta => Kinetic::Meta::Widget->new(
             type    => 'dropdown',
             tip     => 'The state of this object',

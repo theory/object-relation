@@ -21,7 +21,7 @@ BEGIN {
 
         # Config.pm shouldn't be able to open it now.
         local $ENV{KINETIC_CONF} = $fn;
-        eval 'use Kinetic::Config';
+        eval 'use Kinetic::Util::Config';
         ok( my $err = $@, "Got error" );
         like( $err, qr/^Cannot open/, 'Got cannot open file error');
     };

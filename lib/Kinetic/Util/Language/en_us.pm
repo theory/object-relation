@@ -1,4 +1,4 @@
-package Kinetic::Language::en_us;
+package Kinetic::Util::Language::en_us;
 
 # $Id$
 
@@ -19,19 +19,19 @@ package Kinetic::Language::en_us;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use base 'Kinetic::Language::en';
+use base 'Kinetic::Util::Language::en';
 use encoding 'utf8';
 
 =encoding utf8
 
 =head1 Name
 
-Kinetic::Language::en_us - Kinetic US English localization
+Kinetic::Util::Language::en_us - Kinetic US English localization
 
 =head1 Description
 
 This class handles Kinetic US English localization. See
-L<Kinetic::Language|Kinetic::Language> for a complete description of the
+L<Kinetic::Util::Language|Kinetic::Util::Language> for a complete description of the
 Kinetic localization interface.
 
 =cut

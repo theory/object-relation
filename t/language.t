@@ -19,7 +19,7 @@ sub file_to_class {
 
 my @langs;
 BEGIN {
-    my @path = qw(lib Kinetic Language);
+    my @path = qw(lib Kinetic Util Language);
     # Move up if we're running in t/.
     unshift @path, File::Spec->updir unless -d 't';
 
@@ -38,14 +38,14 @@ BEGIN {
 # Just make sure maketext() works. Probably redundant.
 
 my $self = shift;
-ok my $lang = Kinetic::Language->get_handle('en_us'),
+ok my $lang = Kinetic::Util::Language->get_handle('en_us'),
   'Create language object';
 
 is($lang->maketext('Value "[_1]" is not a valid [_2] object', 'foo', 'bar'),
    "Value \x{201c}foo\x{201d} is not a valid bar object", 'Text maketext' );
 
 # Try adding to the lexicon.
-Kinetic::Language::en_us->add_to_lexicon(
+Kinetic::Util::Language::en_us->add_to_lexicon(
   'Thingy',
   'Thingy'
 );
@@ -54,17 +54,17 @@ is($lang->maketext('Thingy'), 'Thingy', "Check for added lexicon key" );
 # Make sure we're throwing an exception properly.
 eval { $lang->maketext('foo') };
 ok( my $err = $@, 'Catch exception');
-isa_ok( $err, 'Kinetic::Exception');
-isa_ok( $err, 'Kinetic::Exception::Fatal');
-isa_ok( $err, 'Kinetic::Exception::Fatal::Language');
+isa_ok( $err, 'Kinetic::Util::Exception');
+isa_ok( $err, 'Kinetic::Util::Exception::Fatal');
+isa_ok( $err, 'Kinetic::Util::Exception::Fatal::Language');
 
 ##############################################################################
 # Make sure that all keys are present in all languages.
 for my $class (@langs) {
     next if $class eq 'Bricolage::Util::Language::en';
-    (my $code = $class) =~ s/^Kinetic::Language:://;
-    my $lang = Kinetic::Language->get_handle($code);
-    for my $key (keys %Kinetic::Language::en::Lexicon) {
+    (my $code = $class) =~ s/^Kinetic::Util::Language:://;
+    my $lang = Kinetic::Util::Language->get_handle($code);
+    for my $key (keys %Kinetic::Util::Language::en::Lexicon) {
         # XXX We might need to look for quant to make this work
         # properly.
         ok $lang->maketext($key, qw(one two three four)), "$code: $key";

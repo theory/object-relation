@@ -4,7 +4,7 @@ package Kinetic::Meta::Attribute;
 
 use strict;
 use base 'Class::Meta::Attribute';
-use Kinetic::Context;
+use Kinetic::Util::Context;
 use Widget::Meta;
 
 =head1 Name
@@ -54,7 +54,7 @@ Returns the localized form of the label for the attribute, such as "Name".
 =cut
 
 sub label {
-    Kinetic::Context->language->maketext(shift->SUPER::label);
+    Kinetic::Util::Context->language->maketext(shift->SUPER::label);
 }
 
 ##############################################################################

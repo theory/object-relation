@@ -8,10 +8,10 @@ use Data::UUID;
 
 BEGIN {
     use_ok 'Kinetic';
-    use_ok 'Kinetic::Context';
-    use_ok 'Kinetic::Language';
-    use_ok 'Kinetic::Language::en_us';
-    use_ok 'Kinetic::State';
+    use_ok 'Kinetic::Util::Context';
+    use_ok 'Kinetic::Util::Language';
+    use_ok 'Kinetic::Util::Language::en_us';
+    use_ok 'Kinetic::Util::State';
 };
 
 isa_ok( $Kinetic::VERSION, 'version');
@@ -29,17 +29,17 @@ BEGIN {
 }
 
 package main;
-use Kinetic::State qw(:all);
+use Kinetic::Util::State qw(:all);
 
 # Add new strings to the lexicon.
-Kinetic::Language::en_us->add_to_lexicon(
+Kinetic::Util::Language::en_us->add_to_lexicon(
   'Thingy',
   'Thingy',
   'Thingies',
   'Thingies',
 );
 
-ok( Kinetic::Context->language(Kinetic::Language->get_handle('en_us')),
+ok( Kinetic::Util::Context->language(Kinetic::Util::Language->get_handle('en_us')),
     "Set language context" );
 
 # Check Meta objects.

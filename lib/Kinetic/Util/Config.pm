@@ -1,4 +1,4 @@
-package Kinetic::Config;
+package Kinetic::Util::Config;
 
 # $Id$
 
@@ -24,7 +24,7 @@ use Exporter::Tidy ();
 
 =head1 Name
 
-Kinetic::Config - Kinetic application configuration
+Kinetic::Util::Config - Kinetic application configuration
 
 =head1 Synopsis
 
@@ -49,34 +49,34 @@ In kinetic.conf:
 
 In a Kinetic class:
 
-  use Kinetic::Config qw(:store);
+  use Kinetic::Util::Config qw(:store);
   eval "require " . STORE_CLASS;
 
 In another Kinetic class:
 
-  use Kinetic::Config qw(:apache);
+  use Kinetic::Util::Config qw(:apache);
   system(APACHE_BIN);
 
 To get all constants:
 
-  use Kinetic::Config qw(:all);
+  use Kinetic::Util::Config qw(:all);
 
 =head1 Description
 
 This module reads in a configuration file and sets up constants that can be
 used in Kinetic modules. The configuration file consists of Perl code that,
-when C<eval>ed by Kinetic::Config, generates a hash of hash references. Each
+when C<eval>ed by Kinetic::Util::Config, generates a hash of hash references. Each
 hash reference is turned into a series of constants, one for each key/value
 pair. They keys in the main hash are used as prefixes to the name of each
 constant generated from the values stored in the associated hash reference.
 They are also used for labels for easy importation of a group of related
 constants.
 
-While no constants are exported by Kinetic::Config by default, the
+While no constants are exported by Kinetic::Util::Config by default, the
 special C<all> tag can be used to export I<all> of the constants created from
 the configuration file:
 
-  use Kinetic::Config qw(:all);
+  use Kinetic::Util::Config qw(:all);
 
 =cut
 

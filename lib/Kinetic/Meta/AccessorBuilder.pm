@@ -3,7 +3,7 @@ package Kinetic::Meta::AccessorBuilder;
 # $Id$
 
 use strict;
-use Kinetic::Exceptions qw(throw_invalid throw_read_only);
+use Kinetic::Util::Exceptions qw(throw_invalid throw_read_only);
 use Class::Meta;
 
 =head1 Name

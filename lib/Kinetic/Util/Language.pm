@@ -1,4 +1,4 @@
-package Kinetic::Language;
+package Kinetic::Util::Language;
 
 # $Id$
 
@@ -26,21 +26,21 @@ use base qw(Locale::Maketext);
 
 =head1 Name
 
-Kinetic::Language - Kinetic localization class
+Kinetic::Util::Language - Kinetic localization class
 
 =head1 Synopsis
 
   # Add localization strings.
   package MyApp::Language::en;
-  use Kinetic::Language::en;
-  Kinetic::Language::en->add_to_lexicon(
+  use Kinetic::Util::Language::en;
+  Kinetic::Util::Language::en->add_to_lexicon(
     'Thingy' => 'Thingy',
     'Thingies' => 'Thingies',
   );
 
   # Use directly.
-  use Kinetic::Language;
-  my $lang = Kinetic::Language->get_handle('en_us');
+  use Kinetic::Util::Language;
+  my $lang = Kinetic::Util::Language->get_handle('en_us');
   print $lang->maketext($msg);
 
 =head1 Description
@@ -48,7 +48,7 @@ Kinetic::Language - Kinetic localization class
 This class handles Kinetic localization. To add this functionality, it
 subclasses L<Locale::Maketext|Locale::Maketext> and addes a few other
 features. One of these features is that failure to find a localization string
-will result in the throwing of a Kinetic::Exception::Fatal::Language
+will result in the throwing of a Kinetic::Util::Exception::Fatal::Language
 exception.
 
 But since the Kinetic framework is just that, a framework, this class
@@ -71,7 +71,7 @@ consult the C<en> subclass for a full lexicon.
 
 =head3 add_to_lexicon
 
-  Kinetic::Language::en->add_to_lexicon(
+  Kinetic::Util::Language::en->add_to_lexicon(
     'Thingy' => 'Thingy',
     'Thingies' => 'Thingies',
   );
@@ -107,8 +107,8 @@ localization key lookups to throw exceptions.
 
 my $fail_with = sub {
     my ($lang, $key) = @_;
-    require Kinetic::Exceptions;
-    Kinetic::Exception::Fatal::Language->throw(
+    require Kinetic::Util::Exceptions;
+    Kinetic::Util::Exception::Fatal::Language->throw(
         ['Localization for "[_1]" not found', $key]
     );
 };

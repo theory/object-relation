@@ -23,7 +23,7 @@ use Class::Meta::Type;
 use Data::UUID;
 use Data::Types;
 use Kinetic::DateTime;
-use Kinetic::Exceptions qw(throw_invalid);
+use Kinetic::Util::Exceptions qw(throw_invalid);
 use Kinetic::Meta::AccessorBuilder;
 
 =head1 Name
@@ -169,7 +169,7 @@ Class::Meta::Type->add(
 
 =item state
 
-A Kinetic::State object.
+A Kinetic::Util::State object.
 
 =cut
 
@@ -178,11 +178,11 @@ Class::Meta::Type->add(
     name    => "State",
     builder => 'Kinetic::Meta::AccessorBuilder',
     check   => sub {
-        UNIVERSAL::isa($_[0], 'Kinetic::State')
+        UNIVERSAL::isa($_[0], 'Kinetic::Util::State')
             or throw_invalid(['Value "[_1]" is not a valid [_2] object',
-                              $_[0], 'Kinetic::State']);
+                              $_[0], 'Kinetic::Util::State']);
         throw_invalid(['Cannot assign permanent state'])
-          if $_[0] == Kinetic::State->PERMANENT;
+          if $_[0] == Kinetic::Util::State->PERMANENT;
     }
 );
 

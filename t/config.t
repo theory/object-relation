@@ -11,7 +11,7 @@ use File::Spec;
 use File::Find;
 
 BEGIN {
-    use_ok('Kinetic::Config');
+    use_ok('Kinetic::Util::Config');
 }
 
 ##############################################################################
@@ -29,8 +29,8 @@ find({ wanted  => sub {
      $dir);
 
 ALL: { # 3 tests.
-    package Kinetic::Config::TestAll;
-    use Kinetic::Config qw(:all);
+    package Kinetic::Util::Config::TestAll;
+    use Kinetic::Util::Config qw(:all);
     use Test::More;
     ok(APACHE_BIN, "Got apache_bin" );
     ok(STORE_CLASS, "Got store_class" );
@@ -38,8 +38,8 @@ ALL: { # 3 tests.
 }
 
 APACHE: { # 2 tests.
-    package Kinetic::Config::TestApache;
-    use Kinetic::Config qw(:apache);
+    package Kinetic::Util::Config::TestApache;
+    use Kinetic::Util::Config qw(:apache);
     use Test::More;
     ok(APACHE_BIN, "Got apache_bin" );
     eval "STORE_CLASS";
@@ -47,8 +47,8 @@ APACHE: { # 2 tests.
 }
 
 STORE: { # 3 tests.
-    package Kinetic::Config::TestStore;
-    use Kinetic::Config qw(:store);
+    package Kinetic::Util::Config::TestStore;
+    use Kinetic::Util::Config qw(:store);
     use Test::More;
     ok(STORE_CLASS, "Got store_class" );
     ok($stores{&STORE_CLASS}, "Got store_class value" );
@@ -57,8 +57,8 @@ STORE: { # 3 tests.
 }
 
 PG: { # 2 tests.
-    package Kinetic::Config::TestPg;
-    use Kinetic::Config qw(:pg);
+    package Kinetic::Util::Config::TestPg;
+    use Kinetic::Util::Config qw(:pg);
     use Test::More;
     ok(PG_DB_NAME, "Got store_class" );
     eval "STORE_CLASS";
@@ -66,8 +66,8 @@ PG: { # 2 tests.
 }
 
 NOIMPORT: { # 2 tests.
-    package Kinetic::Config::TestNoImport;
-    use Kinetic::Config;
+    package Kinetic::Util::Config::TestNoImport;
+    use Kinetic::Util::Config;
     use Test::More;
     eval "STORE_CLASS";
     ok($@, "Got error trying to access store_class");

@@ -4,8 +4,8 @@ package Kinetic::::Party::Person::User;
 
 use strict;
 use base qw(Kinetic::::Party::Person);
-use Kinetic::Config qw(:api :user);
-use Kinetic::Exceptions qw(:all);
+use Kinetic::Util::Config qw(:api :user);
+use Kinetic::Util::Exceptions qw(:all);
 use Digest::MD5;
 
 =head1 Name

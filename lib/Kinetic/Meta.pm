@@ -7,7 +7,7 @@ use base 'Class::Meta';
 use Kinetic::Meta::DataTypes;
 use Kinetic::Meta::Attribute;
 use Kinetic::Meta::Class;
-use Kinetic::Exceptions qw(throw_exlib);
+use Kinetic::Util::Exceptions qw(throw_exlib);
 use Class::Meta::Types::String; # Move to DataTypes.
 
 =head1 Name
