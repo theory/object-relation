@@ -23,10 +23,10 @@ This class handles all of the work necessary to communicate with back-end
 storage systems. Kinetic::Store itself is an abstract class; its subclasses
 will implement its interface for different storage devices: RDBMSs, OODBMSs,
 XML Files, LDAP, or whatever. The canonical storage implementation is
-L<Kinetic::Store::DBI::Pg|Kinetic::Store::DBI::Pg>, for PostgreSQL 7.4 or
+L<Kinetic::Store::DB::Pg|Kinetic::Store::DB::Pg>, for PostgreSQL 7.4 or
 later. Others might include
-L<Kinetic::Store::DBI::SQLite|Kinetic::Store::DBI::SQLite> for SQLite,
-L<Kinetic::Store::DBI::mysql|Kinetic::Store::DBI::mysql> for MySQL 4.1 or
+L<Kinetic::Store::DB::SQLite|Kinetic::Store::DB::SQLite> for SQLite,
+L<Kinetic::Store::DB::mysql|Kinetic::Store::DB::mysql> for MySQL 4.1 or
 later, and L<Kinetic::Store::LDAP|Kinetic::Store::LDAP>.
 
 =cut
