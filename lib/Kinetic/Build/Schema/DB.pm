@@ -105,6 +105,11 @@ sub prepare_class_data {
     } else {
         push @cols, $self->prepare_column($class, $_, $key)
           for $class->attributes;
+        if (grep { $_->{refs} } @cols) {
+            $table_data->{name} = "_$key";
+            $table_data->{refs} = 1;
+            $_->{table} = $table_data->{name} for @cols;
+        }
     }
 
     $self->{$key} = {
@@ -263,8 +268,9 @@ sub generate_index {
 
 sub index_name {
     my ($self, $col) = @_;
+    my $tname = $col->{class}->key;
     return ($col->{attr}->unique ? 'u' : 'i')
-      . "dx_$col->{table}_$col->{name}";
+      . "dx_$tname\_$col->{name}";
 }
 
 sub index_on {

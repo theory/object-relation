@@ -89,7 +89,7 @@ sub generate_constraints {
     my $key = $class->key;
     my $table = $self->{$key}{table_data}{name};
     my @cons = ( "ALTER TABLE $table\n"
-                 . "  ADD CONSTRAINT pk_$table PRIMARY KEY (id);"
+                 . "  ADD CONSTRAINT pk_$key PRIMARY KEY (id);"
     );
 
     if (my $fk_table = $self->{$key}{table_data}{parent}) {
@@ -101,9 +101,9 @@ sub generate_constraints {
     for my $col (grep { $_->{refs} && $_->{attr}->class->key eq $key} @$cols) {
         my $fk_key = $col->{refs}->key;
         my $fk_table = $self->{$fk_key}{table_data}{name};
-        my $del_action = $col->{attr}->on_delete;
+        my $del_action = uc $col->{attr}->on_delete;
         push @cons, "ALTER TABLE $table\n"
-          . "  ADD CONSTRAINT fk_$fk_table\_id FOREIGN KEY ($fk_key\_id)\n"
+          . "  ADD CONSTRAINT fk_$fk_key\_id FOREIGN KEY ($fk_key\_id)\n"
           . "  REFERENCES $fk_table(id) ON DELETE $del_action;";
     }
 
@@ -114,7 +114,8 @@ sub generate_constraints {
 sub generate_view {
     my ($self, $class) = @_;
     my $key = $class->key;
-    return $self unless $self->{$key}{table_data}{parent};
+    return $self unless $self->{$key}{table_data}{parent}
+      || $self->{$key}{table_data}{refs};
 
     my (@tables, @wheres, %seen, $cols);
     for my $col (@{$self->{$key}{col_data}}) {
