@@ -504,6 +504,8 @@ sub _get_sql_results {
         ? 'prepare_cached'
         : 'prepare';
     my $sth = $self->_dbh->$dbi_method($sql);
+#use Data::Dumper::Simple;
+#warn Dumper($sql, $bind_params);
     $sth->execute(@$bind_params);
     my @results;
     # XXX Fetching directly into the appropriate data structure would be
@@ -852,6 +854,11 @@ sub _ANY_SEARCH {
     return ("$field $negated IN ($place_holders)", $value);
 }
 
+sub _ANY_INCOMPLETE_DATE_SEARCH {
+    my ($self, $search) = @_;
+    return $self->_date_handler($search);
+}
+
 sub _EQ_SEARCH {
     my ($self, $search)        = @_;
     my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
@@ -861,8 +868,6 @@ sub _EQ_SEARCH {
 
 sub _EQ_INCOMPLETE_DATE_SEARCH {
     my ($self, $search) = @_;
-    my $negated = $search->negated;
-    my ($field) = $self->_is_case_insensitive($search->attr);
     return $self->_date_handler($search);
 }
 
@@ -914,6 +919,11 @@ sub _BETWEEN_SEARCH {
     my ($negated, $operator) = ($search->negated, $search->operator);
     my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
     return ("$field $negated $operator $place_holder AND $place_holder", $search->data)
+}
+
+sub _BETWEEN_INCOMPLETE_DATE_SEARCH {
+    my ($self, $search) = @_;
+    return $self->_date_handler($search);
 }
 
 sub _MATCH_SEARCH {

@@ -90,7 +90,65 @@ sub _clear_database {
     $test->{dbi_mock}->mock(commit => 1);
 }
 
-sub search_incomplete_dates : Test(no_plan) {
+sub search_incomplete_date_boundaries : Test(6) {
+    my $test = shift;
+    $test->_clear_database;
+
+    my $june17 = Two->new;
+    $june17->name('june17');
+    $june17->one->name('june17_one_name');
+    $june17->date(DateTime->new( 
+        year  => 1968,
+        month => 6,
+        day   => 17 
+    ));
+    my $june16 = Two->new;
+    $june16->name('june16');
+    $june16->one->name('june16_one_name');
+    $june16->date(DateTime->new( 
+        year  => 1967,
+        month => 06,
+        day   => 16 
+    ));
+    my $july16 = Two->new;
+    $july16->name('july16');
+    $july16->one->name('july16_one_name');
+    $july16->date(DateTime->new( 
+        year  => 1967,
+        month => 07,
+        day   => 16 
+    ));
+    Store->save($_) foreach $june17, $june16, $july16;
+    my $class    = $june17->my_class;
+    my $store    = Store->new;
+    my $bad_date = Incomplete->new(month => 6, hour => 23); 
+
+    throws_ok {Store->search($class, date => GT $bad_date)}
+        qr/You cannot do GT or LT type searches with non-contiguous dates/,
+        'Non-contiguous dates should throw an exception with GT/LT searches';
+
+    my $bad_date1 = Incomplete->new(month => 7, hour => 22);
+    throws_ok {Store->search($class, date => [$bad_date => $bad_date1])}
+        qr/You cannot do range searches with non-contiguous dates/,
+        'Non-contiguous dates should throw an exception with range searches';
+
+    my ($first, $second) = (Incomplete->new(month => 6), Incomplete->new(day => 3));
+    throws_ok {Store->search($class, date => [$first => $second])}
+        qr/BETWEEN search dates must have identical segments defined/,
+        'BETWEEN search dates without identically defined segments will die';
+
+    my $date1    = Incomplete->new( month => 6, day   => 17 );
+    my $iterator = Store->search($class, date => GE $date1);
+    my @results  = _all_items($iterator);
+    is @results, 2, 'We should be able to search on incomplete dates';
+    is_deeply \@results, [$june17, $july16], '... and get the correct results';
+
+    throws_ok {Store->search($class, date => ANY($date1, {}))}
+        qr/All types to an ANY search must match/,
+        'ANY searches with incomplete dates must have all types matching';    
+}
+
+sub search_incomplete_dates : Test(25) {
     my $test = shift;
     $test->_clear_database;
     my $theory = Two->new;
@@ -158,13 +216,14 @@ sub search_incomplete_dates : Test(no_plan) {
     );
     $iterator = $store->search($class, date => GE $june, {order_by => 'date'});
     @results  = _all_items($iterator);
-    is @results, 2, 'Incomplete dates should recognize GE';
-    is_deeply \@results, [$ovid, $theory], '... and get the correct results';
+    is @results, 3, 'Incomplete dates should recognize GE';
+    is_deeply \@results, [$ovid, $theory, $usa], '... and get the correct results';
 
+    $june = Incomplete->new(month => 6);
     $iterator = $store->search($class, date => GT $june, {order_by => 'date'});
     @results  = _all_items($iterator);
-    is @results, 1, 'Incomplete dates should recognize GT';
-    is_deeply \@results, [$theory], '... and get the correct results';
+    is @results, 2, 'Incomplete dates should recognize GT';
+    is_deeply \@results, [$theory, $usa], '... and get the correct results';
 
     $june->set(day => 20);
     $iterator = $store->search($class, date => LE $june, {order_by => 'date'});
@@ -191,18 +250,43 @@ sub search_incomplete_dates : Test(no_plan) {
 
     $iterator = $store->search($class, 
         date => [$y1966 => $y1968],
+        name => LIKE 'Ovi%', 
+        {order_by => 'date'}
+    );
+    @results  = _all_items($iterator);
+    is @results, 1, 'Incomplete dates should recognize BETWEEN';
+    is_deeply \@results, [$ovid], '... and get the correct results';
+
+    $iterator = $store->search($class, 
+        date => [$y1966 => $y1968],
         name => LIKE '%vid', 
         {order_by => 'date'}
     );
     @results  = _all_items($iterator);
-    TODO: {
-        local $TODO = 'We have no yet implemented BETWEEN searches for incomplete dates';
-        is @results, 1, 'Incomplete dates should recognize LT';
-        is_deeply \@results, [$ovid], '... and get the correct results';
-    }
+    is @results, 2, 'Incomplete dates should recognize BETWEEN with complex queries';
+    is_deeply \@results, [$ovid, $theory], '... and get the correct results';
+
+    my $date1    = Incomplete->new( month => 6, day => 20 );
+    my $date2    = Incomplete->new( year => 1976, month => 1 );
+    $iterator = Store->search($class, 
+        date => ANY($date1, $date2),
+        {order_by => 'date'}
+    );
+    @results  = _all_items($iterator);
+    is @results, 2, 'We should be able to search on ANY incomplete dates with ANY';
+    is_deeply \@results, [$ovid, $lil], '... and get the correct results';
+
+    my $date3 = Incomplete->new(year => 1976, day => 4);
+    $iterator = Store->search($class, 
+        date => ANY($date1, $date2, $date3),
+        {order_by => 'date'}
+    );
+    @results  = _all_items($iterator);
+    is @results, 3, '... and ANY incomplete searches should allow non-contiguous dates';
+    is_deeply \@results, [$ovid, $lil, $usa], '... and get the correct results';
 }
 
-sub search : Test(no_plan) {
+sub search : Test(19) {
     my $test = shift;
     can_ok Store, 'search';
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
@@ -246,8 +330,6 @@ sub search : Test(no_plan) {
         '... and it should be the correct results';
 }
 
-#1;
-#__END__
 sub search_dates : Test(8) {
     my $test = shift;
     $test->_clear_database;

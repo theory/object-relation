@@ -24,6 +24,43 @@ use Carp qw(croak);
 
 use Kinetic::DateTime::Incomplete;
 
+# lots of private class data
+
+# generic getter/setters
+my @_ATTRIBUTES = qw/
+    attr
+    negated
+    operator
+    place_holder
+    search_class
+/;
+# getter/setter with custom behavior
+my @ATTRIBUTES = ( 'data', @_ATTRIBUTES );
+# simple getter/setter lookup table
+my %ATTR_LOOKUP;
+@ATTR_LOOKUP{@ATTRIBUTES} = undef;
+
+# for a given "operator", the value should be a sub that will return
+# the correct store class search method.
+my %COMPARE_DISPATCH = (
+    EQ      => sub { _am_i_eq_or_not(shift) },
+    NOT     => sub { _am_i_eq_or_not(shift) },
+    LIKE    => sub { '_LIKE_SEARCH' },
+    MATCH   => sub { '_MATCH_SEARCH' },
+    BETWEEN => \&_BETWEEN_SEARCH,
+    GT      => sub { '_GT_SEARCH' },
+    LT      => sub { '_LT_SEARCH' },
+    GE      => sub { '_GE_SEARCH' },
+    LE      => sub { '_LE_SEARCH' },
+    NE      => sub {
+        my ($search) = @_;
+        $search->negated('NOT');
+        $search->operator('EQ');
+        return _am_i_eq_or_not($search);
+    },
+    ANY     => \&_ANY_SEARCH,
+);
+
 =head1 Name
 
 Kinetic::Store::Search - Manage Kinetic search parameters
@@ -78,17 +115,6 @@ If passed named parameters, those respective slots will be populated with the va
 
 =cut
 
-my @_ATTRIBUTES = qw/
-    attr
-    negated
-    operator
-    place_holder
-    search_class
-/;
-my @ATTRIBUTES = ( 'data', @_ATTRIBUTES );
-my %ATTR_LOOKUP;
-@ATTR_LOOKUP{@ATTRIBUTES} = undef;
-    
 sub new {
     my ($class, %attributes) = @_;
     my @invalid = grep ! exists $ATTR_LOOKUP{$_} => sort keys %attributes;
@@ -116,55 +142,6 @@ foreach my $attribute (@_ATTRIBUTES) {
     }
 }
 
-sub data {
-    my $self = shift;
-    if (@_) {
-        my $data = shift;
-        $self->{data} = $data;
-        # XXX Is this too early?  If it is, we should push this test into
-        # the operator() method.  For now, it works and all tests pass.
-        unless ($self->operator) {
-             $self->operator('ARRAY' eq ref $data ? 'BETWEEN' : 'EQ');
-        }
-        return $self;
-    }
-    return $self->{data};
-}
-
-my %COMPARE_DISPATCH = (
-    EQ      => sub { 
-        my ($search) = @_;
-        return _am_i_eq_or_not($search);
-    },
-    NOT     => sub { 
-        my ($search) = @_;
-        return _am_i_eq_or_not($search);
-    },
-    LIKE    => sub { '_LIKE_SEARCH' },
-    MATCH   => sub { '_MATCH_SEARCH' },
-    BETWEEN => sub { '_BETWEEN_SEARCH' },
-    GT      => sub { '_GT_SEARCH' },
-    LT      => sub { '_LT_SEARCH' },
-    GE      => sub { '_GE_SEARCH' },
-    LE      => sub { '_LE_SEARCH' },
-    NE      => sub {
-        my ($search) = @_;
-        $search->negated('NOT');
-        $search->operator('EQ');
-        return _am_i_eq_or_not($search);
-    },
-    ANY     => sub { '_ANY_SEARCH' },
-);
-
-sub _am_i_eq_or_not {
-    my ($search) = @_;
-    my $data = $search->data;
-    return 
-        ! defined $data                                          ? '_NULL_SEARCH'
-        : UNIVERSAL::isa($data, 'Kinetic::DateTime::Incomplete') ? '_EQ_INCOMPLETE_DATE_SEARCH'
-        :                                                          '_EQ_SEARCH';
-}
-
 ##############################################################################
 
 =head3 search_method
@@ -189,15 +166,75 @@ sub search_method {
         "Don't know how to search for ($attr $neg $op $value)";
     };
     croak "$error:  undefined op" unless defined $op;
-    if ( ref $value && ! blessed($value) 
-            && 
-        ('ARRAY' ne ref $value || grep {ref && ! blessed($_)} @$value)
-    ) {
+    if ( ref $value && ! blessed($value) && 'ARRAY' ne ref $value) {
         croak "$error: don't know how to handle value.";
     }
     my $op_sub = $COMPARE_DISPATCH{$op} or croak "$error: unknown op ($op)";
-    my $search_method = $COMPARE_DISPATCH{$op}->($self);
+    my $search_method = $op_sub->($self);
     return $search_method;
+}
+
+sub data {
+    my $self = shift;
+    if (@_) {
+        my $data = shift;
+        $self->{data} = $data;
+        # XXX Is this too early?  If it is, we should push this test into
+        # the operator() method.  For now, it works and all tests pass.
+        unless ($self->operator) {
+             $self->operator('ARRAY' eq ref $data ? 'BETWEEN' : 'EQ');
+        }
+        return $self;
+    }
+    return $self->{data};
+}
+
+sub _ANY_SEARCH {
+    my $search = shift;
+    my $data   = $search->data;
+    unless ('ARRAY' eq ref $data) {
+        croak "PANIC:  ANY search data is not an array ref.  This should never happen.";
+    }
+    my %types;
+    {
+        no warnings;
+        $types{ ref $_ }++ foreach @$data;
+    }
+    unless (1 == keys %types) {
+        croak "All types to an ANY search must match";
+    }
+    return 'Kinetic::DateTime::Incomplete' eq ref $data->[0]
+        ? '_ANY_INCOMPLETE_DATE_SEARCH'
+        : '_ANY_SEARCH'; 
+}
+
+sub _BETWEEN_SEARCH {
+    my $search = shift;
+    my $data   = $search->data;
+    unless ('ARRAY' eq ref $data) {
+        croak "PANIC:  BETWEEN search data is not an array ref.  This should never happen.";
+    }
+    unless (2 == @$data) {
+        my $count = @$data;
+        my $plural = 1 == $count? '' : 's';
+        croak "BETWEEN searches should have two terms.  You have $count term$plural.";
+    }
+    if (ref $data->[0] ne ref $data->[1]) {
+        my ($ref1, $ref2) = (ref $data->[0], ref $data->[1]);
+        croak "BETWEEN searches must be between identical types.  You have ($ref1) and ($ref2)";
+    }
+    return 'Kinetic::DateTime::Incomplete' eq ref $data->[0]
+        ? '_BETWEEN_INCOMPLETE_DATE_SEARCH'
+        : '_BETWEEN_SEARCH'; 
+}
+
+sub _am_i_eq_or_not {
+    my ($search) = @_;
+    my $data = $search->data;
+    return 
+        ! defined $data                                          ? '_NULL_SEARCH'
+        : UNIVERSAL::isa($data, 'Kinetic::DateTime::Incomplete') ? '_EQ_INCOMPLETE_DATE_SEARCH'
+        :                                                          '_EQ_SEARCH';
 }
 
 ##############################################################################

@@ -3,7 +3,7 @@
 # $Id: storesearch.t 894 2004-12-04 02:48:49Z curtis $
 
 use strict;
-use Test::More tests => 52;
+use Test::More tests => 60;
 #use Test::More 'no_plan';
 use Test::Exception;
 
@@ -13,8 +13,6 @@ BEGIN {
     $CLASS = 'Kinetic::Store::Search'; 
     use_ok $CLASS or die 
 };
-
-# Try now().
 
 can_ok $CLASS, 'new';
 ok my $search = $CLASS->new, "... and calling it should succeed";
@@ -67,13 +65,11 @@ my %operators = (
     NOT     => '_EQ_SEARCH',
     LIKE    => '_LIKE_SEARCH',
     MATCH   => '_MATCH_SEARCH', 
-    BETWEEN => '_BETWEEN_SEARCH',
     GT      => '_GT_SEARCH',
     LT      => '_LT_SEARCH',
     GE      => '_GE_SEARCH',
     LE      => '_LE_SEARCH',
     NE      => '_EQ_SEARCH',
-    ANY     => '_ANY_SEARCH',
 );
 while (my ($operator, $method) = each %operators) {
     $search->operator($operator);
@@ -94,3 +90,51 @@ foreach my $operator (qw/EQ NOT NE/) {
     is $search->search_method, '_EQ_INCOMPLETE_DATE_SEARCH',
         "$operator should default to a _EQ_INCOMPLETE_DATE_SEARCH if the search value is an incomplete date";
 }
+
+$search->operator('BETWEEN');
+$search->data('foobar');
+throws_ok {$search->search_method}
+    qr/PANIC:  BETWEEN search data is not an array ref.  This should never happen/,
+    'BETWEEN searches without an arrayref for the data should panic'; 
+
+$search->data([1]),
+throws_ok {$search->search_method}
+    qr/BETWEEN searches should have two terms.  You have 1 term./,
+    '... and the should die if there is only one term in the array ref';
+
+$search->data([1, 2, 3]),
+throws_ok {$search->search_method}
+    qr/BETWEEN searches should have two terms.  You have 3 terms./,
+    '... or if there are more than two terms.';
+
+$search->data([ [] => {} ]);
+throws_ok {$search->search_method}
+    qr/BETWEEN searches must be between identical types.  You have \(ARRAY\) and \(HASH\)/,
+    '... of if the ref types of the two terms do not match';
+
+$search->data([1 => 2]);
+is $search->search_method, '_BETWEEN_SEARCH',
+    'A BETWEEN search with most arguments should default to the _BETWEEN_SEARCH method';
+
+$search->data([Incomplete->now => Incomplete->now]);
+is $search->search_method, '_BETWEEN_INCOMPLETE_DATE_SEARCH',
+    '... and with incomplete date arguments should default to the correct method';
+
+$search->operator('ANY');
+$search->data('foobar');
+throws_ok {$search->search_method}
+    qr/PANIC:  ANY search data is not an array ref.  This should never happen/,
+    'ANY searches without an arrayref for the data should panic'; 
+
+$search->data([ [], {}, 1 ]);
+throws_ok {$search->search_method}
+    qr/All types to an ANY search must match/,
+    '... of if the ref types of the terms do not match';
+
+$search->data([1 => 2]);
+is $search->search_method, '_ANY_SEARCH',
+    'An ANY search with most arguments should default to the _ANY_SEARCH method';
+
+$search->data([Incomplete->now => Incomplete->now]);
+is $search->search_method, '_ANY_INCOMPLETE_DATE_SEARCH',
+    '... and with incomplete date arguments should default to the correct method';

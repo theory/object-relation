@@ -82,7 +82,7 @@ This method will return false if none of the date components are defined.
 
 =cut
 
-my @components = qw/
+my @COMPONENTS = qw/
     year
     month
     day
@@ -95,8 +95,8 @@ sub contiguous {
     my $self  = shift;
     my $count = 0;
     my @indexes;
-    foreach my $index (0 .. $#components) {
-        my $component = $components[$index];
+    foreach my $index (0 .. $#COMPONENTS) {
+        my $component = $COMPONENTS[$index];
         if (defined $self->$component) {
             $count++;
             push @indexes => $index;
@@ -104,6 +104,59 @@ sub contiguous {
     }
     return unless $count; # no components will be considered non-contiguous
     return (1 + ($indexes[-1] - $indexes[0])) == $count;
+}
+
+##############################################################################
+
+=head3 sort_string
+
+  my $sortable_string = $date->sort_string;
+
+Returns the date in a string format suitable for sorting.  There are no
+component separators and undefined components are ommitted.  All components
+except year are zero padded to 2 characters.  The year is zero padded with
+four characters.
+
+  '19970623' eq Kinetic::DateTime::Incomplete->new(
+    year  => 1997,
+    month => 6,
+    hour  => 23
+  );
+
+=cut
+
+sub sort_string {
+    my $self = shift;
+    my $sort_string = $self->year? sprintf('%04d' => $self->year) : '';
+    foreach my $i (1 .. $#COMPONENTS) {
+        my $component = $COMPONENTS[$i];
+        my $value     = $self->$component;
+        $sort_string .= defined $value? sprintf('%02d' => $value) : '';
+    }
+    return $sort_string;
+}
+
+##############################################################################
+
+=head3 same_segments
+
+  if ($date->same_segments($other_date)) {
+    ...
+  }
+
+Returns a boolean value indicating whether or not two dates have the same
+segments defined.
+
+=cut
+
+sub same_segments {
+    my ($self, $date)  = @_;
+    return $self->_date_segments eq $date->_date_segments;
+}
+
+sub _date_segments {
+    my $self = shift;
+    return join '' => map { defined $self->$_? '1' : '0' } @COMPONENTS;
 }
 
 1;

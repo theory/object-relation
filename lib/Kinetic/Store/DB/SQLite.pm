@@ -60,13 +60,13 @@ store's search mechanism.
 
 =cut
 
-my %date = (
-    year   => [1, 4],
-    month  => [6, 2],
-    day    => [9, 2],
-    hour   => [12,2],
-    minute => [15,2],
-    second => [18,2],
+my @DATE = (
+    [year   => [1, 4]],
+    [month  => [6, 2]],
+    [day    => [9, 2]],
+    [hour   => [12,2]],
+    [minute => [15,2]],
+    [second => [18,2]],
 ); 
 
 sub _date_handler {
@@ -74,50 +74,76 @@ sub _date_handler {
     my $operator = $search->operator;
     return 'EQ'      eq $operator ? $self->_eq_date_handler($search)
         :  'BETWEEN' eq $operator ? $self->_between_date_handler($search)
+        :  'ANY'     eq $operator ? $self->_any_date_handler($search)
         :                           $self->_gt_lt_date_handler($search);
+}
+
+sub _any_date_handler {
+    my ($self, $search)   = @_;
+    my ($negated, $value) = ($search->negated, $search->data);
+    my (@tokens, @values);
+    my $field = $search->attr;
+    foreach my $date (@$value) {
+        my $token = $self->_field_format($field, $date);
+        push @tokens => "$token = ?";
+        push @values => $date->sort_string;
+    }
+    my $token = join ' OR ' => @tokens;
+    return ($token, \@values);
 }
 
 sub _gt_lt_date_handler {
     my ($self, $search) = @_;
     my ($date, $operator) = ($search->data, $search->operator);
-    my ($field) = $self->_is_case_insensitive($search->attr);
-    my (@tokens,@values);
-    while (my ($segment, $idx) = each %date) {
-        my $value = $date->$segment;
-        next unless defined $value;
-        # that "abs()" forces SQLite to cast the result as a number, thus allowing
-        # a proper numeric comparison.  Otherwise, the substr forces SQLite to 
-        # treat it as a string, causing the SQL to not match our expectations.
-        push @tokens => "abs(substr($field, $idx->[0], $idx->[1])) $operator ?";
-        push @values => $value;
+    unless ($date->contiguous) {
+        require Carp;
+        Carp::croak "You cannot do GT or LT type searches with non-contiguous dates";
     }
-    my $token = join ' AND ' => @tokens;
-    return $token, \@values;
+    my $token = $self->_field_format($search->attr, $date);
+    my $value = $date->sort_string;
+    return ("$token $operator ?", [$value]);
 }
 
 sub _between_date_handler {
     my ($self, $search) = @_;
+    my $data = $search->data;
+    my ($date1, $date2) = @$data;
+    unless ($date1->contiguous && $date2->contiguous) {
+        require Carp;
+        Carp::croak "You cannot do range searches with non-contiguous dates";
+    }
+    unless ($date1->same_segments($date2)) {
+        require Carp;
+        Carp::croak "BETWEEN search dates must have identical segments defined";
+    }
     my ($negated, $operator) = ($search->negated, $search->operator);
-    my ($field, $place_holder) = $self->_is_case_insensitive($search->attr);
-    return ("$field $negated $operator $place_holder AND $place_holder", $search->data)
+    my $token = $self->_field_format($search->attr, $date1);
+    return ("$token $negated $operator ? AND ?", [$date1->sort_string, $date2->sort_string])
+}
+
+sub _field_format {
+    my ($self, $field, $date) = @_;
+    my @tokens;
+    foreach my $date_data (@DATE) {
+        my ($segment, $idx) = @$date_data;
+        my $value = $date->$segment;
+        next unless defined $value;
+        push @tokens => "substr($field, $idx->[0], $idx->[1])";
+    }
+    # that "abs()" forces SQLite to cast the result as a number, thus allowing
+    # a proper numeric comparison.  Otherwise, the substr forces SQLite to 
+    # treat it as a string, causing the SQL to not match our expectations.
+    return 'abs('. join(' || ' => @tokens) .')';
 }
 
 sub _eq_date_handler {
     my ($self, $search) = @_;
     # 2005-03-14T23:01:26
     # YYYY-MM-DD{T}hh:mm:ss
-    my $date = $search->data;
-    my $year = defined $date->year? sprintf("%04d",$date->year) : '____';
-    my @date;
-    foreach my $segment (qw/month day hour minute second/) {
-        push @date => defined $date->$segment? sprintf("%02d",$date->$segment) : '__'
-    }
-    my $negated = $search->negated;
-    my ($field) = $self->_is_case_insensitive($search->attr);
-    return (
-        "$field $negated LIKE ?", 
-        [ sprintf "$year-%02s-%02sT%02s:%02s:%02s" => @date ]
-    );
+    my $date     = $search->data;
+    my $token    = $self->_field_format($search->attr, $date);
+    my $operator = $search->negated? '!=' : '=';
+    return ("$token $operator ?", [$date->sort_string]);
 }
 
 ##############################################################################
