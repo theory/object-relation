@@ -676,6 +676,8 @@ need. Most have the same names as standard Perl operators, the only difference
 beeing an initial uppercase letter. This design, we hope, makes the Kinetic
 search value operators both familiar and easy to remember.
 
+Please note that value operators can never be more than two deep.
+
 And so, without further ado, here they are:
 
 =over
@@ -683,9 +685,9 @@ And so, without further ado, here they are:
 =item NOT
 
 The C<NOT> operator indicates a search for objects where an attribute does
-I<not> have a value matching our parameters. For example, say you want to find
-all the phony person objects whose last name is I<not> "Wall". Here's how you
-do it:
+I<not> have a value matching our parameters. If used, the C<NOT> operator must
+always be the first operator.  For example, say you want to find all the phony
+person objects whose last name is I<not> "Wall". Here's how you do it:
 
   my $iter = $store->search('Kinetic::Phony::Person' =>
                             'last_name' => NOT 'wall');

@@ -746,6 +746,16 @@ sub _expand_attribute {
         # need a better error message XXX ?
         croak "($type $name) has no meaning.";
     }
+    if ('CODE' eq ref $value2) {
+        my ($bad, $new_value) = $value2->();
+        croak "Search operators can never be more than two deep: ($type $name $bad $new_value)";
+    }
+    if ('NOT' eq $name) {
+        croak "NOT must always be first when used as a search operator: ($type $name $value2)";
+    }
+    if ($type ne 'NOT') {
+        croak "Two search operators not allowed unless NOT is the first operator: ($type $name $value2)";
+    }
     return ("$type $name", $value2);
 }
 

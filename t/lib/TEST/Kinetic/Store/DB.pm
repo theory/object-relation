@@ -266,6 +266,23 @@ sub where_clause : Test(11) {
         'and be able to generate the correct bindings';
 }
 
+sub bad_where_tokens : Test(3) {
+    my $store = Store->new;
+    $store->{search_class} = One->new->my_class;
+
+    throws_ok {$store->_make_where_token('name', NOT LIKE EQ 'foo')}
+        qr/\QSearch operators can never be more than two deep: (NOT LIKE EQ foo)\E/,
+        'Having three search operators in a row should be a fatal error';
+
+    throws_ok {$store->_make_where_token('name', EQ NOT 'foo')}
+        qr/\QNOT must always be first when used as a search operator: (EQ NOT foo)\E/,
+        'and having NOT as the second operator should also be fatal';
+
+    throws_ok {$store->_make_where_token('name', EQ LIKE 'foo')}
+        qr/\QTwo search operators not allowed unless NOT is the first operator: (EQ LIKE foo)\E/,
+        'and two search operators are fatal unless the first operator is NOT';
+}
+
 sub where_token : Test(26) {
     my $store = Store->new;
     can_ok $store, '_make_where_token';
