@@ -10,13 +10,13 @@ package Kinetic::Build;
 # contribute your changes and enhancements to the community by submitting them
 # to Kineticode, Inc.)
 #
-# By intentionally submitting any modifications, corrections or
-# derivatives to this work, or any other work intended for use with the
-# Kinetic framework, to Kineticode, Inc., you confirm that you are the
-# copyright holder for those contributions and you grant Kineticode, Inc.
-# a nonexclusive, worldwide, irrevocable, royalty-free, perpetual license to
-# use, copy, create derivative works based on those contributions, and
-# sublicense and distribute those contributions and any derivatives thereof.
+# By intentionally submitting any modifications, corrections or derivatives to
+# this work, or any other work intended for use with the Kinetic framework, to
+# Kineticode, Inc., you confirm that you are the copyright holder for those
+# contributions and you grant Kineticode, Inc.  a nonexclusive, worldwide,
+# irrevocable, royalty-free, perpetual license to use, copy, create derivative
+# works based on those contributions, and sublicense and distribute those
+# contributions and any derivatives thereof.
 
 use strict;
 use 5.008003;
@@ -25,14 +25,17 @@ use File::Spec;
 use File::Path ();
 use File::Copy ();
 
-my %VERSIONS = (
-    pg     => '7.4.5',
-    sqlite => '3.0.8',
-);
-
-my %STORES = (
-    pg     => 'Kinetic::Store::DB::Pg',
-    sqlite => 'Kinetic::Store::DB::SQLite',
+my %CONFIG = (
+    pg => {
+        version  => '7.4.5',
+        store    => 'Kinetic::Store::DB::Pg',
+        app_info => 'App::Info::RDBMS::PostgreSQL',
+    },
+    sqlite => {
+        version  => '3.0.8',
+        store    => 'Kinetic::Store::DB::SQLite',
+        app_info => 'App::Info::RDBMS::SQLite',
+    },
 );
 
 =head1 Name
@@ -270,8 +273,40 @@ attribute has been set to a true value.
 sub ACTION_check_store {
     my $self = shift;
     return $self if $self->notes('got_store');
+
+    my $app_info_module = $CONFIG{$self->store}{app_info};
+    eval "require $app_info_module";
+    $self->_fatal_error("Could not require $app_info_module: $@") if $@;
+    require App::Info::Handler::Carp;
+    my @params = ( on_error => 'croak' );
+
+    unless ($self->accept_defaults) {
+        require App::Info::Handler::Prompt;
+        require App::Info::Handler::Print;
+        push @params,
+          on_info    => 'stdout',
+          on_unknown => 'prompt',
+          on_confirm => 'prompt';
+    }
+
+    my $store_info = $app_info_module->new(@params);
+    my $store_name = $store_info->key_name;
+
+    unless ($store_info->installed) {
+        $self->_fatal_error("$store_name is not installed. Please download and ",
+          "install the latest from ", $store_info->download_url );
+    }
+
+    require version;
+    my $req_version = version->new($CONFIG{$self->store}{version});
+    my $got_version = version->new($store_info->version);
+    unless ($got_version >= $req_version) {
+        $self->_fatal_error("$store_name version $got_version is installed, but we ",
+          "need version $req_version or newer");
+    }
+    
     my $method = 'check_' . lc $self->store;
-    $self->$method;
+    $self->$method($store_info);
     $self->notes(got_store => 1);
     return $self;
 }
@@ -432,7 +467,7 @@ given store.
 
 sub fetch_store_class {
     my ($self) = @_;
-    return $STORES{$self->store} 
+    return $CONFIG{$self->store}{store}
         or $self->_fatal_error("Class not found for " . $self->store);
 }
 
@@ -559,38 +594,7 @@ L<App::Info::RDBMS::PostgreSQL|App::Info::RDBMS::PostgreSQL> to do this.
 =cut
 
 sub check_pg {
-    my $self = shift;
-    require App::Info::RDBMS::PostgreSQL;
-    require App::Info::Handler::Carp;
-    my @params = ( on_error => 'croak' );
-
-    unless ($self->accept_defaults) {
-        require App::Info::Handler::Prompt;
-        require App::Info::Handler::Print;
-        push @params,
-          on_info    => 'stdout',
-          on_unknown => 'prompt',
-          on_confirm => 'prompt';
-    }
-
-    my $pg = App::Info::RDBMS::PostgreSQL->new(@params);
-
-    # Make sure that PostgreSQL is installed.
-    unless ($pg->installed) {
-        print STDERR "PostgreSQL is not installed. Please download and ",
-          "install the latest from ", $pg->download_url;
-        exit 1;
-    }
-
-    # Make sure that we have the appropriate version.
-    require version;
-    my $req_version = version->new($VERSIONS{pg});
-    my $got_version = version->new($pg->version);
-    unless ($got_version >= $req_version) {
-        print STDERR "PostgreSQL version $got_version is installed, but we ",
-          "need version $req_version or newer";
-        exit 1;
-    }
+    my ($self, $pg) = @_;
 
     # Check for database accessibility. Rules:
     # * There must be psql so that we can load the database.
@@ -603,10 +607,14 @@ sub check_pg {
     # * db_port and db_host can be undefined if we're using Unix sockets to
     #   connect to a local server. Otherwise, they must be defined.
 
+    #   If db_port is defined, db_host *must* (test (or default to localhost))
+    #   be defined.  If db_host is not defined, we *must* (no test) be using
+    #   Unix sockets.
+
     # We're good to go. Collect the configuration data.
     my %info = (
-        psql    => File::Spec->catfile($pg->bin_dir, 'psql'),
-        version => $got_version,
+        psql    => $pg->executable,
+        version => version->new($pg->version),
     );
 
     $self->notes(pg_info => $pg);
@@ -625,38 +633,10 @@ built. uses L<App::Info::RDBMS::SQLite|App::Info::RDBMS::SQLite> to do this.
 =cut
 
 sub check_sqlite {
-    my $self = shift;
-    require App::Info::RDBMS::SQLite;
-    require App::Info::Handler::Carp;
-    my @params = ( on_error => 'croak' );
-    unless ($self->accept_defaults) {
-        require App::Info::Handler::Prompt;
-        require App::Info::Handler::Print;
-        push @params,
-          on_info    => 'stdout',
-          on_unknown => 'prompt',
-          on_confirm => 'prompt';
-    }
-
-    my $sqlite = App::Info::RDBMS::SQLite->new(@params);
-
-    # Make sure that SQLite is installed.
-    unless ($sqlite->installed) {
-        $self->_fatal_error( "SQLite is not installed. Please download and ",
-          "install the latest from ", $sqlite->download_url );
-    }
-
-    # Make sure that we have the appropriate version.
-    require version;
-    my $req_version = version->new($VERSIONS{sqlite});
-    my $got_version = version->new($sqlite->version);
-    unless ($got_version >= $req_version) {
-        $self->_fatal_error("SQLite version $got_version is installed, but we ",
-          "need version $req_version or newer\n");
-    }
+    my ($self, $sqlite) = @_;
 
     $self->_fatal_error("DBD::SQLite is installed but we require the sqlite3 executable")
-      unless $sqlite->bin_dir;
+      unless $sqlite->executable;
 
     return $self;
 }

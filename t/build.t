@@ -1,11 +1,10 @@
-#!/usr/bin/perl -w
 
 # $Id$
 
 use strict;
 use Test::MockModule;
 #use Test::More 'no_plan';
-use Test::More tests => 61;
+use Test::More tests => 66;
 use Test::File;
 use Test::File::Contents;
 use lib 't/lib';
@@ -185,7 +184,7 @@ file_not_exists_ok 't/conf/test.conf',
     $sqlite->mock( 'installed', sub {0} );
     my $class  = Test::MockModule->new($CLASS);
     $class->mock("_fatal_error" => sub { @error = @_; die });
-    eval {$build->check_sqlite};
+    eval {$build->ACTION_check_store};
     like $error[1],
         qr/SQLite is not installed./,
         '... and it should warn you if SQLite is not installed';
@@ -193,22 +192,55 @@ file_not_exists_ok 't/conf/test.conf',
     @error = ();
     $sqlite->mock('installed', sub { 1 } );
     $sqlite->mock('version',   sub { '2.0.0' } );
-    eval {$build->check_sqlite};
+    eval {$build->ACTION_check_store};
     like $error[1].$error[2],
         qr/SQLite version 2.0.0 is installed, but we need version .* or newer/,
         '... and it should warn you if SQLite is not a new enough version';
     
     @error = ();
     $sqlite->mock('version', sub { 4.0 } );
-    $sqlite->mock('bin_dir', sub { 0 } );
-    eval {$build->check_sqlite};
+    $sqlite->mock('executable', sub { 0 } );
+    eval {$build->ACTION_check_store};
     like $error[1],
         qr/DBD::SQLite is installed but we require the sqlite3 executable/,
         '... and it should warn you if the sqlite executable is not installed';
 
    @error = ();
-   $sqlite->mock('bin_dir' => sub {1} );
-   isa_ok $build->check_sqlite => $CLASS;
+   $sqlite->mock('executable' => sub {1} );
+   isa_ok $build->ACTION_check_store => $CLASS;
+   ok(!@error, '... and if all parameters are correct, we should have no errors');
+}
+
+{
+    can_ok($CLASS, 'check_pg');
+    $build = $CLASS->new(
+        accept_defaults => 1,
+        module_name     => 'KineticBuildOne', 
+        store           => 'pg',
+    );
+
+    my @error;
+    my $pg = Test::MockModule->new('App::Info::RDBMS::PostgreSQL');
+    $pg->mock( 'installed', sub {0} );
+    my $class  = Test::MockModule->new($CLASS);
+    $class->mock("_fatal_error" => sub { @error = @_; die });
+    eval {$build->ACTION_check_store};
+    like $error[1],
+        qr/PostgreSQL is not installed./,
+        '... and it should warn you if Postgres is not installed';
+
+    @error = ();
+    $pg->mock('installed', sub { 1 } );
+    $pg->mock('version',   sub { '2.0.0' } );
+    eval {$build->ACTION_check_store};
+    like $error[1].$error[2],
+        qr/PostgreSQL version 2.0.0 is installed, but we need version .* or newer/,
+        '... and it should warn you if PostgreSQL is not a new enough version';
+
+   @error = ();
+   $pg->mock('version' => sub { '7.4.5' });
+   $pg->mock('executable' => sub {1} );
+   isa_ok $build->ACTION_check_store => $CLASS;
    ok(!@error, '... and if all parameters are correct, we should have no errors');
 }
 

@@ -26,7 +26,7 @@ my $build = Kinetic::Build->new(
 #        'DBD::SQLite'           => 1.07, # XXX Change to option.
     },
     build_requires     => {
-        'App::Info'             => 0.40,
+        'App::Info'             => 0.42,
         'Module::Build'         => 0.26,
         'Test::MockModule'      => 0.03,
         'Test::More'            => 0.17,
