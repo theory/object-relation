@@ -21,6 +21,8 @@ use aliased 'TestApp::Simple::Two';
 
 __PACKAGE__->runtests;
 
+sub store { '' }
+
 sub test_dbh : Test(2) {
     my $self = shift;
     my $class = $self->test_class;
@@ -34,6 +36,9 @@ sub test_dbh : Test(2) {
     } else {
         ok @{[$class->new->_connect_args]},
           "$class\::_connect_args should return values";
+        # Only run the next test if we're testing a live data store.
+        (my $store = $class) =~ s/.*:://;
+        return "Not testing $store" unless $self->supported(lc $store);
         isa_ok $class->new->_dbh, 'DBI::db';
     }
 }

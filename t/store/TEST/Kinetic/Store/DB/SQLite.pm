@@ -59,6 +59,7 @@ sub setup : Test(setup) {
 
 sub teardown : Test(teardown) {
     my $test = shift;
+    return "Not testing SQLite" unless $test->supported('sqlite');
     # XXX We shouldn't need to check AutoCommit, but connect_cached is a bit
     # funky. See http://www.nntp.perl.org/group/perl.dbi.dev/3892
     $test->test_class->_dbh->rollback
