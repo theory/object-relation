@@ -31,13 +31,25 @@ my %CONFIG = (
         version  => '7.4.5',
         store    => 'Kinetic::Store::DB::Pg',
         app_info => 'App::Info::RDBMS::PostgreSQL',
-        dsn      => 'dbi:Pg:dbname=%s',
+        dsn      => {
+            dbd        => 'Pg',
+            methods => {
+                dbname => 'db_name',
+                host   => 'db_host',
+                port   => 'db_port',
+            },
+        },
     },
     sqlite => {
         version  => '3.0.8',
         store    => 'Kinetic::Store::DB::SQLite',
         app_info => 'App::Info::RDBMS::SQLite',
-        dsn      => 'dbi:SQLite:dbname=%s',
+        dsn      => {
+            dbd        => 'SQLite',
+            methods => {
+                dbname => 'db_name',
+            },
+        },
     },
 );
 
@@ -736,8 +748,20 @@ This method returns the dsn for the current build
 
 sub _dsn {
     my $self = shift;
+    $self->_fatal_error("Cannot create dsn without a db_name")
+      unless defined $self->db_name;
+    $self->_fatal_error("The database port must be a numeric value")
+      if defined $self->db_port and $self->db_port !~ /^[[:digit:]]+$/;
     my $dsn  = $CONFIG{$self->store}{dsn};
-    return sprintf $dsn => $self->db_name;
+    my $dbd  = "dbi:$dsn->{dbd}";
+    my $properties = join ';' =>
+        map  { join '=' => @$_ }
+        grep { defined $_->[1] }
+        map  {
+            my $method = $dsn->{methods}{$_}; 
+            [ $_, $self->$method ]
+        } sort keys %{ $dsn->{methods} };
+    return "$dbd:$properties";
 }
 
 ##############################################################################

@@ -5,7 +5,7 @@
 use strict;
 use Test::MockModule;
 #use Test::More 'no_plan';
-use Test::More tests => 76;
+use Test::More tests => 80;
 use Test::File;
 use Test::File::Contents;
 use lib 't/lib';
@@ -220,11 +220,6 @@ file_not_exists_ok 'blib/conf/test.conf',
         store           => 'pg',
     );
 
-    can_ok $build, '_dsn';
-    is $build->_dsn, 'dbi:Pg:dbname=kinetic',
-        '... and it should return a proper dsn';
-    diag "We need to improve the dsn method";
-
     my $pg = newmock('App::Info::RDBMS::PostgreSQL');
     $pg->mock(installed => sub {0} );
     my $class = newmock($CLASS);
@@ -304,6 +299,30 @@ file_not_exists_ok 'blib/conf/test.conf',
     # XXX We should verify the contents of the notes, I think.
 }
 
+can_ok $build, '_dsn';
+$build->db_name('foobar');
+$build->db_host(undef);
+$build->db_port(undef);
+is $build->_dsn, 'dbi:Pg:dbname=foobar',
+    '... and it should return a proper dsn';
+$build->db_host('somehost');
+is $build->_dsn, 'dbi:Pg:dbname=foobar;host=somehost',
+    '... and properly handle an optional host';
+$build->db_port(2323);
+is $build->_dsn, 'dbi:Pg:dbname=foobar;host=somehost;port=2323',
+    '... and properly handle an optional port';
+
+$build->db_port('foo');
+eval {$build->_dsn};
+like $@, qr/The database port must be a numeric value/,
+  '... and die us if we have an invalid port';
+
+$build->db_port(undef);
+$build->db_name(undef);
+eval {$build->_dsn};
+like $@, qr/Cannot create dsn without a db_name/,
+  '... and die us if we do not have a db_name';
+  
 sub checkstore {
     my $mock = newmock($CLASS);
     my $error;
