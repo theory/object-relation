@@ -63,6 +63,32 @@ for tests, data store schema generation, and database building.
 
 =head1 Class Interface
 
+=head2 Class Methods
+
+=head3 add_property
+
+This method overrides the default provided by Module::Build so that properties
+can be set up to prompt the user for values as appropriate.
+
+=cut
+
+my @prompts;
+sub add_property {
+    my $class = shift;
+    if (@_ > 2) {
+        # This is something we may want to prompt for.
+        my %params = @_;
+        $class->SUPER::add_property( $params{name} => $params{default} );
+        push @prompts, \%params if keys %params > 1;
+    } else {
+        # This is just a standard Module::Build property.
+        $class->SUPER::add_property(@_);
+    }
+    return $class;
+}
+
+##############################################################################
+
 =head2 Constructors
 
 =head3 new
@@ -121,21 +147,6 @@ Returns true if all default values for prompts are simply to be accepted, and
 false if they are not.
 
 =cut
-
-my @prompts;
-sub add_property {
-    my $class = shift;
-    if (@_ > 2) {
-        # This is something we may want to prompt for.
-        my %params = @_;
-        $class->SUPER::add_property( $params{name} => $params{default} );
-        push @prompts, \%params if keys %params > 1;
-    } else {
-        # This is just a standard Module::Build property.
-        $class->SUPER::add_property(@_);
-    }
-    return $class;
-}
 
 __PACKAGE__->add_property( accept_defaults => 0 );
 
