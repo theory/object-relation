@@ -71,24 +71,24 @@ environment variable to a space-delimited list of supported features, like so:
 
 my @CLASSES;
 
-sub import {
-    my ($pkg, $dir) = @_;
-    if ($ENV{RUNTEST}) {
-        push @CLASSES,
-          map { eval "require $_" or die $!; $_ } split /\s+/, $ENV{RUNTEST};
-    } else {
-        my $want = sub {
-            my $file = $File::Find::name;
-            return if /^\.(?:svn|cvs)/;
-            return unless /\.pm$/;
-            return if /[#~]/; # Ignore backup files.
-                my $class = __PACKAGE__->file_to_class($file);
-                push @CLASSES, $class if $class->isa(__PACKAGE__);
-            };
-
-        find({ wanted => $want, no_chdir => 1 }, $dir || catdir 't', 'lib');
-    }
-}
+#sub import {
+#    my ($pkg, $dir) = @_;
+#    if ($ENV{RUNTEST}) {
+#        push @CLASSES,
+#          map { eval "require $_" or die $!; $_ } split /\s+/, $ENV{RUNTEST};
+#    } else {
+#        my $want = sub {
+#            my $file = $File::Find::name;
+#            return if /^\.(?:svn|cvs)/;
+#            return unless /\.pm$/;
+#            return if /[#~]/; # Ignore backup files.
+#                my $class = __PACKAGE__->file_to_class($file);
+#                push @CLASSES, $class if $class->isa(__PACKAGE__);
+#            };
+#
+#        find({ wanted => $want, no_chdir => 1 }, $dir || catdir 't', 'lib');
+#    }
+#}
 
 sub runtests { shift->SUPER::runtests(@CLASSES) }
 
