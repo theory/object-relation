@@ -930,7 +930,7 @@ sub test_helpers : Test(15) {
 ##############################################################################
 # Test Pg store helpers that touch the database.
 
-sub test_db_helpers : Test(28) {
+sub test_db_helpers : Test(21) {
     my $self = shift;
     my $class = $self->test_class;
 
