@@ -33,6 +33,7 @@ use Carp;
         conf_file       => 'test.conf', # always writes to t/ and blib/
         accept_defaults => 1,
         store           => 'pg',
+        source_dir      => $TEST_LIB,
     );
     $BUILD->create_build_script;
     $BUILD->dispatch('build');
@@ -58,7 +59,7 @@ is_deeply $metadata, $BUILD,
 SKIP: {
     skip 'Bad store', undef unless $BUILD->notes('got_store');
     can_ok $bstore, 'build';
-    ok $bstore->build($TEST_LIB), '... and calling it should succeed';    
+    ok $bstore->build, '... and calling it should succeed';    
     
     can_ok $bstore, '_schema_class';
     my $schema_class = $bstore->_schema_class;

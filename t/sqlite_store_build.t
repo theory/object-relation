@@ -55,7 +55,7 @@ is_deeply $metadata, $BUILD,
 SKIP: {
     skip 'Bad store', undef unless $BUILD->notes('got_store');
     can_ok $bstore, 'build';
-    ok $bstore->build($TEST_LIB), '... and calling it should succeed';    
+    ok $bstore->build, '... and calling it should succeed';    
     
     can_ok $bstore, '_schema_class';
     my $schema_class = $bstore->_schema_class;
