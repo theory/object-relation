@@ -28,8 +28,6 @@ use Kinetic::Util::State qw(:all);
 
 our $VERSION = version->new('0.0.1');
 
-=head1 Name
-
 =begin comment
 
 Fake-out Module::Build. Delete if it ever changes to support =head1 headers
@@ -37,7 +35,11 @@ other than all uppercase.
 
 =head1 NAME
 
+Kinetic - The Kinetic enterprise application framework
+
 =end comment
+
+=head1 Name
 
 Kinetic - The Kinetic enterprise application framework
 
