@@ -99,8 +99,8 @@ Kinetic::Util::Exception->Trace(1);
 
 use Exporter::Tidy all => [
   qw(isa_kinetic_exception isa_exception throw_exlib throw_fatal throw_invalid
-       throw_read_only throw_lang throw_stat throw_io throw_error
-       throw_password)
+     throw_read_only throw_lang throw_stat throw_io throw_error
+     throw_password)
 ];
 
 ##############################################################################

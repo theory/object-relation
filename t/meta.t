@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 28;
+use Test::More tests => 30;
 
 package MyTestThingy;
 
@@ -26,10 +26,12 @@ BEGIN {
     ), "Create TestThingy class";
 
     ok $km->add_attribute(
-        name        => 'foo',
-        type        => 'string',
-        label       => 'Foo',
-        widget_meta => Kinetic::Meta::Widget->new(
+        name          => 'foo',
+        type          => 'string',
+        label         => 'Foo',
+        indexed       => 1,
+        store_default => 'ick',
+        widget_meta   => Kinetic::Meta::Widget->new(
             type => 'text',
             tip  => 'Kinetic',
         )
@@ -65,6 +67,8 @@ isa_ok $attr, 'Class::Meta::Attribute';
 is $attr->name, 'foo', "Check attr name";
 is $attr->type, 'string', "Check attr type";
 is $attr->label, 'Foo', "Check attr label";
+is $attr->indexed, undef, "Indexed should be undef";
+is $attr->store_default, undef, "Store default should be undef";
 
 ok my $wm = $attr->widget_meta, "Get widget meta object";
 isa_ok $wm, 'Kinetic::Meta::Widget';

@@ -1,4 +1,4 @@
-package Kinetic::SchemaGen;
+package Kinetic::Build::SchemaGen;
 
 # $Id$
 
@@ -19,15 +19,21 @@ package Kinetic::SchemaGen;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
+use Kinetic::Meta;
+use Kinetic::Meta::Attribute (build => 1);
+use Kinetic::Util::Config qw(:store);
+use File::Find;
+use File::Spec;
 
 =head1 Name
 
-Kinetic::Util::Config - Kinetic data store schema generation
+Kinetic::Build::SchemaGen - Kinetic data store schema generation
 
 =head1 Synopsis
 
   use Kinetic::SchemaGen;
-  Kinetic::SchemaGen->generate($file_name);
+  my $sg = Kinetic::SchemaGen->new;
+  $sg->generate_to_file($file_name);
 
 =head1 Description
 
@@ -38,6 +44,130 @@ directive.
 
 =cut
 
+##############################################################################
+# Constructors.
+##############################################################################
+
+=head1 Class Interface
+
+=head2 Constructors
+
+=head3 new
+
+  my $sg = Kinetic::Build::SchemaGen->new;
+  my $sg = Kinetic::Build::SchemaGen->new( $store_class );
+
+Creates and returns a new SchemaGen object. This is a factory constructor; it
+will return the subclass appropriate to the currently selected store class as
+configured in F<kinetic.conf>. Pass in a specific store class name or call
+C<new()> directly on a store subclass to override the class selected from
+configuration.
+
+=cut
+
+sub new {
+    my $class = shift;
+    unless ($class ne __PACKAGE__) {
+        $class = shift || STORE_CLASS;
+        $class =~ s/^Kinetic::Store/Kinetic::Build::SchemaGen/;
+        eval "require $class" or die $@;
+    }
+    bless {}, $class;
+}
+
+##############################################################################
+# Instance Methods
+##############################################################################
+
+=head1 Instance Interface
+
+=head2 Instance Attributes
+
+=head3 classes
+
+  my @classes = $sg->classes;
+  $sg->classes(@classes);
+
+The C<Kinetic::Meta::Class> objects representing classes loaded by the
+C<load_classes()> method. Pass in a list of classes to set them specifically.
+
+=cut
+
+sub classes {
+    my $self = shift;
+    return $self->{classes} ? @{$self->{classes}} : () unless @_;
+    $self->{classes} = \@_;
+}
+
+##############################################################################
+
+=head2 Instance Methods
+
+=head3 load_classes
+
+  $sg->load_classes('lib');
+
+Loads all of the Kinetic::Meta classes found in the specified directory and
+its subdirectories. Use Unix-style directory naming; C<load_classes()> will
+automatically convert it to be appropriate to the current operating system.
+All Perl modules found in the directory will be loaded, but C<load_classes()>
+will only store a the C<Kineti::Meta::Class> object for those modules that
+inherit from C<Kinetic>.
+
+=cut
+
+sub load_classes {
+    my $self = shift;
+    my $dir = File::Spec->catdir(split m{/}, shift);
+    my @classes;
+    my $find_classes = sub {
+        return unless /\.pm$/;
+        return if /#/; # Ignore old backup files.
+        my $class = $self->file_to_mod($File::Find::name);
+        eval "require $class" or die $@;
+        push @classes, $class->my_class if UNIVERSAL::isa($class, 'Kinetic');
+    };
+
+    find({ wanted => $find_classes, no_chdir => 1 }, $dir);
+    $self->{classes} = \@classes;
+    return $self;
+}
+
+##############################################################################
+
+=head3 schema_for_class
+
+  my $schema = $sg->schema_for_class($class);
+
+Returns the schema that can be used to build the data store for the class
+passed as an argument. The class can be either a class name or a
+C<Kinetic::Meta::Class> object.
+
+=cut
+
+# Must be implemented in subclasses.
+
+##############################################################################
+
+=head3 file_to_mod
+
+  my $module = $sg->file_to_mod($file);
+
+Converts a file name to a Perl module name. The file name is expected to be a
+relative file name ending in ".pm". It's okay if it starts with "t", "lib", or
+"t/lib"; C<file_to_mod()> will simply strip of those directory names.
+
+=cut
+
+sub file_to_mod {
+    my ($self, $file) = @_;
+    $file =~ s/\.pm$// or die "$file is not a Perl module";
+    my (@dirs) = File::Spec->splitdir($file);
+    while ($dirs[0] && ($dirs[0] eq 't' || $dirs[0] eq 'lib')) {
+        shift @dirs;
+    }
+    join '::', @dirs;
+}
 
 1;
 __END__

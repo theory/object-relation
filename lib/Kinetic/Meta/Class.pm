@@ -40,6 +40,8 @@ class metadata for Kinetic classes. See the L<Class::Meta|Class::Meta>
 documentation for details on meta classes. See the L<"Accessor Methods"> for
 the additional attributes.
 
+=cut
+
 ##############################################################################
 # Instance Methods.
 ##############################################################################

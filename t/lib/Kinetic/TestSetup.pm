@@ -45,6 +45,10 @@ deleted and the original file restored.
 
 =cut
 
+use Kinetic::Util::Context;
+use Kinetic::Util::Language::en_us;
+Kinetic::Util::Context->language(Kinetic::Util::Language->get_handle('en_us'));
+
 my ($conf_file, $backup);
 
 BEGIN {

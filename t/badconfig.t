@@ -1,10 +1,9 @@
-#!perl -w
+#!/usr/bin/perl -w
 
 # $Id$
 
 use strict;
 use warnings;
-use File::Spec;
 use lib 't/lib';
 use Kinetic::TestSetup;
 use Test::More tests => 2;

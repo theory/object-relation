@@ -37,6 +37,35 @@ Class::Meta::Attribute.
 
 =cut
 
+my $build_mode = 0;
+sub import {
+    return unless @_ > 2;
+    $build_mode = $_[2];
+}
+
+##############################################################################
+# Class Methods
+##############################################################################
+
+=head1 Class Interface
+
+=head2 Constructors
+
+=head3 new
+
+This method is designed to only be called internally by C<Kinetic::Meta>. It
+overrides the behavior of C<< Class::Meta::Attribute->new >> to delete
+attributes relevant only during data store schema generation. See
+L<Kinetic::Build::Schema|Kinetic::Build::Schema> for more information.
+
+=cut
+
+sub new {
+    my $self = shift->SUPER::new(@_);
+    delete @{$self}{qw(indexed store_default)} unless $build_mode;
+    return $self;
+}
+
 ##############################################################################
 # Instance Methods.
 ##############################################################################
@@ -70,6 +99,34 @@ field is required.
 =cut
 
 sub widget_meta { shift->{widget_meta} }
+
+##############################################################################
+
+=head3 indexed
+
+  my $indexed = $class->indexed;
+
+During date store schema generation, returns true if an attribute is indexed
+in the data store, and false if it is not. Disabled when
+C<Kinetic::Build::SchemaGen> is not loaded.
+
+=cut
+
+sub indexed { shift->{indexed} }
+
+##############################################################################
+
+=head3 store_default
+
+  my $store_default = $class->store_default;
+
+During date store schema generation, returns a default value meant to be
+configured in a data store, if any. Disabled when C<Kinetic::Build::SchemaGen>
+is not loaded.
+
+=cut
+
+sub store_default { shift->{store_default} }
 
 1;
 __END__
