@@ -20,6 +20,7 @@ use aliased 'Test::MockModule';
 use aliased 'Sub::Override';
 
 use aliased 'Kinetic::Build';
+use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Util::State';
 use aliased 'Kinetic::Store::DB::SQLite' => 'Store';
 use aliased 'Kinetic::Build::Store'      => 'BStore';
@@ -104,7 +105,7 @@ sub insert : Test(8) {
         } 
     );
 
-    my $class = Kinetic::Meta->for_key('one');
+    my $class = Meta->for_key('one');
     my $ctor  = $class->constructors('new');
     my $one = $ctor->call($class->package);
     $mock_store->mock(_set_id => sub { $one->{id} = 2002 } );
@@ -144,7 +145,7 @@ sub update : Test(7) {
         } 
     );
 
-    my $class = Kinetic::Meta->for_key('one');
+    my $class = Meta->for_key('one');
     my $ctor  = $class->constructors('new');
     my $one = $ctor->call($class->package);
     $one->name('Ovid');
@@ -174,9 +175,9 @@ sub update : Test(7) {
     is $one->{id}, 42, 'and the private id should not be changed';
 }
 
-sub save : Test(no_plan) {
+sub save : Test(7) {
     my $test  = shift;
-    my $class = Kinetic::Meta->for_key('one');
+    my $class = Meta->for_key('one');
     my $ctor  = $class->constructors('new');
     my $one = $ctor->call($class->package);
     $one->name('Ovid');
@@ -201,6 +202,24 @@ sub save : Test(no_plan) {
     $result = $dbh->selectrow_hashref('SELECT id, guid, name, description, state, bool FROM one WHERE name = \'bob\'');
     $result->{state} = State->new($result->{state});
     is_deeply $two, $result, 'and the data should match what we pull from the database';
+}
+
+sub lookup : Test(no_plan) {
+    my $test  = shift;
+    my $class = Meta->for_key('one');
+    my $ctor  = $class->constructors('new');
+
+    my $one   = $ctor->call($class->package);
+    $one->name('Ovid');
+    $one->description('test class');
+    Store->save($one);
+
+    my $two   = $ctor->call($class->package);
+    $two->name('divO');
+    $two->description('ssalc tset');
+    Store->save($two);
+    can_ok Store, 'lookup';
+    my $thing = Store->lookup($class, guid => $two->guid);
 }
 
 sub _num_recs {

@@ -317,7 +317,7 @@ sub _update {
     my $column_values =
         join ', ' =>
         map { $_->column .' = ?' }
-            @attributes;;
+            @attributes;
     my @values = map { my $attr = $_->name; $class->_get_value($object, $attr) } @attributes;
     push @values => $object->guid;
     my $sql = "UPDATE $view SET $column_values WHERE guid = ?";
@@ -338,6 +338,19 @@ sub _do_sql {
     my ($class, $sql, $bind_params) = @_;
     $class->_dbh->do($sql, undef, @$bind_params); 
     return $class;
+}
+
+sub lookup {
+    my ($class, $search_class, $property, $value) = @_;
+    my $view   = $search_class->view;
+    my $sql    = "SELECT * FROM $view WHERE $property = ?";
+    # XXX do something if they have more than one result?
+    # selectall_hashref had syntax I did not understand
+    my $result = $class->_dbh->selectrow_hashref($sql, undef, $value);
+    my $ctor   = $search_class->constructors('new');
+    my $object = $ctor->call($search_class->package);
+    use Data::Dumper;
+    print Dumper $result;
 }
 
 ##############################################################################

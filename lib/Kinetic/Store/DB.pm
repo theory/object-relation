@@ -103,37 +103,6 @@ sub LT   { shift; LT_C(), @_ }
 sub GE   { shift; GE_C(), @_ }
 sub LE   { shift; LE_C(), @_ }
 
-sub lookup {
-    my $self = shift;
-    my $target = shift;
-    my ($key, $value) = @_;
-
-    my $sql = 'SELECT * FROM ';
-    $sql .= Kinetic::DBCatalog->class_to_table($target);
-    $sql .= ' WHERE ';
-
-    if ($key eq 'guid') {
-        # or could this be something like person_id ??
-        $sql .= 'guid = ?';
-    } else {
-        # check to see that $key is actually an attribute of the
-        # target class
-
-        $sql .= "$key = ?";
-    }
-
-    my $sth = $self->_make_sth(sql  => $sql, bind => $value);
-
-    # Assume FetchHashKeyName was set to NAME_lc when DBI handle was
-    # constructed
-    my $row = $sth->fetchrow_hashref;
-
-    return unless $row;
-
-    # How are objects constructed?
-    return $target->new(data => $row);
-}
-
 sub search {
     my $self = shift;
 
