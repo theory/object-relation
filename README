@@ -1,0 +1,38 @@
+App::Kinetic - The Kinetic application framework
+================================================
+
+INSTALLATION
+
+To install this module, type the following:
+
+   perl Build.PL
+   ./Build
+   ./Build test
+   ./Build install
+
+Or, if you don't have Module::Build installed, type the following:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+DEPENDENCIES
+
+This module requires these other modules and libraries:
+
+   Class::Meta 0.43
+   Widget::Meta 0.03
+   Exception::Class
+
+AUTHOR
+
+Kineticode, Inc. <info@kineticode.com>
+
+COPYRIGHT AND LICENSE
+
+Copyright 2004 by Kineticode, Inc.
+
+This library is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+

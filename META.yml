@@ -1,0 +1,12 @@
+--- #YAML:1.0
+name: App-Kinetic
+version: 0.0.1
+author:
+  - Kineticode <info@kineticode.com>
+abstract: The Kinetic application framework
+license: gpl
+provides:
+  App::Kinetic:
+    file: lib/App/Kinetic.pm
+    version: 0.0.1
+generated_by: Module::Build version 0.26

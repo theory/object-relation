@@ -1,0 +1,14 @@
+^_build
+^Build$
+^blib
+^Makefile$
+^MakeMaker-\d
+~$
+\.bak$
+\.old$
+\.tmp$
+^MANIFEST\.
+^#.*#$
+^\.#
+^App-Kinetic
+\.svn
