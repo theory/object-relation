@@ -134,8 +134,8 @@ starts with "fk_", then the key name the current class, then the name of the
 current attribute, followed by '_id'.
 
 For example, the foreign key for the "contact_type" attribute of the "contact"
-class is named "fk_contact_type_id" and applies to the "contact" table and
-references, of course, the "id" column of the "contact_type" table.
+class is named "fk_contact_contact_type_id" and applies to the "contact" table
+and references, of course, the "id" column of the "contact_type" table.
 
 If the C<parent()> method returns a false value, this method returns C<undef>.
 

@@ -87,8 +87,8 @@ sub parents { @{shift->{parents}} }
 
 Returns the name of the table to be used for this class in the database.
 
-Classes will no concrete parent class will be named for the key name of the
-classes they represent, prepended by an undderscore, such as "_party". Classes
+Classes with no concrete parent class will be named for the key name of the
+classes they represent, prepended by an underscore, such as "_party". Classes
 that inherit from a concrete class will be named for their inheritance
 relationship, such as "party_person" for the person class.
 
