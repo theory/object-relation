@@ -283,7 +283,7 @@ B<Throws:>
 sub save {
     my ($class, $object) = @_;
     #return $class unless $object->changed;
-    return exists $object->{_id}
+    return exists $object->{id}
         ? $class->_update($object)
         : $class->_insert($object);
 }
@@ -291,7 +291,7 @@ sub save {
 sub _insert {
     my ($class, $object) = @_;
     my $my_class     = $object->my_class;
-    my $view         = $my_class->view;
+    my $view         = $my_class->key;
     my @attributes   = $my_class->attributes;
     my $attributes   = join ', ' => map { $_->column } @attributes;
     my $placeholders = join ', ' => (('?') x @attributes);
@@ -312,7 +312,7 @@ sub _set_id {
 sub _update {
     my ($class, $object) = @_;
     my $my_class      = $object->my_class;
-    my $view          = $my_class->view;
+    my $view          = $my_class->key;
     my @attributes    = $my_class->attributes;
     my $column_values =
         join ', ' =>
@@ -349,8 +349,8 @@ sub lookup {
     my $result = $class->_dbh->selectrow_hashref($sql, undef, $value);
     my $ctor   = $search_class->constructors('new');
     my $object = $ctor->call($search_class->package);
-    use Data::Dumper;
-    print Dumper $result;
+    #use Data::Dumper;
+    #print Dumper $result;
 }
 
 ##############################################################################

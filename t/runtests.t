@@ -6,6 +6,7 @@ use File::Find;
 use File::Spec;
 use Kinetic::Build;
 use Test::Class;
+use lib 't/test_lib';
 
 my @classes;
 my $build = Kinetic::Build->resume;
@@ -20,14 +21,13 @@ BEGIN {
         my @classes;
         my $wanted = sub {
             my $file = $File::Find::name;
-print $file, $/;
             return if /^\.(?:svn|cvs)/;
             return unless /\.pm$/;
             return if /#/; # Ignore old backup files.
             return if grep {$file =~ /^$_/} non_test_dirs();
             my $class = file_to_mod($file);
             if ($class) {
-                require $file;
+                eval "use $class";
                 die "Could not require $class from $file: $@" if $@;
                 push @classes => $class if $class->isa('Test::Class');
             }
