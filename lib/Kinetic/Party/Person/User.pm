@@ -3,8 +3,8 @@ package Kinetic::::Party::Person::User;
 # $Id$
 
 use strict;
-use base qw(Kinetic::::Party::Person);
-use Kinetic::Util::Config qw(:api :user);
+use base qw(Kinetic::Party::Person);
+use Kinetic::Util::Config qw(:user);
 use Kinetic::Util::Exceptions qw(:all);
 use Digest::MD5;
 
@@ -66,7 +66,7 @@ The person's last name.
   $person->password($password);
 
 The person's password. This attribute is write-only. The password must have at
-least the number of characters specified by the C<min_password_length> of the
+least the number of characters specified by the C<min_pass_len> of the
 C<user> section of F<kinetic.conf> or an exception will be thrown.
 
 B<Throws:>
@@ -97,8 +97,8 @@ B<Throws:>
         return unless @_;
         my $password = shift;
         throw_password ['Password must be as least [_1] characters',
-                        MIN_PASSWORD_LENGTH]
-          unless length $password > MIN_PASSWORD_LENGTH;
+                        USER_MIN_PASS_LEN]
+          unless length $password > USER_MIN_PASS_LEN;
         # The password is okay. Stash it for changing in save().
         $self->{new_pass} = $password;
         $self->{password} =

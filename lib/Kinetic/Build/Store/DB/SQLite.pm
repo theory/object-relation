@@ -41,8 +41,6 @@ store. Its interface is defined entirely by Kinetic::Build::Store.
 =cut
 
 ##############################################################################
-
-##############################################################################
 # Class Methods.
 ##############################################################################
 
@@ -52,7 +50,7 @@ store. Its interface is defined entirely by Kinetic::Build::Store.
 
 =head3 info_class
 
-  my $info_class = Kinetic::Build::Store::DB->info_class
+  my $info_class = Kinetic::Build::Store::DB::SQLite->info_class
 
 This abstract class method returns the name of the C<App::Info> class for the
 data store. Must be overridden in subclasses.
@@ -138,9 +136,9 @@ sub rules {
                 my $state = shift;
                 my $builder = $self->builder;
                 $self->{db_file} = $builder->args('db_file')
-                  || $builder->prompt(
-                      'Please enter a filename for the SQLite database',
-                      'kinetic.db'
+                  || $builder->get_reply(
+                      message => 'Please enter a filename for the SQLite database',
+                      default => 'kinetic.db'
                 );
             },
             rules => [
@@ -286,6 +284,8 @@ sub test_build {
     $dbh->disconnect;
     return $self;
 }
+
+##############################################################################
 
 =begin private
 

@@ -26,26 +26,9 @@ use File::Spec;
 use File::Path ();
 use File::Copy ();
 
-my %CONFIG = (
-    pg => {
-        version  => '7.4.5',
-        store    => 'Kinetic::Store::DB::Pg',
-        rules    => 'Kinetic::Build::Rules::Pg',
-        dsn      => {
-            dbd     => 'Pg',
-            db_name => 'db_name',
-            methods => {
-                host => 'db_host',
-                port => 'db_port',
-            },
-        },
-    },
-    pg => {
-        build => 'Kinetic::Build::Store::DB::Pg',
-    },
-    sqlite => {
-        build => 'Kinetic::Build::Store::DB::SQLite',
-    },
+my %STORES = (
+    pg     => 'Kinetic::Build::Store::DB::Pg',
+    sqlite => 'Kinetic::Build::Store::DB::SQLite',
 );
 
 =head1 Name
@@ -139,7 +122,22 @@ false if they are not.
 
 =cut
 
-__PACKAGE__->add_property(accept_defaults => 0);
+my @prompts;
+sub add_property {
+    my $class = shift;
+    if (@_ > 2) {
+        # This is something we may want to prompt for.
+        my %params = @_;
+        $class->SUPER::add_property( $params{name} => $params{default} );
+        push @prompts, \%params if keys %params > 1;
+    } else {
+        # This is just a standard Module::Build property.
+        $class->SUPER::add_property(@_);
+    }
+    return $class;
+}
+
+__PACKAGE__->add_property( accept_defaults => 0 );
 
 ##############################################################################
 
@@ -153,7 +151,12 @@ The type of data store to be used for the application. Possible values are
 
 =cut
 
-__PACKAGE__->add_property(store => 'sqlite');
+__PACKAGE__->add_property(
+    name     => 'store',
+    default  => 'sqlite',
+    choices  => [ keys %STORES ],
+    messsage => 'Which data store back end shold I use?'
+);
 
 ##############################################################################
 
@@ -181,109 +184,6 @@ The directory where the Kinetic Store libraries will be found.
 =cut
 
 __PACKAGE__->add_property(source_dir => 'lib');
-
-##############################################################################
-
-=head3 db_name
-
-  my $db_name = $build->db_name;
-  $build->db_name($db_name);
-
-The name of the Kinetic database. Defaults to "kinetic". Not used by the
-SQLite data store.
-
-=cut
-
-__PACKAGE__->add_property(db_name => 'kinetic');
-
-##############################################################################
-
-=head3 db_user
-
-  my $db_user = $build->db_user;
-  $build->db_user($db_user);
-
-The database user to use to connect to the Kinetic database. Defaults to
-"kinetic". Not used by the SQLite data store.
-
-=cut
-
-__PACKAGE__->add_property(db_user => 'kinetic');
-
-##############################################################################
-
-=head3 db_pass
-
-  my $db_pass = $build->db_pass;
-  $build->db_pass($db_pass);
-
-The password for the database user specified by the C<db_user> attribute.
-Defaults to "kinetic". Not used by the SQLite data store.
-
-=cut
-
-__PACKAGE__->add_property(db_pass => 'kinetic');
-
-##############################################################################
-
-=head3 db_root_user
-
-  my $db_root_user = $build->db_root_user;
-  $build->db_root_user($db_root_user);
-
-The root or admin database user, which will be used to create the Kinetic
-database and user if they don't already exist. The default is the typical root
-user name for the seleted data store. Not used by the SQLite data store.
-
-Defaults to postgres.
-
-=cut
-
-__PACKAGE__->add_property(db_root_user => 'postgres');
-
-##############################################################################
-
-=head3 db_root_pass
-
-  my $db_root_pass = $build->db_root_pass;
-  $build->db_root_pass($db_root_pass);
-
-The password for the root or admin database user. An empty string by
-default. Not used by the SQLite data store.
-
-=cut
-
-__PACKAGE__->add_property(db_root_pass => '');
-
-##############################################################################
-
-=head3 db_host
-
-  my $db_host = $build->db_host;
-  $build->db_host($db_host);
-
-The host name of the Kinetic database server. Undefind by default, which
-generally means that the connection will be made to localhost via Unix
-sockets. Not used by the SQLite data store.
-
-=cut
-
-__PACKAGE__->add_property('db_host');
-
-##############################################################################
-
-=head3 db_port
-
-  my $db_port = $build->db_port;
-  $build->db_port($db_port);
-
-The port number of the Kinetic database server. Undefind by default, which
-generally means that the connection will be made to the default port for the
-database. Not used by the SQLite data store.
-
-=cut
-
-__PACKAGE__->add_property('db_port');
 
 ##############################################################################
 
@@ -337,7 +237,7 @@ sub ACTION_check_store {
     my $self = shift;
     return $self if $self->notes('build_store');
     # Check the specific store.
-    my $build_store_class = $CONFIG{$self->store}{build}
+    my $build_store_class = $STORES{$self->store}
       or $self->_fatal_error("I'm not familiar with the " . $self->store
                              . ' data store');
     eval "use $build_store_class";
@@ -452,7 +352,7 @@ sub ACTION_setup_test {
     return $self unless $self->run_dev_tests;
 
     # Build a test data store.
-    my $build_store_class = $CONFIG{$self->store}{build}
+    my $build_store_class = $STORES{$self->store}
       or $self->_fatal_error("I'm not familiar with the " . $self->store
                              . ' data store');
     eval "use $build_store_class";
@@ -505,6 +405,11 @@ sub ACTION_teardown_test {
     return $self unless $self->run_dev_tests;
 
     # Tear down test data store.
+    my $build_store_class = $STORES{$self->store}
+      or $self->_fatal_error("I'm not familiar with the " . $self->store
+                             . ' data store');
+    eval "use $build_store_class";
+    $self->_fatal_error($@) if $@;
     my $build_store = $self->notes('build_store');
     $build_store->resume($self);
     $build_store->test_cleanup;
@@ -548,7 +453,7 @@ sub process_conf_files {
                         push @conf, @section, "},\n";
                     }
                 }
-            } elsif ($CONFIG{$1}) {
+            } elsif ($STORES{$1}) {
                 # It's a section for another data store. Comment it out.
                 $conf[-1] = "# $conf[-1]";
                 push @conf, "# }\n";
@@ -590,7 +495,11 @@ in the section, configuring the "class" directive.
 
 sub store_config {
     my $self = shift;
-    my $store_class = $CONFIG{$self->store}{build}->store_class;
+    my $build_store_class = $STORES{$self->store}
+      or $self->_fatal_error("I'm not familiar with the " . $self->store
+                             . ' data store');
+    eval "use $build_store_class";
+    my $store_class = $build_store_class->store_class;
     return "    class => '$store_class',\n";
 }
 
@@ -607,23 +516,103 @@ sub find_conf_files  { shift->_find_files_in_dir('conf') }
 
 ##############################################################################
 
-=head3 prompt
+=head3 get_reply
 
-This method overrides Module::Build's C<prompt()> method to simply return the
-default if the C<accept_defaults> property is set to a true value.
+  my $value = $build->get_reply(%params);
+
+Prompts the user with a message, and then collects a value from the user (if
+there is a TTY). A number of options can be specified, and the method will
+display a numbered list from which the user to select a value. Callbacks can
+also be specified to ensure the quality of a value.
+
+The supported parameters are:
+
+=over
+
+=item message
+
+A message with which to prompt the user, such as "What is your favorite
+color?".
+
+=item label
+
+A label for the value you're attempting to collect, such as "Favorite color".
+
+=item default
+
+A default value. This will be used if the user accepts the value (by hitting)
+enter or control-D), and will be returned without prompting the user if the
+C<accept_defaults> property is set to a true value or if there is no TTY.
+
+=item options
+
+An array reference of possible values from which the user can select.
+
+=item callback
+
+A code reference that validates a value input by a user. The value to be
+checked will be passed in as the first argument and will also be stored in
+C<$_>. For exammple, if you wanted to ensure that a value was an integer, you
+might pass a code reference like C<sub { /^\d+$/ }>.
+
+=back
 
 =cut
 
-sub prompt {
+sub get_reply {
+    my ($self, %params) = @_;
+    $self->{tty} = -t STDIN && (-t STDOUT || !(-f STDOUT || -c STDOUT))
+      unless exists $self->{tty};
+
+    my $def_label = $params{default};
+    if ($self->{tty} && ! $self->accept_defaults) {
+        if (my $opts = $params{options}) {
+            my $i;
+            $self->_prompt(join "\n", map({
+                $i++;
+                $def_label = $i if $_ eq $params{default};
+                sprintf "%3s> %-s", $i, $_;
+            } @$opts), "");
+            $params{callback} = sub { /^\d+$/ && $_ <= @$opts };
+        }
+        $def_label = defined $def_label ? " [$def_label]:" : '';
+        $self->_prompt($params{message}, $def_label, ' ');
+      LOOP: {
+            my $ans = $self->_readline;
+            return $params{default} unless $ans && $ans ne '';
+            if (my $code = $params{callback}) {
+                local $_ = $ans;
+                $self->_prompt("\nInvalid selection, please try again$def_label "),
+                  redo LOOP
+                  unless $code->($ans);
+            }
+            return $ans unless $params{options};
+            return $params{options}->[$ans-1];
+        }
+    }
+
+    $def_label = defined $def_label ? " [$def_label]:" : '';
+    $self->_prompt("$params{label}: $params{default}")
+      unless $self->quiet;
+    return $params{default};
+}
+
+sub _prompt {
     my $self = shift;
-    # Let Module::Build do it's thing unless --accept_defaults
-    return $self->SUPER::prompt(@_) unless $self->accept_defaults;
-    my ($prompt, $default) = @_;
-    return $default if $self->quiet;
-    # Output the prompt and the value so that they know what's what.
     local $| = 1;
-    print "$prompt: ", (defined $default ? $default : '[undefined]'), "\n";
-    return $default;
+    local $\;
+    print @_;
+}
+
+sub _readline {
+    my $self = shift;
+    my $ans = <STDIN>;
+    if (defined $ans) {
+        chomp $ans;
+    } else { # user hit ctrl-D
+        $self->_prompt("\n");
+    }
+    return $ans;
 }
 
 ##############################################################################
@@ -680,21 +669,6 @@ sub _copy_to {
 
 ##############################################################################
 
-=head3 _required_version
-
-  $build->_required_version
-
-Returns the minimum required version of the data store.
-
-=cut
-
-sub _required_version {
-    my $self = shift;
-    return $CONFIG{$self->store}{version};
-}
-
-##############################################################################
-
 =head3 _app_info_params
 
   $build->_app_info_params;
@@ -718,66 +692,6 @@ sub _app_info_params {
           on_confirm => $prompter,
     }
     return @params;
-}
-
-##############################################################################
-
-=head3 _rules
-
-  my $rules = $build->_rules;
-
-Debugging hook.  This returns a copy of the Kinetic::Build::Rules object;
-
-=cut
-
-__PACKAGE__->add_property('_rules');
-
-##############################################################################
-
-=head3 _dsn
-
-  my $dsn = $build->_dsn;
-
-This method returns the dsn for the current build
-
-=cut
-
-sub _dsn {
-    my $self = shift;
-    my $dsn     = $CONFIG{$self->store}{dsn};
-    my $db_name_method  = $dsn->{db_name};
-    $self->_fatal_error("Cannot create dsn without a db_name")
-      unless defined $self->$db_name_method;
-    $self->_fatal_error("The database port must be a numeric value")
-      if defined $self->db_port and $self->db_port !~ /^[[:digit:]]+$/;
-    # the following line is important as the machine rules may override
-    # the user's db_name if it doesn't exist.
-    my $db_name = $self->notes('db_name') || $self->$db_name_method;
-    my $dbd     = "dbi:$dsn->{dbd}:dbname=$db_name";
-    my $properties = join ';' =>
-        map  { join '=' => @$_ }
-        grep { defined $_->[1] }
-        map  {
-            my $method = $dsn->{methods}{$_};
-            [ $_, $self->$method ]
-        } sort keys %{ $dsn->{methods} };
-    $dbd .= ";$properties" if $properties;
-    return $dbd;
-}
-
-##############################################################################
-
-=head3 _fetch_store_class
-
-This method is called by C<store_config()>  determine the class that handles a
-given store.
-
-=cut
-
-sub _fetch_store_class {
-    my $kbsc = $CONFIG{shift->store}{build};
-    eval "require $kbsc" or die $@;
-    return $kbsc->store_class;
 }
 
 ##############################################################################
@@ -829,7 +743,10 @@ use base 'Kinetic::Build::AppInfoHandler';
 
 sub handler {
     my ($self, $req) = @_;
-    $self->{builder}->prompt($req->message, $req->value);
+    $self->{builder}->get_reply(
+        message => $req->message,
+        default => $req->value
+    );
 }
 
 1;

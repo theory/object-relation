@@ -34,19 +34,6 @@ sub test_class_methods : Test(8) {
     ok $class->rules, "We should get some rules";
 }
 
-sub test_new : Test(4) {
-    my $self = shift;
-    my $class = $self->test_class;
-    # Fake the Kinetic::Build interface.
-    my $builder = MockModule->new(Build);
-    $builder->mock(resume => sub { bless {}, Build });
-    $builder->mock(_app_info_params => sub { } );
-    ok my $kbs = $class->new, "Create new $class object";
-    isa_ok $kbs, $class;
-    isa_ok $kbs->builder, 'Kinetic::Build';
-    isa_ok $kbs->info, $kbs->info_class;
-}
-
 sub test_rules : Test(27) {
     my $self = shift;
     my $class = $self->test_class;
@@ -78,7 +65,7 @@ sub test_rules : Test(27) {
 
     # Test when everything is cool.
     $info->mock(version => '3.0.8');
-    $mb->mock(prompt => 'fooness');
+    $mb->mock(get_reply => 'fooness');
     ok $kbs->validate,
       '... and it should return a true value if everything is ok';
     is $kbs->db_file, 'fooness',
@@ -139,15 +126,5 @@ sub test_rules : Test(27) {
     unlink $db_file;
 }
 
-sub new_builder {
-    my $self = shift;
-    return $self->{builder} = Build->new(
-        dist_name       => 'Testing::Kinetic',
-        dist_version    => '1.0',
-        quiet           => 1,
-        accept_defaults => 1,
-        @_,
-    );
-}
 1;
 __END__

@@ -1,4 +1,4 @@
-package Kinetic::::Party::Person;
+package Kinetic::Party::Person;
 
 # $Id$
 

@@ -20,7 +20,6 @@ package Kinetic::Build::Store;
 
 use strict;
 use Kinetic::Build;
-use Kinetic::Util::Config qw(:store);
 use FSA::Rules;
 use version;
 my %private;

@@ -187,27 +187,222 @@ sub test_process_conf_files : Test(13) {
     file_not_exists_ok 'blib', 'Build lib should be gone';
 }
 
-sub test_prompt : Test(1) {
+sub test_get_reply : Test(28) {
     my $self = shift;
     my $class = $self->test_class;
-
     my $kb = MockModule->new($class);
     $kb->mock(check_manifest => sub { return });
     my $mb = MockModule->new('Module::Build');
-
-    # Override Module::Build's prompt() method so that we can see what gets
-    # passed to it by Kinetic::Build.
-    my ($exp_prompt, $exp_default, $return_value);
-    $mb->mock(prompt => sub {
-        is $_[1], $exp_prompt, qq'Prompt should be "$exp_prompt"';
-        is $_[2], $exp_default, qq'Default should be "$exp_default"';
-        return $return_value;
+    $kb->mock(_prompt => sub { shift; $self->{output} .= join '', @_; });
+    $kb->mock(_readline => sub {
+        chomp $self->{input}[0] if defined $self->{input}[0];
+        shift @{$self->{input}};
     });
 
-    # Go to town!
-#    ($exp_prmopt, $exp_default, $return_value) = ('Which data store would you like to use? [sqlite]', 'sqlite', 'pg')
-#    my $builder = $self->new_builder(accept_defaults => 0);
-    return "We still need to add prompt funtionality."
+    # Start not quiet and with defaults accepted.
+    my $builder = $self->new_builder(quiet => 0);
+    $builder->{tty} = 1;
+    $self->try_reply(
+        $builder,
+        message     => "What is your favorite color?",
+        label       => "Favorite color",
+        default     => 'blue',
+        exp_message => "Favorite color: blue",
+        exp_value   => 'blue',
+        input_value => 'blue',
+        comment     => "With defaults accepted, should not be prompted",
+    );
+
+    # We should get blue and no prompt with defaults accepted even when
+    # we set up an answer (which will never be fetched).
+    $self->try_reply(
+        $builder,
+        message     => "What is your favorite color?",
+        label       => "Favorite color",
+        default     => 'blue',
+        exp_message => "Favorite color: blue",
+        exp_value   => 'blue',
+        input_value => 'red',
+        comment     => "With defaults accepted, should not be prompted",
+    );
+
+    # With TTY off, we should get the same answer.
+    $builder->{tty} = 0;
+    $self->try_reply(
+        $builder,
+        message     => "What is your favorite color?",
+        label       => "Favorite color",
+        default     => 'blue',
+        exp_message => "Favorite color: blue",
+        exp_value   => 'blue',
+        input_value => 'blue',
+        comment     => "We shouldn't get prompted with TTY",
+    );
+
+    # If we go into quiet mode, there should be no prompt at all!
+    $builder->quiet(1);
+    $self->try_reply(
+        $builder,
+        message     => "What is your favorite color?",
+        label       => "Favorite color",
+        default     => 'blue',
+        exp_message => undef,
+        exp_value   => 'blue',
+        input_value => 'blue',
+        comment     => "No prompt in quiet mode with no TTY.",
+    );
+
+    # Even with TTY back on we should get no output.
+    $builder->{tty} = 1;
+    $self->try_reply(
+        $builder,
+        message     => "What is your favorite color?",
+        label       => "Favorite color",
+        default     => 'blue',
+        exp_message => undef,
+        exp_value   => 'blue',
+        input_value => 'blue',
+        comment     => "No prompt in quiet mode with TTY.",
+    );
+
+    # But if we no longer accept defaults, we should be prompted, even with
+    # quiet on.
+    $builder->accept_defaults(0);
+    $self->try_reply(
+        $builder,
+        message     => "What is your favorite color?",
+        label       => "Favorite color",
+        default     => 'blue',
+        exp_message => "What is your favorite color? [blue]: ",
+        exp_value   => 'yellow',
+        input_value => 'yellow',
+        comment     => "Quiet, but prompted",
+    );
+
+    # Try just accepting the default by inputting \n.
+    $self->try_reply(
+        $builder,
+        message     => "What is your favorite color?",
+        label       => "Favorite color",
+        default     => 'blue',
+        exp_message => "What is your favorite color? [blue]: ",
+        exp_value   => 'blue',
+        input_value => "\n",
+        comment     => "We should be able to accept the default",
+    );
+
+    # Now try a callback.
+    $self->try_reply(
+        $builder,
+        message     => "What is your favorite color?",
+        label       => "Favorite color",
+        default     => 'blue',
+        exp_message => "What is your favorite color? [blue]: "
+                       . "\nInvalid selection, please try again [blue]: ",
+        exp_value   => 'red',
+        input_value => ['foo', 'red'],
+        callback    => sub { $_ eq 'red' },
+        comment     => "We should be able to check our answer with a callback",
+    );
+
+    # Turn quiet back off and we should still get the answer we specify.
+    $builder->quiet(0);
+    $self->try_reply(
+        $builder,
+        message     => "What is your favorite color?",
+        label       => "Favorite color",
+        default     => 'blue',
+        exp_message => "What is your favorite color? [blue]: ",
+        exp_value   => 'red',
+        input_value => 'red',
+        comment     => "Without defaults accepted, we should be prompted",
+    );
+
+    # And if we specify no default, it shouldn't appear in the message.
+    $builder->quiet(0);
+    $self->try_reply(
+        $builder,
+        message     => "What is your favorite color?",
+        label       => "Favorite color",
+        exp_message => "What is your favorite color? ",
+        exp_value   => 'red',
+        input_value => 'red',
+        comment     => "With no default, there should be none in the message",
+    );
+
+    # But with TTY disabled, no more prompt, and our input will be ignored.
+    $builder->{tty} = 0;
+    $self->try_reply(
+        $builder,
+        message     => "What is your favorite color?",
+        label       => "Favorite color",
+        default     => 'blue',
+        exp_message => "Favorite color: blue",
+        exp_value   => 'blue',
+        input_value => 'red',
+        comment     => "Without defaults accepted, by no TTY, our answer should be igored",
+    );
+
+    # The same should hold true even if we specify options.
+    $self->try_reply(
+        $builder,
+        message     => "What is your favorite color?",
+        label       => "Favorite color",
+        default     => 'blue',
+        options     => ['red', 'blue', 'yellow', 'orange'],
+        exp_message => "Favorite color: blue",
+        exp_value   => 'blue',
+        input_value => 'red',
+        comment     => "With options by no TTY, we should just get the default",
+    );
+
+    # Now if we turn TTY back on, we should be prompted for options.
+    $builder->{tty} = 1;
+    $self->try_reply(
+        $builder,
+        message     => "Please select your favorite color?",
+        label       => "Favorite color",
+        default     => 'blue',
+        options     => ['red', 'blue', 'yellow', 'orange'],
+        exp_message => "  1> red\n  2> blue\n  3> yellow\n  4> orange\n"
+                       . "Please select your favorite color? [2]: ",
+        exp_value   => 'blue',
+        input_value => '2',
+        comment     => "With options by no TTY, we should just get the default",
+    );
+
+    # Now we should go into a loop if we put in the wrong answer.
+    $builder->{tty} = 1;
+    $self->try_reply(
+        $builder,
+        message     => "Please select your favorite color?",
+        label       => "Favorite color",
+        default     => 'blue',
+        options     => ['red', 'blue', 'yellow', 'orange'],
+        exp_message => "  1> red\n  2> blue\n  3> yellow\n  4> orange\n"
+                       . "Please select your favorite color? [2]: "
+                       . "\nInvalid selection, please try again [2]: ",
+        exp_value   => 'yellow',
+        input_value => ['foo', '3'],
+        comment     => "With options by no TTY, we should just get the default",
+    );
+}
+
+sub try_reply {
+    my ($self, $builder, %params) = @_;
+    my $exp_msg = delete $params{exp_message};
+    my $exp_value = delete $params{exp_value};
+    my $comment = delete $params{comment};
+    $self->{input} = ref $params{input_value}
+      ? delete $params{input_value}
+      : [ delete $params{input_value} ];
+    is $builder->get_reply(%params), $exp_value, $comment;
+
+    is delete $self->{output}, $exp_msg, 'Output should be ' .
+      (defined $exp_msg ? qq{"$exp_msg"} : 'undef');
+
+    delete $self->{input};
+    return $self;
 }
 
 sub new_builder {
