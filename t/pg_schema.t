@@ -27,16 +27,20 @@ is $classes[0]->key, 'simple', "Check for simple class";
 my $simple = $classes[0];
 
 ( my $testsql = q{CREATE TABLE simple (
-    id          INTEGER  NOT NULL DEFAULT NEXTVAL('kinetic_seq'),
+    id          INTEGER  NOT NULL PRIMARY KEY DEFAULT NEXTVAL('seq_kinetic'),
     guid        TEXT     NOT NULL,
     name        TEXT     NOT NULL,
     description TEXT,
     state       INT2     NOT NULL DEFAULT '1'
 );
-}) =~ s/\s+/ /g;
+
+CREATE UNIQUE INDEX udx_simple_guid ON simple (LOWER(guid));
+CREATE INDEX idx_simple_name ON simple (LOWER(name));
+CREATE INDEX idx_simple_state ON simple (state);
+}) =~ s/[ ]+/ /g;
 
 ok my $sql = $sg->schema_for_class($simple), "Get schema for Simple class";
-$sql =~ s/\s+/ /g;
+$sql =~ s/[ ]+/ /g;
 is $sql, $testsql, "Check Simple class SQL";
 
 

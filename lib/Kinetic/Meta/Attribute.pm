@@ -76,7 +76,7 @@ sub new {
 
 =head3 label
 
-  my $label = $class->label;
+  my $label = $attr->label;
 
 Returns the localized form of the label for the attribute, such as "Name".
 
@@ -102,9 +102,21 @@ sub widget_meta { shift->{widget_meta} }
 
 ##############################################################################
 
+=head3 unique
+
+  my $unique = $attr->unique;
+
+Returns true if an attribute is unique across all objects of a class.
+
+=cut
+
+sub unique { shift->{unique} }
+
+##############################################################################
+
 =head3 indexed
 
-  my $indexed = $class->indexed;
+  my $indexed = $attr->indexed;
 
 During date store schema generation, returns true if an attribute is indexed
 in the data store, and false if it is not. Disabled when
@@ -118,7 +130,7 @@ sub indexed { shift->{indexed} }
 
 =head3 store_default
 
-  my $store_default = $class->store_default;
+  my $store_default = $attr->store_default;
 
 During date store schema generation, returns a default value meant to be
 configured in a data store, if any. Disabled when C<Kinetic::Build::Schema>

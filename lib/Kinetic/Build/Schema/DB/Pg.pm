@@ -55,6 +55,16 @@ sub column_type {
     return " $types{$attr->type}";
 }
 
+sub index_on {
+    my ($self, $attr) = @_;
+    my $col = $attr->name;
+    return $attr->type eq 'string' || $attr->type eq 'guid'
+      ? "LOWER($col)"
+      : $col;
+}
+
+
+
 1;
 __END__
 

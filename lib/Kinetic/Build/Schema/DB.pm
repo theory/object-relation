@@ -41,15 +41,66 @@ implementations.
 
 =cut
 
+##############################################################################
+# Instance Interface
+##############################################################################
+
+=head1 Instance Interface
+
+=head2 Instance Methods
+
+=head3 schema_for_class
+
+  my $sql = $kbs->schema_for_class($class);
+
+Returns a string with the SQL statements that can be used to build the tables,
+indexes, and constraints necessary to manage a clas in a database.
+
+=cut
+
 sub schema_for_class {
     my ($self, $class) = @_;
-    $class = $class->my_clastyps
+    $class = $class->my_class
       unless UNIVERSAL::isa($class, 'Kinetic::Meta::Class');
+
+    # Generate the table.
+    $self->table_for_class($class);
+    # Generate the indexes.
+    $self->output_indexes($class);
+
+    return delete($self->{$class->key . '_table'}) . "\n"
+      . delete($self->{$class->key . '_indexes'}) . "\n";
+}
+
+##############################################################################
+
+=head3 table_for_class
+
+  $kbs->table_for_class($class);
+
+Called by C<schema_for_class()> this method uses a number of other methods to
+generate the SQL for the main table for a class. The SQL will be stored in the
+C<Kinetic::Build::Schema> object under the class key plus the string "_table".
+
+=cut
+
+sub table_for_class {
+    my ($self, $class) = @_;
     $self->start_table($class);
     $self->output_columns($class);
     $self->end_table($class);
-    return delete $self->{$class->key . '_table'};
 }
+
+##############################################################################
+
+=head3 start_table
+
+  $kbs->start_table($class);
+
+This method is called by C<table_for_class()> to generate the opening
+statement for creating a table.
+
+=cut
 
 sub start_table {
     my ($self, $class) = @_;
@@ -58,19 +109,53 @@ sub start_table {
     return $self;
 }
 
+##############################################################################
+
+=head3 end_table
+
+  $kbs->end_table($class);
+
+This method is called by C<table_for_class()> to generate the closing
+statement for creating a table.
+
+=cut
+
 sub end_table {
     my ($self, $class) = @_;
     $self->{$class->key . '_table'} .= "\n);\n";
     return $self;
 }
 
+##############################################################################
+
+=head3 output_columns
+
+  $kbs->output_columns($class);
+
+This method outputs all of the columns necessary to represent a class in a
+table.
+
+=cut
+
 sub output_columns {
     my ($self, $class) = @_;
-    my @cols = ( "    id INTEGER NOT NULL DEFAULT NEXTVAL('kinetic_seq')" );
+    my @cols = ( "    id INTEGER NOT NULL PRIMARY KEY DEFAULT NEXTVAL('seq_kinetic')" );
     push @cols, $self->generate_column($_) for $class->attributes;
     $self->{$class->key . '_table'} .= join ",\n    ", @cols;
     return $self;
 }
+
+##############################################################################
+
+=head3 generate_column
+
+  my $sql = $kbs->generate_column($attr);
+
+This method returns the SQL representing a single column declaration in a
+table, where the column holds data represented by the
+C<Kinetic::Meta::Attribute> object passed to the method.
+
+=cut
 
 sub generate_column {
     my ($self, $attr, $buffers) = @_;
@@ -98,7 +183,33 @@ sub column_default {
     return defined $def ? " DEFAULT '$def'" : '';
 }
 
+sub output_indexes {
+    my ($self, $class) = @_;
+    my $key = $class->key;
+    $self->{"$key\_indexes"} =
+      join "\n", map { $self->output_index($key, $_) } $class->attributes;
+    return $self;
+}
 
+sub output_index {
+    my ($self, $table, $attr) = @_;
+    return unless $attr->indexed || $attr->unique;
+    my $name = $self->index_name($table, $attr);
+    my $on = $self->index_on($attr);
+    my $unique = $attr->unique ? ' UNIQUE' : '';
+    return "CREATE$unique INDEX $name ON $table ($on);";
+}
+
+sub index_name {
+    my ($self, $table, $attr) = @_;
+    return ($attr->unique ? 'u' : 'i')
+      . "dx_$table\_" . $attr->name;
+}
+
+sub index_on {
+    my ($self, $attr) = @_;
+    return $attr->name;
+}
 
 1;
 __END__
