@@ -257,6 +257,9 @@ sub _make_where_token {
     elsif ($comparator =~ /LIKE/) {
         return ("$field $comparator ?", [$value]);
     }
+    else {
+        croak "I don't know how to make a where token from '$field' and '$attribute'";
+    }
 }
 
 sub _expand_attribute {
@@ -278,3 +281,23 @@ sub _expand_attribute {
 }
 
 1;
+__END__
+
+##############################################################################
+
+=head1 Copyright and License
+
+Copyright (c) 2004 Kineticode, Inc. <info@kineticode.com>
+
+This work is made available under the terms of Version 2 of the GNU General
+Public License. You should have received a copy of the GNU General Public
+License along with this program; if not, download it from
+L<http://www.gnu.org/licenses/gpl.txt> or write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+This work is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
+details.
+
+=cut

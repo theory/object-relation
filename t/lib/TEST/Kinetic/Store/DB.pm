@@ -20,28 +20,7 @@ use aliased 'Hash::AsObject';
 
 __PACKAGE__->runtests;
 
-my %COMPARE;
-sub _make_where_token {
-    my ($class, $field, $attribute) = @_;
-    my ($comparator, $value) = $class->_expand_attribute($attribute);
-    # simple compare         #       NULL            # BETWEEN
-    if (exists $COMPARE{$comparator} && defined $value && ! ref $value) {
-        return ("$field $COMPARE{$comparator} ?", $value);
-    }
-    elsif ('ARRAY' eq ref $value) {
-        return ("$field $comparator BETWEEN ? AND ?", $value);
-    }
-#    elsif ($comparator =~ s/ANY//) {
-#        my $place_holders = join ', ' => (?) x @$value;
-#        return ("$field $comparator IN ($place_holders)", $value);
-#    }
-# don't forget like!
-    elsif (! defined $value) {
-        return "$field IS $comparator NULL";
-    }
-}
-
-sub where_token : Test(21) {
+sub where_token : Test(22) {
     can_ok Store, '_make_where_token';
     
     my ($token, $bind) = Store->_make_where_token('name', 'foo');
@@ -52,6 +31,9 @@ sub where_token : Test(21) {
     is $token, 'name != ?', 
         'and a negated basic match should return the correct where snippet';
     is_deeply $bind, ['foo'], 'and a proper bind param';
+
+    eval { Store->_make_where_token('name', {}) };
+    ok $@, "We should not make a where token if it doesn't know how to make one";
 
     ($token, $bind) = Store->_make_where_token('name', ['bar', 'foo']);
     is $token, 'name  BETWEEN ? AND ?',
