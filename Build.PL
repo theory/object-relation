@@ -30,7 +30,9 @@ my $build = Kinetic::Build->new(
     },
     build_requires     => {
         'App::Info'             => 0.42,
+        'DFA::Simple'           => 0.32,
         'Module::Build'         => 0.26,
+        'Sub::Override'         => 0.05,
         'Test::MockModule'      => 0.03,
         'Test::More'            => 0.17,
         'Test::Differences'     => 0.47,
