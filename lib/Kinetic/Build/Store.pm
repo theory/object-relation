@@ -101,7 +101,7 @@ sub build {
 
 sub build_db {
     my $self = shift;
-    
+
     my $schema_class = $self->_schema_class;
     eval "use $schema_class";
     die $@ if $@;
@@ -133,7 +133,7 @@ sub build_db {
 
     return $self;
 }
- 
+
 ##############################################################################
 
 =head3 do_actions
@@ -162,11 +162,11 @@ sub switch_to_db {
     $self->_dbh->disconnect if $self->_dbh;
     $self->_dbh(undef); # clear wherever we were
     return $self;
-} 
+}
 
 ##############################################################################
 
-=head2 Private Methods 
+=head2 Private Methods
 
 =cut
 
@@ -184,8 +184,8 @@ sub _dbh {
     my $user = $self->metadata->db_user;
     my $pass = $self->metadata->db_pass;
     my $dbh = DBI->connect(
-        $dsn, 
-        $user, 
+        $dsn,
+        $user,
         $pass,
         {RaiseError => 1, AutoCommit => 1}
     ) or require Carp && Carp::croak $DBI::errstr;
