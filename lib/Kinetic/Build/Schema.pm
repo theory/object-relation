@@ -125,6 +125,7 @@ sub load_classes {
     unshift @INC, $dir;
     my @classes;
     my $find_classes = sub {
+        local *__ANON__ = '__ANON__find_classes';
         return if /\.svn/;
         return unless /\.pm$/;
         return if /#/; # Ignore old backup files.
@@ -186,9 +187,9 @@ sub write_schema {
     my $file = File::Spec->catfile(@parts);
 
     # Create the directory, if necessary, and open the file.
-    pop @parts;
+    pop @parts; # drop the filename
     my $dir = File::Spec->catdir(@parts);
-    mkpath $dir;
+    mkpath $dir if $dir; # don't do this if they didn't give us a filename
     open my $fh, '>', $file or croak "Cannot open '$file': $!\n";
 
     if (my $begin = $self->begin_schema) {
@@ -286,7 +287,8 @@ subclasses.
 
 Converts a file name to a Perl module name. The file name is expected to be a
 relative file name ending in F<.pm>. If it starts with "t", "lib", or "t/lib",
-C<file_to_mod()> will simply strip off those directory names.
+or any of those preceded with '..', C<file_to_mod()> will simply strip off
+those directory names.
 
 =cut
 
@@ -294,7 +296,7 @@ sub file_to_mod {
     my ($self, $file) = @_;
     $file =~ s/\.pm$// or croak "$file is not a Perl module";
     my (@dirs) = File::Spec->splitdir($file);
-    while ($dirs[0] && ($dirs[0] eq 't' || $dirs[0] eq 'lib')) {
+    while ($dirs[0] && (grep { $dirs[0] eq $_ } qw/.. t lib/)) {
         shift @dirs;
     }
     join '::', @dirs;

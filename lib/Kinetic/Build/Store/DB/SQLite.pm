@@ -1,4 +1,4 @@
-package Kinetic::Build::Store::DB::Pg;
+package Kinetic::Build::Store::DB::SQLite;
 
 # $Id$
 
@@ -20,15 +20,16 @@ package Kinetic::Build::Store::DB::Pg;
 
 use strict;
 use base 'Kinetic::Build::Store::DB';
+use DBI;
 use Kinetic::Build;
-use App::Info::RDBMS::PostgreSQL;
+use App::Info::RDBMS::SQLite;
 use App::Info::Handler::Carp;
 use App::Info::Handler::Prompt;
 use App::Info::Handler::Print;
 
 =head1 Name
 
-Kinetic::Build::Store::DB::Pg - Kinetic PostgreSQL data store builder
+Kinetic::Build::Store::DB::SQLite - Kinetic SQLite data store builder
 
 =head1 Synopsis
 
@@ -36,7 +37,7 @@ See L<Kinetic::Build::Store|Kinetic::Build::Store>.
 
 =head1 Description
 
-This module inherits from Kinetic::Build::Store::DB to build a PostgreSQL data
+This module inherits from Kinetic::Build::Store::DB to build a SQLite data
 store. Its interface is defined entirely by Kinetic::Build::Store.
 
 =cut
@@ -51,28 +52,8 @@ Returns a string representing the class that will define the schema in question;
 
 =cut
 
-sub _schema_class { 'Kinetic::Build::Schema::DB::Pg' }
+sub _schema_class { 'Kinetic::Build::Schema::DB::SQLite' }
 
-##############################################################################
-
-=head3 _dbh
-
-  $kbs->_dbh;
-
-Returns the database handle to connect to the data store.
-
-=cut
-
-sub _dbh {
-    my $self = shift;
-    return $self->{dbh} if $self->{dbh};
-    my $dsn  = $self->metadata->_dsn;
-    my $user;
-    my $dbh = DBI->connect($dsn, '','', {RaiseError => 1})
-      or require Carp && Carp::croak $DBI::errstr;
-    $self->{dbh} = $dbh;
-    return $dbh;
-}
 
 1;
 __END__

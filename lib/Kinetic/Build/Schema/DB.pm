@@ -61,7 +61,7 @@ methods that define these names, and documentation for the naming conventions.
   my $sql = $kbs->schema_for_class($class);
 
 Returns a string with the SQL statements that can be used to build the tables,
-indexes, and constraints necessary to manage a clas in a database.
+indexes, and constraints necessary to manage a class in a database.
 
 =cut
 
@@ -77,6 +77,69 @@ sub schema_for_class {
       $self->update_for_class($class),
       $self->delete_for_class($class);
 }
+
+##############################################################################
+
+=head3 behaviors_for_class
+
+  my @behaviors = $self->behaviors_for_class($class);
+
+Takes a class object.  Returns a list of SQL statements for:
+
+=over 4
+
+=item * indexes
+
+  $kbs->indexes_for_class($class);
+
+=item * constraints
+
+  $kbs->constraints_for_class($class);
+
+=item * view
+
+  $kbs->view_for_class($class);
+
+=item * inserts
+
+  $kbs->insert_for_class($class);
+
+=item * updates
+
+  $kbs->update_for_class($class);
+
+=item * deletes
+
+  $kbs->delete_for_class($class);
+
+=back
+
+This is primarily a handy wrapper method for fetching these values all at once
+when a schema is being created in a new database.
+
+=cut
+
+sub behaviors_for_class {
+    my ($self, $class) = @_;
+    return 
+      $self->indexes_for_class($class),
+      $self->constraints_for_class($class),
+      $self->view_for_class($class),
+      $self->insert_for_class($class),
+      $self->update_for_class($class),
+      $self->delete_for_class($class);
+}
+
+##############################################################################
+
+=head3 table_for_class
+
+  $kbs->table_for_class($class);
+
+This method takes a class object.  It returns a C<CREATE TABLE> sql statement
+for the class;
+
+=cut
 
 sub table_for_class {
     my ($self, $class) = @_;

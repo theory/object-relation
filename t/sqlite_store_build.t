@@ -3,11 +3,10 @@
 # $Id$
 
 use strict;
-use warnings;
-use File::Spec;
+use Test::Exception;
+use Test::MockModule;
 #use Test::More 'no_plan';
-use Test::More skip_all => 'PostgreSQL rules are incomplete';
-
+use Test::More tests => 21;
 use lib 't/lib', '../../lib';
 use Kinetic::Build;
 use File::Spec;
@@ -30,8 +29,9 @@ BEGIN {
         module_name     => 'KineticBuildOne',
         conf_file       => 'test.conf', # always writes to t/ and blib/
         accept_defaults => 1,
-        store           => 'pg',
-        db_root_user    => 'postgres',
+        #store           => 'pg'
+        # if we do this, it dies saying we can't connect as normal user
+        # this needs to be copied to pg_store_build and run from there
     );
     $BUILD->create_build_script;
     $BUILD->dispatch('build');
@@ -41,12 +41,11 @@ BEGIN {
     use_ok $CLASS or die;
 }
 
-exit;
 #use Kinetic::Util::Config;
 can_ok $CLASS, 'new';
 ok my $bstore = $CLASS->new, '... and calling it should succeed';
 isa_ok $bstore, $CLASS, => "... and the object it returns";
-isa_ok $bstore, 'Kinetic::Build::Store::DB::Pg',
+isa_ok $bstore, 'Kinetic::Build::Store::DB::SQLite',
   '... and the object it returns';
 
 can_ok $bstore, 'metadata';
@@ -80,51 +79,9 @@ SKIP: {
 }
 
 END {
+    File::Path::rmtree(File::Spec->catdir(qw(t data)));
+    my $db = File::Spec->catfile(qw/.. build_sample/, $metadata->db_file);
+    unlink $db or die $!;
     $BUILD->dispatch('realclean');
 }
 
-
-__END__
-#use Test::More tests => 13;
-use Kinetic::Build::Test (
-    store => { class   => 'Kinetic::Store::DB::Pg' },
-    pg =>    { db_name => '__kinetic_test__' },
-);
-
-BEGIN {
-    use_ok 'Kinetic::Build::Store'  or die;
-    use_ok 'Kinetic::Build::Schema' or die;
-};
-
-ok my $store = Kinetic::Build::Store->new, "Load store builder";
-isa_ok $store, 'Kinetic::Build::Store';
-isa_ok $store, 'Kinetic::Build::Store::DB';
-isa_ok $store, 'Kinetic::Build::Store::DB::Pg';
-
-ok my $schema = Kinetic::Build::Schema->new, 'Get new Schema';
-isa_ok $schema, 'Kinetic::Build::Schema';
-isa_ok $schema, 'Kinetic::Build::Schema::DB';
-isa_ok $schema, 'Kinetic::Build::Schema::DB::Pg';
-
-# Build the schema.
-ok $schema->load_classes('t/lib'), "Load classes";
-
-# Build the store.
-ok $store->build('t/lib'), "Build data store";
-
-ok ! $@, '... and "use"ing the class should not die';
-my @tables = map { $_->table } $schema->classes;
-
-can_ok $store, '_dbh';
-ok my $dbh = $store->_dbh, 'We should have a database handle';
-isa_ok $dbh, 'DBI::db' => '... and the handle';
-
-foreach my $table (@tables) {
-    my $sql = "SELECT * FROM $table";
-    eval {$dbh->selectall_arrayref($sql)};
-    ok ! $@, "... and it should tell us that '$table' exists in the database";
-}
-
-##############################################################################
-# Cleanup our mess.
-#END { File::Path::rmtree(File::Spec->catdir(qw(t data))) }

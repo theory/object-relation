@@ -73,26 +73,6 @@ sub new {
 
 ##############################################################################
 
-=head1 Instance Interface
-
-=head2 Instance Methods
-
-=head3 validate
-
-  $kbs->validate;
-
-Ensures that the user can actually use the store in question.  Must be
-overridden in the subclass.
-
-=cut
-
-sub validate {
-    my ($self) = @_;
-    return $self;
-}
-
-##############################################################################
-
 =head3 metadata
 
   my $metadata = $kbs->metadata;
@@ -107,15 +87,106 @@ sub metadata { $_[0]->{metadata} }
 
 =head3 build
 
-  $kbs->build($filename);
+  $kbs->build($dir);
 
-Builds the datastore with the schema code stored in C<$filename>.
+Passed the name of a directory where the appropriate classes are located, this
+method will build a database representing those classes in the database
+specified by C<Kinetic::Build>.
 
 =cut
 
 sub build {
-    my ($self, $file) = @_;
+    my ($self, $dir) = @_;
+
+    my $schema_class = $self->_schema_class;
+    eval "use $schema_class";
+    die $@ if $@;
+    my $sg = $schema_class->new;
+
+    $sg->load_classes($dir);
+    my (@tables, @behaviors);
+    my %seen;
+    for my $class ($sg->classes) {
+        next if $seen{$class->key}++;
+        push @tables    => $sg->table_for_class($class);
+        push @behaviors => $sg->behaviors_for_class($class);
+    }
+    $self->_do(@tables, @behaviors);
     return $self;
+}
+    
+##############################################################################
+
+=head2 Private Methods 
+
+=cut
+
+=head3 _do
+
+  $kbs->_do(@sql);
+
+This method will attempt to C<$dbh-E<gt>do($sql)> until no more SQL can be
+done.  This effectively brute forces the database ordering problem (e.g., when
+you're trying to create a foreign key constraint on a column in a table you
+haven't created yet.)
+
+=cut
+
+sub _do {
+    my $self    = shift;
+    my %actions = map { $_ => 1 } grep { $_ && /\w/ } @_;
+    my $count   = keys %actions;
+    my $dbh     = $self->_dbh;
+
+    my (@failures, $schema_created);
+
+    while ( ! $schema_created ) {
+        foreach my $action (keys %actions) {
+            eval {
+                local $SIG{__WARN__} = sub {};
+                $dbh->do($action)
+            };
+            if ($@) {
+                push @failures => [$action => $@];
+            } else {
+                delete $actions{$action};
+            }
+        }
+        if ( ! @failures ) {
+            $schema_created = 1;
+        } elsif ( $count == keys %actions ) {
+            foreach my $failure (@failures) {
+                warn "Action: \n$failure->[0]\nFailure reason: $@\n----------\n";
+            }
+            die "Database schema creation failed.";
+        } else {
+            @failures = ();
+            $count    = keys %actions;
+        }
+    }
+    return $self;
+}
+
+##############################################################################
+
+=head3 _dbh
+
+  $kbs->_dbh;
+
+Returns the database handle to connect to the data store.
+
+=cut
+
+sub _dbh {
+    my $self = shift;
+    return $self->{dbh} if $self->{dbh};
+    my $dsn  = $self->metadata->_dsn;
+    my $user = $self->metadata->db_user;
+    my $pass = $self->metadata->db_pass;
+    my $dbh = DBI->connect( $dsn, $user, $pass, {RaiseError => 1}) 
+      or require Carp && Carp::croak $DBI::errstr;
+    $self->{dbh} = $dbh;
+    return $dbh;
 }
 
 1;

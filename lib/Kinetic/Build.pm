@@ -47,7 +47,7 @@ my %CONFIG = (
         dsn      => {
             dbd        => 'SQLite',
             methods => {
-                dbname => 'db_name',
+                dbname => 'db_file',
             },
         },
     },
@@ -194,7 +194,7 @@ user name for the seleted data store. Not used by the SQLite data store.
 
 =cut
 
-__PACKAGE__->add_property('db_root_user');
+__PACKAGE__->add_property(db_root_user => '');
 
 ##############################################################################
 
@@ -555,99 +555,6 @@ sub prompt {
     local $| = 1;
     print "$prompt: ", (defined $default ? $default : '[undefined]'), "\n";
     return $default;
-}
-
-##############################################################################
-
-=head3 check_pg
-
-  $build->check_pg;
-
-This method checks that the necessary PostgreSQL client libraries and
-programs are present to build the database. It uses
-L<App::Info::RDBMS::PostgreSQL|App::Info::RDBMS::PostgreSQL> to do this.
-
-=cut
-
-sub check_pg {
-    my ($self, $pg) = @_;
-
-    # Check for database accessibility. Rules:
-    $pg->createlang
-        or $self->_fatal_error("createlang must be available for plpgsql support");
-
-    my $template1 = 'template1';
-    my $user      = $self->db_user;
-    my $pass      = $self->db_pass;
-
-    unless ($self->db_root_user) {
-        # We should be able to connect to template1 as db_user
-        my $dbh = $self->_connect_as_user($template1)
-          or $self->_fatal_error("Can't connect as $user to $template1: $DBI::errstr");
-
-        $self->_dbh($dbh);
-        # If db_name does not exist, db_user should have permission to create it.
-        unless ($self->_db_exists) {
-            $self->_can_create_db($user)
-              or $self->_fatal_error("User $user does not have permission to create databases");
-        }
-    } else {
-        $self->db_root_user('postgres') unless defined $self->db_root_user;
-        my $root = $self->db_root_user;
-        # We should be able to connect to template1 as db_root_user
-        my $dbh = $self->_connect_as_root($template1)
-          or $self->_fatal_error("Can't connect as $root to $template1: $DBI::errstr");
-
-        $self->_dbh($dbh);
-
-        # root user should really be root user
-        unless ($self->_is_root_user($root)) {
-            $self->_fatal_error("We thought $root was root, but it is not.");
-        }
-
-        # if db_name does not exist, db_root_user should have permission to create it.
-        unless ($self->_db_exists) {
-            $self->_can_create_db($root)
-              or $self->_fatal_error("User $root does not have permission to create databases");
-        }
-
-        # if db_user does not exist, make a note so the build process can know
-        unless ($self->_user_exists($user)) {
-            $self->notes(default_user => "$user does not exist");
-        }
-    }
-
-    # We're good to go. Collect the configuration data.
-    my %info = (
-        createlang => $pg->createlang,
-        psql       => $pg->executable,
-        version    => version->new($pg->version),
-    );
-
-    $self->notes(pg_info => $pg);
-    return $self;
-}
-
-##############################################################################
-
-=head3 check_sqlite
-
-  $build->check_sqlite;
-
-This method checks that SQLite is installed so that the database can be
-built. uses L<App::Info::RDBMS::SQLite|App::Info::RDBMS::SQLite> to do this.
-
-=cut
-
-sub check_sqlite {
-    my ($self, $sqlite) = @_;
-
-    my $rules_class = $CONFIG{$self->store}{rules};
-    eval "use $rules_class";
-    $self->_fatal_error("Cannot use class ($rules_class): $@") if $@;
-    my $rules = $rules_class->new($self);
-    $rules->validate; 
-    return $self;
 }
 
 ##############################################################################

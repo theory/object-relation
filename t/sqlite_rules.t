@@ -4,7 +4,7 @@
 
 use strict;
 use Kinetic::Build;
-use Test::More tests => 17;
+use Test::More tests => 16;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Test::Exception;
@@ -68,13 +68,6 @@ throws_ok {$rules->validate}
     qr/SQLite is not the minimum required version/,
     '... or if SQLite is not the minumum supported version';
 
-$mock_rules->mock('_is_required_version', sub {1});
-$mock_rules->mock('_has_executable', sub {0});
-throws_ok {$rules->validate}
-    qr/DBD::SQLite is installed but we require the sqlite3 executable/,
-    '... or if the executable is not available';
-
-$mock_rules->mock('_has_executable', sub {1});
 $mock_rules->mock('_is_required_version', sub {1});
 my $mock_build = Test::MockModule->new('Kinetic::Build');
 $mock_build->mock('prompt', sub {'fooness'});

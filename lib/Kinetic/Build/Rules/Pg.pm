@@ -144,12 +144,12 @@ sub _state_machine {
             do => sub {
                 my $state = shift;
                 my $root = $self->build->db_root_user || 'postgres';
+                $self->build->db_root_user($root);
                 my $dbh  = $self->_connect_as_root($template);
                 $state->result($dbh);
                 $self->_dbh($dbh);
                 $state->message("User ($root) is not a root user or does not exist.")
                   unless $state->result;
-                $self->build->db_root_user($root);
             },
             rules => [
                 user => $fail,
@@ -431,7 +431,7 @@ database handle on success and undef on failure.
 sub _connect_to_pg {
     my ($self, $db_name, $user, $pass) = @_;
     my $dbh;
-    eval { $dbh = DBI->connect($self->_dsn, $user, $pass) };
+    eval { $dbh = DBI->connect($self->build->_dsn, $user, $pass) };
     return $dbh;
 }
 

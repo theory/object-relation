@@ -110,23 +110,9 @@ sub _state_machine {
                     rule    => $fail,
                     message => 'SQLite is not the minimum required version',
                 },
-                check_executable => {
-                    rule    => $succeed,
-                    message => 'SQLite is the minimum required version',
-                },
-            ],
-        },
-        # XXX This state can go now.
-        check_executable => {
-            do => sub { shift->result($self->_has_executable) },
-            rules => [
-                fail      => {
-                    rule    => $fail,
-                    message => 'DBD::SQLite is installed but we require the sqlite3 executable',
-                },
                 file_name => {
                     rule    => $succeed,
-                    message => 'sqlite3 found',
+                    message => 'SQLite is the minimum required version',
                 },
             ],
         },

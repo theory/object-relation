@@ -30,7 +30,7 @@ script:
 This class sets up the environment for testing. It should thus be used by all
 Kinetic test scripts.
 
-Seting up the environment consist of setting up the C<$KINETIC_CONF>
+Setting up the environment consist of setting up the C<$KINETIC_CONF>
 environment variable to point to the F<kinetic.conf> in either the F<t/conf>
 directory or the F<conf> directory. If arguments are passed in when the module
 is loaded, then the configuration file will be backed up, then modified with

@@ -5,8 +5,8 @@
 use strict;
 use Test::Exception;
 use Test::MockModule;
-use Test::More 'no_plan';
-#use Test::More tests => 82;
+#use Test::More 'no_plan';
+use Test::More tests => 81;
 use Test::File;
 use Test::File::Contents;
 use lib 't/lib', '../../lib';;
@@ -55,7 +55,7 @@ is $build->db_host, undef,
   '... The db_host attribute should be undef by default';
 is $build->db_port, undef,
   '... The db_port attribute should be undef by default';
-is $build->db_root_user, undef,
+is $build->db_root_user, '',
   '... The db_root_user attribute should be undefined by default';
 is $build->db_root_pass, '',
   '... The db_root_pass attribute should be an empty string by default';
@@ -86,8 +86,8 @@ print STDIN "\n";
 $build->dispatch('build');
 # We should be prompted to confirm our choice.
 ok my $out = $stdout->read, '... There should be output to STDOUT after build';
-like $out, qr/Path to SQLite executable?/,
-  '... There should be a prompt for SQLite.';
+like $out, qr/Looking for SQLite/,
+  '... telling us it is looking for the SQLite executable';
 
 # We should have files for SQLite databases.
 file_exists_ok 'blib/store/test.db',
@@ -142,8 +142,8 @@ is $build->db_host, 'db.example.com',
   '... The db_host attribute should be "db.example.com"';
 is $build->db_port, 2222,
   '... The db_port attribute should be 2222';
-is $build->db_root_user, undef,
-  '... The db_root_user attribute should be undefined';
+is $build->db_root_user, '',
+  '... The db_root_user attrbiute should be an empty string by default';
 is $build->db_root_pass, '',
   '... The db_root_pass attribute should be an empty string by default';
 is $build->db_file, 'wild.db',
@@ -185,8 +185,6 @@ file_not_exists_ok 'blib/conf/test.conf',
   '... There should no longer be a config file for installation';
 
 {
-    # Check SQLite installation.
-    can_ok($CLASS, 'check_sqlite');
     $build = $CLASS->new(module_name => 'KineticBuildOne', accept_defaults => 1);
 
     my $sqlite = newmock('App::Info::RDBMS::SQLite');
@@ -202,11 +200,6 @@ file_not_exists_ok 'blib/conf/test.conf',
       '... and it should warn you if SQLite is not a new enough version';
 
     $sqlite->mock(version    => sub { '4.0.0' } );
-    $sqlite->mock(executable => sub { 0 } );
-    throws_ok {$build->ACTION_check_store}
-      qr/DBD::SQLite is installed but we require the sqlite3 executable/,
-      '... and it should warn you if the sqlite executable is not installed';
-    $sqlite->mock(executable => sub {1} );
     ok $build->ACTION_check_store,
        '... and if all parameters are correct, we should have no errors';
     #my $fsa = $build->_rules->{machine}; # this is a deliberate testing hook
@@ -262,6 +255,8 @@ file_not_exists_ok 'blib/conf/test.conf',
     $rules->mock(_connect_as_root => 1);
     ok $build->ACTION_check_store,
       '... and if we have a root user, everything should be fine';
+    is $build->db_root_user, 'postgres',
+      '... and the default root user password should be "postgres"';
 
     $build->notes(got_store => 0); # must reset
     $rules->mock(_connect_as_root => 0);
