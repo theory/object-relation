@@ -389,84 +389,84 @@ sub bad_where_tokens : Test(3) {
         'and two search operators are fatal unless the first operator is NOT';
 }
 
-sub expand_search_param : Test(45) {
-    can_ok Store, '_expand_search_param';
+sub evaluate_search_request : Test(45) {
+    can_ok Store, '_evaluate_search_request';
 
-    my ($negated, $type, $value) = Store->_expand_search_param('bar');
+    my ($negated, $type, $value) = Store->_evaluate_search_request('bar');
     is $negated, '', 'negated is the empty string if the search is not negated';
     is $type, 'EQ', 'a simple expansion will return EQ for the type';
     is $value, 'bar', 'and will not touch the value';
 
-    ($negated, $type, $value) = Store->_expand_search_param(undef);
+    ($negated, $type, $value) = Store->_evaluate_search_request(undef);
     is $negated, '', 'negated is the empty string if the search is not negated';
     is $type, '', 'a NULL expansion will return the empty string for the type';
     is_deeply $value, undef, 'and an undef value';
 
-    ($negated, $type, $value) = Store->_expand_search_param(NOT undef);
+    ($negated, $type, $value) = Store->_evaluate_search_request(NOT undef);
     is $negated, 'NOT', 'negated is "NOT" if the search is negated';
     is $type, '', 'a negated NULL expansion will return the empty string for the type';
     is_deeply $value, undef, 'and an undef value';
 
-    ($negated, $type, $value) = Store->_expand_search_param([qw/foo bar/]);
+    ($negated, $type, $value) = Store->_evaluate_search_request([qw/foo bar/]);
     is $negated, '', 'negated is the empty string if the search is not negated';
     is $type, '', 'a range expansion will return the empty string for the type';
     is_deeply $value, [qw/foo bar/], 'and will not touch the value';
 
-    ($negated, $type, $value) = Store->_expand_search_param(NOT [qw/foo bar/]);
+    ($negated, $type, $value) = Store->_evaluate_search_request(NOT [qw/foo bar/]);
     is $negated, 'NOT', 'negated is "NOT" if the search is negated';
     is $type, '',
         'a negated range expansion will return them empty string for the type';
     is_deeply $value, [qw/foo bar/], 'and will not touch the value';
 
-    ($negated, $type, $value) = Store->_expand_search_param(ANY('bar'));
+    ($negated, $type, $value) = Store->_evaluate_search_request(ANY('bar'));
     is $negated, '', 'negated is the empty string if the search is not negated';
     is $type, 'ANY', 'an ANY expansion will return ANY for the type';
     is_deeply $value, ['bar'], 'and the values will be an array ref';
 
-    ($negated, $type, $value) = Store->_expand_search_param(NOT ANY('bar', 'baz'));
+    ($negated, $type, $value) = Store->_evaluate_search_request(NOT ANY('bar', 'baz'));
     is $negated, 'NOT', 'negated is "NOT" if the search is negated';
     is $type, 'ANY', 'a NOT ANY expansion will return ANY for the type';
     is_deeply $value, ['bar', 'baz'], 'and the args as an array ref';
 
-    throws_ok {Store->_expand_search_param(OR(name => 'bar'))}
+    throws_ok {Store->_evaluate_search_request(OR(name => 'bar'))}
         qr/\Q(OR) cannot be a value\E/,
         'and OR should never be parsed as a value';
 
-    throws_ok {Store->_expand_search_param(AND(name => 'bar'))}
+    throws_ok {Store->_evaluate_search_request(AND(name => 'bar'))}
         qr/\Q(AND) cannot be a value\E/,
         'and AND should never be parsed as a value';
 
-    ($negated, $type, $value) = Store->_expand_search_param(GT 'bar');
+    ($negated, $type, $value) = Store->_evaluate_search_request(GT 'bar');
     is $negated, '', 'negated is the empty string if the search is not negated';
     is $type, 'GT', 'an GT expansion will return GT for the type';
     is_deeply $value, 'bar', 'and will not touch the value';
 
-    ($negated, $type, $value) = Store->_expand_search_param(NOT GT 'bar');
+    ($negated, $type, $value) = Store->_evaluate_search_request(NOT GT 'bar');
     is $negated, 'NOT', 'negated is "NOT" if the search is negated';
     is $type, 'GT', 'an NOT GT expansion will return GT for the type';
     is_deeply $value, 'bar', 'and will not touch the value';
 
-    ($negated, $type, $value) = Store->_expand_search_param(LIKE 'bar');
+    ($negated, $type, $value) = Store->_evaluate_search_request(LIKE 'bar');
     is $negated, '', 'negated is the empty string if the search is not negated';
     is $type, 'LIKE', 'an LIKE expansion will return LIKE for the type';
     is_deeply $value, 'bar', 'and will not touch the value';
 
-    ($negated, $type, $value) = Store->_expand_search_param(NOT LIKE 'bar');
+    ($negated, $type, $value) = Store->_evaluate_search_request(NOT LIKE 'bar');
     is $negated, 'NOT', 'negated is "NOT" if the search is negated';
     is $type, 'LIKE', 'an NOT LIKE expansion will return LIKE for the type';
     is_deeply $value, 'bar', 'and will not touch the value';
 
-    ($negated, $type, $value) = Store->_expand_search_param(MATCH 'bar\S*');
+    ($negated, $type, $value) = Store->_evaluate_search_request(MATCH 'bar\S*');
     is $negated, '', 'negated is the empty string if the search is not negated';
     is $type, 'MATCH', 'an MATCH expansion will return MATCH for the type';
     is_deeply $value, 'bar\S*', 'and will not touch the value';
 
-    ($negated, $type, $value) = Store->_expand_search_param(NOT MATCH 'bar\S+');
+    ($negated, $type, $value) = Store->_evaluate_search_request(NOT MATCH 'bar\S+');
     is $negated, 'NOT', 'negated is "NOT" if the search is negated';
     is $type, 'MATCH', 'an NOT MATCH expansion will return MATCH for the type';
     is_deeply $value, 'bar\S+', 'and will not touch the value';
 
-    ($negated, $type, $value) = Store->_expand_search_param(NOT 'bar');
+    ($negated, $type, $value) = Store->_evaluate_search_request(NOT 'bar');
     is $negated, 'NOT', 'negated is "NOT" if the search is negated';
     is $type, '', 'a expansion with a scalar arg will return them empty string for the type';
     is_deeply $value, 'bar', 'and the scalar arg';
@@ -552,10 +552,10 @@ sub insert : Test(7) {
     ok ! exists $one->{id}, 'And a new object should not have an id';
     my @attributes = $one->my_class->attributes;
     my $store = Store->new;
-    @{$store}{qw/search_class view names values/} = (
+    @{$store}{qw/search_class view columns values/} = (
         One->new->my_class,
         'one',
-        [map { Store->_get_name($_) } @attributes],
+        [map { Store->_get_column($_) } @attributes],
         [map { Store->_get_raw_value($one, $_) } @attributes],
     );
     ok $store->_insert($one),
@@ -599,10 +599,10 @@ sub update : Test(7) {
     ];
     my @attributes = $one->my_class->attributes;
     my $store = Store->new;
-    @{$store}{qw/search_class view names values/} = (
+    @{$store}{qw/search_class view columns values/} = (
         One->new->my_class,
         'one',
-        [map { Store->_get_name($_) } @attributes],
+        [map { Store->_get_column($_) } @attributes],
         [map { Store->_get_raw_value($one, $_) } @attributes],
     );
     ok $store->_update($one),
@@ -618,16 +618,16 @@ sub update : Test(7) {
     is $one->{id}, 42, 'and the private id should not be changed';
 }
 
-sub get_name : Test(3) {
-    can_ok Store, '_get_name';
+sub get_column : Test(3) {
+    can_ok Store, '_get_column';
     my $object = Two->new;
     my $attribute = $object->my_class->attributes('name');
-    is Store->_get_name($attribute), 'name',
+    is Store->_get_column($attribute), 'name',
         'normal names should be returned intact';
     my $one = One->new;
     $object->one($one);
     $attribute = $object->my_class->attributes('one');
-    is Store->_get_name($attribute), 'one__id',
+    is Store->_get_column($attribute), 'one__id',
         'but references should have "__id" appended to them';
 }
 

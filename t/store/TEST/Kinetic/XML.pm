@@ -105,7 +105,6 @@ sub new_from_xml : Test(5) {
     my $one = One->new;
     $one->name('some name');
     $one->description('some description');
-    $one->{guid} = 'Fake guid'; # XXX yeah, I know.  If there's a better way ...
     my $xml = XML->new($one);
     my $xml_string = $xml->dump_xml;
     my $object = $test->_force_inflation(XML->new_from_xml($xml_string));
@@ -119,7 +118,6 @@ sub new_from_xml : Test(5) {
         day   => 17 
     ));
     $two->one($one);
-    $two->{guid} = 'another fake guid';
     $xml->object($two);
     $xml_string = $xml->dump_xml;
     $object = $test->_force_inflation(XML->new_from_xml($xml_string));
@@ -164,12 +162,12 @@ sub dump_xml : Test(5) {
     my $one = One->new;
     $one->name('some name');
     $one->description('some description');
-    $one->{guid} = 'Fake guid'; # XXX yeah, I know.  If there's a better way ...
     my $xml = XML->new($one);
+    my $one_guid = $one->guid;
     can_ok $xml, 'dump_xml';
-    is_xml $xml->dump_xml, <<'    END_XML', '... and it should return the correct XML';
+    is_xml $xml->dump_xml, <<"    END_XML", '... and it should return the correct XML';
     <kinetic version="0.01">
-      <one guid="Fake guid">
+      <one guid="$one_guid">
         <name>some name</name>
         <description>some description</description>
         <state>1</state>
@@ -185,15 +183,15 @@ sub dump_xml : Test(5) {
         day   => 17 
     ));
     $two->one($one);
-    $two->{guid} = 'another fake guid';
     $xml->object($two);
-    is_xml $xml->dump_xml({with_contained => 1}), <<'    END_XML', '... contained object should also be represented correctly';
+    my $two_guid = $two->guid;
+    is_xml $xml->dump_xml({with_contained => 1}), <<"    END_XML", '... contained object should also be represented correctly';
     <kinetic version="0.01">
-      <two guid="another fake guid">
+      <two guid="$two_guid">
         <name>june17</name>
         <description></description>
         <state>1</state>
-        <one guid="Fake guid">
+        <one guid="$one_guid">
           <name>some name</name>
           <description>some description</description>
           <state>1</state>
@@ -204,17 +202,17 @@ sub dump_xml : Test(5) {
       </two>
     </kinetic>
     END_XML
-    is_xml $xml->dump_xml({with_contained => 0}), <<'    END_XML', 'with_contained=0 should refer to contained objects by GUID';
+    is_xml $xml->dump_xml({with_contained => 0}), <<"    END_XML", 'with_contained=0 should refer to contained objects by GUID';
     <kinetic version="0.01">
-      <two guid="another fake guid">
+      <two guid="$two_guid">
         <name>june17</name>
         <description></description>
         <state>1</state>
-        <one guid="Fake guid" relative="1"/>
+        <one guid="$one_guid" relative="1"/>
         <age></age>
         <date>1968-06-17T00:00:00</date>
       </two>
-      <one guid="Fake guid">
+      <one guid="$one_guid">
         <name>some name</name>
         <description>some description</description>
         <state>1</state>
@@ -224,12 +222,12 @@ sub dump_xml : Test(5) {
     END_XML
 
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
-    $foo->{guid} = 'fake guid';
     $xml->object($foo);
-    is_xml $xml->dump_xml, <<'    END_XML', '... and if the object has an id, it should be in the XML';
+    my ($guid, $id) = ($foo->guid, $foo->{id});
+    is_xml $xml->dump_xml, <<"    END_XML", '... and if the object has an id, it should be in the XML';
     <kinetic version="0.01">
-      <one guid="fake guid">
-        <id>1</id>
+      <one guid="$guid">
+        <id>$id</id>
         <name>foo</name>
         <description></description>
         <state>1</state>

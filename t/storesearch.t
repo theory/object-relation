@@ -22,7 +22,7 @@ throws_ok { $CLASS->new(foobar => 1, negated => 2, barfoo => 3)}
     qr/\QUnknown attributes to ${CLASS}::new (barfoo foobar)\E/,
     '... but it should die if unknown search attributes are specified';
 
-foreach my $attribute (qw/attr negated operator place_holder search_class/) {
+foreach my $attribute (qw/column negated operator place_holder search_class/) {
     can_ok $search, $attribute;
     ok ! defined $search->$attribute, '... and its initial value should be undefined';
     ok $search->$attribute(scalar reverse $attribute),

@@ -28,7 +28,7 @@ use aliased 'Kinetic::DateTime::Incomplete';
 
 # generic getter/setters
 my @_ATTRIBUTES = qw/
-    attr
+    column
     negated
     operator
     place_holder
@@ -77,7 +77,7 @@ Kinetic::Store::Search - Manage Kinetic search parameters
 
   use Kinetic::Store::Search;
   my $search = Kinetic::Store::Search->new(
-      attr         => $attr,
+      column         => $column,
       operator     => $operator,
       negated      => $negated,
       place_holder => $place_holder,
@@ -85,7 +85,7 @@ Kinetic::Store::Search - Manage Kinetic search parameters
       search_class => $search_class,
   );
   # later
-  $search->attr($new_attr);
+  $search->column($new_attr);
   my $method = $search->store_method;
   $store->$method($search);
 
@@ -109,7 +109,7 @@ the appropriate search token.
   my $search = Kinetic::Store::Search->new;
   # or
   my $search = Kinetic::Store::Search->new(
-      attr         => $attr,
+      column       => $column,
       operator     => $operator,
       negated      => $negated,
       place_holder => $place_holder,
@@ -121,6 +121,9 @@ Creates and returns a new search manager.
 
 If passed named parameters, those respective slots will be populated with the
 values.
+
+Each of the parameters can also be accessed via a getter/setter.  See the docs
+for the corresponding parameter to understand its function.
 
 =cut
 
@@ -163,7 +166,7 @@ method the store L<Kinetic::Store|Kinetic::Store> class should dispatch to.
 
 sub search_method {
     my $self  = shift;
-    my $attr  = $self->attr;
+    my $column  = $self->column;
     my $value = $self->data;
     my $neg   = $self->negated;
     my $op    = $self->operator;
@@ -171,7 +174,7 @@ sub search_method {
     # provide the correct search data
     my $error = do {
         local $^W;
-        "Don't know how to search for ($attr $neg $op $value)";
+        "Don't know how to search for ($column $neg $op $value)";
     };
     croak "$error: undefined op" unless defined $op;
     if ( ref $value && ! blessed($value) && 'ARRAY' ne ref $value) {
@@ -254,11 +257,11 @@ sub _am_i_eq_or_not {
 
 ##############################################################################
 
-=head3 attr
+=head3 column
 
-  $search->attr([$attr]);
+  $search->column([$column]);
 
-Getter/Setter for the object attribute on which you wish to search.
+Getter/Setter for the object column on which you wish to search.
 
 ##############################################################################
 

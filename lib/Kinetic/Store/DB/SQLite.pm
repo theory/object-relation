@@ -174,7 +174,7 @@ sub _field_format {
 sub _eq_date_handler {
     my ($self, $search) = @_;
     my $date     = $search->data;
-    my $token    = $self->_field_format($search->attr, $date);
+    my $token    = $self->_field_format($search->column, $date);
     my $operator = $search->operator;
     return ("$token $operator ?", [$date->sort_string]);
 }
@@ -186,7 +186,7 @@ sub _gt_lt_date_handler {
         require Carp;
         Carp::croak "You cannot do GT or LT type searches with non-contiguous dates";
     }
-    my $token = $self->_field_format($search->attr, $date);
+    my $token = $self->_field_format($search->column, $date);
     my $value = $date->sort_string;
     return ("$token $operator ?", [$value]);
 }
@@ -204,7 +204,7 @@ sub _between_date_handler {
         Carp::croak "BETWEEN search dates must have identical segments defined";
     }
     my ($negated, $operator) = ($search->negated, $search->operator);
-    my $token = $self->_field_format($search->attr, $date1);
+    my $token = $self->_field_format($search->column, $date1);
     return ("$token $negated $operator ? AND ?", [$date1->sort_string, $date2->sort_string])
 }
 
@@ -212,7 +212,7 @@ sub _any_date_handler {
     my ($self, $search)   = @_;
     my ($negated, $value) = ($search->negated, $search->data);
     my (@tokens, @values);
-    my $field = $search->attr;
+    my $field = $search->column;
     foreach my $date (@$value) {
         my $token = $self->_field_format($field, $date);
         push @tokens => "$token = ?";

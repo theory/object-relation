@@ -94,10 +94,10 @@ sub _save {
     #return $class unless $object->changed;
     local $self->{search_class} = $object->my_class;
     local $self->{view}         = $self->{search_class}->key;
-    local @{$self}{qw/names values/};
+    local @{$self}{qw/columns values/};
     foreach my $attr ($self->{search_class}->attributes) {
         $self->_save($attr->get($object)) if $attr->references;
-        push @{$self->{names}}  => $self->_get_name($attr);
+        push @{$self->{columns}}  => $self->_get_column($attr);
         push @{$self->{values}} => $self->_get_raw_value($object, $attr);
     }
     return exists $object->{id}
@@ -308,10 +308,10 @@ sub _any_date_handler {
 }
 
 sub _get_select_sql_and_bind_params {
-    my ($self, $columns, $params) = @_;
-    my $constraints = pop @$params if 'HASH' eq ref $params->[-1];
+    my ($self, $columns, $search_request) = @_;
+    my $constraints = pop @$search_request if 'HASH' eq ref $search_request->[-1];
     my $view        = $self->search_class->key;
-    my ($where_clause, $bind_params) = $self->_make_where_clause($params);
+    my ($where_clause, $bind_params) = $self->_make_where_clause($search_request);
     $where_clause = "WHERE $where_clause" if $where_clause;
     my $sql       = "SELECT $columns FROM $view $where_clause";
     $sql         .= $self->_constraints($constraints) if $constraints;
@@ -356,8 +356,8 @@ any purpose.
 
 sub _insert {
     my ($self, $object) = @_;
-    my $columns      = join ', ' => @{$self->{names}};
-    my $placeholders = join ', ' => (('?') x @{$self->{names}});
+    my $columns      = join ', ' => @{$self->{columns}};
+    my $placeholders = join ', ' => (('?') x @{$self->{columns}});
     my $sql = "INSERT INTO $self->{view} ($columns) VALUES ($placeholders)";
     $self->_cache_statement(1);
     $self->_do_sql($sql, $self->{values});
@@ -367,15 +367,15 @@ sub _insert {
 
 ##############################################################################
 
-=head3 _get_name
+=head3 _get_column
 
-  my $name = $store->_get_name($attribute);
+  my $name = $store->_get_column($attribute);
 
-Given an attribute object, C<_get_name> will return the SQL column name.
+Given an attribute object, C<_get_column> will return the SQL column name.
 
 =cut
 
-sub _get_name {
+sub _get_column {
     my ($self, $attr) = @_;
     my $name = $attr->name;
     $name   .= OBJECT_DELIMITER.'id' if $attr->references;
@@ -432,7 +432,7 @@ Creates and executes an C<UPDATE> sql statement for the given object.
 
 sub _update {
     my ($self, $object) = @_;
-    my $columns = join ', '  => map { "$_ = ?" } @{$self->{names}};
+    my $columns = join ', '  => map { "$_ = ?" } @{$self->{columns}};
     push @{$self->{values}} => $object->{id};
     my $sql = "UPDATE $self->{view} SET $columns WHERE id = ?";
     $self->_cache_statement(1);
@@ -638,17 +638,17 @@ sub _set_search_data {
             foreach my $data (splice @classes_to_process, 0) {
                 my $package = $data->{class}->package;
                 foreach my $attr ($data->{class}->attributes) {
-                    my $name      = $self->_get_name($attr);
-                    my $column    = "$data->{prefix}$name";
-                    push @columns => $column;
-                    $packages{$package}{columns}{$column} = $name;
+                    my $column      = $self->_get_column($attr);
+                    my $view_column = "$data->{prefix}$column";
+                    push @columns   => $view_column;
+                    $packages{$package}{columns}{$view_column} = $column;
                     if (my $class = $attr->references) {
-                        $packages{$class->package}{columns}{$column} = 'id';
+                        $packages{$class->package}{columns}{$view_column} = 'id';
                         push @classes_to_process => {
                             class  => $class,
                             prefix => $class->key . OBJECT_DELIMITER,
                         };
-                        $packages{$package}{contains}{$name} = $class;
+                        $packages{$package}{contains}{$column} = $class;
                     }
                 }
             }
@@ -736,23 +736,23 @@ This method returns a where clause and an arrayref of any appropriate bind
 params for that where clause. Returns an empty string if no where clause can
 be generated.
 
-This is merely a wrapper around C<_make_where_clause_recursive>.
+This is merely a wrapper around C<_recursive_make_where_clause>.
 
 =cut
 
 sub _make_where_clause {
-    my ($self, $search_paramss) = @_;
-    my ($where_clause, $bind_params) = $self->_make_where_clause_recursive($search_paramss);
+    my ($self, $search_request) = @_;
+    my ($where_clause, $bind_params) = $self->_recursive_make_where_clause($search_request);
     $where_clause = '' if '()' eq $where_clause;
     return ($where_clause, $bind_params);
 }
 
 ##############################################################################
 
-=head3 _make_where_clause_recursive
+=head3 _recursive_make_where_clause
 
   my ($where_clause, $bind_params) =
-     $store->_make_where_clause_recursive(\@search_params);
+     $store->_recursive_make_where_clause(\@search_request);
 
 This method returns a where clause and an arrayref of any appropriate bind
 params for that where clause.  Due to its recursive nature, it returns a pair
@@ -764,41 +764,43 @@ language outlined in L<Kinetic::Store|Kinetic::Store>
 
 =cut
 
-sub _make_where_clause_recursive {
-    my ($self, $search_params)     = @_;
+sub _recursive_make_where_clause {
+    my ($self, $search_request) = @_;
     local $self->{where}        = [];
     local $self->{bind_params}  = [];
 
     my ($where_token, $bindings);
     my $op = 'AND';
-    while (@$search_params) {
-        my $curr_search_param = shift @$search_params;
-        unless (ref $curr_search_param) {
+    while (@$search_request) {
+        my $curr_search_request = shift @$search_request;
+        unless (ref $curr_search_request) {
             # name => 'foo'
-            $curr_search_param =~ s/\./OBJECT_DELIMITER/eg;
-            my $value = shift @$search_params;
+            $curr_search_request =~ s/\./OBJECT_DELIMITER/eg;
+            my $column = $curr_search_request;
+            $curr_search_request = shift @$search_request;
             ($where_token, $bindings) = $self->_make_where_token(
-                $curr_search_param, $value
+                $column, 
+                $curr_search_request
             );
         }
-        elsif ('ARRAY' eq ref $curr_search_param) {
+        elsif ('ARRAY' eq ref $curr_search_request) {
             # [ name => 'foo', description => 'bar' ]
-            ($where_token, $bindings) = $self->_make_where_clause_recursive(
-                $curr_search_param
+            ($where_token, $bindings) = $self->_recursive_make_where_clause(
+                $curr_search_request
             );
         }
-        elsif ('CODE' eq ref $curr_search_param) {
+        elsif ('CODE' eq ref $curr_search_request) {
             # OR(name => 'foo') || AND(name => 'foo')
             my $values;
-            ($op, $values) = $curr_search_param->();
+            ($op, $values) = $curr_search_request->();
             unless ($op =~ GROUP_OP) {
                 croak("Grouping operators must be AND or OR, not ($op)");
             }
-            ($where_token, $bindings) = $self->_make_where_clause_recursive($values);
+            ($where_token, $bindings) = $self->_recursive_make_where_clause($values);
         }
         else {
             croak sprintf "I don't know what to do with a %s for (@{$self->{where}})"
-                => ref $curr_search_param;
+                => ref $curr_search_request;
         }
         $self->_save_where_data($op, $where_token, $bindings);
     }
@@ -813,7 +815,7 @@ sub _make_where_clause_recursive {
   $self->_save_where_data($op, $where_token, $bindings);
 
 This is a utility method used to cache data accumulated by the
-C<_make_where_clause_recursive> method.
+C<_recursive_make_where_clause> method.
 
 =cut
 
@@ -847,12 +849,12 @@ sub _case_insensitive_types {
 
 =head3 _make_where_token
 
-  my ($where_token, $value) = $store->_make_where_token($column, $search_param);
+  my ($where_token, $value) = $store->_make_where_token($column, $search_request);
 
 This method returns individual tokens that will be assembled to form the final
 where clause.  The C<$value> is always an arrayref of the values that will be
 bound to the bind parameters in the token.  It takes a C<$column> and its
-$search_param.  Due to the nature of the mini search language, the search
+C<$possible_values>.  Due to the nature of the mini search language, the search
 parameter may be either a string or a code ref.
 
 Examples of returned tokens:
@@ -867,9 +869,9 @@ Examples of returned tokens:
 =cut
 
 sub _make_where_token {
-    my ($self, $column, $search_param) = @_;
+    my ($self, $column, $search_request) = @_;
 
-    my ($negated, $operator, $value) = $self->_expand_search_param($search_param);
+    my ($negated, $operator, $value) = $self->_evaluate_search_request($search_request);
     unless ($self->_search_data_has_column($column)) {
         # special case for searching on a contained object id ...
         my $id_column = $column . OBJECT_DELIMITER . 'id';
@@ -883,7 +885,7 @@ sub _make_where_token {
     }
 
     my $search = Search->new(
-        attr     => $column,
+        column   => $column,
         operator => $operator,
         negated  => $negated,
         data     => $value,
@@ -926,21 +928,21 @@ sub _is_case_insensitive {
 sub _ANY_SEARCH {
     my ($self, $search)        = @_;
     my ($negated, $value)      = ($search->negated, $search->data);
-    my ($column, $place_holder) = $self->_is_case_insensitive($search->attr);
+    my ($column, $place_holder) = $self->_is_case_insensitive($search->column);
     my $place_holders = join ', ' => ($place_holder) x @$value;
     return ("$column $negated IN ($place_holders)", $value);
 }
 
 sub _EQ_SEARCH {
     my ($self, $search)        = @_;
-    my ($column, $place_holder) = $self->_is_case_insensitive($search->attr);
+    my ($column, $place_holder) = $self->_is_case_insensitive($search->column);
     my $operator = $search->operator;
     return ("$column $operator $place_holder", [$search->data]);
 }
 
 sub _NULL_SEARCH {
     my ($self, $search)   = @_;
-    my ($column, $negated) = ($search->attr, $search->negated);
+    my ($column, $negated) = ($search->column, $search->negated);
     return ("$column IS $negated NULL", []);
 }
 
@@ -948,20 +950,20 @@ sub _GT_LT_SEARCH {
     my ($self, $search) = @_;
     my $value = $search->data;
     my $operator = $search->operator;
-    my ($column, $place_holder) = $self->_is_case_insensitive($search->attr);
+    my ($column, $place_holder) = $self->_is_case_insensitive($search->column);
     return ("$column $operator $place_holder", [$value]);
 }
 
 sub _BETWEEN_SEARCH {
     my ($self, $search) = @_;
     my ($negated, $operator) = ($search->negated, $search->operator);
-    my ($column, $place_holder) = $self->_is_case_insensitive($search->attr);
+    my ($column, $place_holder) = $self->_is_case_insensitive($search->column);
     return ("$column $negated $operator $place_holder AND $place_holder", $search->data)
 }
 
 sub _MATCH_SEARCH {
     my ($self, $search) = @_;
-    my ($column, $place_holder) = $self->_is_case_insensitive($search->attr);
+    my ($column, $place_holder) = $self->_is_case_insensitive($search->column);
     my $operator = $search->negated ? '!~*' : '~*';
     return ("$column $operator $place_holder", [$search->data]);
 }
@@ -969,39 +971,52 @@ sub _MATCH_SEARCH {
 sub _LIKE_SEARCH {
     my ($self, $search) = @_;
     my ($negated, $operator) = ($search->negated, $search->operator);
-    my ($column, $place_holder) = $self->_is_case_insensitive($search->attr);
+    my ($column, $place_holder) = $self->_is_case_insensitive($search->column);
     return ("$column $negated $operator $place_holder", [$search->data]);
 }
 
 ##############################################################################
 
-=head3 _expand_search_param
+=head3 _evaluate_search_request
 
-  my ($op_key, $value) = $store->_expand_search_param($search_param);
+  my ($op_key, $value) = $store->_evaluate_search_request($search_request);
 
-When given a search_param, this method returns the op key that will be used to
-determine the comparison operator to be used in a where token. It also returns
-the value(s) that will be used in the bind params. If there are multiple
-values, they will be returned as an arrayref.
+When given a search_request, this method returns the op key that will be used
+to determine the comparison operator to be used in a where token. It also
+returns the value(s) that will be used in the bind params. If there are
+multiple values, they will be returned as an arrayref.
 
-The $search_param passed to this method may be a code ref. Attribute code refs
-return a string and another $search_param. The new $search_param may be the
-value used or it may, in turn, be another code ref. Attribute code refs are
-never more than two deep.
+The $search_request passed to this method may be a code ref. Attribute code
+refs return a string and another $search_request. The new $search_request may
+be the value used or it may, in turn, be another code ref. Attribute code refs
+are never more than two deep.
+
+In the actual search code, the search_request would be the value on the right
+side of a "attribute/search value" pair.  For example:
+
+  # attribute    search param
+  name      =>   'foo';
+  name      =>   EQ 'foo'; # same thing
+
+  date      =>   GT $some_date;
+  date      =>   NOT EQ $some_date
+  date      =>   NE $some_date; # NE parses the same as NOT EQ
+
+  desc      =>   NOT undef; # db stores translate that as NOT NULL
 
 =cut
 
-sub _expand_search_param {
+sub _evaluate_search_request {
     # we assume only two levels of code refs
-    my ($self, $search_param) = @_;
+    my ($self, $search_request) = @_;
     my $negated = '';
-    unless ('CODE' eq ref $search_param) {
-        return ($negated, '', undef)         unless defined $search_param;
-        return ($negated, '', $search_param) if 'ARRAY' eq ref $search_param;
-        return ($negated, 'EQ', $search_param);
+    unless ('CODE' eq ref $search_request) {
+        return ($negated, '', undef)           unless defined $search_request;
+        return ($negated, '', $search_request) if 'ARRAY' eq ref $search_request;
+        return ($negated, 'EQ', $search_request);
     }
 
-    my ($type, $value) = $search_param->();
+    my ($type, $value) = $search_request->();
     unless ('CODE' eq ref $value) {
         if ($type =~ GROUP_OP) {
             # need a better error message XXX ?
