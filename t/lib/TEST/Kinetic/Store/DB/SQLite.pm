@@ -219,7 +219,7 @@ sub search_or : Test(9) {
         'and should include the correct items';
 }
 
-sub search_and : Test(no_plan) {
+sub search_and : Test(15) {
     my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;

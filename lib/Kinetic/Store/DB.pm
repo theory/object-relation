@@ -77,14 +77,7 @@ sub save {
     local $self->{view}         = $self->{search_class}->key;
     local @{$self}{qw/names values/};
     foreach my $attr ($self->{search_class}->attributes) {
-#       XXX Please replace the next five lines with the above line. You will
-#       need to fix tests to use Class::Meta.
-#        $self->save($attr->get($object)) if $attr->references;
-        if ($attr->references) {
-            my $attr_name = $attr->name;
-            my $contained_object = $object->$attr_name;
-            $self->save($contained_object);
-        }
+        $self->save($attr->get($object)) if $attr->references;
         push @{$self->{names}}  => $self->_get_name($attr);
         push @{$self->{values}} => $self->_get_raw_value($object, $attr);
     }
@@ -132,15 +125,21 @@ will croak if the property does not exist or if it is not unique.
 =cut
 
 sub lookup {
-    my ($class, $search_class, $property, $value) = @_;
+    my ($proto, $search_class, $property, $value) = @_;
+    my $self = $proto->_from_proto;
     my $attr = $search_class->attributes($property);
     croak qq{No such property "$property" for } . $search_class->package
         unless $attr;
     croak qq{Property "$property" is not unique} unless $attr->unique;
-    # XXX Can we do this without the iterator?
-    # XXX I think we should use prepare_cached() for lookups.
-    my $collection = $class->search($search_class, $property, $value);
-    return $collection->next;
+    $self->_cache_statement(1);
+    $self->_create_iterator(0);
+    local $self->{search_class} = $search_class;
+    my $results = $self->_search($property, $value);
+    if (@$results > 1) {
+        my $package = $search_class->package;
+        croak "Panic:  lookup($package, $property, $value) returned more than one result."
+    }
+    return $results->[0];
 }
 
 ##############################################################################
@@ -168,18 +167,25 @@ multiple SQL calls to assemble the data.
 sub search {
     my ($proto, $search_class, @search_params) = @_;
     my $self = $proto->_from_proto;
+    $self->_cache_statement(0);
+    $self->_create_iterator(1);
     local $self->{search_class} = $search_class;
+    $self->_search(@search_params);
+}
+
+sub _search {
+    my ($self, @search_params) = @_;
     my $constraints  = pop @search_params if ref $search_params[-1] eq 'HASH';
     $self->_set_search_data;
     my $attributes = join ', ' => @{$self->{search_data}{fields}};
-    my $view       = $search_class->key;
+    my $view       = $self->search_class->key;
 
     my ($where_clause, $bind_params) =
         $self->_make_where_clause(\@search_params, $constraints);
     $where_clause = "WHERE $where_clause" if $where_clause;
     my $sql       = "SELECT id, $attributes FROM $view $where_clause";
     $sql         .= $self->_constraints($constraints) if $constraints;
-    return $self->_get_iterator_for_sql($sql, $bind_params);
+    return $self->_get_sql_results($sql, $bind_params);
 }
 
 ##############################################################################
@@ -234,7 +240,7 @@ sub _insert {
     my $fields       = join ', ' => @{$self->{names}};
     my $placeholders = join ', ' => (('?') x @{$self->{names}});
     my $sql = "INSERT INTO $self->{view} ($fields) VALUES ($placeholders)";
-    # XXX I think we should use prepare_cached() for inserts.
+    $self->_cache_statement(1);
     $self->_do_sql($sql, $self->{values});
     $self->_set_id($object);
     return $self;
@@ -271,12 +277,7 @@ another object, it returns the contained object.
 sub _get_raw_value {
     my ($self, $object, $attr) = @_;
     return $attr->raw($object) unless $attr->references;
-#    return $attr->get($object)->{id}; # this needs to be fixed
-    # XXX Please replace the below three lines with the above line. You'll
-    # need to fixe your tests.
-    my $name = $attr->name;
-    my $contained_object = $object->$name;
-    return $contained_object->{id};  # this needs to be fixed
+    return $attr->get($object)->{id}; # this needs to be fixed
 }
 
 ##############################################################################
@@ -315,7 +316,7 @@ sub _update {
     my $fields = join ', '  => map { "$_ = ?" } @{$self->{names}};
     push @{$self->{values}} => $object->{id};
     my $sql = "UPDATE $self->{view} SET $fields WHERE id = ?";
-    # XXX I think we should use prepare_cached() for updates.
+    $self->_cache_statement(1);
     $self->_do_sql($sql, $self->{values});
     return $self;
 }
@@ -333,30 +334,76 @@ object.  Used for sql that is not expected to return data.
 
 sub _do_sql {
     my ($self, $sql, $bind_params) = @_;
-
-    # XXX this is to prevent the use of
-    # uninit values in subroutine entry warnings
-    # Is there a better way?
-    # XXX Send a test case to Matt to get DBD::SQLite fixed.
-    local $^W;
-    $self->_dbh->do($sql, {}, @$bind_params);
+    my $dbi_method = $self->_cache_statement
+        ? 'prepare_cached'
+        : 'prepare';
+    my $sth = $self->_dbh->$dbi_method($sql);
+    $sth->execute(@$bind_params);
     return $self;
 }
 
 ##############################################################################
 
-=head3 _get_iterator_for_sql
+=head3 _cache_statement
 
-  my $iter = $store->_get_iterator_for_sql($sql, \@bind_params);
+  $store->_cache_statement(1);
+  if ($store->_cache_statement) {
+    # use prepare_cached
+  }
+
+This getter/setter directs the module to use C<DBI::prepare_cached> when
+creating statement handles.
+
+=cut
+
+sub _cache_statement {
+    my $self = shift;
+    if (@_) {
+        $self->{cache_statement} = shift;
+        return $self;
+    }
+    return $self->{cache_statement};
+}
+
+##############################################################################
+
+=head3 _create_iterator
+
+  $store->_create_iterator(1);
+  if ($store->_create_iterator) {
+    # use prepare_cached
+  }
+
+This getter/setter tells C<_get_sql_results> whether or not to use an iterator.
+
+=cut
+
+sub _create_iterator {
+    my $self = shift;
+    if (@_) {
+        $self->{create_iterator} = shift;
+        return $self;
+    }
+    return $self->{create_iterator};
+}
+
+##############################################################################
+
+=head3 _get_sql_results
+
+  my $iter = $store->_get_sql_results($sql, \@bind_params);
 
 Returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> representing the
 results of a given C<search>.
 
 =cut
 
-sub _get_iterator_for_sql {
+sub _get_sql_results {
     my ($self, $sql, $bind_params) = @_;
-    my $sth = $self->_dbh->prepare($sql);
+    my $dbi_method = $self->_cache_statement
+        ? 'prepare_cached'
+        : 'prepare';
+    my $sth = $self->_dbh->$dbi_method($sql);
     $sth->execute(@$bind_params);
     my @results;
     # XXX Fetching directly into the appropriate data structure would be
@@ -365,7 +412,9 @@ sub _get_iterator_for_sql {
     while (my $result = $sth->fetchrow_hashref) {
         push @results => $self->_build_object_from_hashref($result);
     }
-    return Iterator->new(sub {shift @results});
+    return $self->_create_iterator
+        ? Iterator->new(sub {shift @results})
+        : \@results;
 }
 
 ##############################################################################

@@ -21,7 +21,6 @@ use aliased 'Kinetic::Util::State';
 use lib 't/sample/lib'; # temporary
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';
-use aliased 'Hash::AsObject';
 
 __PACKAGE__->runtests;
 
@@ -419,65 +418,31 @@ sub expand_attribute : Test(31) {
     is_deeply $value, 'bar', 'and the scalar arg';
 }
 
-{
-    package Dummy::Class;
-    use aliased 'Hash::AsObject';
-    my @attributes = map AsObject->new({references => $_}) => qw/0 0 0/;
-    sub attributes {
-        my $self = shift;
-        if (@_) {
-            $self->{attributes} = shift;
-        }
-        return @{$self->{attributes}};
-    }; 
-    my $contained_called = 0;
-    sub key              { 'one' }
-    sub contained_called {$contained_called}
-    sub contained_object {
-        my $self = shift;
-        my $class = ref $self;
-        $contained_called++;
-        return $class->new;
-    }
-    sub my_class {shift}
-    sub new { bless {attributes => \@attributes} => shift }
-}
-
 sub save : Test(3) {
     my $test = shift;
     my $mock = MockModule->new(Store);
     my ($update, $insert);
     $mock->mock(_update => sub { $update = 1; $insert = 0 });
     $mock->mock(_insert => sub { $update = 0; $insert = 1 });
-    my $object = Dummy::Class->new; 
+    my $object = One->new; 
     can_ok Store, 'save';
     Store->save($object);
     ok $insert, 'and calling it with an object with no id key should call _insert()';
     $object->{id} = 1;
     Store->save($object);
     ok $update, 'and calling it with an object with an id key should call _update()';
-    #ok ! $object->contained_called, 
-    #    '... and no contained objects were saved';
 }
 
-sub save_contained : Test(2) {
-    my $object2 = Dummy::Class->new;
-    my @attributes = map AsObject->new($_) => (
-        {references => 0},
-        {
-            references => 1,
-            name       => 'contained_object'
-        },
-    );
+sub save_contained : Test(1) {
+    my $object2 = Two->new;
+    my $one     = One->new;
+    $object2->one($one);
     my $mock = MockModule->new(Store);
     my ($update, $insert);
     $mock->mock(_update => sub { $update = 1; $insert = 0 });
     $mock->mock(_insert => sub { $update = 0; $insert = 1 });
-    $object2->attributes(\@attributes);
     Store->save($object2);
     ok $insert, 'Saving a new object with a contained object should insert';
-    ok $object2->contained_called,
-        'and a contained object should be saved';
 }
 
 sub insert : Test(7) {
@@ -577,11 +542,14 @@ sub update : Test(7) {
 
 sub get_name : Test(3) {
     can_ok Store, '_get_name';
-    my $attribute = AsObject->new({references => 0, name => 'dead_pig'});
-    is Store->_get_name($attribute), 'dead_pig',
+    my $object = Two->new;
+    my $attribute = $object->my_class->attributes('name');
+    is Store->_get_name($attribute), 'name',
         'normal names should be returned intact';
-    $attribute->{references} = 1;
-    is Store->_get_name($attribute), 'dead_pig__id',
+    my $one = One->new;
+    $object->one($one);
+    $attribute = $object->my_class->attributes('one');
+    is Store->_get_name($attribute), 'one__id',
         'but references should have "__id" appended to them';
 }
 
@@ -601,20 +569,17 @@ sub get_value : Test(3) {
     no warnings;
     my $value      = 'rots';
     my $references = 0;
-    {
-        package Faux::Attribute;
-        sub raw        { $value       }
-        sub references { $references  }
-        sub dead_pig   { {id => 23}   }
-        sub name       { 'dead_pig'   }
-    }
-    my $attribute = bless {} => 'Faux::Attribute';
-    my $object    = {};
-    is Store->_get_raw_value($object, $attribute), 'rots',
+    my $object     = Two->new;
+    my $one        = One->new;
+    $one->{id}     = 23;
+    $object->name('Ovid');
+    $object->one($one);
+    my $attribute  = $object->my_class->attributes('name');
+
+    is Store->_get_raw_value($object, $attribute), 'Ovid',
         'and normal values should simply be returned';
 
-    $references = 1;
-    $object     = bless {} => 'Faux::Attribute';
+    $attribute = $object->my_class->attributes('one');
     is Store->_get_raw_value($object, $attribute), 23,
         'and if it references another object, it should return the object id';
 }
