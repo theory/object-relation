@@ -101,9 +101,10 @@ sub generate_constraints {
     for my $col (grep { $_->{refs} && $_->{attr}->class->key eq $key} @$cols) {
         my $fk_key = $col->{refs}->key;
         my $fk_table = $self->{$fk_key}{table_data}{name};
+        my $del_action = $col->{attr}->on_delete;
         push @cons, "ALTER TABLE $table\n"
           . "  ADD CONSTRAINT fk_$fk_table\_id FOREIGN KEY ($fk_key\_id)\n"
-          . "  REFERENCES $fk_table(id) ON DELETE CASCADE;";
+          . "  REFERENCES $fk_table(id) ON DELETE $del_action;";
     }
 
     $self->{$key}{buffer} .= join "\n\n", @cons, '';
