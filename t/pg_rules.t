@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 91;
+use Test::More tests => 102;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Test::Exception;
@@ -14,7 +14,7 @@ use Kinetic::Build;
 use File::Spec;
 use Cwd;
 use FSA::Rules;
-use Clone;
+use Clone qw/clone/;
 
 my ($TEST_LIB, $CLASS, $BUILD, $BUILD_CLASS);
 
@@ -52,7 +52,7 @@ is ref $machine, 'ARRAY', '... and it should return an array ref';
 is @$machine %2, 0, '... with an even number of elements';
 
 if (0) {
-    my $machine2 = Clone::clone($machine);
+    my $machine2 = clone($machine);
     my $temp = FSA::Rules->new(@$machine2);
     $temp->graph(
         {
@@ -117,6 +117,121 @@ while (my ($state, $definition) = splice @$machine => 0, 2) {
     throws_ok {$build->add_plpgsql_to_db('foo')}
       qr|system\(/usr/bin/createlang -U postgres plpgsql foo\) failed:|,
       '... but it should die and show the system call if it fails';
+}
+
+{
+    # full path test:
+    # start 
+    #  -> determine user 
+    #  -> check for db and is not root 
+    #  -> Check template1 for plpgsql and is not root 
+    #  -> Done
+
+    my $machine = FSA::Rules->new(@{clone($rules->_state_machine)});
+    my $module  = Test::MockModule->new($CLASS);
+    # start
+    $module->mock(_is_installed => 1);
+    
+    # -> determine user 
+    $module->mock(_connect_to_pg => sub {'kinetic' eq $_[2]});
+    
+    # -> check for db and is not root 
+    $module->mock(_db_exists     => 0);
+    $module->mock(_can_create_db => 1);
+
+    # -> Check template1 for plpgsql and is not root 
+    $module->mock(_plpgsql_available => 1);
+
+    # -> Done
+    my $dbi = Test::MockModule->new('DBI');
+    $dbi->mock(disconnect => 0);
+    $module->mock(_dbh => 0);
+    
+    $machine->done(sub { $machine->at('Done') });
+    ok $machine->run,
+      'No root, can create db and plpgsql available should succeed';
+    my $actions = $machine->{actions};
+    is @$actions, 3,
+      '... with the correct number of actions';
+    my $expected = [
+        [ 'create_db', 'kinetic' ],
+        [ 'switch_to_db', 'kinetic' ],
+        [ 'build_db' ]
+    ];
+    is_deeply $actions, $expected,
+      '... telling us to create, switch to, and build the database';
+
+    $module->mock(_plpgsql_available => 0);
+    $machine
+      ->reset
+      ->curr_state('Start')
+      ->done(sub {$machine->at('Fail')});
+    throws_ok {$machine->run}
+      qr/Template1 does not have plpgsql/,
+      '... but the same conditions should die if we do not have plpgsql';
+}
+
+{
+    # full path test
+    # start 
+    #  -> determine user 
+    #  -> check for user db and is root 
+    #  -> check template1 for plpgsql and is root 
+    #  -> Done
+    my $machine = FSA::Rules->new(@{clone($rules->_state_machine)});
+    my $module  = Test::MockModule->new($CLASS);
+    # start
+    $module->mock(_is_installed => 1);
+    
+    # -> determine user 
+    $module->mock(_connect_to_pg => sub {'postgres' eq $_[2]});
+    
+    # -> check for db and is root 
+    $module->mock(_db_exists     => 0);
+
+    # -> Check template1 for plpgsql and is root 
+    $module->mock(_plpgsql_available => 1);
+
+    # -> Done
+    my $dbi = Test::MockModule->new('DBI');
+    $dbi->mock(disconnect => 0);
+    $module->mock(_dbh => 0);
+    
+    $machine->done(sub { $machine->at('Done') });
+    ok $machine->run,
+      'Is root, user db does not exist and plpgsql available should succeed';
+    my $actions = $machine->{actions};
+    is @$actions, 3,
+      '... with the correct number of actions';
+    my $expected = [
+        [ 'create_db',    'kinetic' ],
+        [ 'switch_to_db', 'kinetic' ],
+        [ 'build_db'                ],
+    ];
+    is_deeply $actions, $expected,
+      '... telling us to create, switch to, and build the database';
+
+    $module->mock(_plpgsql_available => 0);
+    my $info = Test::MockModule->new('App::Info::RDBMS::PostgreSQL');
+    $info->mock(createlang => 1);
+    $rules->build->db_name(''); # XXX
+    $machine
+      ->reset
+      ->curr_state('Start')
+      ->done(sub {$machine->at('Done')});
+    ok $machine->run,
+      'Is root, user db does not exist and plpgsql not available should succceed';
+    $actions = $machine->{actions};
+    is @$actions, 4,
+      '... with the correct number of actions';
+    $expected = [
+        [ 'create_db',         'kinetic' ],
+        [ 'switch_to_db',      'kinetic' ],
+        [ 'add_plpgsql_to_db', 'kinetic' ],
+        [ 'build_db'                     ],
+    ];
+    is_deeply $actions, $expected,
+      '... telling us to create, switch to, add plpgsql and build the database';
 }
 
 sub TEST_start {
@@ -265,8 +380,8 @@ sub TEST_check_if_user_db_exists {
     is $machine->states($state)->result, 'user can create database',
       '... but it should not fail if the database does not exist and the user can create it';
     my $actions = $machine->{actions};
-    is @$actions, 1, '... and there should be one action cached';
-    is_deeply $actions->[0], ['create_db', 'kinetic'],
+    is @$actions, 2, '... and there should be one action cached';
+    is_deeply $actions, [['create_db', 'kinetic'],['switch_to_db','kinetic']],
       '... telling us to create the user database';
     
     $module->mock(_db_exists => 1);
@@ -275,7 +390,9 @@ sub TEST_check_if_user_db_exists {
     is $machine->states($state)->result, 'database exists',
       '... but it should not fail if the database exists';
     $actions = $machine->{actions};
-    is @$actions, 0, '... and no actions should need to be performed';
+    is @$actions, 1, '... and one action should need to be performed';
+    is_deeply $actions, [['switch_to_db', 'kinetic']],
+      '... telling us to switch to the database';
 }
 
 sub TEST_check_for_user_db {
@@ -329,7 +446,7 @@ sub TEST_check_for_user_db {
 
 sub TEST_check_user_db_for_plpgsql {
     my ($state, $definition) = @_;
-    my $def2 = Clone::clone($definition);
+    my $def2 = clone($definition);
     my $createlang_state = "Check for createlang";
     my $permissive_state = "Check user create permissions";
     my $machine = FSA::Rules->new(
@@ -409,7 +526,7 @@ sub TEST_Done {
 
 sub TEST_Fail {
     my ($state, $definition) = @_;
-    my $def2 = Clone::clone($definition);
+    my $def2 = clone($definition);
     my $machine = FSA::Rules->new(
         faux_state => { rules => [ Fail => 1 ] },
         $state     => $definition,

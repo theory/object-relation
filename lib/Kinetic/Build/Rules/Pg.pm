@@ -96,8 +96,11 @@ sub _state_machine {
                 $state->machine->{actions} = []; # must never return to start
                 $state->machine->{db_name} = $template;
                 $state->result($self->_is_installed);
-                my $kinetic_db_name = $self->build->db_name || 'kinetic';
-                $self->build->notes(kinetic_db_name => $kinetic_db_name);
+                unless ($self->build->notes('kinetic_db_name')) {
+                    $self->build->notes(
+                        kinetic_db_name => $self->build->db_name
+                    );
+                }
             },
             rules => [
                 Fail => {
@@ -115,15 +118,17 @@ sub _state_machine {
                 my $state   = shift;
                 my $build   = $self->build;
                 my $machine = $state->machine;
-                my $root = $build->db_root_user || 'postgres';
+                my $root    = $build->db_root_user || 'postgres';
+
+                $build->notes(db_name => $template);
                 $build->db_root_user($root);
+
                 # Try connecting as root user.
                 my $dbh = $self->_connect_to_pg(
                     $template,
                     $build->db_root_user,
                     $build->db_root_pass
                 ) ;
-                $build->notes(db_name => $template);
                 if ($dbh) {
                     $self->_dbh($dbh);
                     $state->result('can_use_root');
@@ -132,6 +137,7 @@ sub _state_machine {
                     $machine->{is_root} = 1;
                     return;
                 }
+
                 # If we get here, try connecting as app user.
                 $dbh = $self->_connect_to_pg(
                     $template,
@@ -250,6 +256,7 @@ sub _state_machine {
                     $state->result('user can create database');
                     push @{$state->machine->{actions}} => ['create_db', $db_name];
                 }
+                push @{$state->machine->{actions}} => ['switch_to_db', $db_name];
             },
             rules => [
                 Fail => {
@@ -308,7 +315,7 @@ sub _state_machine {
                 my $machine = $state->machine;
                 my $db_name = $self->build->notes('kinetic_db_name');
                 $machine->{db_name} = $db_name; # force the connection to the actual database
-                my $dbh = $self->_connect_to_pg(
+               my $dbh = $self->_connect_to_pg(
                     $db_name,
                     $machine->{user},
                     $machine->{pass},
