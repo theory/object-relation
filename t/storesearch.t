@@ -94,22 +94,22 @@ foreach my $operator (qw/EQ NOT NE/) {
 $search->operator('BETWEEN');
 $search->data('foobar');
 throws_ok {$search->search_method}
-    qr/PANIC:  BETWEEN search data is not an array ref.  This should never happen/,
+    qr/PANIC: BETWEEN search data is not an array ref. This should never happen/,
     'BETWEEN searches without an arrayref for the data should panic'; 
 
 $search->data([1]),
 throws_ok {$search->search_method}
-    qr/BETWEEN searches should have two terms.  You have 1 term./,
+    qr/BETWEEN searches should have two terms. You have 1 term./,
     '... and the should die if there is only one term in the array ref';
 
 $search->data([1, 2, 3]),
 throws_ok {$search->search_method}
-    qr/BETWEEN searches should have two terms.  You have 3 terms./,
+    qr/BETWEEN searches should have two terms. You have 3 terms./,
     '... or if there are more than two terms.';
 
 $search->data([ [] => {} ]);
 throws_ok {$search->search_method}
-    qr/BETWEEN searches must be between identical types.  You have \(ARRAY\) and \(HASH\)/,
+    qr/BETWEEN searches must be between identical types. You have \(ARRAY\) and \(HASH\)/,
     '... of if the ref types of the two terms do not match';
 
 $search->data([1 => 2]);
@@ -123,7 +123,7 @@ is $search->search_method, '_date_handler',
 $search->operator('ANY');
 $search->data('foobar');
 throws_ok {$search->search_method}
-    qr/PANIC:  ANY search data is not an array ref.  This should never happen/,
+    qr/PANIC: ANY search data is not an array ref. This should never happen/,
     'ANY searches without an arrayref for the data should panic'; 
 
 $search->data([ [], {}, 1 ]);
