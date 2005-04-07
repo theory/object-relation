@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 81;
+use Test::More tests => 84;
 use Data::UUID;
 
 BEGIN {
@@ -74,6 +74,13 @@ ok my $wm = $attr->widget_meta, "Get GUID widget meta object";
 is $wm->type, 'text', "Check GUID widget type";
 is $wm->tip, 'The globally unique identifier for this object',
   "Check GUID widget tip";
+ok $kinetic = MyApp::TestThingy->new(
+    guid => '12CAD854-08BD-11D9-8AF0-8AB02ED80375'
+), "Create new kinetic and assign a GUID";
+is $kinetic->guid, '12CAD854-08BD-11D9-8AF0-8AB02ED80375',
+  "Our GUID should have been assigned";
+eval {  MyApp::TestThingy->new(guid => 'foo' ) };
+ok $err = $@, "We should get an error when using a bogus GUID";
 
 # Check name.
 is $kinetic->name, undef, "Check for undefined name";
