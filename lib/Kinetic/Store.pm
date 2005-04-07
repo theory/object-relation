@@ -20,6 +20,7 @@ package Kinetic::Store;
 
 use strict;
 use Kinetic::Util::Config qw(:store);
+use Kinetic::Util::Exceptions qw/throw_invalid_class/;
 
 =head1 Name
 
@@ -94,7 +95,9 @@ sub new {
     my $class = shift;
     unless ($class ne __PACKAGE__) {
         $class = shift || STORE_CLASS;
-        eval "require $class" or die $@;
+        eval "require $class" ;
+        throw_invalid_class ['I could not load the class "[_1]": [_2]', $class, $@]
+            if $@;
     }
     bless {}, $class;
 }

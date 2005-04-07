@@ -22,8 +22,9 @@ use strict;
 use base qw(Kinetic::Store::DB);
 use Encode qw(_utf8_on);
 
-use Kinetic::Store qw(:logical);
-use Kinetic::Util::Config qw(:sqlite);
+use Kinetic::Store            qw(:logical);
+use Kinetic::Util::Config     qw(:sqlite);
+use Kinetic::Util::Exceptions qw(:all);
 use Exception::Class::DBI;
 
 use constant _connect_args => (
@@ -109,9 +110,7 @@ Not implemented in SQLite
 =cut
 
 sub _full_text_search {
-    my $self = shift;
-    require Carp;
-    Carp::croak("SQLite does not support full-text searches");
+    throw_unsupported [ "[_1] does not support full-text searches", __PACKAGE__ ];
 }
 
 ##############################################################################
@@ -120,16 +119,17 @@ sub _full_text_search {
 
   my $op = $store->_comparison_handler($key);
 
-Works like C<Kinetic::Store::DB::_comparison_handler> but it croaks if a
-C<MATCH> handler is requested.  This is because regular expressions are not
-supported on SQLite.
+Works like C<Kinetic::Store::DB::_comparison_handler> but it throws an
+exception if a C<MATCH> handler is requested.  This is because regular
+expressions are not supported on SQLite.
 
 =cut
 
 sub _MATCH_SEARCH {
-    my ($class, $search) = @_;
-    require Carp;
-    Carp::croak("MATCH:  SQLite does not support regular expressions");
+    throw_unsupported [
+        "MATCH:  [_1] does not support regular expressions",
+        __PACKAGE__
+    ];
 }
 
 ##############################################################################
@@ -182,10 +182,8 @@ sub _eq_date_handler {
 sub _gt_lt_date_handler {
     my ($self, $search) = @_;
     my ($date, $operator) = ($search->data, $search->operator);
-    unless ($date->contiguous) {
-        require Carp;
-        Carp::croak "You cannot do GT or LT type searches with non-contiguous dates";
-    }
+    throw_unsupported "You cannot do GT or LT type searches with non-contiguous dates"
+        unless $date->contiguous;
     my $token = $self->_field_format($search->column, $date);
     my $value = $date->sort_string;
     return ("$token $operator ?", [$value]);
@@ -195,14 +193,10 @@ sub _between_date_handler {
     my ($self, $search) = @_;
     my $data = $search->data;
     my ($date1, $date2) = @$data;
-    unless ($date1->contiguous && $date2->contiguous) {
-        require Carp;
-        Carp::croak "You cannot do range searches with non-contiguous dates";
-    }
-    unless ($date1->same_segments($date2)) {
-        require Carp;
-        Carp::croak "BETWEEN search dates must have identical segments defined";
-    }
+    throw_unsupported "You cannot do range searches with non-contiguous dates"
+        unless $date1->contiguous && $date2->contiguous;
+    throw_unsupported "BETWEEN search dates must have identical segments defined"
+        unless $date1->same_segments($date2);
     my ($negated, $operator) = ($search->negated, $search->operator);
     my $token = $self->_field_format($search->column, $date1);
     return ("$token $negated $operator ? AND ?", [$date1->sort_string, $date2->sort_string])

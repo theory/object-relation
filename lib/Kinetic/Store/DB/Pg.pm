@@ -22,6 +22,7 @@ use strict;
 use base qw(Kinetic::Store::DB);
 use Kinetic::Util::Config qw(:pg);
 use Exception::Class::DBI;
+use Kinetic::Util::Exceptions qw(throw_unsupported);
 use overload;
 use constant _connect_args => (
     PG_DSN, PG_DB_USER, PG_DB_PASS, {
@@ -135,10 +136,8 @@ my %DATE = (
 sub _gt_lt_date_handler {
     my ($self, $search) = @_;
     my ($date, $operator) = ($search->data, $search->operator);
-    unless ($date->contiguous) {
-        require Carp;
-        Carp::croak "You cannot do GT or LT type searches with non-contiguous dates";
-    }
+    throw_unsupported "You cannot do GT or LT type searches with non-contiguous dates"
+        unless $date->contiguous;
     my ($token, $value) = $self->_date_token_and_value($search, $date);
     return ("$token $operator ?", [$value]);
 }
@@ -159,14 +158,10 @@ sub _between_date_handler {
     my ($self, $search) = @_;
     my $data = $search->data;
     my ($date1, $date2) = @$data;
-    unless ($date1->contiguous && $date2->contiguous) {
-        require Carp;
-        Carp::croak "You cannot do range searches with non-contiguous dates";
-    }
-    unless ($date1->same_segments($date2)) {
-        require Carp;
-        Carp::croak "BETWEEN search dates must have identical segments defined";
-    }
+    throw_unsupported "You cannot do range searches with non-contiguous dates"
+        unless $date1->contiguous && $date2->contiguous;
+    throw_unsupported "BETWEEN search dates must have identical segments defined"
+        unless $date1->same_segments($date2);
     my ($negated, $operator) = ($search->negated, $search->operator);
     my ($token, $value1) = $self->_date_token_and_value($search, $date1);
     my (undef,  $value2) = $self->_date_token_and_value($search, $date2);

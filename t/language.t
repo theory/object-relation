@@ -6,9 +6,11 @@ use strict;
 use warnings;
 use diagnostics;
 #use Test::More qw(no_plan);
-use Test::More tests => 175;
+use Test::More tests => 247;
 use File::Spec;
 use File::Find;
+
+no warnings 'uninitialized';
 
 sub file_to_class {
     my (@dirs) = File::Spec->splitdir(substr shift, 0, -3);

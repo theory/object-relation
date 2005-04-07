@@ -28,6 +28,7 @@ __PACKAGE__->SKIP_CLASS(
 ) if caller; # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
+
 sub _all_items {
     my ($test, $iterator) = @_;
     my @iterator;
@@ -174,10 +175,15 @@ sub search : Test(19) {
         '... and it should be the correct results';
 }
 
-sub unit_constructor : Test(5) {
+sub unit_constructor : Test(6) {
     my $test = shift;
     (my $class = ref $test) =~ s/^TEST:://;
     can_ok $class => 'new';
+
+    throws_ok {Kinetic::Store->new('Bogus::Class')}
+        'Kinetic::Util::Exception::Fatal::InvalidClass',
+        '... and trying to load it with a bad class should throw an exception';
+
     ok my $store = $class->new;
     isa_ok $store, $class;
     isa_ok $store, 'Kinetic::Store';
@@ -284,17 +290,17 @@ sub search_incomplete_date_boundaries : Test(6) {
     my $bad_date = Incomplete->new(month => 6, hour => 23); 
 
     throws_ok {$store->search($class, date => GT $bad_date)}
-        qr/You cannot do GT or LT type searches with non-contiguous dates/,
+        'Kinetic::Util::Exception::Fatal::Unsupported',
         'Non-contiguous dates should throw an exception with GT/LT searches';
 
     my $bad_date1 = Incomplete->new(month => 7, hour => 22);
     throws_ok {$store->search($class, date => [$bad_date => $bad_date1])}
-        qr/You cannot do range searches with non-contiguous dates/,
+        'Kinetic::Util::Exception::Fatal::Unsupported',
         'Non-contiguous dates should throw an exception with range searches';
 
     my ($first, $second) = (Incomplete->new(month => 6), Incomplete->new(day => 3));
     throws_ok {$store->search($class, date => [$first => $second])}
-        qr/BETWEEN search dates must have identical segments defined/,
+        'Kinetic::Util::Exception::Fatal::Unsupported',
         'BETWEEN search dates without identically defined segments will die';
 
     my $date1    = Incomplete->new( month => 6, day   => 17 );
@@ -304,7 +310,7 @@ sub search_incomplete_date_boundaries : Test(6) {
     is_deeply \@results, [$june17, $july16], '... and get the correct results';
 
     throws_ok {$store->search($class, date => ANY($date1, {}))}
-        qr/All types to an ANY search must match/,
+        'Kinetic::Util::Exception::Fatal::Search',
         'ANY searches with incomplete dates must have all types matching';    
 }
 
@@ -724,7 +730,7 @@ sub search_or : Test(13) {
         name => 'foo', OR description => NOT undef,
         {order_by => 'name'}
     ) }
-    qr/\QI don't know what to do with a HASH for (description IS NOT NULL)\E/,
+    'Kinetic::Util::Exception::Fatal::Search',
     'but it will choke without parens if you pass constraints';
 }
 
@@ -889,10 +895,10 @@ sub lookup : Test(8) {
         is $thing->$method, $two->$method, "$method() should behave the same";
     }
     throws_ok {$store->lookup($two->my_class, 'no_such_attribute' => 1)}
-        qr/\QNo such attribute "no_such_attribute" for TestApp::Simple::One\E/,
+        'Kinetic::Util::Exception::Fatal::Attribute',
         'but it should croak if you search for a non-existent attribute';
     throws_ok {$store->lookup($two->my_class, 'name' => 1)}
-        qr/\QAttribute "name" is not unique\E/,
+        'Kinetic::Util::Exception::Fatal::Attribute',
         'or if you search on a non-unique field';
 }
 

@@ -21,10 +21,10 @@ package Kinetic::Store::DB;
 use strict;
 use base qw(Kinetic::Store);
 use DBI;
-use Scalar::Util qw/blessed/;
-use Carp qw/croak/;
+use Scalar::Util qw(blessed);
+use Kinetic::Util::Exceptions qw(:all);
 
-use aliased 'Kinetic::Meta' => 'Meta', qw/:with_dbstore_api/;
+use aliased 'Kinetic::Meta' => 'Meta', qw(:with_dbstore_api);
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::DateTime::Incomplete';
 use aliased 'Kinetic::Store::Search';
@@ -141,7 +141,8 @@ sub search_class {
   my $object = Store->lookup($class_object, $unique_attr, $value);
 
 Returns a single object whose value matches the specified attribute. This
-method will croak if the attribute does not exist or if it is not unique.
+method will throw an exception if the attribute does not exist or if it is not
+unique.
 
 =cut
 
@@ -149,16 +150,22 @@ sub lookup {
     my ($proto, $search_class, $attr_key, $value) = @_;
     my $self = $proto->_from_proto;
     my $attr = $search_class->attributes($attr_key);
-    croak qq{No such attribute "$attr_key" for } . $search_class->package
-        unless $attr;
-    croak qq{Attribute "$attr_key" is not unique} unless $attr->unique;
+    throw_attribute [
+        'No such attribute "[_1]" for [_2]',
+        $attr_key, $search_class->package
+    ] unless $attr;
+    throw_attribute [ 'Attribute "[_1]" is not unique', $attr_key ]
+        unless $attr->unique;
     $self->_cache_statement(1);
     $self->_create_iterator(0);
     local $self->{search_class} = $search_class;
     my $results = $self->_search($attr_key, $value);
     if (@$results > 1) {
         my $package = $search_class->package;
-        croak "Panic: lookup($package, $attr_key, $value) returned more than one result."
+        panic [ 
+            "PANIC: lookup([_1], [_2], [_3]) returned more than one result.",
+            $package, $attr_key, $value
+        ];
     }
     return $results->[0];
 }
@@ -293,19 +300,19 @@ sub _date_handler {
 }
 
 sub _eq_date_handler {
-    croak "This must be overridden in a subclass";
+    throw_unimplemented "This must be overridden in a subclass";
 }
 
 sub _gt_lt_date_handler {
-    croak "This must be overridden in a subclass";
+    throw_unimplemented "This must be overridden in a subclass";
 }
 
 sub _between_date_handler {
-    croak "This must be overridden in a subclass";
+    throw_unimplemented "This must be overridden in a subclass";
 }
 
 sub _any_date_handler {
-    croak "This must be overridden in a subclass";
+    throw_unimplemented "This must be overridden in a subclass";
 }
 
 sub _get_select_sql_and_bind_params {
@@ -766,13 +773,18 @@ sub _recursive_make_where_clause {
             my $values;
             ($op, $values) = $curr_search_request->();
             unless ($op =~ GROUP_OP) {
-                croak("Grouping operators must be AND or OR, not ($op)");
+                throw_unimplemented [
+                    'Grouping operators must be AND or OR, not "[_1]"',
+                    $op,
+                ];
             }
             ($where_token, $bindings) = $self->_recursive_make_where_clause($values);
         }
         else {
-            croak sprintf "I don't know what to do with a %s for (@{$self->{where}})"
-                => ref $curr_search_request;
+            throw_search [
+                "I don't know what to do with a [_1] for ([_2])",
+                ref $curr_search_request, "@{$self->{where}}"
+            ]
         }
         $self->_save_where_data($op, $where_token, $bindings);
     }
@@ -848,7 +860,11 @@ sub _make_where_token {
         # special case for searching on a contained object id ...
         my $id_column = $column . OBJECT_DELIMITER . 'id';
         unless ($self->_search_data_has_column($id_column)) {
-            croak "Don't know how to search for ($column $negated $operator $value)";
+            throw_search [ 
+                "Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]",
+                $column, $negated, $operator, $value,
+                "Unknown column '$column'"
+            ];
         }
         $column = $id_column;
         $value = 'ARRAY' eq ref $value ? [map $_->id => @$value] : $value->id;
@@ -872,7 +888,10 @@ sub _is_case_insensitive {
     if ($column =~ /@{[OBJECT_DELIMITER]}/) {
         my ($key,$column2) = split /@{[OBJECT_DELIMITER]}/ => $column;
         $search_class = Kinetic::Meta->for_key($key)
-          or croak "Cannot determine class for key ($key)";
+          or throw_invalid_class [
+            'I could not find the class for key "[_1]"', 
+            $key 
+          ];
         $column = $column2;
     }
     if ($search_class) {
@@ -982,7 +1001,10 @@ sub _evaluate_search_request {
     unless ('CODE' eq ref $value) {
         if ($type =~ GROUP_OP) {
             # need a better error message XXX ?
-            croak "($type) cannot be a value.";
+            throw_search [
+                "([_1]) cannot be a value.",
+                $type
+            ];
         }
         if ('NOT' eq $type) {
             $negated = 'NOT';
@@ -994,18 +1016,29 @@ sub _evaluate_search_request {
     $negated = $type;
     ($type, $value) = $value->();
     if ($type =~ GROUP_OP) {
-        # need a better error message XXX ?
-        croak "($negated $type) has no meaning.";
+        throw_search [
+            'I don\'t know how to search for "[_1] [_2] [_3]"',
+            $negated, $type, $value
+        ];
     }
     if ('CODE' eq ref $value) {
         my ($bad, $new_value) = $value->();
-        croak "Search operators can never be more than two deep: ($negated $type $bad $new_value)";
+        throw_search [
+            'Search operators can never be more than two deep: "[_1] [_2] [_3] [_4]"',
+            $negated, $type, $bad, $new_value
+        ];
     }
     if ('NOT' eq $type) {
-        croak "NOT must always be first when used as a search operator: ($negated $type $value)";
+        throw_search [
+            'NOT must always be first when used as a search operator: "[_1] [_2] [_3]"',
+            $negated, $type, $value
+        ];
     }
     if ($negated ne 'NOT') {
-        croak "Two search operators not allowed unless NOT is the first operator: ($negated $type $value)";
+        throw_search [
+            'Two search operators not allowed unless NOT is the first operator: "[_1] [_2] [_3]"',
+            $negated, $type, $value
+        ];
     }
     return ($negated, $type, $value);
 }
@@ -1079,9 +1112,7 @@ sub _dbh {
 }
 
 sub _connect_args {
-    require Carp;
-    Carp::croak("Kinetic::Store::DB::_connect_args must be overridden in "
-                . "a subclass");
+    throw_unimplemented "This must be overridden in a subclass";
 }
 
 #DESTROY { shift->_dbh->disconnect }

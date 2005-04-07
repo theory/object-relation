@@ -28,7 +28,7 @@ sub full_text_search : Test(1) {
     my $class = $foo->my_class;
     my $store = Kinetic::Store->new;
     throws_ok {$store->search($class => 'full text search string')}
-        qr/SQLite does not support full-text searches/,
+        'Kinetic::Util::Exception::Fatal::Unsupported',
         'SQLite should die if a full text search is attempted';
 }
 
@@ -37,7 +37,7 @@ sub search_match : Test(1) {
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $store = Kinetic::Store->new;
     throws_ok {$store->search( $foo->my_class, name => MATCH '(a|b)%' ) }
-        qr/MATCH:  SQLite does not support regular expressions/,
+        'Kinetic::Util::Exception::Fatal::Unsupported',
         'SQLite should croak() if a MATCH search is attempted';
 }
 

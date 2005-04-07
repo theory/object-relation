@@ -19,7 +19,7 @@ ok my $search = $CLASS->new, "... and calling it should succeed";
 isa_ok $search, $CLASS, "... and the object it returns";
 
 throws_ok { $CLASS->new(foobar => 1, negated => 2, barfoo => 3)}
-    qr/\QUnknown attributes to ${CLASS}::new (barfoo foobar)\E/,
+    'Kinetic::Util::Exception::Fatal::Search',
     '... but it should die if unknown search attributes are specified';
 
 foreach my $attribute (qw/column negated operator place_holder search_class/) {
@@ -94,22 +94,22 @@ foreach my $operator (qw/EQ NOT NE/) {
 $search->operator('BETWEEN');
 $search->data('foobar');
 throws_ok {$search->search_method}
-    qr/PANIC: BETWEEN search data is not an array ref. This should never happen/,
+    'Kinetic::Util::Exception::Fatal::Panic',
     'BETWEEN searches without an arrayref for the data should panic'; 
 
 $search->data([1]),
 throws_ok {$search->search_method}
-    qr/BETWEEN searches should have two terms. You have 1 term./,
+    'Kinetic::Util::Exception::Fatal::Search',
     '... and the should die if there is only one term in the array ref';
 
 $search->data([1, 2, 3]),
 throws_ok {$search->search_method}
-    qr/BETWEEN searches should have two terms. You have 3 terms./,
+    'Kinetic::Util::Exception::Fatal::Search',
     '... or if there are more than two terms.';
 
 $search->data([ [] => {} ]);
 throws_ok {$search->search_method}
-    qr/BETWEEN searches must be between identical types. You have \(ARRAY\) and \(HASH\)/,
+    'Kinetic::Util::Exception::Fatal::Search',
     '... of if the ref types of the two terms do not match';
 
 $search->data([1 => 2]);
@@ -123,12 +123,12 @@ is $search->search_method, '_date_handler',
 $search->operator('ANY');
 $search->data('foobar');
 throws_ok {$search->search_method}
-    qr/PANIC: ANY search data is not an array ref. This should never happen/,
+    'Kinetic::Util::Exception::Fatal::Panic',
     'ANY searches without an arrayref for the data should panic'; 
 
 $search->data([ [], {}, 1 ]);
 throws_ok {$search->search_method}
-    qr/All types to an ANY search must match/,
+    'Kinetic::Util::Exception::Fatal::Search',
     '... of if the ref types of the terms do not match';
 
 $search->data([1 => 2]);

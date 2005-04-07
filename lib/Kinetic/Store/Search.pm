@@ -20,8 +20,8 @@ package Kinetic::Store::Search;
 
 use strict;
 use Scalar::Util qw(blessed);
-use Carp qw(croak);
 
+use Kinetic::Util::Exceptions qw(panic throw_search);
 use aliased 'Kinetic::DateTime::Incomplete';
 
 # lots of private class data
@@ -129,10 +129,14 @@ for the corresponding parameter to understand its function.
 
 sub new {
     my ($class, %attributes) = @_;
+    # XXX why am I sorting these keys?
     my @invalid = grep ! exists $ATTR_LOOKUP{$_} => sort keys %attributes;
     if (@invalid) {
-        require Carp;
-        Carp::croak "Unknown attributes to ${class}::new (@invalid)";
+        throw_search [
+            "Unknown attributes to [_1]: [_2]",
+            "$class->new",
+            "@invalid"
+        ];
     }
     my $self = bless {} => $class;
     while (my ($attribute, $value) = each %attributes) {
@@ -170,17 +174,24 @@ sub search_method {
     my $value = $self->data;
     my $neg   = $self->negated;
     my $op    = $self->operator;
+    my $error = "Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]";
+    no warnings 'uninitialized';
+    throw_search [ $error, $column, $neg, $op, $value,
+        "undefined operator." ] unless defined $op;
     # if it's blessed, assume that it's an object whose overloading will
     # provide the correct search data
-    my $error = do {
-        local $^W;
-        "Don't know how to search for ($column $neg $op $value)";
-    };
-    croak "$error: undefined op" unless defined $op;
     if ( ref $value && ! blessed($value) && 'ARRAY' ne ref $value) {
-        croak "$error: don't know how to handle value.";
+        throw_search [
+            $error,
+            $column, $neg, $op, $value,
+            "don't know how to handle value."
+        ];
     }
-    my $op_sub = $COMPARE_DISPATCH{$op} or croak "$error: unknown op ($op)";
+    my $op_sub = $COMPARE_DISPATCH{$op} or throw_search [
+        $error,
+        $column, $neg, $op, $value,
+        "unknown op ($op)."
+    ];
     my $search_method = $op_sub->($self);
     return $search_method;
 }
@@ -204,7 +215,7 @@ sub _ANY_SEARCH {
     my $search = shift;
     my $data   = $search->data;
     unless ('ARRAY' eq ref $data) {
-        croak "PANIC: ANY search data is not an array ref. This should never happen.";
+        panic "PANIC: ANY search data is not an array ref. This should never happen.";
     }
     my %types;
     {
@@ -212,7 +223,7 @@ sub _ANY_SEARCH {
         $types{ ref $_ }++ foreach @$data;
     }
     unless (1 == keys %types) {
-        croak "All types to an ANY search must match";
+        throw_search "All types to an ANY search must match";
     }
     return Incomplete eq ref $data->[0]
         ? '_date_handler'
@@ -223,16 +234,20 @@ sub _BETWEEN_SEARCH {
     my $search = shift;
     my $data   = $search->data;
     unless ('ARRAY' eq ref $data) {
-        croak "PANIC: BETWEEN search data is not an array ref. This should never happen.";
+        panic "PANIC: BETWEEN search data is not an array ref. This should never happen.";
     }
     unless (2 == @$data) {
         my $count = @$data;
-        my $plural = 1 == $count? '' : 's';
-        croak "BETWEEN searches should have two terms. You have $count term$plural.";
+        throw_search [
+            "BETWEEN searches should have two terms. You have [_1] term(s).",
+            $count
+        ]
     }
     if (ref $data->[0] ne ref $data->[1]) {
-        my ($ref1, $ref2) = (ref $data->[0], ref $data->[1]);
-        croak "BETWEEN searches must be between identical types. You have ($ref1) and ($ref2)";
+        throw_search [
+            "BETWEEN searches must be between identical types. You have ([_1]) and ([_2])",
+            ref $data->[0], ref $data->[1]
+        ];
     }
     return Incomplete eq ref $data->[0]
         ? '_date_handler'

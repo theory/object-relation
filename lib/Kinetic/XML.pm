@@ -21,13 +21,7 @@ package Kinetic::XML;
 use strict;
 use XML::Genx::Simple;
 use XML::Simple;
-use Kinetic::Util::Exceptions qw/
-    throw_invalid_class
-    throw_not_found
-    throw_required
-    throw_unknown_class
-    throw_xml
-/;
+use Kinetic::Util::Exceptions ':all';
 
 use Kinetic::Meta;
 use Kinetic::Store;
@@ -91,7 +85,7 @@ object.
 
 sub new_from_xml {
     my ($class, $xml_string, $params) = @_;
-    throw_required ['Required arg "[_1]" to [_2] not found', 1, 'new_from_xml()']
+    throw_required ['Required argument "[_1]" to [_2] not found', 1, 'new_from_xml()']
         unless $xml_string;
     my $self = $class->new;
     $self->{params} = $params || {};
@@ -117,7 +111,7 @@ sub _get_hash_from_xml {
     my $xml  = XML::Simple->new;
     my $data = $xml->XMLin($xml_string, suppressempty => undef, keyattr => []);
     my $version = delete $data->{version}
-        or throw_xml "No version supplied in XML.";
+        or throw_xml "XML must have a version number.";
     return $data;
 }
 
@@ -141,7 +135,7 @@ sub _fetch_object {
         }
     }
     my $class = Kinetic::Meta->for_key($key)
-        or throw_unknown_class ["Cannot determine class for key '[_1]'", $key];
+        or throw_unknown_class ['I could not find the class for key "[_1]"', $key];
 
     # XXX Bleh! There's no validation here. We need validation by using the
     # individual attribute accessors.
@@ -151,7 +145,7 @@ sub _fetch_object {
     # XXX no mutator for guid, so I need to special case it and skip
     # validation
     throw_not_found [
-        "Could not find '[_1]' in data store for package [_2]",
+        'I could not find guid "[_1]" in data store for the [_2] class',
         $data->{guid},
         $class->package
     ] unless $object;

@@ -83,20 +83,92 @@ our %Lexicon = (
   'Cannot open file "[_1]": [_2]',
   "Cannot open file “[_1]”: [_2]",
 
-  'Required arg "[_1]" to [_2] not found',
-  "Required arg “[_1]” to [_2] not found",
+  'Required argument "[_1]" to [_2] not found',
+  "Required argument “[_1]” to [_2] not found",
 
-  'No version supplied in XML.',
-  'No version supplied in XML.',
+  'XML must have a version number.',
+  'XML must have a version number.',
 
-  "Cannot determine class for key '[_1]'",
-  "Cannot determine class for key “[_1]”",
+  'I could not find the class for key "[_1]"',
+  "I could not find the class for key “[_1]”",
+  
+  "([_1]) cannot be a value.",
+  "([_1]) cannot be a value.",
+
+  'I don\'t know how to search for "[_1] [_2] [_3]"',
+  "I don't know how to search for “[_1] [_2] [_3]”",
+
+  'Search operators can never be more than two deep: "[_1] [_2] [_3] [_4]"',
+  "Search operators can never be more than two deep:  “[_1] [_2] [_3] [_4]”",
+            
+  'NOT must always be first when used as a search operator: "[_1] [_2] [_3]"',
+  "NOT must always be first when used as a search operator: “[_1] [_2] [_3]”",
+  
+  'Two search operators not allowed unless NOT is the first operator: "[_1] [_2] [_3]"',
+  "Two search operators not allowed unless NOT is the first operator: “[_1] [_2] [_3]”",
 
   "Writing XML failed: [_1]'",
   "Writing XML failed: [_1]'",
 
-  "Could not find '[_1]' in data store for package [_2]",
-  "Could not find “[_1]” in the data store for package [_2]",
+  'No such attribute "[_1]" for [_2]',
+  "No such attribute “[_1]” for [_2]",
+
+  'Attribute "[_1]" is not unique',
+  "Attribute “[_1]” is not unique",
+
+  'I could not find guid "[_1]" in data store for the [_2] class',
+  "I could not find guid “[_1]” in the data store for the [_2] class",
+
+  'I could not load the class "[_1]": [_2]',
+  "I could not load the class “[_1]”: [_2]",
+
+  "[_1] does not support full-text searches",
+  "[_1] does not support full-text searches",
+
+  "MATCH:  [_1] does not support regular expressions",
+  "MATCH:  [_1] does not support regular expressions",
+    
+  "You cannot do GT or LT type searches with non-contiguous dates",
+  "You cannot do GT or LT type searches with non-contiguous dates",
+
+  "BETWEEN search dates must have identical segments defined",
+  "BETWEEN search dates must have identical segments defined",
+
+  "You cannot do range searches with non-contiguous dates",
+  "You cannot do range searches with non-contiguous dates",
+ 
+  "This must be overridden in a subclass",
+  "This must be overridden in a subclass",
+
+  'Grouping operators must be AND or OR, not "[_1]"',
+  "Grouping operators must be AND or OR, not “[_1]”",
+
+  "Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]",
+  "Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]",
+
+  "All types to an ANY search must match",
+  "All types to an ANY search must match",
+
+  "I don't know what to do with a [_1] for ([_2])",
+  "I don't know what to do with a [_1] for ([_2])",
+  
+  "Unknown attributes to [_1]: [_2]",
+  "Unknown attributes to [_1]: [_2]",
+
+  "BETWEEN searches must be between identical types. You have ([_1]) and ([_2])",
+  "BETWEEN searches must be between identical types. You have ([_1]) and ([_2])",
+
+  "BETWEEN searches should have two terms. You have [_1] term(s).",
+  "BETWEEN searches should have two terms. You have [_1] term(s).",
+
+  "PANIC: ANY search data is not an array ref. This should never happen.",
+  "PANIC: ANY search data is not an array ref. This should never happen.",
+
+  "PANIC: BETWEEN search data is not an array ref. This should never happen.",
+  "PANIC: BETWEEN search data is not an array ref. This should never happen.",
+
+  "PANIC: lookup([_1], [_2], [_3]) returned more than one result.",
+  "PANIC: lookup([_1], [_2], [_3]) returned more than one result.",
 
   # Kinetic Attribute labels and tips.
   'GUID' => 'GUID',

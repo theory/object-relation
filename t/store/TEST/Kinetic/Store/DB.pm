@@ -50,10 +50,10 @@ sub test_dbh : Test(2) {
     my $class = $self->test_class;
     if ($class eq 'Kinetic::Store::DB') {
         throws_ok { $class->_connect_args }
-          qr/Kinetic::Store::DB::_connect_args must be overridden in a subclass/,
+          'Kinetic::Util::Exception::Fatal::Unimplemented',
           "_connect_args should throw an exception";
         throws_ok { $class->_dbh }
-          qr/Kinetic::Store::DB::_connect_args must be overridden in a subclass/,
+          'Kinetic::Util::Exception::Fatal::Unimplemented',
           "_dbh should throw an exception";
     } else {
         ok @{[$class->new->_connect_args]},
@@ -402,15 +402,15 @@ sub bad_where_tokens : Test(3) {
     $store->{search_class} = One->new->my_class;
 
     throws_ok {$store->_make_where_token('name', NOT LIKE EQ 'foo')}
-        qr/\QSearch operators can never be more than two deep: (NOT LIKE EQ foo)\E/,
+        'Kinetic::Util::Exception::Fatal::Search',
         'Having three search operators in a row should be a fatal error';
 
     throws_ok {$store->_make_where_token('name', EQ NOT 'foo')}
-        qr/\QNOT must always be first when used as a search operator: (EQ NOT foo)\E/,
+        'Kinetic::Util::Exception::Fatal::Search',
         'and having NOT as the second operator should also be fatal';
 
     throws_ok {$store->_make_where_token('name', EQ LIKE 'foo')}
-        qr/\QTwo search operators not allowed unless NOT is the first operator: (EQ LIKE foo)\E/,
+        'Kinetic::Util::Exception::Fatal::Search',
         'and two search operators are fatal unless the first operator is NOT';
 }
 
@@ -454,11 +454,11 @@ sub evaluate_search_request : Test(45) {
     is_deeply $value, ['bar', 'baz'], 'and the args as an array ref';
 
     throws_ok {Store->_evaluate_search_request(OR(name => 'bar'))}
-        qr/\Q(OR) cannot be a value\E/,
+        'Kinetic::Util::Exception::Fatal::Search',
         'and OR should never be parsed as a value';
 
     throws_ok {Store->_evaluate_search_request(AND(name => 'bar'))}
-        qr/\Q(AND) cannot be a value\E/,
+        'Kinetic::Util::Exception::Fatal::Search',
         'and AND should never be parsed as a value';
 
     ($negated, $type, $value) = Store->_evaluate_search_request(GT 'bar');

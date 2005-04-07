@@ -187,6 +187,21 @@ use Exception::Class(
     },
 );
 
+=item Kinetic::Util::Exception::Fatal::Unimplemented
+
+Unimplemented exception. Thrown if a feature has not yet been implemented or
+must be overridden in a subclass. Alias: C<throw_unimplemented>.
+
+=cut
+
+use Exception::Class(
+    'Kinetic::Util::Exception::Fatal::Unimplemented' => {
+        description => 'Unimplemented exception',
+        isa         => 'Kinetic::Util::Exception::Fatal',
+        alias       => 'throw_unimplemented',
+    },
+);
+
 =item Kinetic::Util::Exception::Fatal::RequiredArguments
 
 Missing arguments exception. Thrown if required arguments to a method are not
@@ -218,6 +233,21 @@ use Exception::Class(
     },
 );
 
+=item Kinetic::Util::Exception::Fatal::Unsupported
+
+Unsupported feature exception. Thrown if code attempts to use an unsupported
+feature.  Alias: C<throw_unsupported>.
+
+=cut
+
+use Exception::Class(
+    'Kinetic::Util::Exception::Fatal::Unsupported' => {
+        description => 'Unsupported feature requested.',
+        isa         => 'Kinetic::Util::Exception::Fatal',
+        alias       => 'throw_unsupported',
+    },
+);
+
 =item Kinetic::Util::Exception::Fatal::XML
 
 XML parse exception. Thrown if a problem is found parsing XML.
@@ -227,7 +257,7 @@ Alias: C<throw_xml>.
 
 use Exception::Class(
     'Kinetic::Util::Exception::Fatal::XML' => {
-        description => 'Missing arguments to method call',
+        description => 'Error parsing XML',
         isa         => 'Kinetic::Util::Exception::Fatal',
         alias       => 'throw_xml',
     },
@@ -250,17 +280,65 @@ use Exception::Class(
 
 =item Kinetic::Util::Exception::Fatal::UnknownClass
 
-Unknown class exception. Thrown if an unknown class is encountered.  This could
-happen via a require or searching for a Kinetic class by key.
+Unknown class exception. Thrown if an unknown class is encountered.
 Alias: C<throw_unknown_class>.
 
 =cut
 
 use Exception::Class(
     'Kinetic::Util::Exception::Fatal::UnknownClass' => {
-        description => 'Unknown class',
+        description => 'Invalid class',
         isa         => 'Kinetic::Util::Exception::Fatal',
         alias       => 'throw_unknown_class',
+    },
+);
+
+=item Kinetic::Util::Exception::Fatal::Attribute
+
+Kinetic attribute exception. Thrown if a Kinetic attribute is used incorrectly,
+such as "unknown attributes" or trying to use a non-unique attribute where a 
+unique attribute would be used. Alias: C<throw_attribute>.
+
+=cut
+
+use Exception::Class(
+    'Kinetic::Util::Exception::Fatal::Attribute' => {
+        description => 'Invalid class',
+        isa         => 'Kinetic::Util::Exception::Fatal',
+        alias       => 'throw_attribute',
+    },
+);
+
+=item Kinetic::Util::Exception::Fatal::Search
+
+Store search exception. Thrown if data store cannot figure out how to respond
+to a search request.  Alias: C<throw_search>.
+
+=cut
+
+use Exception::Class(
+    'Kinetic::Util::Exception::Fatal::Search' => {
+        description => 'Invalid class',
+        isa         => 'Kinetic::Util::Exception::Fatal',
+        alias       => 'throw_search',
+    },
+);
+
+=item Kinetic::Util::Exception::Fatal::Panic
+
+Panic exception. This internal exception should (theoretically) never be thrown.
+It only occurs if the internal state of something has reached a point that cannot
+occur.  For example, an "ANY" search in a store class can only occur if the values
+searched on are contained in an array reference.  If an ANY search occurs and the
+values are not an array reference, a panic is thrown.  Alias: C<panic>.
+
+=cut
+
+use Exception::Class(
+    'Kinetic::Util::Exception::Fatal::Panic' => {
+        description => 'Invalid class',
+        isa         => 'Kinetic::Util::Exception::Fatal',
+        alias       => 'panic',
     },
 );
 
@@ -321,10 +399,13 @@ use Exception::Class(
 ##############################################################################
 
 use Exporter::Tidy all => [
-  qw(isa_kinetic_exception isa_exception throw_exlib throw_fatal throw_invalid
-     throw_read_only throw_lang throw_stat throw_io throw_error
-     throw_password throw_required throw_xml throw_unknown_class
-     throw_invalid_class throw_not_found)
+  qw(
+    panic isa_kinetic_exception isa_exception throw_exlib throw_fatal
+    throw_invalid throw_read_only throw_lang throw_stat throw_io throw_error
+    throw_password throw_required throw_xml throw_unknown_class
+    throw_invalid_class throw_not_found throw_unsupported throw_unimplemented
+    throw_search throw_attribute
+  )
 ];
 
 # Always use exception objects for excptions and warnings.
