@@ -72,7 +72,7 @@ for my $class (@langs) {
     for my $key (keys %Kinetic::Util::Language::en::Lexicon) {
         # XXX We might need to look for quant to make this work
         # properly.
-        ok $lang->maketext($key, qw(one two three four)), "$code: $key";
+        ok $lang->maketext($key, qw(one two three four five)), "$code: $key";
     }
 }
 
