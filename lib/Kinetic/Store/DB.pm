@@ -1101,10 +1101,6 @@ sub _constraint_limit {
 
 sub _dbh {
     my $self = shift->_from_proto;
-    # XXX The save() method sets up a database handle for the duration of its
-    # execution, so prefer that database handle. This is because, although
-    # connect_cached() will return the same handle, it will reset AutoCommit
-    # to 1, thus screwing up the transaction.
     return $self->{dbh} || DBI->connect_cached($self->_connect_args);
     # XXX Switch to this single line if connect_cached() ever stops resetting
     # AutoCommit. See http://www.nntp.perl.org/group/perl.dbi.dev/3892

@@ -28,7 +28,6 @@ __PACKAGE__->SKIP_CLASS(
 ) if caller; # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
-
 sub _all_items {
     my ($test, $iterator) = @_;
     my @iterator;
@@ -39,58 +38,19 @@ sub _all_items {
     return @iterator;
 }
 
-sub _num_recs {
-    my ($test, $table) = @_;
-    my $result = $test->{dbh}->selectrow_arrayref("SELECT count(*) FROM $table");
-    return $result->[0];
-}
-
-sub setup : Test(setup) {
-    my $test = shift;
-    my $store = Store->new;
-    $test->{dbh} = $store->_dbh;
-    $test->{dbh}->begin_work;
-    $test->{dbi_mock} = MockModule->new('DBI::db', no_auto => 1);
-    $test->{dbi_mock}->mock(begin_work => 1);
-    $test->{dbi_mock}->mock(commit => 1);
-    $test->{db_mock} = MockModule->new('Kinetic::Store::DB');
-    $test->{db_mock}->mock(_dbh => $test->{dbh});
-    my $foo = One->new;
-    $foo->name('foo');
-    $store->save($foo);
-    my $bar = One->new;
-    $bar->name('bar');
-    $store->save($bar);
-    my $baz = One->new;
-    $baz->name('snorfleglitz');
-    $store->save($baz);
-    $test->{test_objects} = [$foo, $bar, $baz];
-}
-
-sub teardown : Test(teardown) {
-    my $test = shift;
-    delete($test->{dbi_mock})->unmock_all;
-    $test->{dbh}->rollback;
-    delete($test->{db_mock})->unmock_all;
-}
-
-sub shutdown : Test(shutdown) {
-    my $test = shift;
-    $test->{dbh}->disconnect;
-}
-
-sub _clear_database {
-    # Call this method if you have a test which needs an empty database.
-    my $test = shift;
-    $test->{dbi_mock}->unmock_all;
-    $test->{dbh}->rollback;
-    $test->{dbh}->begin_work;
-    $test->{dbi_mock}->mock(begin_work => 1);
-    $test->{dbi_mock}->mock(commit => 1);
+my $should_run;
+sub _should_run {
+    return $should_run if defined $should_run;
+    my $test    = shift;
+    my $store   = Store->new;
+    my $package = ref $store;
+    $should_run = ref $test eq "TEST::$package";
+    return $should_run;
 }
 
 sub save : Test(10) {
     my $test  = shift;
+    return unless $test->_should_run;
     $test->_clear_database;
     my $one = One->new;
     $one->name('Ovid');
@@ -128,6 +88,7 @@ sub save : Test(10) {
 
 sub search : Test(19) {
     my $test = shift;
+    return unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'search';
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
@@ -258,6 +219,7 @@ sub unit_does_import : Test(71) {
 
 sub search_incomplete_date_boundaries : Test(6) {
     my $test = shift;
+    return unless $test->_should_run;
     $test->_clear_database;
 
     my $june17 = Two->new;
@@ -316,6 +278,7 @@ sub search_incomplete_date_boundaries : Test(6) {
 
 sub search_incomplete_dates : Test(25) {
     my $test = shift;
+    return unless $test->_should_run;
     $test->_clear_database;
     my $theory = Two->new;
     $theory->name('David');
@@ -454,6 +417,7 @@ sub search_incomplete_dates : Test(25) {
 
 sub search_dates : Test(8) {
     my $test = shift;
+    return unless $test->_should_run;
     $test->_clear_database;
     my $theory = Two->new;
     $theory->name('David');
@@ -504,6 +468,7 @@ sub search_dates : Test(8) {
 
 sub search_compound : Test(9) {
     my $test = shift;
+    return unless $test->_should_run;
     $test->_clear_database;
     my $store = Store->new;
     can_ok $store, 'search';
@@ -553,6 +518,7 @@ sub search_compound : Test(9) {
 
 sub limit : Test(12) {
     my $test = shift;
+    return unless $test->_should_run;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -630,6 +596,7 @@ sub limit : Test(12) {
 
 sub count : Test(8) {
     my $test = shift;
+    return unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'count';
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
@@ -651,6 +618,7 @@ sub count : Test(8) {
 
 sub search_guids : Test(10) {
     my $test = shift;
+    return unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'search_guids';
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
@@ -681,6 +649,7 @@ sub search_guids : Test(10) {
 
 sub search_or : Test(13) {
     my $test = shift;
+    return unless $test->_should_run;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -736,6 +705,7 @@ sub search_or : Test(13) {
 
 sub search_and : Test(15) {
     my $test = shift;
+    return unless $test->_should_run;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -795,13 +765,14 @@ sub search_and : Test(15) {
 }
 
 sub search_overloaded : Test(11) {
+    my $test = shift;
+    return unless $test->_should_run;
     {
         package Test::String;
         use overload '""' => \&to_string;
         sub new       { my ($pkg, $val) = @_; bless \$val => $pkg; }
         sub to_string { ${$_[0]} }
     }
-    my $test = shift;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -877,6 +848,7 @@ sub search_overloaded : Test(11) {
 
 sub lookup : Test(8) {
     my $test  = shift;
+    return unless $test->_should_run;
     $test->_clear_database;
     my $one = One->new;
     $one->name('Ovid');
@@ -904,6 +876,7 @@ sub lookup : Test(8) {
 
 sub search_between : Test(6) {
     my $test = shift;
+    return unless $test->_should_run;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -932,6 +905,7 @@ sub search_between : Test(6) {
 
 sub search_gt : Test(6) {
     my $test = shift;
+    return unless $test->_should_run;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -958,6 +932,7 @@ sub search_gt : Test(6) {
 
 sub search_lt : Test(6) {
     my $test = shift;
+    return unless $test->_should_run;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -984,6 +959,7 @@ sub search_lt : Test(6) {
 
 sub search_eq : Test(14) {
     my $test = shift;
+    return unless $test->_should_run;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -1035,6 +1011,7 @@ sub search_eq : Test(14) {
 
 sub search_ge : Test(6) {
     my $test = shift;
+    return unless $test->_should_run;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -1061,6 +1038,7 @@ sub search_ge : Test(6) {
 
 sub search_le : Test(6) {
     my $test = shift;
+    return unless $test->_should_run;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -1087,6 +1065,7 @@ sub search_le : Test(6) {
 
 sub search_like : Test(6) {
     my $test = shift;
+    return unless $test->_should_run;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -1113,6 +1092,7 @@ sub search_like : Test(6) {
 
 sub search_null : Test(6) {
     my $test = shift;
+    return unless $test->_should_run;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     $foo->description('this is a description');
     my $store = Store->new;
@@ -1142,6 +1122,7 @@ sub search_null : Test(6) {
 
 sub search_in : Test(6) {
     my $test = shift;
+    return unless $test->_should_run;
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -1168,6 +1149,7 @@ sub search_in : Test(6) {
 
 sub save_compound : Test(3) {
     my $test = shift;
+    return unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'search';
     my $foo = Two->new;
@@ -1195,6 +1177,7 @@ sub save_compound : Test(3) {
 
 sub order_by : Test(4) {
     my $test = shift;
+    return unless $test->_should_run;
     my $foo = Two->new;
     my $store = Store->new;
     $foo->name('foo');

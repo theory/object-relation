@@ -90,7 +90,7 @@ sub new_from_xml {
     my $self = $class->new;
     $self->{params} = $params || {};
     my $data = $self->_get_hash_from_xml($xml_string);
-    my ($key) = keys %$data;
+    my ($key) = keys %$data; # XXX Currently assumes only one key
     return $self->_fetch_object($key, $data->{$key}, $params);
 }
 
@@ -139,17 +139,19 @@ sub _fetch_object {
 
     # XXX Bleh! There's no validation here. We need validation by using the
     # individual attribute accessors.
-    my $object = $self->{params}{update}
-        ? Kinetic::Store->new->lookup($class, guid => $data->{guid})
-        : $class->package->new;
-    # XXX no mutator for guid, so I need to special case it and skip
-    # validation
-    throw_not_found [
-        'I could not find guid "[_1]" in data store for the [_2] class',
-        $data->{guid},
-        $class->package
-    ] unless $object;
-    $object->{guid} = delete $data->{guid};
+    my $object;
+    if ($self->{params}{update}) {
+        my $store = Kinetic::Store->new;
+        $object = $store->lookup($class, guid => $data->{guid});
+        throw_not_found [
+            'I could not find guid "[_1]" in data store for the [_2] class',
+            $data->{guid},
+            $class->package
+        ] unless $object;
+    }
+    else {
+        $object = $class->package->new(guid => $data->{guid});
+    }
     while (my ($attr, $value) = each %$data) {
         # XXX for the time being, I need to assign directly instead of using
         # mutators.  Trying to use them results in "wide character in print" when
@@ -185,11 +187,9 @@ sub update_from_xml {
 
 Writes the XML representation of the Kinetic object to the specified file or
 file handle. Accepts the same parameters as C<dump_xml()>. The XML output is
-the same as would be returned by C<dump_xml()>, but will be streamed to the
-file handle, potentially making the output more efficient. A file handle is
-simply any kind of object with a C<print()> method, but be sure to expect
-output decoded to Perl's internal C<utf8> string format to be output the file
-handle.
+the same as would be returned by C<dump_xml()>.  A file handle is simply any
+kind of object with a C<print()> method, but be sure to expect output decoded
+to Perl's internal C<utf8> string format to be output the file handle.
 
 B<Throws:>
 
@@ -202,14 +202,14 @@ B<Throws:>
 =cut
 
 sub write_xml {
-    my $self = shift;
+    my $self   = shift;
     my %params = @_;
     my $fh = delete $params{handle} || do {
         my $file = delete $params{file};
-        #IO::File->new($file, ">:utf8")
-        #  or throw_io ['Cannot open file "[_1]": [_2]', $file, $!];
+        IO::File->new($file, ">:utf8")
+          or throw_io ['Cannot open file "[_1]": [_2]', $file, $!];
     };
-    $self->_write_xml(_xml_writer($fh), \%params);
+    $fh->print($self->dump_xml(%params));
     $fh->close;
     return $self;
 }
@@ -218,7 +218,7 @@ sub write_xml {
 
 =head3 dump_xml
 
-  my $xml = $xml->dump_xml;
+  my $xml = $xml->dump_xml([%params]);
 
 Returns an XML representation of the object.  If called in list context, 
 it returns a list of all XML sections produced (if more than one).  Otherwise,
@@ -246,10 +246,10 @@ then contained objects will merely be referenced by GUID and name.
 my @OBJECTS;
 sub dump_xml {
     my $self   = shift;
-    my $params = shift || {};
+    my %params = @_;
     my $object = $self->object;
     push @OBJECTS => $object;
-    local $self->{params} = $params;
+    local $self->{params} = \%params;
     my $xml    = XML::Genx::Simple->new;
     eval {
         $xml->StartDocString;

@@ -9,6 +9,8 @@ use base 'TEST::Class::Kinetic';
 use Test::More;
 use Test::Exception;
 use Test::XML;
+use Test::File;
+use Test::File::Contents;
 
 use Encode qw(is_utf8);
 
@@ -22,62 +24,83 @@ use aliased 'Kinetic::XML';
 
 __PACKAGE__->runtests unless caller;
 
-my $STORES_AVAILABLE;
-sub setup : Test(setup) {
-    if ($STORES_AVAILABLE = __PACKAGE__->any_supported(qw/pg sqlite/)) {
-        eval "use Kinetic::Store";
+{
+    package Faux::Store;
+    my $one;
+    BEGIN {
+        $one = TestApp::Simple::One->new;
     }
-    else { return }
-    my $test = shift;
-    my $store = Kinetic::Store->new;
-    $test->{dbh} = $store->_dbh;
-    $test->{dbh}->begin_work;
-    $test->{dbi_mock} = MockModule->new('DBI::db', no_auto => 1);
-    $test->{dbi_mock}->mock(begin_work => 1);
-    $test->{dbi_mock}->mock(commit => 1);
-    $test->{db_mock} = MockModule->new('Kinetic::Store::DB');
-    $test->{db_mock}->mock(_dbh => $test->{dbh});
-    my $foo = One->new;
-    $foo->name('foo');
-    $store->save($foo);
-    my $bar = One->new;
-    $bar->name('bar');
-    $store->save($bar);
-    my $baz = One->new;
-    $baz->name('snorfleglitz');
-    $store->save($baz);
-    $test->{test_objects} = [$foo, $bar, $baz];
+    sub new {
+        $one->name('one_name');
+        bless {
+            objects => {
+                $one->guid => $one,
+            },
+            objects_by_name => {
+                one => $one,
+            },
+        } => shift;
+    }
+    sub lookup {
+        my ($self, $search_class, %params) = @_;
+        return $self->{objects}{$params{guid}};
+    }
+    # not in the Store class, but used here as a testing hook
+    sub _lookup {
+        my ($self, $key) = @_;
+        return $self->{objects_by_name}{$key};
+    }
 }
 
-sub teardown : Test(teardown) {
-    return unless $STORES_AVAILABLE;
-    my $test = shift;
-    delete($test->{dbi_mock})->unmock_all;
-    $test->{dbh}->rollback;
-    delete($test->{db_mock})->unmock_all;
+sub write_xml : Test(5) {
+    can_ok XML, 'write_xml';
+    my $one = One->new;
+    $one->name('some name');
+    $one->description('some description');
+    my $xml = XML->new($one);
+    my $one_guid = $one->guid;
+    my $file = 'one_xml';
+    $xml->write_xml(file => $file);
+    file_exists_ok $file, '... and it should create the file';
+    file_contents_is $file, $xml->dump_xml,
+        '... and it should have the correct data';
+
+    my $io_file = MockModule->new('IO::File');
+    $io_file->mock('new', sub {}); # deliberately return a false value
+    throws_ok {$xml->write_xml(file => $file)}
+        'Kinetic::Util::Exception::Fatal::IO',
+        '... but it should throw an exception if it can not open the file';
+    unlink $file or die "Could not unlink file ($file): $!";
+
+    {
+        package Faux::IO;
+        sub new      { bless {} => shift }
+        sub print    { $_[0]->{contents} = $_[1] }
+        sub contents { shift->{contents} }
+        sub close    {}
+    }
+    my $fh = Faux::IO->new;
+    $xml->write_xml(handle => $fh);
+    is $fh->contents, $xml->dump_xml, '... and it should work properly with a file handle';
 }
 
-sub shutdown : Test(shutdown) {
-    return unless $STORES_AVAILABLE;
+sub update_from_xml : Test(4) {
     my $test = shift;
-    $test->{dbh}->disconnect;
-}
-
-sub update_from_xml : Test(3) {
-    return unless $STORES_AVAILABLE;
-    my $test = shift;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
     can_ok XML, 'update_from_xml';
-    my $updated_object = One->new;
-    $updated_object->{guid} = $foo->{guid};
-    $updated_object->name($foo->name);
-    $updated_object->state($foo->state);
-    $updated_object->bool($foo->bool);
+    my $fstore = Faux::Store->new;
+    my $one = $fstore->_lookup('one');
+    my $updated_object = One->new(guid => $one->guid);
+    my $store = MockModule->new('Kinetic::Store');
+    $store->mock(new => Faux::Store->new);
+    $updated_object->name($one->name);
+    $updated_object->state($one->state);
+    $updated_object->bool($one->bool);
     $updated_object->description('This is not the same description');
     my $xml = XML->new($updated_object); # note that one does not have an id
     my $xml_string = $xml->dump_xml;
     my $object = $test->_force_inflation(XML->update_from_xml($xml_string));
     ok exists $object->{id}, '... and an existing guid should provide its ID for the update';
+    is_deeply $object, $updated_object, '... and the new object should be correct';
 
     $updated_object->{guid} = 'No such guid';
     $xml = XML->new($updated_object); 
@@ -180,7 +203,6 @@ sub object : Test(5) {
 }
 
 sub dump_xml : Test(5) {
-    my $test = shift;
     my $one = One->new;
     $one->name('some name');
     $one->description('some description');
@@ -207,7 +229,7 @@ sub dump_xml : Test(5) {
     $two->one($one);
     $xml->object($two);
     my $two_guid = $two->guid;
-    is_xml $xml->dump_xml({with_contained => 1}), <<"    END_XML", '... contained object should also be represented correctly';
+    is_xml $xml->dump_xml(with_contained => 1), <<"    END_XML", '... contained object should also be represented correctly';
     <kinetic version="0.01">
       <two guid="$two_guid">
         <name>june17</name>
@@ -224,7 +246,7 @@ sub dump_xml : Test(5) {
       </two>
     </kinetic>
     END_XML
-    is_xml $xml->dump_xml({with_contained => 0}), <<"    END_XML", 'with_contained=0 should refer to contained objects by GUID';
+    is_xml $xml->dump_xml(with_contained => 0), <<"    END_XML", 'with_contained=0 should refer to contained objects by GUID';
     <kinetic version="0.01">
       <two guid="$two_guid">
         <name>june17</name>
@@ -243,8 +265,8 @@ sub dump_xml : Test(5) {
     </kinetic>
     END_XML
 
-    return unless $STORES_AVAILABLE;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my $foo = One->new;
+    $foo->name('foo');
     $xml->object($foo);
     my ($guid, $id) = ($foo->guid, $foo->{id});
     is_xml $xml->dump_xml, <<"    END_XML", '... and if the object has an id, it should be in the XML';

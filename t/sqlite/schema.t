@@ -80,6 +80,15 @@ FOR EACH ROW BEGIN
     THEN RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
   END;
 END;
+
+CREATE TRIGGER ck_simple_guid_once
+BEFORE UPDATE ON _simple
+FOR EACH ROW BEGIN
+  SELECT CASE
+    WHEN OLD.guid <> NEW.guid OR NEW.guid IS NULL
+    THEN RAISE(ABORT, 'value of "guid" cannot be changed')
+  END;
+END;
 };
 
 eq_or_diff $sg->constraints_for_class($simple), $constraints,
@@ -432,6 +441,15 @@ FOR EACH ROW BEGIN
   END;
 END;
 
+CREATE TRIGGER ck_composed_guid_once
+BEFORE UPDATE ON _composed
+FOR EACH ROW BEGIN
+  SELECT CASE
+    WHEN OLD.guid <> NEW.guid OR NEW.guid IS NULL
+    THEN RAISE(ABORT, 'value of "guid" cannot be changed')
+  END;
+END;
+
 CREATE TRIGGER ck_composed_one_id_once
 BEFORE UPDATE ON _composed
 FOR EACH ROW BEGIN
@@ -562,6 +580,15 @@ FOR EACH ROW BEGIN
   SELECT CASE
     WHEN NEW.state NOT BETWEEN -1 AND 2
     THEN RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+  END;
+END;
+
+CREATE TRIGGER ck_comp_comp_guid_once
+BEFORE UPDATE ON _comp_comp
+FOR EACH ROW BEGIN
+  SELECT CASE
+    WHEN OLD.guid <> NEW.guid OR NEW.guid IS NULL
+    THEN RAISE(ABORT, 'value of "guid" cannot be changed')
   END;
 END;
 

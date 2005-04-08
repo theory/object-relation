@@ -7,8 +7,8 @@ use warnings;
 
 use Test::More;
 use Test::Exception;
-#use base 'TEST::Kinetic::Store';
-use base 'TEST::Class::Kinetic';
+use base 'TEST::Kinetic::Store';
+#use base 'TEST::Class::Kinetic';
 use lib 't/lib';
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Meta';
@@ -27,7 +27,55 @@ __PACKAGE__->SKIP_CLASS(
 ) if caller; # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
-sub foo : Test(1) { ok 1 }
+sub _num_recs {
+    my ($test, $table) = @_;
+    my $result = $test->{dbh}->selectrow_arrayref("SELECT count(*) FROM $table");
+    return $result->[0];
+}
+
+sub setup : Test(setup) {
+    my $test = shift;
+    my $store = Kinetic::Store->new;
+    $test->{dbh} = $store->_dbh;
+    $test->{dbh}->begin_work;
+    $test->{dbi_mock} = MockModule->new('DBI::db', no_auto => 1);
+    $test->{dbi_mock}->mock(begin_work => 1);
+    $test->{dbi_mock}->mock(commit => 1);
+    $test->{db_mock} = MockModule->new('Kinetic::Store::DB');
+    $test->{db_mock}->mock(_dbh => $test->{dbh});
+    my $foo = One->new;
+    $foo->name('foo');
+    $store->save($foo);
+    my $bar = One->new;
+    $bar->name('bar');
+    $store->save($bar);
+    my $baz = One->new;
+    $baz->name('snorfleglitz');
+    $store->save($baz);
+    $test->{test_objects} = [$foo, $bar, $baz];
+}
+
+sub teardown : Test(teardown) {
+    my $test = shift;
+    delete($test->{dbi_mock})->unmock_all;
+    $test->{dbh}->rollback;
+    delete($test->{db_mock})->unmock_all;
+}
+
+sub shutdown : Test(shutdown) {
+    my $test = shift;
+    $test->{dbh}->disconnect;
+}
+
+sub _clear_database {
+    # Call this method if you have a test which needs an empty database.
+    my $test = shift;
+    $test->{dbi_mock}->unmock_all;
+    $test->{dbh}->rollback;
+    $test->{dbh}->begin_work;
+    $test->{dbi_mock}->mock(begin_work => 1);
+    $test->{dbi_mock}->mock(commit => 1);
+}
 
 sub test_id : Test(5) {
     # Test the private ID attribute added by Kinetic::Store::DB.
@@ -46,21 +94,23 @@ sub test_id : Test(5) {
 }
 
 sub test_dbh : Test(2) {
-    my $self = shift;
-    my $class = $self->test_class;
+    my $test = shift;
+    my $class = $test->test_class;
     if ($class eq 'Kinetic::Store::DB') {
         throws_ok { $class->_connect_args }
           'Kinetic::Util::Exception::Fatal::Unimplemented',
           "_connect_args should throw an exception";
+        $test->{db_mock}->unmock('_dbh');
         throws_ok { $class->_dbh }
           'Kinetic::Util::Exception::Fatal::Unimplemented',
           "_dbh should throw an exception";
+        $test->{db_mock}->mock(_dbh => $test->{dbh});
     } else {
         ok @{[$class->new->_connect_args]},
           "$class\::_connect_args should return values";
         # Only run the next test if we're testing a live data store.
         (my $store = $class) =~ s/.*:://;
-        return "Not testing $store" unless $self->supported(lc $store);
+        return "Not testing $store" unless $test->supported(lc $store);
         my $dbh = $class->new->_dbh;
         isa_ok $dbh, 'DBI::db';
         $dbh->disconnect;

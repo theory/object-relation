@@ -71,6 +71,18 @@ eq_or_diff $sg->indexes_for_class($simple), $indexes,
 # Check that the ALTER TABLE ADD CONSTRAINT statements are correct.
 my $constraints = q{ALTER TABLE _simple
   ADD CONSTRAINT pk_simple_id PRIMARY KEY (id);
+
+CREATE FUNCTION simple_guid_once() RETURNS trigger AS '
+  BEGIN
+    IF OLD.guid <> NEW.guid OR NEW.guid IS NULL
+        THEN RAISE EXCEPTION ''value of "guid" cannot be changed'';
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER simple_guid_once BEFORE UPDATE ON _simple
+    FOR EACH ROW EXECUTE PROCEDURE simple_guid_once();
 };
 eq_or_diff $sg->constraints_for_class($simple), $constraints,
   "... Schema class generates CONSTRAINT statement";
@@ -327,6 +339,18 @@ ALTER TABLE _composed
   ADD CONSTRAINT fk_one_id FOREIGN KEY (one_id)
   REFERENCES simple_one(id) ON DELETE RESTRICT;
 
+CREATE FUNCTION composed_guid_once() RETURNS trigger AS '
+  BEGIN
+    IF OLD.guid <> NEW.guid OR NEW.guid IS NULL
+        THEN RAISE EXCEPTION ''value of "guid" cannot be changed'';
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER composed_guid_once BEFORE UPDATE ON _composed
+    FOR EACH ROW EXECUTE PROCEDURE composed_guid_once();
+
 CREATE FUNCTION composed_one_id_once() RETURNS trigger AS '
   BEGIN
     IF OLD.one_id IS NOT NULL AND (OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL)
@@ -422,6 +446,18 @@ $constraints = q{ALTER TABLE _comp_comp
 ALTER TABLE _comp_comp
   ADD CONSTRAINT fk_composed_id FOREIGN KEY (composed_id)
   REFERENCES _composed(id) ON DELETE RESTRICT;
+
+CREATE FUNCTION comp_comp_guid_once() RETURNS trigger AS '
+  BEGIN
+    IF OLD.guid <> NEW.guid OR NEW.guid IS NULL
+        THEN RAISE EXCEPTION ''value of "guid" cannot be changed'';
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER comp_comp_guid_once BEFORE UPDATE ON _comp_comp
+    FOR EACH ROW EXECUTE PROCEDURE comp_comp_guid_once();
 
 CREATE FUNCTION comp_comp_composed_id_once() RETURNS trigger AS '
   BEGIN
