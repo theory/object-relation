@@ -77,6 +77,40 @@ sub plural_name {
     Kinetic::Util::Context->language->maketext(shift->{plural_name});
 }
 
+##############################################################################
+
+=head2 Instance Methods
+
+=head3 ref_attributes
+
+  my @ref_attrs = $class->ref_attributes;
+
+Returns a list of attributes that reference other Kinetic::Meta objects.
+Equivalent to
+
+  my @ref_attrs = grep { $_->references } $self->attributes;
+
+only more efficient, thanks to build-time caching.
+
+=cut
+
+sub ref_attributes { @{shift->{ref_attrs}} }
+
+##############################################################################
+
+=head3 build
+
+This private method overrides the parent C<build()> method in order to cache
+the a list of thereferenced attributes for use by C<ref_attributes()>.
+
+=cut
+
+sub build {
+    my $self = shift->SUPER::build(@_);
+    $self->{ref_attrs} = [ grep { $_->references } $self->attributes ];
+    return $self;
+}
+
 1;
 __END__
 

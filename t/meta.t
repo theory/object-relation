@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 35;
+use Test::More tests => 44;
 #use Test::More 'no_plan';
 
 package MyTestThingy;
@@ -47,11 +47,36 @@ BEGIN {
     ok $km->build, "Build TestThingy class";
 }
 
+package MyTestFooey;
+
+BEGIN {
+    Test::More->import;
+}
+
+BEGIN {
+    ok my $km = Kinetic::Meta->new(
+        key         => 'fooey',
+        name        => 'Fooey',
+        plural_name => 'Fooies',
+    ), "Create TestFooey class";
+
+    ok $km->add_attribute(
+        name          => 'thingy',
+        type          => 'thingy',
+        label         => 'Thingy',
+        indexed       => 1,
+    ), "Add thingy attribute";
+
+    ok $km->build, "Build TestThingy class";
+}
+
 # Add new strings to the lexicon.
 Kinetic::Util::Language::en_us->add_to_lexicon(
   'Thingy'   => 'Thingy',
   'Thingies' => 'Thingies',
   'Foo'      => 'Foo',
+  'Fooey'    => 'Fooey',
+  'Fooies'    => 'Fooies',
 );
 
 ok( Kinetic::Util::Context->language(Kinetic::Util::Language->get_handle('en_us')),
@@ -67,6 +92,8 @@ is $class->key, 'thingy', 'Check key';
 is $class->package, 'MyTestThingy', 'Check package';
 is $class->name, 'Thingy', 'Check name';
 is $class->plural_name, 'Thingies', 'Check plural name';
+is_deeply [$class->ref_attributes], [],
+  "There should be no referenced attributes";
 
 ok my $attr = $class->attributes('foo'), "Get foo attribute";
 isa_ok $attr, 'Kinetic::Meta::Attribute';
@@ -92,3 +119,10 @@ ok my $wm = $attr->widget_meta, "Get widget meta object";
 isa_ok $wm, 'Kinetic::Meta::Widget';
 isa_ok $wm, 'Widget::Meta';
 is $wm->tip, 'Kinetic', "Check tip";
+
+ok my $fclass = MyTestFooey->my_class, "Get Fooey class object";
+ok $attr = $fclass->attributes('thingy'), "Get thingy attribute";
+isa_ok $attr, 'Kinetic::Meta::Attribute';
+isa_ok $attr, 'Class::Meta::Attribute';
+is_deeply [$fclass->ref_attributes], [$attr],
+  "We should be able to get the one referenced attribute";
