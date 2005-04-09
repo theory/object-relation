@@ -4,6 +4,7 @@
 
 use strict;
 use Test::More tests => 35;
+#use Test::More 'no_plan';
 
 package MyTestThingy;
 
@@ -91,5 +92,3 @@ ok my $wm = $attr->widget_meta, "Get widget meta object";
 isa_ok $wm, 'Kinetic::Meta::Widget';
 isa_ok $wm, 'Widget::Meta';
 is $wm->tip, 'Kinetic', "Check tip";
-
-

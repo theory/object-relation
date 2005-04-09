@@ -117,6 +117,18 @@ L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>.
 
 sub raw { shift->{raw} }
 
+=head3 bake
+
+  my $code = $type->bake;
+
+Returns a code reference to set the raw value of a type without actually
+needing to set an object value. Used internally by
+L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>.
+
+=cut
+
+sub bake { shift->{bake} }
+
 1;
 __END__
 

@@ -12,8 +12,8 @@ Kinetic::Meta::AccessorBuilder - Builds Kinetic attribute accessors
 
 =head1 Description
 
-This module handles the creation of attributes for Kinetic classes. It never
-be used directly. Consult L<Kinetic|Kinetic> and
+This module handles the creation of attributes for Kinetic classes. It should
+never be used directly. Consult L<Kinetic|Kinetic> and
 L<Class::Meta|Class::Meta> for details on creating new Kinetic classes with
 attributes of the types defined by this module.
 
@@ -72,20 +72,6 @@ Kinetic class. For most attributes, a single accessor will be created with
 the same name as the attribute itself.
 
 =cut
-
-my $ISO8601_TEMPLATE =  'a4 x a2 x a2 x a2 x a2 x a2 a*';
-my $thaw = sub {
-    # It turns out that unpack() is faster than using a Regex. See
-    # http://www.justatheory.com/computers/programming/perl/pack_vs_regex.html
-    my %args;
-    @args{qw(year month day hour minute second nanosecond)}
-      = unpack $ISO8601_TEMPLATE, shift;
-    {
-        no warnings;
-        $args{nanosecond} *= 1.0E9;
-    }
-    return Kinetic::DateTime->new(%args);
-};
 
 my %builders = (
     default => {
@@ -147,7 +133,7 @@ my %builders = (
                                  $name])
                   if @_ > 1;
                 # Do we need to inflate the DateTime object?
-                $_[0]->{$name} = $thaw->($_[0]->{$name})
+                $_[0]->{$name} = Kinetic::DateTime->new_from_iso8601($_[0]->{$name})
                   if $_[0]->{$name} and not ref $_[0]->{$name};
                 return $_[0]->{$name};
             };
@@ -158,7 +144,7 @@ my %builders = (
                 my $self = shift;
                 unless (@_) {
                     # Do we need to inflate the DateTime object?
-                    $self->{$name} = $thaw->($self->{$name})
+                    $self->{$name} = Kinetic::DateTime->new_from_iso8601($self->{$name})
                       if $self->{$name} and not ref $self->{$name};
                     return $self->{$name};
                 }

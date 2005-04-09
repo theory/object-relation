@@ -94,7 +94,7 @@ ok( $@, "Got error setting GUID" );
 # Test state accessor.
 is $t->state, Kinetic::Util::State->ACTIVE, "State should be active by default";
 
-# Make sure that automatic thawing works.
+# Make sure that automatic bakeing works.
 $t->{state} = Kinetic::Util::State->INACTIVE->value; # Don't try this at home!
 isa_ok($t->state, 'Kinetic::Util::State');
 is $t->state, Kinetic::Util::State->INACTIVE, "It should be the proper value.";
@@ -122,7 +122,7 @@ ok( ! $t->bool, "Check false bool" );
 # Test DateTime accessor.
 is( $t->datetime, undef, 'Check for no DateTime' );
 
-# Make sure that automatic thawing works.
+# Make sure that automatic bakeing works.
 my $date = '2005-03-23T19:30:05.1234';
 $t->{datetime} = $date; # Don't try this at home!
 isa_ok($t->datetime, 'Kinetic::DateTime');

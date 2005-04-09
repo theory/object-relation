@@ -151,6 +151,7 @@ Kinetic::Meta::Type->add(
                        ? shift->clone->set_time_zone($utc)->iso8601
                        : shift
                    },
+    bake    => sub { Kinetic::DateTime->new_from_iso8601(shift) },
     builder => 'Kinetic::Meta::AccessorBuilder',
     check   => 'Kinetic::DateTime',
 );
@@ -183,6 +184,7 @@ Kinetic::Meta::Type->add(
     name    => "State",
     builder => 'Kinetic::Meta::AccessorBuilder',
     raw     => sub { ref $_[0] ? shift->value : shift },
+    bake    => sub { Kinetic::Util::State->new(shift) },
     check   => sub {
         UNIVERSAL::isa($_[0], 'Kinetic::Util::State')
             or throw_invalid(['Value "[_1]" is not a valid [_2] object',

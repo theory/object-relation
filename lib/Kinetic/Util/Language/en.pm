@@ -107,8 +107,8 @@ our %Lexicon = (
   'Two search operators not allowed unless NOT is the first operator: "[_1] [_2] [_3]"',
   "Two search operators not allowed unless NOT is the first operator: “[_1] [_2] [_3]”",
 
-  "Writing XML failed: [_1]'",
-  "Writing XML failed: [_1]'",
+  "Writing XML failed: [_1]",
+  "Writing XML failed: [_1]",
 
   'No such attribute "[_1]" for [_2]',
   "No such attribute “[_1]” for [_2]",

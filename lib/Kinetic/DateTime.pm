@@ -70,9 +70,37 @@ the time zone will be UTC.
 
 =cut
 
+##############################################################################
+
+=head3 new_from_iso8601
+
+  my $dt = Kinetic::DateTime->new_from_iso8601('1964-10-16T16:12:47.0');
+
+Same as C<new> but takes an iso8601 date string as the argument.
+
+=cut
+
+
 my $utc = DateTime::TimeZone::UTC->new;
 
 sub new { shift->SUPER::new(time_zone => $utc, @_) }
+
+my $ISO8601_TEMPLATE =  'a4 x a2 x a2 x a2 x a2 x a2 a*';
+sub new_from_iso8601 {
+    my ($class, $iso8601_date_string) = @_;
+    # XXX fixes a bug in Kinetic::XML::dump_xml.  Need to revisit.
+    return unless $iso8601_date_string;
+    # It turns out that unpack() is faster than using a Regex. See
+    # http://www.justatheory.com/computers/programming/perl/pack_vs_regex.html
+    my %args;
+    @args{qw(year month day hour minute second nanosecond)}
+      = unpack $ISO8601_TEMPLATE, $iso8601_date_string;
+    {
+        no warnings;
+        $args{nanosecond} *= 1.0E9;
+    }
+    return $class->new(%args);
+};
 
 ##############################################################################
 

@@ -180,6 +180,27 @@ sub raw {
 
 ##############################################################################
 
+=head3 bake
+
+  $attr->bake($thingy, $value);
+
+Similar to C<raw()>, this method is the corresponding mutator.  This should
+always work:
+
+  $attr->bake($thing, $attr->raw($thing));
+
+=cut
+
+sub bake {
+    my $self = shift;
+    my $code = $self->{_bake} or $self->class->handle_error(
+        sprintf 'Cannot set bake value for attribute "%s"', $self->name
+    );
+    goto &$code;
+}
+
+##############################################################################
+
 =head3 references
 
   my $references = $attr->references;
@@ -218,6 +239,14 @@ sub build {
             $self->{_raw} = sub { $raw->($get->(shift)) };
         } else {
             $self->{_raw} = $get;
+        }
+    }
+    if ($self->authz >= Class::Meta::WRITE) {
+        my $set = $type->make_attr_set($self);
+        if (my $bake = $type->bake) {
+            $self->{_bake} = sub { $set->($_[0],$bake->($_[1])) };
+        } else {
+            $self->{_bake} = $set;
         }
     }
     return $self;

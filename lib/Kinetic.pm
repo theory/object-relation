@@ -67,7 +67,7 @@ Kinetic - The Kinetic enterprise application framework
 
 Kinetic is an enterprise application framework. It pulls together the
 Class::Meta, Widget::Meta, and other modules to offer a platform for the rapid
-development of enterprise appliactions in Perl.
+development of enterprise applications in Perl.
 
 This class serves as the base class for all Kinetic classes. It defines the
 interface for all data access, and provides convenience methods to all of the

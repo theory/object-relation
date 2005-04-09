@@ -4,9 +4,10 @@
 
 use strict;
 use warnings;
-use Test::More tests => 92;
+use Test::More tests => 118;
 #use Test::More 'no_plan';
 use Kinetic::Util::State qw(:all);
+use Kinetic::DateTime;
 
 package Kinetic::TestAccessors;
 use strict;
@@ -91,6 +92,15 @@ BEGIN {
                           ),
         "Add READWRITE attribute" );
 
+    # Add a READWRITE datetime attribute, so we can test the raw accessor.
+    ok( $cm->add_attribute( name     => 'date',
+                            context  => Class::Meta::OBJECT,
+                            view     => Class::Meta::PUBLIC,
+                            type     => 'datetime',
+                            required => 1,
+                          ),
+        "Add READWRITE attribute" );
+
     # Add a nocheck class attribute.
     ok( $cm->add_attribute( name     => 'cnc',
                             context  => Class::Meta::CLASS,
@@ -124,6 +134,8 @@ is( $attr->get($t), 1, "Check ro via attribute object" );
 is( $attr->raw($t), 1, "Check ro raw value");
 eval { $attr->set($t, 2) };
 ok( $@, "Cannot set ro attribute via object" );
+eval { $attr->bake($t, 2) };
+ok( $@, "Cannot bake ro attribute via object" );
 
 # Try the read/write attribute.
 is( $t->rw, 3, "Check rw" );
@@ -136,9 +148,12 @@ ok( $@, "Cannot set_rw" );
 ok( $attr = $class->attributes('rw'), "Get rw attribute" );
 is( $attr->get($t), 2, "Check rw via attribute object" );
 is( $attr->raw($t), 2, "Check rw raw value");
-is( $attr->set($t, 3), $t, "Set rw via attribue object" );
+is( $attr->set($t, 3), $t, "Set rw via attribute object" );
 is( $attr->get($t), 3, "Check rw via attribute object for new value" );
 is( $attr->raw($t), 3, "Check rw raw value for the new value");
+is( $attr->bake($t, 4), $t, "Set rw via attribute object bake method" );
+is( $attr->get($t), 4, "Check rw via attribute object for new value" );
+is( $attr->raw($t), 4, "Check rw raw value for the new value");
 
 # Try nocheck attribute.
 is( $t->nc, 'foo', "Check nocheck" );
@@ -151,9 +166,12 @@ ok( $@, "Cannot set_nc" );
 ok( $attr = $class->attributes('nc'), "Get nc attribute" );
 is( $attr->get($t), 'bar', "Check nc via attribute object" );
 is( $attr->raw($t), 'bar', "Check nc raw value");
-is( $attr->set($t, 'bif'), $t, "Set nc via attribue object" );
+is( $attr->set($t, 'bif'), $t, "Set nc via attribute object" );
 is( $attr->get($t), 'bif', "Check nc via attribute object for new value" );
 is( $attr->raw($t), 'bif', "Check nc raw value for the new value");
+is( $attr->bake($t, 'bam!'), $t, "Set nc via attribute object" );
+is( $attr->get($t), 'bam!', "Check nc via attribute object for new value" );
+is( $attr->raw($t), 'bam!', "Check nc raw value for the new value");
 
 # Try the read-only class attribute.
 is( Kinetic::TestAccessors->cro, 1, "Check cro" );
@@ -170,6 +188,8 @@ is( $attr->get('Kinetic::TestAccessors'), 1,
 is( $attr->raw('Kinetic::TestAccessors'), 1, "Check cro raw value");
 eval { $attr->set('Kinetic::TestAccessors', 'fan') };
 ok( $@, "Cannot set cro attribute via attribute" );
+eval { $attr->bake('Kinetic::TestAccessors', 'fan') };
+ok( $@, "Cannot bake cro attribute via attribute" );
 
 # Try the read/write class attribute.
 is( Kinetic::TestAccessors->crw, 3, "Check crw" );
@@ -187,7 +207,7 @@ is( $attr->get('Kinetic::TestAccessors'), 2,
  "Check crw via attribute object" );
 is( $attr->raw('Kinetic::TestAccessors'), 2, "Check crw raw value");
 ok( $attr->set('Kinetic::TestAccessors', 4),
-    "Set crw via attribue object" );
+    "Set crw via attribute object" );
 is( $attr->get('Kinetic::TestAccessors'), 4,
     "Check crw via attribute object for new value" );
 is( $attr->raw('Kinetic::TestAccessors'), 4,
@@ -214,7 +234,7 @@ is( $attr->get('Kinetic::TestAccessors'), 'fun',
 is( $attr->raw('Kinetic::TestAccessors'), 'fun',
  "Check cnc raw value via attribute object" );
 ok( $attr->set('Kinetic::TestAccessors', 'fan'),
-    "Set cnc via attribue object" );
+    "Set cnc via attribute object" );
 is( $attr->get('Kinetic::TestAccessors'), 'fan',
     "Check cnc via attribute object for new value" );
 is( $attr->raw('Kinetic::TestAccessors'), 'fan',
@@ -222,6 +242,17 @@ is( $attr->raw('Kinetic::TestAccessors'), 'fan',
 is( $attr->get($t), 'fan',
     "Check cnc via attribute object for new value via object" );
 is( $attr->raw($t), 'fan',
+ "Check cnc raw value via attribute object for new value via object" );
+
+ok( $attr->bake('Kinetic::TestAccessors', 'Wheeze Chiz'),
+    "Set cnc via attribute object" );
+is( $attr->get('Kinetic::TestAccessors'), 'Wheeze Chiz',
+    "Check cnc via attribute object for new value" );
+is( $attr->raw('Kinetic::TestAccessors'), 'Wheeze Chiz',
+ "Check cnc raw value via attribute object for new value" );
+is( $attr->get($t), 'Wheeze Chiz',
+    "Check cnc via attribute object for new value via object" );
+is( $attr->raw($t), 'Wheeze Chiz',
  "Check cnc raw value via attribute object for new value via object" );
 
 # Now test the state attribute, especially for its raw value, which will
@@ -238,7 +269,24 @@ ok( $attr = $class->attributes('state'), "Get state attribute" );
 is( overload::StrVal($attr->get($t)), $inactive_str,
     "Check state via attribute object" );
 is( $attr->raw($t), 0, "Check state raw value");
-is( $attr->set($t, ACTIVE), $t, "Set state via attribue object" );
+is( $attr->set($t, ACTIVE), $t, "Set state via attribute object" );
 is( overload::StrVal($attr->get($t)), $active_str,
     "Check state via attribute object for new value" );
 is( $attr->raw($t), 1, "Check state raw value for the new value");
+is( $attr->bake($t, 0), $t, "Thaw state via attribute object" );
+is( overload::StrVal($attr->get($t)), $inactive_str,
+    "Check state via attribute object for new value" );
+is( $attr->raw($t), 0, "Check state raw value for the new value");
+
+# test the datetime attribute to ensure it works.
+my $date = Kinetic::DateTime->new_from_iso8601('1964-10-16T16:12:47.0');
+is $t->date($date), $t, 'Set date';
+is $t->date->raw, '1964-10-16T16:12:47.0', 'Check date string is correct';
+ok $attr = $class->attributes('date'), 'Get date attribute';
+is $attr->get($t)->raw, '1964-10-16T16:12:47.0', 'Check date returns microseconds';
+is $attr->raw($t), '1964-10-16T16:12:47', 'Check attr->raw date does not return microseconds';
+$date = Kinetic::DateTime->new_from_iso8601('2005-10-16T16:12:47.0');
+is $attr->set($t, $date), $t, 'Set date via attribute object';
+is $attr->raw($t), '2005-10-16T16:12:47', 'Check date returns new value';
+is $attr->bake($t, '2000-01-01T00:00:00'), $t, 'Thaw date via attribute object';
+is $attr->raw($t), '2000-01-01T00:00:00', 'And make sure it returns the right value';

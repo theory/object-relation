@@ -152,12 +152,14 @@ sub _fetch_object {
     else {
         $object = $class->package->new(guid => $data->{guid});
     }
-    while (my ($attr, $value) = each %$data) {
+    while (my ($attr_name, $value) = each %$data) {
         # XXX for the time being, I need to assign directly instead of using
         # mutators.  Trying to use them results in "wide character in print" when
         # I am dealing with objects (State, DateTime, etc.)
-        $object->{$attr} = $value;
-        #$object->$attr($value);
+        #$object->{$attr} = $value;
+        if (my $attr = $class->attributes($attr_name)) {
+            $attr->bake($object,$value);
+        }
     }
     return $object;
 }
