@@ -29,8 +29,10 @@ use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::DateTime::Incomplete';
 use aliased 'Kinetic::Store::Search';
 
-use constant GROUP_OP => qr/^(?:AND|OR)$/;
+use constant GROUP_OP         => qr/^(?:AND|OR)$/;
 use constant OBJECT_DELIMITER => '__';
+use constant PREPARE          => 'prepare';
+use constant CACHED           => 'prepare_cached';
 
 =head1 Name
 
@@ -88,24 +90,6 @@ sub save {
     return $self;
 }
 
-sub _save {
-    my ($self, $object) = @_;
-    # XXX So this is something we need to get implemented.
-    #return $class unless $object->changed;
-    local $self->{search_class} = $object->my_class;
-    local $self->{view}         = $self->{search_class}->key;
-    local @{$self}{qw/columns values/};
-    foreach my $attr ($self->{search_class}->attributes) {
-        $self->_save($attr->get($object)) if $attr->references;
-        push @{$self->{columns}} => $attr->_view_column;
-        push @{$self->{values}}  => $attr->raw($object);
-    }
-
-    return $object->id
-        ? $self->_update($object)
-        : $self->_insert($object);
-}
-
 ##############################################################################
 
 =head3 search_class
@@ -156,7 +140,7 @@ sub lookup {
     ] unless $attr;
     throw_attribute [ 'Attribute "[_1]" is not unique', $attr_key ]
         unless $attr->unique;
-    $self->_cache_statement(1);
+    $self->_prepare_method(CACHED);
     $self->_create_iterator(0);
     local $self->{search_class} = $search_class;
     my $results = $self->_search($attr_key, $value);
@@ -195,23 +179,10 @@ multiple SQL calls to assemble the data.
 sub search {
     my ($proto, $search_class, @search_params) = @_;
     my $self = $proto->_from_proto;
-    $self->_cache_statement(0);
+    $self->_prepare_method(PREPARE);
     $self->_create_iterator(1);
     local $self->{search_class} = $search_class;
     $self->_search(@search_params);
-}
-
-sub _search {
-    my ($self, @search_params) = @_;
-    return $self->_full_text_search(@search_params)
-        if 1 == @search_params && ! ref $search_params[0];
-    $self->_set_search_data;
-    my $columns = join ', ' => $self->_search_data_columns;
-    my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
-        $columns,
-        \@search_params
-    );
-    return $self->_get_sql_results($sql, $bind_params);
 }
 
 ##############################################################################
@@ -230,7 +201,7 @@ context it returns an array reference.
 sub search_guids {
     my ($proto, $search_class, @search_params) = @_;
     my $self = $proto->_from_proto;
-    $self->_cache_statement(0);
+    $self->_prepare_method(PREPARE);
     $self->_create_iterator(0);
     local $self->{search_class} = $search_class;
     $self->_set_search_data;
@@ -259,7 +230,7 @@ sub count {
     my ($proto, $search_class, @search_params) = @_;
     pop @search_params if 'HASH' eq ref $search_params[-1];
     my $self = $proto->_from_proto;
-    $self->_cache_statement(0);
+    $self->_prepare_method(PREPARE);
     local $self->{search_class} = $search_class;
     $self->_set_search_data;
     my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
@@ -299,6 +270,49 @@ sub _date_handler {
         :                           $self->_gt_lt_date_handler($search);
 }
 
+##############################################################################
+
+=head3 _XXX_date_handler
+
+  my ($where_token, $bind_params) = $self->_XXX_date_handler($search_object);
+
+The date handler methods which the search object dispatches to are data store
+dependent.  Thus, the methods in C<Kinetic::Store::DB> throw exceptions when
+called to warn the user they must be overridden.
+
+The various date handlers are:
+
+=over 4
+
+=item * C<_eq_date_handler>
+
+This method is called when an exact date match is requested:
+
+ $store->search($class, date => $date);
+
+=item * C<_between_date_handler>
+
+This method is called when a date search between two dates is requested.
+
+ $store->search($class, date => [$date => $date2]);
+
+=item * C<_any_date_handler>
+
+This method is called when the user requests and "ANY" date search.
+
+ $store->search($class, date => ANY(@dates));
+
+=item * C<_gt_lt_date_handler>
+
+This method is called when a user makes a C<GT>, C<LT>, C<GE>, or C<LE> date
+search.
+
+ $store->search($class, date => GE $date);
+
+=back
+
+=cut
+
 sub _eq_date_handler {
     throw_unimplemented "This must be overridden in a subclass";
 }
@@ -324,6 +338,61 @@ sub _get_select_sql_and_bind_params {
     my $sql       = "SELECT $columns FROM $view $where_clause";
     $sql         .= $self->_constraints($constraints) if $constraints;
     return ($sql, $bind_params);
+}
+
+##############################################################################
+
+=head3 _save
+
+  $self->_save($object);
+
+This method is called by C<save> to handle the actual saving of objects.  It
+calls itself recursively if it encounters a contained object, thus allowing
+for a single save to be called at the top level.
+
+=cut
+
+sub _save {
+    my ($self, $object) = @_;
+    # XXX So this is something we need to get implemented.
+    #return $class unless $object->changed;
+    local $self->{search_class} = $object->my_class;
+    local $self->{view}         = $self->{search_class}->key;
+    local @{$self}{qw/columns values/};
+    $self->_save($_->get($object))
+        foreach $self->{search_class}->ref_attributes;
+        
+    foreach my $attr ($self->{search_class}->attributes) {
+        push @{$self->{columns}} => $attr->_view_column;
+        push @{$self->{values}}  => $attr->raw($object);
+    }
+    return $object->id
+        ? $self->_update($object)
+        : $self->_insert($object);
+}
+
+##############################################################################
+
+=head3 _search
+
+  my @results = $self->_search(@search_params);
+
+This method is called internally by both C<search> and C<lookup>.  Each method
+sets whether or n
+
+=cut
+
+sub _search {
+    my ($self, @search_params) = @_;
+    return $self->_full_text_search(@search_params)
+        if 1 == @search_params && ! ref $search_params[0];
+    $self->_set_search_data;
+    my $columns = join ', ' => $self->_search_data_columns;
+    my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
+        $columns,
+        \@search_params
+    );
+    return $self->_get_sql_results($sql, $bind_params);
 }
 
 ##############################################################################
@@ -367,7 +436,7 @@ sub _insert {
     my $columns      = join ', ' => @{$self->{columns}};
     my $placeholders = join ', ' => (('?') x @{$self->{columns}});
     my $sql = "INSERT INTO $self->{view} ($columns) VALUES ($placeholders)";
-    $self->_cache_statement(1);
+    $self->_prepare_method(CACHED);
     $self->_do_sql($sql, $self->{values});
     $self->_set_id($object);
     return $self;
@@ -409,7 +478,7 @@ sub _update {
     my $columns = join ', '  => map { "$_ = ?" } @{$self->{columns}};
     push @{$self->{values}} => $object->id;
     my $sql = "UPDATE $self->{view} SET $columns WHERE id = ?";
-    $self->_cache_statement(1);
+    $self->_prepare_method(CACHED);
     return $self->_do_sql($sql, $self->{values});
 }
 
@@ -426,9 +495,7 @@ object.  Used for sql that is not expected to return data.
 
 sub _do_sql {
     my ($self, $sql, $bind_params) = @_;
-    my $dbi_method = $self->_cache_statement
-        ? 'prepare_cached'
-        : 'prepare';
+    my $dbi_method = $self->_prepare_method;
     my $sth = $self->_dbh->$dbi_method($sql);
     # The warning has been suppressed due to "use of unitialized value in
     # subroutine entry" warnings from DBD::SQLite.
@@ -439,25 +506,26 @@ sub _do_sql {
 
 ##############################################################################
 
-=head3 _cache_statement
+=head3 _prepare_method
 
-  $store->_cache_statement(1);
-  if ($store->_cache_statement) {
-    # use prepare_cached
-  }
+  $store->_prepare_method($prepare_method_name);
 
-This getter/setter directs the module to use C<DBI::prepare_cached> when
-creating statement handles.
+This getter/setter tells L<DBI|DBI> which method to use when preparing a 
+statement.
 
 =cut
 
-sub _cache_statement {
+sub _prepare_method {
     my $self = shift;
     if (@_) {
-        $self->{cache_statement} = shift;
+        my $method = shift;
+        unless (PREPARE eq $method || CACHED eq $method) {
+            throw_invalid [ 'Invalid method "[_1]"', $method ];
+        }
+        $self->{prepare_method} = $method;
         return $self;
     }
-    return $self->{cache_statement};
+    return $self->{prepare_method};
 }
 
 ##############################################################################
@@ -495,9 +563,7 @@ results of a given C<search>.
 
 sub _get_sql_results {
     my ($self, $sql, $bind_params) = @_;
-    my $dbi_method = $self->_cache_statement
-        ? 'prepare_cached'
-        : 'prepare';
+    my $dbi_method = $self->_prepare_method;
     my $sth = $self->_dbh->$dbi_method($sql);
     $self->_execute($sth, $bind_params);
     if ($self->_create_iterator) {
@@ -510,9 +576,6 @@ sub _get_sql_results {
     }
     else {
         my @results;
-        # XXX Fetching directly into the appropriate data structure would be
-        # faster, but so would an array ref, since you aren't really using
-        # the hash keys.
         while (my $result = $self->_fetchrow_hashref($sth)) {
             push @results => $self->_build_object_from_hashref($result);
         }
@@ -520,10 +583,32 @@ sub _get_sql_results {
     }
 }
 
+##############################################################################
+
+=head3 _execute
+
+  $self->_execute($sth, \@bind_params);
+
+This wrapper for C<$sth-E<gt>execute> may be subclassed if preprocessing of bind
+params is necessary.
+
+=cut
+
 sub _execute {
     my ($self, $sth, $bind_params) = @_;
     $sth->execute(@$bind_params);
 }
+
+##############################################################################
+
+=head3 _fetchrow_hashref
+
+  my $hashref = $self->_fetchrow_hashref($sth);
+
+This wrapper for C<$sth-E<gt>_fetchrow_hashref> may be subclassed if
+post-processing of resulting data is necessary.
+
+=cut
 
 sub _fetchrow_hashref {
     my ($self, $sth) = @_;
@@ -743,50 +828,49 @@ language outlined in L<Kinetic::Store|Kinetic::Store>
 
 =cut
 
+my %where_token_generator = (
+    STANDARD => sub {
+        # name => 'foo'
+        my ($self, $column, $search_request) = @_;
+        $column =~ s/\./OBJECT_DELIMITER/eg;
+        my $curr_search_request = shift @$search_request;
+        return $self->_make_where_token($column, $curr_search_request);
+    },
+    ARRAY    => sub {
+        # [ name => 'foo', description => 'bar' ]
+        my ($self, $curr_search_request, $search_request) = @_;
+        return $self->_recursive_make_where_clause($curr_search_request);
+    },
+    CODE     => sub {
+        # OR(name => 'foo') || AND(name => 'foo')
+        my ($self, $curr_search_request, $search_request) = @_;
+        my ($op, $values) = $curr_search_request->();
+        unless ($op =~ GROUP_OP) {
+            throw_unimplemented [
+                'Grouping operators must be AND or OR, not "[_1]"',
+                $op,
+            ];
+        }
+        return ($self->_recursive_make_where_clause($values), $op);
+    },
+);
+
 sub _recursive_make_where_clause {
     my ($self, $search_request) = @_;
     local $self->{where}        = [];
     local $self->{bind_params}  = [];
 
-    my ($where_token, $bindings);
-    my $op = 'AND';
-    while (@$search_request) {
-        my $curr_search_request = shift @$search_request;
-        unless (ref $curr_search_request) {
-            # name => 'foo'
-            $curr_search_request =~ s/\./OBJECT_DELIMITER/eg;
-            my $column = $curr_search_request;
-            $curr_search_request = shift @$search_request;
-            ($where_token, $bindings) = $self->_make_where_token(
-                $column, 
-                $curr_search_request
-            );
-        }
-        elsif ('ARRAY' eq ref $curr_search_request) {
-            # [ name => 'foo', description => 'bar' ]
-            ($where_token, $bindings) = $self->_recursive_make_where_clause(
-                $curr_search_request
-            );
-        }
-        elsif ('CODE' eq ref $curr_search_request) {
-            # OR(name => 'foo') || AND(name => 'foo')
-            my $values;
-            ($op, $values) = $curr_search_request->();
-            unless ($op =~ GROUP_OP) {
-                throw_unimplemented [
-                    'Grouping operators must be AND or OR, not "[_1]"',
-                    $op,
-                ];
-            }
-            ($where_token, $bindings) = $self->_recursive_make_where_clause($values);
-        }
-        else {
-            throw_search [
-                "I don't know what to do with a [_1] for ([_2])",
-                ref $curr_search_request, "@{$self->{where}}"
-            ]
-        }
-        $self->_save_where_data($op, $where_token, $bindings);
+    while (my $curr_search_request = shift @$search_request) {
+        my $request_type = ref $curr_search_request || 'STANDARD';
+        my $generator = $where_token_generator{ $request_type }
+            or throw_search [
+                 "I don't know what to do with a [_1] for ([_2])",
+                 ref $curr_search_request, "@{$self->{where}}"
+            ];
+        my ($where_token, $bindings, $op) = 
+            $generator->($self, $curr_search_request, $search_request);
+        $op ||= 'AND';
+        $self->_save_where_data($where_token, $bindings, $op);
     }
     my $where = "(".join(' ' => @{ $self->{where} }).")";
     return $where, $self->{bind_params};
@@ -796,7 +880,7 @@ sub _recursive_make_where_clause {
 
 =head3 _save_where_data
 
-  $self->_save_where_data($op, $where_token, $bindings);
+  $self->_save_where_data($where_token, $bindings, $op);
 
 This is a utility method used to cache data accumulated by the
 C<_recursive_make_where_clause> method.
@@ -804,7 +888,7 @@ C<_recursive_make_where_clause> method.
 =cut
 
 sub _save_where_data {
-    my ($self, $op, $where_token, $bindings) = @_;
+    my ($self, $where_token, $bindings, $op) = @_;
     if (@{$self->{where}} && $self->{where}[-1] !~ GROUP_OP) {
         push @{$self->{where}} => $op if $op;
     }
@@ -815,18 +899,20 @@ sub _save_where_data {
 
 ##############################################################################
 
-=head3 _case_insensitive_types
+=head3 _is_case_sensitive
 
-  my @types = $store->_case_insensitive_types;
+  my @types = $store->_is_case_sensitive;
 
 Returns a list of the C<Kinetic::Meta> types for which searches are to be
 case-insensitive.
 
 =cut
 
-sub _case_insensitive_types {
-    my ($self) = @_;
-    return qw/string/;
+my %case_insensitive = map {$_ => 1} qw/string/;
+
+sub _is_case_sensitive {
+    my ($self, $type) = @_;
+    return exists $case_insensitive{$type};
 }
 
 ##############################################################################
@@ -880,7 +966,18 @@ sub _make_where_token {
     return $self->$search_method($search);
 }
 
-sub _is_case_insensitive {
+##############################################################################
+
+=head3 _handle_case_sensitivity
+
+  my ($column, $place_holder) = $store->_handle_case_sensitivity($column);
+
+This method takes a column and return the correct column token and bind param
+based upon whether or not the column's data type is case-insensitive.
+
+=cut
+
+sub _handle_case_sensitivity {
     my ($self, $column) = @_;
     # if 'type eq string' for attr (only relevent for postgres)
     my $orig_column     = $column;
@@ -895,28 +992,59 @@ sub _is_case_insensitive {
         $column = $column2;
     }
     if ($search_class) {
-        my $type = $search_class->attributes($column)->type;
-        foreach my $icolumn ($self->_case_insensitive_types) {
-            if ($type eq $icolumn) {
-                $column = "LOWER($orig_column)";
-                last;
-            }
-        }
+        $column = "LOWER($orig_column)"
+            if $self->_is_case_sensitive(
+                $search_class->attributes($column)->type
+            );
     }
     return $column =~ /^LOWER/? ($column, 'LOWER(?)') : ($orig_column, '?');
 }
 
+##############################################################################
+
+=head3 _XXX_SEARCH
+
+ my ($where_token, $bind_params) = $store->_XXX_SEARCH($search_object); 
+
+These methods all take a L<Kinetic::Store::Seach|Kinetic::Store::Search>
+object as an argument and return a where token and an array ref of bind
+params.  There "where token" will be a snippet of an SQL where clause
+that is valid SQL, with bind params.
+
+All C<_XXX_SEARCH> methods are generated by 
+L<Kinetic::Store::Seach|Kinetic::Store::Search>.
+
+=over 4
+
+=item * _ANY_SEARCH
+
+=item * _EQ_SEARCH
+
+=item * _NULL_SEARCH
+
+=item * _GT_LT_SEARCH
+
+=item * _BETWEEN_SEARCH
+
+=item * _MATCH_SEARCH
+
+=item * _LIKE_SEARCH
+
+=back
+
+=cut
+
 sub _ANY_SEARCH {
     my ($self, $search)        = @_;
     my ($negated, $value)      = ($search->negated, $search->data);
-    my ($column, $place_holder) = $self->_is_case_insensitive($search->column);
+    my ($column, $place_holder) = $self->_handle_case_sensitivity($search->column);
     my $place_holders = join ', ' => ($place_holder) x @$value;
     return ("$column $negated IN ($place_holders)", $value);
 }
 
 sub _EQ_SEARCH {
     my ($self, $search)        = @_;
-    my ($column, $place_holder) = $self->_is_case_insensitive($search->column);
+    my ($column, $place_holder) = $self->_handle_case_sensitivity($search->column);
     my $operator = $search->operator;
     return ("$column $operator $place_holder", [$search->data]);
 }
@@ -931,20 +1059,20 @@ sub _GT_LT_SEARCH {
     my ($self, $search) = @_;
     my $value = $search->data;
     my $operator = $search->operator;
-    my ($column, $place_holder) = $self->_is_case_insensitive($search->column);
+    my ($column, $place_holder) = $self->_handle_case_sensitivity($search->column);
     return ("$column $operator $place_holder", [$value]);
 }
 
 sub _BETWEEN_SEARCH {
     my ($self, $search) = @_;
     my ($negated, $operator) = ($search->negated, $search->operator);
-    my ($column, $place_holder) = $self->_is_case_insensitive($search->column);
+    my ($column, $place_holder) = $self->_handle_case_sensitivity($search->column);
     return ("$column $negated $operator $place_holder AND $place_holder", $search->data)
 }
 
 sub _MATCH_SEARCH {
     my ($self, $search) = @_;
-    my ($column, $place_holder) = $self->_is_case_insensitive($search->column);
+    my ($column, $place_holder) = $self->_handle_case_sensitivity($search->column);
     my $operator = $search->negated ? '!~*' : '~*';
     return ("$column $operator $place_holder", [$search->data]);
 }
@@ -952,7 +1080,7 @@ sub _MATCH_SEARCH {
 sub _LIKE_SEARCH {
     my ($self, $search) = @_;
     my ($negated, $operator) = ($search->negated, $search->operator);
-    my ($column, $place_holder) = $self->_is_case_insensitive($search->column);
+    my ($column, $place_holder) = $self->_handle_case_sensitivity($search->column);
     return ("$column $negated $operator $place_holder", [$search->data]);
 }
 
@@ -1069,6 +1197,17 @@ sub _constraints {
     return $sql;
 }
 
+##############################################################################
+
+=head3 _constraint_order_by
+
+  my $order_by = $store->_constraint_order_by($constraints);
+
+Given optional constraints passed to a search, this method returns a valid
+"order by" constraint.
+
+=cut
+
 sub _constraint_order_by {
     my ($self, $constraints) = @_;
     my $sql   = ' ORDER BY ';
@@ -1090,6 +1229,17 @@ sub _constraint_order_by {
     return $sql;
 }
 
+##############################################################################
+
+=head3 _constraint_limit
+
+  my $limit = $store->_constraint_limit($constraints);
+
+Given optional constraints passed to a search, this method returns a valid
+"limit" constraint.
+
+=cut
+
 sub _constraint_limit {
     my ($self, $constraints) = @_;
     my $sql = " LIMIT $constraints->{limit}";
@@ -1099,6 +1249,16 @@ sub _constraint_limit {
     return $sql;
 }
 
+##############################################################################
+
+=head3 _dbh
+
+  my $dbh = $store->_dbh;
+
+Returns the current database handle.
+
+=cut
+
 sub _dbh {
     my $self = shift->_from_proto;
     return $self->{dbh} || DBI->connect_cached($self->_connect_args);
@@ -1107,11 +1267,20 @@ sub _dbh {
     # DBI->connect_cached(shift->_connect_args);
 }
 
+##############################################################################
+
+=head3 _connect_args
+
+  my @connect_args = $store->_connect_args;
+
+Abstract method that must be overridden in a subclass.  Returns valid
+C<DBI|DBI> connect args for the current store.
+
+=cut
+
 sub _connect_args {
     throw_unimplemented "This must be overridden in a subclass";
 }
-
-#DESTROY { shift->_dbh->disconnect }
 
 ##############################################################################
 

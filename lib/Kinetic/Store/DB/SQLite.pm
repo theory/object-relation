@@ -134,16 +134,18 @@ sub _MATCH_SEARCH {
 
 ##############################################################################
 
-=head3 _case_insensitive_types
+=head3 _is_case_sensitive
 
-  my @fields = $store->_case_insensitive_types;
+  my @fields = $store->_is_case_sensitive($type);
 
 For SQLite, case-insensitivity only works for ASCII, not UNICODE.  Thus, we
-will make no fields case-insensitive.
+will make no column types case-insensitive.
 
 =cut
 
-sub _case_insensitive_types {}
+sub _is_case_sensitive {}
+
+##############################################################################
 
 # XXX We should probably switch from substr() to strftime() and require
 # SQLite 3.2.0 or later. That will allow more flexible years (before 1000 and
@@ -171,6 +173,7 @@ sub _field_format {
 }
 
 ##############################################################################
+
 sub _eq_date_handler {
     my ($self, $search) = @_;
     my $date     = $search->data;

@@ -98,6 +98,23 @@ sub ref_attributes { @{shift->{ref_attrs}} }
 
 ##############################################################################
 
+=head3 direct_attributes
+
+  my @direct_attrs = $class->direct_attributes;
+
+Returns a list of attributes that do not reference other Kinetic::Meta objects.
+Equivalent to
+
+  my @direct_attrs = grep { ! $_->references } $self->attributes;
+
+only more efficient, thanks to build-time caching.
+
+=cut
+
+sub direct_attributes { @{shift->{direct_attrs}} }
+
+##############################################################################
+
 =head3 build
 
 This private method overrides the parent C<build()> method in order to cache
@@ -107,7 +124,8 @@ the a list of thereferenced attributes for use by C<ref_attributes()>.
 
 sub build {
     my $self = shift->SUPER::build(@_);
-    $self->{ref_attrs} = [ grep { $_->references } $self->attributes ];
+    $self->{ref_attrs}    = [ grep {   $_->references } $self->attributes ];
+    $self->{direct_attrs} = [ grep { ! $_->references } $self->attributes ];
     return $self;
 }
 

@@ -170,6 +170,9 @@ our %Lexicon = (
   "PANIC: lookup([_1], [_2], [_3]) returned more than one result.",
   "PANIC: lookup([_1], [_2], [_3]) returned more than one result.",
 
+  'Invalid method "[_1]"',
+  "Invalid method “[_1]”",
+  
   # Kinetic Attribute labels and tips.
   'GUID' => 'GUID',
   'The globally unique identifier for this object',

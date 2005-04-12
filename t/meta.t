@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 44;
+use Test::More tests => 49;
 #use Test::More 'no_plan';
 
 package MyTestThingy;
@@ -67,6 +67,11 @@ BEGIN {
         indexed       => 1,
     ), "Add thingy attribute";
 
+    ok $km->add_attribute(
+        name          => 'fname',
+        type          => 'string',
+        label         => 'First Name',
+    ), "Add string attribute";
     ok $km->build, "Build TestThingy class";
 }
 
@@ -92,8 +97,12 @@ is $class->key, 'thingy', 'Check key';
 is $class->package, 'MyTestThingy', 'Check package';
 is $class->name, 'Thingy', 'Check name';
 is $class->plural_name, 'Thingies', 'Check plural name';
+can_ok $class, 'ref_attributes';
+can_ok $class, 'direct_attributes';
 is_deeply [$class->ref_attributes], [],
   "There should be no referenced attributes";
+is_deeply [$class->attributes],[$class->direct_attributes],
+  "With no ref_attributes, direct_attributes should return all attributes";
 
 ok my $attr = $class->attributes('foo'), "Get foo attribute";
 isa_ok $attr, 'Kinetic::Meta::Attribute';
@@ -126,3 +135,6 @@ isa_ok $attr, 'Kinetic::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
 is_deeply [$fclass->ref_attributes], [$attr],
   "We should be able to get the one referenced attribute";
+$attr = $fclass->attributes('fname');
+is_deeply [$fclass->direct_attributes], [$attr],
+  "And direct_attributes should return the non-referenced attributes";

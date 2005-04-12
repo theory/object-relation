@@ -262,7 +262,7 @@ sub set_search_data : Test(9) {
 sub search : Test(1) {
     my $method = 'search';
     can_ok Store, $method;
-
+    diag "Hey, where's the rest of this test?";
 }
 
 sub build_objects : Test(16) {
