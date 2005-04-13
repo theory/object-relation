@@ -136,7 +136,9 @@ sub _MATCH_SEARCH {
 
 =head3 _is_case_sensitive
 
-  my @fields = $store->_is_case_sensitive($type);
+  if ($store->_is_case_sensitive($type)) {
+    ...
+  }
 
 For SQLite, case-insensitivity only works for ASCII, not UNICODE.  Thus, we
 will make no column types case-insensitive.

@@ -901,10 +901,12 @@ sub _save_where_data {
 
 =head3 _is_case_sensitive
 
-  my @types = $store->_is_case_sensitive;
+  if($store->_is_case_sensitive) {
+    ...
+  }
 
-Returns a list of the C<Kinetic::Meta> types for which searches are to be
-case-insensitive.
+Returns a boolean value indicating whether a particular data store data type
+is case sensitive.
 
 =cut
 
