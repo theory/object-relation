@@ -25,6 +25,7 @@ use DBI;
 use File::Spec;
 use File::Path ();
 use File::Copy ();
+# Be sure to load exceptions early.
 use Kinetic::Util::Exceptions;
 
 my %STORES = (

@@ -36,24 +36,6 @@ L<"Instance Interface"> section for the attributes added to
 Kinetic::Meta::Attribute in addition to those defined by
 Class::Meta::Attribute.
 
-=begin comment
-
-Allow POD coverage tests to pass, even though new is implemented, it's not
-really worth documenting at this point, especially since it's never called
-directly.
-
-=head3 new
-
-=end comment
-
-=cut
-
-sub new {
-    my $self = shift->SUPER::new(@_);
-    $self->{indexed} ||= $self->{unique};
-    return $self;
-}
-
 =head1 Dynamic APIs
 
 This class supports the dynamic loading of extra methods specifically designed
@@ -90,6 +72,46 @@ sub import {
             return $self->name . '__id';
         };
     }
+}
+
+##############################################################################
+
+=head1 Class Interface
+
+=head2 Constructor
+
+=head3 new
+
+This constructor overrides the parent class constructor from
+L<Class::Meta::Attribute|Class::Meta::Attribute> to make sure that unique
+attributes are always indexed, and to ensure that the C<relationship>
+parameter is either undefined or one of a valid list of values. See
+L<relationship|"relationship"> for a list of valid relationships.
+
+=cut
+
+my %RELATIONSHIPS = (
+    has             => undef,
+    type_of         => undef,
+    part_of         => undef,
+    references      => undef,
+    extends         => undef,
+    child_of        => undef,
+    mediates        => undef,
+    has_many        => undef,
+    references_many => undef,
+    part_of_many    => undef,
+);
+
+sub new {
+    my $self = shift->SUPER::new(@_);
+    $self->{indexed} ||= $self->{unique};
+    if (exists $self->{relationship}) {
+        $self->class->handle_error(
+           qq{I don't know what a "$self->{relationship}" relationship is}
+        ) unless exists $RELATIONSHIPS{$self->{relationship}}
+    }
+    return $self;
 }
 
 ##############################################################################
@@ -215,6 +237,136 @@ sub references { shift->{references} }
 
 ##############################################################################
 
+=head3 relationship
+
+  my $relationship = $attr->relationship;
+
+This attribute describes the relationship of a referencing attribute and the
+class that references it. At an abstract level, there are fundamentally two
+different types of relationships: A relationship to a single object and a
+releationship to a collection of objects. However, these two broad categories
+break down into subcategories that might affect the API of a class. For
+example, A simple "has" or "refrences" relationship is just that: simple. The
+contained object can be fetched using the accessor, and then the attributes of
+that object can be accessed directly. An "extends" or "type_of" relationship
+is more complex. In these cases, the containining class will have extra
+accessors that delegate to the contained object, thereby making the containing
+class essentially an extension of the contained class.
+
+In all cases, the permissions that a user has to access a contained object or
+collection of contained objects will be evaluated independent of the
+permissions she has to the containing object. Delegated accessors may be
+provided to provide independent implicit access to the contained object, but
+access to the contained object itself (fetched via its attribute accessor)
+will be evaluated on their own.
+
+For attributes that reference other attributes, the default relationship will
+be "has". Returns C<undef> for attributes that do not reference other Kinetic
+objects.
+
+The supported relationships are:
+
+=over
+
+=item has
+
+Defines a simple "has a" relationship. The contained object and its attributes
+will only be available via the attribute accessor method. No other accessors
+will be generated.
+
+=item type_of
+
+The attribute object defines the type of the containing object. For examle, a
+Kinetic::Contact object has an attribute for the Kinetic::Type::Contact object
+that defines its type. The attributes of the type object will be available to
+users via read-only accessors (such as C<contact_type_name()>). In this way, a
+user has READ permission to see the attributes of the type object only via the
+READ-only delegated accessors, but not necssarily to the contained type object
+itself (since permission to access that object is evaluated independently of
+the containing object).
+
+=item part_of
+
+The current object is a part of the contained object. For example, a document
+is a part of a site. The contained object and its attributes will only be
+available via the attribute accessor method. No other accessors will be
+generated.
+
+=item references
+
+A simple reference. The contained object is simply referenced by the
+containing object. For example, an element object may reference another
+element object. In other words, relationship has no inherent meaning, it
+simply I<is>. The contained object and its attributes will only be available
+via the attribute accessor method. No other accessors wiil be generated.
+
+=item extends
+
+The containing object extends the contained object. For example,
+Kinetic::Party::User extends Kinetic::Party::Person. This is similar in
+principal to inheritance, but uses composition to prevent overly complex
+inheritance relationships. The attributes of the contained objects will be
+available via read/write accessors in on the containing object that will
+simply delegate to the contained object. Thus a user will have implicit
+READ/WRITE access to an extended object via the delegated accessors (assuming
+that she has READ/WRITE permission to the extending object, of course), but
+the user's permission to access the contained object itself will be managed
+independent of the user's permissions to the containing object.
+
+=item child_of
+
+The containing object is a child of the contained object. For example, a
+category will always be a child a parent category. The contained object and
+its attributes will only be accessible by fetching the contained object from
+its attribute accessor object, or by a L<Class::Path|Class::Path> method.
+
+=item mediates
+
+The containing object mediates a relationship for the contained object. This
+is specifically for managing "has_many" or "references_many" relationships,
+where the objects being referenced need to have extra metadata associated with
+their relationship. For example, a Subelement object mediates the relationship
+between a parent element and a subelement. The attributes of the contained
+object will be accessible via read/write delegation methods. The permissions
+evaluated for the contained object will implicitly be applied to the mediating
+object, as well, since it functions as an stand-in for the contained object.
+This design is similar in principal to "extends", but exists solely for the
+purpose of mediating specific relationships.
+
+=item has_many
+
+The contained object is a collection of objects that are directly related to
+the containing object. For example, Kinetic::Party has many Kinetic::Contact
+objects. The accessor will return a Kinetic::Util::Collection of the contained
+objects. The permissions applied to the containing object will extend to the
+contained object, as well, since they are considered to be a part of the
+containing object.
+
+=item references_many
+
+The containing object references a collection of contained objects. This
+relationship differs from that of "has_many" in that the "has_many" objects
+are only associated with the object that they are a part of, while the objects
+associated via a "refrences_many" relationship can be referenced by many
+different objects. For example, a document can reference one or more
+categories. Thus, the permissions to access each of the contained objects will
+be evaluated independent of the permission granted to the containing object.
+
+=item part_of_many
+
+The containing object is a part of any number of conatined objects of the
+specified type. For example, a document type may be a part of many different
+sites. The permissions to access each of the contained objects will be
+evaluated independent of the permission granted to the containing object.
+
+=back
+
+=cut
+
+sub relationship { shift->{relationship} }
+
+##############################################################################
+
 =head3 build
 
 This private method overrides the parent C<build()> method in order to set up
@@ -222,15 +374,18 @@ the C<raw()> accessor interface.
 
 =cut
 
-# XXX Move references() from Build::Schema to here? Or move it to C::M::A?
-
 sub build {
     my $self = shift;
     $self->SUPER::build(@_);
 
     # Figure out if the attribute is a reference to another object in a
     # Kinetic::Meta class.
-    $self->{references} = Kinetic::Meta->for_key($self->type);
+    if ($self->{references} = Kinetic::Meta->for_key($self->type)) {
+        $self->{relationship} ||= 'has' if $self->{references};
+    } else {
+        $self->{relationship} = undef;
+    }
+
     my $type = Kinetic::Meta::Type->new($self->{type});
     # Create the attribute object get code reference.
     if ($self->authz >= Class::Meta::READ) {
@@ -241,10 +396,11 @@ sub build {
             $self->{_raw} = $get;
         }
     }
+
     if ($self->authz >= Class::Meta::WRITE) {
         my $set = $type->make_attr_set($self);
         if (my $bake = $type->bake) {
-            $self->{_bake} = sub { $set->($_[0],$bake->($_[1])) };
+            $self->{_bake} = sub { $set->($_[0], $bake->($_[1])) };
         } else {
             $self->{_bake} = $set;
         }

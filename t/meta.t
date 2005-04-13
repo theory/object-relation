@@ -3,8 +3,8 @@
 # $Id$
 
 use strict;
-use Test::More tests => 49;
-#use Test::More 'no_plan';
+#use Test::More tests => 49;
+use Test::More 'no_plan';
 
 package MyTestThingy;
 
@@ -135,6 +135,25 @@ isa_ok $attr, 'Kinetic::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
 is_deeply [$fclass->ref_attributes], [$attr],
   "We should be able to get the one referenced attribute";
+is $attr->references, MyTestThingy->my_class,
+  "The thingy object should reference the thingy class";
+is $attr->relationship, 'has',
+  'The Fooey should have a "has" relationship to the thingy';
 $attr = $fclass->attributes('fname');
 is_deeply [$fclass->direct_attributes], [$attr],
   "And direct_attributes should return the non-referenced attributes";
+is $attr->relationship, undef, "The fname attribute should have no relationship";
+
+ok my $km = Kinetic::Meta->new( key => 'main'), "Create a test KM object";
+eval{ $km->add_attribute(
+    name          => 'thingy',
+    type          => 'thingy',
+    label         => 'Thingy',
+    relationship  => 'foo',
+    indexed       => 1,
+) };
+
+ok $err = $@, "An unknown relationship should throw an error";
+like $err, qr/I don't know what a "foo" relationship is/,
+  "And it should be the correct error";
+
