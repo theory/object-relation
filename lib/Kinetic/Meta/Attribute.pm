@@ -376,15 +376,16 @@ the C<raw()> accessor interface.
 
 sub build {
     my $self = shift;
-    $self->SUPER::build(@_);
 
     # Figure out if the attribute is a reference to another object in a
     # Kinetic::Meta class.
     if ($self->{references} = Kinetic::Meta->for_key($self->type)) {
-        $self->{relationship} ||= 'has' if $self->{references};
+        $self->{relationship} ||= 'has';
     } else {
         $self->{relationship} = undef;
     }
+
+    $self->SUPER::build(@_);
 
     my $type = Kinetic::Meta::Type->new($self->{type});
     # Create the attribute object get code reference.
@@ -395,16 +396,17 @@ sub build {
         } else {
             $self->{_raw} = $get;
         }
-    }
 
-    if ($self->authz >= Class::Meta::WRITE) {
-        my $set = $type->make_attr_set($self);
-        if (my $bake = $type->bake) {
-            $self->{_bake} = sub { $set->($_[0], $bake->($_[1])) };
-        } else {
-            $self->{_bake} = $set;
+        if ($self->authz >= Class::Meta::WRITE) {
+            my $set = $type->make_attr_set($self);
+            if (my $bake = $type->bake) {
+                $self->{_bake} = sub { $set->($_[0], $bake->($_[1])) };
+            } else {
+                $self->{_bake} = $set;
+            }
         }
     }
+
     return $self;
 }
 1;

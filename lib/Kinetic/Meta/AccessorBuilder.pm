@@ -210,12 +210,82 @@ sub build {
         # Create GETSET accessor(s).
         *{"${pkg}::$name"} = $builder->{getset}->($name, @checks);
     }
+
+    # Create any delegation methods.
+    if (my $rel = $attr->relationship) {
+        if ($rel eq 'type_of') {
+            _delegate($pkg, $attr, Class::Meta::READ);
+        } elsif ($rel eq 'extends' || $rel eq 'mediates') {
+            _delegate($pkg, $attr, Class::Meta::RDWR);
+        }
+    }
+}
+
+##############################################################################
+
+=begin private
+
+=head2 Private Functions
+
+=head3 _delegate
+
+  _delegate($pkg, $attr, $auth);
+
+Creates methods in $pkg that delegate to all of the attribute accessors of the
+object referenced by $attr. The $authz argument should be either
+C<Class::Meta::READ> or C<Class::Meta::RDWR>. If the former, the delegation
+methods will be read-only accessors. If the latter, they'll be both accessors
+and mutators unless the attribute being delegated to has its C<authz>
+attribute set to C<Class::Meta::READ>, in which case its delegation method
+will also be read-only.
+
+The generated methods will have the same names as the attributes they point to
+in the delegated object, unless a method with such a name already exists. In
+such a case, the method will be named for the attribute containing the
+delegated object, plus an underscore, plus the name of the attribute. For
+example, if the delegated object was stored in the attribute "user", and its
+class had "name" and "login" attributes, and a method called "name" already
+existed, then the accessor methods created would be called C<user_name()> and
+C<login()>.
+
+This function should only be called for attributes that reference other
+objects and that need to have delegation methods to access the attributes of
+the referenced object. See
+L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute> for a list of supported
+relationships and descriptions their delegation method requirements.
+
+=cut
+
+sub _delegate {
+    my ($pkg, $attr, $authz) = @_;
+    my $aname = $attr->name;
+    my $class = $attr->references;
+   for my $attr ($class->attributes) {
+        next unless $attr->authz >= Class::Meta::READ;
+        my $name = $attr->name;
+        my $meth = defined(&{"${pkg}::$name"}) ? "$aname\_$name" : $name;
+        no strict 'refs';
+        *{"${pkg}::$meth"} = eval(
+            $authz == Class::Meta::READ || $attr->authz == Class::Meta::READ
+              ? "sub {
+                     my \$obj = shift->{$aname} or return;
+                     throw_read_only([
+                         'Cannot assign to read-only attribute \"[_1]\"',
+                          '$meth'
+                     ]) if \@_;
+                     return  \$obj->$name;
+                 }"
+              : "sub { my \$obj = shift->{$aname} or return; \$obj->$name(\@_) }"
+        );
+    }
 }
 
 1;
 __END__
 
 ##############################################################################
+
+=end private
 
 =head1 Copyright and License
 

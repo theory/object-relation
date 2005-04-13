@@ -20,6 +20,8 @@ package Kinetic::Meta::Type;
 
 use strict;
 use base 'Class::Meta::Type';
+use Kinetic::Meta::AccessorBuilder;
+__PACKAGE__->default_builder('Kinetic::Meta::AccessorBuilder');
 
 =head1 Name
 
@@ -116,6 +118,8 @@ L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>.
 =cut
 
 sub raw { shift->{raw} }
+
+##############################################################################
 
 =head3 bake
 

@@ -24,7 +24,6 @@ use Data::UUID;
 use Data::Types;
 use Kinetic::DateTime;
 use Kinetic::Util::Exceptions qw(throw_invalid);
-use Kinetic::Meta::AccessorBuilder;
 
 =head1 Name
 
@@ -82,7 +81,6 @@ my $ug = Data::UUID->new;
 Kinetic::Meta::Type->add(
     key     => "guid",
     name    => "Globally Unique Identifier",
-    builder => 'Kinetic::Meta::AccessorBuilder',
     check   => sub {
         eval { $ug->from_string($_[0]) }
           or throw_invalid(['Value "[_1]" is not a GUID', $_[0]]);
@@ -98,7 +96,6 @@ A Perl string, decoded to its internal, utf8 format.
 Kinetic::Meta::Type->add(
     key     => "string",
     name    => "String",
-    builder => 'Kinetic::Meta::AccessorBuilder',
     check   => sub {
         return unless defined $_[0] && ref $_[0];
         $_[2]->class->handle_error("Value '$_[0]' is not a valid string");
@@ -117,7 +114,6 @@ number.
 Kinetic::Meta::Type->add(
     key     => "whole",
     name    => "Whole Number",
-    builder => 'Kinetic::Meta::AccessorBuilder',
     check   => sub {
         return unless defined $_[0];
         Data::Types::is_whole($_[0])
@@ -152,7 +148,6 @@ Kinetic::Meta::Type->add(
                        : shift
                    },
     bake    => sub { Kinetic::DateTime->new_from_iso8601(shift) },
-    builder => 'Kinetic::Meta::AccessorBuilder',
     check   => 'Kinetic::DateTime',
 );
 
@@ -167,7 +162,6 @@ A Kinetic::Party::Person::User object.
 Kinetic::Meta::Type->add(
     key     => "user",
     name    => "User",
-    builder => 'Kinetic::Meta::AccessorBuilder',
     check   => 'Kinetic::Party::Person::User',
 );
 
@@ -182,7 +176,6 @@ A Kinetic::Util::State object.
 Kinetic::Meta::Type->add(
     key     => "state",
     name    => "State",
-    builder => 'Kinetic::Meta::AccessorBuilder',
     raw     => sub { ref $_[0] ? shift->value : shift },
     bake    => sub { Kinetic::Util::State->new(shift) },
     check   => sub {
