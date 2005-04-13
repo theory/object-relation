@@ -3,8 +3,8 @@
 # $Id$
 
 use strict;
-#use Test::More tests => 49;
-use Test::More 'no_plan';
+use Test::More tests => 55;
+#use Test::More 'no_plan';
 
 package MyTestThingy;
 
