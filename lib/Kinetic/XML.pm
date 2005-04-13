@@ -19,6 +19,7 @@ package Kinetic::XML;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
+use IO::File;
 use XML::Genx::Simple;
 use XML::Simple;
 use Kinetic::Util::Exceptions ':all';
@@ -35,6 +36,9 @@ Kinetic::XML - The Kinetic XML serialization class
 =head1 Synopsis
 
   use Kinetic::XML;
+  my $xml = Kinetic::XML->new;
+  $xml->object($kinetic_object);
+  my $xml_string = $xml->dump_xml;
 
 =head1 Description
 
@@ -53,8 +57,14 @@ this class.
 =head3 new
 
   my $xml = Kinetic::XML->new;
+  # or
+  my $xml = Kinetic::XML->new($kinetic_object);
 
-Creates and returns a new xml object.
+Creates and returns a new xml object.  It optionally takes a L<Kinetic|Kinetic>
+object as an argument.  This is equivalent to:
+
+  my $xml = Kinetic::XML->new;
+  $xml->object($kinetic_object);
 
 =cut
 
