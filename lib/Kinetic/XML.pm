@@ -163,10 +163,6 @@ sub _fetch_object {
         $object = $class->package->new(guid => $data->{guid});
     }
     while (my ($attr_name, $value) = each %$data) {
-        # XXX for the time being, I need to assign directly instead of using
-        # mutators.  Trying to use them results in "wide character in print" when
-        # I am dealing with objects (State, DateTime, etc.)
-        #$object->{$attr} = $value;
         if (my $attr = $class->attributes($attr_name)) {
             $attr->bake($object,$value);
         }
@@ -236,11 +232,11 @@ Returns an XML representation of the object.  If called in list context,
 it returns a list of all XML sections produced (if more than one).  Otherwise,
 it joins the XML sections with an empty string and returns them together.
 
-Multiple XML sections might be obtained if C<with_contained> is false.
+Multiple XML sections might be obtained if C<with_referenced> is false.
 
 =over 4
 
-=item with_contained
+=item with_referenced
 
 If passed a true value, any contained Kinetic objects will be serialized
 within the XML for the main object. If it is false (the default), then
@@ -277,6 +273,24 @@ sub dump_xml {
     return $xml->GetDocString;
 }
 
+# XXX should this be somewhere else?  I'm not sure.  I don't like the 
+# hardcoding of so much data.  I think a centralized metadata repository
+# might be nice.
+
+my %referenced = (
+    has             => 0,
+    type_of         => 1,
+    part_of         => 1,
+    references      => 1,
+    extends         => 0,
+    child_of        => 1,
+    mediates        => 0,
+    # "many" relationships
+    has_many        => 0,
+    references_many => 1,
+    part_of_many    => 1,
+);
+
 sub _add_object_to_xml {
     my ($self, $xml, $object) = @_;
     $xml->StartElementLiteral($object->my_class->key);
@@ -286,15 +300,18 @@ sub _add_object_to_xml {
         my $name = $attr->name;
         next if 'guid' eq $name;
         if ($attr->references) {
+            my $relationship = $attr->relationship;
             my $object = $attr->get($object);
-            if (exists $self->{params}{with_contained} && ! $self->{params}{with_contained}) {
+            if ($referenced{$relationship}) {
                 # just guid
                 my $name = $object->my_class->key;
                 $xml->StartElementLiteral('',$name);
                 $xml->AddAttributeLiteral('', guid => $object->guid);
-                $xml->AddAttributeLiteral('', relative => 1);
+                $xml->AddAttributeLiteral('', referenced => 1);
                 $xml->EndElement;
-                push @OBJECTS => $object;
+                if ($self->{params}{with_referenced}) {
+                    push @OBJECTS => $object;
+                }
             } else {
                 $self->_add_object_to_xml($xml, $object);
             }

@@ -14,6 +14,7 @@ use Test::File::Contents;
 
 use Encode qw(is_utf8);
 
+use Kinetic::Util::Language::en;
 use aliased 'Kinetic::DateTime';
 use aliased 'Test::MockModule';
 
@@ -23,6 +24,59 @@ use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
 use aliased 'Kinetic::XML';
 
 __PACKAGE__->runtests unless caller;
+
+BEGIN {
+    package MyTestThingy;
+    use base 'Kinetic';
+    my $km = Kinetic::Meta->new(
+        key         => 'thingy',
+        name        => 'Thingy',
+        plural_name => 'Thingies',
+    );
+    $km->add_constructor(
+        name   => 'new',
+        create => 1,
+    );
+    $km->add_attribute(
+        name          => 'foo',
+        type          => 'string',
+        label         => 'Foo',
+        indexed       => 1,
+        on_delete     => 'CASCADE',
+        store_default => 'ick',
+        widget_meta   => Kinetic::Meta::Widget->new(
+            type => 'text',
+            tip  => 'Kinetic',
+        )
+    );
+    $km->build;
+
+    package MyTestPartof;
+    use base 'Kinetic';
+    $km = Kinetic::Meta->new(
+        key         => 'partof',
+        name        => 'Partof',
+        plural_name => 'Partofs',
+    );
+    $km->add_constructor(
+        name   => 'new',
+        create => 1,
+    );
+    $km->add_attribute(
+        name          => 'thingy',
+        type          => 'thingy',
+        relationship  => 'part_of',
+    );
+    $km->build;
+
+    Kinetic::Util::Language::en->add_to_lexicon(
+      'Thingy'     => 'Thingy',
+      'Thingies'   => 'Thingies',
+      'Partof'     => 'Partof',
+      'Partofs'    => 'Partofs',
+      'References' => 'References',
+    );
+}
 
 {
     package Faux::Store;
@@ -203,7 +257,7 @@ sub object : Test(5) {
         '... and passing the object into the constructor should succeed';
 }
 
-sub dump_xml : Test(5) {
+sub dump_xml : Test(7) {
     my $one = One->new;
     $one->name('some name');
     $one->description('some description');
@@ -220,19 +274,19 @@ sub dump_xml : Test(5) {
       </one>
     </kinetic>
     END_XML
-    my $two = Two->new;
-    $two->name('june17');
-    $two->date(DateTime->new(
+    my $not_referenced = Two->new;
+    $not_referenced->name('june17');
+    $not_referenced->date(DateTime->new(
         year  => 1968,
         month => 6,
         day   => 17
     ));
-    $two->one($one);
-    $xml->object($two);
-    my $two_guid = $two->guid;
-    is_xml $xml->dump_xml(with_contained => 1), <<"    END_XML", '... contained object should also be represented correctly';
+    $not_referenced->one($one);
+    $xml->object($not_referenced);
+    my $not_referenced_guid = $not_referenced->guid;
+    is_xml $xml->dump_xml(with_referenced => 1), <<"    END_XML", '... contained object should also be represented correctly';
     <kinetic version="0.01">
-      <two guid="$two_guid">
+      <two guid="$not_referenced_guid">
         <name>june17</name>
         <description></description>
         <state>1</state>
@@ -247,22 +301,53 @@ sub dump_xml : Test(5) {
       </two>
     </kinetic>
     END_XML
-    is_xml $xml->dump_xml(with_contained => 0), <<"    END_XML", 'with_contained=0 should refer to contained objects by GUID';
+    is_xml $xml->dump_xml(with_referenced => 0), <<"    END_XML", 'with_referenced=0 should be a no-op with "has" relationships';
     <kinetic version="0.01">
-      <two guid="$two_guid">
+      <two guid="$not_referenced_guid">
         <name>june17</name>
         <description></description>
         <state>1</state>
-        <one guid="$one_guid" relative="1"/>
+        <one guid="$one_guid">
+          <name>some name</name>
+          <description>some description</description>
+          <state>1</state>
+          <bool>1</bool>
+        </one>
         <age></age>
         <date>1968-06-17T00:00:00</date>
       </two>
-      <one guid="$one_guid">
-        <name>some name</name>
-        <description>some description</description>
+    </kinetic>
+    END_XML
+
+    my $partof = MyTestPartof->new;
+    my $thingy = MyTestThingy->new(foo => 'bar');
+    $partof->thingy($thingy);
+    $xml->object($partof);
+    my ($partof_guid, $thingy_guid) = ($partof->guid, $thingy->guid);
+    is_xml $xml->dump_xml, <<"    END_XML", 'Referenced objects should only include the GUID';
+    <kinetic version="0.01">
+      <partof guid="$partof_guid">
+        <name></name>
+        <description></description>
         <state>1</state>
-        <bool>1</bool>
-      </one>
+        <thingy guid="$thingy_guid" referenced="1"></thingy>
+      </partof>
+    </kinetic>
+    END_XML
+    is_xml $xml->dump_xml(with_referenced => 1), <<"    END_XML", '... but they should append the referenced object if you ask nicely';
+    <kinetic version="0.01">
+      <partof guid="$partof_guid">
+        <name></name>
+        <description></description>
+        <state>1</state>
+        <thingy guid="$thingy_guid" referenced="1"></thingy>
+      </partof>
+      <thingy guid="$thingy_guid">
+        <name></name>
+        <description></description>
+        <state>1</state>
+        <foo>bar</foo>
+      </thingy>
     </kinetic>
     END_XML
 
