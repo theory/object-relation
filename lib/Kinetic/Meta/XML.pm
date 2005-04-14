@@ -155,37 +155,44 @@ sub dump_xml {
     return $xml->GetDocString;
 }
 
-my @class_attributes = qw/
-    package
-    name
-    plural_name
-    desc
-    abstract
-    is_a
-/;
-
-my @multiple_attributes = (qw/
-    constructors
-    attributes
-/);
-my %multiple_attributes = (
-    constructors => {
-        label => 'constructor',
-        attributes => [qw/name/],
-    },
-    attributes => {
-        label  => 'attribute',
-        attributes => [qw/
-            name
-            label
-            type
-            required
-            unique
-            once
-            default
-            authz
-            widget
+my %attributes = (
+    class    => [qw/
+        package
+        name
+        plural_name
+        desc
+        abstract
+        is_a
+    /],
+    multiple => {
+        order  => [qw/
+            constructors
+            attributes
         /],
+        lookup => {
+            constructors => {
+                label => 'constructor',
+                attributes => [qw/name/],
+            },
+            attributes => {
+                label  => 'attribute',
+                attributes => [qw/
+                    name
+                    label
+                    type
+                    required
+                    unique
+                    once
+                    default
+                    relationship
+                    authz
+                    widget_meta
+                /],
+            },
+        },
+    },
+    contained => {
+        widget_meta => [qw/type tip/],
     },
 );
 
@@ -193,18 +200,31 @@ sub _add_class_to_xml {
     my ($self, $xml, $class) = @_;
     $xml->StartElementLiteral('', 'class');
     $xml->AddAttributeLiteral(key => $class->key);
-    foreach my $attribute (@class_attributes) {
-        $xml->Element( $attribute => $class->$attribute );
+    # XXX this is temporary (?)
+    local $^W;
+    foreach my $attribute (@{$attributes{class}}) {
+        $xml->Element( $attribute => ($class->$attribute || '') );
     }
-    foreach my $multiple (@multiple_attributes) {
+    foreach my $multiple (@{$attributes{multiple}{order}}) {
         $xml->StartElementLiteral($multiple);
         my ($label, $attributes) 
-            = @{$multiple_attributes{$multiple}}{qw/label attributes/};
+            = @{$attributes{multiple}{lookup}{$multiple}}{qw/label attributes/};
         foreach my $thing ($class->$multiple) {
             $xml->StartElementLiteral($label);
+            my $attr_object = $class->attributes($thing->name);
             foreach my $attribute (@$attributes) {
-                next if 'widget' eq $attribute; # XXX What to do here?
-                $xml->Element($attribute => $thing->$attribute); 
+                if (my $contained_attrs = $attributes{contained}{$attribute}) {
+                    if (my $contained = $attr_object->$attribute) {
+                        $xml->StartElementLiteral($attribute);
+                        foreach my $c_attr (@$contained_attrs) {
+                            $xml->Element($c_attr => $contained->$c_attr);
+                        }
+                        $xml->EndElement;
+                    }
+                }
+                else {
+                    $xml->Element($attribute => ($thing->$attribute || '')); 
+                }
             }
             $xml->EndElement;
         }

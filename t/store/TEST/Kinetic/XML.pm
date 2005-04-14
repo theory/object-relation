@@ -73,6 +73,7 @@ sub write_xml : Test(5) {
     unlink $file or die "Could not unlink file ($file): $!";
 
     {
+        no warnings 'redefine';
         package Faux::IO;
         sub new      { bless {} => shift }
         sub print    { $_[0]->{contents} = $_[1] }

@@ -26,7 +26,7 @@ BEGIN {
 }
 
 # Add new strings to the lexicon.
-Kinetic::Util::Language::en_us->add_to_lexicon(
+Kinetic::Util::Language::en->add_to_lexicon(
   'One'  => 'One',
   'Ones' => 'Ones',
   'Bool' => 'Bool',

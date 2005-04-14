@@ -11,6 +11,7 @@ use Test::Exception;
 use Test::XML;
 use Test::File;
 use Test::File::Contents;
+use Kinetic::Util::Language::en_us;
 
 use Encode qw(is_utf8);
 
@@ -25,7 +26,18 @@ use aliased 'Kinetic::Meta::XML';
 
 __PACKAGE__->runtests unless caller;
 
-sub constructor : Test(no_plan) {
+sub startup : Test(startup) {
+    my $test = shift;
+    my $km_attribute = MockModule->new('Kinetic::Meta::Attribute');
+    $km_attribute->mock('default', 'default guid');
+    $test->{km_attribute} = $km_attribute; # cache it so it stays mocked
+}
+
+sub shutdown : Test(shutdown) {
+    delete shift->{km_attribute};
+}
+
+sub constructor : Test(6) {
     can_ok XML, 'new';
     ok my $xml = XML->new, '... and calling it should succeed';
     isa_ok $xml, XML, '... and the object it returns';
@@ -46,18 +58,26 @@ sub class : Test(5) {
     is_deeply $xml->class, $class, '... and it should return the class it stored.';
 }
 
-sub write_xml : Test(5) {
+sub write_xml : Test(no_plan) {
     can_ok XML, 'write_xml';
     my $xml = XML->new(Simple->my_class);
     my $file = 'one_xml';
     $xml->write_xml(file => $file);
     file_exists_ok $file, '... and it should create the file';
-    TODO: {
-        local $TODO = 'This will not work until calculated attributes (GUID) are handled';
-        file_contents_is $file, $xml->dump_xml,
-            '... and it should have the correct data';
-    }
+    file_contents_is $file, $xml->dump_xml,
+        '... and it should have the correct data';
+    $xml->class(One->my_class);
+    $xml->write_xml(file => $file);
+    file_exists_ok $file, '... and it should create the file';
+    file_contents_is $file, $xml->dump_xml,
+        '... and it should have the correct data';
+    $xml->class(Two->my_class);
+    $xml->write_xml(file => $file);
+    file_exists_ok $file, '... and it should create the file';
+    file_contents_is $file, $xml->dump_xml,
+        '... and it should have the correct data';
 
+    $xml->class(One->my_class);
     my $io_file = MockModule->new('IO::File');
     $io_file->mock('new', sub {}); # deliberately return a false value
     throws_ok {$xml->write_xml(file => $file)}
@@ -66,6 +86,7 @@ sub write_xml : Test(5) {
     unlink $file or die "Could not unlink file ($file): $!";
 
     {
+        no warnings 'redefine';
         package Faux::IO;
         sub new      { bless {} => shift }
         sub print    { $_[0]->{contents} = $_[1] }
@@ -74,147 +95,98 @@ sub write_xml : Test(5) {
     }
     my $fh = Faux::IO->new;
     $xml->write_xml(handle => $fh);
-    TODO: {
-        local $TODO = 'This will not work until calculated attributes (GUID) are handled';
-        is $fh->contents, $xml->dump_xml, '... and it should work properly with a file handle';
-    }
+    is $fh->contents, $xml->dump_xml, '... and it should work properly with a file handle';
 }
 
 sub dump_xml : Test(no_plan) {
     my $xml = XML->new(Simple->my_class);
     can_ok $xml, 'dump_xml';
-    diag '$attribute->widget seems to fail';
-    is_xml $xml->dump_xml, <<'END_XML', '... and it should return the correct XML';
-<kinetic version="0.01">
-  <class key="simple">
-    <package>TestApp::Simple</package>
-    <name>Simple</name>
-    <plural_name>Simples</plural_name>
-    <desc>KISS.</desc>
-    <abstract>0</abstract>
-    <is_a>Kinetic</is_a>
-    <constructors>
-      <constructor>
-        <name>new</name>
-      </constructor>
-    </constructors>
-    <attributes>
-      <attribute>
-        <name>guid</name>
-        <label>GUID</label>
-        <type>guid</type>
-        <required>1</required>
-        <unique>1</unique>
-        <once>1</once>
-        <default><!-- XXX Hrm, have to decide how to handle this, since many
-                      defaults are calculated.--></default>
-        <authz>RDWR</authz>
+    is_xml $xml->dump_xml, <<'    END_XML', '... and it should return the correct XML';
+    <kinetic version="0.01">
+      <class key="simple">
+        <package>TestApp::Simple</package>
+        <name>Simple</name>
+        <plural_name>Simples</plural_name>
+        <desc></desc>
+        <abstract></abstract>
+        <is_a></is_a>
+        <constructors>
+          <constructor>
+            <name>new</name>
+          </constructor>
+        </constructors>
+        <attributes>
+          <attribute>
+            <name>guid</name>
+            <label>GUID</label>
+            <type>guid</type>
+            <required>1</required>
+            <unique>1</unique>
+            <once>1</once>
+            <default>default guid</default>
+            <relationship></relationship>
+            <authz>4</authz>
+            <widget_meta>
+              <type>text</type>
+              <tip>The globally unique identifier for this object</tip>
+            </widget_meta>
+          </attribute>
+          <attribute>
+            <name>name</name>
+            <label>Name</label>
+            <type>string</type>
+            <required>1</required>
+            <unique></unique>
+            <once></once>
+            <default>default guid</default>
+            <relationship></relationship>
+            <authz>4</authz>
+            <widget_meta>
+              <type>text</type>
+              <tip>The name of this object</tip>
+            </widget_meta>
+          </attribute>
+          <attribute>
+            <name>description</name>
+            <label>Description</label>
+            <type>string</type>
+            <required></required>
+            <unique></unique>
+            <once></once>
+            <default>default guid</default>
+            <relationship></relationship>
+            <authz>4</authz>
+            <widget_meta>
+              <type>textarea</type>
+              <tip>The description of this object</tip>
+            </widget_meta>
+          </attribute>
+          <attribute>
+            <name>state</name>
+            <label>State</label>
+            <type>state</type>
+            <required>1</required>
+            <unique></unique>
+            <once></once>
+            <default>default guid</default>
+            <relationship></relationship>
+            <authz>4</authz>
+            <widget_meta>
+              <type>dropdown</type>
+              <tip>The state of this object</tip>
+            </widget_meta>
+          </attribute>
+        </attributes>
+      </class>
+    </kinetic>
+    END_XML
+
+    <<'    END_XML';
         <widget>
           <type>text</type>
           <tip>The globally unique identifier for this object</tip>
         </widget>
-      </attribute>
-      <attribute>
-        <name>name</name>
-        <label>Name</label>
-        <type>string</type>
-        <required>1</required>
-        <unique>0</unique>
-        <once>0</once>
-        <default></default>
-        <authz>RDWR</authz>
-        <widget>
-          <type>text</type>
-          <tip>The name of this object</tip>
-        </widget>
-      </attribute>
-      <attribute>
-        <name>state</name>
-        <label>State</label>
-        <type>state</type>
-        <required>1</required>
-        <unique>0</unique>
-        <once>0</once>
-        <default>1</default>
-        <authz>RDWR</authz>
-        <widget>
-          <type>dropdown</type>
-          <tip>The state of this object</tip>
-          <options>
-            <!-- XXX Hrm, Not sure how to handle this, since State objectgs
-                 will not be available in the client-unless we add them. -->
-            <option>[1, 'Active']</option>
-            <option>[0, 'Inactive']</option>
-            <option>[-1, 'Deleted]</option>
-            <option>[-2, 'Purged']</option>
-          </options>
-        </widget>
-      </attribute>
-    </attributes>
-  </class>
-</kinetic>
-END_XML
-
-<<'ACTUAL_XML'; # XXX just a comment
-<kinetic version="0.01">
-  <class key="simple">
-    <package>TestApp::Simple</package>
-    <name>Simple</name>
-    <plural_name>Simples</plural_name>
-    <desc></desc>
-    <abstract>0</abstract>
-    <is_a></is_a>
-    <constructors>
-      <constructor>
-        <name>new</name>
-      </constructor>
-    </constructors>
-    <attributes>
-      <attribute>
-        <name>guid</name>
-        <label>GUID</label>
-        <type>guid</type>
-        <required>1</required>
-        <unique>1</unique>
-        <once>1</once>
-        <default>FA37DA20-AC4B-11D9-9481-D6394B585510</default>
-        <authz>4</authz>
-      </attribute>
-      <attribute>
-        <name>name</name>
-        <label>Name</label>
-        <type>string</type>
-        <required>1</required>
-        <unique>
-        </unique>
-        <once>0</once>
-        <default></default>
-        <authz>4</authz>
-      </attribute>
-      <attribute>
-        <name>description</name>
-        <label>Description</label>
-        <type>string</type>
-        <required>0</required>
-        <unique></unique>
-        <once>0</once>
-        <default></default>
-        <authz>4</authz>
-      </attribute>
-      <attribute>
-        <name>state</name>
-        <label>State</label>
-        <type>state</type>
-        <required>1</required>
-        <unique></unique>
-        <once>0</once>
-        <default>Active</default>
-        <authz>4</authz>
-      </attribute>
-    </attributes>
-  </class>
-</kinetic>
-ACTUAL_XML
+    END_XML
 }
 
 1;
