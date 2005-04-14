@@ -58,7 +58,7 @@ sub class : Test(5) {
     is_deeply $xml->class, $class, '... and it should return the class it stored.';
 }
 
-sub write_xml : Test(no_plan) {
+sub write_xml : Test(9) {
     can_ok XML, 'write_xml';
     my $xml = XML->new(Simple->my_class);
     my $file = 'one_xml';
@@ -98,7 +98,7 @@ sub write_xml : Test(no_plan) {
     is $fh->contents, $xml->dump_xml, '... and it should work properly with a file handle';
 }
 
-sub dump_xml : Test(no_plan) {
+sub dump_xml : Test(2) {
     my $xml = XML->new(Simple->my_class);
     can_ok $xml, 'dump_xml';
     is_xml $xml->dump_xml, <<'    END_XML', '... and it should return the correct XML';
