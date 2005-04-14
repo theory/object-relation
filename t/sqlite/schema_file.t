@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
-use Test::More tests => 23;
+use Test::More tests => 25;
 
 {
     # Fake out loading of SQLite store.
@@ -33,7 +33,7 @@ my @schema = <$schema>;
 close $schema;
 ok @schema, "... File has contents";
 
-my @class_keys = qw(simple one two composed comp_comp);
+my @class_keys = map { $_->key } $sg->classes;
 test_contains_order(\@schema, @class_keys);
 
 # Test outputting setup SQL at the beginning of the file.

@@ -30,7 +30,7 @@ BEGIN {
         required      => 1,
         default       => sub { TestApp::Simple::One->new },
         widget_meta   => Kinetic::Meta::Widget->new(
-            type => 'profile',
+            type => 'search',
             tip  => 'One',
         )
     );
@@ -49,7 +49,7 @@ BEGIN {
         required      => 1,
         default       => sub { DateTime->now },
         widget_meta   => Kinetic::Meta::Widget->new(
-            type => 'profile',
+            type => 'calendar',
             tip  => 'Date',
         )
     );

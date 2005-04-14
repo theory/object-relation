@@ -361,7 +361,7 @@ sub _save {
     local @{$self}{qw/columns values/};
     $self->_save($_->get($object))
         foreach $self->{search_class}->ref_attributes;
-        
+
     foreach my $attr ($self->{search_class}->attributes) {
         push @{$self->{columns}} => $attr->_view_column;
         push @{$self->{values}}  => $attr->raw($object);

@@ -19,7 +19,7 @@ BEGIN {
         once          => 1,
         default       => sub { TestApp::Composed->new },
         widget_meta   => Kinetic::Meta::Widget->new(
-            type => 'profile',
+            type => 'search',
             tip  => 'Composed',
         )
     );

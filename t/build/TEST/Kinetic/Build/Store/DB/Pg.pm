@@ -573,7 +573,7 @@ sub test_rules : Test(161) {
 # Check schema permissions
 # Done
 
-sub test_validate_user_db : Test(27) {
+sub test_validate_user_db : Test(29) {
     my $self = shift;
     my $class = $self->test_class;
     # Supply username and password when prompted, database exists and has
@@ -663,7 +663,7 @@ sub test_validate_user_db : Test(27) {
 # Check user
 # Done
 
-sub test_validate_super_user : Test(27) {
+sub test_validate_super_user : Test(29) {
     my $self = shift;
     my $class = $self->test_class;
     # Supply username and password when prompted, database exists and has
@@ -755,7 +755,7 @@ sub test_validate_super_user : Test(27) {
 # Check user
 # Done
 
-sub test_validate_super_user_arg : Test(27) {
+sub test_validate_super_user_arg : Test(29) {
     my $self = shift;
     my $class = $self->test_class;
     # Supply username and password when prompted, database exists and has

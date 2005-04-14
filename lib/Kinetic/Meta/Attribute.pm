@@ -327,7 +327,7 @@ is specifically for managing "has_many" or "references_many" relationships,
 where the objects being referenced need to have extra metadata associated with
 their relationship. For example, a Subelement object mediates the relationship
 between a parent element and a subelement. The attributes of the contained
-object will be accessible via read/write delegation methods. The permissions
+object will be accessible via READ/WRITE delegation methods. The permissions
 evaluated for the contained object will implicitly be applied to the mediating
 object, as well, since it functions as an stand-in for the contained object.
 This design is similar in principal to "extends", but exists solely for the

@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
-use Test::More tests => 68;
+use Test::More tests => 80;
 use Test::Differences;
 
 {
@@ -25,7 +25,7 @@ isa_ok $sg, 'Kinetic::Build::Schema::DB::Pg';
 
 ok $sg->load_classes('t/sample/lib'), "Load classes";
 is_deeply [ map { $_->key } $sg->classes ],
-  [qw(simple one two composed comp_comp)],
+  [qw(simple one two relation composed comp_comp)],
   "classes() returns classes in their proper dependency order";
 
 for my $class ($sg->classes) {
@@ -299,6 +299,111 @@ eq_or_diff $sg->delete_for_class($two), $delete,
 
 # Check that a complete schema is properly generated.
 eq_or_diff join("\n", $sg->schema_for_class($two)),
+  join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
+  "... Schema class generates complete schema";
+
+##############################################################################
+# Grab the relation class.
+ok my $relation = Kinetic::Meta->for_key('relation'), "Get relation class";
+is $relation->key, 'relation', "... Relation class has key 'relation'";
+is $relation->table, '_relation', "... Relation class has table '_relation'";
+
+# Check that the CREATE TABLE statement is correct.
+$table = q{CREATE TABLE _relation (
+    id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
+    guid TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    state STATE NOT NULL DEFAULT 1,
+    one_id INTEGER NOT NULL,
+    simple_id INTEGER NOT NULL
+);
+};
+eq_or_diff $sg->table_for_class($relation), $table,
+  "... Schema class generates CREATE TABLE statement";
+
+# Check that the CREATE INDEX statements are correct.
+$indexes = q{CREATE UNIQUE INDEX idx_relation_guid ON _relation (guid);
+CREATE INDEX idx_relation_name ON _relation (LOWER(name));
+CREATE INDEX idx_relation_state ON _relation (state);
+CREATE INDEX idx_relation_one_id ON _relation (one_id);
+CREATE INDEX idx_relation_simple_id ON _relation (simple_id);
+};
+
+eq_or_diff $sg->indexes_for_class($relation), $indexes,
+  "... Schema class generates CREATE INDEX statements";
+
+# Check that the ALTER TABLE ADD CONSTRAINT statements are correct.
+$constraints = q{ALTER TABLE _relation
+  ADD CONSTRAINT pk_relation_id PRIMARY KEY (id);
+
+ALTER TABLE _relation
+  ADD CONSTRAINT fk_one_id FOREIGN KEY (one_id)
+  REFERENCES simple_one(id) ON DELETE RESTRICT;
+
+ALTER TABLE _relation
+  ADD CONSTRAINT fk_simple_id FOREIGN KEY (simple_id)
+  REFERENCES _simple(id) ON DELETE RESTRICT;
+
+CREATE FUNCTION relation_guid_once() RETURNS trigger AS '
+  BEGIN
+    IF OLD.guid <> NEW.guid OR NEW.guid IS NULL
+        THEN RAISE EXCEPTION ''value of "guid" cannot be changed'';
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER relation_guid_once BEFORE UPDATE ON _relation
+    FOR EACH ROW EXECUTE PROCEDURE relation_guid_once();
+};
+
+eq_or_diff $sg->constraints_for_class($relation), $constraints,
+  "... Schema class generates CONSTRAINT statement";
+
+# Check that the CREATE VIEW statement is correct.
+$view = q{CREATE VIEW relation AS
+  SELECT _relation.id AS id, _relation.guid AS guid, _relation.name AS name, _relation.description AS description, _relation.state AS state, _relation.one_id AS one__id, one.guid AS one__guid, one.name AS one__name, one.description AS one__description, one.state AS one__state, one.bool AS one__bool, _relation.simple_id AS simple__id, simple.guid AS simple__guid, simple.name AS simple__name, simple.description AS simple__description, simple.state AS simple__state
+  FROM   _relation, one, simple
+  WHERE  _relation.one_id = one.id AND _relation.simple_id = simple.id;
+};
+
+eq_or_diff $sg->view_for_class($relation), $view,
+  "... Schema class generates CREATE VIEW statement";
+
+# Check that the INSERT rule/trigger is correct.
+$insert = q{CREATE RULE insert_relation AS
+ON INSERT TO relation DO INSTEAD (
+  INSERT INTO _relation (id, guid, name, description, state, one_id, simple_id)
+  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state, NEW.one__id, NEW.simple__id);
+);
+};
+eq_or_diff $sg->insert_for_class($relation), $insert,
+  "... Schema class generates view INSERT rule";
+
+# Check that the UPDATE rule/trigger is correct.
+$update = q{CREATE RULE update_relation AS
+ON UPDATE TO relation DO INSTEAD (
+  UPDATE _relation
+  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state, one_id = NEW.one__id, simple_id = NEW.simple__id
+  WHERE  id = OLD.id;
+);
+};
+eq_or_diff $sg->update_for_class($relation), $update,
+  "... Schema class generates view UPDATE rule";
+
+# Check that the DELETE rule/trigger is correct.
+$delete = q{CREATE RULE delete_relation AS
+ON DELETE TO relation DO INSTEAD (
+  DELETE FROM _relation
+  WHERE  id = OLD.id;
+);
+};
+eq_or_diff $sg->delete_for_class($relation), $delete,
+  "... Schema class generates view DELETE rule";
+
+# Check that a complete schema is properly generated.
+eq_or_diff join("\n", $sg->schema_for_class($relation)),
   join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
   "... Schema class generates complete schema";
 
