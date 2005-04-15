@@ -132,6 +132,21 @@ sub dump_xml : Test(2) {
             </widget_meta>
           </attribute>
           <attribute>
+            <name>state</name>
+            <label>State</label>
+            <type>state</type>
+            <required>1</required>
+            <unique></unique>
+            <once></once>
+            <default>default guid</default>
+            <relationship></relationship>
+            <authz>4</authz>
+            <widget_meta>
+              <type>dropdown</type>
+              <tip>The state of this object</tip>
+            </widget_meta>
+          </attribute>
+          <attribute>
             <name>name</name>
             <label>Name</label>
             <type>string</type>
@@ -161,31 +176,9 @@ sub dump_xml : Test(2) {
               <tip>The description of this object</tip>
             </widget_meta>
           </attribute>
-          <attribute>
-            <name>state</name>
-            <label>State</label>
-            <type>state</type>
-            <required>1</required>
-            <unique></unique>
-            <once></once>
-            <default>default guid</default>
-            <relationship></relationship>
-            <authz>4</authz>
-            <widget_meta>
-              <type>dropdown</type>
-              <tip>The state of this object</tip>
-            </widget_meta>
-          </attribute>
         </attributes>
       </class>
     </kinetic>
-    END_XML
-
-    <<'    END_XML';
-        <widget>
-          <type>text</type>
-          <tip>The globally unique identifier for this object</tip>
-        </widget>
     END_XML
 }
 

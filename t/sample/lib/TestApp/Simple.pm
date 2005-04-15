@@ -8,6 +8,26 @@ BEGIN {
         name        => 'Simple',
         plural_name => 'Simples',
     );
+    $km->add_attribute(
+        name        => 'name',
+        label       => 'Name',
+        type        => 'string',
+        required    => 1,
+        indexed     => 1,
+        widget_meta => Kinetic::Meta::Widget->new(
+            type => 'text',
+            tip  => 'The name of this object',
+        )
+    );
+    $km->add_attribute(
+        name        => 'description',
+        label       => 'Description',
+        type        => 'string',
+        widget_meta => Kinetic::Meta::Widget->new(
+            type => 'textarea',
+            tip  => 'The description of this object',
+        )
+    );
     $km->build;
 }
 

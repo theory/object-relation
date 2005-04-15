@@ -327,8 +327,6 @@ sub dump_xml : Test(7) {
     is_xml $xml->dump_xml, <<"    END_XML", 'Referenced objects should only include the GUID';
     <kinetic version="0.01">
       <partof guid="$partof_guid">
-        <name></name>
-        <description></description>
         <state>1</state>
         <thingy guid="$thingy_guid" referenced="1"></thingy>
       </partof>
@@ -337,14 +335,10 @@ sub dump_xml : Test(7) {
     is_xml $xml->dump_xml(with_referenced => 1), <<"    END_XML", '... but they should append the referenced object if you ask nicely';
     <kinetic version="0.01">
       <partof guid="$partof_guid">
-        <name></name>
-        <description></description>
         <state>1</state>
         <thingy guid="$thingy_guid" referenced="1"></thingy>
       </partof>
       <thingy guid="$thingy_guid">
-        <name></name>
-        <description></description>
         <state>1</state>
         <foo>bar</foo>
       </thingy>

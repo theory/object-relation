@@ -3,7 +3,8 @@
 # $Id$
 
 use strict;
-use Test::More tests => 84;
+use Test::More tests => 60;
+#use Test::More 'no_plan';
 use Data::UUID;
 
 BEGIN {
@@ -81,34 +82,6 @@ is $kinetic->guid, '12CAD854-08BD-11D9-8AF0-8AB02ED80375',
   "Our GUID should have been assigned";
 eval {  MyApp::TestThingy->new(guid => 'foo' ) };
 ok $err = $@, "We should get an error when using a bogus GUID";
-
-# Check name.
-is $kinetic->name, undef, "Check for undefined name";
-ok $kinetic->name('foo'), "Set name to 'foo'";
-is $kinetic->name, 'foo', "Check for name 'foo'";
-ok $attr = $class->attributes('name'), "Get name attr object";
-is $attr->get($kinetic), $kinetic->name, "Get name value";
-is $attr->type, 'string', "Check name attr type";
-is $attr->name, 'name', "Check name attr name";
-is $attr->label, 'Name', "Check name attr label";
-ok $attr->required, 'Check name attr required';
-ok $wm = $attr->widget_meta, "Get name widget meta object";
-is $wm->type, 'text', "Check name widget type";
-is $wm->tip, 'The name of this object', "Check name widget tip";
-
-# Check description.
-is $kinetic->description, undef, "Check for undefined description";
-ok $kinetic->description('foo'), "Set description to 'foo'";
-is $kinetic->description, 'foo', "Check for description 'foo'";
-ok $attr = $class->attributes('description'), "Get description attr object";
-is $attr->get($kinetic), $kinetic->description, "Get description value";
-is $attr->type, 'string', "Check description attr type";
-is $attr->name, 'description', "Check description attr name";
-is $attr->label, 'Description', "Check description attr label";
-ok !$attr->required, 'Check description attr not required';
-ok $wm = $attr->widget_meta, "Get description widget meta object";
-is $wm->type, 'textarea', "Check description widget type";
-is $wm->tip, 'The description of this object', "Check description widget tip";
 
 # Check state.
 is $kinetic->state, ACTIVE, "Check for active state";

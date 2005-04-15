@@ -5,6 +5,7 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
+#use Test::More 'no_plan';
 use Test::More tests => 80;
 use Test::Differences;
 
@@ -52,9 +53,9 @@ is $simple->table, '_simple', "... Simple class has table '_simple'";
 my $table = q{CREATE TABLE _simple (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
     guid TEXT NOT NULL,
+    state STATE NOT NULL DEFAULT 1,
     name TEXT NOT NULL,
-    description TEXT,
-    state STATE NOT NULL DEFAULT 1
+    description TEXT
 );
 };
 eq_or_diff $sg->table_for_class($simple), $table,
@@ -62,8 +63,8 @@ eq_or_diff $sg->table_for_class($simple), $table,
 
 # Check that the CREATE INDEX statements are correct.
 my $indexes = q{CREATE UNIQUE INDEX idx_simple_guid ON _simple (guid);
-CREATE INDEX idx_simple_name ON _simple (LOWER(name));
 CREATE INDEX idx_simple_state ON _simple (state);
+CREATE INDEX idx_simple_name ON _simple (LOWER(name));
 };
 eq_or_diff $sg->indexes_for_class($simple), $indexes,
   "... Schema class generates CREATE INDEX statements";
@@ -89,7 +90,7 @@ eq_or_diff $sg->constraints_for_class($simple), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 my $view = q{CREATE VIEW simple AS
-  SELECT _simple.id AS id, _simple.guid AS guid, _simple.name AS name, _simple.description AS description, _simple.state AS state
+  SELECT _simple.id AS id, _simple.guid AS guid, _simple.state AS state, _simple.name AS name, _simple.description AS description
   FROM   _simple;
 };
 eq_or_diff $sg->view_for_class($simple), $view,
@@ -98,8 +99,8 @@ eq_or_diff $sg->view_for_class($simple), $view,
 # Check that the INSERT rule/trigger is correct.
 my $insert = q{CREATE RULE insert_simple AS
 ON INSERT TO simple DO INSTEAD (
-  INSERT INTO _simple (id, guid, name, description, state)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state);
+  INSERT INTO _simple (id, guid, state, name, description)
+  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.state, NEW.name, NEW.description);
 );
 };
 eq_or_diff $sg->insert_for_class($simple), $insert,
@@ -109,7 +110,7 @@ eq_or_diff $sg->insert_for_class($simple), $insert,
 my $update = q{CREATE RULE update_simple AS
 ON UPDATE TO simple DO INSTEAD (
   UPDATE _simple
-  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state
+  SET    guid = NEW.guid, state = NEW.state, name = NEW.name, description = NEW.description
   WHERE  id = OLD.id;
 );
 };
@@ -163,7 +164,7 @@ eq_or_diff $sg->constraints_for_class($one), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW one AS
-  SELECT simple.id AS id, simple.guid AS guid, simple.name AS name, simple.description AS description, simple.state AS state, simple_one.bool AS bool
+  SELECT simple.id AS id, simple.guid AS guid, simple.state AS state, simple.name AS name, simple.description AS description, simple_one.bool AS bool
   FROM   simple, simple_one
   WHERE  simple.id = simple_one.id;
 };
@@ -173,8 +174,8 @@ eq_or_diff $sg->view_for_class($one), $view,
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_one AS
 ON INSERT TO one DO INSTEAD (
-  INSERT INTO _simple (id, guid, name, description, state)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state);
+  INSERT INTO _simple (id, guid, state, name, description)
+  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.state, NEW.name, NEW.description);
 
   INSERT INTO simple_one (id, bool)
   VALUES (CURRVAL('seq_kinetic'), NEW.bool);
@@ -187,7 +188,7 @@ eq_or_diff $sg->insert_for_class($one), $insert,
 $update = q{CREATE RULE update_one AS
 ON UPDATE TO one DO INSTEAD (
   UPDATE _simple
-  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state
+  SET    guid = NEW.guid, state = NEW.state, name = NEW.name, description = NEW.description
   WHERE  id = OLD.id;
 
   UPDATE simple_one
@@ -253,17 +254,18 @@ eq_or_diff $sg->constraints_for_class($two), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW two AS
-  SELECT simple.id AS id, simple.guid AS guid, simple.name AS name, simple.description AS description, simple.state AS state, simple_two.one_id AS one__id, one.guid AS one__guid, one.name AS one__name, one.description AS one__description, one.state AS one__state, one.bool AS one__bool, simple_two.age AS age, simple_two.date AS date
+  SELECT simple.id AS id, simple.guid AS guid, simple.state AS state, simple.name AS name, simple.description AS description, simple_two.one_id AS one__id, one.guid AS one__guid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, simple_two.age AS age, simple_two.date AS date
   FROM   simple, simple_two, one
   WHERE  simple.id = simple_two.id AND simple_two.one_id = one.id;
 };
 eq_or_diff $sg->view_for_class($two), $view,
   "... Schema class generates CREATE VIEW statement";
+
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_two AS
 ON INSERT TO two DO INSTEAD (
-  INSERT INTO _simple (id, guid, name, description, state)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state);
+  INSERT INTO _simple (id, guid, state, name, description)
+  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.state, NEW.name, NEW.description);
 
   INSERT INTO simple_two (id, one_id, age, date)
   VALUES (CURRVAL('seq_kinetic'), NEW.one__id, NEW.age, NEW.date);
@@ -276,7 +278,7 @@ eq_or_diff $sg->insert_for_class($two), $insert,
 $update = q{CREATE RULE update_two AS
 ON UPDATE TO two DO INSTEAD (
   UPDATE _simple
-  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state
+  SET    guid = NEW.guid, state = NEW.state, name = NEW.name, description = NEW.description
   WHERE  id = OLD.id;
 
   UPDATE simple_two
@@ -312,8 +314,6 @@ is $relation->table, '_relation', "... Relation class has table '_relation'";
 $table = q{CREATE TABLE _relation (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
     guid TEXT NOT NULL,
-    name TEXT NOT NULL,
-    description TEXT,
     state STATE NOT NULL DEFAULT 1,
     one_id INTEGER NOT NULL,
     simple_id INTEGER NOT NULL
@@ -324,7 +324,6 @@ eq_or_diff $sg->table_for_class($relation), $table,
 
 # Check that the CREATE INDEX statements are correct.
 $indexes = q{CREATE UNIQUE INDEX idx_relation_guid ON _relation (guid);
-CREATE INDEX idx_relation_name ON _relation (LOWER(name));
 CREATE INDEX idx_relation_state ON _relation (state);
 CREATE INDEX idx_relation_one_id ON _relation (one_id);
 CREATE INDEX idx_relation_simple_id ON _relation (simple_id);
@@ -363,7 +362,7 @@ eq_or_diff $sg->constraints_for_class($relation), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW relation AS
-  SELECT _relation.id AS id, _relation.guid AS guid, _relation.name AS name, _relation.description AS description, _relation.state AS state, _relation.one_id AS one__id, one.guid AS one__guid, one.name AS one__name, one.description AS one__description, one.state AS one__state, one.bool AS one__bool, _relation.simple_id AS simple__id, simple.guid AS simple__guid, simple.name AS simple__name, simple.description AS simple__description, simple.state AS simple__state
+  SELECT _relation.id AS id, _relation.guid AS guid, _relation.state AS state, _relation.one_id AS one__id, one.guid AS one__guid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, _relation.simple_id AS simple__id, simple.guid AS simple__guid, simple.state AS simple__state, simple.name AS simple__name, simple.description AS simple__description
   FROM   _relation, one, simple
   WHERE  _relation.one_id = one.id AND _relation.simple_id = simple.id;
 };
@@ -374,8 +373,8 @@ eq_or_diff $sg->view_for_class($relation), $view,
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_relation AS
 ON INSERT TO relation DO INSTEAD (
-  INSERT INTO _relation (id, guid, name, description, state, one_id, simple_id)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state, NEW.one__id, NEW.simple__id);
+  INSERT INTO _relation (id, guid, state, one_id, simple_id)
+  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.state, NEW.one__id, NEW.simple__id);
 );
 };
 eq_or_diff $sg->insert_for_class($relation), $insert,
@@ -385,7 +384,7 @@ eq_or_diff $sg->insert_for_class($relation), $insert,
 $update = q{CREATE RULE update_relation AS
 ON UPDATE TO relation DO INSTEAD (
   UPDATE _relation
-  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state, one_id = NEW.one__id, simple_id = NEW.simple__id
+  SET    guid = NEW.guid, state = NEW.state, one_id = NEW.one__id, simple_id = NEW.simple__id
   WHERE  id = OLD.id;
 );
 };
@@ -417,8 +416,6 @@ is $composed->table, '_composed', "... Composed class has table '_composed'";
 $table = q{CREATE TABLE _composed (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
     guid TEXT NOT NULL,
-    name TEXT NOT NULL,
-    description TEXT,
     state STATE NOT NULL DEFAULT 1,
     one_id INTEGER
 );
@@ -428,7 +425,6 @@ eq_or_diff $sg->table_for_class($composed), $table,
 
 # Check that the CREATE INDEX statements are correct.
 $indexes = q{CREATE UNIQUE INDEX idx_composed_guid ON _composed (guid);
-CREATE INDEX idx_composed_name ON _composed (LOWER(name));
 CREATE INDEX idx_composed_state ON _composed (state);
 CREATE INDEX idx_composed_one_id ON _composed (one_id);
 };
@@ -473,7 +469,7 @@ eq_or_diff $sg->constraints_for_class($composed), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW composed AS
-  SELECT _composed.id AS id, _composed.guid AS guid, _composed.name AS name, _composed.description AS description, _composed.state AS state, _composed.one_id AS one__id, one.guid AS one__guid, one.name AS one__name, one.description AS one__description, one.state AS one__state, one.bool AS one__bool
+  SELECT _composed.id AS id, _composed.guid AS guid, _composed.state AS state, _composed.one_id AS one__id, one.guid AS one__guid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool
   FROM   _composed LEFT JOIN one ON _composed.one_id = one.id;
 };
 eq_or_diff $sg->view_for_class($composed), $view,
@@ -482,8 +478,8 @@ eq_or_diff $sg->view_for_class($composed), $view,
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_composed AS
 ON INSERT TO composed DO INSTEAD (
-  INSERT INTO _composed (id, guid, name, description, state, one_id)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state, NEW.one__id);
+  INSERT INTO _composed (id, guid, state, one_id)
+  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.state, NEW.one__id);
 );
 };
 eq_or_diff $sg->insert_for_class($composed), $insert,
@@ -493,7 +489,7 @@ eq_or_diff $sg->insert_for_class($composed), $insert,
 $update = q{CREATE RULE update_composed AS
 ON UPDATE TO composed DO INSTEAD (
   UPDATE _composed
-  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state, one_id = NEW.one__id
+  SET    guid = NEW.guid, state = NEW.state, one_id = NEW.one__id
   WHERE  id = OLD.id;
 );
 };
@@ -525,8 +521,6 @@ is $comp_comp->table, '_comp_comp', "... CompComp class has table 'comp_comp'";
 $table = q{CREATE TABLE _comp_comp (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
     guid TEXT NOT NULL,
-    name TEXT NOT NULL,
-    description TEXT,
     state STATE NOT NULL DEFAULT 1,
     composed_id INTEGER NOT NULL
 );
@@ -536,7 +530,6 @@ eq_or_diff $sg->table_for_class($comp_comp), $table,
 
 # Check that the CREATE INDEX statements are correct.
 $indexes = q{CREATE UNIQUE INDEX idx_comp_comp_guid ON _comp_comp (guid);
-CREATE INDEX idx_comp_comp_name ON _comp_comp (LOWER(name));
 CREATE INDEX idx_comp_comp_state ON _comp_comp (state);
 CREATE INDEX idx_comp_comp_composed_id ON _comp_comp (composed_id);
 };
@@ -581,7 +574,7 @@ eq_or_diff $sg->constraints_for_class($comp_comp), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW comp_comp AS
-  SELECT _comp_comp.id AS id, _comp_comp.guid AS guid, _comp_comp.name AS name, _comp_comp.description AS description, _comp_comp.state AS state, _comp_comp.composed_id AS composed__id, composed.guid AS composed__guid, composed.name AS composed__name, composed.description AS composed__description, composed.state AS composed__state, composed.one__id AS composed__one__id, composed.one__guid AS composed__one__guid, composed.one__name AS composed__one__name, composed.one__description AS composed__one__description, composed.one__state AS composed__one__state, composed.one__bool AS composed__one__bool
+  SELECT _comp_comp.id AS id, _comp_comp.guid AS guid, _comp_comp.state AS state, _comp_comp.composed_id AS composed__id, composed.guid AS composed__guid, composed.state AS composed__state, composed.one__id AS composed__one__id, composed.one__guid AS composed__one__guid, composed.one__state AS composed__one__state, composed.one__name AS composed__one__name, composed.one__description AS composed__one__description, composed.one__bool AS composed__one__bool
   FROM   _comp_comp, composed
   WHERE  _comp_comp.composed_id = composed.id;
 };
@@ -591,8 +584,8 @@ eq_or_diff $sg->view_for_class($comp_comp), $view,
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_comp_comp AS
 ON INSERT TO comp_comp DO INSTEAD (
-  INSERT INTO _comp_comp (id, guid, name, description, state, composed_id)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.name, NEW.description, NEW.state, NEW.composed__id);
+  INSERT INTO _comp_comp (id, guid, state, composed_id)
+  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.state, NEW.composed__id);
 );
 };
 eq_or_diff $sg->insert_for_class($comp_comp), $insert,
@@ -602,7 +595,7 @@ eq_or_diff $sg->insert_for_class($comp_comp), $insert,
 $update = q{CREATE RULE update_comp_comp AS
 ON UPDATE TO comp_comp DO INSTEAD (
   UPDATE _comp_comp
-  SET    guid = NEW.guid, name = NEW.name, description = NEW.description, state = NEW.state, composed_id = NEW.composed__id
+  SET    guid = NEW.guid, state = NEW.state, composed_id = NEW.composed__id
   WHERE  id = OLD.id;
 );
 };

@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 17;
+use Test::More tests => 13;
 
 BEGIN { use_ok 'Kinetic' or die };
 
@@ -33,8 +33,6 @@ package main;
 
 # Create a simple object to clone.
 ok my $kinetic = MyApp::Simple->new, "Create new Simple object";
-ok $kinetic->name('foo'), "Set name";
-ok $kinetic->description('bar'), "Set description";
 
 # Simple clone.
 ok my $k2 = $kinetic->clone, "Clone object";
@@ -43,8 +41,6 @@ isa_ok $k2, 'Kinetic';
 isnt overload::StrVal($k2), overload::StrVal($kinetic),
   "Make sure they're different objects";
 isnt $k2->guid, $kinetic->guid, "Check for different GUID";
-is $k2->name, $kinetic->name, "Check for same name";
-is $k2->description, $kinetic->description, "Check for same description";
 is $k2->state, $kinetic->state, "Check for same state";
 is $k2->datetime, $kinetic->datetime, "Check for same datetime";
 isnt overload::StrVal($k2->datetime), overload::StrVal($kinetic->datetime),

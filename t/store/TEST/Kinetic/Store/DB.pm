@@ -617,11 +617,11 @@ sub insert : Test(7) {
     $one->description('test class');
 
     can_ok Store, '_insert';
-    my $expected    = q{INSERT INTO one (guid, name, description, state, bool) VALUES (?, ?, ?, ?, ?)};
+    my $expected    = q{INSERT INTO one (guid, state, name, description, bool) VALUES (?, ?, ?, ?, ?)};
     my $bind_params = [
+        '1', # state: Active
         'Ovid',
         'test class',
-        '1', # state: Active
         '1'  # bool
     ];
     ok ! $one->{id}, 'And a new object should not have an id';
@@ -664,12 +664,12 @@ sub update : Test(7) {
     $one->{id} = 42;
     # XXX The guid should not change, should it?  I should
     # exclude it from this?
-    my $expected = "UPDATE one SET guid = ?, name = ?, description = ?, "
-                  ."state = ?, bool = ? WHERE id = ?";
+    my $expected = "UPDATE one SET guid = ?, state = ?, name = ?, description = ?, "
+                  ."bool = ? WHERE id = ?";
     my $bind_params = [
+        '1', # state: Active
         'Ovid',
         'test class',
-        '1', # state: Active
         '1'  # bool
     ];
     my @attributes = $one->my_class->attributes;
