@@ -3,8 +3,8 @@
 # $Id$
 
 use strict;
-#use Test::More tests => 55;
-use Test::More 'no_plan';
+use Test::More tests => 159;
+#use Test::More 'no_plan';
 
 package MyTestThingy;
 
@@ -374,6 +374,7 @@ isa_ok $attr, 'Class::Meta::Attribute';
 is $attr->references, MyTestThingy->my_class,
   "The thingy object should reference the thingy class";
 is $attr->relationship, 'extends', 'It should have a "extends" relationship';
+ok $attr->once, 'Extends relationships should be setable only once';
 
 ok $obj = MyTestExtends->new, "Create new Extends";
 is $obj->foo, undef,
@@ -422,6 +423,7 @@ isa_ok $attr, 'Class::Meta::Attribute';
 is $attr->references, MyTestThingy->my_class,
   "The thingy object should reference the thingy class";
 is $attr->relationship, 'mediates', 'It should have a "mediates" relationship';
+ok $attr->once, 'Mediagtes relationships should be setable only once';
 
 ok $obj = MyTestMediates->new, "Create new Mediates";
 is $obj->foo, undef,

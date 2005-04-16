@@ -272,7 +272,16 @@ The supported relationships are:
 
 Defines a simple "has a" relationship. The contained object and its attributes
 will only be available via the attribute accessor method. No other accessors
-will be generated.
+will be generated. For all practical purposes "has" objects should be considered
+to be a part of the whole object that contains them.
+
+=begin comment
+
+View triggers should detect when the has ID is NULL and do an insert when it
+is and an update when it isn't. Hrm...will need to figure out how to handle
+popuplating IDs, then...
+
+=end comment
 
 =item type_of
 
@@ -280,17 +289,31 @@ The attribute object defines the type of the containing object. For examle, a
 Kinetic::Contact object has an attribute for the Kinetic::Type::Contact object
 that defines its type. The attributes of the type object will be available to
 users via read-only accessors (such as C<contact_type_name()>). In this way, a
-user has READ permission to see the attributes of the type object only via the
-READ-only delegated accessors, but not necssarily to the contained type object
+user has read permission to see the attributes of the type object only via the
+read-only delegated accessors, but not necssarily to the contained type object
 itself (since permission to access that object is evaluated independently of
 the containing object).
+
+=begin comment
+
+These objects should be saved independent of their containing objects, since
+they will usually not be changed.
+
+=end comment
 
 =item part_of
 
 The current object is a part of the contained object. For example, a document
-is a part of a site. The contained object and its attributes will only be
-available via the attribute accessor method. No other accessors will be
-generated.
+is a part of one and only one site. The contained object and its attributes
+will only be available via the attribute accessor method. No other accessors
+will be generated.
+
+=begin comment
+
+These objects should be saved independent of their containing objects, since
+they will usually not be changed.
+
+=end comment
 
 =item references
 
@@ -300,18 +323,38 @@ element object. In other words, relationship has no inherent meaning, it
 simply I<is>. The contained object and its attributes will only be available
 via the attribute accessor method. No other accessors wiil be generated.
 
+=begin comment
+
+These objects should be saved independent of their containing objects, since
+they will usually not be changed.
+
+=end comment
+
 =item extends
 
 The containing object extends the contained object. For example,
 Kinetic::Party::User extends Kinetic::Party::Person. This is similar in
 principal to inheritance, but uses composition to prevent overly complex
-inheritance relationships. The attributes of the contained objects will be
-available via read/write accessors in on the containing object that will
-simply delegate to the contained object. Thus a user will have implicit
-READ/WRITE access to an extended object via the delegated accessors (assuming
-that she has READ/WRITE permission to the extending object, of course), but
-the user's permission to access the contained object itself will be managed
-independent of the user's permissions to the containing object.
+inheritance relationships. It also allows more than one containing object to
+refer to the same contained object. If you find yourself setting a contained
+object attribute to "extends" and enabling its "unique" attribute, consider
+using inhertitance, instead. The "extends" relationship assumes "once".
+
+The attributes of the contained objects will be available via read/write
+accessors in on the containing object that will simply delegate to the
+contained object. Thus a user will have implicit read/write access to an
+extended object via the delegated accessors (assuming that she has read/write
+permission to the extending object, of course), but the user's permission to
+access the contained object itself will be managed independent of the user's
+permissions to the containing object.
+
+=begin comment
+
+The insert view trigger will need to detect if the contained object ID is
+NULL, and do an insert it if isn't and an update if it is. The update view
+trigger can always just do an update.
+
+=end comment
 
 =item child_of
 
@@ -320,18 +363,35 @@ category will always be a child a parent category. The contained object and
 its attributes will only be accessible by fetching the contained object from
 its attribute accessor object, or by a L<Class::Path|Class::Path> method.
 
+=begin comment
+
+Database relationships of tree structures TBD.
+
+=end comment
+
 =item mediates
 
 The containing object mediates a relationship for the contained object. This
 is specifically for managing "has_many" or "references_many" relationships,
 where the objects being referenced need to have extra metadata associated with
 their relationship. For example, a Subelement object mediates the relationship
-between a parent element and a subelement. The attributes of the contained
-object will be accessible via READ/WRITE delegation methods. The permissions
-evaluated for the contained object will implicitly be applied to the mediating
-object, as well, since it functions as an stand-in for the contained object.
-This design is similar in principal to "extends", but exists solely for the
-purpose of mediating specific relationships.
+between a parent element and a subelement. Like "extends", the "mediates"
+relationship assumes "once".
+
+The attributes of the contained object will be accessible via read/write
+delegation methods. The permissions evaluated for the contained object will
+implicitly be applied to the mediating object, as well, since it functions as
+an stand-in for the contained object. This design is similar in principal to
+"extends", but exists solely for the purpose of mediating specific
+relationships.
+
+=begin comment
+
+The insert view trigger will need to detect if the contained object ID is
+NULL, and do an insert it if isn't and an update if it is. The update view
+trigger can always just do an update.
+
+=end comment
 
 =item has_many
 
@@ -341,6 +401,13 @@ objects. The accessor will return a Kinetic::Util::Collection of the contained
 objects. The permissions applied to the containing object will extend to the
 contained object, as well, since they are considered to be a part of the
 containing object.
+
+=begin comment
+
+The schema for the many relationships is TBD, and depends on whether they're
+relating to objects or mediators.
+
+=end comment
 
 =item references_many
 
@@ -381,6 +448,9 @@ sub build {
     # Kinetic::Meta class.
     if ($self->{references} = Kinetic::Meta->for_key($self->type)) {
         $self->{relationship} ||= 'has';
+        $self->{once} = 1
+          if $self->{relationship} eq 'extends'
+          || $self->{relationship} eq 'mediates';
     } else {
         $self->{relationship} = undef;
     }

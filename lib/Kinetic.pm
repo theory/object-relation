@@ -57,7 +57,7 @@ Kinetic - The Kinetic enterprise application framework
           plural_name => 'Thingies',
       );
       $km->add_attribute(
-        name => 'prvenence',
+        name => 'provenence',
         type => 'string',
       );
       $km->build;
