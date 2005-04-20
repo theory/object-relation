@@ -355,6 +355,30 @@ CREATE FUNCTION relation_guid_once() RETURNS trigger AS '
 
 CREATE TRIGGER relation_guid_once BEFORE UPDATE ON _relation
     FOR EACH ROW EXECUTE PROCEDURE relation_guid_once();
+
+CREATE FUNCTION relation_one_id_once() RETURNS trigger AS '
+  BEGIN
+    IF OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL
+        THEN RAISE EXCEPTION ''value of "one_id" cannot be changed'';
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER relation_one_id_once BEFORE UPDATE ON _relation
+    FOR EACH ROW EXECUTE PROCEDURE relation_one_id_once();
+
+CREATE FUNCTION relation_simple_id_once() RETURNS trigger AS '
+  BEGIN
+    IF OLD.simple_id <> NEW.simple_id OR NEW.simple_id IS NULL
+        THEN RAISE EXCEPTION ''value of "simple_id" cannot be changed'';
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER relation_simple_id_once BEFORE UPDATE ON _relation
+    FOR EACH ROW EXECUTE PROCEDURE relation_simple_id_once();
 };
 
 eq_or_diff $sg->constraints_for_class($relation), $constraints,

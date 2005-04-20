@@ -450,6 +450,24 @@ FOR EACH ROW BEGIN
   END;
 END;
 
+CREATE TRIGGER ck_relation_one_id_once
+BEFORE UPDATE ON _relation
+FOR EACH ROW BEGIN
+  SELECT CASE
+    WHEN OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL
+    THEN RAISE(ABORT, 'value of "one_id" cannot be changed')
+  END;
+END;
+
+CREATE TRIGGER ck_relation_simple_id_once
+BEFORE UPDATE ON _relation
+FOR EACH ROW BEGIN
+  SELECT CASE
+    WHEN OLD.simple_id <> NEW.simple_id OR NEW.simple_id IS NULL
+    THEN RAISE(ABORT, 'value of "simple_id" cannot be changed')
+  END;
+END;
+
 CREATE TRIGGER fki_relation_one_id
 BEFORE INSERT ON _relation
 FOR EACH ROW BEGIN
