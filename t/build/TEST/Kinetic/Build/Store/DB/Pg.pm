@@ -1168,14 +1168,24 @@ sub db_cleanup {
         # query to kill a bit of time, just to make sure that we really are
         # fully disconnted. It seems like it sometimes thinks there are still
         # connections even after the query returns false.
-        for (0..1) {
-            sleep 1 while $dbh->selectrow_array(
-                'SELECT 1 FROM pg_stat_activity where datname = ?',
-                undef, $self->{conf}{pg}{db_name}
-            );
+        sleep 1 while $dbh->selectrow_array(
+            'SELECT 1 FROM pg_stat_activity where datname = ?',
+            undef, $self->{conf}{pg}{db_name}
+        );
+
+        for (my $i = 0; $i < 5; $i++) {
+            # This might fail a couple of times as we wait for the database
+            # connection to really drop. It might be sometime *after* the above
+            # query returns false!
+            eval { $dbh->do(qq{DROP DATABASE "$self->{conf}{pg}{db_name}"}) };
+            if (my $err = $@) {
+                die $err
+                  if $i >= 5 || $err !~ /is being accessed by other users/;
+                sleep 1, next;
+            }
+            last;
         }
 
-        $dbh->do(qq{DROP DATABASE "$self->{conf}{pg}{db_name}"});
         $dbh->do(qq{DROP user "$self->{conf}{pg}{db_user}"});
     }
     return $self;
