@@ -1226,12 +1226,19 @@ sub _run_build_tests {
     # What actions are to be done?
     my %actions = map { $_ => 1 } $kbs->actions;
 
-    # Create the test database and user and add PL/pgSQL.
+    # Create the test database and user.
     $kbs->create_db($kbs->db_name) unless $actions{create_db};
     $kbs->create_user($kbs->db_user)
       unless $actions{create_user} || $kbs->_user_exists($kbs->db_user);
-    $kbs->add_plpgsql($kbs->db_name)
-      unless $actions{add_plpgsql} || $kbs->_plpgsql_available;
+
+    # Add PL/pgSQL or prevent it from being added.
+    if (my $got_plpgsql = $kbs->_plpgsql_available) {
+        # The test mocked _plpgsl_available, so we need to prevent it from
+        # doing something it's not supposed to do.
+        $kbs->del_actions('add_plpgsql') if $actions{add_plpgsql};
+    } else {
+        $kbs->add_plpgsql($kbs->db_name) unless $actions{add_plpgsql};
+    }
     $pg->unmock('_dbh');
 
     # Now test creating the new database.
