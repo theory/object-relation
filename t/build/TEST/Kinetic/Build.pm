@@ -4,6 +4,14 @@ package TEST::Kinetic::Build;
 
 use strict;
 use warnings;
+BEGIN {
+    use lib qw(
+        t/lib
+        t/build
+        lib/
+    );
+}
+use TEST::Class::Kinetic;
 use base 'TEST::Class::Kinetic';
 use Test::More;
 use aliased 'Test::MockModule';
@@ -112,11 +120,25 @@ sub test_props : Test(10) {
     my $store = MockModule->new('Kinetic::Build::Store::DB::Pg');
     $store->mock(validate => 1);
     $store->mock(info_class => 'TEST::Kinetic::TestInfo');
+    $mb->mock(_is_tty => 1);
     $builder = $self->new_builder(accept_defaults => 0);
     is join('', @msgs),
       "  1> pg\n  2> sqlite\nWhich data store back end shold I use? [2]: ",
       "We should be prompted for the data store";
     is $builder->store, 'pg', 'Data store should now be "pg"';
+}
+
+sub new_builder {
+    my $self = shift;
+    my $class = $self->test_class;
+    $self->{builder} = $class->new(
+        dist_name       => 'Testing::Kinetic',
+        dist_version    => '1.0',
+        quiet           => 1,
+        accept_defaults => 1,
+        @_,
+    );
+    return $self->{builder};
 }
 
 sub test_check_store : Test(6) {
@@ -457,18 +479,6 @@ sub try_reply {
 
     delete $self->{input};
     return $self;
-}
-
-sub new_builder {
-    my $self = shift;
-    my $class = $self->test_class;
-    return $self->{builder} = $class->new(
-        dist_name       => 'Testing::Kinetic',
-        dist_version    => '1.0',
-        quiet           => 1,
-        accept_defaults => 1,
-        @_,
-    );
 }
 
 package TEST::Kinetic::TestInfo;

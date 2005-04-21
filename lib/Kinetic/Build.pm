@@ -608,8 +608,6 @@ might pass a code reference like C<sub { /^\d+$/ }>.
 
 sub get_reply {
     my ($self, %params) = @_;
-    $self->{tty} = -t STDIN && (-t STDOUT || !(-f STDOUT || -c STDOUT))
-      unless exists $self->{tty};
 
     my $def_label = $params{default};
     my $val;
@@ -620,7 +618,7 @@ sub get_reply {
 
     if (defined $val) {
         $params{default} = $val;
-    } elsif ($self->{tty} && ! $self->accept_defaults) {
+    } elsif ($self->_is_tty && ! $self->accept_defaults) {
         if (my $opts = $params{options}) {
             my $i;
             $self->_prompt(join "\n", map({
@@ -819,6 +817,23 @@ sub _serialize_conf_hash {
     map { "    $_ => "
           . (defined $conf->{$_} ? "'$conf->{$_}'" : 'undef') . ",\n"
     } sort keys %$conf;
+}
+
+##############################################################################
+
+=head3 _is_tty
+
+  if ($build->_is_tty) { ... }
+
+Returns true if code is being run from a terminal.
+
+=cut
+
+sub _is_tty {
+    my $self = shift;
+    $self->{tty} = -t STDIN && (-t STDOUT || !(-f STDOUT || -c STDOUT))
+      unless exists $self->{tty};
+    return $self->{tty};
 }
 
 ##############################################################################
