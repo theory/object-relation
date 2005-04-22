@@ -58,7 +58,7 @@ sub setup : Test(setup) {
 sub teardown : Test(teardown) {
     my $test = shift;
     delete($test->{dbi_mock})->unmock_all;
-    $test->{dbh}->rollback;
+    $test->{dbh}->rollback unless $test->{dbh}->{AutoCommit};
     delete($test->{db_mock})->unmock_all;
 }
 
