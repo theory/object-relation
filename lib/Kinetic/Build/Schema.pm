@@ -146,7 +146,11 @@ sub load_classes {
 
     # Store classes according to dependency order.
     my (@sorted, %seen);
-    for my $class (@classes) {
+    for my $class (
+        map  { $_->[1] }
+        sort { $a->[0] cmp $b->[0] }
+        map  { [$_->key => $_ ] } @classes
+    ) {
         push @sorted, $self->_sort_class(\%seen, $class)
           unless $seen{$class->key}++;
     }

@@ -26,7 +26,7 @@ isa_ok $sg, 'Kinetic::Build::Schema::DB::SQLite';
 
 ok $sg->load_classes('t/sample/lib'), "Load classes";
 is_deeply [ map { $_->key } $sg->classes ],
-  [qw(simple one two relation composed comp_comp)],
+  [qw(simple one composed comp_comp relation two)],
   "classes() returns classes in their proper dependency order";
 
 for my $class ($sg->classes) {
