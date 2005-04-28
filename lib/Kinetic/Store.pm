@@ -20,7 +20,7 @@ package Kinetic::Store;
 
 use strict;
 use Kinetic::Util::Config qw(:store);
-use Kinetic::Util::Exceptions qw/throw_invalid_class/;
+use Kinetic::Util::Exceptions qw/throw_invalid_class throw_search/;
 
 =head1 Name
 
@@ -50,30 +50,67 @@ later, and L<Kinetic::Store::LDAP|Kinetic::Store::LDAP>.
 # Here are the functions we'll need to export to get the search parameter
 # syntax to work.
 
+# These are simple constants we can use for the sort_order parameter. These
+# are used for the DBI storage classes only.
+
 my %tokens;
 BEGIN {
-    $tokens{comparison} = [qw/EQ NOT LIKE GT LT GE LE NE MATCH/];
-    $tokens{logical}    = [qw/AND OR ANY/];
+    $tokens{comparison} = [qw/LIKE GT LT GE LE NE MATCH/];
+    $tokens{logical}    = [qw/AND OR/];
     $tokens{sorting}    = [qw/ASC DESC/];
 
     no strict 'refs';
     foreach my $token (@{ $tokens{comparison} }) {
-        *$token = sub($) { my $value = shift; sub { $token, $value } };
+        *$token = sub($) { my $value = shift; sub { shift || '', $token, $value } };
+    }
+    foreach my $token (@{ $tokens{logical} }) {
+        *$token = sub { my @values = @_; sub { $token, \@values } };
     }
     foreach my $token (@{ $tokens{sorting} }) {
         *$token = sub()  { sub { $token } }
     }
-    foreach my $token (@{ $tokens{logical} }) {
-        *$token = sub    { my @args = @_; sub { $token, \@args } };
+    push @{$tokens{comparison}} => qw/NOT EQ BETWEEN ANY/;
+}
+
+use Exporter::Tidy
+    comparison => $tokens{comparison},
+    logical    => $tokens{logical},
+    sorting    => $tokens{sorting};
+
+sub NOT($) {
+    my $value = shift;
+    $value    = BETWEEN($value) if 'ARRAY' eq ref $value;
+    sub {
+        return ('CODE' eq ref $value)
+            ? $value->('NOT')
+            : ('NOT', 'EQ', $value);
     }
 }
-use Exporter::Tidy
-   comparison => $tokens{comparison},
-   logical    => $tokens{logical},
-   sorting    => $tokens{sorting};
 
-# These are simple constants we can use for the sort_order parameter. These
-# are used for the DBI storage classes only.
+sub EQ($) {
+    my $value = shift;
+    sub {
+        my $negated = shift || '';
+        return ('ARRAY' eq ref $value)
+            ? ($negated, 'BETWEEN', $value)
+            : ($negated, 'EQ',      $value);
+    }
+}
+
+sub BETWEEN($) {
+    my $value = shift; 
+    # XXX convert to exception
+    throw_search [ 
+        'BETWEEN searches may only take two values.  You have [_1]', 
+        scalar @$value 
+    ] unless 2 == @$value;
+    sub { (shift() || ''), 'BETWEEN', $value }
+}
+
+sub ANY { 
+    my @args = @_; 
+    sub { shift || '', 'ANY', \@args } 
+}
 
 ##############################################################################
 # Constructors
@@ -1059,6 +1096,20 @@ C<ANY> with any of the comparison operators. C<LIKE> can be especially useful:
   );
 
 Now what could be more flexible than that?
+
+=head3 BETWEEN
+
+The C<BETWEEN> function is a range search.  Generally, this keyword is optional.
+Any place where a range search between two values can be used, the C<BETWEEN>
+keyword may be used to make the search more explicit.
+
+  my $iter = $store->search('Kinetic::Phony::Person' =>
+                            'birthday' => [$date2 => $date1]);
+
+  # same as
+
+  my $iter = $store->search('Kinetic::Phony::Person' =>
+                            'birthday' => BETWEEN [$date2 => $date1]);
 
 =cut
 

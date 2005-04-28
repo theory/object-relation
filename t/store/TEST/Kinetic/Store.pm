@@ -10,7 +10,6 @@ use Test::More;
 use Test::Exception;
 use Encode qw(is_utf8);
 
-use aliased 'Test::MockModule';
 use aliased 'Kinetic::Store' => 'Store', ':all';
 
 use aliased 'Kinetic::DateTime';
@@ -31,7 +30,6 @@ __PACKAGE__->runtests unless caller;
 sub _all_items {
     my ($test, $iterator) = @_;
     my @iterator;
-    my $store = Store->new;
     while (my $object = $iterator->next) {
         push @iterator => $test->_force_inflation($object);
     }
@@ -153,15 +151,18 @@ sub unit_constructor : Test(6) {
     isnt "$store", "$store2", '... and a singleton should not be returned';
 }
 
-sub unit_does_import : Test(71) {
+sub unit_does_import : Test(47) {
     can_ok Store, 'import';
     # comparison
-    foreach my $sub (qw/EQ NOT LIKE GT LT GE LE NE MATCH/) {
+    foreach my $sub (qw/LIKE GT LT GE LE NE MATCH/) {
         can_ok __PACKAGE__, $sub;
         no strict 'refs';
         my $result = [$sub->(7)->()];
-        is_deeply $result, [$sub, 7],
-            'and it should return its name and args';
+        is_deeply $result, ['', $sub, 7],
+            '... and it should return and empty string, its name and args';
+        $result = [$sub->(7)->('NOT')];
+        is_deeply $result, ['NOT', $sub, 7],
+            '... and it should return the value passed to it, its  name and args';
     }
     # sorting
     foreach my $sub (qw/ASC DESC/) {
@@ -169,52 +170,63 @@ sub unit_does_import : Test(71) {
         no strict 'refs';
         my $result = [$sub->()->()];
         is_deeply $result, [$sub],
-            'and it should return its name and args';
+            '... and it should return its name and args';
     }
     # logical
-    foreach my $sub (qw/AND OR ANY/) {
+    foreach my $sub (qw/AND OR/) {
         can_ok __PACKAGE__, $sub;
         no strict 'refs';
         my $result = [$sub->(qw/foo bar/)->()];
         is_deeply $result, [$sub, [qw/foo bar/]],
-            'Not yet sure of the semantics of the logical operators';
+            '... and it should return its name and an array ref of its arguments';
     }
-    {
-        package Foo;
-        use Kinetic::Store ':comparison';
-        foreach my $sub (qw/EQ NOT LIKE GT LT GE LE NE MATCH/) {
-            TEST::Kinetic::Store::ok UNIVERSAL::can(Foo => $sub),
-                '":comparison" should export the correct methods';
-        }
-        foreach my $sub (qw/AND OR ANY ASC DESC/) {
-            TEST::Kinetic::Store::ok ! UNIVERSAL::can(Foo => $sub),
-                '":comparison" should not export unrequested methods';
-        }
-    }
-    {
-        package Bar;
-        use Kinetic::Store ':logical';
-        foreach my $sub (qw/AND OR ANY/) {
-            TEST::Kinetic::Store::ok UNIVERSAL::can(Bar => $sub),
-                '":logical" should export the correct methods';
-        }
-        foreach my $sub (qw/EQ NOT LIKE GT LT GE LE ASC DESC NE MATCH/) {
-            TEST::Kinetic::Store::ok ! UNIVERSAL::can(Bar => $sub),
-                '":logical" should not export unrequested methods';
-        }
-    }
-    {
-        package Baz;
-        use Kinetic::Store ':sorting';
-        foreach my $sub (qw/ASC DESC/) {
-            TEST::Kinetic::Store::ok UNIVERSAL::can(Baz => $sub),
-                '":sorting" should export the correct methods';
-        }
-        foreach my $sub (qw/EQ NOT LIKE GT LT GE LE AND OR ANY NE MATCH/) {
-            TEST::Kinetic::Store::ok ! UNIVERSAL::can(Baz => $sub),
-                '":sorting" should not export unrequested methods';
-        }
-    }
+    can_ok __PACKAGE__, 'EQ';
+    my $eq = EQ 2;
+    is_deeply [$eq->()], ['', 'EQ', 2],
+        '... and a basic EQ should return the correct value';
+
+    $eq = EQ [2,3];
+    is_deeply [$eq->()], ['', 'BETWEEN', [2,3]],
+        '... and EQ should return BETWEEN if the value is an arrayref';
+    
+    $eq = EQ 2;
+    is_deeply [$eq->('NOT')], ['NOT', 'EQ', 2],
+        '... EQ should negate itself if NOT is passed as an argument';
+
+    $eq = EQ [2,3];
+    is_deeply [$eq->('NOT')], ['NOT', 'BETWEEN', [2,3]],
+        '... even if we are doing a BETWEEN search';
+
+    can_ok __PACKAGE__, 'ANY';
+    my $any = ANY(2,3,4);
+    is_deeply [$any->()], ['', 'ANY', [2,3,4]],
+        '... and a basic ANY should return the correct value';
+    is_deeply [$any->('NOT')], ['NOT', 'ANY', [2,3,4]],
+        '... even if it is negated';
+
+    can_ok __PACKAGE__, 'BETWEEN';
+    throws_ok {BETWEEN [2,3,4]}
+        'Kinetic::Util::Exception::Fatal::Search',
+        '... and BETWEEN searches with other than two values should throw an exception';
+    my $between = BETWEEN [2,4];
+    is_deeply [$between->()], ['', 'BETWEEN', [2,4]],
+        '... and BETWEEN should return the correct value';
+    is_deeply [$between->('NOT')], ['NOT', 'BETWEEN', [2,4]],
+        '... even if it is negated';
+
+    can_ok __PACKAGE__, 'NOT';
+    my $not = NOT 'foo';
+    is_deeply [$not->()], ['NOT', 'EQ', 'foo'],
+        '... NOT searches should negate their meaning and default to EQ';
+    $not = NOT ['bar','baz'];
+    is_deeply [$not->()], ['NOT', 'BETWEEN', [qw/bar baz/]],
+        '... but should switch to BETWEEN if negating an array ref';
+    $not = NOT BETWEEN ['bar','baz'];
+    is_deeply [$not->()], ['NOT', 'BETWEEN', [qw/bar baz/]],
+        '... and allow the BETWEEN to be explicitly stated';
+    $not = NOT LIKE 'foo%';
+    is_deeply [$not->()], ['NOT', 'LIKE', 'foo%'],
+        '... and otherwise should take an extra operator';
 }
 
 sub search_incomplete_date_boundaries : Test(6) {

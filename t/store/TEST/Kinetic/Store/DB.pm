@@ -117,74 +117,111 @@ sub test_dbh : Test(2) {
     }
 }
 
-sub where_token : Test(26) {
+sub where_clause : Test(11) {
     my $store = Store->new;
-    can_ok $store, '_make_where_token';
     $store->{search_class} = One->new->my_class;
-
+    my $my_class = MockModule->new('Kinetic::Meta::Class');
+    my $current_column;
+    $my_class->mock(attributes => sub {
+        $current_column = $_[1];
+        bless {} => Attribute
+    });
+    my $attr = MockModule->new(Attribute);
+    my %attributes = (
+        name => 'string',
+        desc => 'string',
+        age  => 'int',
+        this => 'weird_type',
+        bog  => 'asdf',
+    );
+    $attr->mock(type => sub {
+        my ($self) = @_;
+        $current_column = 'bog' unless exists $attributes{$current_column};
+        return $attributes{$current_column};
+    });
+    can_ok $store, '_make_where_clause';
     $store->{search_data}{columns} = [qw/name desc/]; # so it doesn't think it's an object search
+    $store->{search_data}{lookup}  = {name => undef, desc => undef}; # so it doesn't think it's an object search
+    my ($where, $bind) = $store->_make_where_clause([
+        name => 'foo',
+        desc => 'bar',
+    ]);
+    is $where, '(LOWER(name) = LOWER(?) AND LOWER(desc) = LOWER(?))',
+        'and simple compound where snippets should succeed';
+    is_deeply $bind, [qw/foo bar/],
+        'and return the correct bind params';
+
+    $store->{search_data}{columns} = [qw/name desc this/]; # so it doesn't think it's an object search
+    $store->{search_data}{lookup}  = {name => undef, desc => undef, this => undef}; # so it doesn't think it's an object search
+    ($where, $bind) = $store->_make_where_clause([
+        name => 'foo',
+        [
+            desc => 'bar',
+            this => 'that',
+        ],
+    ]);
+    is $where, '(LOWER(name) = LOWER(?) AND (LOWER(desc) = LOWER(?) AND this = ?))',
+        'and compound where snippets with array refs should succeed';
+    is_deeply $bind, [qw/foo bar that/],
+        'and return the correct bind params';
+
+    ($where, $bind) = $store->_make_where_clause([
+        name => 'foo',
+        OR(
+            desc => 'bar',
+            this => 'that',
+        ),
+    ]);
+    is $where, '(LOWER(name) = LOWER(?) OR (LOWER(desc) = LOWER(?) AND this = ?))',
+        'and compound where snippets with array refs should succeed';
+    is_deeply $bind, [qw/foo bar that/],
+        'and return the correct bind params';
+
+    $store->{search_data}{columns} = [qw/
+        last_name
+        first_name 
+        bio 
+        one__type 
+        one__value 
+        fav_number
+    /]; # so it doesn't think it's an object search
     $store->{search_data}{lookup} = {};
     @{$store->{search_data}{lookup}}{@{$store->{search_data}{columns}}} = undef;
-    my ($token, $bind) = $store->_make_where_token('name', 'foo');
-    is $token, 'LOWER(name) = LOWER(?)', 'and a basic match should return the correct where snippet';
-    is_deeply $bind, ['foo'], 'and a proper bind param';
+    ($where, $bind) = $store->_make_where_clause([
+        [
+            last_name  => 'Wall',
+            first_name => 'Larry',
+        ],
+        OR( bio => LIKE '%perl%'),
+        OR(
+          'one.type'  => LIKE 'email',
+          'one.value' => LIKE '@cpan\.org$',
+          'fav_number'    => GE 42
+        )
+    ]);
+    is $where, '((last_name = ? AND first_name = ?) OR (bio  LIKE ?) OR '
+              .'(one__type  LIKE ? AND one__value  LIKE ? AND fav_number >= ?))',
+        'Even very complex conditions should be manageable';
+    is_deeply $bind, [qw/Wall Larry %perl% email @cpan\.org$ 42/],
+        'and be able to generate the correct bindings';
 
-    ($token, $bind) = $store->_make_where_token('name', NOT 'foo');
-    is $token, 'LOWER(name) != LOWER(?)',
-        'and a negated basic match should return the correct where snippet';
-    is_deeply $bind, ['foo'], 'and a proper bind param';
-
-    ($token, $bind) = $store->_make_where_token('name', undef);
-    is $token, 'name IS  NULL', 'and a NULL search should return the correct where snippet';
-    is_deeply $bind, [], 'and a proper bind param';
-
-    ($token, $bind) = $store->_make_where_token('name', NOT undef);
-    is $token, 'name IS NOT NULL',
-        'and a negated NULL search should return the correct where snippet';
-    is_deeply $bind, [], 'and a proper bind param';
-
-    eval {($token, $bind) = $store->_make_where_token('name', {})};
-    ok $@, "We should not make a where token if it doesn't know how to make one";
-
-    ($token, $bind) = $store->_make_where_token('name', ['bar', 'foo']);
-    is $token, 'LOWER(name)  BETWEEN LOWER(?) AND LOWER(?)',
-        'and a range search should return the correct where snippet';
-    is_deeply $bind, ['bar', 'foo'], 'and a proper bind param';
-
-    ($token, $bind) = $store->_make_where_token('name', NOT ['bar', 'foo']);
-    is $token, 'LOWER(name) NOT BETWEEN LOWER(?) AND LOWER(?)',
-        'and a negated range search should return the correct where snippet';
-    is_deeply $bind, ['bar', 'foo'], 'and a proper bind param';
-
-    ($token, $bind) = $store->_make_where_token('name', LIKE '%foo');
-    is $token, 'LOWER(name)  LIKE LOWER(?)',
-        'and a LIKE search should return the correct where snippet';
-    is_deeply $bind, ['%foo'], 'and a proper bind param';
-
-    ($token, $bind) = $store->_make_where_token('name', NOT LIKE '%foo');
-    is $token, 'LOWER(name) NOT LIKE LOWER(?)',
-        'and a negated LIKE search should return the correct where snippet';
-    is_deeply $bind, ['%foo'], 'and a proper bind param';
-
-    ($token, $bind) = $store->_make_where_token('name', MATCH '(a|b)%');
-    is $token, 'LOWER(name) ~* LOWER(?)',
-        'and a MATCH search should return the correct where snippet';
-    is_deeply $bind, ['(a|b)%'], 'and a proper bind param';
-
-    ($token, $bind) = $store->_make_where_token('name', NOT MATCH '(a|b)%');
-    is $token, 'LOWER(name) !~* LOWER(?)',
-        'and a negated MATCH search should return the correct where snippet';
-    is_deeply $bind, ['(a|b)%'], 'and a proper bind param';
-
-    ($token, $bind) = $store->_make_where_token('name', ANY(qw/foo bar baz/));
-    is $token, 'LOWER(name)  IN (LOWER(?), LOWER(?), LOWER(?))',
-        'and an IN search should return the correct where snippet';
-    is_deeply $bind, [qw/foo bar baz/], 'and a proper bind param';
-
-    ($token, $bind) = $store->_make_where_token('name', NOT ANY(qw/foo bar baz/));
-    is $token, 'LOWER(name) NOT IN (LOWER(?), LOWER(?), LOWER(?))',
-        'and a negated IN search should return the correct where snippet';
-    is_deeply $bind, [qw/foo bar baz/], 'and a proper bind param';
+    ($where, $bind) = $store->_make_where_clause([
+        AND(
+            last_name  => 'Wall',
+            first_name => 'Larry',
+        ),
+        OR( bio => LIKE '%perl%'),
+        OR(
+          'one.type'  => LIKE 'email',
+          'one.value' => LIKE '@cpan\.org$',
+          'fav_number'    => GE 42
+        )
+    ]);
+    is $where, '((last_name = ? AND first_name = ?) OR (bio  LIKE ?) OR '
+              .'(one__type  LIKE ? AND one__value  LIKE ? AND fav_number >= ?))',
+        'Even very complex conditions should be manageable';
+    is_deeply $bind, [qw/Wall Larry %perl% email @cpan\.org$ 42/],
+        'and be able to generate the correct bindings';
 }
 
 sub set_search_data : Test(9) {
@@ -338,213 +375,6 @@ sub build_objects : Test(16) {
     is $one->state+0, 1, 'and basic attributes should be correct';
     isa_ok $one->state, 'Kinetic::Util::State',
         'and Kinetic::Util::State objects should be handled correctly';
-}
-
-sub where_clause : Test(11) {
-    my $store = Store->new;
-    $store->{search_class} = One->new->my_class;
-    my $my_class = MockModule->new('Kinetic::Meta::Class');
-    my $current_column;
-    $my_class->mock(attributes => sub {
-        $current_column = $_[1];
-        bless {} => Attribute
-    });
-    my $attr = MockModule->new(Attribute);
-    my %attributes = (
-        name => 'string',
-        desc => 'string',
-        age  => 'int',
-        this => 'weird_type',
-        bog  => 'asdf',
-    );
-    $attr->mock(type => sub {
-        my ($self) = @_;
-        $current_column = 'bog' unless exists $attributes{$current_column};
-        return $attributes{$current_column};
-    });
-    can_ok $store, '_make_where_clause';
-    $store->{search_data}{columns} = [qw/name desc/]; # so it doesn't think it's an object search
-    $store->{search_data}{lookup}  = {name => undef, desc => undef}; # so it doesn't think it's an object search
-    my ($where, $bind) = $store->_make_where_clause([
-        name => 'foo',
-        desc => 'bar',
-    ]);
-    is $where, '(LOWER(name) = LOWER(?) AND LOWER(desc) = LOWER(?))',
-        'and simple compound where snippets should succeed';
-    is_deeply $bind, [qw/foo bar/],
-        'and return the correct bind params';
-
-    $store->{search_data}{columns} = [qw/name desc this/]; # so it doesn't think it's an object search
-    $store->{search_data}{lookup}  = {name => undef, desc => undef, this => undef}; # so it doesn't think it's an object search
-    ($where, $bind) = $store->_make_where_clause([
-        name => 'foo',
-        [
-            desc => 'bar',
-            this => 'that',
-        ],
-    ]);
-    is $where, '(LOWER(name) = LOWER(?) AND (LOWER(desc) = LOWER(?) AND this = ?))',
-        'and compound where snippets with array refs should succeed';
-    is_deeply $bind, [qw/foo bar that/],
-        'and return the correct bind params';
-
-    ($where, $bind) = $store->_make_where_clause([
-        name => 'foo',
-        OR(
-            desc => 'bar',
-            this => 'that',
-        ),
-    ]);
-    is $where, '(LOWER(name) = LOWER(?) OR (LOWER(desc) = LOWER(?) AND this = ?))',
-        'and compound where snippets with array refs should succeed';
-    is_deeply $bind, [qw/foo bar that/],
-        'and return the correct bind params';
-
-    $store->{search_data}{columns} = [qw/
-        last_name
-        first_name 
-        bio 
-        one__type 
-        one__value 
-        fav_number
-    /]; # so it doesn't think it's an object search
-    $store->{search_data}{lookup} = {};
-    @{$store->{search_data}{lookup}}{@{$store->{search_data}{columns}}} = undef;
-    ($where, $bind) = $store->_make_where_clause([
-        [
-            last_name  => 'Wall',
-            first_name => 'Larry',
-        ],
-        OR( bio => LIKE '%perl%'),
-        OR(
-          'one.type'  => LIKE 'email',
-          'one.value' => LIKE '@cpan\.org$',
-          'fav_number'    => GE 42
-        )
-    ]);
-    is $where, '((last_name = ? AND first_name = ?) OR (bio  LIKE ?) OR '
-              .'(one__type  LIKE ? AND one__value  LIKE ? AND fav_number >= ?))',
-        'Even very complex conditions should be manageable';
-    is_deeply $bind, [qw/Wall Larry %perl% email @cpan\.org$ 42/],
-        'and be able to generate the correct bindings';
-
-    ($where, $bind) = $store->_make_where_clause([
-        AND(
-            last_name  => 'Wall',
-            first_name => 'Larry',
-        ),
-        OR( bio => LIKE '%perl%'),
-        OR(
-          'one.type'  => LIKE 'email',
-          'one.value' => LIKE '@cpan\.org$',
-          'fav_number'    => GE 42
-        )
-    ]);
-    is $where, '((last_name = ? AND first_name = ?) OR (bio  LIKE ?) OR '
-              .'(one__type  LIKE ? AND one__value  LIKE ? AND fav_number >= ?))',
-        'Even very complex conditions should be manageable';
-    is_deeply $bind, [qw/Wall Larry %perl% email @cpan\.org$ 42/],
-        'and be able to generate the correct bindings';
-}
-
-sub bad_where_tokens : Test(3) {
-    my $store = Store->new;
-    $store->{search_class} = One->new->my_class;
-
-    throws_ok {$store->_make_where_token('name', NOT LIKE EQ 'foo')}
-        'Kinetic::Util::Exception::Fatal::Search',
-        'Having three search operators in a row should be a fatal error';
-
-    throws_ok {$store->_make_where_token('name', EQ NOT 'foo')}
-        'Kinetic::Util::Exception::Fatal::Search',
-        'and having NOT as the second operator should also be fatal';
-
-    throws_ok {$store->_make_where_token('name', EQ LIKE 'foo')}
-        'Kinetic::Util::Exception::Fatal::Search',
-        'and two search operators are fatal unless the first operator is NOT';
-}
-
-sub evaluate_search_request : Test(45) {
-    can_ok Store, '_evaluate_search_request';
-
-    my ($negated, $type, $value) = Store->_evaluate_search_request('bar');
-    is $negated, '', 'negated is the empty string if the search is not negated';
-    is $type, 'EQ', 'a simple expansion will return EQ for the type';
-    is $value, 'bar', 'and will not touch the value';
-
-    ($negated, $type, $value) = Store->_evaluate_search_request(undef);
-    is $negated, '', 'negated is the empty string if the search is not negated';
-    is $type, '', 'a NULL expansion will return the empty string for the type';
-    is_deeply $value, undef, 'and an undef value';
-
-    ($negated, $type, $value) = Store->_evaluate_search_request(NOT undef);
-    is $negated, 'NOT', 'negated is "NOT" if the search is negated';
-    is $type, '', 'a negated NULL expansion will return the empty string for the type';
-    is_deeply $value, undef, 'and an undef value';
-
-    ($negated, $type, $value) = Store->_evaluate_search_request([qw/foo bar/]);
-    is $negated, '', 'negated is the empty string if the search is not negated';
-    is $type, '', 'a range expansion will return the empty string for the type';
-    is_deeply $value, [qw/foo bar/], 'and will not touch the value';
-
-    ($negated, $type, $value) = Store->_evaluate_search_request(NOT [qw/foo bar/]);
-    is $negated, 'NOT', 'negated is "NOT" if the search is negated';
-    is $type, '',
-        'a negated range expansion will return them empty string for the type';
-    is_deeply $value, [qw/foo bar/], 'and will not touch the value';
-
-    ($negated, $type, $value) = Store->_evaluate_search_request(ANY('bar'));
-    is $negated, '', 'negated is the empty string if the search is not negated';
-    is $type, 'ANY', 'an ANY expansion will return ANY for the type';
-    is_deeply $value, ['bar'], 'and the values will be an array ref';
-
-    ($negated, $type, $value) = Store->_evaluate_search_request(NOT ANY('bar', 'baz'));
-    is $negated, 'NOT', 'negated is "NOT" if the search is negated';
-    is $type, 'ANY', 'a NOT ANY expansion will return ANY for the type';
-    is_deeply $value, ['bar', 'baz'], 'and the args as an array ref';
-
-    throws_ok {Store->_evaluate_search_request(OR(name => 'bar'))}
-        'Kinetic::Util::Exception::Fatal::Search',
-        'and OR should never be parsed as a value';
-
-    throws_ok {Store->_evaluate_search_request(AND(name => 'bar'))}
-        'Kinetic::Util::Exception::Fatal::Search',
-        'and AND should never be parsed as a value';
-
-    ($negated, $type, $value) = Store->_evaluate_search_request(GT 'bar');
-    is $negated, '', 'negated is the empty string if the search is not negated';
-    is $type, 'GT', 'an GT expansion will return GT for the type';
-    is_deeply $value, 'bar', 'and will not touch the value';
-
-    ($negated, $type, $value) = Store->_evaluate_search_request(NOT GT 'bar');
-    is $negated, 'NOT', 'negated is "NOT" if the search is negated';
-    is $type, 'GT', 'an NOT GT expansion will return GT for the type';
-    is_deeply $value, 'bar', 'and will not touch the value';
-
-    ($negated, $type, $value) = Store->_evaluate_search_request(LIKE 'bar');
-    is $negated, '', 'negated is the empty string if the search is not negated';
-    is $type, 'LIKE', 'an LIKE expansion will return LIKE for the type';
-    is_deeply $value, 'bar', 'and will not touch the value';
-
-    ($negated, $type, $value) = Store->_evaluate_search_request(NOT LIKE 'bar');
-    is $negated, 'NOT', 'negated is "NOT" if the search is negated';
-    is $type, 'LIKE', 'an NOT LIKE expansion will return LIKE for the type';
-    is_deeply $value, 'bar', 'and will not touch the value';
-
-    ($negated, $type, $value) = Store->_evaluate_search_request(MATCH 'bar\S*');
-    is $negated, '', 'negated is the empty string if the search is not negated';
-    is $type, 'MATCH', 'an MATCH expansion will return MATCH for the type';
-    is_deeply $value, 'bar\S*', 'and will not touch the value';
-
-    ($negated, $type, $value) = Store->_evaluate_search_request(NOT MATCH 'bar\S+');
-    is $negated, 'NOT', 'negated is "NOT" if the search is negated';
-    is $type, 'MATCH', 'an NOT MATCH expansion will return MATCH for the type';
-    is_deeply $value, 'bar\S+', 'and will not touch the value';
-
-    ($negated, $type, $value) = Store->_evaluate_search_request(NOT 'bar');
-    is $negated, 'NOT', 'negated is "NOT" if the search is negated';
-    is $type, '', 'a expansion with a scalar arg will return them empty string for the type';
-    is_deeply $value, 'bar', 'and the scalar arg';
 }
 
 sub save : Test(12) {

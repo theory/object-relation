@@ -23,12 +23,13 @@ my $build = Kinetic::Build->new(
         'Exporter::Tidy'        => 0.06,
         'Lingua::Strfname'      => 0.10,
         'Locale::Maketext'      => 1.09,
+        'SOAP::Lite'            => 0.60, # XXX latest is '0.60a' ???
         'version'               => 0.420,
         'Widget::Meta'          => 0.03,
         'XML::Genx::Simple'     => 0.14,
         'XML::Simple'           => 2.13,
-#        'DBD::Pg'               => 1.32, # XXX Change to option.
-#        'DBD::SQLite'           => 1.08, # XXX Change to option.
+        'DBD::Pg'               => 1.32, # XXX Change to option. Only included during development
+        'DBD::SQLite'           => 1.08, # XXX Change to option.
     },
     build_requires       => {
         'App::Info'             => 0.42,

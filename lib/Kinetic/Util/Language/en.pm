@@ -110,6 +110,9 @@ our %Lexicon = (
   'Two search operators not allowed unless NOT is the first operator: "[_1] [_2] [_3]"',
   "Two search operators not allowed unless NOT is the first operator: “[_1] [_2] [_3]”",
 
+  'BETWEEN searches may only take two values.  You have [_1]',
+  'BETWEEN searches may only take two values.  You have [_1]',
+
   "Writing XML failed: [_1]",
   "Writing XML failed: [_1]",
 
@@ -145,6 +148,9 @@ our %Lexicon = (
 
   'Grouping operators must be AND or OR, not "[_1]"',
   "Grouping operators must be AND or OR, not “[_1]”",
+
+  'I don\'t know how to lex a "[_1]"',
+  "I don\'t know how to lex a “[_1]”",
 
   "Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]",
   "Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]",

@@ -5,8 +5,8 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
-use Test::More 'no_plan';
-#use Test::More tests => 80;
+#use Test::More 'no_plan';
+use Test::More tests => 80;
 use Test::Differences;
 
 {

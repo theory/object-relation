@@ -18,11 +18,14 @@ package Kinetic::Store::DB;
 # use, copy, create derivative works based on those contributions, and
 # sublicense and distribute those contributions and any derivatives thereof.
 
+use Data::Dumper::Simple;
 use strict;
 use base qw(Kinetic::Store);
 use DBI;
 use Scalar::Util qw(blessed);
 use Kinetic::Util::Exceptions qw(:all);
+use Kinetic::Store::Parser::DB qw/parse/;
+use Kinetic::Store::Lexer::Code qw/lex/;
 
 use aliased 'Kinetic::Meta' => 'Meta', qw(:with_dbstore_api);
 use aliased 'Kinetic::Util::Iterator';
@@ -800,101 +803,50 @@ This method returns a where clause and an arrayref of any appropriate bind
 params for that where clause. Returns an empty string if no where clause can
 be generated.
 
-This is merely a wrapper around C<_recursive_make_where_clause>.
-
 =cut
 
 sub _make_where_clause {
     my ($self, $search_request) = @_;
-    my ($where_clause, $bind_params) = $self->_recursive_make_where_clause($search_request);
-    $where_clause = '' if '()' eq $where_clause;
+    my $lex = lex($search_request);
+    my $ir = parse($lex, $self);
+    my ($where_clause, $bind_params) = $self->_convert_ir_to_where_clause($ir);
+    $where_clause = "" if '()' eq $where_clause;
     return ($where_clause, $bind_params);
 }
 
-##############################################################################
-
-=head3 _recursive_make_where_clause
-
-  my ($where_clause, $bind_params) =
-     $store->_recursive_make_where_clause(\@search_request);
-
-This method returns a where clause and an arrayref of any appropriate bind
-params for that where clause.  Due to its recursive nature, it returns a pair
-of empty parentheses "()" if no where clause can be generated, hence the
-C<_make_where_clause> wrapper.
-
-This method is essentially a data structure parser for the small search
-language outlined in L<Kinetic::Store|Kinetic::Store>
-
-=cut
-
-my %where_token_generator = (
-    STANDARD => sub {
-        # name => 'foo'
-        my ($self, $column, $search_request) = @_;
-        $column =~ s/\./OBJECT_DELIMITER/eg;
-        my $curr_search_request = shift @$search_request;
-        return $self->_make_where_token($column, $curr_search_request);
-    },
-    ARRAY    => sub {
-        # [ name => 'foo', description => 'bar' ]
-        my ($self, $curr_search_request, $search_request) = @_;
-        return $self->_recursive_make_where_clause($curr_search_request);
-    },
-    CODE     => sub {
-        # OR(name => 'foo') || AND(name => 'foo')
-        my ($self, $curr_search_request, $search_request) = @_;
-        my ($op, $values) = $curr_search_request->();
-        unless ($op =~ GROUP_OP) {
-            throw_unimplemented [
-                'Grouping operators must be AND or OR, not "[_1]"',
-                $op,
-            ];
+sub _convert_ir_to_where_clause {
+    my ($self, $ir) = @_;
+    my (@where, @bind);
+    while (my $term = shift @$ir) {
+        unless (ref $term) { # Currently, this means its 'OR'
+            pop @where if 'AND' eq $where[-1];
+            push @where => $term;
+            my ($token, $bind) = $self->_convert_ir_to_where_clause(shift @$ir);
+            push @where => $token;
+            push @bind  => @$bind;
+            # (LOWER(name) = LOWER(?) OR (LOWER(desc) = LOWER(?) AND this = ?))
         }
-        return ($self->_recursive_make_where_clause($values), $op);
-    },
-);
-
-sub _recursive_make_where_clause {
-    my ($self, $search_request) = @_;
-    local $self->{where}        = [];
-    local $self->{bind_params}  = [];
-
-    while (my $curr_search_request = shift @$search_request) {
-        my $request_type = ref $curr_search_request || 'STANDARD';
-        my $generator = $where_token_generator{ $request_type }
-            or throw_search [
-                 "I don't know what to do with a [_1] for ([_2])",
-                 ref $curr_search_request, "@{$self->{where}}"
-            ];
-        my ($where_token, $bindings, $op) = 
-            $generator->($self, $curr_search_request, $search_request);
-        $op ||= 'AND';
-        $self->_save_where_data($where_token, $bindings, $op);
+        elsif (Search eq ref $term) {
+            my $search_method = $term->search_method;
+            my ($token, $bind) = $self->$search_method($term);
+            push @where => $token;
+            push @bind  => @$bind;
+        }
+        elsif ('ARRAY' eq ref $term && 'AND' eq $term->[0] && Search eq ref $term->[1]) {
+            shift @$term;
+            my ($token, $bind) = $self->_convert_ir_to_where_clause($term);
+            push @where => $token;
+            push @bind  => @$bind;
+        }
+        else {
+            # XXX panic
+        }
+        unless ($where[-1] =~ GROUP_OP) {
+            push @where => 'AND';
+        }
     }
-    my $where = "(".join(' ' => @{ $self->{where} }).")";
-    return $where, $self->{bind_params};
-}
-
-##############################################################################
-
-=head3 _save_where_data
-
-  $self->_save_where_data($where_token, $bindings, $op);
-
-This is a utility method used to cache data accumulated by the
-C<_recursive_make_where_clause> method.
-
-=cut
-
-sub _save_where_data {
-    my ($self, $where_token, $bindings, $op) = @_;
-    if (@{$self->{where}} && $self->{where}[-1] !~ GROUP_OP) {
-        push @{$self->{where}} => $op if $op;
-    }
-    push @{$self->{where}}        => $where_token;
-    push @{$self->{bind_params}}  => @$bindings if @$bindings;
-    return $self;
+    pop @where if defined $where[-1] && $where[-1] =~ GROUP_OP; # whoops!  Figure out how to avoid this
+    return '('. join(' ' => @where).')', \@bind;
 }
 
 ##############################################################################
@@ -915,57 +867,6 @@ my %case_insensitive = map {$_ => 1} qw/string/;
 sub _is_case_sensitive {
     my ($self, $type) = @_;
     return exists $case_insensitive{$type};
-}
-
-##############################################################################
-
-=head3 _make_where_token
-
-  my ($where_token, $value) = $store->_make_where_token($column, $search_request);
-
-This method returns individual tokens that will be assembled to form the final
-where clause.  The C<$value> is always an arrayref of the values that will be
-bound to the bind parameters in the token.  It takes a C<$column> and its
-C<$possible_values>.  Due to the nature of the mini search language, the search
-parameter may be either a string or a code ref.
-
-Examples of returned tokens:
-
- 'name = ?' and the $value will be an array ref with the single value that
-            binds to it
-
- 'description IS NULL' and the value will be an empty array ref.
-
- 'age BETWEEN ? and ?' and the value will be an array ref of two elements.
-
-=cut
-
-sub _make_where_token {
-    my ($self, $column, $search_request) = @_;
-
-    my ($negated, $operator, $value) = $self->_evaluate_search_request($search_request);
-    unless ($self->_search_data_has_column($column)) {
-        # special case for searching on a contained object id ...
-        my $id_column = $column . OBJECT_DELIMITER . 'id';
-        unless ($self->_search_data_has_column($id_column)) {
-            throw_search [ 
-                "Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]",
-                $column, $negated, $operator, $value,
-                "Unknown column '$column'"
-            ];
-        }
-        $column = $id_column;
-        $value = 'ARRAY' eq ref $value ? [map $_->id => @$value] : $value->id;
-    }
-
-    my $search = Search->new(
-        column   => $column,
-        operator => $operator,
-        negated  => $negated,
-        data     => $value,
-    );
-    my $search_method = $search->search_method;
-    return $self->$search_method($search);
 }
 
 ##############################################################################
@@ -1084,93 +985,6 @@ sub _LIKE_SEARCH {
     my ($negated, $operator) = ($search->negated, $search->operator);
     my ($column, $place_holder) = $self->_handle_case_sensitivity($search->column);
     return ("$column $negated $operator $place_holder", [$search->data]);
-}
-
-##############################################################################
-
-=head3 _evaluate_search_request
-
-  my ($op_key, $value) = $store->_evaluate_search_request($search_request);
-
-When given a search_request, this method returns the op key that will be used
-to determine the comparison operator to be used in a where token. It also
-returns the value(s) that will be used in the bind params. If there are
-multiple values, they will be returned as an arrayref.
-
-The $search_request passed to this method may be a code ref. Attribute code
-refs return a string and another $search_request. The new $search_request may
-be the value used or it may, in turn, be another code ref. Attribute code refs
-are never more than two deep.
-
-In the actual search code, the search_request would be the value on the right
-side of a "attribute/search value" pair.  For example:
-
-  # attribute    search param
-  name      =>   'foo';
-  name      =>   EQ 'foo'; # same thing
-
-  date      =>   GT $some_date;
-  date      =>   NOT EQ $some_date
-  date      =>   NE $some_date; # NE parses the same as NOT EQ
-
-  desc      =>   NOT undef; # db stores translate that as NOT NULL
-
-=cut
-
-sub _evaluate_search_request {
-    # we assume only two levels of code refs
-    my ($self, $search_request) = @_;
-    my $negated = '';
-    unless ('CODE' eq ref $search_request) {
-        return ($negated, '', undef)           unless defined $search_request;
-        return ($negated, '', $search_request) if 'ARRAY' eq ref $search_request;
-        return ($negated, 'EQ', $search_request);
-    }
-
-    my ($type, $value) = $search_request->();
-    unless ('CODE' eq ref $value) {
-        if ($type =~ GROUP_OP) {
-            # need a better error message XXX ?
-            throw_search [
-                "([_1]) cannot be a value.",
-                $type
-            ];
-        }
-        if ('NOT' eq $type) {
-            $negated = 'NOT';
-            $type    = '';
-        }
-        return ($negated, $type, $value);
-    }
-
-    $negated = $type;
-    ($type, $value) = $value->();
-    if ($type =~ GROUP_OP) {
-        throw_search [
-            'I don\'t know how to search for "[_1] [_2] [_3]"',
-            $negated, $type, $value
-        ];
-    }
-    if ('CODE' eq ref $value) {
-        my ($bad, $new_value) = $value->();
-        throw_search [
-            'Search operators can never be more than two deep: "[_1] [_2] [_3] [_4]"',
-            $negated, $type, $bad, $new_value
-        ];
-    }
-    if ('NOT' eq $type) {
-        throw_search [
-            'NOT must always be first when used as a search operator: "[_1] [_2] [_3]"',
-            $negated, $type, $value
-        ];
-    }
-    if ($negated ne 'NOT') {
-        throw_search [
-            'Two search operators not allowed unless NOT is the first operator: "[_1] [_2] [_3]"',
-            $negated, $type, $value
-        ];
-    }
-    return ($negated, $type, $value);
 }
 
 ##############################################################################

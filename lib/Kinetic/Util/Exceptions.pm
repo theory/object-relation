@@ -409,6 +409,7 @@ use Exporter::Tidy all => [
 ];
 
 # Always use exception objects for excptions and warnings.
+# XXX I can't recall how we said we would deal with this
 $SIG{__DIE__} = sub {
     my $err = shift;
     $err->rethrow if UNIVERSAL::can($err, 'rethrow');

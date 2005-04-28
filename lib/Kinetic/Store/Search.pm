@@ -112,8 +112,8 @@ the appropriate search token.
       column       => $column,
       operator     => $operator,
       negated      => $negated,
-      place_holder => $place_holder,
       data         => $data,
+      place_holder => $place_holder,
       search_class => $search_class,
   );
 
