@@ -18,7 +18,6 @@ package Kinetic::Store::DB;
 # use, copy, create derivative works based on those contributions, and
 # sublicense and distribute those contributions and any derivatives thereof.
 
-use Data::Dumper::Simple;
 use strict;
 use base qw(Kinetic::Store);
 use DBI;
