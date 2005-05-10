@@ -2,175 +2,169 @@
 use warnings;
 use strict;
 
-use Test::More tests => 77;
-#use Test::More 'no_plan';
+#use Test::More tests => 77;
+use Test::More 'no_plan';
+use Data::Dumper;
 
 use lib 'lib';
+use Kinetic::Util::Stream 'drop';
 BEGIN {
     use_ok 'Kinetic::Store', qw/:all/             or die;
-    use_ok 'Kinetic::Store::Lexer::Code', qw/lex/ or die;
+    use_ok 'Kinetic::Store::Lexer::Code', qw/lex lex_iterator/ or die;
 }
 
+
 ok my $tokens = lex([name => 'foo']),
-    '... and it should succeed if the token can be lexed';
-is_deeply $tokens, [[ 'name', '', 'EQ', 'foo' ]],
-    '... and basic tokens should lex correctly';
+    '... and we should be able to lex a basic string';
 
-ok my $term = EQ 'foo', 'EQ $value should succeed';
-isa_ok $term, 'CODE', '... and the result it returns';
-is_deeply [$term->()], [ '', 'EQ', 'foo'],
-    '... and the subref should generate the proper token parts';
+my $expected = [
+  [ 'IDENTIFIER', 'name' ],
+  [ 'COMMA',        '=>' ],
+  [ 'VALUE',       'foo' ],
+];
+is_deeply $tokens, $expected,
+    '... and it should return the correct tokens';
+
+my $stream = lex_iterator([name => 'foo']);
+my @tokens;
+while (my $node = drop($stream)) {
+    push @tokens => $node;
+}
+is_deeply \@tokens, $expected, 'Streams should also return the correct tokens';
+ok $tokens = lex([name => undef]),
+    'We should be able to lex an undef value';
+
+$expected = [
+  [ 'IDENTIFIER', 'name' ],
+  [ 'COMMA',        '=>' ],
+  [ 'UNDEF',     'undef' ],
+];
+
+is_deeply $tokens, $expected,
+    '... and it should return the correct tokens';
+
+$tokens = lex([name => 'undef']);
+
+$expected = [
+  [ 'IDENTIFIER', 'name' ],
+  [ 'COMMA',        '=>' ],
+  [ 'VALUE',     'undef' ],
+];
+
+is_deeply $tokens, $expected,
+    '... but it should indentify "undef" as a value if it is quoted';
+
+ok $tokens = lex(['object.name' => 'foo']),
+    'We should be able to lex identifiers with dots in the name';
+
+$expected = [
+  [ 'IDENTIFIER', 'object.name' ],
+  [ 'COMMA',               '=>' ],
+  [ 'VALUE',              'foo' ],
+];
+is_deeply $tokens, $expected,
+    '... and get the correct results';
+
 ok $tokens = lex([name => EQ 'foo']),
-    '... and it should succeed if the token can be lexed';
-is_deeply $tokens, [[ 'name', '', 'EQ', 'foo' ]],
-    '... and EQ tokens should lex correctly';
+    'We should be able to handle search keywords';
+$expected = [
+  [ 'IDENTIFIER', 'name' ],
+  [ 'COMMA',        '=>' ],
+  [ 'KEYWORD',      'EQ' ],
+  [ 'VALUE',       'foo' ],
+];
+is_deeply $tokens, $expected,
+    '... and it should handle keywords correctly';
 
-ok $term = LIKE 'foo', 'LIKE $value should succeed';
-isa_ok $term, 'CODE', '... and the result it returns';
-is_deeply [$term->()], [ '', 'LIKE', 'foo'],
-    '... and the subref should generate the proper token parts';
 ok $tokens = lex([name => LIKE 'foo']),
-    '... and it should succeed if the token can be lexed';
-is_deeply $tokens, [[ 'name', '', 'LIKE', 'foo' ]],
-    '... and LIKE tokens should lex correctly';
-ok $term = GT 'foo', 'GT $value should succeed';
-isa_ok $term, 'CODE', '... and the result it returns';
-is_deeply [$term->()], ['', 'GT', 'foo'],
-    '... and the subref should generate the proper token parts';
-ok $tokens = lex([name => GT 'foo']),
-    '... and it should succeed if the token can be lexed';
-is_deeply $tokens, [[ 'name', '', 'GT', 'foo' ]],
-    '... and GT tokens should lex correctly';
+    '... and it should succeed if the string can be lexed';
+$expected = [
+  [ 'IDENTIFIER', 'name' ],
+  [ 'COMMA',        '=>' ],
+  [ 'KEYWORD',    'LIKE' ],
+  [ 'VALUE',       'foo' ],
+];
+is_deeply $tokens, $expected,
+    '... and LIKE keywords and normal commas should be properly lexed';
 
-ok $term = LT 'foo', 'LT $value should succeed';
-isa_ok $term, 'CODE', '... and the result it returns';
-is_deeply [$term->()], ['', 'LT', 'foo'],
-    '... and the subref should generate the proper token parts';
-ok $tokens = lex([name => LT 'foo']),
-    '... and it should succeed if the token can be lexed';
-is_deeply $tokens, [[ 'name', '', 'LT', 'foo' ]],
-    '... and LT tokens should lex correctly';
+ok $tokens = lex([name => LIKE 'foo', age => GT 3]),
+    '... and it should succeed if the string can be lexed';
+$expected = [
+  [ 'IDENTIFIER', 'name' ],
+  [ 'COMMA',        '=>' ],
+  [ 'KEYWORD',    'LIKE' ],
+  [ 'VALUE',       'foo' ],
+  [ 'SEPARATOR',     ',' ],
+  [ 'IDENTIFIER',  'age' ],
+  [ 'COMMA',        '=>' ],
+  [ 'KEYWORD',      'GT' ],
+  [ 'VALUE',           3 ],
+];
+is_deeply $tokens, $expected,
+    'Compound searches should parse correctly';
 
-ok $term = GE 'foo', 'GE $value should succeed';
-isa_ok $term, 'CODE', '... and the result it returns';
-is_deeply [$term->()], ['', 'GE', 'foo'],
-    '... and the subref should generate the proper token parts';
-ok $tokens = lex([name => GE 'foo']),
-    '... and it should succeed if the token can be lexed';
-is_deeply $tokens, [[ 'name', '', 'GE', 'foo' ]],
-    '... and GE tokens should lex correctly';
+ok $tokens = lex([name => NOT "foo"]), 'NOT should parse correctly';
+$expected = [
+  [ 'IDENTIFIER', 'name' ],
+  [ 'COMMA',        '=>' ],
+  [ 'NEGATED',     'NOT' ],
+  [ 'VALUE',       'foo' ],
+];
+is_deeply $tokens, $expected,
+    '... and produce the correct tokens';
 
-ok $term = LE 'foo', 'LE $value should succeed';
-isa_ok $term, 'CODE', '... and the result it returns';
-is_deeply [$term->()], ['', 'LE', 'foo'],
-    '... and the subref should generate the proper token parts';
-ok $tokens = lex([name => LE 'foo']),
-    '... and it should succeed if the token can be lexed';
-is_deeply $tokens, [[ 'name', '', 'LE', 'foo' ]],
-    '... and LE tokens should lex correctly';
+ok $tokens = lex([name => NOT ['foo', 'bar']]), 
+    'We should be able to parse bracketed lists';
+$expected = [
+  [ 'IDENTIFIER', 'name' ],
+  [ 'COMMA',        '=>' ],
+  [ 'NEGATED',     'NOT' ],
+  [ 'LBRACKET',    '['   ],
+  [ 'VALUE',       'foo' ],
+  [ 'SEPARATOR',   ','   ],
+  [ 'VALUE',       'bar' ],
+  [ 'RBRACKET',    ']'   ],
+];
+is_deeply $tokens, $expected, '... and get the correct tokens';
 
-ok $term = NE 'foo', 'NE $value should succeed';
-isa_ok $term, 'CODE', '... and the result it returns';
-is_deeply [$term->()], ['', 'NE', 'foo'],
-    '... and the subref should generate the proper token parts';
-ok $tokens = lex([name => NE 'foo']),
-    '... and it should succeed if the token can be lexed';
-is_deeply $tokens, [[ 'name', '', 'NE', 'foo' ]],
-    '... and NE tokens should lex correctly';
-
-ok $term = MATCH 'foo', 'MATCH $value should succeed';
-isa_ok $term, 'CODE', '... and the result it returns';
-is_deeply [$term->()], ['', 'MATCH', 'foo'],
-    '... and the subref should generate the proper token parts';
-ok $tokens = lex([name => MATCH 'foo']),
-    '... and it should succeed if the token can be lexed';
-is_deeply $tokens, [[ 'name', '', 'MATCH', 'foo' ]],
-    '... and MATCH tokens should lex correctly';
-
-# and now for the tough stuff ...
-
-ok $term = NOT 'foo', 'NOT $value should succeed';
-isa_ok $term, 'CODE', '... and the result it returns';
-is_deeply [$term->()], ['NOT', 'EQ', 'foo'],
-    '... and the subref should generate the proper token parts';
-ok $tokens = lex([name => NOT 'foo']),
-    '... and it should succeed if the token can be lexed';
-is_deeply $tokens, [[ 'name', 'NOT', 'EQ', 'foo' ]],
-    '... and NOT tokens should lex correctly';
-
-ok $term = NOT ['foo', 'bar'], 'NOT \@value should succeed';
-isa_ok $term, 'CODE', '... and the result it returns';
-is_deeply [$term->()], ['NOT', 'BETWEEN', ['foo', 'bar']],
-    '... and the subref should generate the proper token parts';
-ok $tokens = lex([name => NOT ['foo', 'bar']]),
-    '... and it should succeed if the token can be lexed';
-is_deeply $tokens, [[ 'name', 'NOT', 'BETWEEN', ['foo', 'bar'] ]],
-    '... and NOT \@value tokens should lex correctly';
-
-ok $term = NOT EQ 'foo', 'NOT EQ $value should succeed';
-isa_ok $term, 'CODE', '... and the result it returns';
-is_deeply [$term->()], ['NOT', 'EQ', 'foo'],
-    '... and the subref should generate the proper token parts';
-ok $tokens = lex([name => NOT EQ 'foo']),
-    '... and it should succeed if the token can be lexed';
-is_deeply $tokens, [[ 'name', 'NOT', 'EQ', 'foo' ]],
-    '... and NOT EQ tokens should lex correctly';
-
-ok $tokens = lex([ name => NOT LIKE 'bar%', count => GT 3]),
-    'Compound terms should lex';
-is_deeply $tokens, [
-    [ qw/ name NOT LIKE bar% /],
-    [ 'count', '', 'GT', 3 ]
-], '... and return the correct tokens';
-
-
-ok $term = EQ ['foo', 'bar'], 'EQ \@value should succeed';
-isa_ok $term, 'CODE', '... and the result it returns';
-is_deeply [$term->()], ['', 'BETWEEN', ['foo', 'bar']],
-    '... and the subref should generate the proper token parts';
-ok $tokens = lex([name => ['foo', 'bar']]),
-    '... and it should succeed if the token can be lexed';
-is_deeply $tokens, [[ 'name', '', 'BETWEEN', ['foo', 'bar'] ]],
-    '... and EQ tokens should lex correctly';
-
-ok $term = ANY('foo', 'bar', 'baz'), 'ANY(@values) should succeed';
-isa_ok $term, 'CODE', '... and the result it returns';
-is_deeply [$term->()], ['', 'ANY', ['foo', 'bar', 'baz']],
-    '... and the subref should generate the proper token parts';
-ok $tokens = lex([name => ANY('foo', 'bar', 'baz')]),
-    '... and it should succeed if the token can be lexed';
-is_deeply $tokens, [[ 'name', '', 'ANY', ['foo', 'bar', 'baz'] ]],
-    '... and ANY tokens should lex correctly';
+ok $tokens = lex([name => NOT BETWEEN ['foo', 'bar']]), 
+    'We should be able to parse bracketed lists';
+$expected = [
+  [ 'IDENTIFIER', 'name'     ],
+  [ 'COMMA',        '=>'     ],
+  [ 'NEGATED',     'NOT'     ],
+  [ 'BETWEEN',     'BETWEEN' ],
+  [ 'LBRACKET',    '['       ],
+  [ 'VALUE',       'foo'     ],
+  [ 'SEPARATOR',   ','       ],
+  [ 'VALUE',       'bar'     ],
+  [ 'RBRACKET',    ']'       ],
+];
+is_deeply $tokens, $expected, '... and get the correct tokens';
 
 ok $tokens = lex([
     AND(
         desc => 'bar',
         this => NOT LIKE 'that',
-    ),
-]), 'Grouping terms like AND() should succeed';
-is_deeply $tokens,[
-    [
-        'AND',
-        ['desc', '', 'EQ', 'bar'],
-        [qw/this NOT LIKE that/],
-    ]
-], '... and return the proper token';
-
-ok $tokens = lex([
-    name => 'foo',
-    AND(
-        desc => 'bar',
-        this => NOT LIKE 'that',
-    ),
-]), 'Grouping terms like AND() should succeed';
-is_deeply $tokens,[
-    [ 'name', '', 'EQ', 'foo' ],
-    [
-        'AND',
-        ['desc', '', 'EQ', 'bar'],
-        [qw/this NOT LIKE that/],
-    ]
-], '... and return the proper token';
+    )
+]), 'AND and parens should also parse';
+$expected = [
+  [ 'AND',         'AND' ],
+  [ 'LPAREN',        '(' ],
+  [ 'IDENTIFIER', 'desc' ],
+  [ 'COMMA',        '=>' ],
+  [ 'VALUE',       'bar' ],
+  [ 'SEPARATOR',     ',' ],
+  [ 'IDENTIFIER', 'this' ],
+  [ 'COMMA',        '=>' ],
+  [ 'NEGATED',     'NOT' ],
+  [ 'KEYWORD',    'LIKE' ],
+  [ 'VALUE',      'that' ],
+#  [ 'SEPARATOR',     ',' ], it's not relevant to the parser, but the
+#                            code lexer doesn't know that the comma is there
+  [ 'RPAREN',        ')' ],
+];
+is_deeply $tokens, $expected, '... and we should allow trailing commas';
 
 ok $tokens = lex([
     AND(
@@ -179,28 +173,48 @@ ok $tokens = lex([
     ),
     OR( bio => LIKE '%perl%'),
     OR(
-      'one.type'  => LIKE 'email',
-      'one.value' => LIKE '@cpan\.org$',
-      'fav_number'    => GE 42
+      'one.type'   => LIKE 'email',
+      'one.value'  => LIKE '@cpan.org$',
+      'fav_number' => GE 42
     )
-]), 'Complex groupings of terms should succeed';
+]), 'Stress testing the lexer should succeed';
 
-my $expected = [
-     [
-       'AND',
-       [ 'last_name', '', 'EQ', 'Wall' ],
-       [ 'first_name', '', 'EQ', 'Larry' ]
-     ],
-     'OR',
-     [
-       [ 'bio', '', 'LIKE', '%perl%' ]
-     ],
-     'OR',
-     [
-       [ 'one.type', '', 'LIKE', 'email' ],
-       [ 'one.value', '', 'LIKE', '@cpan\\.org$' ],
-       [ 'fav_number', '', 'GE', 42 ]
-     ]
+$expected = [
+  [ 'AND',               'AND' ],
+  [ 'LPAREN',              '(' ],
+  [ 'IDENTIFIER',  'last_name' ],
+  [ 'COMMA',              '=>' ],
+  [ 'VALUE',            'Wall' ],
+  [ 'SEPARATOR',           ',' ],
+  [ 'IDENTIFIER', 'first_name' ],
+  [ 'COMMA',              '=>' ],
+  [ 'VALUE',           'Larry' ],
+  [ 'RPAREN',              ')' ],
+  [ 'SEPARATOR',           ',' ],
+  [ 'OR',                 'OR' ],
+  [ 'LPAREN',              '(' ],
+  [ 'IDENTIFIER',        'bio' ],
+  [ 'COMMA',              '=>' ],
+  [ 'KEYWORD',          'LIKE' ],
+  [ 'VALUE',          '%perl%' ],
+  [ 'RPAREN',              ')' ],
+  [ 'SEPARATOR',           ',' ],
+  [ 'OR',                 'OR' ],
+  [ 'LPAREN',              '(' ],
+  [ 'IDENTIFIER',   'one.type' ],
+  [ 'COMMA',              '=>' ],
+  [ 'KEYWORD',          'LIKE' ],
+  [ 'VALUE',           'email' ],
+  [ 'SEPARATOR',           ',' ],
+  [ 'IDENTIFIER',  'one.value' ],
+  [ 'COMMA',              '=>' ],
+  [ 'KEYWORD',          'LIKE' ],
+  [ 'VALUE',      '@cpan.org$' ],
+  [ 'SEPARATOR',           ',' ],
+  [ 'IDENTIFIER', 'fav_number' ],
+  [ 'COMMA',              '=>' ],
+  [ 'KEYWORD',            'GE' ],
+  [ 'VALUE',              '42' ],
+  [ 'RPAREN',              ')' ]
 ];
-
-is_deeply $tokens, $expected, '... and should return the correct tokens';
+is_deeply $tokens, $expected, '... and still produce a valid list of tokens';

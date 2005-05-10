@@ -1,0 +1,105 @@
+###
+### Parser::Debug.pm
+###
+
+## Chapter 8 section 4.5
+
+package Parser::Debug;
+use base 'Exporter';
+use Parser ':all';
+@EXPORT_OK = @Parser::EXPORT_OK;
+%EXPORT_TAGS = %Parser::EXPORT_TAGS;
+
+my $CON = 'A';
+sub concatenate {
+  my $id;
+  if (ref $_[0]) { $id = "Unnamed concatenation $CON"; $CON++ }
+  else {           $id = shift } 
+
+  my @p = @_ 
+  return \&n ll if @p == 0;
+  return $p[ ]  if @p == 1;
+
+  my $parser = parser {
+    my $input = shift;
+    debug "Looking for $id\n";
+    my $v;
+    my @values;
+    my ($q, $np) = (0, scalar @p);
+    for (@p) {
+      $q++;
+      unless (($v, $input) = $_->($input)) {
+        debug "Failed concatenated component $q/$np\n";
+        return;
+      }
+      debug "Matched concatenated component $q/$np\n";
+      push @values, $v;
+    }
+   debug "Finished matching $id\n";
+   return \@values;
+  };
+  $N{$parser} = $id;
+  return $parser;
+}
+
+
+## Chapter 8 section 4.5
+
+sub debug ($) {
+  return unless $DEBUG || $ENV{DEBUG};
+  my $msg = shift;
+  my $i = 0;
+  $i++ while caller($i);
+  $I = "| " x ($i-2);
+  print $I, $msg;
+}
+
+
+## Chapter 8 section 4.5
+
+sub star {
+  my $p = shift;
+  my ($p_star, $conc);
+  $p_star = alternate(T($conc = concatenate($p, parser { $p_star->(@_) }),
+                        sub { my ($first, $rest) = @_;
+                              [$first, @$rest];
+                            }),
+                      \&null_list);
+  $N{$p_star} = "star($N{$p})";
+  $N{$conc} = "$N{$p} $N{$p_star}";
+  return $p_star;
+}
+
+
+## Chapter 8 section 4.7.1
+
+sub error {
+  my ($checker, $continuation) = @_;
+  my $p;
+  $p = parser {
+    my $input = shift;
+    debug "Error in $N{$continuation}\n";
+    debug "Discarding up to $N{$checker}\n";
+    my @discarded; 
+    while (defined($input)) {
+      my $h = head($input);
+      if (my (undef, $result) = $checker->($input)) {
+        debug "Discarding $N{$checker}\n";
+        push @discarded, $N{$checker};
+        $input = $result;
+        last;
+      } else {
+        debug "Discarding token [@$h]\n";
+        push @discarded, $h->[1];
+        drop($input);
+      }
+    }
+    warn "Erroneous input: ignoring '@discarded'\n" if @discarded;
+    return unless defined $input;
+    debug "Continuing with $N{$continuation} after error recovery\n";
+    $continuation->($input);
+  };
+  $N{$p} = "errhandler($N{$continuation} -> $N{$checker})";
+  return $p;
+}
+

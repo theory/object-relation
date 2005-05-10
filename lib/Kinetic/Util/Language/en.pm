@@ -149,6 +149,9 @@ our %Lexicon = (
   'Grouping operators must be AND or OR, not "[_1]"',
   "Grouping operators must be AND or OR, not “[_1]”",
 
+  'Object key "[_1]" must point to an object, not a scalar ([_2])',
+  'Object key “[_1]” must point to an object, not a scalar ([_2])',
+
   'I don\'t know how to lex a "[_1]"',
   "I don\'t know how to lex a “[_1]”",
 

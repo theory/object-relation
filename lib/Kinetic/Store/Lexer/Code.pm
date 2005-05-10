@@ -1,6 +1,6 @@
 package Kinetic::Store::Lexer::Code;
 
-# $Id: Store.pm 1364 2005-03-08 03:53:03Z curtis $
+# $Id: Code.pm 1364 2005-03-08 03:53:03Z curtis $
 
 # CONTRIBUTION SUBMISSION POLICY:
 #
@@ -20,8 +20,7 @@ package Kinetic::Store::Lexer::Code;
 
 =head1 Name
 
-Kinetic::Store::Lexer::Code - Lexer for Kinetic search mini-language built from
-code refs;
+Kinetic::Store::Lexer::Code - Lexer for Kinetic search code
 
 =head1 Synopsis
 
@@ -33,8 +32,9 @@ code refs;
 
 =head1 Description
 
-This package will lex the data structure built by L<Kinetic::Store|Kinetic::Store>
-search operators and return a data structure that a Kinetic parser can parse.
+This package will lex the data structure built by
+L<Kinetic::Store|Kinetic::Store> search operators and return a data structure
+that a Kinetic parser can parse.
 
 See L<Kinetic::Parser::DB|Kinetic::Parser::DB> for an example.
 
@@ -43,25 +43,47 @@ See L<Kinetic::Parser::DB|Kinetic::Parser::DB> for an example.
 use strict;
 use warnings;
 use Kinetic::Store qw/:all/;
-use Kinetic::Util::Exceptions qw/throw_search/;
-use Carp qw/croak/;
+use Kinetic::Util::Exceptions 'throw_search';
+use Kinetic::Util::Stream 'node';
 
-use Exporter::Tidy default => ['lex'];
+use Exporter::Tidy default => ['lex', 'lex_iterator'];
+
+sub lex_iterator {;
+    my $tokens = lex(shift);
+    return iterator_to_stream(sub { shift @$tokens });
+}
+
+sub iterator_to_stream {
+    my $it = shift;
+    my $v  = $it->();
+    return unless defined $v;
+    node($v, sub { iterator_to_stream($it) } );
+}
 
 my %term_types = (
     standard => sub {
         # name => 'foo'
         my ($column, $code) = @_;
-        my $value = _normalize_value(shift @$code);
-        my @tail  = $value->();
-        return [ $column, @tail ];
+        my $value = shift @$code;
+        my @tokens = (['IDENTIFIER', $column], ['COMMA', '=>']);
+        unless (ref $value) {
+            push @tokens => defined $value
+                ? ['VALUE',  $value] 
+                : ['UNDEF', 'undef']; 
+        }
+        else {
+            push @tokens => $value->();
+        }
+        return @tokens;
     },
     CODE => sub {
         my ($term) = @_;
         my ($op, $code) = $term->();
-        return 'AND' eq $op
-            ? [$op, @{lex($code)}]  # AND 
-            : ($op, lex($code));    # OR
+        my $op_token = [$op, $op];
+        my $lparen   = [ 'LPAREN', '(' ];
+        my $rparen   = [ 'RPAREN', ')' ];
+        return ($op_token, $lparen, @{lex($code)}, $rparen);  # AND 
+            #: ($op_token, lex($code));    # OR
     },
 );
 
@@ -90,6 +112,7 @@ sub lex {
         else {
             throw_search [ 'I don\'t know how to lex a "[_1]"', $type ];
         }
+        push @tokens => ['SEPARATOR', ','] if @$code;
     }
     return \@tokens;
 }
