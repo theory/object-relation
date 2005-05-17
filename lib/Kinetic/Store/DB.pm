@@ -806,7 +806,8 @@ be generated.
 
 sub _make_where_clause {
     my ($self, $search_request) = @_;
-    my $ir = parse(lex_iterator($search_request), $self);
+    my $stream = lex_iterator($search_request);
+    my ($ir) = parse($stream, $self);
     my ($where_clause, $bind_params) = $self->_convert_ir_to_where_clause($ir);
     $where_clause = "" if '()' eq $where_clause;
     return ($where_clause, $bind_params);

@@ -9,7 +9,7 @@ use Test::More;
 use Test::Exception;
 use base 'TEST::Kinetic::Store';
 #use base 'TEST::Class::Kinetic';
-use lib 't/lib';
+#use lib 't/lib/';
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Meta::Attribute';
