@@ -92,17 +92,6 @@ sub alternate {
   };
 }
 
-
-## Chapter 8 section 3.3
-
-sub star {
-  my $p = shift;
-  my $p_star;
-  $p_star = alternate(concatenate($p, parser { $p_star->(@_) }),
-                      \&nothing);
-}
-
-
 ## Chapter 8 section 3.3
 
 sub list_of {

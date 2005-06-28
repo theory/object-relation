@@ -7,7 +7,10 @@ use Test::More;
 eval "use Test::Pod::Coverage 0.08";
 plan skip_all => "Test::Pod::Coverage required for testing POD coverage" if $@;
 
-my %TODO;
+my %TODO = map { $_ => 1 } qw/
+    Kinetic::Store::Parser
+    Kinetic::Util::Stream
+/;
 diag "Don't forget to update the pod at some point"
   if %TODO;
 
@@ -19,6 +22,7 @@ my %exceptions = (
     'Kinetic::Util::Collection'  => qr/^Iterator$/,
     'Kinetic::Store'             => qr/^ASC|DESC|EQ|NE$/,
     'Kinetic::Store::DB'         => qr/^Incomplete|Iterator|Meta|Search$/,
+    'Kinetic::Store::Lexer'      => qr/^allinput|blocks|iterator_to_stream|make_lexer|tokens|records$/,
     'Kinetic::Store::Parser::DB' => qr/^Search$/,
     'Kinetic::Store::Search'     => qr/^Incomplete$/,
     'Kinetic::XML'               => qr/^XML$/,

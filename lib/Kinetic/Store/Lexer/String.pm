@@ -24,8 +24,8 @@ Kinetic::Store::Lexer::String - Lexer for Kinetic search strings
 
 =head1 Synopsis
 
-  use Kinetic::Store::Lexer::String qw/lex/;
-  lex(<<'END_QUERY'); 
+  use Kinetic::Store::Lexer::String qw/lexer_stream/;
+  my $stream = lexer_stream(<<'END_QUERY'); 
     name => NOT LIKE 'foo%',
     OR (age => GE 21)
   END_QUERY
@@ -46,7 +46,7 @@ use Kinetic::Util::Stream 'node';
 use Kinetic::Store::Lexer ':all';
 use Carp qw/croak/;
 
-use Exporter::Tidy default => [qw/lex lex_iterator/];
+use Exporter::Tidy default => [qw/lexer_stream/];
 use Regexp::Common;
 use Text::ParseWords;
 
@@ -80,9 +80,9 @@ my @TOKENS = (
     [ 'LPAREN',     '\\('                       ],
 );
 
-sub search_tokens { @TOKENS };
+sub _search_tokens { @TOKENS };
 
-sub lex {
+sub _lex {
     my @search = @_;
     my $lexer = make_lexer( sub { shift @search }, @TOKENS);
     my @tokens;
@@ -100,10 +100,42 @@ sub _strip_quotes { # naive
     return $string;
 }
 
-sub lex_iterator {
+=head3 lexer_stream;
+
+  my $stream = lexer_stream(\@search_parameters);
+
+This function, exported on demand, is the only function publicly useful in this
+module.  It takes search parameters as described in the
+L<Kinetic::Store|Kinetic::Store> documents and returns a token stream that
+Kinetic parsers should be able to turn into an intermediate representation.
+
+=cut
+
+sub lexer_stream {
     my @input = @_;
     my $input = sub { shift @input };
-    return iterator_to_stream(make_lexer($input, search_tokens()));
+    return iterator_to_stream(make_lexer($input, _search_tokens()));
 }
 
 1;
+
+__END__
+
+##############################################################################
+
+=head1 Copyright and License
+
+Copyright (c) 2004-2005 Kineticode, Inc. <info@kineticode.com>
+
+This work is made available under the terms of Version 2 of the GNU General
+Public License. You should have received a copy of the GNU General Public
+License along with this program; if not, download it from
+L<http://www.gnu.org/licenses/gpl.txt> or write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+This work is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
+details.
+
+=cut

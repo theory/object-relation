@@ -24,8 +24,8 @@ Kinetic::Store::Lexer::Code - Lexer for Kinetic search code
 
 =head1 Synopsis
 
-  use Kinetic::Store::Lexer::Code qw/lex/;
-  lex([ 
+  use Kinetic::Store::Lexer::Code qw/lexer_stream/;
+  my $stream = lexer_stream([ 
     name => NOT LIKE 'foo%',
     OR (age => GE 21)
   ]);
@@ -33,7 +33,7 @@ Kinetic::Store::Lexer::Code - Lexer for Kinetic search code
 =head1 Description
 
 This package will lex the data structure built by
-L<Kinetic::Store|Kinetic::Store> search operators and return a data structure
+L<Kinetic::Store|Kinetic::Store> search operators and return a token stream
 that a Kinetic parser can parse.
 
 See L<Kinetic::Parser::DB|Kinetic::Parser::DB> for an example.
@@ -46,18 +46,31 @@ use Kinetic::Store qw/:all/;
 use Kinetic::Util::Exceptions 'throw_search';
 use Kinetic::Util::Stream 'node';
 
-use Exporter::Tidy default => ['lex', 'lex_iterator'];
+use Exporter::Tidy default => ['lexer_stream'];
 
-sub lex_iterator {;
-    my $tokens = lex(shift);
-    return iterator_to_stream(sub { shift @$tokens });
+##############################################################################
+
+=head3 lexer_stream;
+
+  my $stream = lexer_stream(\@search_parameters);
+
+This function, exported on demand, is the only function publicly useful in this
+module.  It takes search parameters as described in the
+L<Kinetic::Store|Kinetic::Store> documents and returns a token stream that
+Kinetic parsers should be able to turn into an intermediate representation.
+
+=cut
+
+sub lexer_stream {;
+    my $tokens = _lex(shift);
+    return _iterator_to_stream(sub { shift @$tokens });
 }
 
-sub iterator_to_stream {
+sub _iterator_to_stream {
     my $it = shift;
     my $v  = $it->();
     return unless defined $v;
-    node($v, sub { iterator_to_stream($it) } );
+    node($v, sub { _iterator_to_stream($it) } );
 }
 
 my %term_types = (
@@ -82,26 +95,11 @@ my %term_types = (
         my $op_token = [$op, $op];
         my $lparen   = [ 'LPAREN', '(' ];
         my $rparen   = [ 'RPAREN', ')' ];
-        return ($op_token, $lparen, @{lex($code)}, $rparen);  # AND 
-            #: ($op_token, lex($code));    # OR
+        return ($op_token, $lparen, @{_lex($code)}, $rparen);  # AND 
     },
 );
 
-
-##############################################################################
-
-=head3 lex
-
-  lex(\@search_parameters);
-
-This function, exported on demand, is the only function publicly useful in this
-module.  It takes search parameters as described in the
-L<Kinetic::Store|Kinetic::Store> documents and returns a data structure that
-Kinetic parsers can parse.
-
-=cut
-
-sub lex {
+sub _lex {
     my ($code) = @_;
     my @tokens;
     while (my $term = _normalize_key(shift @$code)) {
@@ -141,6 +139,7 @@ sub _normalize_value {
 }
 
 1;
+
 __END__
 
 ##############################################################################

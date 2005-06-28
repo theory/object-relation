@@ -44,7 +44,7 @@ BEGIN {
 
 my $store = Faux::Store->new;
 
-throws_ok { parse(lex_iterator("no_such_column => NOT 'foo'"), $store) }
+throws_ok { parse(lexer_stream("no_such_column => NOT 'foo'"), $store) }
     'Kinetic::Util::Exception::Fatal::Search',
     'Trying to search on a non-existent column should throw an exception';
 
@@ -77,28 +77,28 @@ is_deeply
     [1,2,3],
     '... and it should return the correct items';
 
-my ($result, $remainder) = parse(lex_iterator("name => 'foo'"), $store);
+my ($result, $remainder) = parse(lexer_stream("name => 'foo'"), $store);
 ok $result, '... and parsing basic searches should succeed';
 is_deeply $result, [$name_search],
     '... and it should return the correct results';
 
-($result, $remainder) = parse(lex_iterator("name => NOT 'foo'"), $store);
+($result, $remainder) = parse(lexer_stream("name => NOT 'foo'"), $store);
 $name_search->negated('NOT');
 is_deeply $result, [$name_search],
     '... and it should return the correct results, even if we negate it';
 
-($result, $remainder) = parse(lex_iterator("name => EQ 'foo'"), $store);
+($result, $remainder) = parse(lexer_stream("name => EQ 'foo'"), $store);
 ok $result, '... even if we explicitly include the EQ';
 $name_search->negated('');
 is_deeply $result, [$name_search],
     '... and it should return the correct results';
 
-($result, $remainder) = parse(lex_iterator("name => NOT EQ 'foo'"), $store);
+($result, $remainder) = parse(lexer_stream("name => NOT EQ 'foo'"), $store);
 $name_search->negated('NOT');
 is_deeply $result, [$name_search],
     '... even if we explicitly include a negated EQ';
 
-($result, $remainder) = parse(lex_iterator("name => undef"), $store);
+($result, $remainder) = parse(lexer_stream("name => undef"), $store);
 ok $result, 'We should be able to handle undef values';
 $name_search->negated('');
 $name_search->data(undef);
@@ -106,28 +106,28 @@ is_deeply $result, [$name_search],
     '... and it should return the correct results';
 $name_search->data('foo');
 
-($result, $remainder) = parse(lex_iterator("name => BETWEEN ['bar', 'foo']"), $store);
+($result, $remainder) = parse(lexer_stream("name => BETWEEN ['bar', 'foo']"), $store);
 ok $result, 'BETWEEN searches should be parseable';
 is_deeply $result, [$between_search],
     '... and return a BETWEEN search object';
 
-($result, $remainder) = parse(lex_iterator("name => ['bar', 'foo']"), $store);
+($result, $remainder) = parse(lexer_stream("name => ['bar', 'foo']"), $store);
 ok $result, '... even if BETWEEN is merely implied';
 is_deeply $result, [$between_search],
     '... and return a BETWEEN search object';
 
-($result, $remainder) = parse(lex_iterator("name => NOT BETWEEN ['bar', 'foo']"), $store);
+($result, $remainder) = parse(lexer_stream("name => NOT BETWEEN ['bar', 'foo']"), $store);
 ok $result, '... and NOT BETWEEN searches should parse';
 $between_search->negated('NOT');
 is_deeply $result, [$between_search],
     '... and return a negated BETWEEN search object';
 
-($result, $remainder) = parse(lex_iterator("name => NOT ['bar', 'foo']"), $store);
+($result, $remainder) = parse(lexer_stream("name => NOT ['bar', 'foo']"), $store);
 ok $result, '... even if negated BETWEEN is merely implied';
 is_deeply $result, [$between_search],
     '... and return a negated BETWEEN search object';
 
-($result, $remainder) = parse(lex_iterator(<<'END_SEARCH'), $store);
+($result, $remainder) = parse(lexer_stream(<<'END_SEARCH'), $store);
     age  => NOT EQ 3, 
     name => EQ 'foo',
     name => NOT BETWEEN [ 'bar', "foo" ]
@@ -139,25 +139,25 @@ is_deeply $result, [$age_search, $name_search, $between_search],
 
 $age_search->operator('GT');
 $age_search->negated('');
-($result, $remainder) = parse(lex_iterator("OR(name => 'foo', age => GT 3)"), $store),
+($result, $remainder) = parse(lexer_stream("OR(name => 'foo', age => GT 3)"), $store),
 ok $result, 'We should be able to parse the OR group op';
 is_deeply $result, [ 'OR', [$name_search, $age_search]],
     '... and have them correctly converted';
 
-($result, $remainder) = parse(lex_iterator("AND(name => 'foo', age => GT 3)"), $store),
+($result, $remainder) = parse(lexer_stream("AND(name => 'foo', age => GT 3)"), $store),
 ok $result, 'We should be able to parse the AND group op';
 is_deeply $result, [ ['AND', $name_search, $age_search] ],
     '... and have them correctly converted';
 
 ($result, $remainder) = parse(
-    lex_iterator("name => EQ 'foo', AND(name => 'foo', age => GT 3)"), 
+    lexer_stream("name => EQ 'foo', AND(name => 'foo', age => GT 3)"), 
     $store),
 ok $result, 'We should be able to parse the compound searches with group ops';
 is_deeply $result, [ $name_search, ['AND', $name_search, $age_search]],
     '... and have them correctly converted';
 
 ($result, $remainder) = parse(
-    lex_iterator(
+    lexer_stream(
         "name => EQ 'foo', 
         AND(name => 'foo', OR( name => 'foo'), age => GT 3)"
     ), $store),
@@ -184,21 +184,21 @@ my $any_search = Search->new(
     column   => 'name',
 );
 
-($result, $remainder) = parse(lex_iterator("name => ANY('foo', 'bar', 'baz')"), $store);
+($result, $remainder) = parse(lexer_stream("name => ANY('foo', 'bar', 'baz')"), $store);
 ok $result, 'ANY searches should be parseable';
 is_deeply $result, [$any_search],
     '... and return an ANY search object';
 
-($result, $remainder) = parse(lex_iterator("name => ANY('foo', 'bar', 'baz',)"), $store);
+($result, $remainder) = parse(lexer_stream("name => ANY('foo', 'bar', 'baz',)"), $store);
 is_deeply $result, [$any_search],
     '... even with a trailing comma';
 
 #$ENV{DEBUG} = 1;
-throws_ok {parse(lex_iterator("one => 3"), $store)}
+throws_ok {parse(lexer_stream("one => 3"), $store)}
     'Kinetic::Util::Exception::Fatal::Search',
     'Searching on embedded objects should fail';
 
-($result, $remainder) = parse(lex_iterator("AND(name => 'foo', age => GT 3)"), $store);
+($result, $remainder) = parse(lexer_stream("AND(name => 'foo', age => GT 3)"), $store);
 ok $result, 'We should be able to parse AND tokens';
 
 is_deeply $result, [['AND', $name_search, $age_search]],
@@ -210,7 +210,7 @@ my $not_like_search = Search->new(
     data     => 'that',
     column   => 'this',
 );
-($result, $remainder) = parse(lex_iterator(<<'END_SEARCH'), $store);
+($result, $remainder) = parse(lexer_stream(<<'END_SEARCH'), $store);
     name => 'foo',
     AND(
         age => GT 3,
@@ -247,7 +247,7 @@ my $fav_number = Search->new(
     data     => 42,
     column   => 'fav_number',
 );
-($result) = parse(lex_iterator(<<'END_SEARCH'), $store);
+($result) = parse(lexer_stream(<<'END_SEARCH'), $store);
     AND(
         name   => 'foo',
         l_name => 'something',
@@ -279,7 +279,7 @@ my $expected = [
 
 is_deeply $result, $expected, '... and should return the correct result';
 
-($result, $remainder) = parse(lex_iterator("one.name => 'foo'"), $store);
+($result, $remainder) = parse(lexer_stream("one.name => 'foo'"), $store);
 ok $result, 'Parsing object delimited searches should succeed';
 $name_search->column('one__name');
 is_deeply $result, [$name_search],

@@ -2,17 +2,18 @@
 use warnings;
 use strict;
 
-#use Test::More tests => 77;
-use Test::More 'no_plan';
+use Test::More tests => 26;
+#use Test::More 'no_plan';
 use Data::Dumper;
 
 use lib 'lib';
 use Kinetic::Util::Stream 'drop';
 BEGIN {
     use_ok 'Kinetic::Store', qw/:all/             or die;
-    use_ok 'Kinetic::Store::Lexer::Code', qw/lex lex_iterator/ or die;
+    use_ok 'Kinetic::Store::Lexer::Code', qw/lexer_stream/ or die;
 }
 
+*lex = \&Kinetic::Store::Lexer::Code::_lex;
 
 ok my $tokens = lex([name => 'foo']),
     '... and we should be able to lex a basic string';
@@ -25,7 +26,7 @@ my $expected = [
 is_deeply $tokens, $expected,
     '... and it should return the correct tokens';
 
-my $stream = lex_iterator([name => 'foo']);
+my $stream = lexer_stream([name => 'foo']);
 my @tokens;
 while (my $node = drop($stream)) {
     push @tokens => $node;

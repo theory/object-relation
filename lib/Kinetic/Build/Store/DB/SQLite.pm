@@ -105,7 +105,7 @@ sub rules {
             do => sub {
                 my $state = shift;
                 $state->result($self->info->installed);
-             },
+            },
             rules => [
                 fail => {
                     rule    => $fail,
