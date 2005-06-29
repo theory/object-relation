@@ -61,7 +61,12 @@ BEGIN {
 
     no strict 'refs';
     foreach my $token (@{ $tokens{comparison} }) {
-        *$token = sub($) { my $value = shift; sub { shift || (), ['KEYWORD', $token], ['VALUE', $value] } };
+        *$token = sub($) {
+            my $value = shift; 
+            sub {
+                shift || (), ['COMPARE', $token], ['VALUE', $value] 
+            } 
+        };
     }
     foreach my $token (@{ $tokens{logical} }) {
         *$token = sub { my @values = @_; sub { $token, \@values } };
@@ -80,7 +85,7 @@ use Exporter::Tidy
 sub NOT($) {
     my $value = shift;
     #$value    = BETWEEN($value) if 'ARRAY' eq ref $value;
-    my $negated = ['NEGATED', 'NOT'];
+    my $negated = ['KEYWORD', 'NOT'];
     sub {
         return ('CODE' eq ref $value)
             ? $value->($negated)
@@ -94,14 +99,14 @@ sub EQ($) {
         if ('ARRAY' eq ref $value) {
             return (
                 shift || (), 
-                [ 'BETWEEN', 'BETWEEN' ], 
+                [ 'KEYWORD', 'BETWEEN' ], 
                 _value_token($value),
             );
         }
         else {
             return (
                 shift || (), 
-                ['KEYWORD', 'EQ'],
+                ['COMPARE', 'EQ'],
                 _value_token($value)
             );
         }
@@ -111,13 +116,13 @@ sub EQ($) {
 sub _value_token {
     my $value = shift;
     return 
-          ! defined $value      ?  ['UNDEF', 'undef']
-        : 'ARRAY' ne ref $value ?  ['VALUE',  $value]
-        : 2 == @$value          ? ([ 'LBRACKET',            '[' ],
-                                   [ 'VALUE',       $value->[0] ],
-                                   [ 'SEPARATOR',           ',' ],
-                                   [ 'VALUE',       $value->[1] ],
-                                   [ 'RBRACKET',            ']' ])
+          ! defined $value      ?  [ 'UNDEF',     'undef' ]
+        : 'ARRAY' ne ref $value ?  [ 'VALUE',      $value ]
+        : 2 == @$value          ? ([ 'OP',            '[' ],
+                                   [ 'VALUE', $value->[0] ],
+                                   [ 'OP',            ',' ],
+                                   [ 'VALUE', $value->[1] ],
+                                   [ 'OP',            ']' ])
         : throw_search [
              'BETWEEN searches may only take two values.  You have [_1]',
              scalar @$value
@@ -126,12 +131,24 @@ sub _value_token {
 
 sub BETWEEN($) {
     my $value = shift; 
-    sub { shift || (), ['BETWEEN', 'BETWEEN'], _value_token($value) }
+    sub { shift || (), ['KEYWORD', 'BETWEEN'], _value_token($value) }
 }
 
 sub ANY { 
     my @args = @_; 
-    sub { shift || '', 'ANY', \@args } 
+    my @values;
+    while (@args) {
+        my $value = shift @args;
+        push @values => [ 'VALUE', $value ];
+        push @values => [ 'OP',       ',' ] if @args;
+    }
+    sub { 
+        shift || (), 
+        [ 'KEYWORD', 'ANY' ],
+        [ 'OP',        '(' ],
+        @values,
+        [ 'OP',        ')' ]
+    } 
 }
 
 ##############################################################################

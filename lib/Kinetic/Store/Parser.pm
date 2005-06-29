@@ -37,6 +37,7 @@ sub lookfor {
     my $next = head($input);
     for my $i (0 .. $#$wanted) {
       next unless defined $wanted->[$i];
+      local $^W; # supress unitialized warnings XXX
       return unless $wanted->[$i] eq $next->[$i];
     }
     my $wanted_value = $value->($next, $u);

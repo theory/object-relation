@@ -3,8 +3,8 @@ use warnings;
 use strict;
 use Data::Dumper;
 
-#use Test::More tests => 16;
-use Test::More 'no_plan';
+use Test::More tests => 40;
+#use Test::More 'no_plan';
 use Test::Exception;
 
 use lib 'lib', '../lib';

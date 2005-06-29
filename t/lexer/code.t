@@ -2,7 +2,7 @@
 use warnings;
 use strict;
 
-use Test::More tests => 26;
+use Test::More tests => 34;
 #use Test::More 'no_plan';
 use Data::Dumper;
 
@@ -20,7 +20,7 @@ ok my $tokens = lex([name => 'foo']),
 
 my $expected = [
   [ 'IDENTIFIER', 'name' ],
-  [ 'COMMA',        '=>' ],
+  [ 'OP',           '=>' ],
   [ 'VALUE',       'foo' ],
 ];
 is_deeply $tokens, $expected,
@@ -37,7 +37,7 @@ ok $tokens = lex([name => undef]),
 
 $expected = [
   [ 'IDENTIFIER', 'name' ],
-  [ 'COMMA',        '=>' ],
+  [ 'OP',           '=>' ],
   [ 'UNDEF',     'undef' ],
 ];
 
@@ -48,19 +48,19 @@ $tokens = lex([name => 'undef']);
 
 $expected = [
   [ 'IDENTIFIER', 'name' ],
-  [ 'COMMA',        '=>' ],
+  [ 'OP',           '=>' ],
   [ 'VALUE',     'undef' ],
 ];
 
 is_deeply $tokens, $expected,
-    '... but it should indentify "undef" as a value if it is quoted';
+    '... but it should identify "undef" as a value if it is quoted';
 
 ok $tokens = lex(['object.name' => 'foo']),
     'We should be able to lex identifiers with dots in the name';
 
 $expected = [
   [ 'IDENTIFIER', 'object.name' ],
-  [ 'COMMA',               '=>' ],
+  [ 'OP',                  '=>' ],
   [ 'VALUE',              'foo' ],
 ];
 is_deeply $tokens, $expected,
@@ -70,8 +70,8 @@ ok $tokens = lex([name => EQ 'foo']),
     'We should be able to handle search keywords';
 $expected = [
   [ 'IDENTIFIER', 'name' ],
-  [ 'COMMA',        '=>' ],
-  [ 'KEYWORD',      'EQ' ],
+  [ 'OP',           '=>' ],
+  [ 'COMPARE',      'EQ' ],
   [ 'VALUE',       'foo' ],
 ];
 is_deeply $tokens, $expected,
@@ -81,8 +81,8 @@ ok $tokens = lex([name => LIKE 'foo']),
     '... and it should succeed if the string can be lexed';
 $expected = [
   [ 'IDENTIFIER', 'name' ],
-  [ 'COMMA',        '=>' ],
-  [ 'KEYWORD',    'LIKE' ],
+  [ 'OP',           '=>' ],
+  [ 'COMPARE',    'LIKE' ],
   [ 'VALUE',       'foo' ],
 ];
 is_deeply $tokens, $expected,
@@ -92,13 +92,13 @@ ok $tokens = lex([name => LIKE 'foo', age => GT 3]),
     '... and it should succeed if the string can be lexed';
 $expected = [
   [ 'IDENTIFIER', 'name' ],
-  [ 'COMMA',        '=>' ],
-  [ 'KEYWORD',    'LIKE' ],
+  [ 'OP',           '=>' ],
+  [ 'COMPARE',    'LIKE' ],
   [ 'VALUE',       'foo' ],
-  [ 'SEPARATOR',     ',' ],
+  [ 'OP',            ',' ],
   [ 'IDENTIFIER',  'age' ],
-  [ 'COMMA',        '=>' ],
-  [ 'KEYWORD',      'GT' ],
+  [ 'OP',           '=>' ],
+  [ 'COMPARE',      'GT' ],
   [ 'VALUE',           3 ],
 ];
 is_deeply $tokens, $expected,
@@ -107,24 +107,38 @@ is_deeply $tokens, $expected,
 ok $tokens = lex([name => NOT "foo"]), 'NOT should parse correctly';
 $expected = [
   [ 'IDENTIFIER', 'name' ],
-  [ 'COMMA',        '=>' ],
-  [ 'NEGATED',     'NOT' ],
+  [ 'OP',           '=>' ],
+  [ 'KEYWORD',     'NOT' ],
   [ 'VALUE',       'foo' ],
 ];
 is_deeply $tokens, $expected,
     '... and produce the correct tokens';
 
-ok $tokens = lex([name => NOT ['foo', 'bar']]), 
+ok $tokens = lex([name => ['foo', 'bar']]), 
     'We should be able to parse bracketed lists';
 $expected = [
+  [ 'IDENTIFIER', 'name'     ],
+  [ 'OP',           '=>'     ],
+  [ 'KEYWORD',     'BETWEEN' ],
+  [ 'OP',          '['       ],
+  [ 'VALUE',       'foo'     ],
+  [ 'OP',          ','       ],
+  [ 'VALUE',       'bar'     ],
+  [ 'OP',          ']'       ],
+];
+is_deeply $tokens, $expected, '... and get the correct tokens';
+
+ok $tokens = lex([name => NOT ['foo', 'bar']]), 
+    'We should be able to parse negated bracketed lists';
+$expected = [
   [ 'IDENTIFIER', 'name' ],
-  [ 'COMMA',        '=>' ],
-  [ 'NEGATED',     'NOT' ],
-  [ 'LBRACKET',    '['   ],
+  [ 'OP',           '=>' ],
+  [ 'KEYWORD',     'NOT' ],
+  [ 'OP',          '['   ],
   [ 'VALUE',       'foo' ],
-  [ 'SEPARATOR',   ','   ],
+  [ 'OP',          ','   ],
   [ 'VALUE',       'bar' ],
-  [ 'RBRACKET',    ']'   ],
+  [ 'OP',          ']'   ],
 ];
 is_deeply $tokens, $expected, '... and get the correct tokens';
 
@@ -132,14 +146,14 @@ ok $tokens = lex([name => NOT BETWEEN ['foo', 'bar']]),
     'We should be able to parse bracketed lists';
 $expected = [
   [ 'IDENTIFIER', 'name'     ],
-  [ 'COMMA',        '=>'     ],
-  [ 'NEGATED',     'NOT'     ],
-  [ 'BETWEEN',     'BETWEEN' ],
-  [ 'LBRACKET',    '['       ],
+  [ 'OP',           '=>'     ],
+  [ 'KEYWORD',     'NOT'     ],
+  [ 'KEYWORD',     'BETWEEN' ],
+  [ 'OP',          '['       ],
   [ 'VALUE',       'foo'     ],
-  [ 'SEPARATOR',   ','       ],
+  [ 'OP',          ','       ],
   [ 'VALUE',       'bar'     ],
-  [ 'RBRACKET',    ']'       ],
+  [ 'OP',          ']'       ],
 ];
 is_deeply $tokens, $expected, '... and get the correct tokens';
 
@@ -150,20 +164,20 @@ ok $tokens = lex([
     )
 ]), 'AND and parens should also parse';
 $expected = [
-  [ 'AND',         'AND' ],
-  [ 'LPAREN',        '(' ],
+  [ 'KEYWORD',     'AND' ],
+  [ 'OP',            '(' ],
   [ 'IDENTIFIER', 'desc' ],
-  [ 'COMMA',        '=>' ],
+  [ 'OP',           '=>' ],
   [ 'VALUE',       'bar' ],
-  [ 'SEPARATOR',     ',' ],
+  [ 'OP',            ',' ],
   [ 'IDENTIFIER', 'this' ],
-  [ 'COMMA',        '=>' ],
-  [ 'NEGATED',     'NOT' ],
-  [ 'KEYWORD',    'LIKE' ],
+  [ 'OP',           '=>' ],
+  [ 'KEYWORD',     'NOT' ],
+  [ 'COMPARE',    'LIKE' ],
   [ 'VALUE',      'that' ],
-#  [ 'SEPARATOR',     ',' ], it's not relevant to the parser, but the
+#  [ 'OP',     ',' ], it's not relevant to the parser, but the
 #                            code lexer doesn't know that the comma is there
-  [ 'RPAREN',        ')' ],
+  [ 'OP',            ')' ],
 ];
 is_deeply $tokens, $expected, '... and we should allow trailing commas';
 
@@ -181,41 +195,91 @@ ok $tokens = lex([
 ]), 'Stress testing the lexer should succeed';
 
 $expected = [
-  [ 'AND',               'AND' ],
-  [ 'LPAREN',              '(' ],
+  [ 'KEYWORD',           'AND' ],
+  [ 'OP',                  '(' ],
   [ 'IDENTIFIER',  'last_name' ],
-  [ 'COMMA',              '=>' ],
+  [ 'OP',                 '=>' ],
   [ 'VALUE',            'Wall' ],
-  [ 'SEPARATOR',           ',' ],
+  [ 'OP',                  ',' ],
   [ 'IDENTIFIER', 'first_name' ],
-  [ 'COMMA',              '=>' ],
+  [ 'OP',                 '=>' ],
   [ 'VALUE',           'Larry' ],
-  [ 'RPAREN',              ')' ],
-  [ 'SEPARATOR',           ',' ],
-  [ 'OR',                 'OR' ],
-  [ 'LPAREN',              '(' ],
+  [ 'OP',                  ')' ],
+  [ 'OP',                  ',' ],
+  [ 'KEYWORD',            'OR' ],
+  [ 'OP',                  '(' ],
   [ 'IDENTIFIER',        'bio' ],
-  [ 'COMMA',              '=>' ],
-  [ 'KEYWORD',          'LIKE' ],
+  [ 'OP',                 '=>' ],
+  [ 'COMPARE',          'LIKE' ],
   [ 'VALUE',          '%perl%' ],
-  [ 'RPAREN',              ')' ],
-  [ 'SEPARATOR',           ',' ],
-  [ 'OR',                 'OR' ],
-  [ 'LPAREN',              '(' ],
+  [ 'OP',                  ')' ],
+  [ 'OP',                  ',' ],
+  [ 'KEYWORD',            'OR' ],
+  [ 'OP',                  '(' ],
   [ 'IDENTIFIER',   'one.type' ],
-  [ 'COMMA',              '=>' ],
-  [ 'KEYWORD',          'LIKE' ],
+  [ 'OP',                 '=>' ],
+  [ 'COMPARE',          'LIKE' ],
   [ 'VALUE',           'email' ],
-  [ 'SEPARATOR',           ',' ],
+  [ 'OP',                  ',' ],
   [ 'IDENTIFIER',  'one.value' ],
-  [ 'COMMA',              '=>' ],
-  [ 'KEYWORD',          'LIKE' ],
+  [ 'OP',                 '=>' ],
+  [ 'COMPARE',          'LIKE' ],
   [ 'VALUE',      '@cpan.org$' ],
-  [ 'SEPARATOR',           ',' ],
+  [ 'OP',                  ',' ],
   [ 'IDENTIFIER', 'fav_number' ],
-  [ 'COMMA',              '=>' ],
-  [ 'KEYWORD',            'GE' ],
+  [ 'OP',                 '=>' ],
+  [ 'COMPARE',            'GE' ],
   [ 'VALUE',              '42' ],
-  [ 'RPAREN',              ')' ]
+  [ 'OP',                  ')' ]
 ];
 is_deeply $tokens, $expected, '... and still produce a valid list of tokens';
+
+# the following searches will not work with the String lexer
+
+{
+    package Test::String;
+    use overload '""' => \&to_string;
+    sub new       { my ($pkg, $val) = @_; bless \$val => $pkg; }
+    sub to_string { ${$_[0]} }
+}
+
+my $foo = Test::String->new('foo');
+ok $tokens = lex([name => $foo]),
+    'We should be able to lex an overloaded string';
+
+$expected = [
+  [ 'IDENTIFIER', 'name' ],
+  [ 'OP',           '=>' ],
+  [ 'VALUE',        $foo ],
+];
+is_deeply $tokens, $expected,
+    '... and it should return the correct tokens';
+
+ok $tokens = lex([name => ANY('foo', 'bar')]),
+    'We should be able to parse ANY grous';
+$expected = [
+  [ 'IDENTIFIER', 'name' ],
+  [ 'OP',           '=>' ],
+  [ 'KEYWORD',     'ANY' ],
+  [ 'OP',          '('   ],
+  [ 'VALUE',       'foo' ],
+  [ 'OP',          ','   ],
+  [ 'VALUE',       'bar' ],
+  [ 'OP',          ')'   ],
+];
+is_deeply $tokens, $expected, '... and get the correct tokens';
+
+ok $tokens = lex([name => NOT ANY('foo', 'bar')]),
+    '... and parse negated ANY groups';
+$expected = [
+  [ 'IDENTIFIER', 'name' ],
+  [ 'OP',           '=>' ],
+  [ 'KEYWORD',     'NOT' ],
+  [ 'KEYWORD',     'ANY' ],
+  [ 'OP',          '('   ],
+  [ 'VALUE',       'foo' ],
+  [ 'OP',          ','   ],
+  [ 'VALUE',       'bar' ],
+  [ 'OP',          ')'   ],
+];
+is_deeply $tokens, $expected, '... and still get the correct tokens';

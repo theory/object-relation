@@ -53,31 +53,20 @@ use Text::ParseWords;
 my $QUOTED = $RE{quoted};
 my $NUM = $RE{num}{real};
 my $VALUE  = qr/(?!\.(?!\d))(?:$QUOTED|$NUM)/;
+my $COMPARE = qr/(?:LIKE|GT|LT|GE|LE|NE|MATCH|EQ)/;
 
 my @TOKENS = (
     [ 
-        'VALUE',                                   # value before keyword
-        $VALUE, 
-        sub {[$_[1], _strip_quotes($_[0])]} 
+      'VALUE',                                   # value before keyword
+      $VALUE, 
+      sub {[$_[1], _strip_quotes($_[0])]} 
     ],
-    [   'UNDEF',    'undef'                     ],
-    [ 
-        'KEYWORD',                                 # keyword before identifier
-        qr/(?:LIKE|GT|LT|GE|LE|NE|MATCH|EQ)/ 
-    ],
-    [ 'BETWEEN',    'BETWEEN'                   ],
-    [ 'AND',        'AND'                       ],
-    [ 'OR',         'OR'                        ],
-    [ 'ANY',        'ANY'                       ],
-    [ 'NEGATED',    'NOT'                       ], # negated before identifier
-    [ 'COMMA',      '=>'                        ],
-    [ 'IDENTIFIER', qr/[[:alpha:]][.[:word:]]*/  ],
-    [ 'WHITESPACE', qr/\s*/, sub {()}           ],
-    [ 'SEPARATOR',  ','                         ],
-    [ 'RBRACKET',   '\\]'                       ],
-    [ 'LBRACKET',   '\\['                       ],
-    [ 'RPAREN',     '\\)'                       ],
-    [ 'LPAREN',     '\\('                       ],
+    [ 'UNDEF',      'undef'                        ],
+    [ 'COMPARE',    $COMPARE                       ], # compare && keyword before identifier
+    [ 'KEYWORD',    qr/(?:BETWEEN|AND|OR|ANY|NOT)/ ],
+    [ 'IDENTIFIER', qr/[[:alpha:]][.[:word:]]*/    ],
+    [ 'WHITESPACE', qr/\s*/, sub {()}              ],
+    [ 'OP',         qr/(?:[,\]\[()]|=>)/           ],
 );
 
 sub _search_tokens { @TOKENS };

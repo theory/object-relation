@@ -2,7 +2,7 @@
 use warnings;
 use strict;
 
-use Test::More tests => 35;
+use Test::More tests => 39;
 #use Test::More 'no_plan';
 
 use lib 'lib/', '../lib/';
@@ -18,7 +18,7 @@ ok my $tokens = lex("name => 'foo'"),
 
 my $expected = [
   [ 'IDENTIFIER', 'name' ],
-  [ 'COMMA',        '=>' ],
+  [ 'OP',           '=>' ],
   [ 'VALUE',       'foo' ],
 ];
 is_deeply $tokens, $expected,
@@ -66,7 +66,7 @@ ok $tokens = lex("name => undef"),
 
 $expected = [
   [ 'IDENTIFIER', 'name' ],
-  [ 'COMMA',        '=>' ],
+  [ 'OP',           '=>' ],
   [ 'UNDEF',     'undef' ],
 ];
 
@@ -77,7 +77,7 @@ $tokens = lex("name => 'undef'");
 
 $expected = [
   [ 'IDENTIFIER', 'name' ],
-  [ 'COMMA',        '=>' ],
+  [ 'OP',           '=>' ],
   [ 'VALUE',     'undef' ],
 ];
 
@@ -89,7 +89,7 @@ ok $tokens = lex("object.name => 'foo'"),
 
 $expected = [
   [ 'IDENTIFIER', 'object.name' ],
-  [ 'COMMA',               '=>' ],
+  [ 'OP',                  '=>' ],
   [ 'VALUE',              'foo' ],
 ];
 is_deeply $tokens, $expected,
@@ -99,8 +99,8 @@ ok $tokens = lex("name => EQ 'foo'"),
     'We should be able to handle search keywords';
 $expected = [
   [ 'IDENTIFIER', 'name' ],
-  [ 'COMMA',        '=>' ],
-  [ 'KEYWORD',      'EQ' ],
+  [ 'OP',           '=>' ],
+  [ 'COMPARE',      'EQ' ],
   [ 'VALUE',       'foo' ],
 ];
 is_deeply $tokens, $expected,
@@ -110,8 +110,8 @@ ok $tokens = lex("name => LIKE 'foo'"),
     '... and it should succeed if the string can be lexed';
 $expected = [
   [ 'IDENTIFIER', 'name' ],
-  [ 'COMMA',        '=>' ],
-  [ 'KEYWORD',    'LIKE' ],
+  [ 'OP',           '=>' ],
+  [ 'COMPARE',    'LIKE' ],
   [ 'VALUE',       'foo' ],
 ];
 is_deeply $tokens, $expected,
@@ -121,13 +121,13 @@ ok $tokens = lex("name => LIKE 'foo', age => GT 3"),
     '... and it should succeed if the string can be lexed';
 $expected = [
   [ 'IDENTIFIER', 'name' ],
-  [ 'COMMA',        '=>' ],
-  [ 'KEYWORD',    'LIKE' ],
+  [ 'OP',           '=>' ],
+  [ 'COMPARE',    'LIKE' ],
   [ 'VALUE',       'foo' ],
-  [ 'SEPARATOR',     ',' ],
+  [ 'OP',            ',' ],
   [ 'IDENTIFIER',  'age' ],
-  [ 'COMMA',        '=>' ],
-  [ 'KEYWORD',      'GT' ],
+  [ 'OP',           '=>' ],
+  [ 'COMPARE',      'GT' ],
   [ 'VALUE',           3 ],
 ];
 is_deeply $tokens, $expected,
@@ -136,8 +136,8 @@ is_deeply $tokens, $expected,
 ok $tokens = lex('name => NOT "foo"'), 'NOT should parse correctly';
 $expected = [
   [ 'IDENTIFIER', 'name' ],
-  [ 'COMMA',        '=>' ],
-  [ 'NEGATED',     'NOT' ],
+  [ 'OP',           '=>' ],
+  [ 'KEYWORD',     'NOT' ],
   [ 'VALUE',       'foo' ],
 ];
 is_deeply $tokens, $expected,
@@ -147,13 +147,13 @@ ok $tokens = lex("name => NOT ['foo', 'bar']"),
     'We should be able to parse bracketed lists';
 $expected = [
   [ 'IDENTIFIER', 'name' ],
-  [ 'COMMA',        '=>' ],
-  [ 'NEGATED',     'NOT' ],
-  [ 'LBRACKET',    '['   ],
+  [ 'OP',           '=>' ],
+  [ 'KEYWORD',     'NOT' ],
+  [ 'OP',          '['   ],
   [ 'VALUE',       'foo' ],
-  [ 'SEPARATOR',   ','   ],
+  [ 'OP',          ','   ],
   [ 'VALUE',       'bar' ],
-  [ 'RBRACKET',    ']'   ],
+  [ 'OP',          ']'   ],
 ];
 is_deeply $tokens, $expected, '... and get the correct tokens';
 
@@ -161,14 +161,14 @@ ok $tokens = lex("name => NOT BETWEEN ['foo', 'bar']"),
     'We should be able to parse bracketed lists';
 $expected = [
   [ 'IDENTIFIER', 'name'     ],
-  [ 'COMMA',        '=>'     ],
-  [ 'NEGATED',     'NOT'     ],
-  [ 'BETWEEN',     'BETWEEN' ],
-  [ 'LBRACKET',    '['       ],
+  [ 'OP',           '=>'     ],
+  [ 'KEYWORD',     'NOT'     ],
+  [ 'KEYWORD',     'BETWEEN' ],
+  [ 'OP',          '['       ],
   [ 'VALUE',       'foo'     ],
-  [ 'SEPARATOR',   ','       ],
+  [ 'OP',          ','       ],
   [ 'VALUE',       'bar'     ],
-  [ 'RBRACKET',    ']'       ],
+  [ 'OP',          ']'       ],
 ];
 is_deeply $tokens, $expected, '... and get the correct tokens';
 
@@ -179,19 +179,19 @@ ok $tokens = lex(<<'END_SEARCH'), 'AND and parens should also parse';
     )
 END_SEARCH
 $expected = [
-  [ 'AND',         'AND' ],
-  [ 'LPAREN',        '(' ],
+  [ 'KEYWORD',     'AND' ],
+  [ 'OP',            '(' ],
   [ 'IDENTIFIER', 'desc' ],
-  [ 'COMMA',        '=>' ],
+  [ 'OP',           '=>' ],
   [ 'VALUE',       'bar' ],
-  [ 'SEPARATOR',     ',' ],
+  [ 'OP',            ',' ],
   [ 'IDENTIFIER', 'this' ],
-  [ 'COMMA',        '=>' ],
-  [ 'NEGATED',     'NOT' ],
-  [ 'KEYWORD',    'LIKE' ],
+  [ 'OP',           '=>' ],
+  [ 'KEYWORD',     'NOT' ],
+  [ 'COMPARE',    'LIKE' ],
   [ 'VALUE',      'that' ],
-  [ 'SEPARATOR',     ',' ],
-  [ 'RPAREN',        ')' ],
+  [ 'OP',            ',' ],
+  [ 'OP',            ')' ],
 ];
 is_deeply $tokens, $expected, '... and we should allow trailing commas';
 
@@ -209,42 +209,71 @@ ok $tokens = lex(<<'END_SEARCH'), 'Stress testing the lexer should succeed';
 END_SEARCH
 
 $expected = [
-  [ 'AND',               'AND' ],
-  [ 'LPAREN',              '(' ],
+  [ 'KEYWORD',           'AND' ],
+  [ 'OP',                  '(' ],
   [ 'IDENTIFIER',  'last_name' ],
-  [ 'COMMA',              '=>' ],
+  [ 'OP',                 '=>' ],
   [ 'VALUE',            'Wall' ],
-  [ 'SEPARATOR',           ',' ],
+  [ 'OP',                  ',' ],
   [ 'IDENTIFIER', 'first_name' ],
-  [ 'COMMA',              '=>' ],
+  [ 'OP',                 '=>' ],
   [ 'VALUE',           'Larry' ],
-  [ 'SEPARATOR',           ',' ],
-  [ 'RPAREN',              ')' ],
-  [ 'SEPARATOR',           ',' ],
-  [ 'OR',                 'OR' ],
-  [ 'LPAREN',              '(' ],
+  [ 'OP',                  ',' ],
+  [ 'OP',                  ')' ],
+  [ 'OP',                  ',' ],
+  [ 'KEYWORD',            'OR' ],
+  [ 'OP',                  '(' ],
   [ 'IDENTIFIER',        'bio' ],
-  [ 'COMMA',              '=>' ],
-  [ 'KEYWORD',          'LIKE' ],
+  [ 'OP',                 '=>' ],
+  [ 'COMPARE',          'LIKE' ],
   [ 'VALUE',          '%perl%' ],
-  [ 'RPAREN',              ')' ],
-  [ 'SEPARATOR',           ',' ],
-  [ 'OR',                 'OR' ],
-  [ 'LPAREN',              '(' ],
+  [ 'OP',                  ')' ],
+  [ 'OP',                  ',' ],
+  [ 'KEYWORD',            'OR' ],
+  [ 'OP',                  '(' ],
   [ 'VALUE',        'one.type' ],
-  [ 'COMMA',              '=>' ],
-  [ 'KEYWORD',          'LIKE' ],
+  [ 'OP',                 '=>' ],
+  [ 'COMPARE',          'LIKE' ],
   [ 'VALUE',           'email' ],
-  [ 'SEPARATOR',           ',' ],
+  [ 'OP',                  ',' ],
   [ 'VALUE',       'one.value' ],
-  [ 'COMMA',              '=>' ],
-  [ 'KEYWORD',          'LIKE' ],
+  [ 'OP',                 '=>' ],
+  [ 'COMPARE',          'LIKE' ],
   [ 'VALUE',      '@cpan.org$' ],
-  [ 'SEPARATOR',           ',' ],
+  [ 'OP',                  ',' ],
   [ 'VALUE',      'fav_number' ],
-  [ 'COMMA',              '=>' ],
-  [ 'KEYWORD',            'GE' ],
+  [ 'OP',                 '=>' ],
+  [ 'COMPARE',            'GE' ],
   [ 'VALUE',              '42' ],
-  [ 'RPAREN',              ')' ]
+  [ 'OP',                  ')' ]
 ];
 is_deeply $tokens, $expected, '... and still produce a valid list of tokens';
+
+ok $tokens = lex("name => ANY('foo', 'bar')"),
+    'We should be able to parse ANY grous';
+$expected = [
+  [ 'IDENTIFIER', 'name' ],
+  [ 'OP',           '=>' ],
+  [ 'KEYWORD',     'ANY' ],
+  [ 'OP',          '('   ],
+  [ 'VALUE',       'foo' ],
+  [ 'OP',          ','   ],
+  [ 'VALUE',       'bar' ],
+  [ 'OP',          ')'   ],
+];
+is_deeply $tokens, $expected, '... and get the correct tokens';
+
+ok $tokens = lex("name => NOT ANY('foo', 'bar')"),
+    '... and parse negated ANY groups';
+$expected = [
+  [ 'IDENTIFIER', 'name' ],
+  [ 'OP',           '=>' ],
+  [ 'KEYWORD',     'NOT' ],
+  [ 'KEYWORD',     'ANY' ],
+  [ 'OP',          '('   ],
+  [ 'VALUE',       'foo' ],
+  [ 'OP',          ','   ],
+  [ 'VALUE',       'bar' ],
+  [ 'OP',          ')'   ],
+];
+is_deeply $tokens, $expected, '... and still get the correct tokens';

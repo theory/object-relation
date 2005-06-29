@@ -42,6 +42,7 @@ See L<Kinetic::Parser::DB|Kinetic::Parser::DB> for an example.
 
 use strict;
 use warnings;
+use overload;
 use Kinetic::Store qw/:all/;
 use Kinetic::Util::Exceptions 'throw_search';
 use Kinetic::Util::Stream 'node';
@@ -78,23 +79,27 @@ my %term_types = (
         # name => 'foo'
         my ($column, $code) = @_;
         my $value = shift @$code;
-        my @tokens = (['IDENTIFIER', $column], ['COMMA', '=>']);
+        my @tokens = (['IDENTIFIER', $column], ['OP', '=>']);
         unless (ref $value) {
             push @tokens => defined $value
                 ? ['VALUE',  $value] 
                 : ['UNDEF', 'undef']; 
         }
         else {
-            push @tokens => $value->();
+            my $ref = ref $value;
+            push @tokens =>
+                  'CODE'  eq $ref ? $value->()
+                : 'ARRAY' eq $ref ? BETWEEN($value)->()
+                :                   [ 'VALUE', $value ];
         }
         return @tokens;
     },
     CODE => sub {
         my ($term) = @_;
         my ($op, $code) = $term->();
-        my $op_token = [$op, $op];
-        my $lparen   = [ 'LPAREN', '(' ];
-        my $rparen   = [ 'RPAREN', ')' ];
+        my $op_token = [ KEYWORD => $op ];
+        my $lparen   = [ 'OP',     '('  ];
+        my $rparen   = [ 'OP',     ')'  ];
         return ($op_token, $lparen, @{_lex($code)}, $rparen);  # AND 
     },
 );
@@ -110,7 +115,7 @@ sub _lex {
         else {
             throw_search [ 'I don\'t know how to lex a "[_1]"', $type ];
         }
-        push @tokens => ['SEPARATOR', ','] if @$code;
+        push @tokens => ['OP', ','] if @$code;
     }
     return \@tokens;
 }

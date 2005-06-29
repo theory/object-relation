@@ -1,6 +1,6 @@
 package TEST::Kinetic::Store;
 
-# $Id: Store.pm 1094 2005-01-11 19:09:08Z curtis $
+    # $Id: Store.pm 1094 2005-01-11 19:09:08Z curtis $
 
 use strict;
 use warnings;

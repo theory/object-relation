@@ -53,6 +53,14 @@ for a given store.
 
 =cut
 
+# predefine a few things
+my $lparen    = _(OP =>  '(');
+my $rparen    = _(OP =>  ')');
+my $lbracket  = _(OP =>  '[');
+my $rbracket  = _(OP =>  ']');
+my $fat_comma = _(OP => '=>');
+my $comma     = _(OP =>  ',');
+
 my $value;
 my $Value = parser { $value->(@_) };
 $value = alternate(
@@ -66,16 +74,16 @@ my $any;
 my $Any = parser { $any->(@_) };
 $any = T(
   concatenate(
-    _('ANY'),
-    _('LPAREN'),
+    _(KEYWORD => 'ANY'),
+    $lparen,
     $value,
     T(
       star(
         T(
           concatenate(
             alternate(
-              _('COMMA'),
-              _('SEPARATOR')
+              $fat_comma,
+              $comma
             ),
             _('VALUE'), # undef doesn't apply 
           ),
@@ -84,11 +92,11 @@ $any = T(
       ),
       sub { \@_ }
     ),
-    T(star(_('SEPARATOR')), sub {()}), # allow a trailing comma
-    _('RPAREN'),
+    T(star($comma), sub {()}), # allow a trailing comma
+    $rparen,
   ),
   sub {
-    # any is in an arrayref because $normal_value has star(_('KEYWORD'))
+    # any is in an arrayref because $normal_value has star(_('COMPARE'))
     # and that returns the keyword in an arrayref
     [ ['ANY'], [ $_[2], @{$_[3]} ] ]
   }
@@ -98,7 +106,7 @@ my $normal_value = T(
   concatenate(
     alternate(
       concatenate(
-        star(_('KEYWORD')),
+        star(_('COMPARE')),
         $value
       ),
       $any
@@ -109,15 +117,15 @@ my $normal_value = T(
 
 my $between_value = T(
   concatenate(
-    star(_('BETWEEN')),
-       _('LBRACKET'),
+    star(_(KEYWORD => 'BETWEEN')),
+       $lbracket,
          $value,
          alternate(
-           _('COMMA', '=>'),
-           _('SEPARATOR', ','),
+           $fat_comma,
+           $comma,
          ),
          $value,
-       _('RBRACKET'),
+       $rbracket,
   ),
   sub { ['BETWEEN', [$_[2], $_[4]]] }
 );
@@ -125,8 +133,8 @@ my $between_value = T(
 my $search = T(
   concatenate( 
        _('IDENTIFIER'),
-       _('COMMA', '=>'),
-    star(_('NEGATED')),
+       $fat_comma,
+    star(_(KEYWORD => 'NOT')),
     alternate(
       $normal_value,
       $between_value
@@ -144,13 +152,13 @@ my $statement_list = concatenate(
   star(
     T(
       concatenate(
-        _('SEPARATOR'),
+        $comma,
         $Statement,
       ),
       sub { $_[1] }
     ),
   ),
-  T(star(_('SEPARATOR')), sub {()}), # allow a trailing comma
+  T(star($comma), sub {()}), # allow a trailing comma
 );
 
 $statement = T(
@@ -159,12 +167,10 @@ $statement = T(
     T(
       concatenate(
         alternate(
-          _('AND'),
-          _('OR')
+          _(KEYWORD => 'AND'),
+          _(KEYWORD => 'OR')
         ),
-        _('LPAREN'),
-        $statement_list,
-        _('RPAREN')
+        $lparen, $statement_list, $rparen
       ),
       sub { [$_[0], $_[2] ] }
     ),
@@ -179,7 +185,7 @@ my $statements = T(
     $Statement,
     star(
       concatenate(
-        _('SEPARATOR'),
+        $comma,
         $Statement
       )
     )
@@ -216,7 +222,7 @@ sub _extract_statements {
 
 my $entire_input = T(
   concatenate(
-    $statements, # was $Full_query
+    $statements,
     \&End_of_Input
   ), 
   sub { 
