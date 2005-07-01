@@ -24,8 +24,8 @@ Kinetic::Store::Lexer::Code - Lexer for Kinetic search code
 
 =head1 Synopsis
 
-  use Kinetic::Store::Lexer::Code qw/lexer_stream/;
-  my $stream = lexer_stream([ 
+  use Kinetic::Store::Lexer::Code qw/code_lexer_stream/;
+  my $stream = code_lexer_stream([ 
     name => NOT LIKE 'foo%',
     OR (age => GE 21)
   ]);
@@ -47,13 +47,13 @@ use Kinetic::Store qw/:all/;
 use Kinetic::Util::Exceptions 'throw_search';
 use Kinetic::Util::Stream 'node';
 
-use Exporter::Tidy default => ['lexer_stream'];
+use Exporter::Tidy default => ['code_lexer_stream'];
 
 ##############################################################################
 
-=head3 lexer_stream;
+=head3 code_lexer_stream;
 
-  my $stream = lexer_stream(\@search_parameters);
+  my $stream = code_lexer_stream(\@search_parameters);
 
 This function, exported on demand, is the only function publicly useful in this
 module.  It takes search parameters as described in the
@@ -62,7 +62,7 @@ Kinetic parsers should be able to turn into an intermediate representation.
 
 =cut
 
-sub lexer_stream {;
+sub code_lexer_stream {;
     my $tokens = _lex(shift);
     return _iterator_to_stream(sub { shift @$tokens });
 }

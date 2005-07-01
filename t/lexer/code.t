@@ -2,15 +2,16 @@
 use warnings;
 use strict;
 
-use Test::More tests => 34;
-#use Test::More 'no_plan';
+#use Test::More tests => 34;
+use Test::More 'no_plan';
 use Data::Dumper;
 
 use lib 'lib';
 use Kinetic::Util::Stream 'drop';
+use aliased 'Kinetic::DateTime::Incomplete';
 BEGIN {
     use_ok 'Kinetic::Store', qw/:all/             or die;
-    use_ok 'Kinetic::Store::Lexer::Code', qw/lexer_stream/ or die;
+    use_ok 'Kinetic::Store::Lexer::Code', qw/code_lexer_stream/ or die;
 }
 
 *lex = \&Kinetic::Store::Lexer::Code::_lex;
@@ -26,7 +27,7 @@ my $expected = [
 is_deeply $tokens, $expected,
     '... and it should return the correct tokens';
 
-my $stream = lexer_stream([name => 'foo']);
+my $stream = code_lexer_stream([name => 'foo']);
 my @tokens;
 while (my $node = drop($stream)) {
     push @tokens => $node;
@@ -283,3 +284,29 @@ $expected = [
   [ 'OP',          ')'   ],
 ];
 is_deeply $tokens, $expected, '... and still get the correct tokens';
+
+my $y1968 = Incomplete->new(year => 1968);
+my $y1966 = Incomplete->new(year => 1966);
+
+ok $tokens = lex([
+    date => LT $y1968,
+    date => GT $y1966,
+    name => LIKE '%vid',
+]), 'LT/GT code should be lexable';
+$expected = [
+  [ 'IDENTIFIER', 'date' ],
+  [ 'OP',           '=>' ],
+  [ 'COMPARE',      'LT' ],
+  [ 'VALUE',      $y1968 ],
+  [ 'OP',            ',' ],
+  [ 'IDENTIFIER', 'date' ],
+  [ 'OP',           '=>' ],
+  [ 'COMPARE',      'GT' ],
+  [ 'VALUE',      $y1966 ],
+  [ 'OP',            ',' ],
+  [ 'IDENTIFIER', 'name' ],
+  [ 'OP',           '=>' ],
+  [ 'COMPARE',    'LIKE' ],
+  [ 'VALUE',      '%vid' ],
+];
+is_deeply $tokens, $expected, '... and it should return the correct tokens';

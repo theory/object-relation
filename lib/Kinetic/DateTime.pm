@@ -21,6 +21,7 @@ package Kinetic::DateTime;
 use strict;
 use base 'DateTime';
 use DateTime::TimeZone;
+use DateTime::Format::Strptime;
 
 =head1 Name
 
@@ -81,15 +82,47 @@ Same as C<new> but takes an iso8601 date string as the argument.
 =cut
 
 
-my $utc = DateTime::TimeZone::UTC->new;
+my $utc       = DateTime::TimeZone::UTC->new;
+my $formatter = DateTime::Format::Strptime->new(pattern => '%Y-%m-%dT%H:%M:%S.%1N%z');
+sub new { 
+    my $class = shift;
+    $class->SUPER::new(
+        time_zone => $utc, 
+        formatter => $formatter,
+        @_
+    );
+}
 
-sub new { shift->SUPER::new(time_zone => $utc, @_) }
-
-my $ISO8601_TEMPLATE =  'a4 x a2 x a2 x a2 x a2 x a2 a*';
 sub new_from_iso8601 {
     my ($class, $iso8601_date_string) = @_;
     # XXX fixes a bug in Kinetic::XML::dump_xml.  Need to revisit.
     return unless $iso8601_date_string;
+    my $args = $class->parse_iso8601_date($iso8601_date_string);
+    return $class->new(%$args);
+};
+
+##############################################################################
+
+=head3 parse_iso8601_date
+
+  my $date_href = $date->parse_iso8601_date;
+
+Given an ISO8601 date string, returns a hashref with the date parts as values
+to the keys.  Keys are:
+
+    year 
+    month 
+    day 
+    hour 
+    minute 
+    second 
+    nanosecond
+    
+=cut
+
+my $ISO8601_TEMPLATE =  'a4 x a2 x a2 x a2 x a2 x a2 a*';
+sub parse_iso8601_date {
+    my ($class, $iso8601_date_string) = @_;
     # It turns out that unpack() is faster than using a Regex. See
     # http://www.justatheory.com/computers/programming/perl/pack_vs_regex.html
     my %args;
@@ -99,8 +132,8 @@ sub new_from_iso8601 {
         no warnings;
         $args{nanosecond} *= 1.0E9;
     }
-    return $class->new(%args);
-};
+    return \%args;
+}
 
 ##############################################################################
 
@@ -114,7 +147,7 @@ Return the ISO8601 value of the datetime object.
 
 sub raw {
     my $self = shift;
-    return $self->iso8601 . '.' . $self->microsecond;
+    return "$self";
 }
 
 1;

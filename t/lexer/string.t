@@ -8,7 +8,7 @@ use Test::More tests => 39;
 use lib 'lib/', '../lib/';
 use Kinetic::Util::Stream 'drop';
 BEGIN {
-    use_ok 'Kinetic::Store::Lexer::String', qw/lexer_stream/ or die;
+    use_ok 'Kinetic::Store::Lexer::String', qw/string_lexer_stream/ or die;
 }
 
 *lex = \&Kinetic::Store::Lexer::String::_lex;
@@ -24,7 +24,7 @@ my $expected = [
 is_deeply $tokens, $expected,
     '... and it should return the correct tokens';
 
-my $stream = lexer_stream("name => 'foo'");
+my $stream = string_lexer_stream("name => 'foo'");
 my @tokens;
 while (my $node = drop($stream)) {
     push @tokens => $node;

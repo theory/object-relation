@@ -281,9 +281,9 @@ is( $attr->raw($t), 0, "Check state raw value for the new value");
 # test the datetime attribute to ensure it works.
 my $date = Kinetic::DateTime->new_from_iso8601('1964-10-16T16:12:47.0');
 is $t->date($date), $t, 'Set date';
-is $t->date->raw, '1964-10-16T16:12:47.0', 'Check date string is correct';
+is $t->date->raw, '1964-10-16T16:12:47.0+0000', 'Check date string is correct';
 ok $attr = $class->attributes('date'), 'Get date attribute';
-is $attr->get($t)->raw, '1964-10-16T16:12:47.0', 'Check date returns microseconds';
+is $attr->get($t)->raw, '1964-10-16T16:12:47.0+0000', 'Check date returns microseconds';
 is $attr->raw($t), '1964-10-16T16:12:47', 'Check attr->raw date does not return microseconds';
 $date = Kinetic::DateTime->new_from_iso8601('2005-10-16T16:12:47.0');
 is $attr->set($t, $date), $t, 'Set date via attribute object';

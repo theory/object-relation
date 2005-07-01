@@ -376,7 +376,6 @@ sub search_incomplete_dates : Test(25) {
     @results  = $test->_all_items($iterator);
     is @results, 1, 'Incomplete dates should recognize LT';
     is_deeply \@results, [$lil], '... and get the correct results';
-
     my $y1968 = Incomplete->new(year => 1968);
     my $y1966 = Incomplete->new(year => 1966);
     $iterator = $store->search($class, 
@@ -388,7 +387,6 @@ sub search_incomplete_dates : Test(25) {
     @results  = $test->_all_items($iterator);
     is @results, 1, 'Incomplete dates should recognize LT';
     is_deeply \@results, [$ovid], '... and get the correct results';
-
     $iterator = $store->search($class, 
         date => [$y1966 => $y1968],
         name => LIKE 'Ovi%', 

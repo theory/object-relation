@@ -61,10 +61,13 @@ my $rbracket  = _(OP =>  ']');
 my $fat_comma = _(OP => '=>');
 my $comma     = _(OP =>  ',');
 
+my $search_value = _('VALUE');
+sub _search_value { $search_value }
+
 my $value;
 my $Value = parser { $value->(@_) };
 $value = alternate(
-  _('VALUE'),
+  $search_value,
   T(
     _('UNDEF'),
     sub { undef }
@@ -85,7 +88,7 @@ $any = T(
               $fat_comma,
               $comma
             ),
-            _('VALUE'), # undef doesn't apply 
+            $search_value, # undef doesn't apply 
           ),
           sub { $_[1] }
         )
@@ -119,12 +122,12 @@ my $between_value = T(
   concatenate(
     star(_(KEYWORD => 'BETWEEN')),
        $lbracket,
-         $value,
+         $Value,
          alternate(
            $fat_comma,
            $comma,
          ),
-         $value,
+         $Value,
        $rbracket,
   ),
   sub { ['BETWEEN', [$_[2], $_[4]]] }
@@ -358,9 +361,9 @@ sub _make_search {
 
   return Kinetic::Store::Search->new(
     column   => $column,
-    negated  => ($negated || ''),
+    negated  => ($negated  || ''),
     operator => ($operator || 'EQ'),
-    data   => $value,
+    data     => $value,
   );
 }
 
@@ -373,7 +376,10 @@ sub parse {
     ];
   }
   $STORE = $store;
-  return $entire_input->($stream);
+  my ($results, $remainder) = $entire_input->($stream); 
+  # XXX really need to figure out a more descriptive error message
+  throw_search 'Could not parse search request' if $remainder or ! $results;
+  return $results;
 }
 
 1;

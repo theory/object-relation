@@ -98,6 +98,9 @@ our %Lexicon = (
   "([_1]) cannot be a value.",
   "([_1]) cannot be a value.",
 
+  'Could not parse search request',
+  'Could not parse search request',
+
   'I don\'t know how to search for "[_1] [_2] [_3]"',
   "I don't know how to search for “[_1] [_2] [_3]”",
 

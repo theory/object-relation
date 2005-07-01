@@ -24,8 +24,8 @@ Kinetic::Store::Lexer::String - Lexer for Kinetic search strings
 
 =head1 Synopsis
 
-  use Kinetic::Store::Lexer::String qw/lexer_stream/;
-  my $stream = lexer_stream(<<'END_QUERY'); 
+  use Kinetic::Store::Lexer::String qw/string_lexer_stream/;
+  my $stream = string_lexer_stream(<<'END_QUERY'); 
     name => NOT LIKE 'foo%',
     OR (age => GE 21)
   END_QUERY
@@ -46,7 +46,7 @@ use Kinetic::Util::Stream 'node';
 use Kinetic::Store::Lexer ':all';
 use Carp qw/croak/;
 
-use Exporter::Tidy default => [qw/lexer_stream/];
+use Exporter::Tidy default => [qw/string_lexer_stream/];
 use Regexp::Common;
 use Text::ParseWords;
 
@@ -89,9 +89,9 @@ sub _strip_quotes { # naive
     return $string;
 }
 
-=head3 lexer_stream;
+=head3 string_lexer_stream;
 
-  my $stream = lexer_stream(\@search_parameters);
+  my $stream = string_lexer_stream(\@search_parameters);
 
 This function, exported on demand, is the only function publicly useful in this
 module.  It takes search parameters as described in the
@@ -100,7 +100,7 @@ Kinetic parsers should be able to turn into an intermediate representation.
 
 =cut
 
-sub lexer_stream {
+sub string_lexer_stream {
     my @input = @_;
     my $input = sub { shift @input };
     return iterator_to_stream(make_lexer($input, _search_tokens()));

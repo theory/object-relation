@@ -24,7 +24,7 @@ use DBI;
 use Scalar::Util qw(blessed);
 use Kinetic::Util::Exceptions qw(:all);
 use Kinetic::Store::Parser::DB qw/parse/;
-use Kinetic::Store::Lexer::Code qw/lexer_stream/;
+use Kinetic::Store::Lexer::Code qw/code_lexer_stream/;
 
 use aliased 'Kinetic::Meta' => 'Meta', qw(:with_dbstore_api);
 use aliased 'Kinetic::Util::Iterator';
@@ -806,8 +806,8 @@ be generated.
 
 sub _make_where_clause {
     my ($self, $search_request) = @_;
-    my $stream = lexer_stream($search_request);
-    my ($ir) = parse($stream, $self);
+    my $stream = code_lexer_stream($search_request);
+    my $ir = parse($stream, $self);
     my ($where_clause, $bind_params) = $self->_convert_ir_to_where_clause($ir);
     $where_clause = "" if '()' eq $where_clause;
     return ($where_clause, $bind_params);
