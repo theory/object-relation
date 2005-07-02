@@ -83,7 +83,8 @@ Same as C<new> but takes an iso8601 date string as the argument.
 
 
 my $utc       = DateTime::TimeZone::UTC->new;
-my $formatter = DateTime::Format::Strptime->new(pattern => '%Y-%m-%dT%H:%M:%S.%1N%z');
+#my $formatter = DateTime::Format::Strptime->new(pattern => '%Y-%m-%dT%H:%M:%S.%1N%z');
+my $formatter = DateTime::Format::Strptime->new(pattern => '%Y-%m-%dT%H:%M:%S');
 sub new { 
     my $class = shift;
     $class->SUPER::new(

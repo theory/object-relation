@@ -134,6 +134,63 @@ sub search : Test(19) {
         '... and it should be the correct results';
 }
 
+sub search_string : Test(19) {
+    my $test = shift;
+    return unless $test->_should_run;
+    my $store = Store->new;
+    can_ok $store, 'search';
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    foreach ($foo, $bar, $baz) {
+        $_->name($_->name.chr(0x100));
+        $store->save($_);
+    }
+    my $class = $foo->my_class;
+    ok my $iterator = $store->search($class, STRING => ''),
+        'A search with only a class should succeed';
+    my @results = $test->_all_items($iterator);
+    is @results, 3, 'returning all instances in the class';
+
+    foreach my $result (@results) {
+        ok is_utf8($result->name), '... and the data should be unicode strings';
+    }
+
+    ok $iterator = $store->search($class, STRING => "name => '@{[$foo->name]}'"),
+        'and an exact match should succeed';
+    isa_ok $iterator, Iterator, 'and the object it returns';
+    is_deeply $test->_force_inflation($iterator->next), $foo,
+        'and the first item should match the correct object';
+    ok ! $test->_force_inflation($iterator->next), 'and there should be the correct number of objects';
+
+    ok $iterator = $store->search($class, STRING => "name => '@{[$foo->name]}'"),
+        'We should also be able to call search as a class method';
+    isa_ok $iterator, Iterator, 'and the object it returns';
+    is_deeply $test->_force_inflation($iterator->next), $foo,
+        'and it should return the same results as an instance method';
+    ok ! $test->_force_inflation($iterator->next), 'and there should be the correct number of objects';
+
+    ok $iterator = $store->search(
+        $class, 
+        STRING => "name => '@{[ucfirst $foo->name]}'"
+    ), 'Case-insensitive searches should work';
+    isa_ok $iterator, Iterator, 'and the object it returns';
+    is_deeply $test->_force_inflation($iterator->next), $foo,
+         'and they should return data even if the case does not match';
+
+    $iterator = $store->search(
+        $class, 
+        STRING => "name => '@{[$foo->name]}', description => 'asdf'");
+    ok ! $test->_force_inflation($iterator->next),
+        'but searching for non-existent values will return no results';
+    $foo->description('asdf');
+    $store->save($foo);
+    $iterator = $store->search(
+        $class, 
+        STRING => "name => '@{[$foo->name]}', description => 'asdf'"
+    );
+    is_deeply $test->_force_inflation($iterator->next), $foo,
+        '... and it should be the correct results';
+}
+
 sub unit_constructor : Test(6) {
     my $test = shift;
     (my $class = ref $test) =~ s/^TEST:://;
@@ -151,83 +208,144 @@ sub unit_constructor : Test(6) {
     isnt "$store", "$store2", '... and a singleton should not be returned';
 }
 
-#sub unit_does_import : Test(47) {
-#    can_ok Store, 'import';
-#    # comparison
-#    foreach my $sub (qw/LIKE GT LT GE LE NE MATCH/) {
-#        can_ok __PACKAGE__, $sub;
-#        no strict 'refs';
-#        my $result = [$sub->(7)->()];
-#        is_deeply $result, ['', $sub, 7],
-#            '... and it should return and empty string, its name and args';
-#        $result = [$sub->(7)->('NOT')];
-#        is_deeply $result, ['NOT', $sub, 7],
-#            '... and it should return the value passed to it, its  name and args';
-#    }
-#    # sorting
-#    foreach my $sub (qw/ASC DESC/) {
-#        can_ok __PACKAGE__, $sub;
-#        no strict 'refs';
-#        my $result = [$sub->()->()];
-#        is_deeply $result, [$sub],
-#            '... and it should return its name and args';
-#    }
-#    # logical
-#    foreach my $sub (qw/AND OR/) {
-#        can_ok __PACKAGE__, $sub;
-#        no strict 'refs';
-#        my $result = [$sub->(qw/foo bar/)->()];
-#        is_deeply $result, [$sub, [qw/foo bar/]],
-#            '... and it should return its name and an array ref of its arguments';
-#    }
-#    can_ok __PACKAGE__, 'EQ';
-#    my $eq = EQ 2;
-#    is_deeply [$eq->()], ['', 'EQ', 2],
-#        '... and a basic EQ should return the correct value';
-#
-#    $eq = EQ [2,3];
-#    is_deeply [$eq->()], ['', 'BETWEEN', [2,3]],
-#        '... and EQ should return BETWEEN if the value is an arrayref';
-#    
-#    $eq = EQ 2;
-#    is_deeply [$eq->('NOT')], ['NOT', 'EQ', 2],
-#        '... EQ should negate itself if NOT is passed as an argument';
-#
-#    $eq = EQ [2,3];
-#    is_deeply [$eq->('NOT')], ['NOT', 'BETWEEN', [2,3]],
-#        '... even if we are doing a BETWEEN search';
-#
-#    can_ok __PACKAGE__, 'ANY';
-#    my $any = ANY(2,3,4);
-#    is_deeply [$any->()], ['', 'ANY', [2,3,4]],
-#        '... and a basic ANY should return the correct value';
-#    is_deeply [$any->('NOT')], ['NOT', 'ANY', [2,3,4]],
-#        '... even if it is negated';
-#
-#    can_ok __PACKAGE__, 'BETWEEN';
-#    throws_ok {BETWEEN [2,3,4]}
-#        'Kinetic::Util::Exception::Fatal::Search',
-#        '... and BETWEEN searches with other than two values should throw an exception';
-#    my $between = BETWEEN [2,4];
-#    is_deeply [$between->()], ['', 'BETWEEN', [2,4]],
-#        '... and BETWEEN should return the correct value';
-#    is_deeply [$between->('NOT')], ['NOT', 'BETWEEN', [2,4]],
-#        '... even if it is negated';
-#
-#    can_ok __PACKAGE__, 'NOT';
-#    my $not = NOT 'foo';
-#    is_deeply [$not->()], ['NOT', 'EQ', 'foo'],
-#        '... NOT searches should negate their meaning and default to EQ';
-#    $not = NOT ['bar','baz'];
-#    is_deeply [$not->()], ['NOT', 'BETWEEN', [qw/bar baz/]],
-#        '... but should switch to BETWEEN if negating an array ref';
-#    $not = NOT BETWEEN ['bar','baz'];
-#    is_deeply [$not->()], ['NOT', 'BETWEEN', [qw/bar baz/]],
-#        '... and allow the BETWEEN to be explicitly stated';
-#    $not = NOT LIKE 'foo%';
-#    is_deeply [$not->()], ['NOT', 'LIKE', 'foo%'],
-#        '... and otherwise should take an extra operator';
-#}
+sub search_subs_lex_correctly : Test(47) {
+    can_ok Store, 'import';
+    # comparison
+    foreach my $sub (qw/LIKE GT LT GE LE NE MATCH/) {
+        can_ok __PACKAGE__, $sub;
+        no strict 'refs';
+        my $result = [$sub->(7)->()];
+        is_deeply $result, [[COMPARE => $sub],[VALUE => 7]],
+            '... and it should return and empty string, its name and args';
+        $result = [NOT($sub->(7))->()];
+        is_deeply $result, [['KEYWORD' => 'NOT'], [COMPARE => $sub],[VALUE => 7]],
+            '... and it should return the value passed to it, its  name and args';
+    }
+    # sorting
+    foreach my $sub (qw/ASC DESC/) {
+        can_ok __PACKAGE__, $sub;
+        no strict 'refs';
+        my $result = [$sub->()->()];
+        is_deeply $result, [$sub],
+            '... and it should return its name and args';
+    }
+    # logical
+    foreach my $sub (qw/AND OR/) {
+        can_ok __PACKAGE__, $sub;
+        no strict 'refs';
+        my $result = [$sub->(qw/foo bar/)->()];
+        is_deeply $result, [$sub, [qw/foo bar/]],
+            '... and it should return its name and an array ref of its arguments';
+    }
+    can_ok __PACKAGE__, 'EQ';
+    my $eq = EQ 2;
+    is_deeply [$eq->()], [[COMPARE => 'EQ'], [VALUE => 2]],
+        '... and a basic EQ should return the correct value';
+
+    is_deeply [(EQ [2,3])->()], [
+        [KEYWORD => 'BETWEEN'], 
+        [OP      =>       '['],
+        [VALUE   =>         2],
+        [OP      =>       ','],
+        [VALUE   =>         3],
+        [OP      =>       ']'],
+    ], '... and EQ should return BETWEEN if the value is an arrayref';
+ 
+    is_deeply [(NOT EQ 2)->()], [
+        [KEYWORD => 'NOT'],
+        [COMPARE =>  'EQ'],
+        [VALUE   =>     2],
+    ], '... EQ should negate itself if NOT is passed as an argument';
+
+    is_deeply [(NOT EQ [2,3])->()], [
+        [KEYWORD =>     'NOT'],
+        [KEYWORD => 'BETWEEN'],
+        [OP      =>       '['],
+        [VALUE   =>         2],
+        [OP      =>       ','],
+        [VALUE   =>         3],
+        [OP      =>       ']'],
+    ], '... even if we are doing a BETWEEN search';
+
+    can_ok __PACKAGE__, 'ANY';
+    is_deeply [ANY(2,3,4)->()], [
+        [KEYWORD =>     'ANY'],
+        [OP      =>       '('],
+        [VALUE   =>         2],
+        [OP      =>       ','],
+        [VALUE   =>         3],
+        [OP      =>       ','],
+        [VALUE   =>         4],
+        [OP      =>       ')'],
+    ], '... and a basic ANY should return the correct value';
+
+    is_deeply [(NOT ANY(2,3,4))->() ],[
+        [KEYWORD =>     'NOT'],
+        [KEYWORD =>     'ANY'],
+        [OP      =>       '('],
+        [VALUE   =>         2],
+        [OP      =>       ','],
+        [VALUE   =>         3],
+        [OP      =>       ','],
+        [VALUE   =>         4],
+        [OP      =>       ')'],
+
+    ], '... even if it is negated';
+    can_ok __PACKAGE__, 'BETWEEN';
+    throws_ok {(BETWEEN [2,3,4])->()}
+        'Kinetic::Util::Exception::Fatal::Search',
+        '... and BETWEEN searches with other than two values should throw an exception';
+    my $between = BETWEEN [2,4];
+    is_deeply [$between->()], [
+        [KEYWORD => 'BETWEEN'],
+        [OP      =>       '['],
+        [VALUE   =>         2],
+        [OP      =>       ','],
+        [VALUE   =>         4],
+        [OP      =>       ']'],
+    ], '... and BETWEEN should return the correct value';
+    is_deeply [(NOT $between)->()], [
+        [KEYWORD =>     'NOT'],
+        [KEYWORD => 'BETWEEN'],
+        [OP      =>       '['],
+        [VALUE   =>         2],
+        [OP      =>       ','],
+        [VALUE   =>         4],
+        [OP      =>       ']'],
+    ], '... even if it is negated';
+
+    can_ok __PACKAGE__, 'NOT';
+    my $not = NOT 'foo';
+    is_deeply [$not->()], [
+        [KEYWORD => 'NOT'],
+        [VALUE   => 'foo'],
+    ], '... NOT searches should negate their meaning and default to EQ';
+    $not = NOT ['bar','baz'];
+    is_deeply [$not->()], [
+        [KEYWORD =>     'NOT'],
+        [OP      =>       '['],
+        [VALUE   =>     'bar'],
+        [OP      =>       ','],
+        [VALUE   =>     'baz'],
+        [OP      =>       ']'],
+    ],'... but should switch to BETWEEN if negating an array ref';
+    $not = NOT BETWEEN ['bar','baz'];
+    is_deeply [$not->()], [
+        [KEYWORD =>     'NOT'],
+        [KEYWORD => 'BETWEEN'],
+        [OP      =>       '['],
+        [VALUE   =>     'bar'],
+        [OP      =>       ','],
+        [VALUE   =>     'baz'],
+        [OP      =>       ']'],
+    ],'... and allow the BETWEEN to be explicitly stated';
+    $not = NOT LIKE 'foo%';
+    is_deeply [$not->()], [
+        [KEYWORD =>  'NOT'],
+        [COMPARE => 'LIKE'],
+        [VALUE   => 'foo%'],
+    ], '... and otherwise should take an extra operator';
+}
 
 sub search_incomplete_date_boundaries : Test(6) {
     my $test = shift;
@@ -520,6 +638,58 @@ sub search_compound : Test(9) {
     $iterator = $store->search($class, 
         one => $one, OR('one.name' => 'bar_name'),
         {order_by => 'one.name'},
+    );
+    @results = $test->_all_items($iterator);
+    is @results, 2, '... and we should even be able to order by those fields';
+    is_deeply \@results, [$bar,$foo], '... and get the correct results';
+}
+
+sub search_compound_string : Test(9) {
+    my $test = shift;
+    return unless $test->_should_run;
+    $test->_clear_database;
+    my $store = Store->new;
+    can_ok $store, 'search';
+    my $foo = Two->new;
+    $foo->name('foo');
+    $foo->age(13);
+    $foo->one->name('foo_name');
+    $store->save($foo);
+    my $bar = Two->new;
+    $bar->name('bar');
+    $bar->age(29);
+    $bar->one->name('bar_name');
+    $store->save($bar);
+    my $baz = Two->new;
+    $baz->age(33);
+    $baz->name('snorfleglitz');
+    $baz->one->name('snorfleglitz_rulez_d00d');
+    $store->save($baz);
+    my $class   = $foo->my_class;
+    my $iterator = $store->search($class, 
+        STRING => "one.name => 'foo_name'"
+    );
+    my @results = $test->_all_items($iterator);
+    is @results, 1, 'We should be able to search on the key fields of contained objects';
+    is_deeply \@results, [$foo], '... and get the correct results';
+
+    $iterator = $store->search($class, 
+        STRING   => "one.name => LIKE '\%name'",
+        order_by => 'one.name'
+    );
+    @results = $test->_all_items($iterator);
+    is @results, 2, '... and we should even be able to order by those fields';
+    is_deeply \@results, [$bar,$foo], '... and get the correct results';
+
+    my $one = $foo->one;
+    $iterator = $store->search($class, STRING => "one__id => '@{[$one->{id}]}'");
+    @results = $test->_all_items($iterator);
+    is @results, 1, '... and we should be able to search on just an object';
+    is_deeply $results[0], $foo, 
+        '... and it should return the correct object';
+    $iterator = $store->search($class, 
+        STRING   => "one__id => '@{[$one->{id}]}', OR(one.name => 'bar_name')",
+        order_by => 'one.name',
     );
     @results = $test->_all_items($iterator);
     is @results, 2, '... and we should even be able to order by those fields';

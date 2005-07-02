@@ -39,7 +39,7 @@ is $dt->minute, 12, "Check minute";
 is $dt->second, 47, "Check second";
 
 can_ok $dt, 'raw';
-is $dt->raw, '1964-10-16T16:12:47.0+0000', 'Check raw is iso8601 compliant';
+is $dt->raw, '1964-10-16T16:12:47', 'Check raw is iso8601 compliant';
 
 can_ok $CLASS, 'parse_iso8601_date';
 ok my $date = $CLASS->parse_iso8601_date('1964-10-16T17:12:47.0'),

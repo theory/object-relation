@@ -24,7 +24,8 @@ use DBI;
 use Scalar::Util qw(blessed);
 use Kinetic::Util::Exceptions qw(:all);
 use Kinetic::Store::Parser::DB qw/parse/;
-use Kinetic::Store::Lexer::Code qw/code_lexer_stream/;
+use Kinetic::Store::Lexer::Code   qw/code_lexer_stream/;
+use Kinetic::Store::Lexer::String qw/string_lexer_stream/;
 
 use aliased 'Kinetic::Meta' => 'Meta', qw(:with_dbstore_api);
 use aliased 'Kinetic::Util::Iterator';
@@ -35,6 +36,8 @@ use constant GROUP_OP         => qr/^(?:AND|OR)$/;
 use constant OBJECT_DELIMITER => '__';
 use constant PREPARE          => 'prepare';
 use constant CACHED           => 'prepare_cached';
+
+my %SEARCH_TYPES = map { $_ => 1 } qw/CODE STRING XML/;
 
 =head1 Name
 
@@ -203,6 +206,7 @@ context it returns an array reference.
 sub search_guids {
     my ($proto, $search_class, @search_params) = @_;
     my $self = $proto->_from_proto;
+    $self->_set_search_type(\@search_params);
     $self->_prepare_method(PREPARE);
     $self->_create_iterator(0);
     local $self->{search_class} = $search_class;
@@ -232,6 +236,7 @@ sub count {
     my ($proto, $search_class, @search_params) = @_;
     pop @search_params if 'HASH' eq ref $search_params[-1];
     my $self = $proto->_from_proto;
+    $self->_set_search_type(\@search_params);
     $self->_prepare_method(PREPARE);
     local $self->{search_class} = $search_class;
     $self->_set_search_data;
@@ -386,8 +391,13 @@ sets whether or n
 
 sub _search {
     my ($self, @search_params) = @_;
-    return $self->_full_text_search(@search_params)
-        if 1 == @search_params && ! ref $search_params[0];
+    $self->_set_search_type(\@search_params);
+    if ($self->{search_type} eq 'CODE') {
+        # XXX we're going to temporarily disable full text searches unless it's a 
+        # code search.  We need to figure out the exact semantics of the others
+        return $self->_full_text_search(@search_params)
+            if 1 == @search_params && ! ref $search_params[0];
+    }
     $self->_set_search_data;
     my $columns = join ', ' => $self->_search_data_columns;
     my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
@@ -395,6 +405,43 @@ sub _search {
         \@search_params
     );
     return $self->_get_sql_results($sql, $bind_params);
+}
+
+##############################################################################
+
+=head3 _set_search_type
+
+  $self->_set_search_type(\@search_params);
+
+This method is called internally by both C<search> C<count> and C<lookup>.  It
+determines whether or not the search is a CODE or STRING search and sets the 
+search type property accordingly.  It will I<remove> the search type from the
+front of the search params, if it's there.
+
+Also, if we have a string search, everything passed I<after> the search is
+assumed to be a list of name/value pairs for the constraints.  These are 
+also removed from the search params and replaced with a hashref containing
+them.  This allows us to do this:
+
+  $store->search($class,
+    STRING   => 'name => "foo"',
+    order_by => 'name'
+  );
+
+=cut
+
+sub _set_search_type {
+    my ($self, $search_params) = @_;
+    $self->{search_type} = ! @$search_params
+        ? 'CODE'
+        : exists $SEARCH_TYPES{$search_params->[0]}
+            ? shift @$search_params
+            : 'CODE';
+    if ($self->{search_type} eq 'STRING' && @$search_params > 1) {
+        my %constraints = splice @$search_params, 1;
+        $search_params->[1] = \%constraints;
+    }
+    $self;
 }
 
 ##############################################################################
@@ -806,7 +853,10 @@ be generated.
 
 sub _make_where_clause {
     my ($self, $search_request) = @_;
-    my $stream = code_lexer_stream($search_request);
+    return ('', []) unless @$search_request && $search_request->[0];
+    my $stream = $self->{search_type} eq 'CODE' # XXX we may need to clean this up later
+        ? code_lexer_stream($search_request)
+        : string_lexer_stream($search_request->[0]);
     my $ir = parse($stream, $self);
     my ($where_clause, $bind_params) = $self->_convert_ir_to_where_clause($ir);
     $where_clause = "" if '()' eq $where_clause;
