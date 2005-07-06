@@ -20,7 +20,9 @@ package Kinetic::DateTime::Incomplete;
 
 use strict;
 use base 'DateTime::Incomplete';
+use Kinetic::DateTime;
 use DateTime::TimeZone;
+use Exporter::Tidy other => ['is_incomplete_iso8601'];
 
 =head1 Name
 
@@ -70,6 +72,28 @@ sub new { shift->SUPER::new(time_zone => $utc, @_) }
 
 ##############################################################################
 
+=head3 new_from_iso8601
+
+  my $dt = Kinetic::DateTime->new_from_iso8601('1964-10-16T16:12:47.0');
+
+Same as C<new> but takes an incomplete iso8601 date string as the argument.
+
+=cut
+
+sub new_from_iso8601 {
+    my ($class, $iso8601_date_string) = @_;
+    return unless $iso8601_date_string;
+    my $args = Kinetic::DateTime->parse_iso8601_date($iso8601_date_string);
+    my %args;
+    while (my ($key, $value) = each %$args) {
+        next if $value =~ /x/;
+        $args{$key} = $value;
+    }
+    return $class->new(%args);
+};
+
+##############################################################################
+
 =head3 contiguous
 
   if ($date->contiguous) { ... }
@@ -105,6 +129,52 @@ sub contiguous {
     return unless $count; # no components will be considered non-contiguous
     return (1 + ($indexes[-1] - $indexes[0])) == $count;
 }
+
+=head3 is_incomplete_iso8601
+
+  use Kinetic::DateTime::Incomplete qw/is_incomplete_iso8601/;
+  if (is_incomplete_iso8601('1964-10-16T16:12:47.0')) {
+    ...
+  }
+
+Returns a true or false value depending upon whether or not the supplied
+string matches an ISO 8601 datetime string.  This is a function, not a 
+method.
+
+If a particular date segment is not present, it may be replaced with 'Xs'.
+However, the complete date segment must be replaced.  For example, you can
+replace the year 1968 with 'xxxx', but not '19xx'.  If nanoseconds are not
+present, omit them.
+
+Currently ignores timezone.
+
+Valid incomplete datetime strings:
+
+ 1964-10-16T17:12:47.0 
+ xxxx-10-16T17:12:47.0 
+ 1964-xx-16T17:12:47.0 
+ 1964-xx-xxT17:xx:xx.0 
+ 1964-10-16T17:12:xx
+
+=cut
+
+sub is_incomplete_iso8601 {
+    my $date = shift || return;
+    return $date =~ /^
+        (?:\d\d\d\d|xxxx)  # year
+        -
+        (?:\d\d|xx)        # month
+        -
+        (?:\d\d|xx)        # day
+        T
+        (?:\d\d|xx)        # hour
+        :
+        (?:\d\d|xx)        # minute
+        :
+        (?:\d\d|xx)        # seconds
+        (?:\.\d+)?         # optional nanoseconds
+    $/x;
+}    
 
 ##############################################################################
 

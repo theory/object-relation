@@ -3,13 +3,13 @@
 # $Id$
 
 use strict;
-#use Test::More tests => 21;
-use Test::More 'no_plan';
+use Test::More tests => 28;
+#use Test::More 'no_plan';
 
 my $CLASS;
 BEGIN { 
     $CLASS = 'Kinetic::DateTime';
-    use_ok $CLASS or die;
+    use_ok $CLASS, 'is_iso8601' or die;
 };
 
 # Try now().
@@ -60,3 +60,12 @@ ok my $dt2 = $CLASS->new_from_iso8601($dt->raw),
     'Create DateTime from iso8601 string';
 isa_ok $dt2, $CLASS;
 is_deeply $dt2, $dt, 'And it should be identical to an object created with new';
+
+ok defined *is_iso8601{CODE}, 
+    'is_iso8601() should be exported to our namespace';
+ok is_iso8601('1964-10-16T17:12:47.0'),
+    '... and it should identify ISO 8601 dates';
+ok is_iso8601('1964-10-16T17:12:47'),
+    '... even if we leave off the nanoseconds';
+ok ! is_iso8601('1964-10-16 17:12:47'),
+    '... but it will not match a non-iso date';

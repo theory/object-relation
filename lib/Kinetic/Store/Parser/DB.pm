@@ -28,6 +28,7 @@ use Kinetic::Store::Parser    ':all';
 use Kinetic::Store::Search;
 use Kinetic::Util::Exceptions 'throw_search';
 use Kinetic::Util::Stream     ':all';
+use Kinetic::DateTime::Incomplete 'is_incomplete_iso8601';
 
 =head1 Name
 
@@ -101,7 +102,7 @@ $any = T(
   sub {
     # any is in an arrayref because $normal_value has star(_('COMPARE'))
     # and that returns the keyword in an arrayref
-    [ ['ANY'], [ $_[2], @{$_[3]} ] ]
+    [ ['ANY'], [ _normalize_value($_[2]), map { _normalize_value($_) } @{$_[3]} ] ]
   }
 );
 
@@ -120,17 +121,17 @@ my $normal_value = T(
 
 my $between_value = T(
   concatenate(
-    star(_(KEYWORD => 'BETWEEN')),
-       $lbracket,
-         $Value,
+    star(_(KEYWORD => 'BETWEEN')), # 0
+       $lbracket,                  # 1
+         $Value,                   # 2
          alternate(
-           $fat_comma,
+           $fat_comma,             # 3
            $comma,
          ),
-         $Value,
+         $Value,                   # 4
        $rbracket,
   ),
-  sub { ['BETWEEN', [$_[2], $_[4]]] }
+  sub { ['BETWEEN', [_normalize_value($_[2]), _normalize_value($_[4])]] }
 );
 
 my $search = T(
@@ -352,7 +353,7 @@ sub _make_search {
     $column = $id_column;
     $value =
       'ARRAY' eq ref $value ? [map $_->id => @$value]
-      : ref $value      ? $value->id
+      : ref $value          ? $value->id
       : throw_search [
         'Object key "[_1]" must point to an object, not a scalar ([_2])',
         $id_column, $value
@@ -363,8 +364,16 @@ sub _make_search {
     column   => $column,
     negated  => ($negated  || ''),
     operator => ($operator || 'EQ'),
-    data     => $value,
+    data     => _normalize_value($value),
   );
+}
+
+sub _normalize_value {
+  my $value = shift;
+  if (is_incomplete_iso8601($value)) {
+    $value = Kinetic::DateTime::Incomplete->new_from_iso8601($value);
+  }
+  return $value;
 }
 
 sub parse { 

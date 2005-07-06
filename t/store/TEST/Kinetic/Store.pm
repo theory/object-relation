@@ -134,7 +134,7 @@ sub search : Test(19) {
         '... and it should be the correct results';
 }
 
-sub search_string : Test(19) {
+sub string_search : Test(19) {
     my $test = shift;
     return unless $test->_should_run;
     my $store = Store->new;
@@ -543,6 +543,163 @@ sub search_incomplete_dates : Test(25) {
     is_deeply \@results, [$ovid, $lil, $usa], '... and get the correct results';
 }
 
+sub string_search_incomplete_dates : Test(25) {
+    my $test = shift;
+    return unless $test->_should_run;
+    $test->_clear_database;
+    my $theory = Two->new;
+    $theory->name('David');
+    $theory->one->name('david_one_name');
+    $theory->date(DateTime->new( 
+        year  => 1968,
+        month => 12,
+        day   => 19 
+    ));
+    my $ovid = Two->new;
+    $ovid->name('Ovid');
+    $ovid->one->name('ovid_one_name');
+    $ovid->date(DateTime->new( 
+        year  => 1967,
+        month => 06,
+        day   => 20 
+    ));
+    my $usa = Two->new;
+    $usa->one->name('usa_one_name');
+    $usa->name('USA');
+    $usa->date(DateTime->new(
+        year  => 1976, # yeah, I know
+        month => 7,
+        day   => 4,
+    ));
+    my $lil = Two->new;
+    $lil->one->name('Lil');
+    $lil->name('Lil_one_name');
+    $lil->date(DateTime->new(
+        year  => 1976,
+        month => 1,
+        day   => 9,
+    )); 
+    my $store = Store->new;
+    $store->save($_) foreach $theory, $ovid, $usa, $lil;
+
+    my $class    = $ovid->my_class;
+    my $june     = Incomplete->new(month => 6); 
+    my $iterator = $store->search($class, 
+        STRING => 'date => "xxxx-06-xxTxx:xx:xx"'
+    );
+    my @results  = $test->_all_items($iterator);
+    is @results, 1, 'We should be able to search on incomplete dates';
+    is_deeply \@results, [$ovid], '... and get the correct results';
+
+    my $bicentennial = Incomplete->new(year => 1976);
+    $iterator        = $store->search($class, 
+        STRING   => 'date => "1976-xx-xxTxx:xx:xx"',
+        order_by => 'date'
+    );
+    @results         = $test->_all_items($iterator);
+    is @results, 2, '... even if we have multiple results';
+    is_deeply \@results, [$lil, $usa], '... but they had better be the correct results';
+    
+    $bicentennial->set(day => 4);
+    $iterator        = $store->search($class, 
+        STRING   => 'date => "1976-xx-04Txx:xx:xx"',
+        order_by => 'date'
+    );
+    @results         = $test->_all_items($iterator);
+    is @results, 1, '... even if we have just a year and a day';
+    is_deeply \@results, [$usa], '... but they had better be the correct results';
+
+    my $bad_date = Incomplete->new(year => 1776);
+    $iterator    = $store->search($class, STRING => 'date => "1776-xx-xxTxx:xx:xx"');
+    @results     = $test->_all_items($iterator);
+    ok ! @results, '... but searching in a non-existent date should fail, even if it is an incomplete date';
+
+    $june = Incomplete->new(
+        month => '06',
+        day   => '16',
+    );
+    $iterator = $store->search($class, 
+        STRING   => 'date => GE "xxxx-06-16Txx:xx:xx"', 
+        order_by => 'date'
+    );
+    @results  = $test->_all_items($iterator);
+    is @results, 3, 'Incomplete dates should recognize GE';
+    is_deeply \@results, [$ovid, $theory, $usa], '... and get the correct results';
+
+    $june = Incomplete->new(month => 6);
+    $iterator = $store->search($class, 
+        STRING   => 'date => GT "xxxx-06-xxTxx:xx:xx"', 
+        order_by => 'date'
+    );
+    @results  = $test->_all_items($iterator);
+    is @results, 2, 'Incomplete dates should recognize GT';
+    is_deeply \@results, [$theory, $usa], '... and get the correct results';
+
+    $june->set(day => 20);
+    $iterator = $store->search($class,
+        STRING   => 'date => LE "xxxx-06-20Txx:xx:xx"', 
+        order_by => 'date'
+    );
+    @results  = $test->_all_items($iterator);
+    is @results, 2, 'Incomplete dates should recognize LE';
+    is_deeply \@results, [$ovid, $lil], '... and get the correct results';
+
+    $iterator = $store->search($class,
+        STRING   => 'date => LT "xxxx-06-20Txx:xx:xx"', 
+        order_by => 'date'
+    );
+    @results  = $test->_all_items($iterator);
+    is @results, 1, 'Incomplete dates should recognize LT';
+    is_deeply \@results, [$lil], '... and get the correct results';
+    my $y1968 = Incomplete->new(year => 1968);
+    my $y1966 = Incomplete->new(year => 1966);
+    $iterator = $store->search($class, STRING => <<'    END_SEARCH', order_by => 'date');
+        date => LT "1968-xx-xxTxx:xx:xx",
+        date => GT "1966-xx-xxTxx:xx:xx",
+        name => LIKE '%vid', 
+    END_SEARCH
+    @results  = $test->_all_items($iterator);
+    is @results, 1, 'Incomplete dates should recognize LT';
+    is_deeply \@results, [$ovid], '... and get the correct results';
+
+    $iterator = $store->search($class, STRING => <<'    END_SEARCH', order_by => 'date');
+        date => ["1966-xx-xxTxx:xx:xx" => "1968-xx-xxTxx:xx:xx"],
+        name => LIKE 'Ovi%', 
+    END_SEARCH
+    @results  = $test->_all_items($iterator);
+    is @results, 1, 'Incomplete dates should recognize BETWEEN';
+    is_deeply \@results, [$ovid], '... and get the correct results';
+
+    $iterator = $store->search($class, STRING => <<'    END_SEARCH', order_by => 'date');
+        date => ["1966-xx-xxTxx:xx:xx" => "1968-xx-xxTxx:xx:xx"],
+        name => LIKE '%vid', 
+    END_SEARCH
+    @results  = $test->_all_items($iterator);
+    is @results, 2, 'Incomplete dates should recognize BETWEEN with complex queries';
+    is_deeply \@results, [$ovid, $theory], '... and get the correct results';
+
+    my $date1    = Incomplete->new( month => 6, day => 20 );
+    my $date2    = Incomplete->new( year => 1976, month => 1 );
+    $iterator = $store->search($class, STRING => <<'    END_SEARCH', order_by => 'date');
+        date => ANY("xxxx-06-20Txx:xx:xx", "1976-01-xxTxx:xx:xx"),
+    END_SEARCH
+    @results  = $test->_all_items($iterator);
+    is @results, 2, 'We should be able to search on ANY incomplete dates with ANY';
+    is_deeply \@results, [$ovid, $lil], '... and get the correct results';
+
+    my $date3 = Incomplete->new(year => 1976, day => 4);
+    $iterator = $store->search($class, STRING => <<'    END_SEARCH', order_by => 'date');
+        date => ANY(
+            "xxxx-06-20Txx:xx:xx", 
+            "1976-01-xxTxx:xx:xx",
+            "1976-xx-04Txx:xx:xx"
+        ),
+    END_SEARCH
+    @results  = $test->_all_items($iterator);
+    is @results, 3, '... and ANY incomplete searches should allow non-contiguous dates';
+    is_deeply \@results, [$ovid, $lil, $usa], '... and get the correct results';
+}
+
 sub search_dates : Test(8) {
     my $test = shift;
     return unless $test->_should_run;
@@ -591,6 +748,61 @@ sub search_dates : Test(8) {
     ok $iterator = $store->search($class, date => $theory->date);
     @results = $test->_all_items($iterator);
     is @results, 1, 'We should be able to search on date fields of objects';
+    is_deeply \@results, [$theory], '... and get the correct results';
+}
+
+sub string_search_dates : Test(8) {
+    my $test = shift;
+    return unless $test->_should_run;
+    $test->_clear_database;
+    my $theory = Two->new;
+    $theory->name('David');
+    $theory->one->name('david_one_name');
+    $theory->date(DateTime->new( 
+        year  => 1968,
+        month => 12,
+        day   => 19 
+    ));
+    my $ovid = Two->new;
+    $ovid->name('Ovid');
+    $ovid->one->name('ovid_one_name');
+    $ovid->date(DateTime->new( 
+        year  => 1967,
+        month => 06,
+        day   => 20 
+    ));
+    my $usa = Two->new;
+    $usa->one->name('usa_one_name');
+    $usa->name('USA');
+    $usa->date(DateTime->new(
+        year  => 1976, # yeah, I know
+        month => 7,
+        day   => 4,
+    ));
+    my $store = Store->new;
+    $store->save($_) foreach $theory, $ovid, $usa;
+
+    my $class   = $ovid->my_class;
+    my $iterator = $store->search($class, 
+        STRING => "date => GT '@{[$theory->date->raw]}'"
+    );
+    my @results = $test->_all_items($iterator);
+    is @results, 1, 'We should be able to string search on date fields of objects';
+    is_deeply \@results, [$usa], '... and get the correct results';
+
+    ok $iterator = $store->search($class, 
+        STRING   => "date => GE '@{[$theory->date->raw]}'",
+        order_by => 'date'
+    );
+    @results = $test->_all_items($iterator);
+    is @results, 2, 'We should be able to string search on date fields of objects';
+    is_deeply \@results, [$theory, $usa], '... and get the correct results';
+
+    ok $iterator = $store->search($class, 
+        STRING => "date => '@{[$theory->date]}'"
+    );
+    @results = $test->_all_items($iterator);
+    is @results, 1, 'We should be able to string earch on date fields of objects';
     is_deeply \@results, [$theory], '... and get the correct results';
 }
 
@@ -644,7 +856,7 @@ sub search_compound : Test(9) {
     is_deeply \@results, [$bar,$foo], '... and get the correct results';
 }
 
-sub search_compound_string : Test(9) {
+sub string_search_compound : Test(9) {
     my $test = shift;
     return unless $test->_should_run;
     $test->_clear_database;

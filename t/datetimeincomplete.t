@@ -3,13 +3,13 @@
 # $Id: datetime.t 894 2004-12-04 02:48:49Z curtis $
 
 use strict;
-use Test::More tests => 32;
-#use Test::More 'no_plan';
+#use Test::More tests => 32;
+use Test::More 'no_plan';
 
 my $CLASS;
 BEGIN {
     $CLASS = 'Kinetic::DateTime::Incomplete'; 
-    use_ok $CLASS or die 
+    use_ok $CLASS, 'is_incomplete_iso8601' or die 
 };
 
 can_ok $CLASS, 'now';
@@ -77,3 +77,28 @@ $date = $CLASS->new(year => 2009, month => 6, hour => 3);
 can_ok $date, 'defined_store_fields';
 is_deeply [$date->defined_store_fields], [qw/ year month hour /],
     '... and it should return the correct values';
+
+ok defined *is_incomplete_iso8601{CODE}, 
+    'is_incomplete_iso8601() should be exported to our namespace';
+ok is_incomplete_iso8601('1964-10-16T17:12:47.0'),
+    '... and it should identify ISO 8601 dates';
+ok is_incomplete_iso8601('1964-10-16T17:12:47'),
+    '... even if we leave off the nanoseconds';
+ok ! is_incomplete_iso8601('1964-10-16 17:12:47'),
+    '... but it will not match a non-iso date';
+ok is_incomplete_iso8601('xxxx-10-16T17:12:47.0'),
+    '... and it should identify incomplete ISO 8601 dates';
+ok is_incomplete_iso8601('1964-xx-16Txx:12:47'),
+    '... even if we leave off the nanoseconds';
+ok ! is_incomplete_iso8601('19xx-10-16 17:12:47'),
+    '... but it will not match partially replaced date segment';
+
+can_ok $CLASS, 'new_from_iso8601';
+ok $date = $CLASS->new_from_iso8601('xxxx-07-14Txx:xx:xx'),
+    'Declaring Bastille Day should work correctly';
+foreach my $segment (qw/year hour minute second/) {
+    ok ! defined $date->$segment, "... $segment should not be defined if it wasn't declared";
+}
+is 0+$date->month, 7, '... but the month should be correct';
+is $date->day, 14, '... as should the day';
+

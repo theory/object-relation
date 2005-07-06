@@ -23,6 +23,8 @@ use base 'DateTime';
 use DateTime::TimeZone;
 use DateTime::Format::Strptime;
 
+use Exporter::Tidy other => ['is_iso8601'];
+
 =head1 Name
 
 Kinetic::DateTime - Kinetic DateTime objects
@@ -81,7 +83,6 @@ Same as C<new> but takes an iso8601 date string as the argument.
 
 =cut
 
-
 my $utc       = DateTime::TimeZone::UTC->new;
 #my $formatter = DateTime::Format::Strptime->new(pattern => '%Y-%m-%dT%H:%M:%S.%1N%z');
 my $formatter = DateTime::Format::Strptime->new(pattern => '%Y-%m-%dT%H:%M:%S');
@@ -96,7 +97,6 @@ sub new {
 
 sub new_from_iso8601 {
     my ($class, $iso8601_date_string) = @_;
-    # XXX fixes a bug in Kinetic::XML::dump_xml.  Need to revisit.
     return unless $iso8601_date_string;
     my $args = $class->parse_iso8601_date($iso8601_date_string);
     return $class->new(%$args);
@@ -135,6 +135,26 @@ sub parse_iso8601_date {
     }
     return \%args;
 }
+
+=head3 is_iso8601
+
+  use Kinetic::DateTime qw/is_iso8601/;
+  if (is_iso8601('1964-10-16T16:12:47.0')) {
+    ...
+  }
+
+Returns a true or false value depending upon whether or not the supplied
+string matches an ISO 8601 datetime string.  This is a function, not a 
+method.
+
+Nanoseconds are optional.  Currently ignores timezone.
+
+=cut
+
+sub is_iso8601 {
+    my $date = shift;
+    return $date =~ /^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?$/;
+}    
 
 ##############################################################################
 
