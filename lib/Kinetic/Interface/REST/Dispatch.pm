@@ -1,4 +1,4 @@
-package Kinetic::REST::Dispatch;
+package Kinetic::Interface::REST::Dispatch;
 
 # $Id: REST.pm 1544 2005-04-16 01:13:51Z theory $
 
@@ -35,17 +35,18 @@ Kinetic::REST - REST services provider
 
 =head1 Synopsis
 
- use Kinetic::REST::Dispatch;
+ use Kinetic::Interface::REST::Dispatch;
 
- if (Kinetic::REST::Dispatch->can($method)) {
-   Kinetic::REST::Dispatch->$method($rest);
+ if (my $sub = Kinetic::Interface::REST::Dispatch->can($method)) {
+   $sub->($rest);
  }
 
 =head1 Description
 
-This is the dispatch class to which L<Kinetic::REST|Kinetic::REST> will
-dispatch messages.  This is kept in a separate class to ensure that REST
-servers do not call these methods directly.
+This is the dispatch class to which
+L<Kinetic::Interface::REST|Kinetic::Interface::REST> will dispatch messages.
+This is kept in a separate class to ensure that REST servers do not call these
+methods directly.
 
 =cut
 
@@ -53,7 +54,7 @@ servers do not call these methods directly.
 
 =head3 echo
 
-  Kinetic::REST::Dispatch->echo($rest);
+  Kinetic::Interface::REST::Dispatch->echo($rest);
 
 This is a debugging resource.  It always sets the REST content type to
 C<text/plain>.  Path info (after the echo request) is set in the response
@@ -89,15 +90,16 @@ sub echo {
 
 =head3 can
 
-  if (my $sub = Kinetic::REST::Dispatch->can($resource)) {
+  if (my $sub = Kinetic::Interface::REST::Dispatch->can($resource)) {
     $sub->($rest);
   }
 
 Yup, we've overridden C<can>.  Resources are loaded on demand.  This method
 will return a subroutine representing the requested resource.  The subroutine
-should be called directly with the L<Kinetic::REST|Kinetic::REST> object as
-an argument.  It is B<not> a method because REST is stateless and calling
-methods does not make any sense.
+should be called directly with the
+L<Kinetic::Interface::REST|Kinetic::Interface::REST> object as an argument.  It
+is B<not> a method because REST is stateless and calling methods does not make
+any sense.
 
 Returns false if the requested resource is not found.
 

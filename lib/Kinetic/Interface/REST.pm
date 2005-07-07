@@ -1,4 +1,4 @@
-package Kinetic::REST;
+package Kinetic::Interface::REST;
 
 # $Id: REST.pm 1544 2005-04-16 01:13:51Z theory $
 
@@ -22,7 +22,7 @@ use 5.008003;
 use strict;
 use version;
 our $VERSION = version->new('0.0.1');
-use aliased 'Kinetic::REST::Dispatch';
+use aliased 'Kinetic::Interface::REST::Dispatch';
 
 use constant TEXT => 'text/plain';
 use constant XML  => 'text/xml';
@@ -30,15 +30,15 @@ use constant HTML => 'text/html';
 
 =head1 Name
 
-Kinetic::REST - REST services provider
+Kinetic::Interface::REST - REST services provider
 
 =head1 Synopsis
 
- use Kinetic::REST;
+ use Kinetic::Interface::REST;
 
  sub handle_request 
     # pre-processing code
-    my $response = Kinetic::REST->handle_request($cgi_object);
+    my $response = Kinetic::Interface::REST->handle_request($cgi_object);
     # post-processing code
   }
 
@@ -56,11 +56,11 @@ Kinetic::REST - REST services provider
 
 =head3 new
 
-  my $rest = Kinetic::REST->new;
+  my $rest = Kinetic::Interface::REST->new;
 
-The C<new()> constructor merely returns a C<Kinetic::REST> object.  No
-parameters are required.  Not that this is an object that can interpret
-REST (REpresentational State Transfer).  It is B<not> a server.
+The C<new()> constructor merely returns a C<Kinetic::Interface::REST> object.
+No parameters are required.  Not that this is an object that can interpret REST
+(REpresentational State Transfer).  It is B<not> a server.
 
 =cut
 

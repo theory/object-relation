@@ -1,4 +1,4 @@
-package TEST::Kinetic::REST;
+package TEST::Kinetic::Interface::REST;
 
 # $Id: REST.pm 1094 2005-01-11 19:09:08Z curtis $
 
@@ -42,12 +42,12 @@ __PACKAGE__->runtests unless caller;
 {
     package Test::Server;
     use base qw(HTTP::Server::Simple::CGI);
-    use Kinetic::REST;
+    use Kinetic::Interface::REST;
 
     my $REST_SERVER;
     sub new {
         my ($class, @args) = @_;
-        $REST_SERVER = Kinetic::REST->new;
+        $REST_SERVER = Kinetic::Interface::REST->new;
         $class->SUPER::new(@args);
     }
 
