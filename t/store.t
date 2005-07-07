@@ -14,20 +14,21 @@ BEGIN {
     return if $ENV{NOSETUP} || !$ENV{KINETIC_SUPPORTED};
     for my $feature (split /\s+/, $ENV{KINETIC_SUPPORTED}) {
         my $script = catfile 't', 'store', $feature;
-        next unless -e "$script\_setup.pl";
-        system $^X, "$script\_setup.pl" and die;
+        my $setup = "${script}_setup.pl";
+        next unless -e $setup;
+        system $^X, $setup and die "# $setup failed: ($!)";
         push @scripts, $script;
     }
 }
 
-END {
+sub finish {
     # Run complementary teardown scripts.
     return if $ENV{NOSETUP};
     $ENV{KINETIC_CONF} = $conf;
     for my $script (@scripts) {
-        next unless -e "$script\_teardown.pl";
-        system $^X, "$script\_teardown.pl" 
-            and die "# $script\_teardown.pl failed:  ($!)";
+        my $teardown = "${script}_teardown.pl";
+        next unless -e $teardown;
+        system $^X, $teardown and die "$teardown failed:  ($!)";
     }
 }
 
@@ -37,5 +38,5 @@ use lib 't/sample/lib', 't/store', 't/lib';
 # Run the tests.
 use TEST::Class::Kinetic catdir 't', 'store', 'TEST';
 TEST::Class::Kinetic->runall;
-
+finish;
 __END__
