@@ -147,8 +147,6 @@ sub _fetch_object {
     my $class = Kinetic::Meta->for_key($key)
         or throw_unknown_class ['I could not find the class for key "[_1]"', $key];
 
-    # XXX Bleh! There's no validation here. We need validation by using the
-    # individual attribute accessors.
     my $object;
     if ($self->{params}{update}) {
         my $store = Kinetic::Store->new;

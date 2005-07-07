@@ -404,21 +404,9 @@ use Exporter::Tidy all => [
     throw_invalid throw_read_only throw_lang throw_stat throw_io throw_error
     throw_password throw_required throw_xml throw_unknown_class
     throw_invalid_class throw_not_found throw_unsupported throw_unimplemented
-    throw_search throw_attribute
+    throw_search throw_attribute sig_handlers
   )
 ];
-
-# Always use exception objects for excptions and warnings.
-# XXX I can't recall how we said we would deal with this
-$SIG{__DIE__} = sub {
-    my $err = shift;
-    $err->rethrow if UNIVERSAL::can($err, 'rethrow');
-    Kinetic::Util::Exception::ExternalLib->throw($err);
-};
-
-$SIG{__WARN__} = sub {
-    print STDERR Kinetic::Util::Exception::ExternalLib->new(shift)->as_string;
-};
 
 ##############################################################################
 
@@ -478,6 +466,52 @@ sub isa_exception {
     return $err && UNIVERSAL::isa($err, 'Exception::Class::Base');
 }
 
+##############################################################################
+
+=head3 sig_handlers
+
+  sig_handlers(0);
+
+This function accepts a boolean value.  If true, it turns on stack traces
+via the WARN and DIE signal handlers.  If false, it disables them.  This
+
+If called without arguments, it merely returns a boolean value indicating
+whether or not the signal handlers are enabled.
+
+=cut
+
+my $SIG_DIE = sub {
+    my $err = shift;
+    $err->rethrow if UNIVERSAL::can($err, 'rethrow');
+    Kinetic::Util::Exception::ExternalLib->throw($err);
+};
+
+my $SIG_WARN = sub {
+    print STDERR Kinetic::Util::Exception::ExternalLib->new(shift)->as_string;
+};
+
+my $HANDLERS = 1;
+sub sig_handlers {
+    _set_handlers(shift) if @_;
+    return $HANDLERS;
+}
+
+sub _set_handlers {
+    $HANDLERS = shift;
+    if ($HANDLERS) {
+        $SIG{__DIE__}  = $SIG_DIE;
+        $SIG{__WARN__} = $SIG_WARN;
+    }
+    else {
+        local $^W;
+        undef $SIG{__DIE__};
+        undef $SIG{__WARN__};
+    }
+}
+
+# Always use exception objects for exceptions and warnings.
+# XXX I can't recall how we said we would deal with this
+sig_handlers(1); # turn on signal handlers by default
 ##############################################################################
 # From here on in, we're modifying the behavior of Exception::Class::Base.
 

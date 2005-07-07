@@ -20,6 +20,7 @@ diag "Don't forget to update the pod at some point"
 
 my %exceptions = (
     'Kinetic::Util::Collection'  => qr/^Iterator$/,
+    'Kinetic::REST'              => qr/^Dispatch$/,
     'Kinetic::Store'             => qr/^ASC|DESC|EQ|NE$/,
     'Kinetic::Store::DB'         => qr/^Incomplete|Iterator|Meta|Search$/,
     'Kinetic::Store::Lexer'      => qr/^allinput|blocks|iterator_to_stream|make_lexer|tokens|records$/,

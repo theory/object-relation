@@ -26,7 +26,8 @@ END {
     $ENV{KINETIC_CONF} = $conf;
     for my $script (@scripts) {
         next unless -e "$script\_teardown.pl";
-        system $^X, "$script\_teardown.pl" and die;
+        system $^X, "$script\_teardown.pl" 
+            and die "# $script\_teardown.pl failed:  ($!)";
     }
 }
 
