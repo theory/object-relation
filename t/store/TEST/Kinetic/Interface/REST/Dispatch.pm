@@ -8,8 +8,7 @@ use warnings;
 use base 'TEST::Class::Kinetic';
 use Test::More;
 use Test::Exception;
-# Sean Lilligren
-# 988-6969
+
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(0) }
 
