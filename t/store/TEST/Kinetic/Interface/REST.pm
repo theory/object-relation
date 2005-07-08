@@ -19,6 +19,7 @@ use Encode qw(is_utf8);
 
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 
+use aliased 'Test::MockModule';
 use aliased 'Kinetic::Store' => 'Store', ':all';
 
 use aliased 'Kinetic::DateTime';
@@ -72,26 +73,52 @@ __PACKAGE__->runtests unless caller;
 
 my $PID;
 sub start_server : Test(startup) {
+    my $test = shift;
     my $server = Test::Server->new(PORT);
     select undef, undef, undef, 0.2;
     $PID       = $server->background;
     select undef, undef, undef, 0.2;
+    my $domain = sprintf "%s:%s" => DOMAIN, PORT;
+    $test->{REST} = WWW::REST->new("http://$domain");
+    my $dispatch = sub {
+        my $REST = shift;
+        die $REST->status_line if $REST->is_error;
+        return $REST->content;
+    };
+    $test->{REST}->dispatch($dispatch);
 }
 
 sub stop_server : Test(shutdown) {
     kill 9, $PID or warn "Could not kill 9 ($PID)";
 }
 
-sub connect_to_server : Test(setup) {
-    my $self = shift;
-    my $domain = sprintf "%s:%s" => DOMAIN, PORT;
-    $self->{REST} = WWW::REST->new("http://$domain");
-    my $dispatch = sub {
-        my $REST = shift;
-        die $REST->status_line if $REST->is_error;
-        return $REST->content;
-    };
-    $self->{REST}->dispatch($dispatch);
+sub setup : Test(setup) {
+    my $test = shift;
+    my $store = Store->new;
+    $test->{dbh} = $store->_dbh;
+    $test->{dbh}->begin_work;
+    $test->{dbi_mock} = MockModule->new('DBI::db', no_auto => 1);
+    $test->{dbi_mock}->mock(begin_work => 1);
+    $test->{dbi_mock}->mock(commit => 1);
+    $test->{db_mock} = MockModule->new('Kinetic::Store::DB');
+    $test->{db_mock}->mock(_dbh => $test->{dbh});
+    my $foo = One->new;
+    $foo->name('foo');
+    $store->save($foo);
+    my $bar = One->new;
+    $bar->name('bar');
+    $store->save($bar);
+    my $baz = One->new;
+    $baz->name('snorfleglitz');
+    $store->save($baz);
+    $test->{test_objects} = [$foo, $bar, $baz];
+}
+
+sub teardown : Test(teardown) {
+    my $test = shift;
+    delete($test->{dbi_mock})->unmock_all;
+    $test->{dbh}->rollback unless $test->{dbh}->{AutoCommit};
+    delete($test->{db_mock})->unmock_all;
 }
 
 sub REST { shift->{REST} }
@@ -142,8 +169,11 @@ sub basic_services : Test(8) {
         '... and it should return the path and post info joined by dots';
 
     my $key = One->my_class->key;
-    is $rest->url($key)->get, One,
-        'This is a stub test for a clean check in';
+    TODO: {
+        local $TODO = 'Still working out XML response';
+        is $rest->url($key)->get, One,
+            'This is a stub test for a clean check in';
+    }
 }
 
 1;

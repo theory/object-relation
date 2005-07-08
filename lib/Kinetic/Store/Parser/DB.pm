@@ -19,7 +19,6 @@ package Kinetic::Store::Parser::DB;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use warnings;
 use Scalar::Util 'blessed';
 use Exporter::Tidy default => ['parse'];
 use constant OBJECT_DELIMITER => '__'; # XXX push this to Store/DB.pm

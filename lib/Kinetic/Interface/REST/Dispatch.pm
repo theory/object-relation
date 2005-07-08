@@ -25,6 +25,8 @@ use Kinetic::Meta;
 use Kinetic::Meta::XML;
 our $VERSION = version->new('0.0.1');
 
+use Kinetic::Store;
+
 use constant TEXT => 'text/plain';
 use constant XML  => 'text/xml';
 use constant HTML => 'text/html';
@@ -73,12 +75,19 @@ Examples:
 
 =cut
 
+my $path_sub = sub {
+    my $rest = shift;
+    my $cgi  = $rest->cgi;
+    my @path = grep /\S/ => split /\// => $cgi->path_info;
+    shift @path; # get rid of "echo"
+    return \@path;
+};
+
 sub echo {
     my ($rest) = @_;
     my $cgi = $rest->cgi;
-    my @path = grep /\S/ => split /\// => $cgi->path_info;
-    shift @path; # get rid of "echo"
-    my $response = join '.' => @path;
+    my $path = $path_sub->($rest);
+    my $response = join '.' => @$path;
     foreach my $param (sort $cgi->param) {
         $response .= ".$param.@{[$cgi->param($param)]}";
     }
@@ -105,6 +114,31 @@ Returns false if the requested resource is not found.
 
 =cut
 
+my $STORE = Kinetic::Store->new;
+my $simple_list_sub = sub {
+    my ($rest, $resource, $kinetic_class, $iterator) = @_;
+    my $plural = $kinetic_class->plural_name;
+    my $name   = $kinetic_class->name;
+    my $response = <<END_RESPONSE;
+<?xml version="1.0"?>
+<p:$plural xmlns:p="http://www.parts-depot.com" 
+                xmlns:xlink="http://www.w3.org/1999/xlink"    
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                xsi:schemaLocation=
+                             "http://www.parts-depot.com
+                              http://www.parts-depot.com/parts.xsd">
+END_RESPONSE
+    my $path = join '/' => @{$path_sub->($rest)};
+    while (my $object = $iterator->next) {
+        $response .= sprintf <<END_RESPONSE => $object->guid,  $object->guid;
+      <$name id="%s" xlink:href="/$resource$path/%s"/>
+END_RESPONSE
+    }
+    $response .= "</p:$plural>";
+    $rest->content_type(XML)
+         ->response($response);
+};
+
 sub can {
     my ($class, $resource) = @_;
     return unless $resource;
@@ -114,8 +148,11 @@ sub can {
     my $kinetic_class = Kinetic::Meta->for_key($resource) or return;
     my $method = sub {
         my ($rest) = @_;
-        $rest->content_type(TEXT)
-             ->response($kinetic_class->package);
+        my $path = $path_sub->($rest);
+        my $iterator = $STORE->search($kinetic_class, @$path);
+        unless (@$path) {
+            $simple_list_sub->($rest, $resource, $kinetic_class, $iterator);
+        }
     };
     no strict 'refs';
     *$resource = $method;

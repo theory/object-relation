@@ -3,8 +3,8 @@ use warnings;
 use strict;
 use Data::Dumper;
 
-#use Test::More tests => 40;
-use Test::More 'no_plan';
+use Test::More tests => 80;
+#use Test::More 'no_plan';
 use Test::Exception;
 
 use lib 'lib', '../lib';
@@ -389,7 +389,7 @@ ok $result = parse(string_lexer_stream(<<'END_SEARCH'), $store), 'Complex string
     )
 END_SEARCH
 
-my $expected = [
+$expected = [
     [
         'AND',
         $name_search,
