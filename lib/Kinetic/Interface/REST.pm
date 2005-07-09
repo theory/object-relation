@@ -22,6 +22,7 @@ use 5.008003;
 use strict;
 use version;
 our $VERSION = version->new('0.0.1');
+use Kinetic::Util::Exceptions qw/:all/;
 use aliased 'Kinetic::Interface::REST::Dispatch';
 
 use constant TEXT => 'text/plain';
@@ -56,20 +57,47 @@ Kinetic::Interface::REST - REST services provider
 
 =head3 new
 
-  my $rest = Kinetic::Interface::REST->new;
+  my $rest = Kinetic::Interface::REST->new(
+    domain => $domain,
+    path   => $path,
+  );
 
-The C<new()> constructor merely returns a C<Kinetic::Interface::REST> object.
-No parameters are required.  Not that this is an object that can interpret REST
-(REpresentational State Transfer).  It is B<not> a server.
+The C<new()> constructor returns a C<Kinetic::Interface::REST> instance.  Note
+that this is an object that can interpret REST (REpresentational State
+Transfer).  It is B<not> a server.
+
+The C<domain> and C<path> arguments are required.  They are used internally
+when building XML and examining path info.
 
 =cut
 
 sub new {
     my $class = shift;
+    my %args  = _validate_args(@_);
     bless {
+        cgi          => undef,
         response     => '',
         content_type => '',
+        domain       => $args{domain},
+        path         => $args{path},
+        _path        => [grep( $_ => split /[\/\\]/ => $args{path} )],
     } => $class;
+}
+
+sub _validate_args {
+    my %args = @_;
+    my @errors;
+    push @errors => 'domain' unless exists $args{domain};
+    push @errors => 'path'   unless exists $args{path};
+    if (@errors) {
+        my $errors = join ' and ' => @errors;
+        throw_required [
+            'Required argument "[_1]" to [_2] not found',
+            $errors,
+            __PACKAGE__."::new"
+        ];
+    }
+    return %args;
 }
 
 ##############################################################################
@@ -104,20 +132,26 @@ sub handle_request {
     $self->response('');
     $self->content_type('');
     my ($resource, @request) = grep /\S/ => split '/' => $cgi->path_info;
-    if (my $sub = Dispatch->can($resource)) {
-        eval {$sub->($self)};
+    if (! $resource || (my $sub = Dispatch->can($resource))) {
+        eval {
+            ! $resource 
+                ? Kinetic::Interface::REST::Dispatch::class_list($self) 
+                : $sub->($self)
+        };
         if ($@) {
-            $self->status($self->INTERNAL_SERVER_ERROR)->response($@);
+            my $info = $cgi->path_info;
+            $self->status($self->INTERNAL_SERVER_ERROR)
+                 ->response("Fatal error handling $info: $@");
         }
         else {
             $self->status($self->OK) unless $self->status;
         }
     }
     else {
-        $resource ||= '';
         $self->status($self->NOT_IMPLEMENTED)
              ->response("No resource available to handle ($resource)");
     }
+    return $self;
 }
 
 ##############################################################################
@@ -126,8 +160,8 @@ sub handle_request {
 
   my $status = $rest->status;
 
-If the call to C<handle_request> succeeded, this method will return the 
-status (suitable for use in the header).
+If the call to C<handle_request> succeeded, this method should return a 
+status suitable for use in an http header.
 
 =cut
 
@@ -160,12 +194,14 @@ sub response {
     $self->{response};
 }
 
+##############################################################################
+
 =head3 content_type
 
   my $content_type = $rest->content_type;
 
-If the call to C<handle_request> succeeded, this method will return the 
-content-type (suitable for use in an HTTP header).
+If the call to C<handle_request> succeeded, this method should return a 
+content-type suitable for use in an http header.
 
 =cut
 
@@ -177,6 +213,8 @@ sub content_type {
     }
     $self->{content_type};
 }
+
+##############################################################################
 
 =head3 cgi
 
@@ -194,6 +232,68 @@ sub cgi {
         return $self;
     }
     $self->{cgi};
+}
+
+##############################################################################
+
+=head3 domain
+
+  my $domain = $rest->domain;
+
+Read only.  This method returns the domain that was set when the REST server
+was instantiated.
+
+=cut
+
+sub domain { shift->{domain} }
+
+##############################################################################
+
+=head3 path
+
+  my $path = $rest->path;
+
+Read only.  This method returns the path that was set when the REST server
+was instantiated.
+
+=cut
+
+sub path { shift->{path} }
+
+##############################################################################
+
+=head3 path_info
+
+  my $path_info = $rest->path_info;
+
+Read only.  This method returns the path_info used when C<&handle_request>
+was called.
+
+=cut
+
+sub path_info { 
+    my $self = shift;
+    return unless my $cgi = $self->cgi;
+    $cgi->path_info;
+}
+
+##############################################################################
+
+=head3 resource_path
+
+  my $resource_path = $rest->resource_path;
+
+Read only.  This method returns the path info starting at the resource (assumes
+that $rest->path should be removed from path_info).
+
+=cut
+
+sub resource_path { 
+    my $self = shift;
+    my $resource_path = $self->path_info;
+    my $path = $self->path;
+    $resource_path =~ s/^$path//;
+    return $resource_path;
 }
 
 ##############################################################################
@@ -257,6 +357,21 @@ sub NOT_IMPLEMENTED       { '501 Not Implemented' }
 =end private
 
 =cut
+
+##############################################################################
+
+=head3 _path
+
+  my $path_components = $rest->_path;
+
+Read only.  This method returns an array reference of the path components that
+were set when the REST server was instantiated.
+
+This is used internally to strip these components, if found, from path info.
+
+=cut
+
+sub _path { shift->{_path} }
 
 1;
 __END__

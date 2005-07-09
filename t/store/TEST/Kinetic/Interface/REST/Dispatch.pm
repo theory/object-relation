@@ -68,7 +68,10 @@ sub setup : Test(setup) {
     $rest_mock->mock(cgi => CGI->new);
     $test->{cgi_mock} = $cgi_mock;
     $test->{rest_mock} = $rest_mock;
-    $test->{rest} = REST->new;
+    $test->{rest} = REST->new(
+        domain => 'http://somehost.com/',
+        path   => 'rest/'
+    );
 }
 
 sub teardown : Test(teardown) {
@@ -140,7 +143,7 @@ sub echo : Test(5) {
         '... and query string items will be sorted and joined with dots';
 }
 
-sub can : Test(no_plan) {
+sub test_can : Test(no_plan) {
     my $test = shift;
     can_ok Dispatch, 'can';
     ok ! Dispatch->can('no_such_resource'),
@@ -149,6 +152,7 @@ sub can : Test(no_plan) {
     my $key  = One->my_class->key;
     ok my $sub = Dispatch->can($key),
         'Calling can for a valid key should return a subref';
+    $test->_path_info('');
     ok $sub->($rest), "... and calling that subref should succeed";
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $expected = '';
@@ -159,6 +163,15 @@ sub can : Test(no_plan) {
     #my $response = join "\n" => sort split "\n" => $rest->response;
     #is $response, $expected,
     #    'Calling a resource with no path info should a list of all objects';
+    diag $rest->response;
+}
+
+sub class_list : Test(no_plan) {
+    my $test = shift;
+    can_ok Dispatch, 'class_list';
+    my $class_list = *Kinetic::Interface::REST::Dispatch::class_list{CODE};
+    my $rest = $test->{rest};
+    $class_list->($rest);
     diag $rest->response;
 }
 
