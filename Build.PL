@@ -30,6 +30,8 @@ my $build = Kinetic::Build->new(
         'version'                    => 0.420,
         'Widget::Meta'               => 0.03,
         'XML::Genx::Simple'          => 0.14,
+        'XML::LibXML'                => 1.58,
+        'XML::LibXSLT'               => 1.57,
         'XML::Simple'                => 2.13,
     },
     build_requires       => {

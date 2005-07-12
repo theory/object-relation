@@ -113,6 +113,7 @@ sub T {
   return parser {
     my $input = shift;
     if (my ($value, $newinput) = $parser->($input)) {
+      local $^W; # using this to suppress 'uninitialized' warnings
       $value = $transform->(@$value);
       return ($value, $newinput);
     } else {

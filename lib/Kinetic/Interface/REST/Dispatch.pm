@@ -78,7 +78,7 @@ Examples:
 my $path_sub = sub {
     my $rest = shift;
     my @path = grep /\S/ => split /\// => $rest->resource_path;
-    shift @path; # get rid of "echo"
+    shift @path; # get rid of resource
     return \@path;
 };
 
@@ -92,6 +92,12 @@ sub echo {
     }
     $rest->content_type(TEXT)
          ->response($response);
+}
+
+sub _query_string {
+    my $rest = shift;
+    my $type = $rest->cgi->param('type') || return '';
+    return "?type=$type";
 }
 
 ##############################################################################
@@ -110,16 +116,18 @@ sub class_list {
     my ($rest) = @_;
     my $response = <<END_RESPONSE;
 <?xml version="1.0"?>
-<kinetic:classes xmlns:kinetic="http://www.kineticode.com/rest" 
-                 xmlns:xlink="http://www.w3.org/1999/xlink"    
+<kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
+                 xmlns:xlink="http://www.w3.org/1999/xlink">   
 END_RESPONSE
+    $response .= "<kinetic:description>Available resourcees</kinetic:description>\n";
     my $url = join '' => map $rest->$_ => qw/domain path/;
+    my $query_string = _query_string($rest);
     foreach my $key (sort Kinetic::Meta->keys) {
         $response .= sprintf <<END_RESPONSE => $key,  $key;
-      <class id="%s" xlink:href="$url%s"/>
+      <kinetic:resource id="%s" xlink:href="$url%s$query_string"/>
 END_RESPONSE
     }
-    $response .= "</kinetic:classes>";
+    $response .= "</kinetic:resources>";
     $rest->content_type(XML)
          ->response($response);
 }
@@ -144,24 +152,26 @@ Returns false if the requested resource is not found.
 =cut
 
 my $STORE = Kinetic::Store->new;
+use B::Deparse;
+my $deparse = B::Deparse->new("-p", "-sC");
 my $simple_list_sub = sub {
-    my ($rest, $resource, $kinetic_class) = @_;
-    my $iterator = $STORE->search($kinetic_class);
-    my $plural = $kinetic_class->plural_name;
-    my $name   = $kinetic_class->name;
-    my $domain = $rest->domain;
-    my $response = <<END_RESPONSE;
+    my ($rest, $iterator) = @_;
+
+    my $response = <<'    END_RESPONSE';
 <?xml version="1.0"?>
-<kinetic:$plural xmlns:kinetic="http://www.kineticode.com/rest" 
-                 xmlns:xlink="http://www.w3.org/1999/xlink"    
-END_RESPONSE
+<kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
+                   xmlns:xlink="http://www.w3.org/1999/xlink">
+<kinetic:description>Available objects</kinetic:description>
+    END_RESPONSE
+
     my $url = join '' => map $rest->$_ => qw/domain path resource_path/;
-    while (my $object = $iterator->next) {
-        $response .= sprintf <<END_RESPONSE => $object->guid,  $object->guid;
-      <$name id="%s" xlink:href="$url%s"/>
+    my $query_string = _query_string($rest);
+    while (my $resource = $iterator->next) {
+        $response .= sprintf <<END_RESPONSE => $resource->guid,  $resource->guid;
+      <kinetic:resource id="%s" xlink:href="$url%s$query_string"/>
 END_RESPONSE
     }
-    $response .= "</kinetic:$plural>";
+    $response .= "</kinetic:resources>";
     $rest->content_type(XML)
          ->response($response);
 };
@@ -176,8 +186,9 @@ sub can {
     my $method = sub {
         my ($rest) = @_;
         my $path = $path_sub->($rest);
+        my $iterator = Kinetic::Store->new->search(Kinetic::Meta->for_key('one'));
         unless (@$path) {
-            $simple_list_sub->($rest, $resource, $kinetic_class);
+            $simple_list_sub->($rest, $iterator);
         }
     };
     no strict 'refs';

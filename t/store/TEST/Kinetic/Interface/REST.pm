@@ -8,6 +8,7 @@ use warnings;
 use base 'TEST::Class::Kinetic';
 use Test::More;
 use Test::Exception;
+use Test::XML;
 use Test::HTTP::Server::Simple;
 use Encode qw(is_utf8);
 {
@@ -240,14 +241,24 @@ sub basic_services : Test(8) {
     is $rest->url('echo/foo/bar/')->post(this => 'that'), 'foo.bar.this.that', 
         '... and it should return the path and post info joined by dots';
 
-    my $key = One->my_class->key;
+    my $expected = <<'    END_XML';
+<?xml version="1.0"?>
+<kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest"
+                   xmlns:xlink="http://www.w3.org/1999/xlink">
+<kinetic:description>Available resourcees</kinetic:description>
+  <kinetic:resource id="kinetic" xlink:href="http://www.example.com/rest/kinetic"/>
+  <kinetic:resource id="one"     xlink:href="http://www.example.com/rest/one"/>
+  <kinetic:resource id="simple"  xlink:href="http://www.example.com/rest/simple"/>
+  <kinetic:resource id="two"     xlink:href="http://www.example.com/rest/two"/>
+</kinetic:resources>
+    END_XML
+    is_xml $rest->get, $expected, 
+        'Calling it without a resource should return a list of resources';
+
     TODO: {
         local $TODO = 'Still working out XML response';
-        is $rest->url($key)->get, One,
+        is $rest->url('one')->get, One,
             'This is a stub test for a clean check in';
-        is $rest->get, 'some xml', 
-            '... and calling it without a resource should return a list of resources';
-
     }
 }
 
