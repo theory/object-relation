@@ -8,6 +8,7 @@ use warnings;
 use base 'TEST::Class::Kinetic';
 use Test::More;
 use Test::Exception;
+use Test::XML;
 
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(0) }
@@ -152,18 +153,26 @@ sub test_can : Test(no_plan) {
     my $key  = One->my_class->key;
     ok my $sub = Dispatch->can($key),
         'Calling can for a valid key should return a subref';
-    $test->_path_info('');
+    $test->_path_info('one');
     ok $sub->($rest), "... and calling that subref should succeed";
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
-    my $expected = '';
-    foreach my $object (sort { $a->guid cmp $b->guid } $foo, $bar, $baz) {
-        $expected .= $object->guid."\t".$object->name."\n";
-    }
-    chomp $expected;
-    #my $response = join "\n" => sort split "\n" => $rest->response;
-    #is $response, $expected,
-    #    'Calling a resource with no path info should a list of all objects';
-    diag $rest->response;
+    my $expected = <<'    END_XML';
+<?xml version="1.0"?>
+    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
+                       xmlns:xlink="http://www.w3.org/1999/xlink">
+      <kinetic:description>Available objects</kinetic:description>
+      <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
+    </kinetic:resources>
+    END_XML
+    '0AB872E6-F2FC-11D9-9481-D6394B585510';
+    my $hex  = qr/[A-F0-9]/;
+    my $guid = qr/${hex}{8}-${hex}{4}-${hex}{4}-${hex}{4}-${hex}{12}/;
+    my $one_xml = $rest->response;
+    $one_xml =~ s/$guid/XXX/g;
+    is_xml $one_xml, $expected, 
+        '... and calling it with a resource should return all instances of that resource';
 }
 
 sub class_list : Test(no_plan) {
@@ -172,7 +181,7 @@ sub class_list : Test(no_plan) {
     my $class_list = *Kinetic::Interface::REST::Dispatch::class_list{CODE};
     my $rest = $test->{rest};
     $class_list->($rest);
-    diag $rest->response;
+    diag "Finish class_list test next";
 }
 
 1;

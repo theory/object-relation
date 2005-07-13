@@ -92,15 +92,17 @@ sub start_server : Test(startup => 1) {
 }
 
 sub setup : Test(setup) {
+    # XXX Note that we aren't mocking this up.  Because the REST server
+    # is in a different process, mocking up the database methods to
+    # prevent accidental commits means the other process will never see
+    # these records.  Instead, what we do is the somewhat dubious practice
+    # of iterating through the object types and deleting all of them
+    # when these tests end.
     my $test = shift;
     my $store = Store->new;
     $test->{dbh} = $store->_dbh;
+    $test->clear_database;
     $test->{dbh}->begin_work;
-    $test->{dbi_mock} = MockModule->new('DBI::db', no_auto => 1);
-    $test->{dbi_mock}->mock(begin_work => 1);
-    $test->{dbi_mock}->mock(commit => 1);
-    $test->{db_mock} = MockModule->new('Kinetic::Store::DB');
-    $test->{db_mock}->mock(_dbh => $test->{dbh});
     my $foo = One->new;
     $foo->name('foo');
     $store->save($foo);
@@ -114,10 +116,17 @@ sub setup : Test(setup) {
 }
 
 sub teardown : Test(teardown) {
+    shift->clear_database;
+}
+
+sub clear_database {
     my $test = shift;
-    delete($test->{dbi_mock})->unmock_all;
-    $test->{dbh}->rollback unless $test->{dbh}->{AutoCommit};
-    delete($test->{db_mock})->unmock_all;
+    foreach my $key (Kinetic::Meta->keys) {
+        next if Kinetic::Meta->for_key($key)->abstract;
+        eval { $test->{dbh}->do("DELETE FROM $key") };
+        # XXX 'thingy' and 'partof' are not getting cleared out :(
+        #diag "Could not delete records from $key: $@" if $@;
+    }
 }
 
 sub REST { shift->{REST} }
@@ -224,7 +233,7 @@ sub rest_interface : Test(37) {
         '... and a human readable response';
 }
 
-sub basic_services : Test(8) {
+sub basic_services : Test(7) {
     my $test = shift;
     my $rest = $test->REST;
 
@@ -243,23 +252,34 @@ sub basic_services : Test(8) {
 
     my $expected = <<'    END_XML';
 <?xml version="1.0"?>
-<kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest"
-                   xmlns:xlink="http://www.w3.org/1999/xlink">
-<kinetic:description>Available resourcees</kinetic:description>
-  <kinetic:resource id="kinetic" xlink:href="http://www.example.com/rest/kinetic"/>
-  <kinetic:resource id="one"     xlink:href="http://www.example.com/rest/one"/>
-  <kinetic:resource id="simple"  xlink:href="http://www.example.com/rest/simple"/>
-  <kinetic:resource id="two"     xlink:href="http://www.example.com/rest/two"/>
-</kinetic:resources>
+    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest"
+                       xmlns:xlink="http://www.w3.org/1999/xlink">
+    <kinetic:description>Available resourcees</kinetic:description>
+      <kinetic:resource id="one"     xlink:href="http://www.example.com/rest/one"/>
+      <kinetic:resource id="simple"  xlink:href="http://www.example.com/rest/simple"/>
+      <kinetic:resource id="two"     xlink:href="http://www.example.com/rest/two"/>
+    </kinetic:resources>
     END_XML
     is_xml $rest->get, $expected, 
         'Calling it without a resource should return a list of resources';
 
-    TODO: {
-        local $TODO = 'Still working out XML response';
-        is $rest->url('one')->get, One,
-            'This is a stub test for a clean check in';
-    }
+    $expected = <<'    END_XML';
+<?xml version="1.0"?>
+    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
+                       xmlns:xlink="http://www.w3.org/1999/xlink">
+      <kinetic:description>Available objects</kinetic:description>
+      <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest//one/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest//one/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest//one/XXX"/>
+    </kinetic:resources>
+    END_XML
+    '0AB872E6-F2FC-11D9-9481-D6394B585510';
+    my $hex  = qr/[A-F0-9]/;
+    my $guid = qr/${hex}{8}-${hex}{4}-${hex}{4}-${hex}{4}-${hex}{12}/;
+    my $one_xml = $rest->url('one')->get;
+    $one_xml =~ s/$guid/XXX/g;
+    is_xml $one_xml, $expected, 
+        '... and calling it with a resource should return all instances of that resource';
 }
 
 1;

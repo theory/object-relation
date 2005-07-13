@@ -29,6 +29,7 @@ my $build = Kinetic::Build->new(
         'Regexp::Common'             => 2.119,
         'version'                    => 0.420,
         'Widget::Meta'               => 0.03,
+        'WWW::REST'                  => 0.01,
         'XML::Genx::Simple'          => 0.14,
         'XML::LibXML'                => 1.58,
         'XML::LibXSLT'               => 1.57,

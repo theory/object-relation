@@ -291,6 +291,7 @@ that $rest->path should be removed from path_info).
 sub resource_path { 
     my $self = shift;
     my $resource_path = $self->path_info;
+    return '' unless $resource_path;
     my $path = $self->path;
     $resource_path =~ s/^$path//;
     return $resource_path;

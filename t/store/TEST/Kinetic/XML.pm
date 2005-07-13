@@ -14,6 +14,7 @@ use Test::File::Contents;
 
 use Encode qw(is_utf8);
 
+use Kinetic::Meta;
 use Kinetic::Util::Language::en;
 use aliased 'Kinetic::DateTime';
 use aliased 'Test::MockModule';
@@ -104,6 +105,11 @@ BEGIN {
         my ($self, $key) = @_;
         return $self->{objects_by_name}{$key};
     }
+}
+
+sub clear_km_keys : Test(shutdown) {
+    Kinetic::Meta->clear('thingy');
+    Kinetic::Meta->clear('partof');
 }
 
 sub write_xml : Test(5) {

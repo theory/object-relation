@@ -123,6 +123,7 @@ END_RESPONSE
     my $url = join '' => map $rest->$_ => qw/domain path/;
     my $query_string = _query_string($rest);
     foreach my $key (sort Kinetic::Meta->keys) {
+        next if Kinetic::Meta->for_key($key)->abstract;
         $response .= sprintf <<END_RESPONSE => $key,  $key;
       <kinetic:resource id="%s" xlink:href="$url%s$query_string"/>
 END_RESPONSE
@@ -152,8 +153,6 @@ Returns false if the requested resource is not found.
 =cut
 
 my $STORE = Kinetic::Store->new;
-use B::Deparse;
-my $deparse = B::Deparse->new("-p", "-sC");
 my $simple_list_sub = sub {
     my ($rest, $iterator) = @_;
 
@@ -168,7 +167,7 @@ my $simple_list_sub = sub {
     my $query_string = _query_string($rest);
     while (my $resource = $iterator->next) {
         $response .= sprintf <<END_RESPONSE => $resource->guid,  $resource->guid;
-      <kinetic:resource id="%s" xlink:href="$url%s$query_string"/>
+      <kinetic:resource id="%s" xlink:href="$url/%s$query_string"/>
 END_RESPONSE
     }
     $response .= "</kinetic:resources>";
