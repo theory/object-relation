@@ -80,7 +80,6 @@ sub new {
         content_type => '',
         domain       => $args{domain},
         path         => $args{path},
-        _path        => [grep( $_ => split /[\/\\]/ => $args{path} )],
     } => $class;
 }
 
@@ -97,6 +96,10 @@ sub _validate_args {
             __PACKAGE__."::new"
         ];
     }
+    $args{domain} .= '/' unless $args{domain} =~ /\/$/;
+    $args{path}    =~ s/^\///;
+    $args{path}   .= '/' unless $args{path} =~ /\/$/;
+
     return %args;
 }
 
@@ -135,7 +138,7 @@ sub handle_request {
     if (! $resource || (my $sub = Dispatch->can($resource))) {
         eval {
             ! $resource 
-                ? Kinetic::Interface::REST::Dispatch::class_list($self) 
+                ? Kinetic::Interface::REST::Dispatch::_class_list($self) 
                 : $sub->($self)
         };
         if ($@) {
@@ -241,8 +244,13 @@ sub cgi {
   my $domain = $rest->domain;
 
 Read only.  This method returns the domain that was set when the REST server
-was instantiated.
+was instantiated.  A trailing slash will be added, if necessary.
 
+ my $rest = Kinetic::Interface::REST->new(
+    domain => 'http://someserver',
+    path   => 'rest/'
+ );
+ print $rest->domain; # http://someserver/
 =cut
 
 sub domain { shift->{domain} }
@@ -253,8 +261,16 @@ sub domain { shift->{domain} }
 
   my $path = $rest->path;
 
-Read only.  This method returns the path that was set when the REST server
-was instantiated.
+Read only.  This method returns the path that was set when the REST server was
+instantiated.  Path must be relative to the url set in the constructor.
+Leading forward slashes will be stripped and a trailing slash will be added, if
+necessary.
+
+ my $rest = Kinetic::Interface::REST->new(
+    domain => 'http://someserver/',
+    path   => '/rest'
+ );
+ print $rest->path; # rest/
 
 =cut
 
@@ -286,6 +302,8 @@ sub path_info {
 Read only.  This method returns the path info starting at the resource (assumes
 that $rest->path should be removed from path_info).
 
+Returns the empty string if no resource path is found.
+
 =cut
 
 sub resource_path { 
@@ -293,8 +311,10 @@ sub resource_path {
     my $resource_path = $self->path_info;
     return '' unless $resource_path;
     my $path = $self->path;
-    $resource_path =~ s/^$path//;
-    return $resource_path;
+    $resource_path  =~ s/^$path//;
+    $resource_path  =~ s/^\///;
+    $resource_path .= '/' unless $resource_path =~ /\/$/;
+    return '/' eq $resource_path ? '' : $resource_path;
 }
 
 ##############################################################################
@@ -358,21 +378,6 @@ sub NOT_IMPLEMENTED       { '501 Not Implemented' }
 =end private
 
 =cut
-
-##############################################################################
-
-=head3 _path
-
-  my $path_components = $rest->_path;
-
-Read only.  This method returns an array reference of the path components that
-were set when the REST server was instantiated.
-
-This is used internally to strip these components, if found, from path info.
-
-=cut
-
-sub _path { shift->{_path} }
 
 1;
 __END__

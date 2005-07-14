@@ -73,6 +73,7 @@ sub setup : Test(setup) {
         domain => 'http://somehost.com/',
         path   => 'rest/'
     );
+    $test->_path_info('');
 }
 
 sub teardown : Test(teardown) {
@@ -144,7 +145,7 @@ sub echo : Test(5) {
         '... and query string items will be sorted and joined with dots';
 }
 
-sub test_can : Test(no_plan) {
+sub test_can : Test(5) {
     my $test = shift;
     can_ok Dispatch, 'can';
     ok ! Dispatch->can('no_such_resource'),
@@ -155,9 +156,9 @@ sub test_can : Test(no_plan) {
         'Calling can for a valid key should return a subref';
     $test->_path_info('one');
     ok $sub->($rest), "... and calling that subref should succeed";
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $expected = <<'    END_XML';
 <?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?type=stylesheet"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available objects</kinetic:description>
@@ -166,7 +167,6 @@ sub test_can : Test(no_plan) {
       <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
     </kinetic:resources>
     END_XML
-    '0AB872E6-F2FC-11D9-9481-D6394B585510';
     my $hex  = qr/[A-F0-9]/;
     my $guid = qr/${hex}{8}-${hex}{4}-${hex}{4}-${hex}{4}-${hex}{12}/;
     my $one_xml = $rest->response;
@@ -175,13 +175,97 @@ sub test_can : Test(no_plan) {
         '... and calling it with a resource should return all instances of that resource';
 }
 
-sub class_list : Test(no_plan) {
+sub class_list : Test(2) {
     my $test = shift;
-    can_ok Dispatch, 'class_list';
-    my $class_list = *Kinetic::Interface::REST::Dispatch::class_list{CODE};
+    # we don't use can_ok because of the way &can is overridden
+    ok my $class_list = *Kinetic::Interface::REST::Dispatch::_class_list{CODE},
+        '_class_list() is defined in the Dispatch package';
     my $rest = $test->{rest};
     $class_list->($rest);
-    diag "Finish class_list test next";
+    my $expected = <<'    END_XML';
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?type=stylesheet"?>
+    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
+                       xmlns:xlink="http://www.w3.org/1999/xlink">   
+      <kinetic:description>Available resources</kinetic:description>
+      <kinetic:resource id="one" xlink:href="http://somehost.com/rest/one"/>
+      <kinetic:resource id="simple" xlink:href="http://somehost.com/rest/simple"/>
+      <kinetic:resource id="two" xlink:href="http://somehost.com/rest/two"/>
+    </kinetic:resources>
+    END_XML
+    is_xml $rest->response, $expected, 
+        '... and calling it should return a list of resources';
+}
+
+sub url_format : Test(5) {
+    my $test = shift;
+    # we don't use can_ok because of the way &can is overridden
+    ok my $rest_url_format = *Kinetic::Interface::REST::Dispatch::_rest_url_format{CODE},
+        '_rest_url_format() is defined in the Dispatch package';
+    my $rest = $test->{rest};
+    is $rest_url_format->($rest), 'http://somehost.com/rest/%s',
+        '... and it should return a format without a resource or query string if they are not set';
+    $test->_path_info('one');
+    is $rest_url_format->($rest), 'http://somehost.com/rest/one/%s',
+        '... but it should return the resource if requested';
+    $test->_query_string(qw/type html/);
+    is $rest_url_format->($rest), 'http://somehost.com/rest/one/%s?type=html',
+        '... and the type, if it is set';
+    $test->_query_string(qw/type xml/);
+    is $rest_url_format->($rest), 'http://somehost.com/rest/one/%s',
+        '... unless it is set to type=xml';
+}
+
+sub transorm_xml_to_html : Test(no_plan) {
+    my $test = shift;
+    # we don't use can_ok because of the way &can is overridden
+    my $class_list = *Kinetic::Interface::REST::Dispatch::_class_list{CODE},
+        '_class_list() is defined in the Dispatch package';
+    my $rest = $test->{rest};
+    $class_list->($rest);
+    ok my $transform = *Kinetic::Interface::REST::Dispatch::_transform{CODE},
+        '_transform() is defined in the Dispatch package';
+    my $html = $transform->($rest->response);
+    # XXX What?  There's no clean way to compare two HTML docs?
+    my $expected = <<'    END_HTML';
+<html xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Available resources</title>
+</head>
+<body><table bgcolor="#eeeeee" border="1">
+<tr><th>Available resources</th></tr>
+<tr><td><a href="http://somehost.com/rest/one">one</a></td></tr>
+<tr><td><a href="http://somehost.com/rest/simple">simple</a></td></tr>
+<tr><td><a href="http://somehost.com/rest/two">two</a></td></tr>
+</table></body>
+</html>
+    END_HTML
+    is $html, $expected, '... and the resource xml should be tranformed into the correct HTML';
+
+    my $key  = One->my_class->key;
+    my $sub = Dispatch->can($key);
+    $test->_path_info('one');
+    $sub->($rest);
+    $expected = <<'    END_HTML';
+<html xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Available objects</title>
+</head>
+<body><table bgcolor="#eeeeee" border="1">
+<tr><th>Available objects</th></tr>
+<tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
+<tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
+<tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
+</table></body>
+</html>
+    END_HTML
+    my $html = $transform->($rest->response);
+    my $hex  = qr/[A-F0-9]/;
+    my $guid = qr/${hex}{8}-${hex}{4}-${hex}{4}-${hex}{4}-${hex}{12}/;
+    $html =~ s/$guid/XXX/g;
+    is $html, $expected, '... and the instance XML should be transformed correctly';
 }
 
 1;

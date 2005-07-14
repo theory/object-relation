@@ -20,6 +20,7 @@ use Encode qw(is_utf8);
 }
 
 use Kinetic::Util::Exceptions qw/sig_handlers/;
+use TEST::REST::Server;
 
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Store' => 'Store', ':all';
@@ -42,44 +43,14 @@ __PACKAGE__->SKIP_CLASS(
 ) if caller; # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
-{
-    package Test::Server;
-    use base qw(HTTP::Server::Simple::CGI);
-    use Kinetic::Interface::REST;
-
-    my $REST_SERVER;
-    sub new {
-        my ($class, @args) = @_;
-        $REST_SERVER = Kinetic::Interface::REST->new(
-            domain => 'http://www.example.com/',
-            path   => 'rest/'
-        );
-        $class->SUPER::new(@args);
-    }
-
-    sub handle_request {
-        my ($self, $cgi) = @_;
-        my $NEWLINE = "\r\n";
-        $REST_SERVER->handle_request($cgi);
-        my $status   = $REST_SERVER->status;
-        my $type     = $REST_SERVER->content_type;
-        my $response = $REST_SERVER->response;
-        print "HTTP/1.0 $status$NEWLINE";
-        print "Content-Type: $type${NEWLINE}Content-Length: ";
-        print length($response),
-              $NEWLINE,
-              $NEWLINE,
-              $response;
-    }
-
-    # supress "can connect" printing from HTTP:Server::Simple (grr ...)
-    sub print_banner {}
-}
-
 my $PID;
 sub start_server : Test(startup => 1) {
     my $test = shift;
-    my $server = Test::Server->new(PORT);
+    my $server = TEST::REST::Server->new({
+        domain => 'http://www.example.com/',
+        path   => 'rest/',
+        args   => [PORT]
+    });
     started_ok($server, 'Test REST server started');
     my $domain = sprintf "%s:%s" => DOMAIN, PORT;
     $test->{REST} = WWW::REST->new("http://$domain");
@@ -124,8 +95,7 @@ sub clear_database {
     foreach my $key (Kinetic::Meta->keys) {
         next if Kinetic::Meta->for_key($key)->abstract;
         eval { $test->{dbh}->do("DELETE FROM $key") };
-        # XXX 'thingy' and 'partof' are not getting cleared out :(
-        #diag "Could not delete records from $key: $@" if $@;
+        diag "Could not delete records from $key: $@" if $@;
     }
 }
 
@@ -154,7 +124,7 @@ BEGIN {
     sig_handlers(0);
 }
 
-sub rest_interface : Test(37) {
+sub constructor : Test(14) {
     my $class = 'Kinetic::Interface::REST';
     can_ok $class, 'new';
     throws_ok {$class->new}
@@ -187,13 +157,18 @@ sub rest_interface : Test(37) {
     is $rest->path, 'rest/server/',
         '... but we should not be able to change it';
 
-    can_ok $rest, '_path';
-    is_deeply $rest->_path, [qw/rest server/],
-        '... and it should return the path components as an array ref';
-    $rest->_path('xxx');
-    is_deeply $rest->_path, [qw/rest server/],
-        '... but we should not be able to change it';
+    $rest = $class->new(domain => 'http://foo', path => '/rest/server'),
+    is $rest->domain, 'http://foo/',
+        'Domains without a trailing slash should have it appended';
+
+    is $rest->path, 'rest/server/',
+        '... and paths should have leading slashes removed and trailing slashes added';
+}
     
+sub rest_interface : Test(22) {
+    my $class = 'Kinetic::Interface::REST';
+    my $rest = $class->new(domain => 'http://foo/', path => 'rest/server/');
+
     foreach my $method (qw/cgi status response content_type/) {
         can_ok $rest, $method;
         ok ! $rest->$method, '... and it should be false with a new REST object';
@@ -252,9 +227,10 @@ sub basic_services : Test(7) {
 
     my $expected = <<'    END_XML';
 <?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="http://www.example.com/rest/?type=stylesheet"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest"
                        xmlns:xlink="http://www.w3.org/1999/xlink">
-    <kinetic:description>Available resourcees</kinetic:description>
+    <kinetic:description>Available resources</kinetic:description>
       <kinetic:resource id="one"     xlink:href="http://www.example.com/rest/one"/>
       <kinetic:resource id="simple"  xlink:href="http://www.example.com/rest/simple"/>
       <kinetic:resource id="two"     xlink:href="http://www.example.com/rest/two"/>
@@ -265,21 +241,26 @@ sub basic_services : Test(7) {
 
     $expected = <<'    END_XML';
 <?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="http://www.example.com/rest/?type=stylesheet"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available objects</kinetic:description>
-      <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest//one/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest//one/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest//one/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest/one/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest/one/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest/one/XXX"/>
     </kinetic:resources>
     END_XML
-    '0AB872E6-F2FC-11D9-9481-D6394B585510';
     my $hex  = qr/[A-F0-9]/;
     my $guid = qr/${hex}{8}-${hex}{4}-${hex}{4}-${hex}{4}-${hex}{12}/;
-    my $one_xml = $rest->url('one')->get;
+    my $key  = One->my_class->key;
+    my $one_xml = $rest->url($key)->get;
     $one_xml =~ s/$guid/XXX/g;
     is_xml $one_xml, $expected, 
-        '... and calling it with a resource should return all instances of that resource';
+
+    $key  = Two->my_class->key;
+    my $two_xml = $rest->url($key)->get;
+    $two_xml =~ s/$guid/XXX/g;
+    diag "Clean up xml for which we have no resources";
 }
 
 1;
