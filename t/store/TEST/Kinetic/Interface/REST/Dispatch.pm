@@ -66,7 +66,10 @@ sub setup : Test(setup) {
     $cgi_mock->mock(path_info => sub { $test->_path_info });
     $cgi_mock->mock(param => $test->{param});
     my $rest_mock = MockModule->new('Kinetic::Interface::REST');
-    $rest_mock->mock(cgi => CGI->new);
+    {
+        local $^W; # because CGI.pm is throwing uninitialized errors :(
+        $rest_mock->mock(cgi => CGI->new);
+    }
     $test->{cgi_mock} = $cgi_mock;
     $test->{rest_mock} = $rest_mock;
     $test->{rest} = REST->new(
@@ -145,7 +148,7 @@ sub echo : Test(5) {
         '... and query string items will be sorted and joined with dots';
 }
 
-sub test_can : Test(5) {
+sub test_can : Test(4) {
     my $test = shift;
     can_ok Dispatch, 'can';
     ok ! Dispatch->can('no_such_resource'),
@@ -155,13 +158,13 @@ sub test_can : Test(5) {
     ok my $sub = Dispatch->can($key),
         'Calling can for a valid key should return a subref';
     $test->_path_info('one');
-    ok $sub->($rest), "... and calling that subref should succeed";
+    $sub->($rest); # return values are not guaranteed
     my $expected = <<'    END_XML';
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?type=stylesheet"?>
+<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=browse"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
-      <kinetic:description>Available objects</kinetic:description>
+      <kinetic:description>Available instances</kinetic:description>
       <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
       <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
       <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
@@ -184,7 +187,7 @@ sub class_list : Test(2) {
     $class_list->($rest);
     my $expected = <<'    END_XML';
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?type=stylesheet"?>
+<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=browse"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">   
       <kinetic:description>Available resources</kinetic:description>
@@ -216,10 +219,10 @@ sub url_format : Test(5) {
         '... unless it is set to type=xml';
 }
 
-sub transorm_xml_to_html : Test(no_plan) {
+sub transform_xml_to_html : Test(4) {
     my $test = shift;
     # we don't use can_ok because of the way &can is overridden
-    my $class_list = *Kinetic::Interface::REST::Dispatch::_class_list{CODE},
+    ok my $class_list = *Kinetic::Interface::REST::Dispatch::_class_list{CODE},
         '_class_list() is defined in the Dispatch package';
     my $rest = $test->{rest};
     $class_list->($rest);
@@ -251,17 +254,17 @@ sub transorm_xml_to_html : Test(no_plan) {
 <html xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>Available objects</title>
+<title>Available instances</title>
 </head>
 <body><table bgcolor="#eeeeee" border="1">
-<tr><th>Available objects</th></tr>
+<tr><th>Available instances</th></tr>
 <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
 <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
 <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
 </table></body>
 </html>
     END_HTML
-    my $html = $transform->($rest->response);
+    $html = $transform->($rest->response);
     my $hex  = qr/[A-F0-9]/;
     my $guid = qr/${hex}{8}-${hex}{4}-${hex}{4}-${hex}{4}-${hex}{12}/;
     $html =~ s/$guid/XXX/g;

@@ -58,19 +58,33 @@ this class.
 
   my $xml = Kinetic::XML->new;
   # or
-  my $xml = Kinetic::XML->new($kinetic_object);
+  my $xml = Kinetic::XML->new($object);
+  # or;
+  my $xml = Kinetic::XML->new({
+    object         => $object,
+    stylesheet_url => $url,
+  });
 
 Creates and returns a new xml object.  It optionally takes a L<Kinetic|Kinetic>
 object as an argument.  This is equivalent to:
 
-  my $xml = Kinetic::XML->new;
+  my $xml = Kinetic::XML->new({stylesheet_url => $url});
   $xml->object($kinetic_object);
+
+If preferred, a hashref may be passed as an argument.  An object must have the
+key of C<object> and if an XSLT stylesheet url is provided with a key of
+C<stylesheet_url>, it will be included in the XML.
 
 =cut
 
 sub new {
-    my ($class, $object) = @_;
-    my $self = bless {}, $class;
+    my ($class, $args) = @_;
+    my $object = ('HASH' eq ref $args)
+        ? $args->{object}
+        : $args;
+    my $self = bless {
+        stylesheet_url => ($args->{stylesheet_url} || ''),
+    }, $class;
     return $self unless $object;
     $self->object($object);
 }
@@ -80,8 +94,6 @@ sub new {
 ##############################################################################
 
 =head2 Instance Methods
-
-##############################################################################
 
 =head3 new_from_xml
 
@@ -119,10 +131,44 @@ missing or if the XML is not valid Kinetic XML.
 sub _get_hash_from_xml {
     my ($self, $xml_string) = @_;
     my $xml  = XML::Simple->new;
-    my $data = $xml->XMLin($xml_string, suppressempty => undef, keyattr => []);
+    my $data = $xml->XMLin(
+        $xml_string, 
+        suppressempty => undef, 
+        keyattr       => [],
+        #ForceArray    => [ 'instance' ], # XXX maybe later?
+    );
     my $version = delete $data->{version}
         or throw_xml "XML must have a version number.";
+    if (
+        exists $data->{instance} 
+            && 
+        exists $data->{instance}{attr} 
+            &&
+        'ARRAY' eq ref $data->{instance}{attr}
+    ) {
+        $data = _rewrite_xml_hash($data);
+    }
+    #use Data::Dumper::Simple;
+    #print Dumper($data);
+    #<STDIN>;
     return $data;
+}
+
+sub _rewrite_xml_hash {
+    my $hash = shift;
+    #print Dumper($hash);
+    my $attributes = $hash->{instance}{attr};
+    my %attributes;
+    if (exists $hash->{instance}{instance}) {
+        %attributes = %{_rewrite_xml_hash($hash->{instance})};
+    }
+    foreach my $attribute (@$attributes) {
+        $attributes{$attribute->{name}} = $attribute->{content};
+    }
+    my %rewrite = (
+        $hash->{instance}{key} => \%attributes,
+    );
+    return \%rewrite;
 }
 
 ##############################################################################
@@ -259,6 +305,9 @@ sub dump_xml {
     my $xml    = XML::Genx::Simple->new;
     eval {
         $xml->StartDocString;
+        if (my $url = $self->{stylesheet_url}) {
+            $xml->PI('xml-stylesheet', qq'type="text/xsl" href="$url"');
+        }
         $xml->StartElementLiteral('kinetic');
         $xml->AddAttributeLiteral(version => XML_VERSION);
         while (my $object = shift @OBJECTS) {
@@ -288,22 +337,21 @@ my %referenced = (
     references_many => 1,
     part_of_many    => 1,
 );
-
 sub _add_object_to_xml {
     my ($self, $xml, $object) = @_;
-    $xml->StartElementLiteral($object->my_class->key);
-    $xml->AddAttributeLiteral(guid => $object->guid);
+    $xml->StartElementLiteral('instance');
+    $xml->AddAttributeLiteral(key => $object->my_class->key);
 
-    foreach my $attr ($object->my_class->attributes) {
+    foreach my $attr (sort {$a->name cmp $b->name} $object->my_class->attributes) {
         my $name = $attr->name;
-        next if 'guid' eq $name;
         if ($attr->references) {
             my $relationship = $attr->relationship;
             my $object = $attr->get($object);
             if ($referenced{$relationship}) {
                 # just guid
                 my $name = $object->my_class->key;
-                $xml->StartElementLiteral('',$name);
+                $xml->StartElementLiteral('','instance');
+                $xml->AddAttributeLiteral('', key => $name);
                 $xml->AddAttributeLiteral('', guid => $object->guid);
                 $xml->AddAttributeLiteral('', referenced => 1);
                 $xml->EndElement;
@@ -314,7 +362,7 @@ sub _add_object_to_xml {
                 $self->_add_object_to_xml($xml, $object);
             }
         } else {
-            $xml->Element( $name => ($attr->raw($object) || '') );
+            $xml->Element(attr => ($attr->raw($object) || ''), name => $name);
         }
     }
     $xml->EndElement;

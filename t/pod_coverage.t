@@ -19,14 +19,15 @@ diag "Don't forget to update the pod at some point"
 # This was *not* fun to debug
 
 my %exceptions = (
-    'Kinetic::Util::Collection'  => qr/^Iterator$/,
-    'Kinetic::Interface::REST'   => qr/^Dispatch$/,
-    'Kinetic::Store'             => qr/^ASC|DESC|EQ|NE$/,
-    'Kinetic::Store::DB'         => qr/^Incomplete|Iterator|Meta|Search$/,
-    'Kinetic::Store::Lexer'      => qr/^allinput|blocks|iterator_to_stream|make_lexer|tokens|records$/,
-    'Kinetic::Store::Parser::DB' => qr/^Search$/,
-    'Kinetic::Store::Search'     => qr/^Incomplete$/,
-    'Kinetic::XML'               => qr/^XML$/,
+    'Kinetic::Util::Collection'          => qr/^Iterator$/,
+    'Kinetic::Interface::REST'           => qr/^Dispatch$/,
+    'Kinetic::Interface::REST::Dispatch' => qr/^LibXML|LibXSLT$/,
+    'Kinetic::Store'                     => qr/^ASC|DESC|EQ|NE$/,
+    'Kinetic::Store::DB'                 => qr/^Incomplete|Iterator|Meta|Search$/,
+    'Kinetic::Store::Lexer'              => qr/^allinput|blocks|iterator_to_stream|make_lexer|tokens|records$/,
+    'Kinetic::Store::Parser::DB'         => qr/^Search$/,
+    'Kinetic::Store::Search'             => qr/^Incomplete$/,
+    'Kinetic::XML'                       => qr/^XML$/,
 );
 
 my @modules = grep { ! exists $exceptions{$_} } Test::Pod::Coverage::all_modules();

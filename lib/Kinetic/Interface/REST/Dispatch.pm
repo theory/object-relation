@@ -22,6 +22,7 @@ use 5.008003;
 use strict;
 use version;
 use Kinetic::Meta;
+use Kinetic::XML;
 use Kinetic::Meta::XML;
 use Kinetic::Store;
 our $VERSION = version->new('0.0.1');
@@ -32,6 +33,8 @@ use aliased 'XML::LibXSLT';
 use constant TEXT => 'text/plain';
 use constant XML  => 'text/xml';
 use constant HTML => 'text/html';
+
+use constant GUID => qr/[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}/;
 
 =head1 Name
 
@@ -99,7 +102,7 @@ sub echo {
 sub _query_string {
     my $rest = shift;
     my $type = lc $rest->cgi->param('type') || return '';
-    return if 'xml' eq $type; # because this is the default
+    return '' if 'xml' eq $type; # because this is the default
     return "?type=$type";
 }
 
@@ -110,16 +113,20 @@ sub _query_string {
   Kinetic::Interface::REST::Dispatch::_class_list($rest);
 
 This function takes a L<Kinetic::Interface::REST|Kinetic::Interface::REST>
-object and sets its content-type to C<text/xml> and its response to an XML
+instance and sets its content-type to C<text/xml> and its response to an XML
 list of all classes registered with L<Kinetic::Meta|Kinetic::Meta>.
 
 =cut
 
 sub _class_list {
     my ($rest) = @_;
-    if ('stylesheet' eq $rest->cgi->param('type')) {
+    if (my $stylesheet = $rest->cgi->param('stylesheet')) {
+        my $xml = 
+            'browse' eq $stylesheet ? _stylesheet_browse()
+          : 'instance' eq $stylesheet ? _stylesheet_instance()
+          : ''; # not sure how to handle this yet
         $rest->content_type(XML)
-             ->response(_style_sheet());
+             ->response($xml);
         return;
     }
     my $response = _xml_header($rest, 'Available resources');
@@ -143,7 +150,7 @@ END_RESPONSE
   Kinetic::Interface::REST::Dispatch::_resource_list($rest);
 
 This function takes a L<Kinetic::Interface::REST|Kinetic::Interface::REST>
-object and an iterator.  It sets the rest object's content-type to C<text/xml>
+instance and an iterator.  It sets the rest instance's content-type to C<text/xml>
 and its response to an XML list of all resources in the iterator, keyed by
 guid.
 
@@ -153,7 +160,7 @@ my $STORE = Kinetic::Store->new;
 sub _resource_list {
     my ($rest, $iterator) = @_;
 
-    my $response = _xml_header($rest, 'Available objects');
+    my $response = _xml_header($rest, 'Available instances');
 
     my $rest_url_format = _rest_url_format($rest);
     my $num_resources = 0;
@@ -177,7 +184,7 @@ END_RESPONSE
 
   my $rest_url_format = _rest_url_format($rest);
 
-Takes a L<Kinetic::Interface::REST|Kinetic::Interface::REST> object as an
+Takes a L<Kinetic::Interface::REST|Kinetic::Interface::REST> instance as an
 argument.  Returns a URL suitable for embedding in XML or XHTML hrefs.
 Format is the in the form of C<$url%s$query_string>.  This allows setting
 additional REST path info items.
@@ -198,14 +205,14 @@ sub _rest_url_format {
 
   my $response = _xml_header($rest, $title);
 
-Given a rest object title, this method returns an XML header for REST
+Given a rest instance title, this method returns an XML header for REST
 responses.
 
 =cut
 
 sub _xml_header {
     my ($rest, $title) = @_;
-    my $stylesheet = $rest->domain . $rest->path .'?type=stylesheet';
+    my $stylesheet = _stylesheet_url($rest, 'browse');
     return <<"    END_HEADER";
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="$stylesheet"?>
@@ -226,7 +233,7 @@ sub _xml_header {
 Yup, we've overridden C<can>.  Resources are loaded on demand.  This method
 will return a subroutine representing the requested resource.  The subroutine
 should be called directly with the
-L<Kinetic::Interface::REST|Kinetic::Interface::REST> object as an argument.  It
+L<Kinetic::Interface::REST|Kinetic::Interface::REST> instance as an argument.  It
 is B<not> a method because REST is stateless and calling methods does not make
 any sense.
 
@@ -264,11 +271,44 @@ sub can {
         unless (@$path) {
             _resource_list($rest, $iterator);
         }
+        if (1 == @$path && $path->[0] =~ GUID) {
+            my $instance = Kinetic::Store->new->lookup(
+                $kinetic_class,
+                guid => $path->[0]
+            );
+            if ($instance) {
+                my $url = _stylesheet_url($rest, 'instance');
+                my $xml = Kinetic::XML->new({
+                    #stylesheet_url => $url,
+                    instance         => $instance
+                });
+                $rest->content_type(XML)
+                     ->response($xml->dump_xml);
+                return;
+            }
+        }
     };
     package Kinetic::Interface::REST::Dispatch::_;
     no strict 'refs';
     *$resource = $method;
     return $method;
+}
+
+my %stylesheet = (
+    instance => \&_stylesheet_instance,
+    browse => \&_stylesheet_browse,
+);
+sub _stylesheet_url {
+    my ($rest, $sheet) = @_;
+    if (exists $stylesheet{$sheet}) {
+        return $rest->domain.$rest->path.'?stylesheet='.$sheet;
+    }
+    else {
+        $rest->status($rest->NOT_IMPLEMENTED)
+             ->content_type(TEXT)
+             ->response("Unknown stylesheet ($sheet)");
+        return;
+    }
 }
 
 sub _transform {
@@ -277,13 +317,13 @@ sub _transform {
     my $parser    = LibXML->new;
     my $xslt      = LibXSLT->new;
     my $doc       = $parser->parse_string($xml);
-    my $style_doc = $parser->parse_string(_style_sheet());
+    my $style_doc = $parser->parse_string(_stylesheet_browse());
     my $sheet     = $xslt->parse_stylesheet($style_doc);
     my $html      = $sheet->transform($doc);
     return $sheet->output_string($html);
 }
 
-sub _style_sheet {
+sub _stylesheet_browse {
     return <<'    END_STYLE_SHEET';
 <xsl:stylesheet version="1.0"
       xmlns:kinetic="http://www.kineticode.com/rest"
@@ -316,6 +356,45 @@ sub _style_sheet {
           </xsl:attribute>
           <xsl:value-of select="@id" />
         </a>
+      </td>
+    </tr>
+  </xsl:template>
+
+</xsl:stylesheet>
+    END_STYLE_SHEET
+}
+
+sub _stylesheet_instance {
+    return <<'    END_STYLE_SHEET';
+<xsl:stylesheet version="1.0"
+      xmlns:kinetic="http://www.kineticode.com/rest"
+      xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+      xmlns:xlink="http://www.w3.org/1999/xlink"
+      xmlns:fo="http://www.w3.org/1999/XSL/Format">
+
+  <xsl:template match="/">
+    <html>
+    <head><title><xsl:value-of select="/kinetic/instance" /></title></head>
+    <body>
+      <table bgcolor="#eeeeee" border="1">
+      <tr>
+      <th><xsl:value-of select="/kinetic:resources/kinetic:description" /></th>
+      </tr>
+      <xsl:for-each select="/kinetic/instance/">
+        <xsl:apply-templates select="./attr" />
+      </xsl:for-each>
+    </table>
+    </body>
+    </html>
+  </xsl:template>
+  
+  <xsl:template match="attr">
+    <tr>
+      <td>
+          <xsl:value-of select="@name"/>
+      </td>
+      <td>
+          <xsl:value-of select="attr" />
       </td>
     </tr>
   </xsl:template>

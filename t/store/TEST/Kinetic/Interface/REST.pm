@@ -120,9 +120,7 @@ sub _should_run {
     return $should_run;
 }
 
-BEGIN {
-    sig_handlers(0);
-}
+BEGIN { sig_handlers(0) }
 
 sub constructor : Test(14) {
     my $class = 'Kinetic::Interface::REST';
@@ -227,7 +225,7 @@ sub basic_services : Test(7) {
 
     my $expected = <<'    END_XML';
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://www.example.com/rest/?type=stylesheet"?>
+<?xml-stylesheet type="text/xsl" href="http://www.example.com/rest/?stylesheet=browse"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest"
                        xmlns:xlink="http://www.w3.org/1999/xlink">
     <kinetic:description>Available resources</kinetic:description>
@@ -241,10 +239,10 @@ sub basic_services : Test(7) {
 
     $expected = <<'    END_XML';
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://www.example.com/rest/?type=stylesheet"?>
+<?xml-stylesheet type="text/xsl" href="http://www.example.com/rest/?stylesheet=browse"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
-      <kinetic:description>Available objects</kinetic:description>
+      <kinetic:description>Available instances</kinetic:description>
       <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest/one/XXX"/>
       <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest/one/XXX"/>
       <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest/one/XXX"/>
