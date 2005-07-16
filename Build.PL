@@ -45,7 +45,6 @@ my $build = Kinetic::Build->new(
         'Test::Exception'            => 0.20,
         'Test::File'                 => 1.08,
         'Test::File::Contents'       => 0.02, # XXX Update if OS patch applied.
-        'Test::HTTP::Server::Simple' => 0.01,
         'Test::MockModule'           => 0.04,
         'Test::More'                 => 0.17,
         'Test::Output'               => 0.07,

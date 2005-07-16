@@ -9,7 +9,6 @@ use base 'TEST::Class::Kinetic';
 use Test::More;
 use Test::Exception;
 use Test::XML;
-use Test::HTTP::Server::Simple;
 use Encode qw(is_utf8);
 {
     local $^W;
@@ -44,14 +43,14 @@ __PACKAGE__->SKIP_CLASS(
 __PACKAGE__->runtests unless caller;
 
 my $PID;
-sub start_server : Test(startup => 1) {
+sub start_server : Test(startup) {
     my $test = shift;
     my $server = TEST::REST::Server->new({
         domain => 'http://www.example.com/',
         path   => 'rest/',
         args   => [PORT]
     });
-    started_ok($server, 'Test REST server started');
+    $PID = $server->background;
     my $domain = sprintf "%s:%s" => DOMAIN, PORT;
     $test->{REST} = WWW::REST->new("http://$domain");
     my $dispatch = sub {
@@ -60,6 +59,11 @@ sub start_server : Test(startup => 1) {
         return $REST->content;
     };
     $test->{REST}->dispatch($dispatch);
+}
+
+sub shutdown_server : Test(shutdown) {
+    kill 9, $PID if $PID;
+    sleep 2;
 }
 
 sub setup : Test(setup) {
