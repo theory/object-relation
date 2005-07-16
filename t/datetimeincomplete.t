@@ -3,8 +3,8 @@
 # $Id: datetime.t 894 2004-12-04 02:48:49Z curtis $
 
 use strict;
-#use Test::More tests => 32;
-use Test::More 'no_plan';
+use Test::More tests => 47;
+#use Test::More 'no_plan';
 
 my $CLASS;
 BEGIN {
@@ -80,14 +80,14 @@ is_deeply [$date->defined_store_fields], [qw/ year month hour /],
 
 ok defined *is_incomplete_iso8601{CODE}, 
     'is_incomplete_iso8601() should be exported to our namespace';
-ok is_incomplete_iso8601('1964-10-16T17:12:47.0'),
-    '... and it should identify ISO 8601 dates';
-ok is_incomplete_iso8601('1964-10-16T17:12:47'),
+ok ! is_incomplete_iso8601('1964-10-16T17:12:47.0'),
+    '... and it should not identify complete ISO 8601 dates';
+ok ! is_incomplete_iso8601('1964-10-16T17:12:47'),
     '... even if we leave off the nanoseconds';
 ok ! is_incomplete_iso8601('1964-10-16 17:12:47'),
-    '... but it will not match a non-iso date';
+    '... and it will not match a non-iso date';
 ok is_incomplete_iso8601('xxxx-10-16T17:12:47.0'),
-    '... and it should identify incomplete ISO 8601 dates';
+    'It should identify incomplete ISO 8601 dates';
 ok is_incomplete_iso8601('1964-xx-16Txx:12:47'),
     '... even if we leave off the nanoseconds';
 ok ! is_incomplete_iso8601('19xx-10-16 17:12:47'),
@@ -101,4 +101,3 @@ foreach my $segment (qw/year hour minute second/) {
 }
 is 0+$date->month, 7, '... but the month should be correct';
 is $date->day, 14, '... as should the day';
-

@@ -9,7 +9,6 @@ use Test::More;
 use Test::Exception;
 use base 'TEST::Kinetic::Store';
 #use base 'TEST::Class::Kinetic';
-#use lib 't/lib/';
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Meta::Attribute';
@@ -33,16 +32,19 @@ sub _num_recs {
     return $result->[0];
 }
 
+my $debugging = 0;
 sub setup : Test(setup) {
     my $test = shift;
     my $store = Kinetic::Store->new;
     $test->{dbh} = $store->_dbh;
-    $test->{dbh}->begin_work;
-    $test->{dbi_mock} = MockModule->new('DBI::db', no_auto => 1);
-    $test->{dbi_mock}->mock(begin_work => 1);
-    $test->{dbi_mock}->mock(commit => 1);
-    $test->{db_mock} = MockModule->new('Kinetic::Store::DB');
-    $test->{db_mock}->mock(_dbh => $test->{dbh});
+    unless ($debugging) { # give us an easy debugging hook
+        $test->{dbh}->begin_work;
+        $test->{dbi_mock} = MockModule->new('DBI::db', no_auto => 1);
+        $test->{dbi_mock}->mock(begin_work => 1);
+        $test->{dbi_mock}->mock(commit => 1);
+        $test->{db_mock} = MockModule->new('Kinetic::Store::DB');
+        $test->{db_mock}->mock(_dbh => $test->{dbh});
+    }
     my $foo = One->new;
     $foo->name('foo');
     $store->save($foo);
@@ -57,9 +59,14 @@ sub setup : Test(setup) {
 
 sub teardown : Test(teardown) {
     my $test = shift;
-    delete($test->{dbi_mock})->unmock_all;
-    $test->{dbh}->rollback unless $test->{dbh}->{AutoCommit};
-    delete($test->{db_mock})->unmock_all;
+    if ($debugging) {
+        $test->{dbh}->commit;
+    }
+    else {
+        delete($test->{dbi_mock})->unmock_all;
+        $test->{dbh}->rollback unless $test->{dbh}->{AutoCommit};
+        delete($test->{db_mock})->unmock_all;
+    }
 }
 
 sub shutdown : Test(shutdown) {

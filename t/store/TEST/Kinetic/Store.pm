@@ -36,14 +36,11 @@ sub _all_items {
     return @iterator;
 }
 
-my $should_run;
 sub _should_run {
-    return $should_run if defined $should_run;
     my $test    = shift;
     my $store   = Store->new;
     my $package = ref $store;
-    $should_run = ref $test eq "TEST::$package";
-    return $should_run;
+    return ref $test eq "TEST::$package";
 }
 
 sub save : Test(10) {

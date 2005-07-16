@@ -133,12 +133,12 @@ sub contiguous {
 =head3 is_incomplete_iso8601
 
   use Kinetic::DateTime::Incomplete qw/is_incomplete_iso8601/;
-  if (is_incomplete_iso8601('1964-10-16T16:12:47.0')) {
+  if (is_incomplete_iso8601('1964-xx-16T16:12:47.0')) {
     ...
   }
 
-Returns a true or false value depending upon whether or not the supplied
-string matches an ISO 8601 datetime string.  This is a function, not a 
+Returns a true or false value depending upon whether or not the supplied string
+matches an incomplete ISO 8601 datetime string.  This is a function, not a
 method.
 
 If a particular date segment is not present, it may be replaced with 'Xs'.
@@ -148,9 +148,14 @@ present, omit them.
 
 Currently ignores timezone.
 
+It won't match:
+
+ 1964-10-16T17:12:47.0 # the date is not incomplete
+ 1964-10-16 17:12:47.0 # missing the "T"
+ xx64-10-16T17:12:47.0 # year segment only partially replaced
+
 Valid incomplete datetime strings:
 
- 1964-10-16T17:12:47.0 
  xxxx-10-16T17:12:47.0 
  1964-xx-16T17:12:47.0 
  1964-xx-xxT17:xx:xx.0 
@@ -160,6 +165,7 @@ Valid incomplete datetime strings:
 
 sub is_incomplete_iso8601 {
     my $date = shift || return;
+    return unless $date =~ /x/; # must have at least one incomplete date segment
     return $date =~ /^
         (?:\d\d\d\d|xxxx)  # year
         -

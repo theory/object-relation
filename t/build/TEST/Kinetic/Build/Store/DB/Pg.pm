@@ -1172,6 +1172,7 @@ sub db_cleanup {
             'SELECT 1 FROM pg_stat_activity where datname = ?',
             undef, $self->{conf}{pg}{db_name}
         );
+        sleep 2;
 
         for (my $i = 0; $i < 5; $i++) {
             # This might fail a couple of times as we wait for the database
