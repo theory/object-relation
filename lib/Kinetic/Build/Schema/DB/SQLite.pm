@@ -70,7 +70,7 @@ my %types = (
     boolean  => 'SMALLINT',
     whole    => 'INTEGER',
     state    => 'INTEGER',
-    datetime => 'TEXT',
+    datetime => 'DATETIME',
 );
 
 sub column_type {

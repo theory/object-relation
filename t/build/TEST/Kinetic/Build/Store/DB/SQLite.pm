@@ -19,7 +19,7 @@ sub test_class_methods : Test(8) {
     my $class = $test->test_class;
     is $class->info_class, 'App::Info::RDBMS::SQLite',
       'We should have the correct App::Info class';
-    is $class->min_version, '3.0.8',
+    is $class->min_version, '3.2.0',
       'We should have the correct minimum version number';
     is $class->max_version, 0,
       'We should have the correct maximum version number';
@@ -66,7 +66,7 @@ sub test_rules : Test(28) {
       '... or if SQLite is not the minumum supported version';
 
     # Test when everything is cool.
-    $info->mock(version => '3.0.8');
+    $info->mock(version => '3.2.0');
     $mb->mock(get_reply => 'fooness');
     ok $kbs->validate,
       '... and it should return a true value if everything is ok';

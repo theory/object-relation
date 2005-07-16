@@ -52,14 +52,6 @@ overriding C<Kinetic::Store::DB> methods as needed.
 
 ##############################################################################
 
-sub _cast_as_int {
-    my ($self, @tokens) = @_;
-    # that "abs()" forces SQLite to cast the result as a number, thus allowing
-    # a proper numeric comparison.  Otherwise, the substr forces SQLite to
-    # treat it as a string, causing the SQL to not match our expectations.
-    return 'abs('. join(' || ' => @tokens) .')';
-}
-
 =head3 _fetchrow_hashref
 
   $store->_fetchrow_hashref($sth);
@@ -149,29 +141,25 @@ sub _is_case_sensitive {}
 
 ##############################################################################
 
-# XXX We should probably switch from substr() to strftime() and require
-# SQLite 3.2.0 or later. That will allow more flexible years (before 1000 and
-# after 9999, not to mention dates BCE. But see
-# http://sqlite.org/cvstrac/tktview?tn=1190 for the Year 10000 problem.
 my @DATE = (
-    [year   => [1, 4]], # XXX Years before 1000 and after 9999 are not supported.
-    [month  => [6, 2]],
-    [day    => [9, 2]],
-    [hour   => [12,2]],
-    [minute => [15,2]],
-    [second => [18,2]],
+    [year   => '%Y'], # XXX Years before 1000 and after 9999 are not supported.
+    [month  => '%m'],
+    [day    => '%d'],
+    [hour   => '%H'],
+    [minute => '%M'],
+    [second => '%S'],
 );
 
 sub _field_format {
     my ($self, $field, $date) = @_;
     my @tokens;
     foreach my $date_data (@DATE) {
-        my ($segment, $idx) = @$date_data;
+        my ($segment, $fmt) = @$date_data;
         my $value = $date->$segment;
         next unless defined $value;
-        push @tokens => "substr($field, $idx->[0], $idx->[1])";
+        push @tokens => "strftime('$fmt', $field)";
     }
-    return $self->_cast_as_int(@tokens);
+    return join(' || ' => @tokens);
 }
 
 ##############################################################################

@@ -113,7 +113,7 @@ sub test_rules : Test(27) {
       '... or if SQLite is not the minumum supported version';
 
     # Test when everything is cool.
-    $info->mock(version => '3.0.8');
+    $info->mock(version => '3.2.2');
     $mb->mock(prompt => 'fooness');
     ok $kbs->validate,
       '... and it should return a true value if everything is ok';

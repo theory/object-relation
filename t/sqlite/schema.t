@@ -273,7 +273,7 @@ $table = q{CREATE TABLE simple_two (
     id INTEGER NOT NULL PRIMARY KEY REFERENCES _simple(id) ON DELETE CASCADE,
     one_id INTEGER NOT NULL REFERENCES simple_one(id) ON DELETE RESTRICT,
     age INTEGER,
-    date TEXT NOT NULL
+    date DATETIME NOT NULL
 );
 };
 

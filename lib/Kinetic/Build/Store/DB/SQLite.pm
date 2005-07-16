@@ -70,7 +70,7 @@ data store application. Must be overridden in subclasses.
 
 =cut
 
-sub min_version { '3.0.8' }
+sub min_version { '3.2.0' }
 
 =head3 dbd_class
 

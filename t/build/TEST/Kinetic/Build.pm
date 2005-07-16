@@ -34,10 +34,10 @@ sub atest_process_conf_files : Test(14) {
     file_not_exists_ok 't/conf/kinetic.conf',
       "Nor should there be a t/conf config file";
 
-    # We can make sure thing work with the default SQLite store.
+    # We can make sure things work with the default SQLite store.
     my $info = MockModule->new('App::Info::RDBMS::SQLite');
     $info->mock(installed => 1);
-    $info->mock(version => '3.0.8');
+    $info->mock(version => '3.2.2');
 
     # I mock thee, builder!
     my $builder;
@@ -88,6 +88,12 @@ sub test_props : Test(10) {
     my $class = $self->test_class;
     my $mb = MockModule->new($class);
     $mb->mock(check_manifest => sub { return });
+
+    # We can make sure things work with the default SQLite store.
+    my $info = MockModule->new('App::Info::RDBMS::SQLite');
+    $info->mock(installed => 1);
+    $info->mock(version => '3.2.2');
+
     my $builder = $self->new_builder;
     $self->{builder} = $builder;
     is $builder->accept_defaults, 1, 'Accept Defaults should be enabled';
@@ -136,7 +142,7 @@ sub test_check_store : Test(6) {
     # We can make sure thing work with the default SQLite store.
     my $info = MockModule->new('App::Info::RDBMS::SQLite');
     $info->mock(installed => 1);
-    $info->mock(version => '3.0.8');
+    $info->mock(version => '3.2.2');
 
     $builder = $self->new_builder;
     can_ok $builder, 'check_store';
@@ -172,6 +178,12 @@ sub test_config_action : Test(4) {
     $mb->mock(resume => sub { $builder });
     $mb->mock('ACTION_code' => 0);
     my $base = catdir '', 'foo', 'bar';
+
+    # We can make sure things work with the default SQLite store.
+    my $info = MockModule->new('App::Info::RDBMS::SQLite');
+    $info->mock(installed => 1);
+    $info->mock(version => '3.2.2');
+
     $builder = $self->new_builder(install_base => $base);
     $self->{builder} = $builder;
     can_ok $builder, 'ACTION_config';
