@@ -853,7 +853,6 @@ be generated.
 
 sub _make_where_clause {
     my ($self, $search_request) = @_;
-    my $r2 = clone($search_request);
     return ('', []) unless @$search_request && $search_request->[0];
     my $stream = $self->{search_type} eq 'CODE' # XXX we may need to clean this up later
         ? code_lexer_stream($search_request)
