@@ -1,6 +1,6 @@
 package TEST::Kinetic::Store;
 
-    # $Id: Store.pm 1094 2005-01-11 19:09:08Z curtis $
+# $Id: Store.pm 1094 2005-01-11 19:09:08Z curtis $
 
 use strict;
 use warnings;
@@ -1609,6 +1609,92 @@ sub order_by : Test(4) {
         'and we should be able to handle multiple sort parameters';
 
     $iterator = $store->search($class, {order_by => 'age', sort_order => DESC});
+    @results = $test->_all_items($iterator);
+    is_deeply \@results, [$baz, $foo, $bar],
+        'and we can combine single items order_by and sort parameters';
+}
+
+sub string_order_by : Test(6) {
+    my $test = shift;
+    return unless $test->_should_run;
+    my $foo = Two->new;
+    my $store = Store->new;
+    $foo->name('foo');
+    $foo->age(29);
+    $foo->one->name('foo_name');
+    $store->save($foo);
+
+    my $bar = Two->new;
+    $bar->name('foo');
+    $bar->age(13);
+    $bar->one->name('bar_name');
+    $store->save($bar);
+
+    my $baz = Two->new;
+    $baz->age(33);
+    $baz->name('snorfleglitz');
+    $baz->one->name('snorfleglitz_rulez_d00d');
+    $store->save($baz);
+    my $class = $foo->my_class;
+
+    throws_ok {
+        $store->search(
+            $class, 
+            STRING   => '',
+            order_by => 'name', 'sort_order'
+        );
+    }
+        'Kinetic::Util::Exception::Fatal::Search',
+        'An odd number of constraints should throw an exception';
+    my $iterator = $store->search(
+        $class, 
+        STRING   => '',
+        order_by => 'name'
+    );
+    my @results = $test->_all_items($iterator);
+    if ($results[0]->age < $results[1]->age) {
+        @results[0,1] = @results[1,0];
+    }
+    is_deeply \@results, [$foo, $bar, $baz],
+        'String order_by constraints should work properly';
+
+# XXX don't forgot about ordering by non-existent attributes
+    $iterator = $store->search($class, 
+        STRING   => '',
+        order_by => 'name',
+        order_by => 'age',
+    );
+    @results = $test->_all_items($iterator);
+    is_deeply \@results, [$bar, $foo, $baz],
+        'even if we have more than one order_by constraint';
+
+    $iterator = $store->search($class,
+        STRING     => '',
+        order_by   => 'name',
+        sort_order => 'ASC',
+        order_by   => 'age',
+        sort_order => 'DESC',
+    );
+    @results = $test->_all_items($iterator);
+    is_deeply \@results, [$foo, $bar, $baz],
+        'and we should be able to handle multiple sort parameters';
+
+    $iterator = $store->search($class,
+        STRING     => '',
+        order_by   => 'name',
+        order_by   => 'age',
+        sort_order => 'ASC',
+        sort_order => 'DESC',
+    );
+    @results = $test->_all_items($iterator);
+    is_deeply \@results, [$foo, $bar, $baz],
+        '... even if they do not immediately follow the corresponding order_by param';
+
+    $iterator = $store->search($class, 
+        STRING     => '',
+        order_by   => 'age', 
+        sort_order => 'DESC'
+    );
     @results = $test->_all_items($iterator);
     is_deeply \@results, [$baz, $foo, $bar],
         'and we can combine single items order_by and sort parameters';

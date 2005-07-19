@@ -19,15 +19,14 @@ package Kinetic::Store::Parser::DB;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use Scalar::Util 'blessed';
 use Exporter::Tidy default => ['parse'];
-use constant OBJECT_DELIMITER => '__'; # XXX push this to Store/DB.pm
 
-use Kinetic::Store::Parser    ':all';
+use Kinetic::Store::Parser        qw/:all/;
 use Kinetic::Store::Search;
-use Kinetic::Util::Exceptions 'throw_search';
-use Kinetic::Util::Stream     ':all';
-use Kinetic::DateTime::Incomplete 'is_incomplete_iso8601';
+use Kinetic::Util::Constants      qw/:data_store/;
+use Kinetic::Util::Exceptions     qw/throw_search/;
+use Kinetic::Util::Stream         qw/:all/;
+use Kinetic::DateTime::Incomplete qw/is_incomplete_iso8601/;
 
 =head1 Name
 

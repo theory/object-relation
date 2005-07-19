@@ -25,16 +25,11 @@ use Kinetic::Meta;
 use Kinetic::XML;
 use Kinetic::Meta::XML;
 use Kinetic::Store;
+use Kinetic::Util::Constants qw/:http :data_store/;
 our $VERSION = version->new('0.0.1');
 
 use aliased 'XML::LibXML';
 use aliased 'XML::LibXSLT';
-
-use constant TEXT => 'text/plain';
-use constant XML  => 'text/xml';
-use constant HTML => 'text/html';
-
-use constant GUID => qr/[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}/;
 
 =head1 Name
 
@@ -95,7 +90,7 @@ sub echo {
     foreach my $param (sort $cgi->param) {
         $response .= ".$param.@{[$cgi->param($param)]}";
     }
-    $rest->content_type(TEXT)
+    $rest->content_type(TEXT_CT)
          ->response($response);
 }
 
@@ -121,11 +116,8 @@ list of all classes registered with L<Kinetic::Meta|Kinetic::Meta>.
 sub _class_list {
     my ($rest) = @_;
     if (my $stylesheet = $rest->cgi->param('stylesheet')) {
-        my $xml = 
-            'browse' eq $stylesheet ? _stylesheet_browse()
-          : 'instance' eq $stylesheet ? _stylesheet_instance()
-          : ''; # not sure how to handle this yet
-        $rest->content_type(XML)
+        my $xml = $rest->stylesheet;
+        $rest->content_type(XML_CT)
              ->response($xml);
         return;
     }
@@ -139,7 +131,7 @@ sub _class_list {
 END_RESPONSE
     }
     $response .= "</kinetic:resources>";
-    $rest->content_type(XML)
+    $rest->content_type(XML_CT)
          ->response($response);
 }
 
@@ -174,7 +166,7 @@ END_RESPONSE
         $response .= '       <kinetic:resource id="No resources found" xlink:href=""/>';
     }
     $response .= "</kinetic:resources>";
-    $rest->content_type(XML)
+    $rest->content_type(XML_CT)
          ->response($response);
 }
 
@@ -212,7 +204,7 @@ responses.
 
 sub _xml_header {
     my ($rest, $title) = @_;
-    my $stylesheet = _stylesheet_url($rest, 'browse');
+    my $stylesheet = $rest->stylesheet_url('browse');
     return <<"    END_HEADER";
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="$stylesheet"?>
@@ -271,18 +263,18 @@ sub can {
         unless (@$path) {
             _resource_list($rest, $iterator);
         }
-        if (1 == @$path && $path->[0] =~ GUID) {
+        if (1 == @$path && $path->[0] =~ GUID_RE) {
             my $instance = Kinetic::Store->new->lookup(
                 $kinetic_class,
                 guid => $path->[0]
             );
             if ($instance) {
-                my $url = _stylesheet_url($rest, 'instance');
+                my $url = $rest->stylesheet_url('instance');
                 my $xml = Kinetic::XML->new({
-                    #stylesheet_url => $url,
-                    instance         => $instance
+                    stylesheet_url => $url,
+                    object         => $instance
                 });
-                $rest->content_type(XML)
+                $rest->content_type(XML_CT)
                      ->response($xml->dump_xml);
                 return;
             }
@@ -294,113 +286,16 @@ sub can {
     return $method;
 }
 
-my %stylesheet = (
-    instance => \&_stylesheet_instance,
-    browse => \&_stylesheet_browse,
-);
-sub _stylesheet_url {
-    my ($rest, $sheet) = @_;
-    if (exists $stylesheet{$sheet}) {
-        return $rest->domain.$rest->path.'?stylesheet='.$sheet;
-    }
-    else {
-        $rest->status($rest->NOT_IMPLEMENTED)
-             ->content_type(TEXT)
-             ->response("Unknown stylesheet ($sheet)");
-        return;
-    }
-}
-
 sub _transform {
-    my $xml       = shift;
+    my ($xml, $rest) = @_;
 
     my $parser    = LibXML->new;
     my $xslt      = LibXSLT->new;
     my $doc       = $parser->parse_string($xml);
-    my $style_doc = $parser->parse_string(_stylesheet_browse());
+    my $style_doc = $parser->parse_string($rest->stylesheet);
     my $sheet     = $xslt->parse_stylesheet($style_doc);
     my $html      = $sheet->transform($doc);
     return $sheet->output_string($html);
-}
-
-sub _stylesheet_browse {
-    return <<'    END_STYLE_SHEET';
-<xsl:stylesheet version="1.0"
-      xmlns:kinetic="http://www.kineticode.com/rest"
-      xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-      xmlns:xlink="http://www.w3.org/1999/xlink"
-      xmlns:fo="http://www.w3.org/1999/XSL/Format">
-
-  <xsl:template match="/">
-    <html>
-    <head><title><xsl:value-of select="/kinetic:resources/kinetic:description" /></title></head>
-    <body>
-      <table bgcolor="#eeeeee" border="1">
-      <tr>
-      <th><xsl:value-of select="/kinetic:resources/kinetic:description" /></th>
-      </tr>
-      <xsl:for-each select="kinetic:resources">
-        <xsl:apply-templates select="./kinetic:resource" />
-      </xsl:for-each>
-    </table>
-    </body>
-    </html>
-  </xsl:template>
-  
-  <xsl:template match="kinetic:resource">
-    <tr>
-      <td>
-        <a>
-          <xsl:attribute name="href">
-            <xsl:value-of select="@xlink:href"/>
-          </xsl:attribute>
-          <xsl:value-of select="@id" />
-        </a>
-      </td>
-    </tr>
-  </xsl:template>
-
-</xsl:stylesheet>
-    END_STYLE_SHEET
-}
-
-sub _stylesheet_instance {
-    return <<'    END_STYLE_SHEET';
-<xsl:stylesheet version="1.0"
-      xmlns:kinetic="http://www.kineticode.com/rest"
-      xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-      xmlns:xlink="http://www.w3.org/1999/xlink"
-      xmlns:fo="http://www.w3.org/1999/XSL/Format">
-
-  <xsl:template match="/">
-    <html>
-    <head><title><xsl:value-of select="/kinetic/instance" /></title></head>
-    <body>
-      <table bgcolor="#eeeeee" border="1">
-      <tr>
-      <th><xsl:value-of select="/kinetic:resources/kinetic:description" /></th>
-      </tr>
-      <xsl:for-each select="/kinetic/instance/">
-        <xsl:apply-templates select="./attr" />
-      </xsl:for-each>
-    </table>
-    </body>
-    </html>
-  </xsl:template>
-  
-  <xsl:template match="attr">
-    <tr>
-      <td>
-          <xsl:value-of select="@name"/>
-      </td>
-      <td>
-          <xsl:value-of select="attr" />
-      </td>
-    </tr>
-  </xsl:template>
-
-</xsl:stylesheet>
-    END_STYLE_SHEET
 }
 
 1;

@@ -148,9 +148,6 @@ sub _get_hash_from_xml {
     ) {
         $data = _rewrite_xml_hash($data);
     }
-    #use Data::Dumper::Simple;
-    #print Dumper($data);
-    #<STDIN>;
     return $data;
 }
 

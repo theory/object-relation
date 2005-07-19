@@ -101,8 +101,14 @@ our %Lexicon = (
   'Could not parse search request',
   'Could not parse search request',
 
+  'Failed to convert IR to where clause.  This should not happen.',
+  'Failed to convert IR to where clause.  This should not happen.',
+
   'I don\'t know how to search for "[_1] [_2] [_3]"',
   "I don't know how to search for “[_1] [_2] [_3]”",
+
+  'Odd number of constraints in string search:  "[_1]"',
+  "Odd number of constraints in string search “[_1]”",
 
   'Search operators can never be more than two deep: "[_1] [_2] [_3] [_4]"',
   "Search operators can never be more than two deep:  “[_1] [_2] [_3] [_4]”",

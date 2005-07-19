@@ -22,12 +22,9 @@ use 5.008003;
 use strict;
 use version;
 our $VERSION = version->new('0.0.1');
+use Kinetic::Util::Constants qw/:http/;
 use Kinetic::Util::Exceptions qw/:all/;
 use aliased 'Kinetic::Interface::REST::Dispatch';
-
-use constant TEXT => 'text/plain';
-use constant XML  => 'text/xml';
-use constant HTML => 'text/html';
 
 =head1 Name
 
@@ -97,8 +94,8 @@ sub _validate_args {
         ];
     }
     $args{domain} .= '/' unless $args{domain} =~ /\/$/;
-    $args{path}    =~ s/^\///;
     $args{path}   .= '/' unless $args{path} =~ /\/$/;
+    $args{path}    =~ s/^\///;
 
     return %args;
 }
@@ -143,15 +140,15 @@ sub handle_request {
         };
         if ($@) {
             my $info = $cgi->path_info;
-            $self->status($self->INTERNAL_SERVER_ERROR)
+            $self->status(INTERNAL_SERVER_ERROR_STATUS)
                  ->response("Fatal error handling $info: $@");
         }
         else {
-            $self->status($self->OK) unless $self->status;
+            $self->status(OK_STATUS) unless $self->status;
         }
     }
     else {
-        $self->status($self->NOT_IMPLEMENTED)
+        $self->status(NOT_IMPLEMENTED_STATUS)
              ->response("No resource available to handle ($resource)");
     }
     return $self;
@@ -225,6 +222,9 @@ sub content_type {
 
 If the call to C<handle_request> succeeded, this method will return the 
 cgi object.
+
+In general, we wish to limit access to this as much as possible, so use
+sparingly.
 
 =cut
 
@@ -319,61 +319,153 @@ sub resource_path {
 
 ##############################################################################
 
-=head2 HTTP Responses
+=head3 stylesheet
 
-HTTP Responses are implemented as "read only" class methods.  These are not
-constants because the dispatch class will be calling them, too.
+  my $stylesheet = $rest->stylesheet;
+
+Returns XSLT stylesheet for the requested resource.
 
 =cut
+
+my %STYLESHEET = (
+    instance => \&_stylesheet_instance,
+    browse   => \&_stylesheet_browse,
+);
+sub stylesheet {
+    my $self = shift;
+    my $sheet = $self->cgi->param('stylesheet') || return; # XXX not implemented?
+    if (my $ref = $STYLESHEET{$sheet}) {
+        return $ref->();
+    }
+}
+
 
 ##############################################################################
 
-=head3 OK
+=head3 stylesheet_url
 
-  $rest->OK;
+  my $url = $rest->stylesheet_url('instance');
 
-C<200 OK>
-
-This response will be set if the request was successful.
+Returns a URL which will return the requested stylesheet type.
 
 =cut
 
-sub OK                    { '200 OK' }
-
-##############################################################################
-
-=head3 INTERNAL_SERVER_ERROR
-
-  $rest->INTERNAL_SERVER_ERROR;
-
-C<500 Internal Server Error>
-
-This response will be set if the request fails catastrophically (should not
-happen).
-
-=cut
-
-sub INTERNAL_SERVER_ERROR { '500 Internal Server Error' }
-
-##############################################################################
-
-=head3 NOT_IMPLEMENTED
-
-  $rest->NOT_IMPLEMENTED;
-
-C<501 Not Implemented>
-
-This response will be set if the client requests an unknown respource.
-
-=cut
-
-sub NOT_IMPLEMENTED       { '501 Not Implemented' }
+sub stylesheet_url {
+    my ($rest, $sheet) = @_;
+    if (exists $STYLESHEET{$sheet}) {
+        return $rest->domain.$rest->path.'?stylesheet='.$sheet;
+    }
+    else {
+        $rest->status(NOT_IMPLEMENTED_STATUS)
+             ->content_type(TEXT_CT)
+             ->response("Unknown stylesheet ($sheet)");
+        return;
+    }
+}
 
 ##############################################################################
 
 =begin private
 
 =head2 Private Instance Methods
+
+
+=cut
+
+sub _stylesheet_browse {
+    return <<'    END_STYLE_SHEET';
+<xsl:stylesheet version="1.0"
+      xmlns:kinetic="http://www.kineticode.com/rest"
+      xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+      xmlns:xlink="http://www.w3.org/1999/xlink"
+      xmlns:fo="http://www.w3.org/1999/XSL/Format"
+      xmlns="http://www.w3.org/1999/xhtml">
+
+  <xsl:output method="xml"
+    doctype-public="-//W3C//DTD XHTML 1.0 Strict//EN"  
+    doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"
+      indent="yes"/>
+
+  <xsl:template match="/">
+    <html>
+      <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <title><xsl:value-of select="/kinetic:resources/kinetic:description" /></title>
+      </head>
+      <body>
+        <table bgcolor="#eeeeee" border="1">
+          <tr>
+            <th><xsl:value-of select="/kinetic:resources/kinetic:description" /></th>
+          </tr>
+          <xsl:for-each select="kinetic:resources">
+            <xsl:apply-templates select="./kinetic:resource" />
+          </xsl:for-each>
+        </table>
+      </body>
+    </html>
+  </xsl:template>
+  
+  <xsl:template match="kinetic:resource">
+    <tr>
+      <td>
+        <a>
+          <xsl:attribute name="href">
+            <xsl:value-of select="@xlink:href"/>
+          </xsl:attribute>
+          <xsl:value-of select="@id" />
+        </a>
+      </td>
+    </tr>
+  </xsl:template>
+
+</xsl:stylesheet>
+    END_STYLE_SHEET
+}
+
+sub _stylesheet_instance {
+    return <<'    END_STYLE_SHEET';
+<xsl:stylesheet version="1.0"
+      xmlns:kinetic="http://www.kineticode.com/rest"
+      xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+      xmlns:xlink="http://www.w3.org/1999/xlink"
+      xmlns:fo="http://www.w3.org/1999/XSL/Format"
+      xmlns="http://www.w3.org/1999/xhtml">
+
+  <xsl:output method="xml"
+    doctype-public="-//W3C//DTD XHTML 1.0 Strict//EN"  
+    doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"
+      indent="yes"/>
+
+  <xsl:template match="/">
+    <html>
+    <head><title><xsl:value-of select="/kinetic/instance/@key" /></title></head>
+    <body>
+      <table bgcolor="#eeeeee" border="1">
+      <tr>
+      <th><xsl:value-of select="/kinetic:resources/kinetic:description" /></th>
+      </tr>
+      <xsl:for-each select="/kinetic/instance/">
+        <xsl:apply-templates select="./attr" />
+      </xsl:for-each>
+    </table>
+    </body>
+    </html>
+  </xsl:template>
+  
+  <xsl:template match="attr">
+    <tr>
+      <td>
+          <xsl:value-of select="@name"/>
+      </td>
+      <td>
+          <xsl:value-of select="attr" />
+      </td>
+    </tr>
+  </xsl:template>
+
+</xsl:stylesheet>
+    END_STYLE_SHEET
+}
 
 =end private
 

@@ -21,21 +21,18 @@ package Kinetic::Store::DB;
 use strict;
 use base qw(Kinetic::Store);
 use DBI;
-use Scalar::Util qw(blessed);
-use Kinetic::Util::Exceptions qw(:all);
-use Kinetic::Store::Parser::DB qw/parse/;
+
+use Kinetic::Util::Exceptions     qw/:all/;
+use Kinetic::Store                qw/:sorting/;
+use Kinetic::Store::Parser::DB    qw/parse/;
 use Kinetic::Store::Lexer::Code   qw/code_lexer_stream/;
 use Kinetic::Store::Lexer::String qw/string_lexer_stream/;
+use Kinetic::Util::Constants      qw/:data_store/;
 
-use aliased 'Kinetic::Meta' => 'Meta', qw(:with_dbstore_api);
+use aliased 'Kinetic::Meta' => 'Meta', qw/:with_dbstore_api/;
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::DateTime::Incomplete';
 use aliased 'Kinetic::Store::Search';
-
-use constant GROUP_OP         => qr/^(?:AND|OR)$/;
-use constant OBJECT_DELIMITER => '__';
-use constant PREPARE          => 'prepare';
-use constant CACHED           => 'prepare_cached';
 
 my %SEARCH_TYPES = map { $_ => 1 } qw/CODE STRING XML/;
 
@@ -428,6 +425,35 @@ them.  This allows us to do this:
     order_by => 'name'
   );
 
+  # or
+  $store->search($class,
+    STRING     => 'name => "foo"',
+    order_by   => 'name'
+    sort_order => 'DESC',
+  );
+
+  # or
+  $store->search($class,
+    STRING     => 'name => "foo"',
+    order_by   => 'name'
+    sort_order => 'DESC',
+    order_by   => 'age'
+    sort_order => 'ASC',
+  );
+
+Note that if multiple C<order_by> parameters are present in a string search and
+one C<sort_order> parameter is present, the C<sort_order> parameters merely
+have to be in the same order as the C<order_by> parameters.  They are not
+required to immediately follow them.
+
+  $store->search($class,
+    STRING     => 'name => "foo"',
+    order_by   => 'name'
+    order_by   => 'age'
+    sort_order => 'DESC',
+    sort_order => 'ASC',
+  );
+
 =cut
 
 sub _set_search_type {
@@ -438,7 +464,24 @@ sub _set_search_type {
             ? shift @$search_params
             : 'CODE';
     if ($self->{search_type} eq 'STRING' && @$search_params > 1) {
-        my %constraints = splice @$search_params, 1;
+        my @constraints = splice @$search_params, 1;
+        if (@constraints % 2) {
+            throw_search [
+                'Odd number of constraints in string search:  "[_1]"',
+                join ', ' => @constraints
+            ];
+        }
+        my %constraints;
+        while (my ($constraint, $value) = splice @constraints, 0, 2) {
+            $value = ASC  if 'ASC' eq uc $value;  # convert to search subs
+            $value = DESC if 'DESC' eq uc $value;  # convert to search subs
+            if (exists $constraints{$constraint}) {
+                push @{$constraints{$constraint}} => $value;
+            }
+            else {
+                $constraints{$constraint} = [$value];
+            }
+        }
         $search_params->[1] = \%constraints;
     }
     $self;
@@ -888,7 +931,7 @@ sub _convert_ir_to_where_clause {
             push @bind  => @$bind;
         }
         else {
-            # XXX panic
+            panic 'Failed to convert IR to where clause.  This should not happen.',
         }
         unless ($where[-1] =~ GROUP_OP) {
             push @where => 'AND';
