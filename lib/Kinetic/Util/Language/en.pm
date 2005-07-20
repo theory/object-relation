@@ -89,6 +89,9 @@ our %Lexicon = (
   'Required argument "[_1]" to [_2] not found',
   "Required argument “[_1]” to [_2] not found",
 
+  'Required attribute "[_1]" not set',
+  "Required attribute “[_1]” not set",
+
   'XML must have a version number.',
   'XML must have a version number.',
 
@@ -175,6 +178,9 @@ our %Lexicon = (
   
   "Unknown attributes to [_1]: [_2]",
   "Unknown attributes to [_1]: [_2]",
+
+  "Unknown stylesheet requested: [_1]",
+  "Unknown stylesheet requested: [_1]",
 
   "BETWEEN searches must be between identical types. You have ([_1]) and ([_2])",
   "BETWEEN searches must be between identical types. You have ([_1]) and ([_2])",

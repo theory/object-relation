@@ -162,7 +162,7 @@ sub test_can : Test(4) {
     $sub->($rest); # return values are not guaranteed
     my $expected = <<'    END_XML';
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=browse"?>
+<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=REST"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
@@ -186,7 +186,7 @@ sub class_list : Test(2) {
     $class_list->($rest);
     my $expected = <<'    END_XML';
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=browse"?>
+<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=REST"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">   
       <kinetic:description>Available resources</kinetic:description>
@@ -216,105 +216,6 @@ sub url_format : Test(5) {
     $test->_query_string(qw/type xml/);
     is $rest_url_format->($rest), 'http://somehost.com/rest/one/%s',
         '... unless it is set to type=xml';
-}
-
-sub transform_xml_to_html : Test(no_plan) {
-    my $test = shift;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
-
-    # we don't use can_ok because of the way &can is overridden
-    ok my $class_list = *Kinetic::Interface::REST::Dispatch::_class_list{CODE},
-        '_class_list() is defined in the Dispatch package';
-    my $rest = $test->{rest};
-    $class_list->($rest);
-
-    $test->_query_string(qw/stylesheet browse/);
-    ok my $transform = *Kinetic::Interface::REST::Dispatch::_transform{CODE},
-        '_transform() is defined in the Dispatch package';
-
-    my $html = $transform->($rest->response, $rest);
- 
-    my $expected = <<'    END_HTML';
-<?xml version="1.0"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
- <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Available resources</title>
-  </head>
-  <body>
-    <table bgcolor="#eeeeee" border="1">
-     <tr><th>Available resources</th></tr>
-     <tr><td><a href="http://somehost.com/rest/one">one</a></td></tr>
-     <tr><td><a href="http://somehost.com/rest/simple">simple</a></td></tr>
-     <tr><td><a href="http://somehost.com/rest/two">two</a></td></tr>
-    </table>
-  </body>
-</html>
-    END_HTML
-    is_xml $html, $expected, '... and the resource xml should be tranformed into the correct HTML';
-
-    my $key  = One->my_class->key;
-    my $sub = Dispatch->can($key);
-    $test->_path_info('one');
-    $sub->($rest);
-    $expected = <<'    END_HTML';
-<?xml version="1.0"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
- <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Available instances</title>
-  </head>
-  <body>
-    <table bgcolor="#eeeeee" border="1">
-      <tr><th>Available instances</th></tr>
-      <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
-      <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
-      <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
-    </table>
-  </body>
-</html>
-    END_HTML
-    $html = $transform->($rest->response, $rest);
-    $html =~ s/@{[GUID_RE]}/XXX/g;
-    is_xml $html, $expected, '... and the list of instances should be transformed correctly';
-
-    $test->_query_string(qw/stylesheet instance/);
-    $test->_path_info('one/'.$foo->guid);
-    $sub->($rest);
-    $expected = <<'    END_HTML';
-<html xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
-<head>
-<title>Available instances</title>
-</head>
-<body><table bgcolor="#eeeeee" border="1">
-<tr><th>Available instances</th></tr>
-<tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
-<tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
-<tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
-</table></body>
-</html>
-    END_HTML
-
-    diag 'Finish object XSLT';
-    return;
-    $html = $transform->($rest->response, $rest);
-    $html =~ s/@{[GUID_RE]}/XXX/g;
-    #is_xml $html, $expected, '... and the instance XML should be transformed correctly';
-    diag $html;
-    diag $rest->response;
-    <<'    END_XML';
-    <?xml-stylesheet type="text/xsl" href="http://localhost:9000/?stylesheet=instance"?>
-    <kinetic version="0.01">
-      <instance key="simple">
-        <attr name="description"></attr>
-        <attr name="guid">10F62318-F7E5-11D9-9481-D6394B585510</attr>
-        <attr name="name">foo</attr>
-        <attr name="state">1</attr>
-      </instance>
-    </kinetic>
-    END_XML
 }
 
 1;

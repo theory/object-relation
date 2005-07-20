@@ -28,9 +28,6 @@ use Kinetic::Store;
 use Kinetic::Util::Constants qw/:http :data_store/;
 our $VERSION = version->new('0.0.1');
 
-use aliased 'XML::LibXML';
-use aliased 'XML::LibXSLT';
-
 =head1 Name
 
 Kinetic::REST - REST services provider
@@ -204,7 +201,7 @@ responses.
 
 sub _xml_header {
     my ($rest, $title) = @_;
-    my $stylesheet = $rest->stylesheet_url('browse');
+    my $stylesheet = $rest->stylesheet_url('REST');
     return <<"    END_HEADER";
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="$stylesheet"?>
@@ -286,19 +283,8 @@ sub can {
     return $method;
 }
 
-sub _transform {
-    my ($xml, $rest) = @_;
-
-    my $parser    = LibXML->new;
-    my $xslt      = LibXSLT->new;
-    my $doc       = $parser->parse_string($xml);
-    my $style_doc = $parser->parse_string($rest->stylesheet);
-    my $sheet     = $xslt->parse_stylesheet($style_doc);
-    my $html      = $sheet->transform($doc);
-    return $sheet->output_string($html);
-}
-
 1;
+
 __END__
 
 ##############################################################################

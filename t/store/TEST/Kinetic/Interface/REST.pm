@@ -10,6 +10,7 @@ use Test::More;
 use Test::Exception;
 use Test::XML;
 use Encode qw(is_utf8);
+use XML::Parser;
 {
     local $^W;
     # XXX a temporary hack until we get a new
@@ -18,6 +19,7 @@ use Encode qw(is_utf8);
     require WWW::REST;
 }
 
+use Kinetic::Util::Constants  qw/GUID_RE/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 use TEST::REST::Server;
 
@@ -55,7 +57,7 @@ sub start_server : Test(startup) {
     $test->{REST} = WWW::REST->new("http://$domain");
     my $dispatch = sub {
         my $REST = shift;
-        die $REST->status_line if $REST->is_error;
+        die $REST->status_line,"\n\n",$REST->content if $REST->is_error;
         return $REST->content;
     };
     $test->{REST}->dispatch($dispatch);
@@ -94,6 +96,12 @@ sub teardown : Test(teardown) {
     shift->clear_database;
 }
 
+sub is_valid_xml($$) {
+    my ($xml, $description) = @_;
+    eval {XML::Parser->new->parse($xml)};
+    ok ! $@, $description;
+}
+
 sub clear_database {
     my $test = shift;
     foreach my $key (Kinetic::Meta->keys) {
@@ -124,7 +132,7 @@ sub _should_run {
     return $should_run;
 }
 
-BEGIN { sig_handlers(0) }
+BEGIN { sig_handlers(1) }
 
 sub constructor : Test(14) {
     my $class = 'Kinetic::Interface::REST';
@@ -229,7 +237,7 @@ sub basic_services : Test(7) {
 
     my $expected = <<'    END_XML';
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://www.example.com/rest/?stylesheet=browse"?>
+<?xml-stylesheet type="text/xsl" href="http://www.example.com/rest/?stylesheet=REST"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest"
                        xmlns:xlink="http://www.w3.org/1999/xlink">
     <kinetic:description>Available resources</kinetic:description>
@@ -243,7 +251,7 @@ sub basic_services : Test(7) {
 
     $expected = <<'    END_XML';
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://www.example.com/rest/?stylesheet=browse"?>
+<?xml-stylesheet type="text/xsl" href="http://www.example.com/rest/?stylesheet=REST"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
@@ -252,17 +260,26 @@ sub basic_services : Test(7) {
       <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest/one/XXX"/>
     </kinetic:resources>
     END_XML
-    my $hex  = qr/[A-F0-9]/;
-    my $guid = qr/${hex}{8}-${hex}{4}-${hex}{4}-${hex}{4}-${hex}{12}/;
     my $key  = One->my_class->key;
     my $one_xml = $rest->url($key)->get;
-    $one_xml =~ s/$guid/XXX/g;
+    $one_xml =~ s/@{[GUID_RE]}/XXX/g;
     is_xml $one_xml, $expected, 
 
     $key  = Two->my_class->key;
     my $two_xml = $rest->url($key)->get;
-    $two_xml =~ s/$guid/XXX/g;
+    $two_xml =~ s/@{[GUID_RE]}/XXX/g;
     diag "Clean up xml for which we have no resources";
+}
+
+sub xslt : Test(no_plan) {
+    my $test = shift;
+    my $rest = $test->REST;
+
+    is_valid_xml $rest->get(stylesheet => 'instance'),
+        'Requesting an instance stylesheet should return valid xml';
+
+    is_valid_xml $rest->get(stylesheet => 'REST'),
+        'Requesting a REST stylesheet should return valid xml';
 }
 
 1;

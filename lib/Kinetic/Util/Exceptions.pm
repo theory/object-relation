@@ -303,7 +303,7 @@ unique attribute would be used. Alias: C<throw_attribute>.
 
 use Exception::Class(
     'Kinetic::Util::Exception::Fatal::Attribute' => {
-        description => 'Invalid class',
+        description => 'Improper use of attribute',
         isa         => 'Kinetic::Util::Exception::Fatal',
         alias       => 'throw_attribute',
     },
@@ -318,7 +318,7 @@ to a search request.  Alias: C<throw_search>.
 
 use Exception::Class(
     'Kinetic::Util::Exception::Fatal::Search' => {
-        description => 'Invalid class',
+        description => 'Bad search request',
         isa         => 'Kinetic::Util::Exception::Fatal',
         alias       => 'throw_search',
     },
@@ -326,11 +326,12 @@ use Exception::Class(
 
 =item Kinetic::Util::Exception::Fatal::Panic
 
-Panic exception. This internal exception should (theoretically) never be thrown.
-It only occurs if the internal state of something has reached a point that cannot
-occur.  For example, an "ANY" search in a store class can only occur if the values
-searched on are contained in an array reference.  If an ANY search occurs and the
-values are not an array reference, a panic is thrown.  Alias: C<panic>.
+Panic exception. This internal exception should (theoretically) never be
+thrown.  It only occurs if the internal state of something has reached a point
+that cannot occur.  For example, an "ANY" search in a store class can only
+occur if the values searched on are contained in an array reference.  If an ANY
+search occurs and the values are not an array reference, a panic is thrown.
+Alias: C<panic>.
 
 =cut
 

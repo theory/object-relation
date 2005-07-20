@@ -17,12 +17,15 @@ print "Creating test objects\n";
 my $store = Kinetic::Store->new;
 my $foo = One->new;
 $foo->name('foo');
+$foo->description('This is the "foo" object');
 $store->save($foo);
 my $bar = One->new;
 $bar->name('bar');
+$bar->description('This is the "bar" object');
 $store->save($bar);
 my $baz = One->new;
 $baz->name('snorfleglitz');
+$baz->description('Who knows what the hell this is?');
 $store->save($baz);
 
 print "Starting test server on localhost:$port\n";

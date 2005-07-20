@@ -24,6 +24,7 @@ use version;
 our $VERSION = version->new('0.0.1');
 use Kinetic::Util::Constants qw/:http/;
 use Kinetic::Util::Exceptions qw/:all/;
+use aliased 'Kinetic::View::XSLT';
 use aliased 'Kinetic::Interface::REST::Dispatch';
 
 =head1 Name
@@ -77,6 +78,7 @@ sub new {
         content_type => '',
         domain       => $args{domain},
         path         => $args{path},
+        xslt         => XSLT->new(type => 'REST'),
     } => $class;
 }
 
@@ -327,16 +329,11 @@ Returns XSLT stylesheet for the requested resource.
 
 =cut
 
-my %STYLESHEET = (
-    instance => \&_stylesheet_instance,
-    browse   => \&_stylesheet_browse,
-);
 sub stylesheet {
     my $self = shift;
     my $sheet = $self->cgi->param('stylesheet') || return; # XXX not implemented?
-    if (my $ref = $STYLESHEET{$sheet}) {
-        return $ref->();
-    }
+    eval {$self->xslt->type($sheet)};
+    return $self->xslt->stylesheet unless $@;
 }
 
 
@@ -346,13 +343,16 @@ sub stylesheet {
 
   my $url = $rest->stylesheet_url('instance');
 
-Returns a URL which will return the requested stylesheet type.
+Returns a URL which will return the requested stylesheet type.  Supported
+stylesheet types are listed in L<Kinetic::View::XSLT|Kinetic::View|XSLT>.
 
 =cut
 
 sub stylesheet_url {
     my ($rest, $sheet) = @_;
-    if (exists $STYLESHEET{$sheet}) {
+    # XXX has side-effect of setting xslt stylesheet type.  Bad?
+    eval {$rest->xslt->type($sheet)};
+    unless ($@) {
         return $rest->domain.$rest->path.'?stylesheet='.$sheet;
     }
     else {
@@ -365,107 +365,24 @@ sub stylesheet_url {
 
 ##############################################################################
 
+=head3 xslt
+
+  my $xslt = $rest->xslt;
+
+Read only.  This method returns the L<Kinetic::View::XSLT|Kinetic::View::XSLT>
+object that was set when the REST server was instantiated.
+
+=cut
+
+sub xslt { shift->{xslt} }
+
+##############################################################################
+
 =begin private
 
 =head2 Private Instance Methods
 
-
 =cut
-
-sub _stylesheet_browse {
-    return <<'    END_STYLE_SHEET';
-<xsl:stylesheet version="1.0"
-      xmlns:kinetic="http://www.kineticode.com/rest"
-      xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-      xmlns:xlink="http://www.w3.org/1999/xlink"
-      xmlns:fo="http://www.w3.org/1999/XSL/Format"
-      xmlns="http://www.w3.org/1999/xhtml">
-
-  <xsl:output method="xml"
-    doctype-public="-//W3C//DTD XHTML 1.0 Strict//EN"  
-    doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"
-      indent="yes"/>
-
-  <xsl:template match="/">
-    <html>
-      <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-        <title><xsl:value-of select="/kinetic:resources/kinetic:description" /></title>
-      </head>
-      <body>
-        <table bgcolor="#eeeeee" border="1">
-          <tr>
-            <th><xsl:value-of select="/kinetic:resources/kinetic:description" /></th>
-          </tr>
-          <xsl:for-each select="kinetic:resources">
-            <xsl:apply-templates select="./kinetic:resource" />
-          </xsl:for-each>
-        </table>
-      </body>
-    </html>
-  </xsl:template>
-  
-  <xsl:template match="kinetic:resource">
-    <tr>
-      <td>
-        <a>
-          <xsl:attribute name="href">
-            <xsl:value-of select="@xlink:href"/>
-          </xsl:attribute>
-          <xsl:value-of select="@id" />
-        </a>
-      </td>
-    </tr>
-  </xsl:template>
-
-</xsl:stylesheet>
-    END_STYLE_SHEET
-}
-
-sub _stylesheet_instance {
-    return <<'    END_STYLE_SHEET';
-<xsl:stylesheet version="1.0"
-      xmlns:kinetic="http://www.kineticode.com/rest"
-      xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-      xmlns:xlink="http://www.w3.org/1999/xlink"
-      xmlns:fo="http://www.w3.org/1999/XSL/Format"
-      xmlns="http://www.w3.org/1999/xhtml">
-
-  <xsl:output method="xml"
-    doctype-public="-//W3C//DTD XHTML 1.0 Strict//EN"  
-    doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"
-      indent="yes"/>
-
-  <xsl:template match="/">
-    <html>
-    <head><title><xsl:value-of select="/kinetic/instance/@key" /></title></head>
-    <body>
-      <table bgcolor="#eeeeee" border="1">
-      <tr>
-      <th><xsl:value-of select="/kinetic:resources/kinetic:description" /></th>
-      </tr>
-      <xsl:for-each select="/kinetic/instance/">
-        <xsl:apply-templates select="./attr" />
-      </xsl:for-each>
-    </table>
-    </body>
-    </html>
-  </xsl:template>
-  
-  <xsl:template match="attr">
-    <tr>
-      <td>
-          <xsl:value-of select="@name"/>
-      </td>
-      <td>
-          <xsl:value-of select="attr" />
-      </td>
-    </tr>
-  </xsl:template>
-
-</xsl:stylesheet>
-    END_STYLE_SHEET
-}
 
 =end private
 
