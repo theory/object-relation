@@ -96,12 +96,6 @@ sub teardown : Test(teardown) {
     shift->clear_database;
 }
 
-sub is_valid_xml($$) {
-    my ($xml, $description) = @_;
-    eval {XML::Parser->new->parse($xml)};
-    ok ! $@, $description;
-}
-
 sub clear_database {
     my $test = shift;
     foreach my $key (Kinetic::Meta->keys) {
@@ -275,10 +269,10 @@ sub xslt : Test(no_plan) {
     my $test = shift;
     my $rest = $test->REST;
 
-    is_valid_xml $rest->get(stylesheet => 'instance'),
+    is_well_formed_xml $rest->get(stylesheet => 'instance'),
         'Requesting an instance stylesheet should return valid xml';
 
-    is_valid_xml $rest->get(stylesheet => 'REST'),
+    is_well_formed_xml $rest->get(stylesheet => 'REST'),
         'Requesting a REST stylesheet should return valid xml';
 }
 

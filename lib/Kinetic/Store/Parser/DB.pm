@@ -337,7 +337,7 @@ B<Throws:>
 my $STORE;
 sub _make_search {
   my ($column, $negated, $operator, $value) = @_;
-  $column =~ s/\./OBJECT_DELIMITER/eg;
+  $column =~ s/\Q@{[ATTR_DELIMITER]}\E/OBJECT_DELIMITER/eg;
   unless ($STORE->_search_data_has_column($column)) {
     # special case for searching on a contained object id ...
     my $id_column = $column . OBJECT_DELIMITER . 'id';

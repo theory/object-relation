@@ -9,8 +9,6 @@ use base 'TEST::Class::Kinetic';
 use Test::More;
 use Test::Exception;
 use Test::XML;
-use XML::Parser; # this will be used as a temporary hack to get around the 
-                 # problem of Text::XML not having an is_valid_xml function
 
 use Kinetic::Util::Constants  qw/GUID_RE/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
@@ -110,13 +108,13 @@ sub stylesheet : Test(3) {
     can_ok $xslt, 'stylesheet';
 
     my $xml = $xslt->stylesheet;
-    eval {XML::Parser->new->parse($xml)};
-    ok ! $@, '... and it should return valid XML for "REST"';
+    is_well_formed_xml $xml, 
+        '... and it should return valid XML for "REST"';
     
     $xslt->type('instance');
     $xml = $xslt->stylesheet;
-    eval {XML::Parser->new->parse($xml)};
-    ok ! $@, '... and it should return valid XML for "instance"';
+    is_well_formed_xml $xml, 
+        '... and it should return valid XML for "instance"';
 }
 
 sub transform : Test(9) {

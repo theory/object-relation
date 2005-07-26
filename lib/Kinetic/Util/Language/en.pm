@@ -165,7 +165,7 @@ our %Lexicon = (
   'Object key “[_1]” must point to an object, not a scalar ([_2])',
 
   'I don\'t know how to lex a "[_1]"',
-  "I don\'t know how to lex a “[_1]”",
+  "I don't know how to lex a “[_1]”",
 
   "Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]",
   "Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]",
@@ -178,6 +178,9 @@ our %Lexicon = (
   
   "Unknown attributes to [_1]: [_2]",
   "Unknown attributes to [_1]: [_2]",
+
+  "Bad type for [_1].  Should be [_2].",
+  "Bad type for [_1].  Should be [_2].",
 
   "Unknown stylesheet requested: [_1]",
   "Unknown stylesheet requested: [_1]",

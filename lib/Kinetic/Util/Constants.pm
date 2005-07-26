@@ -41,6 +41,7 @@ configuration specific.
 # data_store
 use constant GROUP_OP         => qr/^(?:AND|OR)$/;
 use constant OBJECT_DELIMITER => '__';
+use constant ATTR_DELIMITER   => '.';
 use constant PREPARE          => 'prepare';
 use constant CACHED           => 'prepare_cached';
 use constant GUID_RE          => 
@@ -66,7 +67,14 @@ use Exporter::Tidy
         INTERNAL_SERVER_ERROR_STATUS
         NOT_IMPLEMENTED_STATUS
     /],
-    data_store => [qw/GROUP_OP OBJECT_DELIMITER PREPARE CACHED GUID_RE/];
+    data_store => [qw/
+        ATTR_DELIMITER
+        CACHED 
+        GROUP_OP 
+        GUID_RE
+        OBJECT_DELIMITER 
+        PREPARE 
+    /];
 
 =head1 :data_store
 
@@ -74,6 +82,13 @@ These constants all relate to the data store and data various data store
 modules need to manipulate it.
 
 =over 4
+
+=item * ATTR_DELIMITER
+
+In the Kinetic objects, contained object attributes are frequently referred
+to by C<$key . $delimiter . $attribute_name>.  Thus, an object with a key of
+I<customer> and an attribute named "last_name" might be referred to as
+I<customer.last_name>.  The C<ATTR_DELIMITER> should be the C<$delimeter>.
 
 =item * CACHED
 

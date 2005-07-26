@@ -401,17 +401,57 @@ sub dump_xml : Test(7) {
     END_XML
 }
 
-sub dump_xml_with_stylesheet : Test(1) {
+sub dump_xml_with_stylesheet : Test(9) {
     my $one = One->new;
     $one->name('some name');
     $one->description('some description');
+    my $stylesheet = 'http://foobar/xslt_stylesheet';
     my $xml = XML->new({
         object         => $one,
-        stylesheet_url => 'http://foobar/xslt_stylesheet',
+        stylesheet_url => $stylesheet,
     });
     my $one_guid = $one->guid;
     is_xml $xml->dump_xml, <<"    END_XML", 'Supplying a stylesheet URL should embed it in the XML';
-    <?xml-stylesheet type="text/xsl" href="http://foobar/xslt_stylesheet"?>
+    <?xml-stylesheet type="text/xsl" href="$stylesheet"?>
+    <kinetic version="0.01">
+      <instance key="one">
+        <attr name="bool">1</attr>
+        <attr name="description">some description</attr>
+        <attr name="guid">$one_guid</attr>
+        <attr name="name">some name</attr>
+        <attr name="state">1</attr>
+      </instance>
+    </kinetic>
+    END_XML
+
+    can_ok $xml, 'stylesheet_url';
+    is $xml->stylesheet_url, $stylesheet,
+        '... and it should return the correct stylesheet';
+    $stylesheet = 'http://foobar/new_xslt_stylesheet';
+    ok $xml->stylesheet_url($stylesheet),
+        '... and we should be able to set it to a new value';
+    is $xml->stylesheet_url, $stylesheet,
+        '... and it should return the new stylesheet';
+
+    is_xml $xml->dump_xml, <<"    END_XML", '... and new XML should use the new stylesheet';
+    <?xml-stylesheet type="text/xsl" href="$stylesheet"?>
+    <kinetic version="0.01">
+      <instance key="one">
+        <attr name="bool">1</attr>
+        <attr name="description">some description</attr>
+        <attr name="guid">$one_guid</attr>
+        <attr name="name">some name</attr>
+        <attr name="state">1</attr>
+      </instance>
+    </kinetic>
+    END_XML
+
+    ok $xml->stylesheet_url(undef),
+        'We should be able to set it to an undefined value';
+    ok ! defined $xml->stylesheet_url,
+        '... and the it should now return undef';
+
+    is_xml $xml->dump_xml, <<"    END_XML", '... and new XML should not have a stylesheet URL';
     <kinetic version="0.01">
       <instance key="one">
         <attr name="bool">1</attr>
@@ -424,4 +464,145 @@ sub dump_xml_with_stylesheet : Test(1) {
     END_XML
 }
 
+sub specify_desired_attributes : Test(no_plan) {
+    my $one = One->new;
+    $one->name('some name');
+    $one->description('some description');
+
+    throws_ok {XML->new({ attributes => {bool => 1} })}
+        'Kinetic::Util::Exception::Fatal::Invalid',
+        'Specifying attributes as a hashref should throw an exception';
+
+    my $xml = XML->new({
+        object         => $one,
+        attributes     => [qw/bool guid state/],
+    });
+
+    my $one_guid = $one->guid;
+    is_xml $xml->dump_xml, <<"    END_XML", 'Specifying desired attributes to be returned should work';
+    <kinetic version="0.01">
+      <instance key="one">
+        <attr name="bool">1</attr>
+        <attr name="guid">$one_guid</attr>
+        <attr name="state">1</attr>
+      </instance>
+    </kinetic>
+    END_XML
+
+    can_ok $xml, 'attributes';
+    ok $xml->attributes([qw/bool state/]),
+        '... and we should be able to set the attributes';
+    is_xml $xml->dump_xml, <<"    END_XML", '... and have the new xml reflect this';
+    <kinetic version="0.01">
+      <instance key="one">
+        <attr name="bool">1</attr>
+        <attr name="state">1</attr>
+      </instance>
+    </kinetic>
+    END_XML
+
+    ok $xml->attributes('state'),
+        'We should be able to set a single attribute';
+    is_xml $xml->dump_xml, <<"    END_XML", '... and have the new xml only show that attribute';
+    <kinetic version="0.01">
+      <instance key="one">
+        <attr name="state">1</attr>
+      </instance>
+    </kinetic>
+    END_XML
+
+    ok $xml->attributes(undef),
+        'We should be able to "unset" requested attributes';
+    is_xml $xml->dump_xml, <<"    END_XML", '... and get all of the attributes';
+    <kinetic version="0.01">
+      <instance key="one">
+        <attr name="bool">1</attr>
+        <attr name="description">some description</attr>
+        <attr name="guid">$one_guid</attr>
+        <attr name="name">some name</attr>
+        <attr name="state">1</attr>
+      </instance>
+    </kinetic>
+    END_XML
+
+    # must test contained objects
+    #
+    # what happens if we specify a contained object but not 
+    # any of its keys?
+
+    my $two = Two->new;
+    $two->name('june17');
+    $two->date(DateTime->new(
+        year  => 1968,
+        month => 6,
+        day   => 17
+    ));
+    $two->one($one);
+    $xml->object($two);
+    my $two_guid = $two->guid;
+    $xml->attributes(undef);
+    is_xml $xml->dump_xml(with_referenced => 1), <<"    END_XML", 'Contained object should also be represented correctly';
+    <kinetic version="0.01">
+      <instance key="two">
+        <attr name="age"></attr>
+        <attr name="date">1968-06-17T00:00:00</attr>
+        <attr name="description"></attr>
+        <attr name="guid">$two_guid</attr>
+        <attr name="name">june17</attr>
+        <instance key="one">
+          <attr name="bool">1</attr>
+          <attr name="description">some description</attr>
+          <attr name="guid">$one_guid</attr>
+          <attr name="name">some name</attr>
+          <attr name="state">1</attr>
+        </instance>
+        <attr name="state">1</attr>
+      </instance>
+    </kinetic>
+    END_XML
+    
+    $xml->attributes([qw/date guid name one/]);
+    is_xml $xml->dump_xml(with_referenced => 1), <<"    END_XML", '... even if we specify them directly';
+    <kinetic version="0.01">
+      <instance key="two">
+        <attr name="date">1968-06-17T00:00:00</attr>
+        <attr name="guid">$two_guid</attr>
+        <attr name="name">june17</attr>
+        <instance key="one">
+          <attr name="bool">1</attr>
+          <attr name="description">some description</attr>
+          <attr name="guid">$one_guid</attr>
+          <attr name="name">some name</attr>
+          <attr name="state">1</attr>
+        </instance>
+      </instance>
+    </kinetic>
+    END_XML
+
+    $xml->attributes([qw/name one.guid one.name/]);
+    is_xml $xml->dump_xml(with_referenced => 1), <<"    END_XML", '... or specify their attributes without specifying the object';
+    <kinetic version="0.01">
+      <instance key="two">
+        <attr name="name">june17</attr>
+        <instance key="one">
+          <attr name="guid">$one_guid</attr>
+          <attr name="name">some name</attr>
+        </instance>
+      </instance>
+    </kinetic>
+    END_XML
+
+    $xml->attributes([qw/date guid name/]);
+    is_xml $xml->dump_xml(with_referenced => 1), <<"    END_XML", 'with_referenced is a no-op if they specify attributes but not the contained object';
+    <kinetic version="0.01">
+      <instance key="two">
+        <attr name="date">1968-06-17T00:00:00</attr>
+        <attr name="guid">$two_guid</attr>
+        <attr name="name">june17</attr>
+      </instance>
+    </kinetic>
+    END_XML
+}
+
 1;
+__END__

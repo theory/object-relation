@@ -1125,7 +1125,7 @@ sub _constraint_order_by {
     $value      = [$value]      unless 'ARRAY' eq ref $value;
     $sort_order = [$sort_order] unless 'ARRAY' eq ref $sort_order;
     # normalize . to __
-    s/\./OBJECT_DELIMITER/eg foreach @$value; # one.name -> one__name
+    s/\Q@{[ATTR_DELIMITER]}\E/OBJECT_DELIMITER/eg foreach @$value; # one.name -> one__name
     my @sorts;
     # XXX Perl 6 would so rock for this...
     for my $i (0 .. $#$value) {

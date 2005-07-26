@@ -50,7 +50,7 @@ my $build = Kinetic::Build->new(
         'Test::Output'               => 0.07,
         'Test::Pod'                  => 1.06,    # this is recommended, not required.
         'Test::Pod::Coverage'        => 0.08,    # this is recommended, not required.
-        'Test::XML'                  => 0.06,
+        'Test::XML'                  => 0.07,
     },
 );
 

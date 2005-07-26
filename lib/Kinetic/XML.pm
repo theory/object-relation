@@ -22,12 +22,14 @@ use strict;
 use IO::File;
 use XML::Genx::Simple;
 use XML::Simple;
+use Kinetic::Util::Constants qw/ATTR_DELIMITER/;
 use Kinetic::Util::Exceptions ':all';
 
 use Kinetic::Meta;
 use Kinetic::Store;
 
-use constant XML_VERSION => '0.01';
+use constant XML_VERSION          => '0.01';
+use constant CURR_KEY_PLACEHOLDER => '__';
 
 =head1 Name
 
@@ -79,14 +81,12 @@ C<stylesheet_url>, it will be included in the XML.
 
 sub new {
     my ($class, $args) = @_;
-    my $object = ('HASH' eq ref $args)
-        ? $args->{object}
-        : $args;
-    my $self = bless {
-        stylesheet_url => ($args->{stylesheet_url} || ''),
-    }, $class;
-    return $self unless $object;
-    $self->object($object);
+    $args = 'HASH' eq ref $args ? $args : { object => $args };
+    my $self = bless {}, $class;
+    $self->object($args->{object} || ());
+    $self->attributes($args->{attributes} || ());
+    $self->stylesheet_url($args->{stylesheet_url} || ());
+    $self;
 }
 
 ##############################################################################
@@ -337,10 +337,13 @@ my %referenced = (
 sub _add_object_to_xml {
     my ($self, $xml, $object) = @_;
     $xml->StartElementLiteral('instance');
-    $xml->AddAttributeLiteral(key => $object->my_class->key);
+    my $key = $object->my_class->key;
+    $xml->AddAttributeLiteral(key => $key);
+    local $self->{_curr_key} = $key;
 
     foreach my $attr (sort {$a->name cmp $b->name} $object->my_class->attributes) {
         my $name = $attr->name;
+        next unless $self->_requested_attribute($name);
         if ($attr->references) {
             my $relationship = $attr->relationship;
             my $object = $attr->get($object);
@@ -389,10 +392,101 @@ sub object {
                 'Kinetic'
             ];
         }
-        $self->{object} = $object;
+        $self->{object}    = $object;
+        $self->{_curr_key} = $object->my_class->key;
+        if (exists $self->{_attributes}) {
+            if (my $attributes = delete $self->{_attributes}{CURR_KEY_PLACEHOLDER}) {
+                $self->{_attributes}{$self->{_curr_key}} = $attributes;
+            }
+        }
         return $self;
     }
     return $self->{object};
+}
+
+##############################################################################
+
+=head3 stylesheet_url
+
+  $xml->stylesheet_url($stylesheet_url);
+  my $same_stylesheet_url = $xml->stylesheet_url;
+
+This getter/setter allows you to set or retrieve an XSLT stylesheet url for XML
+serialization/deserialization.
+
+=cut
+
+sub stylesheet_url {
+    my $self = shift;
+    if (@_) {
+        my $stylesheet_url = shift;
+        $self->{stylesheet_url} = $stylesheet_url;
+        return $self;
+    }
+    return $self->{stylesheet_url};
+}
+
+##############################################################################
+
+=head3 attributes
+
+  $xml->attributes($attributes);
+  my $same_attributes = $xml->attributes;
+
+This getter/setter allows you to specify which attributes should be retrieved
+in the XML.  Expects an array ref of a scalar.
+
+Setting C<attributes> to I<undef> will "unset" requested attributes and cause
+all of them to be returned in the XML.
+
+=cut
+
+sub attributes {
+    my $self = shift;
+    my $delimeter = qr/\Q@{[ATTR_DELIMITER]}\E/;
+    if (@_) {
+        my $attributes = shift;
+        if (ref $attributes && 'ARRAY' ne ref $attributes) {
+            throw_invalid [
+                "Bad type for [_1].  Should be [_2].",
+                'attributes',
+                '"none" or "ARRAY"'
+            ],
+        }
+        unless (defined $attributes) {
+            delete @{$self}{qw/attributes _attributes/};
+        }
+        else {
+            my $curr_key = $self->{_curr_key} || CURR_KEY_PLACEHOLDER;
+            $self->{_attributes} = {};
+            $self->{attributes}  = $attributes;
+            $attributes = [$attributes] unless ref $attributes;
+            foreach my $attr (@$attributes) {
+                my ($key, $value) = $attr =~ /$delimeter/
+                    ? (split /$delimeter/ => $attr, 2)  # one.name -> one       => name
+                    : ($curr_key, $attr);       # name     -> $curr_key => name
+                if ($key ne $curr_key) {
+                    # if they specify one.name, make sure that "one"
+                    # is listed in the requested attributes.  Otherwise,
+                    # we won't get "one"
+                    $self->{_attributes}{$curr_key}{$key} = 1;
+                }
+                $self->{_attributes}{$key} ||= {};
+                $self->{_attributes}{$key}{$value} = 1;
+            }
+        }
+        return $self;
+    }
+    return $self->{attributes};
+}
+
+sub _requested_attribute {
+    my ($self, $attr) = @_;
+    my $key = $self->{_curr_key};
+    my $specified_attributes = $self->{_attributes}{$key};
+    # assumes all attributes if they didn't specify any
+    return $attr unless $specified_attributes;
+    return exists $specified_attributes->{$attr} ? $attr : ();
 }
 
 1;
