@@ -343,7 +343,7 @@ sub _add_object_to_xml {
 
     foreach my $attr (sort {$a->name cmp $b->name} $object->my_class->attributes) {
         my $name = $attr->name;
-        next unless $self->_requested_attribute($name);
+        next unless $self->_is_requested_attribute($name);
         if ($attr->references) {
             my $relationship = $attr->relationship;
             my $object = $attr->get($object);
@@ -443,7 +443,7 @@ all of them to be returned in the XML.
 
 sub attributes {
     my $self = shift;
-    my $delimeter = qr/\Q@{[ATTR_DELIMITER]}\E/;
+    my $delimiter = qr/\Q@{[ATTR_DELIMITER]}\E/;
     if (@_) {
         my $attributes = shift;
         if (ref $attributes && 'ARRAY' ne ref $attributes) {
@@ -462,8 +462,8 @@ sub attributes {
             $self->{attributes}  = $attributes;
             $attributes = [$attributes] unless ref $attributes;
             foreach my $attr (@$attributes) {
-                my ($key, $value) = $attr =~ /$delimeter/
-                    ? (split /$delimeter/ => $attr, 2)  # one.name -> one       => name
+                my ($key, $value) = $attr =~ /$delimiter/
+                    ? (split /$delimiter/ => $attr, 2)  # one.name -> one       => name
                     : ($curr_key, $attr);       # name     -> $curr_key => name
                 if ($key ne $curr_key) {
                     # if they specify one.name, make sure that "one"
@@ -480,7 +480,7 @@ sub attributes {
     return $self->{attributes};
 }
 
-sub _requested_attribute {
+sub _is_requested_attribute {
     my ($self, $attr) = @_;
     my $key = $self->{_curr_key};
     my $specified_attributes = $self->{_attributes}{$key};
