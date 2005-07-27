@@ -210,6 +210,14 @@ B<Throws:>
 
 =cut
 
+sub lookup {
+    my $self = shift;
+    unless (ref $self) { # they called it as a class method
+        $self = $self->new;
+    }
+    $self->lookup(@_);
+}
+
 ##############################################################################
 
 =head3 search
@@ -325,6 +333,14 @@ B<Throws:>
 
 =cut
 
+sub search_guids {
+    my $self = shift;
+    unless (ref $self) { # they called it as a class method
+        $self = $self->new;
+    }
+    $self->search_guids(@_);
+}
+
 ##############################################################################
 
 =head3 count
@@ -353,6 +369,14 @@ B<Throws:>
 =back
 
 =cut
+
+sub count {
+    my $self = shift;
+    unless (ref $self) { # they called it as a class method
+        $self = $self->new;
+    }
+    $self->count(@_);
+}
 
 ##############################################################################
 
@@ -583,6 +607,16 @@ its C<guid> attribute. The equivalent would be:
 
   my $iter = $store->search('Kinetic::Phony::Person' =>
                             'contact.guid' => $contact->get_guid);
+
+=cut
+
+sub search {
+    my $self = shift;
+    unless (ref $self) { # they called it as a class method
+        $self = $self->new;
+    }
+    $self->search(@_);
+}
 
 =head3 Attribute Types
 

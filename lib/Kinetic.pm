@@ -138,6 +138,89 @@ C<< Kinetic->my_class->key >>.
     sub my_key { shift->my_class->key }
 
 ##############################################################################
+
+=head3 lookup
+
+  my $kinetic = Some::Kinetic::Object->lookup(guid => $guid);
+
+Calling this method looks up a Kinetic object in the data store.  See the
+C<lookup> method in L<Kinetic::Store|Kinetic::Store> for more information.
+
+=cut
+
+    sub lookup { 
+        my $class = shift;
+        Kinetic::Store->lookup($class->my_class, @_);
+    }
+    $cm->add_constructor(
+        name   => 'lookup',
+        create => 0,
+    );
+
+##############################################################################
+
+=head3 search
+
+  my $iterator = Some::Kinetic::Object->search(name => LIKE '%vid');
+
+Calling this method searches the data store for objects meeting the search
+criteria.  See the C<search> method in L<Kinetic::Store|Kinetic::Store> for
+more information.
+
+=cut
+
+    sub search { 
+        my $class = shift;
+        Kinetic::Store->search($class->my_class, @_);
+    }
+    $cm->add_constructor(
+        name   => 'search',
+        create => 0,
+    );
+
+##############################################################################
+
+=head3 count
+
+  my $count = Some::Kinetic::Object->count(name => LIKE '%vid');
+
+This method returns a count of the objects in the data store which meet the
+search criteria.  See the C<count> method in L<Kinetic::Store|Kinetic::Store>
+for more information.
+
+=cut
+
+    sub count { 
+        my $class = shift;
+        Kinetic::Store->count($class->my_class, @_);
+    }
+    $cm->add_constructor(
+        name   => 'count',
+        create => 0,
+    );
+
+##############################################################################
+
+=head3 search_guids
+
+  my $guids = Some::Kinetic::Object->search_guids(name => LIKE '%vid');
+
+This method returns an array ref of guids of the objects in the data store
+which meet the search criteria.  See the C<search_guids> method in
+L<Kinetic::Store|Kinetic::Store> for more information.
+
+=cut
+
+    sub search_guids { 
+        my $class = shift;
+        Kinetic::Store->search_guids($class->my_class, @_);
+    }
+    $cm->add_constructor(
+        name   => 'search_guids',
+        create => 0,
+    );
+
+##############################################################################
 # Instance Methods.
 ##############################################################################
 
@@ -256,6 +339,23 @@ Those methods are:
     sub deactivate   { shift->state(INACTIVE)    }
     sub delete       { shift->state(DELETED)     }
     sub purge        { shift->state(PURGED)      }
+
+##############################################################################
+
+=head3 save
+
+  $kinetic->save;
+
+Calling this method saves the Kinetic object to the data store.  See the
+C<save> method in L<Kinetic::Store|Kinetic::Store> for more information.
+
+=cut
+
+    sub save { Kinetic::Store->save(@_) }
+    $cm->add_method(
+        name    => 'save',
+        context => Class::Meta::OBJECT,
+    );
 
     $cm->build;
 } # BEGIN

@@ -5,7 +5,7 @@ package TEST::Kinetic::Store;
 use strict;
 use warnings;
 
-use base 'TEST::Class::Kinetic';
+use base 'TEST::Kinetic';
 use Test::More;
 use Test::Exception;
 use Encode qw(is_utf8);
@@ -26,22 +26,6 @@ __PACKAGE__->SKIP_CLASS(
       : "Not testing Data Stores"
 ) if caller; # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
-
-sub _all_items {
-    my ($test, $iterator) = @_;
-    my @iterator;
-    while (my $object = $iterator->next) {
-        push @iterator => $test->_force_inflation($object);
-    }
-    return @iterator;
-}
-
-sub _should_run {
-    my $test    = shift;
-    my $store   = Store->new;
-    my $package = ref $store;
-    return ref $test eq "TEST::$package";
-}
 
 sub save : Test(10) {
     my $test  = shift;
@@ -130,6 +114,35 @@ sub search : Test(19) {
     is_deeply $test->_force_inflation($iterator->next), $foo,
         '... and it should be the correct results';
 }
+
+sub search_from_key : Test(10) {
+    my $test = shift;
+    return unless $test->_should_run;
+    my $store = Store->new;
+    can_ok $store, 'search';
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    foreach ($foo, $bar, $baz) {
+        $_->name($_->name.chr(0x100));
+        $store->save($_);
+    }
+    my $key = $foo->my_class->key;
+    ok my $iterator = $store->search($key),
+        'A search with only a class should succeed';
+    my @results = $test->_all_items($iterator);
+    is @results, 3, 'returning all instances in the class';
+
+    foreach my $result (@results) {
+        ok is_utf8($result->name), '... and the data should be unicode strings';
+    }
+
+    ok $iterator = $store->search($key, name => $foo->name),
+        'and an exact match should succeed';
+    isa_ok $iterator, Iterator, 'and the object it returns';
+    is_deeply $test->_force_inflation($iterator->next), $foo,
+        'and the first item should match the correct object';
+    ok ! $test->_force_inflation($iterator->next), 'and there should be the correct number of objects';
+}
+
 
 sub string_search : Test(19) {
     my $test = shift;
@@ -1005,6 +1018,28 @@ sub count : Test(8) {
         'and it should return a false count if nothing matches';
 }
 
+sub count_by_key : Test(8) {
+    my $test = shift;
+    return unless $test->_should_run;
+    my $store = Store->new;
+    can_ok $store, 'count';
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my $key = $foo->my_class->key;
+    ok my $count = $store->count($key),
+        'A search with only a class should succeed';
+    is $count, 3, 'returning a count of all instances';
+    ok $count = $store->count($key, name => 'foo'),
+        'We should be able to count with a simple search';
+    is $count, 1, 'returning the correct count';
+
+    ok $count = $store->count($key, name => GT 'c'),
+        'We should be able to count with any search operators';
+    is $count, 2, 'returning the correct count';
+
+    ok ! ($count = $store->count($key, name => 'no such name')),
+        'and it should return a false count if nothing matches';
+}
+
 sub search_guids : Test(10) {
     my $test = shift;
     return unless $test->_should_run;
@@ -1032,6 +1067,37 @@ sub search_guids : Test(10) {
         'and it should return nothing if nothing matches';
 
     ok my @guids = $store->search_guids($class, name => GT 'c', {order_by => 'name'}),
+        'search_guids should behave correctly in list context';
+    is_deeply \@guids, [$foo->guid, $baz->guid], 'and return the correct guids';
+}
+
+sub search_guids_by_key : Test(10) {
+    my $test = shift;
+    return unless $test->_should_run;
+    my $store = Store->new;
+    can_ok $store, 'search_guids';
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my $key = $foo->my_class->key;
+    ok my $guids = $store->search_guids($key),
+        'A search for guids with only a class should succeed';
+    @$guids = sort @$guids;
+    my @expected = sort map {$_->guid} $foo, $bar, $baz;
+    is_deeply $guids, \@expected,
+        'and it should return the correct list of guids';
+
+    ok $guids = $store->search_guids($key, name => 'foo'),
+        'We should be able to search guids with a simple search';
+    is_deeply $guids, [$foo->guid], 'and return the correct guids';
+
+    ok $guids = $store->search_guids($key, name => GT 'c', {order_by => 'name'}),
+        'We should be able to search guids with any search operators';
+    is_deeply $guids, [$foo->guid, $baz->guid], 'and return the correct guids';
+
+    $guids = $store->search_guids($key, name => 'no such name');
+    is_deeply $guids, [],
+        'and it should return nothing if nothing matches';
+
+    ok my @guids = $store->search_guids($key, name => GT 'c', {order_by => 'name'}),
         'search_guids should behave correctly in list context';
     is_deeply \@guids, [$foo->guid, $baz->guid], 'and return the correct guids';
 }
@@ -1259,6 +1325,35 @@ sub lookup : Test(8) {
         'Kinetic::Util::Exception::Fatal::Attribute',
         'but it should croak if you search for a non-existent attribute';
     throws_ok {$store->lookup($two->my_class, 'name' => 1)}
+        'Kinetic::Util::Exception::Fatal::Attribute',
+        'or if you search on a non-unique field';
+}
+
+sub lookup_by_key : Test(8) {
+    my $test  = shift;
+    return unless $test->_should_run;
+    $test->_clear_database;
+    my $one = One->new;
+    $one->name('Ovid');
+    $one->description('test class');
+    my $store = Store->new;
+    $store->save($one);
+
+    my $two = One->new;
+    $two->name('divO');
+    $two->description('ssalc tset');
+    $store->save($two);
+    can_ok $store, 'lookup';
+    my $key = $two->my_class->key;
+    my $thing = $store->lookup($key, guid => $two->guid);
+    is_deeply $test->_force_inflation($thing), $two, 'and it should return the correct object';
+    foreach my $method (qw/name description guid state/) {
+        is $thing->$method, $two->$method, "$method() should behave the same";
+    }
+    throws_ok {$store->lookup($key, 'no_such_attribute' => 1)}
+        'Kinetic::Util::Exception::Fatal::Attribute',
+        'but it should croak if you search for a non-existent attribute';
+    throws_ok {$store->lookup($key, 'name' => 1)}
         'Kinetic::Util::Exception::Fatal::Attribute',
         'or if you search on a non-unique field';
 }

@@ -101,6 +101,7 @@ sub write_xml : Test(9) {
 sub dump_xml : Test(2) {
     my $xml = XML->new(Simple->my_class);
     can_ok $xml, 'dump_xml';
+    diag "Why doesn't the Kinetic::Meta object list &save?";
     is_xml $xml->dump_xml, <<'    END_XML', '... and it should return the correct XML';
     <kinetic version="0.01">
       <class key="simple">
@@ -113,6 +114,18 @@ sub dump_xml : Test(2) {
         <constructors>
           <constructor>
             <name>new</name>
+          </constructor>
+          <constructor>
+            <name>lookup</name>
+          </constructor>
+          <constructor>
+            <name>search</name>
+          </constructor>
+          <constructor>
+            <name>count</name>
+          </constructor>
+          <constructor>
+            <name>search_guids</name>
           </constructor>
         </constructors>
         <attributes>
