@@ -118,15 +118,6 @@ sub dump_xml : Test(2) {
           <constructor>
             <name>lookup</name>
           </constructor>
-          <constructor>
-            <name>search</name>
-          </constructor>
-          <constructor>
-            <name>count</name>
-          </constructor>
-          <constructor>
-            <name>search_guids</name>
-          </constructor>
         </constructors>
         <attributes>
           <attribute>

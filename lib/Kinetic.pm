@@ -173,9 +173,9 @@ more information.
         my $class = shift;
         Kinetic::Store->search($class->my_class, @_);
     }
-    $cm->add_constructor(
-        name   => 'search',
-        create => 0,
+    $cm->add_method(
+        name    => 'search',
+        context => Class::Meta::CLASS,
     );
 
 ##############################################################################
@@ -194,9 +194,9 @@ for more information.
         my $class = shift;
         Kinetic::Store->count($class->my_class, @_);
     }
-    $cm->add_constructor(
-        name   => 'count',
-        create => 0,
+    $cm->add_method(
+        name    => 'count',
+        context => Class::Meta::CLASS,
     );
 
 ##############################################################################
@@ -215,9 +215,9 @@ L<Kinetic::Store|Kinetic::Store> for more information.
         my $class = shift;
         Kinetic::Store->search_guids($class->my_class, @_);
     }
-    $cm->add_constructor(
-        name   => 'search_guids',
-        create => 0,
+    $cm->add_method(
+        name    => 'search_guids',
+        context => Class::Meta::CLASS,
     );
 
 ##############################################################################
