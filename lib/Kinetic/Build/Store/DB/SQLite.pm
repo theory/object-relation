@@ -36,7 +36,16 @@ See L<Kinetic::Build::Store|Kinetic::Build::Store>.
 =head1 Description
 
 This module inherits from Kinetic::Build::Store::DB to build a SQLite data
-store. Its interface is defined entirely by Kinetic::Build::Store.
+store. Its interface is defined entirely by Kinetic::Build::Store. The
+command-line options it adds are:
+
+=over
+
+=item path-to-sqlite
+
+=item db_filename
+
+=back
 
 =cut
 
@@ -136,6 +145,7 @@ sub rules {
                 my $builder = $self->builder;
                 $self->{db_file} = $builder->args('db_file')
                   || $builder->get_reply(
+                      name    => 'db_filename',
                       message => 'Please enter a filename for the SQLite database',
                       label   => 'SQLite database file name',
                       default => 'kinetic.db'

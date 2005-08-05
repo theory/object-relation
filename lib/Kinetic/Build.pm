@@ -869,6 +869,7 @@ use base 'Kinetic::Build::AppInfoHandler';
 sub handler {
     my ($self, $req) = @_;
     $req->value($self->{builder}->get_reply(
+        name    => $req->key,
         message => $req->message,
         default => $req->value
     ));

@@ -34,7 +34,31 @@ See L<Kinetic::Build::Store|Kinetic::Build::Store>.
 =head1 Description
 
 This module inherits from Kinetic::Build::Store::DB to build a PostgreSQL data
-store. Its interface is defined entirely by Kinetic::Build::Store.
+store. Its interface is defined entirely by Kinetic::Build::Store. Its
+interface is defined entirely by Kinetic::Build::Store. The command-line
+options it adds are:
+
+=over
+
+=item path-to-pg_config
+
+=item db_host
+
+=item db_port
+
+=item db_name
+
+=item db_user
+
+=item db_pass
+
+=item db_super-user
+
+=item db_super-pass
+
+=item template_db_name
+
+=back
 
 =cut
 
