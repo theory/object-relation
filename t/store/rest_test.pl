@@ -9,6 +9,7 @@ use Kinetic::Meta;
 use Kinetic::Store;
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';
+use aliased 'Kinetic::DateTime';
 use TEST::REST::Server;
 
 my $port = shift || 9000;
@@ -27,6 +28,15 @@ my $baz = One->new;
 $baz->name('snorfleglitz');
 $baz->description('Who knows what the hell this is?');
 $store->save($baz);
+
+my $two = Two->new(
+    name => 'Two',
+    description => 'Who are you?',
+    date        => DateTime->now,
+    one         => $foo,
+    age         => 22
+);
+$store->save($two);
 
 print "Starting test server on localhost:$port\n";
 my $server = TEST::REST::Server->new({
