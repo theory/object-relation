@@ -613,7 +613,7 @@ sub get_reply {
     my $val;
     if (exists $params{name}) {
         $val = $self->runtime_params($params{name});
-        $val =  $self->args($params{name}) unless defined $val;
+        $val = $self->args($params{name}) unless defined $val;
     }
 
     if (defined $val) {
@@ -868,10 +868,11 @@ use base 'Kinetic::Build::AppInfoHandler';
 
 sub handler {
     my ($self, $req) = @_;
-    $self->{builder}->get_reply(
+    $req->value($self->{builder}->get_reply(
         message => $req->message,
         default => $req->value
-    );
+    ));
+    return $self;
 }
 
 1;
