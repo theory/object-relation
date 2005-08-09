@@ -52,7 +52,7 @@ methods directly.
 sub _query_string {
     my $rest = shift;
     my $type = lc $rest->cgi->param('type') || return '';
-    return '' if 'xml' eq $type; # because this is the default
+    return '' if 'xml' eq $type;    # because this is the default
     return "?type=$type";
 }
 
@@ -70,62 +70,69 @@ list of all classes registered with L<Kinetic::Meta|Kinetic::Meta>.
 
 sub _class_list {
     my ($rest) = @_;
-    if (my $stylesheet = $rest->cgi->param('stylesheet')) {
+    if ( my $stylesheet = $rest->cgi->param('stylesheet') ) {
         my $xml = $rest->stylesheet;
-        $rest->content_type(XML_CT)
-             ->response($xml);
+        $rest->content_type(XML_CT)->response($xml);
         return;
     }
-    my $response = _xml_header($rest, 'Available resources');
+    my $response = _xml_header( $rest, 'Available resources' );
 
-    my $base_url = _rest_base_url($rest);
+    my $base_url     = _rest_base_url($rest);
     my $query_string = _query_string($rest);
-    foreach my $key (sort Kinetic::Meta->keys) {
+    foreach my $key ( sort Kinetic::Meta->keys ) {
         next if Kinetic::Meta->for_key($key)->abstract;
-        $response .= sprintf <<END_RESPONSE => $key,  $key;
-      <kinetic:resource id="%s" xlink:href="${base_url}%s/search$query_string"/>
-END_RESPONSE
+        $response .=
+          qq'<kinetic:resource id="$key" xlink:href="${base_url}$key/search$query_string"/>';
     }
     $response .= "</kinetic:resources>";
-    $rest->content_type(XML_CT)
-         ->response($response);
+    $rest->content_type(XML_CT)->response($response);
 }
 
 sub _handle_rest_request {
-    my ($rest, $class_key, $message, $args) = @_;
+    my ( $rest, $class_key, $message, $args ) = @_;
     $args ||= [];
-     
+
     my $class;
     eval { $class = Kinetic::Meta->for_key($class_key) };
-    unless ($class) {
-        my $info = $rest->path_info;
-        $rest->status(NOT_IMPLEMENTED_STATUS)
-             ->response("No resource available to handle ($info)");
-        return;
+    if ( !$class || !$message ) {
+        return _not_implemented($rest);
     }
-    use Data::Dumper::Simple;
-    if (my $method = $class->methods($message)) {
-        if ($method->context == Class::Meta::CLASS) {
-            my $response = $method->call($class->package->new, @$args);
-            if ('search' eq $message) {
-                return _instance_list($rest, $class_key, $response);
+    if ( my $method = $class->methods($message) ) {
+        if ( $method->context == Class::Meta::CLASS ) {
+            my $response = $method->call( $class->package->new, @$args );
+            if ( 'search' eq $message ) {
+                return _instance_list( $rest, $class_key, $response );
             }
-        } else {
+        }
+        else {
+
             # XXX we're not actually doing anything with this yet.
             my $obj = $class->contructors('lookup')->call(@$args)
               or die;
-            $method->call($obj, @$args);
+            $method->call( $obj, @$args );
         }
-    } elsif (my $ctor = $class->constructors($message)) {
-        my $obj = $ctor->call($class->package, @$args);
-        $rest->content_type(TEXT_CT)
-             #->response(Kinetic::XML->new($obj)->dump_xml);
-             ->response(Dumper($args, $obj));
-        return;
-    } else {
-    die Dumper(3, $rest, $class_key, $message, $args);
-        die; # XXX
     }
+    elsif ( my $ctor = $class->constructors($message) ) {
+        my $obj = $ctor->call( $class->package, @$args );
+        my $xml = Kinetic::XML->new(
+            {
+                object         => $obj,
+                stylesheet_url => $rest->stylesheet_url('instance'),
+            }
+        )->dump_xml;
+        $rest->content_type(XML_CT)->response($xml);
+        return;
+    }
+    else {
+        return _not_implemented($rest);
+    }
+}
+
+sub _not_implemented {
+    my $rest = shift;
+    my $info = $rest->path_info;
+    $rest->status(NOT_IMPLEMENTED_STATUS)
+      ->response("No resource available to handle ($info)");
 }
 
 ##############################################################################
@@ -135,33 +142,35 @@ sub _handle_rest_request {
   Kinetic::Interface::REST::Dispatch::_instance_list($rest);
 
 This function takes a L<Kinetic::Interface::REST|Kinetic::Interface::REST>
-instance and an iterator.  It sets the rest instance's content-type to C<text/xml>
-and its response to an XML list of all resources in the iterator, keyed by
-guid.
+instance and an iterator.  It sets the rest instance's content-type to
+C<text/xml> and its response to an XML list of all resources in the iterator,
+keyed by guid.
 
 =cut
 
 my $STORE = Kinetic::Store->new;
-sub _instance_list {
-    my ($rest, $key, $iterator) = @_;
 
-    my $response     = _xml_header($rest, 'Available instances');
+sub _instance_list {
+    my ( $rest, $key, $iterator ) = @_;
+
+    my $response     = _xml_header( $rest, 'Available instances' );
     my $base_url     = _rest_base_url($rest);
     my $query_string = _query_string($rest);
 
     my $num_resources = 0;
-    while (my $resource = $iterator->next) {
+    while ( my $resource = $iterator->next ) {
         $num_resources++;
         my $guid = $resource->guid;
-        $response 
-            .= qq'<kinetic:resource id="$guid" xlink:href="$base_url$key/lookup/guid/$guid$query_string"/>',
+        $response .=
+qq'<kinetic:resource id="$guid" xlink:href="$base_url$key/lookup/guid/$guid$query_string"/>'
+          ,;
     }
     unless ($num_resources) {
-        $response .= '       <kinetic:resource id="No resources found" xlink:href="#"/>';
+        $response .=
+          '       <kinetic:resource id="No resources found" xlink:href="#"/>';
     }
     $response .= "</kinetic:resources>";
-    $rest->content_type(XML_CT)
-         ->response($response);
+    $rest->content_type(XML_CT)->response($response);
 }
 
 ##############################################################################
@@ -194,7 +203,7 @@ responses.
 =cut
 
 sub _xml_header {
-    my ($rest, $title) = @_;
+    my ( $rest, $title ) = @_;
     my $stylesheet = $rest->stylesheet_url('REST');
     return <<"    END_HEADER";
 <?xml version="1.0"?>

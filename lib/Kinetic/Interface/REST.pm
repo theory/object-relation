@@ -78,7 +78,7 @@ sub new {
         content_type => '',
         domain       => $args{domain},
         path         => $args{path},
-        xslt         => XSLT->new(type => 'REST'),
+        xslt         => XSLT->new( type => 'REST' ),
     } => $class;
 }
 
@@ -91,13 +91,12 @@ sub _validate_args {
         my $errors = join ' and ' => @errors;
         throw_required [
             'Required argument "[_1]" to [_2] not found',
-            $errors,
-            __PACKAGE__."::new"
+            $errors, __PACKAGE__ . "::new"
         ];
     }
     $args{domain} .= '/' unless $args{domain} =~ /\/$/;
-    $args{path}   .= '/' unless $args{path} =~ /\/$/;
-    $args{path}    =~ s/^\///;
+    $args{path} .= '/'   unless $args{path}   =~ /\/$/;
+    $args{path} =~ s/^\///;
 
     return %args;
 }
@@ -128,32 +127,33 @@ L<CGI|CGI> interface.
 =cut
 
 sub handle_request {
-    my ($self, $cgi) = @_;
-    $self->cgi($cgi)
-         ->status('')
-         ->response('')
-         ->content_type('');
-    my ($class_key, $method, @args) = 
-        map  { lc } 
-        grep { /\S/ }
-        split '/' => $cgi->path_info;
+    my ( $self, $cgi ) = @_;
+    $self->cgi($cgi)->status('')->response('')->content_type('');
+    my ( $class_key, $method, @args ) =
+      grep { /\S/ }
+      split '/' => $cgi->path_info;
+    $_ = lc foreach $class_key, $method;
+
     unless ($class_key) {
         eval { Kinetic::Interface::REST::Dispatch::_class_list($self) };
         if ($@) {
             my $info = $cgi->path_info;
             $self->status(INTERNAL_SERVER_ERROR_STATUS)
-                 ->response("Fatal error handling $info: $@");
+              ->response("Fatal error handling $info: $@");
         }
         else {
             $self->status(OK_STATUS) unless $self->status;
         }
     }
     else {
-        eval { Kinetic::Interface::REST::Dispatch::_handle_rest_request($self, $class_key, $method, \@args) };
+        eval {
+            Kinetic::Interface::REST::Dispatch::_handle_rest_request( $self,
+                $class_key, $method, \@args );
+        };
         if ($@) {
             my $info = $cgi->path_info;
             $self->status(INTERNAL_SERVER_ERROR_STATUS)
-                 ->response("Fatal error handling $info: $@");
+              ->response("Fatal error handling $info: $@");
         }
         else {
             $self->status(OK_STATUS) unless $self->status;
@@ -295,7 +295,7 @@ was called.
 
 =cut
 
-sub path_info { 
+sub path_info {
     my $self = shift;
     return unless my $cgi = $self->cgi;
     $cgi->path_info;
@@ -314,13 +314,13 @@ Returns the empty string if no resource path is found.
 
 =cut
 
-sub resource_path { 
-    my $self = shift;
+sub resource_path {
+    my $self          = shift;
     my $resource_path = $self->path_info;
     return '' unless $resource_path;
     my $path = $self->path;
-    $resource_path  =~ s/^$path//;
-    $resource_path  =~ s/^\///;
+    $resource_path =~ s/^$path//;
+    $resource_path =~ s/^\///;
     $resource_path .= '/' unless $resource_path =~ /\/$/;
     return '/' eq $resource_path ? '' : $resource_path;
 }
@@ -336,12 +336,12 @@ Returns XSLT stylesheet for the requested resource.
 =cut
 
 sub stylesheet {
-    my $self = shift;
-    my $sheet = $self->cgi->param('stylesheet') || return; # XXX not implemented?
-    eval {$self->xslt->type($sheet)};
+    my $self  = shift;
+    my $sheet = $self->cgi->param('stylesheet')
+      || return;    # XXX not implemented?
+    eval { $self->xslt->type($sheet) };
     return $self->xslt->stylesheet unless $@;
 }
-
 
 ##############################################################################
 
@@ -355,16 +355,16 @@ stylesheet types are listed in L<Kinetic::View::XSLT|Kinetic::View|XSLT>.
 =cut
 
 sub stylesheet_url {
-    my ($rest, $sheet) = @_;
+    my ( $rest, $sheet ) = @_;
+
     # XXX has side-effect of setting xslt stylesheet type.  Bad?
-    eval {$rest->xslt->type($sheet)};
+    eval { $rest->xslt->type($sheet) };
     unless ($@) {
-        return $rest->domain.$rest->path.'?stylesheet='.$sheet;
+        return $rest->domain . $rest->path . '?stylesheet=' . $sheet;
     }
     else {
-        $rest->status(NOT_IMPLEMENTED_STATUS)
-             ->content_type(TEXT_CT)
-             ->response("Unknown stylesheet ($sheet)");
+        $rest->status(NOT_IMPLEMENTED_STATUS)->content_type(TEXT_CT)
+          ->response("Unknown stylesheet ($sheet)");
         return;
     }
 }

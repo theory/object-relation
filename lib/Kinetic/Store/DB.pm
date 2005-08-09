@@ -22,19 +22,19 @@ use strict;
 use base qw(Kinetic::Store);
 use DBI;
 
-use Kinetic::Util::Exceptions     qw/:all/;
-use Kinetic::Store                qw/:sorting/;
-use Kinetic::Store::Parser::DB    qw/parse/;
-use Kinetic::Store::Lexer::Code   qw/code_lexer_stream/;
+use Kinetic::Util::Exceptions qw/:all/;
+use Kinetic::Store qw/:sorting/;
+use Kinetic::Store::Parser::DB qw/parse/;
+use Kinetic::Store::Lexer::Code qw/code_lexer_stream/;
 use Kinetic::Store::Lexer::String qw/string_lexer_stream/;
-use Kinetic::Util::Constants      qw/:data_store/;
+use Kinetic::Util::Constants qw/:data_store/;
 
 use aliased 'Kinetic::Meta' => 'Meta', qw/:with_dbstore_api/;
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::DateTime::Incomplete';
 use aliased 'Kinetic::Store::Search';
 
-my %SEARCH_TYPES = map { $_ => 1 } qw/CODE STRING XML/;
+my %SEARCH_TYPE_FOR = map { $_ => 1 } qw/CODE STRING XML/;
 
 =head1 Name
 
@@ -76,6 +76,7 @@ objects to the data store at the same time, all in a single transaction.
 
 sub save {
     my $self = shift->_from_proto;
+
     # XXX Cache the database handle only for the duration of a single call to
     # save(). We can change this if DBI is ever changed so that
     # connect_cached() stops resetting AutoCommit.
@@ -83,10 +84,10 @@ sub save {
     $self->{dbh}->begin_work;
     eval {
         $self->_save(@_);
-        delete($self->{dbh})->commit;
+        delete( $self->{dbh} )->commit;
     };
-    if (my $err = $@) {
-        delete($self->{dbh})->rollback;
+    if ( my $err = $@ ) {
+        delete( $self->{dbh} )->rollback;
         die $err;
     }
     return $self;
@@ -133,28 +134,27 @@ unique.
 =cut
 
 sub lookup {
-    my ($proto, $search_class, $attr_key, $value) = @_;
+    my ( $proto, $search_class, $attr_key, $value ) = @_;
     my $self = $proto->_from_proto;
-    unless (ref $search_class) {
+    unless ( ref $search_class ) {
         $search_class = $self->_get_class_from_key($search_class);
     }
     my $attr = $search_class->attributes($attr_key);
-    throw_attribute [
-        'No such attribute "[_1]" for [_2]',
-        $attr_key, $search_class->package
-    ] unless $attr;
+    throw_attribute [ 'No such attribute "[_1]" for [_2]', $attr_key,
+        $search_class->package ]
+      unless $attr;
     throw_attribute [ 'Attribute "[_1]" is not unique', $attr_key ]
-        unless $attr->unique;
+      unless $attr->unique;
     $self->_prepare_method(CACHED);
     $self->_should_create_iterator(0);
     local $self->{search_class} = $search_class;
-    my $results = $self->_search($attr_key, $value);
-    if (@$results > 1) {
+    my $results = $self->_search( $attr_key, $value );
+
+    if ( @$results > 1 ) {
         my $package = $search_class->package;
-        panic [ 
+        panic [
             "PANIC: lookup([_1], [_2], [_3]) returned more than one result.",
-            $package, $attr_key, $value
-        ];
+            $package, $attr_key, $value ];
     }
     return $results->[0];
 }
@@ -182,11 +182,11 @@ multiple SQL calls to assemble the data.
 =cut
 
 sub search {
-    my ($proto, $search_class, @search_params) = @_;
+    my ( $proto, $search_class, @search_params ) = @_;
     my $self = $proto->_from_proto;
     $self->_prepare_method(PREPARE);
     $self->_should_create_iterator(1);
-    unless (ref $search_class) {
+    unless ( ref $search_class ) {
         $search_class = $self->_get_class_from_key($search_class);
     }
     local $self->{search_class} = $search_class;
@@ -207,21 +207,19 @@ context it returns an array reference.
 =cut
 
 sub search_guids {
-    my ($proto, $search_class, @search_params) = @_;
-    unless (ref $search_class) {
+    my ( $proto, $search_class, @search_params ) = @_;
+    unless ( ref $search_class ) {
         $search_class = $proto->_get_class_from_key($search_class);
     }
     my $self = $proto->_from_proto;
-    $self->_set_search_type(\@search_params);
+    $self->_set_search_type( \@search_params );
     $self->_prepare_method(PREPARE);
     $self->_should_create_iterator(0);
     local $self->{search_class} = $search_class;
     $self->_set_search_data;
-    my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
-        "guid",
-        \@search_params
-    );
-    my $guids = $self->_dbh->selectcol_arrayref($sql, undef, @$bind_params);
+    my ( $sql, $bind_params ) =
+      $self->_get_select_sql_and_bind_params( "guid", \@search_params );
+    my $guids = $self->_dbh->selectcol_arrayref( $sql, undef, @$bind_params );
     return wantarray ? @$guids : $guids;
 }
 
@@ -239,21 +237,19 @@ Any final constraints (such as "LIMIT" or "ORDER BY") will be discarded.
 =cut
 
 sub count {
-    my ($proto, $search_class, @search_params) = @_;
-    unless (ref $search_class) {
+    my ( $proto, $search_class, @search_params ) = @_;
+    unless ( ref $search_class ) {
         $search_class = $proto->_get_class_from_key($search_class);
     }
     pop @search_params if 'HASH' eq ref $search_params[-1];
     my $self = $proto->_from_proto;
-    $self->_set_search_type(\@search_params);
+    $self->_set_search_type( \@search_params );
     $self->_prepare_method(PREPARE);
     local $self->{search_class} = $search_class;
     $self->_set_search_data;
-    my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
-        'count(*)',
-        \@search_params
-    );
-    my ($count)   = $self->_dbh->selectrow_array($sql, undef, @$bind_params);
+    my ( $sql, $bind_params ) =
+      $self->_get_select_sql_and_bind_params( 'count(*)', \@search_params );
+    my ($count) = $self->_dbh->selectrow_array( $sql, undef, @$bind_params );
     return $count;
 }
 
@@ -278,12 +274,12 @@ method.
 =cut
 
 sub _date_handler {
-    my ($self, $search) = @_;
+    my ( $self, $search ) = @_;
     my $operator = $search->operator;
-    return '='       =~ $operator ? $self->_eq_date_handler($search)
-        :  'BETWEEN' eq $operator ? $self->_between_date_handler($search)
-        :  'ANY'     eq $operator ? $self->_any_date_handler($search)
-        :                           $self->_gt_lt_date_handler($search);
+    return    '=' =~ $operator ? $self->_eq_date_handler($search)
+      : 'BETWEEN' eq $operator ? $self->_between_date_handler($search)
+      : 'ANY'     eq $operator ? $self->_any_date_handler($search)
+      :                          $self->_gt_lt_date_handler($search);
 }
 
 ##############################################################################
@@ -346,14 +342,16 @@ sub _any_date_handler {
 }
 
 sub _get_select_sql_and_bind_params {
-    my ($self, $columns, $search_request) = @_;
-    my $constraints = pop @$search_request if 'HASH' eq ref $search_request->[-1];
-    my $view        = $self->search_class->key;
-    my ($where_clause, $bind_params) = $self->_make_where_clause($search_request);
+    my ( $self, $columns, $search_request ) = @_;
+    my $constraints = pop @$search_request
+      if 'HASH' eq ref $search_request->[-1];
+    my $view = $self->search_class->key;
+    my ( $where_clause, $bind_params ) =
+      $self->_make_where_clause($search_request);
     $where_clause = "WHERE $where_clause" if $where_clause;
-    my $sql       = "SELECT $columns FROM $view $where_clause";
-    $sql         .= $self->_constraints($constraints) if $constraints;
-    return ($sql, $bind_params);
+    my $sql = "SELECT $columns FROM $view $where_clause";
+    $sql .= $self->_constraints($constraints) if $constraints;
+    return ( $sql, $bind_params );
 }
 
 ##############################################################################
@@ -370,12 +368,10 @@ Throws an invalid class exception if it cannot determine the class.
 =cut
 
 sub _get_class_from_key {
-    my ($self, $key) = @_;
+    my ( $self, $key ) = @_;
     return Kinetic::Meta->for_key($key)
-      or throw_invalid_class [
-        'I could not find the class for key "[_1]"', 
-        $key 
-    ];
+      or
+      throw_invalid_class [ 'I could not find the class for key "[_1]"', $key ];
 }
 
 ##############################################################################
@@ -391,22 +387,22 @@ for a single save to be called at the top level.
 =cut
 
 sub _save {
-    my ($self, $object) = @_;
+    my ( $self, $object ) = @_;
+
     # XXX So this is something we need to get implemented.
     #return $class unless $object->changed;
     local $self->{search_class} = $object->my_class;
     local $self->{view}         = $self->{search_class}->key;
     local @{$self}{qw/columns values/};
-    $self->_save($_->get($object))
-        foreach $self->{search_class}->ref_attributes;
+    $self->_save( $_->get($object) )
+      foreach $self->{search_class}->ref_attributes;
 
-    foreach my $attr ($self->{search_class}->attributes) {
-        push @{$self->{columns}} => $attr->_view_column;
-        push @{$self->{values}}  => $attr->raw($object);
+    foreach my $attr ( $self->{search_class}->attributes ) {
+        push @{ $self->{columns} } => $attr->_view_column;
+        push @{ $self->{values} }  => $attr->raw($object);
     }
-    return $object->id
-        ? $self->_update($object)
-        : $self->_insert($object);
+    return $object->id ? $self->_update($object)
+      :                  $self->_insert($object);
 }
 
 ##############################################################################
@@ -421,21 +417,20 @@ sets whether or n
 =cut
 
 sub _search {
-    my ($self, @search_params) = @_;
-    $self->_set_search_type(\@search_params);
-    if ($self->{search_type} eq 'CODE') {
-        # XXX we're going to temporarily disable full text searches unless it's a 
-        # code search.  We need to figure out the exact semantics of the others
+    my ( $self, @search_params ) = @_;
+    $self->_set_search_type( \@search_params );
+    if ( $self->{search_type} eq 'CODE' ) {
+
+       # XXX we're going to temporarily disable full text searches unless it's a
+       # code search.  We need to figure out the exact semantics of the others
         return $self->_full_text_search(@search_params)
-            if 1 == @search_params && ! ref $search_params[0];
+          if 1 == @search_params && !ref $search_params[0];
     }
     $self->_set_search_data;
     my $columns = join ', ' => $self->_search_data_columns;
-    my ($sql, $bind_params) = $self->_get_select_sql_and_bind_params(
-        $columns,
-        \@search_params
-    );
-    return $self->_get_sql_results($sql, $bind_params);
+    my ( $sql, $bind_params ) =
+      $self->_get_select_sql_and_bind_params( $columns, \@search_params );
+    return $self->_get_sql_results( $sql, $bind_params );
 }
 
 ##############################################################################
@@ -491,32 +486,31 @@ required to immediately follow them.
 =cut
 
 sub _set_search_type {
-    my ($self, $search_params) = @_;
-    $self->{search_type} = ! @$search_params
-        ? 'CODE'
-        : exists $SEARCH_TYPES{$search_params->[0]}
-            ? shift @$search_params
-            : 'CODE';
-    if ($self->{search_type} eq 'STRING' && @$search_params > 1) {
+    my ( $self, $search_params ) = @_;
+    $self->{search_type} =
+      !@$search_params                              ? 'CODE'
+      : exists $SEARCH_TYPE_FOR{ $search_params->[0] } ? shift @$search_params
+      : 'CODE';
+    if ( 'STRING' eq $self->{search_type} && @$search_params > 1 ) {
         my @constraints = splice @$search_params, 1;
-        if (@constraints % 2) {
+        if ( @constraints % 2 ) {
             throw_search [
                 'Odd number of constraints in string search:  "[_1]"',
                 join ', ' => @constraints
             ];
         }
-        my %constraints;
-        while (my ($constraint, $value) = splice @constraints, 0, 2) {
-            $value = ASC  if 'ASC' eq uc $value;  # convert to search subs
-            $value = DESC if 'DESC' eq uc $value;  # convert to search subs
-            if (exists $constraints{$constraint}) {
-                push @{$constraints{$constraint}} => $value;
+        my %constraint_for;
+        while ( my ( $constraint, $value ) = splice @constraints, 0, 2 ) {
+            $value = ASC  if 'ASC'  eq uc $value;    # convert to search subs
+            $value = DESC if 'DESC' eq uc $value;    # convert to search subs
+            if ( exists $constraint_for{$constraint} ) {
+                push @{ $constraint_for{$constraint} } => $value;
             }
             else {
-                $constraints{$constraint} = [$value];
+                $constraint_for{$constraint} = [$value];
             }
         }
-        $search_params->[1] = \%constraints;
+        $search_params->[1] = \%constraint_for;
     }
     $self;
 }
@@ -558,12 +552,12 @@ any purpose.
 =cut
 
 sub _insert {
-    my ($self, $object) = @_;
-    my $columns      = join ', ' => @{$self->{columns}};
-    my $placeholders = join ', ' => (('?') x @{$self->{columns}});
+    my ( $self, $object ) = @_;
+    my $columns = join ', ' => @{ $self->{columns} };
+    my $placeholders = join ', ' => ( ('?') x @{ $self->{columns} } );
     my $sql = "INSERT INTO $self->{view} ($columns) VALUES ($placeholders)";
     $self->_prepare_method(CACHED);
-    $self->_do_sql($sql, $self->{values});
+    $self->_do_sql( $sql, $self->{values} );
     $self->_set_id($object);
     return $self;
 }
@@ -581,9 +575,10 @@ subclass.  See C<_insert> for caveats about object C<id>s.
 =cut
 
 sub _set_id {
-    my ($self, $object) = @_;
+    my ( $self, $object ) = @_;
+
     # XXX This won't work for PostgreSQL, so be sure to override it.
-    $object->id($self->_dbh->last_insert_id(undef, undef, undef, undef));
+    $object->id( $self->_dbh->last_insert_id( undef, undef, undef, undef ) );
     return $self;
 }
 
@@ -600,12 +595,12 @@ Creates and executes an C<UPDATE> sql statement for the given object.
 =cut
 
 sub _update {
-    my ($self, $object) = @_;
-    my $columns = join ', '  => map { "$_ = ?" } @{$self->{columns}};
-    push @{$self->{values}} => $object->id;
+    my ( $self, $object ) = @_;
+    my $columns = join ', ' => map { "$_ = ?" } @{ $self->{columns} };
+    push @{ $self->{values} } => $object->id;
     my $sql = "UPDATE $self->{view} SET $columns WHERE id = ?";
     $self->_prepare_method(CACHED);
-    return $self->_do_sql($sql, $self->{values});
+    return $self->_do_sql( $sql, $self->{values} );
 }
 
 ##############################################################################
@@ -620,9 +615,10 @@ object.  Used for sql that is not expected to return data.
 =cut
 
 sub _do_sql {
-    my ($self, $sql, $bind_params) = @_;
+    my ( $self, $sql, $bind_params ) = @_;
     my $dbi_method = $self->_prepare_method;
-    my $sth = $self->_dbh->$dbi_method($sql);
+    my $sth        = $self->_dbh->$dbi_method($sql);
+
     # The warning has been suppressed due to "use of unitialized value in
     # subroutine entry" warnings from DBD::SQLite.
     no warnings 'uninitialized';
@@ -645,7 +641,7 @@ sub _prepare_method {
     my $self = shift;
     if (@_) {
         my $method = shift;
-        unless (PREPARE eq $method || CACHED eq $method) {
+        unless ( PREPARE eq $method || CACHED eq $method ) {
             throw_invalid [ 'Invalid method "[_1]"', $method ];
         }
         $self->{prepare_method} = $method;
@@ -688,21 +684,23 @@ results of a given C<search>.
 =cut
 
 sub _get_sql_results {
-    my ($self, $sql, $bind_params) = @_;
+    my ( $self, $sql, $bind_params ) = @_;
     my $dbi_method = $self->_prepare_method;
-    my $sth = $self->_dbh->$dbi_method($sql);
-    $self->_execute($sth, $bind_params);
-    if ($self->_should_create_iterator) {
+    my $sth        = $self->_dbh->$dbi_method($sql);
+    $self->_execute( $sth, $bind_params );
+    if ( $self->_should_create_iterator ) {
         my $search_class = $self->{search_class};
-        return Iterator->new(sub {
-            my $result = $self->_fetchrow_hashref($sth) or return;
-            local $self->{search_class} = $search_class;
-            return $self->_build_object_from_hashref($result);
-        });
+        return Iterator->new(
+            sub {
+                my $result = $self->_fetchrow_hashref($sth) or return;
+                local $self->{search_class} = $search_class;
+                return $self->_build_object_from_hashref($result);
+            }
+        );
     }
     else {
         my @results;
-        while (my $result = $self->_fetchrow_hashref($sth)) {
+        while ( my $result = $self->_fetchrow_hashref($sth) ) {
             push @results => $self->_build_object_from_hashref($result);
         }
         return \@results;
@@ -721,7 +719,7 @@ params is necessary.
 =cut
 
 sub _execute {
-    my ($self, $sth, $bind_params) = @_;
+    my ( $self, $sth, $bind_params ) = @_;
     $sth->execute(@$bind_params);
 }
 
@@ -737,7 +735,7 @@ post-processing of resulting data is necessary.
 =cut
 
 sub _fetchrow_hashref {
-    my ($self, $sth) = @_;
+    my ( $self, $sth ) = @_;
     return $sth->fetchrow_hashref;
 }
 
@@ -757,11 +755,11 @@ off of the hashref with hash slices.
 =cut
 
 sub _build_object_from_hashref {
-    my ($self, $hashref) = @_;
+    my ( $self, $hashref ) = @_;
     my %objects_for;
     my %metadata_for = $self->_search_data_metadata;
 
-    foreach my $package ($self->_search_data_build_order) {
+    foreach my $package ( $self->_search_data_build_order ) {
         my $columns = $metadata_for{$package}{columns};
 
         # XXX Is the distinction here due to IDs?
@@ -771,20 +769,20 @@ sub _build_object_from_hashref {
         # create the object
         my %object;
         @object{@object_attributes} = @{$hashref}{@object_columns};
-        $objects_for{$package} = bless \%object => $package;
+        $objects_for{$package}      = bless \%object => $package;
 
         # do we have a contained object?
-        if (defined (my $contains = $metadata_for{$package}{contains})) {
-            while (my ($key, $contained) = each %$contains) {
+        if ( defined( my $contains = $metadata_for{$package}{contains} ) ) {
+            while ( my ( $key, $contained ) = each %$contains ) {
                 delete $objects_for{$package}{$key};
                 my $contained_package = $contained->package;
-                my $view = $contained->key;
-                $objects_for{$package}{$view} 
-                    = $objects_for{$contained_package};
+                my $view              = $contained->key;
+                $objects_for{$package}{$view} =
+                  $objects_for{$contained_package};
             }
         }
     }
-    return $objects_for{$self->search_class->package};
+    return $objects_for{ $self->search_class->package };
 }
 
 ##############################################################################
@@ -804,46 +802,49 @@ down into an object and its contained objects.
 # XXX This is the information it'd be great to compile in at build time.
 # Maybe a utility object to track all of this data would be useful...
 
-my %SEARCH_DATA;
+my %SEARCH_DATA_FOR;
+
 sub _set_search_data {
     my ($self) = @_;
     my $package = $self->search_class->package;
-    unless (exists $SEARCH_DATA{$package}) {
-        my (@columns, %packages);
+    unless ( exists $SEARCH_DATA_FOR{$package} ) {
+        my ( @columns, %packages );
         my @classes_to_process = {
             class  => $self->search_class,
             prefix => '',
         };
         my @build_order;
         while (@classes_to_process) {
-            foreach my $data (splice @classes_to_process, 0) {
+            foreach my $data ( splice @classes_to_process, 0 ) {
                 my $package = $data->{class}->package;
                 unshift @build_order => $package;
-                foreach my $attr ($data->{class}->attributes) {
+                foreach my $attr ( $data->{class}->attributes ) {
                     my $column      = $attr->_view_column;
                     my $view_column = "$data->{prefix}$column";
 
                     $packages{$package}{columns}{$view_column} = $column;
-                    if (my $class = $attr->references) {
+                    if ( my $class = $attr->references ) {
                         push @classes_to_process => {
                             class  => $class,
                             prefix => $class->key . OBJECT_DELIMITER,
                         };
                         $packages{$package}{contains}{$column} = $class;
-                    } else {
+                    }
+                    else {
                         push @columns => $view_column;
                     }
                 }
             }
         }
-        $SEARCH_DATA{$package}{columns}     = \@columns;
-        $SEARCH_DATA{$package}{metadata}    = \%packages;
-        $SEARCH_DATA{$package}{build_order} = \@build_order;
-        $SEARCH_DATA{$package}{lookup}      = {};
+        $SEARCH_DATA_FOR{$package}{columns}     = \@columns;
+        $SEARCH_DATA_FOR{$package}{metadata}    = \%packages;
+        $SEARCH_DATA_FOR{$package}{build_order} = \@build_order;
+        $SEARCH_DATA_FOR{$package}{lookup}      = {};
+
         # merely a hashset.  The values are useless
-        @{$SEARCH_DATA{$package}{lookup}}{@columns} = undef;
+        @{ $SEARCH_DATA_FOR{$package}{lookup} }{@columns} = undef;
     }
-    $self->_search_data($SEARCH_DATA{$package});
+    $self->_search_data( $SEARCH_DATA_FOR{$package} );
     return $self;
 }
 
@@ -877,7 +878,7 @@ Returns a list of the search data columns.  See C<_set_search_data>.
 
 =cut
 
-sub _search_data_columns { @{shift->{search_data}{columns}} }
+sub _search_data_columns { @{ shift->{search_data}{columns} } }
 
 ##############################################################################
 
@@ -894,7 +895,7 @@ argument.
 =cut
 
 sub _search_data_has_column {
-    my ($self, $column) = @_;
+    my ( $self, $column ) = @_;
     return exists $self->{search_data}{lookup}{$column};
 }
 
@@ -908,7 +909,7 @@ Returns a list of the search data metadata.  See C<_set_search_data>.
 
 =cut
 
-sub _search_data_metadata { %{shift->{search_data}{metadata}} }
+sub _search_data_metadata { %{ shift->{search_data}{metadata} } }
 
 ##############################################################################
 
@@ -921,7 +922,7 @@ C<_build_object_from_hashref>.  See C<_set_search_data>.
 
 =cut
 
-sub _search_data_build_order { @{shift->{search_data}{build_order}} }
+sub _search_data_build_order { @{ shift->{search_data}{build_order} } }
 
 ##############################################################################
 
@@ -936,50 +937,60 @@ be generated.
 =cut
 
 sub _make_where_clause {
-    my ($self, $search_request) = @_;
-    return ('', []) unless @$search_request && $search_request->[0];
-    my $stream = $self->{search_type} eq 'CODE' # XXX we may need to clean this up later
-        ? code_lexer_stream($search_request)
-        : string_lexer_stream($search_request->[0]);
-    my $ir = parse($stream, $self);
-    my ($where_clause, $bind_params) = $self->_convert_ir_to_where_clause($ir);
+    my ( $self, $search_request ) = @_;
+    return ( '', [] ) unless @$search_request && $search_request->[0];
+    my $stream =
+      $self->{search_type} eq 'CODE'    # XXX we may need to clean this up later
+      ? code_lexer_stream($search_request)
+      : string_lexer_stream( $search_request->[0] );
+    my $ir = parse( $stream, $self );
+    my ( $where_clause, $bind_params ) =
+      $self->_convert_ir_to_where_clause($ir);
     $where_clause = "" if '()' eq $where_clause;
-    return ($where_clause, $bind_params);
+    return ( $where_clause, $bind_params );
 }
 
 sub _convert_ir_to_where_clause {
-    my ($self, $ir) = @_;
-    my (@where, @bind);
-    while (my $term = shift @$ir) {
-        unless (ref $term) { # Currently, this means its 'OR'
+    my ( $self, $ir ) = @_;
+    my ( @where, @bind );
+    while ( my $term = shift @$ir ) {
+        unless ( ref $term ) {    # Currently, this means its 'OR'
             pop @where if 'AND' eq $where[-1];
             push @where => $term;
-            my ($token, $bind) = $self->_convert_ir_to_where_clause(shift @$ir);
+            my ( $token, $bind ) =
+              $self->_convert_ir_to_where_clause( shift @$ir );
             push @where => $token;
             push @bind  => @$bind;
+
             # (LOWER(name) = LOWER(?) OR (LOWER(desc) = LOWER(?) AND this = ?))
         }
-        elsif (Search eq ref $term) {
+        elsif ( Search eq ref $term ) {
             my $search_method = $term->search_method;
-            my ($token, $bind) = $self->$search_method($term);
+            my ( $token, $bind ) = $self->$search_method($term);
             push @where => $token;
             push @bind  => @$bind;
         }
-        elsif ('ARRAY' eq ref $term && 'AND' eq $term->[0] && Search eq ref $term->[1]) {
+        elsif ('ARRAY' eq ref $term
+            && 'AND'  eq $term->[0]
+            && Search eq ref $term->[1] )
+        {
             shift @$term;
-            my ($token, $bind) = $self->_convert_ir_to_where_clause($term);
+            my ( $token, $bind ) = $self->_convert_ir_to_where_clause($term);
             push @where => $token;
             push @bind  => @$bind;
         }
         else {
-            panic 'Failed to convert IR to where clause.  This should not happen.',
+            panic
+              'Failed to convert IR to where clause.  This should not happen.',;
         }
-        unless ($where[-1] =~ GROUP_OP) {
+        unless ( $where[-1] =~ GROUP_OP ) {
             push @where => 'AND';
         }
     }
-    pop @where if defined $where[-1] && $where[-1] =~ GROUP_OP; # whoops!  Figure out how to avoid this
-    return '('. join(' ' => @where).')', \@bind;
+    pop @where
+      if defined $where[-1]
+      && $where[-1] =~ GROUP_OP;    # whoops!  Figure out how to avoid this
+    return '(' . join ( ' ' => @where ) . ')', \@bind;
 }
 
 ##############################################################################
@@ -995,10 +1006,10 @@ is case sensitive.
 
 =cut
 
-my %case_insensitive = map {$_ => 1} qw/string/;
+my %case_insensitive = map { $_ => 1 } qw/string/;
 
 sub _is_case_sensitive {
-    my ($self, $type) = @_;
+    my ( $self, $type ) = @_;
     return exists $case_insensitive{$type};
 }
 
@@ -1014,22 +1025,24 @@ based upon whether or not the column's data type is case-insensitive.
 =cut
 
 sub _handle_case_sensitivity {
-    my ($self, $column) = @_;
+    my ( $self, $column ) = @_;
+
     # if 'type eq string' for attr (only relevent for postgres)
-    my $orig_column     = $column;
-    my $search_class   = $self->{search_class};
-    if ($column =~ /@{[OBJECT_DELIMITER]}/) {
-        my ($key,$column2) = split /@{[OBJECT_DELIMITER]}/ => $column;
+    my $orig_column  = $column;
+    my $search_class = $self->{search_class};
+    if ( $column =~ /@{[OBJECT_DELIMITER]}/ ) {
+        my ( $key, $column2 ) = split /@{[OBJECT_DELIMITER]}/ => $column;
         $search_class = $self->_get_class_from_key($key);
-        $column = $column2;
+        $column       = $column2;
     }
     if ($search_class) {
         $column = "LOWER($orig_column)"
-            if $self->_is_case_sensitive(
-                $search_class->attributes($column)->type
-            );
+          if $self->_is_case_sensitive(
+            $search_class->attributes($column)->type );
     }
-    return $column =~ /^LOWER/? ($column, 'LOWER(?)') : ($orig_column, '?');
+    return $column =~ /^LOWER/
+      ? ( $column, 'LOWER(?)' )
+      : ( $orig_column, '?' );
 }
 
 ##############################################################################
@@ -1067,53 +1080,60 @@ L<Kinetic::Store::Seach|Kinetic::Store::Search>.
 =cut
 
 sub _ANY_SEARCH {
-    my ($self, $search)        = @_;
-    my ($negated, $value)      = ($search->negated, $search->data);
-    my ($column, $place_holder) = $self->_handle_case_sensitivity($search->column);
+    my ( $self,    $search )       = @_;
+    my ( $negated, $value )        = ( $search->negated, $search->data );
+    my ( $column,  $place_holder ) =
+      $self->_handle_case_sensitivity( $search->column );
     my $place_holders = join ', ' => ($place_holder) x @$value;
-    return ("$column $negated IN ($place_holders)", $value);
+    return ( "$column $negated IN ($place_holders)", $value );
 }
 
 sub _EQ_SEARCH {
-    my ($self, $search)        = @_;
-    my ($column, $place_holder) = $self->_handle_case_sensitivity($search->column);
+    my ( $self,   $search )       = @_;
+    my ( $column, $place_holder ) =
+      $self->_handle_case_sensitivity( $search->column );
     my $operator = $search->operator;
-    return ("$column $operator $place_holder", [$search->data]);
+    return ( "$column $operator $place_holder", [ $search->data ] );
 }
 
 sub _NULL_SEARCH {
-    my ($self, $search)   = @_;
-    my ($column, $negated) = ($search->column, $search->negated);
-    return ("$column IS $negated NULL", []);
+    my ( $self, $search ) = @_;
+    my ( $column, $negated ) = ( $search->column, $search->negated );
+    return ( "$column IS $negated NULL", [] );
 }
 
 sub _GT_LT_SEARCH {
-    my ($self, $search) = @_;
-    my $value = $search->data;
+    my ( $self, $search ) = @_;
+    my $value    = $search->data;
     my $operator = $search->operator;
-    my ($column, $place_holder) = $self->_handle_case_sensitivity($search->column);
-    return ("$column $operator $place_holder", [$value]);
+    my ( $column, $place_holder ) =
+      $self->_handle_case_sensitivity( $search->column );
+    return ( "$column $operator $place_holder", [$value] );
 }
 
 sub _BETWEEN_SEARCH {
-    my ($self, $search) = @_;
-    my ($negated, $operator) = ($search->negated, $search->operator);
-    my ($column, $place_holder) = $self->_handle_case_sensitivity($search->column);
-    return ("$column $negated $operator $place_holder AND $place_holder", $search->data)
+    my ( $self,    $search )       = @_;
+    my ( $negated, $operator )     = ( $search->negated, $search->operator );
+    my ( $column,  $place_holder ) =
+      $self->_handle_case_sensitivity( $search->column );
+    return ( "$column $negated $operator $place_holder AND $place_holder",
+        $search->data );
 }
 
 sub _MATCH_SEARCH {
-    my ($self, $search) = @_;
-    my ($column, $place_holder) = $self->_handle_case_sensitivity($search->column);
+    my ( $self,   $search )       = @_;
+    my ( $column, $place_holder ) =
+      $self->_handle_case_sensitivity( $search->column );
     my $operator = $search->negated ? '!~*' : '~*';
-    return ("$column $operator $place_holder", [$search->data]);
+    return ( "$column $operator $place_holder", [ $search->data ] );
 }
 
 sub _LIKE_SEARCH {
-    my ($self, $search) = @_;
-    my ($negated, $operator) = ($search->negated, $search->operator);
-    my ($column, $place_holder) = $self->_handle_case_sensitivity($search->column);
-    return ("$column $negated $operator $place_holder", [$search->data]);
+    my ( $self,    $search )       = @_;
+    my ( $negated, $operator )     = ( $search->negated, $search->operator );
+    my ( $column,  $place_holder ) =
+      $self->_handle_case_sensitivity( $search->column );
+    return ( "$column $negated $operator $place_holder", [ $search->data ] );
 }
 
 ##############################################################################
@@ -1129,13 +1149,13 @@ those constraints.
 =cut
 
 sub _constraints {
-    my ($self, $constraints) = @_;
+    my ( $self, $constraints ) = @_;
     my $sql = '';
-    foreach my $constraint (keys %$constraints) {
-        if ('order_by' eq $constraint) {
+    foreach my $constraint ( keys %$constraints ) {
+        if ( 'order_by' eq $constraint ) {
             $sql .= $self->_constraint_order_by($constraints);
         }
-        elsif ('limit' eq $constraint) {
+        elsif ( 'limit' eq $constraint ) {
             $sql .= $self->_constraint_limit($constraints);
         }
     }
@@ -1154,18 +1174,22 @@ Given optional constraints passed to a search, this method returns a valid
 =cut
 
 sub _constraint_order_by {
-    my ($self, $constraints) = @_;
+    my ( $self, $constraints ) = @_;
     my $sql   = ' ORDER BY ';
     my $value = $constraints->{order_by};
+
     # XXX Default to ASC?
     my $sort_order = $constraints->{sort_order};
     $value      = [$value]      unless 'ARRAY' eq ref $value;
     $sort_order = [$sort_order] unless 'ARRAY' eq ref $sort_order;
+
     # normalize . to __
-    s/\Q@{[ATTR_DELIMITER]}\E/OBJECT_DELIMITER/eg foreach @$value; # one.name -> one__name
+    s/\Q@{[ATTR_DELIMITER]}\E/OBJECT_DELIMITER/eg
+      foreach @$value;    # one.name -> one__name
     my @sorts;
+
     # XXX Perl 6 would so rock for this...
-    for my $i (0 .. $#$value) {
+    for my $i ( 0 .. $#$value ) {
         my $sort = $value->[$i];
         $sort .= ' ' . uc $sort_order->[$i]->() if defined $sort_order->[$i];
         push @sorts => $sort;
@@ -1186,9 +1210,9 @@ Given optional constraints passed to a search, this method returns a valid
 =cut
 
 sub _constraint_limit {
-    my ($self, $constraints) = @_;
+    my ( $self, $constraints ) = @_;
     my $sql = " LIMIT $constraints->{limit}";
-    if (exists $constraints->{offset}) {
+    if ( exists $constraints->{offset} ) {
         $sql .= " OFFSET $constraints->{offset}";
     }
     return $sql;
@@ -1206,7 +1230,8 @@ Returns the current database handle.
 
 sub _dbh {
     my $self = shift->_from_proto;
-    return $self->{dbh} || DBI->connect_cached($self->_connect_args);
+    return $self->{dbh} || DBI->connect_cached( $self->_connect_args );
+
     # XXX Switch to this single line if connect_cached() ever stops resetting
     # AutoCommit. See http://www.nntp.perl.org/group/perl.dbi.dev/3892
     # DBI->connect_cached(shift->_connect_args);
@@ -1242,7 +1267,7 @@ other metadata.
 =cut
 
 sub _add_store_meta {
-    my ($self, $km) = @_;
+    my ( $self, $km ) = @_;
     $km->add_attribute(
         name     => 'id',
         label    => 'Database Primary Key',
