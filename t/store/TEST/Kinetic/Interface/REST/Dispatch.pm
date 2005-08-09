@@ -78,6 +78,7 @@ sub setup : Test(setup) {
         path   => 'rest/'
     );
     $test->_path_info('');
+    $test->{query_string} = undef;
 }
 
 sub teardown : Test(teardown) {
@@ -87,15 +88,6 @@ sub teardown : Test(teardown) {
     delete($test->{db_mock})->unmock_all;
     delete($test->{cgi_mock})->unmock_all;
     delete($test->{rest_mock})->unmock_all;
-}
-
-sub _all_items {
-    my ($test, $iterator) = @_;
-    my @iterator;
-    while (my $object = $iterator->next) {
-        push @iterator => $test->_force_inflation($object);
-    }
-    return @iterator;
 }
 
 my $should_run;
@@ -126,57 +118,6 @@ sub _path_info {
     return $test->{path_info};
 }
 
-sub echo : Test(5) {
-    my $test = shift;
-    can_ok Dispatch, 'echo';
-    my $echo = *Kinetic::Interface::REST::Dispatch::echo{CODE};
-    $test->_path_info('/echo/');
-    my $rest = $test->{rest};
-    $echo->($rest);
-    is $rest->response, '',
-        '... and calling with echo in the path should strip "echo"';
-    is $rest->content_type, 'text/plain',
-        '... and set the correct content type';
-
-    $test->_path_info('/echo/foo/bar/baz/');
-    $echo->($rest);
-    is $rest->response, 'foo.bar.baz',
-        '... and it should return extra path components separated by dots';
-
-    $test->_query_string(qw/this that a b/);
-    $echo->($rest);
-    is $rest->response, 'foo.bar.baz.a.b.this.that',
-        '... and query string items will be sorted and joined with dots';
-}
-
-sub test_can : Test(4) {
-    my $test = shift;
-    can_ok Dispatch, 'can';
-    ok ! Dispatch->can('no_such_resource'),
-        '... and calling it with a non-existent Kinetic key should fail';
-    my $rest = $test->{rest};
-    my $key  = One->my_class->key;
-    ok my $sub = Dispatch->can($key),
-        'Calling can for a valid key should return a subref';
-    $test->_path_info('one');
-    $sub->($rest); # return values are not guaranteed
-    my $expected = <<'    END_XML';
-<?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=REST"?>
-    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
-                       xmlns:xlink="http://www.w3.org/1999/xlink">
-      <kinetic:description>Available instances</kinetic:description>
-      <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
-    </kinetic:resources>
-    END_XML
-    my $one_xml = $rest->response;
-    $one_xml =~ s/@{[GUID_RE]}/XXX/g;
-    is_xml $one_xml, $expected, 
-        '... and calling it with a resource should return all instances of that resource';
-}
-
 sub class_list : Test(2) {
     my $test = shift;
     # we don't use can_ok because of the way &can is overridden
@@ -186,36 +127,59 @@ sub class_list : Test(2) {
     $class_list->($rest);
     my $expected = <<'    END_XML';
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=REST"?>
+    <?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=REST"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
-                       xmlns:xlink="http://www.w3.org/1999/xlink">   
-      <kinetic:description>Available resources</kinetic:description>
-      <kinetic:resource id="one" xlink:href="http://somehost.com/rest/one"/>
-      <kinetic:resource id="simple" xlink:href="http://somehost.com/rest/simple"/>
-      <kinetic:resource id="two" xlink:href="http://somehost.com/rest/two"/>
+                       xmlns:xlink="http://www.w3.org/1999/xlink">
+    <kinetic:description>Available resources</kinetic:description>
+          <kinetic:resource id="one" xlink:href="http://somehost.com/rest/one/search"/>
+          <kinetic:resource id="simple" xlink:href="http://somehost.com/rest/simple/search"/>
+          <kinetic:resource id="two" xlink:href="http://somehost.com/rest/two/search"/>
     </kinetic:resources>
     END_XML
     is_xml $rest->response, $expected, 
         '... and calling it should return a list of resources';
 }
 
-sub url_format : Test(5) {
+sub handle : Test(no_plan) {
     my $test = shift;
-    # we don't use can_ok because of the way &can is overridden
-    ok my $rest_url_format = *Kinetic::Interface::REST::Dispatch::_rest_url_format{CODE},
-        '_rest_url_format() is defined in the Dispatch package';
-    my $rest = $test->{rest};
-    is $rest_url_format->($rest), 'http://somehost.com/rest/%s',
-        '... and it should return a format without a resource or query string if they are not set';
-    $test->_path_info('one');
-    is $rest_url_format->($rest), 'http://somehost.com/rest/one/%s',
-        '... but it should return the resource if requested';
-    $test->_query_string(qw/type html/);
-    is $rest_url_format->($rest), 'http://somehost.com/rest/one/%s?type=html',
-        '... and the type, if it is set';
-    $test->_query_string(qw/type xml/);
-    is $rest_url_format->($rest), 'http://somehost.com/rest/one/%s',
-        '... unless it is set to type=xml';
+    ok my $handle = *Kinetic::Interface::REST::Dispatch::_handle_rest_request{CODE},
+        '_handle_rest_request() is defined in the Dispatch package';
+    my $rest = $test->{rest}; 
+
+    my $key = One->my_class->key;
+    $test->_path_info("/$key/");
+    $handle->($rest, $key);
+    is $rest->response, "No resource available to handle (/$key/)",
+        'Calling _handle_rest_request() with a valid key but no message should fail';
+
+    $test->_path_info("/$key/search");
+    $handle->($rest, $key, 'search');
+    (my $response = $rest->response) =~ s/@{[GUID_RE]}/XXX/g;
+    my $expected = <<'    END_XML';
+<?xml version="1.0"?>
+    <?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=REST"?>
+    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
+                    xmlns:xlink="http://www.w3.org/1999/xlink">
+    <kinetic:description>Available instances</kinetic:description>
+        <kinetic:resource 
+            id="XXX" 
+            xlink:href="http://somehost.com/rest/one/lookup/guid/XXX"/>
+        <kinetic:resource 
+            id="XXX" 
+            xlink:href="http://somehost.com/rest/one/lookup/guid/XXX"/>
+        <kinetic:resource 
+            id="XXX" 
+            xlink:href="http://somehost.com/rest/one/lookup/guid/XXX"/>
+    </kinetic:resources>
+    END_XML
+    is_xml $response, $expected,
+        'Calling _handle_rest_request with a path of /$key/search should return all instances of said key';
+
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    $test->_path_info("/$key/lookup/guid/@{[$foo->guid]}");
+    #$handle->($rest, $key, 'lookup', [$foo->guid]);
+    #diag $rest->response;
+    diag "Need to work out better semantics";
 }
 
 1;

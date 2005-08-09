@@ -10,9 +10,9 @@ use Test::More;
 use Test::Exception;
 use Test::XML;
 
+use Kinetic::XML;
 use Kinetic::Util::Constants  qw/GUID_RE/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
-use Kinetic::XML;
 BEGIN { sig_handlers(0) }
 
 use aliased 'Kinetic::View::XSLT';

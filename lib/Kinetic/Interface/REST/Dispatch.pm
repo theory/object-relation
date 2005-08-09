@@ -49,48 +49,6 @@ methods directly.
 
 =cut
 
-##############################################################################
-
-=head3 echo
-
-  Kinetic::Interface::REST::Dispatch->echo($rest);
-
-This is a debugging resource.  It always sets the REST content type to
-C<text/plain>.  Path info (after the echo request) is set in the response
-with individual patch components joined with dots.
-
-If parameters are supplied (via query strings or POST), they will be appended
-the response as name/value pairs, sorted on name, but using dots as separators.
-
-Examples:
-
-  http://someserver/rest/echo/foo/bar/
-  Response: foo.bar
-
-  http://someserver/rest/echo/foo/bar/?this=that;a=b
-  Response: foo.bar.a.b.this.that
-
-=cut
-
-sub _path_sub {
-    my $rest = shift;
-    my @path = grep /\S/ => split /\// => $rest->resource_path;
-    shift @path; # get rid of resource
-    return \@path;
-}
-
-sub echo {
-    my ($rest) = @_;
-    my $cgi = $rest->cgi;
-    my $path = _path_sub($rest);
-    my $response = join '.' => @$path;
-    foreach my $param (sort $cgi->param) {
-        $response .= ".$param.@{[$cgi->param($param)]}";
-    }
-    $rest->content_type(TEXT_CT)
-         ->response($response);
-}
-
 sub _query_string {
     my $rest = shift;
     my $type = lc $rest->cgi->param('type') || return '';
@@ -120,11 +78,12 @@ sub _class_list {
     }
     my $response = _xml_header($rest, 'Available resources');
 
-    my $rest_url_format = _rest_url_format($rest);
+    my $base_url = _rest_base_url($rest);
+    my $query_string = _query_string($rest);
     foreach my $key (sort Kinetic::Meta->keys) {
         next if Kinetic::Meta->for_key($key)->abstract;
         $response .= sprintf <<END_RESPONSE => $key,  $key;
-      <kinetic:resource id="%s" xlink:href="$rest_url_format"/>
+      <kinetic:resource id="%s" xlink:href="${base_url}%s/search$query_string"/>
 END_RESPONSE
     }
     $response .= "</kinetic:resources>";
@@ -132,11 +91,48 @@ END_RESPONSE
          ->response($response);
 }
 
+sub _handle_rest_request {
+    my ($rest, $class_key, $message, $args) = @_;
+    $args ||= [];
+     
+    my $class;
+    eval { $class = Kinetic::Meta->for_key($class_key) };
+    unless ($class) {
+        my $info = $rest->path_info;
+        $rest->status(NOT_IMPLEMENTED_STATUS)
+             ->response("No resource available to handle ($info)");
+        return;
+    }
+    use Data::Dumper::Simple;
+    if (my $method = $class->methods($message)) {
+        if ($method->context == Class::Meta::CLASS) {
+            my $response = $method->call($class->package->new, @$args);
+            if ('search' eq $message) {
+                return _instance_list($rest, $class_key, $response);
+            }
+        } else {
+            # XXX we're not actually doing anything with this yet.
+            my $obj = $class->contructors('lookup')->call(@$args)
+              or die;
+            $method->call($obj, @$args);
+        }
+    } elsif (my $ctor = $class->constructors($message)) {
+        my $obj = $ctor->call($class->package, @$args);
+        $rest->content_type(TEXT_CT)
+             #->response(Kinetic::XML->new($obj)->dump_xml);
+             ->response(Dumper($args, $obj));
+        return;
+    } else {
+    die Dumper(3, $rest, $class_key, $message, $args);
+        die; # XXX
+    }
+}
+
 ##############################################################################
 
-=head3 _resource_list
+=head3 _instance_list
 
-  Kinetic::Interface::REST::Dispatch::_resource_list($rest);
+  Kinetic::Interface::REST::Dispatch::_instance_list($rest);
 
 This function takes a L<Kinetic::Interface::REST|Kinetic::Interface::REST>
 instance and an iterator.  It sets the rest instance's content-type to C<text/xml>
@@ -146,21 +142,22 @@ guid.
 =cut
 
 my $STORE = Kinetic::Store->new;
-sub _resource_list {
-    my ($rest, $iterator) = @_;
+sub _instance_list {
+    my ($rest, $key, $iterator) = @_;
 
-    my $response = _xml_header($rest, 'Available instances');
+    my $response     = _xml_header($rest, 'Available instances');
+    my $base_url     = _rest_base_url($rest);
+    my $query_string = _query_string($rest);
 
-    my $rest_url_format = _rest_url_format($rest);
     my $num_resources = 0;
     while (my $resource = $iterator->next) {
         $num_resources++;
-        $response .= sprintf <<END_RESPONSE => $resource->guid,  $resource->guid;
-      <kinetic:resource id="%s" xlink:href="$rest_url_format"/>
-END_RESPONSE
+        my $guid = $resource->guid;
+        $response 
+            .= qq'<kinetic:resource id="$guid" xlink:href="$base_url$key/lookup/guid/$guid$query_string"/>',
     }
     unless ($num_resources) {
-        $response .= '       <kinetic:resource id="No resources found" xlink:href=""/>';
+        $response .= '       <kinetic:resource id="No resources found" xlink:href="#"/>';
     }
     $response .= "</kinetic:resources>";
     $rest->content_type(XML_CT)
@@ -169,9 +166,9 @@ END_RESPONSE
 
 ##############################################################################
 
-=head3 _rest_url_format
+=head3 _rest_base_url
 
-  my $rest_url_format = _rest_url_format($rest);
+  my $rest_url_format = _rest_base_url($rest);
 
 Takes a L<Kinetic::Interface::REST|Kinetic::Interface::REST> instance as an
 argument.  Returns a URL suitable for embedding in XML or XHTML hrefs.
@@ -180,12 +177,9 @@ additional REST path info items.
 
 =cut
 
-sub _rest_url_format {
+sub _rest_base_url {
     my $rest = shift;
-    my $query_string = _query_string($rest);
-    my $rest_url_format = join '' => map $rest->$_ => qw/domain path resource_path/;
-    $rest_url_format   .= "%s$query_string";
-    return $rest_url_format;
+    return join '' => map $rest->$_ => qw/domain path/;
 }
 
 ##############################################################################
@@ -209,78 +203,6 @@ sub _xml_header {
                    xmlns:xlink="http://www.w3.org/1999/xlink">
 <kinetic:description>$title</kinetic:description>
     END_HEADER
-}
-
-##############################################################################
-
-=head3 can
-
-  if (my $sub = Kinetic::Interface::REST::Dispatch->can($resource)) {
-    $sub->($rest);
-  }
-
-Yup, we've overridden C<can>.  Resources are loaded on demand.  This method
-will return a subroutine representing the requested resource.  The subroutine
-should be called directly with the
-L<Kinetic::Interface::REST|Kinetic::Interface::REST> instance as an argument.  It
-is B<not> a method because REST is stateless and calling methods does not make
-any sense.
-
-Returns false if the requested resource is not found.
-
-Functions built on the fly to request a resource are added to the 
-C<Kinetic::Interface::REST::Dispatch::_> package to minimize conflicts
-with functions in this class.
-
-=cut
-
-sub can {
-    my ($class, $resource) = @_;
-    return unless $resource;
-    # if for some stupid reason a resource begins with an underscore, don't
-    # check to see if it's in this package
-    if (
-        $resource !~ /^_/ 
-            && 
-        'can' ne $resource # we don't want this sub called for resource named 'can'
-            && 
-        (my $method = $class->SUPER::can($resource))
-    ) {
-        return $method;
-    }
-    my $dispatch_package = __PACKAGE__.'::_';
-    if (my $method = $dispatch_package->SUPER::can($resource)) {
-        return $method;
-    }
-    my $kinetic_class = Kinetic::Meta->for_key($resource) or return;
-    my $method = sub {
-        my ($rest) = @_;
-        my $path = _path_sub($rest);
-        my $iterator = Kinetic::Store->new->search(Kinetic::Meta->for_key($resource));
-        unless (@$path) {
-            _resource_list($rest, $iterator);
-        }
-        if (1 == @$path && $path->[0] =~ GUID_RE) {
-            my $instance = Kinetic::Store->new->lookup(
-                $kinetic_class,
-                guid => $path->[0]
-            );
-            if ($instance) {
-                my $url = $rest->stylesheet_url('instance');
-                my $xml = Kinetic::XML->new({
-                    stylesheet_url => $url,
-                    object         => $instance
-                });
-                $rest->content_type(XML_CT)
-                     ->response($xml->dump_xml);
-                return;
-            }
-        }
-    };
-    package Kinetic::Interface::REST::Dispatch::_;
-    no strict 'refs';
-    *$resource = $method;
-    return $method;
 }
 
 1;

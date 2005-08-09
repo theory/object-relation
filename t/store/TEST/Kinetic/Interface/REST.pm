@@ -9,7 +9,6 @@ use base 'TEST::Class::Kinetic';
 use Test::More;
 use Test::Exception;
 use Test::XML;
-use Encode qw(is_utf8);
 use XML::Parser;
 {
     local $^W;
@@ -21,6 +20,7 @@ use XML::Parser;
 
 use Kinetic::Util::Constants  qw/GUID_RE/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
+BEGIN { sig_handlers(1) }
 use TEST::REST::Server;
 
 use aliased 'Test::MockModule';
@@ -107,27 +107,6 @@ sub clear_database {
 
 sub REST { shift->{REST} }
 
-sub _all_items {
-    my ($test, $iterator) = @_;
-    my @iterator;
-    while (my $object = $iterator->next) {
-        push @iterator => $test->_force_inflation($object);
-    }
-    return @iterator;
-}
-
-my $should_run;
-sub _should_run {
-    return $should_run if defined $should_run;
-    my $test    = shift;
-    my $store   = Store->new;
-    my $package = ref $store;
-    $should_run = ref $test eq "TEST::$package";
-    return $should_run;
-}
-
-BEGIN { sig_handlers(1) }
-
 sub constructor : Test(14) {
     my $class = 'Kinetic::Interface::REST';
     can_ok $class, 'new';
@@ -169,7 +148,7 @@ sub constructor : Test(14) {
         '... and paths should have leading slashes removed and trailing slashes added';
 }
     
-sub rest_interface : Test(22) {
+sub rest_interface : Test(no_plan) {
     my $class = 'Kinetic::Interface::REST';
     my $rest = $class->new(domain => 'http://foo/', path => 'rest/server/');
 
@@ -179,31 +158,12 @@ sub rest_interface : Test(22) {
         $rest->$method('xxx');
         is $rest->$method, 'xxx', '... but we should be able to set it to a new value';
     }
-    
-    # set up necessary mocked packages for handle_request() tests
-    my $dispatch_mock = MockModule->new('Kinetic::Interface::REST::Dispatch');
-    my $can_sub = undef;
-    $dispatch_mock->mock(can => sub { $can_sub });
+
     my $cgi_mock = MockModule->new('CGI');
-    $cgi_mock->mock(path_info => '/foo/bar');
-    
-    can_ok $rest, 'handle_request';
-    ok $rest->handle_request(CGI->new), 
-        '... and handling a bad resource should succeed';
-    is $rest->status, '501 Not Implemented',
-        '... with an appropriate status code';
-    is $rest->response, 'No resource available to handle (foo)',
-        '... and a human readable response';
+    $cgi_mock->mock(path_info => '/one/search');
 
-    $can_sub = sub { die "woobly" };
-    ok $rest->handle_request(CGI->new), 
-        'Handling a fatal resource should succeed';
-    is $rest->status, '500 Internal Server Error',
-        '... with an appropriate status code';
-    like $rest->response, qr{Fatal error handling /foo/bar: woobly},
-        '... and a human readable response';
-
-    $can_sub = sub { $rest->response('this and that') };
+    my $dispatch_mock = MockModule->new('Kinetic::Interface::REST::Dispatch');
+    $dispatch_mock->unmock('_handle_rest_request');
     ok $rest->handle_request(CGI->new),
         'Handling a good resource should succeed';
     is $rest->status, '200 OK',
@@ -211,8 +171,33 @@ sub rest_interface : Test(22) {
     is $rest->response, 'this and that',
         '... and a human readable response';
 }
+    
+sub rest_faults : Test(no_plan) {
+    my $class = 'Kinetic::Interface::REST';
+    my $rest = $class->new(domain => 'http://foo/', path => 'rest/server/');
+    # set up necessary mocked packages for handle_request() tests
+    can_ok $rest, 'handle_request';
+    my $cgi_mock = MockModule->new('CGI');
+    $cgi_mock->mock(path_info => '/foo/bar');
+    
+    ok $rest->handle_request(CGI->new), 
+        '... and handling a bad resource should succeed';
+    is $rest->status, '501 Not Implemented',
+        '... with an appropriate status code';
+    is $rest->response, 'No resource available to handle (/foo/bar)',
+        '... and a human readable response';
 
-sub basic_services : Test(7) {
+    my $dispatch_mock = MockModule->new('Kinetic::Interface::REST::Dispatch');
+    $dispatch_mock->mock(_handle_rest_request => sub { die "woobly" });
+    ok $rest->handle_request(CGI->new), 
+        'Handling a fatal resource should succeed';
+    is $rest->status, '500 Internal Server Error',
+        '... with an appropriate status code';
+    like $rest->response, qr{Fatal error handling /foo/bar: woobly},
+        '... and a human readable response';
+}
+
+sub basic_services : Test(no_plan) {
     my $test = shift;
     my $rest = $test->REST;
 
@@ -220,24 +205,15 @@ sub basic_services : Test(7) {
         qr/501 Not Implemented/,
         '... as should calling it with a non-existent resource';
 
-    is $rest->url('echo/foo/bar/')->get, 'foo.bar', 
-        'Calling get() with an echo/ url should return the path info joined by dots';
-    is $rest->url('echo/foo/bar/')->get(this => 'that'), 'foo.bar.this.that', 
-        '... and it should return the path and query string info joined by dots';
-
-    can_ok $rest, 'post';
-    is $rest->url('echo/foo/bar/')->post(this => 'that'), 'foo.bar.this.that', 
-        '... and it should return the path and post info joined by dots';
-
     my $expected = <<'    END_XML';
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="http://www.example.com/rest/?stylesheet=REST"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest"
                        xmlns:xlink="http://www.w3.org/1999/xlink">
     <kinetic:description>Available resources</kinetic:description>
-      <kinetic:resource id="one"     xlink:href="http://www.example.com/rest/one"/>
-      <kinetic:resource id="simple"  xlink:href="http://www.example.com/rest/simple"/>
-      <kinetic:resource id="two"     xlink:href="http://www.example.com/rest/two"/>
+      <kinetic:resource id="one"     xlink:href="http://www.example.com/rest/one/search"/>
+      <kinetic:resource id="simple"  xlink:href="http://www.example.com/rest/simple/search"/>
+      <kinetic:resource id="two"     xlink:href="http://www.example.com/rest/two/search"/>
     </kinetic:resources>
     END_XML
     is_xml $rest->get, $expected, 
@@ -249,18 +225,18 @@ sub basic_services : Test(7) {
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
-      <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest/one/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest/one/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest/one/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest/one/lookup/guid/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest/one/lookup/guid/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://www.example.com/rest/one/lookup/guid/XXX"/>
     </kinetic:resources>
     END_XML
     my $key  = One->my_class->key;
-    my $one_xml = $rest->url($key)->get;
+    my $one_xml = $rest->url("$key/search")->get;
     $one_xml =~ s/@{[GUID_RE]}/XXX/g;
-    is_xml $one_xml, $expected, 
+    is_xml $one_xml, $expected, 'Calling it with a resource/search should return a list of instances';
 
     $key  = Two->my_class->key;
-    my $two_xml = $rest->url($key)->get;
+    my $two_xml = $rest->url("$key/search")->get;
     $two_xml =~ s/@{[GUID_RE]}/XXX/g;
     diag "Clean up xml for which we have no resources";
 }

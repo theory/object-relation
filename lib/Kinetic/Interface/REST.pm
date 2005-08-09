@@ -129,17 +129,16 @@ L<CGI|CGI> interface.
 
 sub handle_request {
     my ($self, $cgi) = @_;
-    $self->cgi($cgi);
-    $self->status('');
-    $self->response('');
-    $self->content_type('');
-    my ($resource, @request) = grep /\S/ => split '/' => $cgi->path_info;
-    if (! $resource || (my $sub = Dispatch->can($resource))) {
-        eval {
-            ! $resource 
-                ? Kinetic::Interface::REST::Dispatch::_class_list($self) 
-                : $sub->($self)
-        };
+    $self->cgi($cgi)
+         ->status('')
+         ->response('')
+         ->content_type('');
+    my ($class_key, $method, @args) = 
+        map  { lc } 
+        grep { /\S/ }
+        split '/' => $cgi->path_info;
+    unless ($class_key) {
+        eval { Kinetic::Interface::REST::Dispatch::_class_list($self) };
         if ($@) {
             my $info = $cgi->path_info;
             $self->status(INTERNAL_SERVER_ERROR_STATUS)
@@ -150,8 +149,15 @@ sub handle_request {
         }
     }
     else {
-        $self->status(NOT_IMPLEMENTED_STATUS)
-             ->response("No resource available to handle ($resource)");
+        eval { Kinetic::Interface::REST::Dispatch::_handle_rest_request($self, $class_key, $method, \@args) };
+        if ($@) {
+            my $info = $cgi->path_info;
+            $self->status(INTERNAL_SERVER_ERROR_STATUS)
+                 ->response("Fatal error handling $info: $@");
+        }
+        else {
+            $self->status(OK_STATUS) unless $self->status;
+        }
     }
     return $self;
 }

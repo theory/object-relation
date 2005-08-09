@@ -758,26 +758,33 @@ off of the hashref with hash slices.
 
 sub _build_object_from_hashref {
     my ($self, $hashref) = @_;
-    my %objects;
-    my %metadata = $self->_search_data_metadata;
+    my %objects_for;
+    my %metadata_for = $self->_search_data_metadata;
+
     foreach my $package ($self->_search_data_build_order) {
-        my $columns = $metadata{$package}{columns};
+        my $columns = $metadata_for{$package}{columns};
+
         # XXX Is the distinction here due to IDs?
         my @object_columns    = keys %$columns;
         my @object_attributes = @{$columns}{@object_columns};
+
+        # create the object
         my %object;
         @object{@object_attributes} = @{$hashref}{@object_columns};
-        $objects{$package} = bless \%object => $package;
-        if (defined (my $contains = $metadata{$package}{contains})) {
+        $objects_for{$package} = bless \%object => $package;
+
+        # do we have a contained object?
+        if (defined (my $contains = $metadata_for{$package}{contains})) {
             while (my ($key, $contained) = each %$contains) {
-                delete $objects{$package}{$key};
+                delete $objects_for{$package}{$key};
                 my $contained_package = $contained->package;
                 my $view = $contained->key;
-                $objects{$package}{$view} = $objects{$contained_package};
+                $objects_for{$package}{$view} 
+                    = $objects_for{$contained_package};
             }
         }
     }
-    return $objects{$self->search_class->package};
+    return $objects_for{$self->search_class->package};
 }
 
 ##############################################################################
