@@ -722,18 +722,18 @@ Returns a list of params required for the C<App::Info> object.
 
 sub _app_info_params {
     my $self = shift;
-    my @params = ( on_error => Kinetic::Build::CroakHandler->new($self) );
+    my $prompter = Kinetic::Build::PromptHandler->new($self);
+
+    my @params = (
+        on_error   => Kinetic::Build::CroakHandler->new($self),
+        on_unknown => $prompter,
+        on_confirm => $prompter,
+    );
 
     unless ($self->quiet) {
         push @params, on_info => Kinetic::Build::PrintHandler->new($self);
     }
 
-    unless ($self->accept_defaults) {
-        my $prompter = Kinetic::Build::PromptHandler->new($self);
-        push @params,
-          on_unknown => $prompter,
-          on_confirm => $prompter,
-    }
     return @params;
 }
 
@@ -852,7 +852,7 @@ use base 'Kinetic::Build::AppInfoHandler';
 
 sub handler {
     my ($self, $req) = @_;
-    $self->{builder}->log_info($req->message, "\n")
+    $self->{builder}->log_info($req->message);
 }
 
 package Kinetic::Build::CroakHandler;
