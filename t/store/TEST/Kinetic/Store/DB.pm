@@ -100,8 +100,6 @@ sub test_id : Test(5) {
     }
 }
 
-1;
-__END__
 sub test_dbh : Test(2) {
     my $test = shift;
     my $class = $test->test_class;

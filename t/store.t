@@ -38,4 +38,10 @@ use lib 't/sample/lib', 't/store', 't/lib';
 # Run the tests.
 use TEST::Class::Kinetic catdir 't', 'store', 'TEST';
 TEST::Class::Kinetic->runall;
+# Disconnect!
+my $store = Kinetic::Store->new;
+if (my $dbh = $store->_dbh) {
+    $dbh->disconnect;
+}
+
 __END__
