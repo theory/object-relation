@@ -26,6 +26,7 @@ use Kinetic::XML;
 use Kinetic::Meta::XML;
 use Kinetic::Store;
 use Kinetic::Util::Constants qw/:http :data_store/;
+
 our $VERSION = version->new('0.0.1');
 
 =head1 Name
@@ -85,7 +86,7 @@ sub _class_list {
           qq'<kinetic:resource id="$key" xlink:href="${base_url}$key/search$query_string"/>';
     }
     $response .= "</kinetic:resources>";
-    $rest->content_type(XML_CT)->response($response);
+    return $rest->set_response($response);
 }
 
 sub _handle_rest_request {
@@ -120,8 +121,7 @@ sub _handle_rest_request {
                 stylesheet_url => $rest->stylesheet_url('instance'),
             }
         )->dump_xml;
-        $rest->content_type(XML_CT)->response($xml);
-        return;
+        return $rest->set_response($xml, 'instance');
     }
     else {
         return _not_implemented($rest);
@@ -170,7 +170,7 @@ qq'<kinetic:resource id="$guid" xlink:href="$base_url$key/lookup/guid/$guid$quer
           '       <kinetic:resource id="No resources found" xlink:href="#"/>';
     }
     $response .= "</kinetic:resources>";
-    $rest->content_type(XML_CT)->response($response);
+    return $rest->set_response($response);
 }
 
 ##############################################################################

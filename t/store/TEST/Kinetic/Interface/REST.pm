@@ -121,7 +121,34 @@ sub web_test : Test(no_plan) {
         sprintf('http://%s:%d?type=html', DOMAIN, PORT),
         'We should be able to fetch the main page'
     );
-#    diag $mech->content;
+    $mech->title_is(
+        'Available resources',
+        '... and fetching the root should return a list of resources'
+    );
+    $mech->follow_link_ok( 
+        {url_regex => qr/simple/},
+        '... and fetching a class link should succeed',
+    );
+    $mech->title_is(
+        'Available instances',
+        '... and fetching the a class should return a list of instances'
+    );
+
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my $foo_guid = $foo->guid;
+
+    $mech->follow_link_ok( 
+        {url_regex => qr/$foo_guid/},
+        '... and fetching an instance link should succeed',
+    );
+    $mech->title_is(
+        'simple',
+        '... and fetching an instance of a class should return the html for it'
+    );
+    $mech->content_like(
+        qr/$foo_guid/,
+        '... and it should be able to identify the object'
+    );
 }
 
 sub constructor : Test(14) {

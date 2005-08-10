@@ -129,9 +129,34 @@ L<CGI|CGI> interface.
 sub handle_request {
     my ( $self, $cgi ) = @_;
     $self->cgi($cgi)->status('')->response('')->content_type('');
-    my ( $class_key, $method, @args ) =
-      grep { /\S/ }
-      split '/' => $cgi->path_info;
+    $self->desired_content_type(XML_CT);
+    if ( my $type = $cgi->param('type') ) {
+        my $desired_content_type =
+            'html'   eq lc $type ? HTML_CT
+          : 'text' eq lc $type   ? TEXT_CT
+          :                        XML_CT;
+        $self->desired_content_type($desired_content_type);
+    }
+
+    my @path_components = grep { /\S/ } split '/' => $cgi->path_info;
+
+    my @base_path = split '/' => $self->path;
+
+    # remove base path from request, if it's there
+    for my $component (@base_path) {
+        no warnings 'uninitialized';
+        if ( $component eq $path_components[0] ) {
+            shift @path_components;
+        }
+        else {
+            last;
+        }
+    }
+
+    my ( $class_key, $method, @args ) = @path_components;
+
+    # the following variables should be case-insensitive
+    # (from the URL)
     $_ = lc foreach $class_key, $method;
 
     unless ($class_key) {
@@ -200,6 +225,26 @@ sub response {
         return $self;
     }
     $self->{response};
+}
+
+##############################################################################
+
+=head3 desired_content_type
+
+  my $desired_content_type = $rest->desired_content_type;
+
+If the call to C<handle_request> succeeded, this method will return the 
+content-type expected by the client.
+
+=cut
+
+sub desired_content_type {
+    my $self = shift;
+    if (@_) {
+        $self->{desired_content_type} = shift;
+        return $self;
+    }
+    $self->{desired_content_type};
 }
 
 ##############################################################################
@@ -322,6 +367,7 @@ sub resource_path {
     $resource_path =~ s/^$path//;
     $resource_path =~ s/^\///;
     $resource_path .= '/' unless $resource_path =~ /\/$/;
+## Please see file perltidy.ERR
     return '/' eq $resource_path ? '' : $resource_path;
 }
 
@@ -381,6 +427,29 @@ object that was set when the REST server was instantiated.
 =cut
 
 sub xslt { shift->{xslt} }
+
+##############################################################################
+
+=head3 set_response
+
+  $rest->set_response($xml, [$type]);
+ 
+This method, when passed $xml and an optional response type (defaults to
+'REST'), will set the content-type and entity-body of the REST response.
+
+=cut
+
+sub set_response {
+    my ( $rest, $xml, $type ) = @_;
+    $type ||= 'REST';
+    my $content_type = $rest->desired_content_type || XML_CT;
+    my $content = $xml;
+    if ( HTML_CT eq $content_type ) {
+        my $xslt = XSLT->new( type => $type );
+        $content = $xslt->transform($xml);
+    }
+    $rest->content_type($content_type)->response($content);
+}
 
 ##############################################################################
 

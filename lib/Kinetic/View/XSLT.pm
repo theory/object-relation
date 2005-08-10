@@ -71,15 +71,14 @@ sub new {
     my $class = shift;
     my %args  = @_;
     my $self  = bless {} => $class;
-    if (exists $args{type}) {
-        $self->type($args{type});
+    if ( exists $args{type} ) {
+        $self->type( $args{type} );
     }
     else {
         throw_required [
             'Required argument "[_1]" to [_2] not found',
-            'type',
-            __PACKAGE__.'::new',
-        ]
+            'type', __PACKAGE__ . '::new',
+        ];
     }
     return $self;
 }
@@ -136,11 +135,12 @@ my %STYLESHEET = (
     instance => \&_stylesheet_instance,
     REST     => \&_stylesheet_rest,
 );
+
 sub type {
     my $self = shift;
     if (@_) {
         my $type = shift;
-        unless (exists $STYLESHEET{$type}) {
+        unless ( exists $STYLESHEET{$type} ) {
             throw_unsupported [ "Unknown stylesheet requested: [_1]", $type ];
         }
         $self->{type} = $type;
@@ -159,10 +159,11 @@ Returns XSLT stylesheet for the object.
 
 sub stylesheet {
     my ($self) = @_;
-    if (my $ref = $STYLESHEET{$self->type}) {
+    if ( my $ref = $STYLESHEET{ $self->type } ) {
         return $ref->();
     }
     else {
+
         # this is required in the constructor.  Should never happen
         panic [ 'Required attribute "[_1]" not set', 'type' ];
     }
@@ -180,12 +181,12 @@ the type specified in the constructor or in the C<type> method.
 =cut
 
 sub transform {
-    my $self = shift; 
+    my $self = shift;
     unless (@_) {
         throw_required [
             'Required argument "[_1]" to [_2] not found',
             '$xml',
-            __PACKAGE__.'->transform',
+            __PACKAGE__ . '->transform',
         ];
     }
     my $xml = shift;
@@ -194,12 +195,12 @@ sub transform {
     my $transform;
     eval {
         my $doc       = $parser->parse_string($xml);
-        my $style_doc = $parser->parse_string($self->stylesheet);
+        my $style_doc = $parser->parse_string( $self->stylesheet );
 
-        my $xslt      = LibXSLT->new;
-        my $sheet     = $xslt->parse_stylesheet($style_doc);
-        my $html      = $sheet->transform($doc);
-        $transform    = $sheet->output_string($html);
+        my $xslt  = LibXSLT->new;
+        my $sheet = $xslt->parse_stylesheet($style_doc);
+        my $html  = $sheet->transform($doc);
+        $transform = $sheet->output_string($html);
     };
     throw_exlib $@ if $@;
     return $transform;
