@@ -21,14 +21,14 @@ BEGIN {
     }
 }
 
-sub finish {
+END {
     # Run complementary teardown scripts.
     return if $ENV{NOSETUP};
     $ENV{KINETIC_CONF} = $conf;
     for my $script (@scripts) {
         my $teardown = "${script}_teardown.pl";
         next unless -e $teardown;
-        system $^X, $teardown and die "# $teardown failed: ($!)";
+        system $^X, $teardown and die "# $teardown failed: ($?)";
     }
 }
 
@@ -38,5 +38,4 @@ use lib 't/sample/lib', 't/store', 't/lib';
 # Run the tests.
 use TEST::Class::Kinetic catdir 't', 'store', 'TEST';
 TEST::Class::Kinetic->runall;
-finish;
 __END__
