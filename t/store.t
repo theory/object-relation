@@ -28,7 +28,7 @@ END {
     for my $script (@scripts) {
         my $teardown = "${script}_teardown.pl";
         next unless -e $teardown;
-        system $^X, $teardown and die "# $teardown failed: ($?)";
+        system $^X, $teardown and die "# $teardown failed: ($!)";
     }
 }
 
