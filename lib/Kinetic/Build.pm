@@ -606,20 +606,6 @@ might pass a code reference like C<sub { /^\d+$/ }>.
 
 =cut
 
-sub _get_option {
-    my ($self, $key) = @_;
-    return unless defined $key;
-    # Allow both dashed and underscored options.
-    (my $alt = $key) =~ tr/-/_/;
-    for my $meth (qw(runtime_params args)) {
-        for my $arg ($key, $alt) {
-            my $val = $self->$meth($arg);
-            return $val if defined $val;
-        }
-    }
-    return;
-}
-
 sub get_reply {
     my ($self, %params) = @_;
     my $def_label = $params{default};
@@ -844,6 +830,42 @@ sub _is_tty {
     $self->{tty} = -t STDIN && (-t STDOUT || !(-f STDOUT || -c STDOUT))
       unless exists $self->{tty};
     return $self->{tty};
+}
+
+##############################################################################
+
+=head3 _get_option
+
+   my $opt = $build->_get_option($key);
+
+Looks in the Module::Build runtime parameters and arguments for an option
+specified on the command-line. Options should have dashes between words (such
+as "--path-to-sqlite"), and C<_get_options()> will look for a command-line
+parameter with dashes and with underscoress. For example, this call:
+
+  my $opt = $build->_get_option('path-to-pg_config');
+
+looks for the option with the equivalent of the following method calls:
+
+  $build->runtime_params('path-to-pg_config');
+  $build->runtime_params('path_to_pg_config');
+  $build->args('path-to-pg_config');
+  $build->args('path_to_pg_config');
+
+=cut
+
+sub _get_option {
+    my ($self, $key) = @_;
+    return unless defined $key;
+    # Allow both dashed and underscored options.
+    (my $alt = $key) =~ tr/-/_/;
+    for my $meth (qw(runtime_params args)) {
+        for my $arg ($key, $alt) {
+            my $val = $self->$meth($arg);
+            return $val if defined $val;
+        }
+    }
+    return;
 }
 
 ##############################################################################
