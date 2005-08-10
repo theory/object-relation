@@ -219,7 +219,9 @@ sub test_get_reply : Test(49) {
     # Start not quiet and with defaults accepted.
     my $builder = $self->new_builder(quiet => 0);
     $self->{builder} = $builder;
-    is delete $self->{info}, "Data store: pg\nLooking for pg_config\n",
+    is delete $self->{info},
+      "Data store: pg\nLooking for pg_config\n"
+      . "path-to-pg_config: /usr/local/pgsql/bin/pg_config\n",
       "Should have data store set by command-line option";
 
     # We should be told what the setting is, but not prompted.
