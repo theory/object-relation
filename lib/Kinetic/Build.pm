@@ -606,15 +606,25 @@ might pass a code reference like C<sub { /^\d+$/ }>.
 
 =cut
 
+sub _get_option {
+    my ($self, $key) = @_;
+    return unless defined $key;
+    # Allow both dashed and underscored options.
+    (my $alt = $key) =~ tr/-/_/;
+    for my $meth (qw(runtime_params args)) {
+        for my $arg ($key, $alt) {
+            my $val = $self->$meth($arg);
+            return $val if defined $val;
+        }
+    }
+    return;
+}
+
 sub get_reply {
     my ($self, %params) = @_;
-
     my $def_label = $params{default};
-    my $val;
-    if (exists $params{name}) {
-        $val = $self->runtime_params($params{name});
-        $val = $self->args($params{name}) unless defined $val;
-    }
+
+    my $val = $self->_get_option($params{name});
 
     if (defined $val) {
         $params{default} = $val;
@@ -868,8 +878,9 @@ use base 'Kinetic::Build::AppInfoHandler';
 
 sub handler {
     my ($self, $req) = @_;
+    (my $name = lc $req->key) =~ s/\s+/-/g;
     $req->value($self->{builder}->get_reply(
-        name    => $req->key,
+        name    => $name,
         label   => $req->key,
         message => $req->message,
         default => $req->value
