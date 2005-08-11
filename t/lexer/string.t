@@ -2,7 +2,7 @@
 use warnings;
 use strict;
 
-use Test::More tests => 39;
+use Test::More tests => 41;
 #use Test::More 'no_plan';
 
 use lib 'lib/', '../lib/';
@@ -277,3 +277,13 @@ $expected = [
   [ 'OP',          ')'   ],
 ];
 is_deeply $tokens, $expected, '... and still get the correct tokens';
+
+ok $tokens = lex('date => "xxxx-06-xxTxx:xx:xx"'),
+    'We should be able to properly parse incomplete datetime strings';
+$expected = [
+  [ 'IDENTIFIER',           'date' ],
+  [ 'OP',                     '=>' ],
+  [ 'VALUE', 'xxxx-06-xxTxx:xx:xx' ],
+];
+
+is_deeply $tokens, $expected, '... and get the correct tokens';

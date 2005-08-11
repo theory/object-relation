@@ -83,24 +83,27 @@ Same as C<new> but takes an iso8601 date string as the argument.
 
 =cut
 
-my $utc       = DateTime::TimeZone::UTC->new;
+my $utc = DateTime::TimeZone::UTC->new;
+
 #my $formatter = DateTime::Format::Strptime->new(pattern => '%Y-%m-%dT%H:%M:%S.%1N%z');
-my $formatter = DateTime::Format::Strptime->new(pattern => '%Y-%m-%dT%H:%M:%S');
-sub new { 
+my $formatter =
+  DateTime::Format::Strptime->new( pattern => '%Y-%m-%dT%H:%M:%S' );
+
+sub new {
     my $class = shift;
     $class->SUPER::new(
-        time_zone => $utc, 
+        time_zone => $utc,
         formatter => $formatter,
         @_
     );
 }
 
 sub new_from_iso8601 {
-    my ($class, $iso8601_date_string) = @_;
+    my ( $class, $iso8601_date_string ) = @_;
     return unless $iso8601_date_string;
     my $args = $class->parse_iso8601_date($iso8601_date_string);
     return $class->new(%$args);
-};
+}
 
 ##############################################################################
 
@@ -119,17 +122,26 @@ to the keys.  Keys are:
     second 
     nanosecond
     
+Note that C<nanosecond> will not be a key in the hashref unless it is
+specifically included in the ISO date string.
+
 =cut
 
-my $ISO8601_TEMPLATE =  'a4 x a2 x a2 x a2 x a2 x a2 a*';
+my $ISO8601_TEMPLATE = 'a4 x a2 x a2 x a2 x a2 x a2 a*';
+
 sub parse_iso8601_date {
-    my ($class, $iso8601_date_string) = @_;
+    my ( $class, $iso8601_date_string ) = @_;
+
     # It turns out that unpack() is faster than using a Regex. See
     # http://www.justatheory.com/computers/programming/perl/pack_vs_regex.html
     my %args;
-    @args{qw(year month day hour minute second nanosecond)}
-      = unpack $ISO8601_TEMPLATE, $iso8601_date_string;
-    {
+    @args{qw(year month day hour minute second nanosecond)} =
+      unpack $ISO8601_TEMPLATE, $iso8601_date_string;
+
+    if ( '' eq $args{nanosecond} || !defined $args{nanosecond} ) {
+        delete $args{nanosecond};
+    }
+    else {
         no warnings;
         $args{nanosecond} *= 1.0E9;
     }
@@ -154,7 +166,7 @@ Nanoseconds are optional.  Currently ignores timezone.
 sub is_iso8601 {
     my $date = shift;
     return $date =~ /^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?$/;
-}    
+}
 
 ##############################################################################
 

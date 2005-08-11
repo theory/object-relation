@@ -464,7 +464,7 @@ sub dump_xml_with_stylesheet : Test(9) {
     END_XML
 }
 
-sub specify_desired_attributes : Test(no_plan) {
+sub specify_desired_attributes : Test(13) {
     my $one = One->new;
     $one->name('some name');
     $one->description('some description');

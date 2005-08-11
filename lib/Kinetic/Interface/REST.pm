@@ -132,15 +132,14 @@ sub handle_request {
     $self->desired_content_type(XML_CT);
     if ( my $type = $cgi->param('type') ) {
         my $desired_content_type =
-            'html'   eq lc $type ? HTML_CT
-          : 'text' eq lc $type   ? TEXT_CT
-          :                        XML_CT;
+          'html'   eq lc $type ? HTML_CT
+          : 'text' eq lc $type ? TEXT_CT
+          : XML_CT;
         $self->desired_content_type($desired_content_type);
     }
 
     my @path_components = grep { /\S/ } split '/' => $cgi->path_info;
-
-    my @base_path = split '/' => $self->path;
+    my @base_path       = split '/' => $self->path;
 
     # remove base path from request, if it's there
     for my $component (@base_path) {
@@ -172,6 +171,8 @@ sub handle_request {
     }
     else {
         eval {
+            require URI::Escape;
+            $_ = URI::Escape::uri_unescape($_) foreach $class_key, $method, @args;
             Kinetic::Interface::REST::Dispatch::_handle_rest_request( $self,
                 $class_key, $method, \@args );
         };

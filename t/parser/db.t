@@ -3,7 +3,7 @@ use warnings;
 use strict;
 use Data::Dumper;
 
-use Test::More tests => 80;
+use Test::More tests => 82;
 #use Test::More 'no_plan';
 use Test::Exception;
 
@@ -455,14 +455,14 @@ my $search_like = Search->new(
     data     => '%vid',
     column   => 'name',
 );
-#ok $result = parse(string_lexer_stream([
-#    date => LT $y1968,
-#    date => GT $y1966,
-#    name => LIKE '%vid',
-#]), $store), 'Code LT/GT code should be parseable';
-#
-#is_deeply $result, [$search1968, $search1966, $search_like], 
-#    '... and it should return the correct results';
+ok $result = parse(string_lexer_stream(<<'END_SEARCH'), $store), 'String LT/GT searches should be parseable';
+    date => LT '1968-xx-xxTxx:xx:xx',
+    date => GT '1966-xx-xxTxx:xx:xx',
+    name => LIKE '%vid',
+END_SEARCH
+
+is_deeply $result, [$search1968, $search1966, $search_like], 
+    '... and it should return the correct results';
 
 ok $result = parse(code_lexer_stream([
     date => LT $y1968,

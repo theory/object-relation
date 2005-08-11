@@ -40,7 +40,7 @@ sub save : Test(10) {
     my $dbh = $test->{dbh};
     my $result = $dbh->selectrow_hashref('SELECT id, guid, name, description, state, bool FROM one');
     ok ! $result, 'We should start with a fresh database';
-    ok $store->save($one), 'and saving an object should be successful';
+    ok $one->save, 'and saving an object should be successful';
     $result = $dbh->selectrow_hashref('SELECT id, guid, name, description, state, bool FROM one');
     $result->{state} = State->new($result->{state});
     # XXX this works, but it might be a bit fragile
@@ -50,13 +50,13 @@ sub save : Test(10) {
     my $two = One->new;
     $two->name('bob');
     $two->description('some description');
-    $store->save($two);
+    $two->save;
     is $test->_num_recs('one'), 2, 'and we should have two records in the view';
     $result = $dbh->selectrow_hashref('SELECT id, guid, name, description, state, bool FROM one WHERE name = \'bob\'');
     $result->{state} = State->new($result->{state});
     is_deeply $two, $result, 'and the data should match what we pull from the database';
     $two->name('beelzebub');
-    $store->save($two);
+    $two->save;
     my $guid = $dbh->quote($two->guid);
     $result = $dbh->selectrow_hashref("SELECT id, guid, name, description, state, bool FROM one WHERE guid = $guid");
     $result->{state} = State->new($result->{state});
@@ -73,7 +73,7 @@ sub search : Test(19) {
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     foreach ($foo, $bar, $baz) {
         $_->name($_->name.chr(0x100));
-        $store->save($_);
+        $_->save;
     }
     my $class = $foo->my_class;
     ok my $iterator = $store->search($class),
@@ -109,7 +109,7 @@ sub search : Test(19) {
     ok ! $test->_force_inflation($iterator->next),
         'but searching for non-existent values will return no results';
     $foo->description('asdf');
-    $store->save($foo);
+    $foo->save;
     $iterator = $store->search($class, name => $foo->name, description => 'asdf');
     is_deeply $test->_force_inflation($iterator->next), $foo,
         '... and it should be the correct results';
@@ -123,7 +123,7 @@ sub search_from_key : Test(10) {
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     foreach ($foo, $bar, $baz) {
         $_->name($_->name.chr(0x100));
-        $store->save($_);
+        $_->save;
     }
     my $key = $foo->my_class->key;
     ok my $iterator = $store->search($key),
@@ -152,7 +152,7 @@ sub string_search : Test(19) {
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     foreach ($foo, $bar, $baz) {
         $_->name($_->name.chr(0x100));
-        $store->save($_);
+        $_->save;
     }
     my $class = $foo->my_class;
     ok my $iterator = $store->search($class, STRING => ''),
@@ -192,7 +192,7 @@ sub string_search : Test(19) {
     ok ! $test->_force_inflation($iterator->next),
         'but searching for non-existent values will return no results';
     $foo->description('asdf');
-    $store->save($foo);
+    $foo->save;
     $iterator = $store->search(
         $class, 
         STRING => "name => '@{[$foo->name]}', description => 'asdf'"
@@ -387,7 +387,7 @@ sub search_incomplete_date_boundaries : Test(6) {
         day   => 16 
     ));
     my $store = Store->new;
-    $store->save($_) foreach $june17, $june16, $july16;
+    $_->save foreach $june17, $june16, $july16;
     my $class    = $june17->my_class;
     my $bad_date = Incomplete->new(month => 6, hour => 23); 
 
@@ -453,7 +453,7 @@ sub search_incomplete_dates : Test(25) {
         day   => 9,
     )); 
     my $store = Store->new;
-    $store->save($_) foreach $theory, $ovid, $usa, $lil;
+    $_->save foreach $theory, $ovid, $usa, $lil;
 
     my $class    = $ovid->my_class;
     my $june     = Incomplete->new(month => 6); 
@@ -590,7 +590,7 @@ sub string_search_incomplete_dates : Test(25) {
         day   => 9,
     )); 
     my $store = Store->new;
-    $store->save($_) foreach $theory, $ovid, $usa, $lil;
+    $_->save foreach $theory, $ovid, $usa, $lil;
 
     my $class    = $ovid->my_class;
     my $june     = Incomplete->new(month => 6); 
@@ -739,7 +739,7 @@ sub search_dates : Test(8) {
         day   => 4,
     ));
     my $store = Store->new;
-    $store->save($_) foreach $theory, $ovid, $usa;
+    $_->save foreach $theory, $ovid, $usa;
 
     my $class   = $ovid->my_class;
     my $iterator = $store->search($class, date => GT $theory->date);
@@ -790,7 +790,7 @@ sub string_search_dates : Test(8) {
         day   => 4,
     ));
     my $store = Store->new;
-    $store->save($_) foreach $theory, $ovid, $usa;
+    $_->save foreach $theory, $ovid, $usa;
 
     my $class   = $ovid->my_class;
     my $iterator = $store->search($class, 
@@ -826,17 +826,17 @@ sub search_compound : Test(9) {
     $foo->name('foo');
     $foo->age(13);
     $foo->one->name('foo_name');
-    $store->save($foo);
+    $foo->save;
     my $bar = Two->new;
     $bar->name('bar');
     $bar->age(29);
     $bar->one->name('bar_name');
-    $store->save($bar);
+    $bar->save;
     my $baz = Two->new;
     $baz->age(33);
     $baz->name('snorfleglitz');
     $baz->one->name('snorfleglitz_rulez_d00d');
-    $store->save($baz);
+    $baz->save;
     my $class   = $foo->my_class;
     my $iterator = $store->search($class, 'one.name' => 'foo_name');
     my @results = $test->_all_items($iterator);
@@ -876,17 +876,17 @@ sub string_search_compound : Test(9) {
     $foo->name('foo');
     $foo->age(13);
     $foo->one->name('foo_name');
-    $store->save($foo);
+    $foo->save;
     my $bar = Two->new;
     $bar->name('bar');
     $bar->age(29);
     $bar->one->name('bar_name');
-    $store->save($bar);
+    $bar->save;
     my $baz = Two->new;
     $baz->age(33);
     $baz->name('snorfleglitz');
     $baz->one->name('snorfleglitz_rulez_d00d');
-    $store->save($baz);
+    $baz->save;
     my $class   = $foo->my_class;
     my $iterator = $store->search($class, 
         STRING => "one.name => 'foo_name'"
@@ -950,7 +950,7 @@ sub limit : Test(12) {
     for my $letter ( 'a' .. 'z' ) {
         my $object = One->new;
         $object->name($letter);
-        $store->save($object);
+        $object->save;
     }
     $iterator = $store->search( $class, { 
         limit    => 30,
@@ -1129,7 +1129,7 @@ sub search_or : Test(13) {
         'and should include the correct items';
 
     $bar->description('giggling pastries');
-    $store->save($bar);
+    $bar->save;
     ok $iterator = $store->search(
         $class,
         name => 'foo', OR(description => NOT undef),
@@ -1185,7 +1185,7 @@ sub search_and : Test(15) {
         'and should include the correct items';
 
     $bar->description('giggling pastries');
-    $store->save($bar);
+    $bar->save;
     ok $iterator = $store->search(
         $class,
         AND(name => 'bar', description => NOT undef),
@@ -1197,7 +1197,7 @@ sub search_and : Test(15) {
         'and should include the correct items';
 
     $foo->description('We Want Revolution');
-    $store->save($foo);
+    $foo->save;
     ok $iterator = $store->search(
         $class,
         AND(description => NOT undef, OR(name => 'foo', name => 'bar')),
@@ -1233,7 +1233,7 @@ sub search_overloaded : Test(11) {
     my $store = Store->new;
 
     $bar->description('giggling pastries');
-    $store->save($bar);
+    $bar->save;
     my $bname = Test::String->new('bar');
     ok my $iterator = $store->search(
         $class,
@@ -1246,7 +1246,7 @@ sub search_overloaded : Test(11) {
         'and should include the correct items';
 
     $foo->description('We Want Revolution');
-    $store->save($foo);
+    $foo->save;
     ok $iterator = $store->search(
         $class,
         AND(description => NOT undef, OR(name => 'foo', name => $bname)),
@@ -1277,17 +1277,17 @@ sub search_overloaded : Test(11) {
     $foo->name('foo');
     $foo->age(13);
     $foo->one->name('foo_name');
-    $store->save($foo);
+    $foo->save;
     $bar = Two->new;
     $bar->name('bar');
     $bar->age(29);
     $bar->one->name('bar_name');
-    $store->save($bar);
+    $bar->save;
     $baz = Two->new;
     $baz->age(33);
     $baz->name('snorfleglitz');
     $baz->one->name('snorfleglitz_rulez_d00d');
-    $store->save($baz);
+    $baz->save;
     $class   = $foo->my_class;
     my $twelve = Test::Number->new(12);
     my $thirty = Test::Number->new(30);
@@ -1309,12 +1309,12 @@ sub lookup : Test(8) {
     $one->name('Ovid');
     $one->description('test class');
     my $store = Store->new;
-    $store->save($one);
+    $one->save;
 
     my $two = One->new;
     $two->name('divO');
     $two->description('ssalc tset');
-    $store->save($two);
+    $two->save;
     can_ok $store, 'lookup';
     my $thing = $store->lookup($two->my_class, guid => $two->guid);
     is_deeply $test->_force_inflation($thing), $two, 'and it should return the correct object';
@@ -1337,12 +1337,12 @@ sub lookup_by_key : Test(8) {
     $one->name('Ovid');
     $one->description('test class');
     my $store = Store->new;
-    $store->save($one);
+    $one->save;
 
     my $two = One->new;
     $two->name('divO');
     $two->description('ssalc tset');
-    $store->save($two);
+    $two->save;
     can_ok $store, 'lookup';
     my $key = $two->my_class->key;
     my $thing = $store->lookup($key, guid => $two->guid);
@@ -1580,7 +1580,7 @@ sub search_null : Test(6) {
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     $foo->description('this is a description');
     my $store = Store->new;
-    $store->save($foo);
+    $foo->save;
     my $class = $foo->my_class;
    
     ok my $iterator = $store->search(
@@ -1640,17 +1640,17 @@ sub save_compound : Test(3) {
     $foo->name('foo');
     $foo->age(13);
     $foo->one->name('foo_name');
-    $store->save($foo);
+    $foo->save;
     my $bar = Two->new;
     $bar->name('bar');
     $bar->age(29);
     $bar->one->name('bar_name');
-    $store->save($bar);
+    $bar->save;
     my $baz = Two->new;
     $baz->age(33);
     $baz->name('snorfleglitz');
     $baz->one->name('snorfleglitz_rulez_d00d');
-    $store->save($baz);
+    $baz->save;
     my $class   = $foo->my_class;
     my $iterator = $store->search($class, age => [12 => 30]);
     my @results = $test->_all_items($iterator);
@@ -1667,19 +1667,19 @@ sub order_by : Test(4) {
     $foo->name('foo');
     $foo->age(29);
     $foo->one->name('foo_name');
-    $store->save($foo);
+    $foo->save;
 
     my $bar = Two->new;
     $bar->name('foo');
     $bar->age(13);
     $bar->one->name('bar_name');
-    $store->save($bar);
+    $bar->save;
 
     my $baz = Two->new;
     $baz->age(33);
     $baz->name('snorfleglitz');
     $baz->one->name('snorfleglitz_rulez_d00d');
-    $store->save($baz);
+    $baz->save;
     my $class = $foo->my_class;
     my $iterator = $store->search($class, {order_by => 'name'});
     my @results = $test->_all_items($iterator);
@@ -1717,19 +1717,19 @@ sub string_order_by : Test(6) {
     $foo->name('foo');
     $foo->age(29);
     $foo->one->name('foo_name');
-    $store->save($foo);
+    $foo->save;
 
     my $bar = Two->new;
     $bar->name('foo');
     $bar->age(13);
     $bar->one->name('bar_name');
-    $store->save($bar);
+    $bar->save;
 
     my $baz = Two->new;
     $baz->age(33);
     $baz->name('snorfleglitz');
     $baz->one->name('snorfleglitz_rulez_d00d');
-    $store->save($baz);
+    $baz->save;
     my $class = $foo->my_class;
 
     throws_ok {

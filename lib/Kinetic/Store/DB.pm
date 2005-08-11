@@ -276,10 +276,10 @@ method.
 sub _date_handler {
     my ( $self, $search ) = @_;
     my $operator = $search->operator;
-    return    '=' =~ $operator ? $self->_eq_date_handler($search)
+    return '=' =~ $operator ? $self->_eq_date_handler($search)
       : 'BETWEEN' eq $operator ? $self->_between_date_handler($search)
       : 'ANY'     eq $operator ? $self->_any_date_handler($search)
-      :                          $self->_gt_lt_date_handler($search);
+      : $self->_gt_lt_date_handler($search);
 }
 
 ##############################################################################
@@ -401,8 +401,9 @@ sub _save {
         push @{ $self->{columns} } => $attr->_view_column;
         push @{ $self->{values} }  => $attr->raw($object);
     }
-    return $object->id ? $self->_update($object)
-      :                  $self->_insert($object);
+    return $object->id
+      ? $self->_update($object)
+      : $self->_insert($object);
 }
 
 ##############################################################################
@@ -488,7 +489,7 @@ required to immediately follow them.
 sub _set_search_type {
     my ( $self, $search_params ) = @_;
     $self->{search_type} =
-      !@$search_params                              ? 'CODE'
+      !@$search_params                                 ? 'CODE'
       : exists $SEARCH_TYPE_FOR{ $search_params->[0] } ? shift @$search_params
       : 'CODE';
     if ( 'STRING' eq $self->{search_type} && @$search_params > 1 ) {
@@ -939,6 +940,9 @@ be generated.
 sub _make_where_clause {
     my ( $self, $search_request ) = @_;
     return ( '', [] ) unless @$search_request && $search_request->[0];
+
+    # unless explicitly set elsewhere, the default search type is CODE
+    $self->{search_type} ||= 'CODE';
     my $stream =
       $self->{search_type} eq 'CODE'    # XXX we may need to clean this up later
       ? code_lexer_stream($search_request)
@@ -987,9 +991,12 @@ sub _convert_ir_to_where_clause {
             push @where => 'AND';
         }
     }
+
+    # XXX We should look into what it takes to fix this.  Sometimes we have
+    # a group op on the end of the @where array.  We don't want that.
     pop @where
       if defined $where[-1]
-      && $where[-1] =~ GROUP_OP;    # whoops!  Figure out how to avoid this
+      && $where[-1] =~ GROUP_OP;
     return '(' . join ( ' ' => @where ) . ')', \@bind;
 }
 

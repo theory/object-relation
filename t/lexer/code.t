@@ -2,8 +2,8 @@
 use warnings;
 use strict;
 
-#use Test::More tests => 34;
-use Test::More 'no_plan';
+use Test::More tests => 36;
+#use Test::More 'no_plan';
 use Data::Dumper;
 
 use lib 'lib';

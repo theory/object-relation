@@ -89,13 +89,13 @@ sub setup : Test(setup) {
     $test->{dbh}->begin_work;
     my $foo = One->new;
     $foo->name('foo');
-    $store->save($foo);
+    $foo->save;
     my $bar = One->new;
     $bar->name('bar');
-    $store->save($bar);
+    $bar->save;
     my $baz = One->new;
     $baz->name('snorfleglitz');
-    $store->save($baz);
+    $baz->save;
     $test->{test_objects} = [ $foo, $bar, $baz ];
 }
 
@@ -114,7 +114,7 @@ sub clear_database {
 
 sub REST { shift->{REST} }
 
-sub web_test : Test(no_plan) {
+sub web_test : Test(9) {
     my $test = shift;
     my $mech = Test::WWW::Mechanize->new;
     $mech->get_ok(
@@ -149,6 +149,37 @@ sub web_test : Test(no_plan) {
         qr/$foo_guid/,
         '... and it should be able to identify the object'
     );
+
+    $mech->get_ok(
+        sprintf('http://%s:%d/one/search/STRING/name => "foo"?type=html', DOMAIN, PORT),
+        'We should be able to fetch the main page'
+    );
+
+    $foo_guid = $foo->guid;
+    my $expected = <<"    END_XHTML";
+<?xml version="1.0"?>
+    <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+    <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
+      <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Available instances</title>
+      </head>
+      <body>
+        <table bgcolor="#eeeeee" border="1">
+          <tr>
+            <th>Available instances</th>
+          </tr>
+          <tr>
+            <td>
+              <a href="http://localhost:9000/rest/one/lookup/guid/$foo_guid?type=html">$foo_guid</a>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+    END_XHTML
+    is_xml $mech->content, $expected,
+        'REST strings searches with HTML type speficied should return the correct HTML';
 }
 
 sub constructor : Test(14) {
@@ -193,7 +224,8 @@ sub constructor : Test(14) {
         '... and paths should have leading slashes removed and trailing slashes added';
 }
 
-sub rest_interface : Test(no_plan) {
+sub rest_interface : Test(19) {
+    my $test  = shift;
     my $class = 'Kinetic::Interface::REST';
     my $rest  = $class->new( domain => 'http://foo/', path => 'rest/server/' );
 
@@ -208,12 +240,40 @@ sub rest_interface : Test(no_plan) {
     my $cgi_mock = MockModule->new('CGI');
     $cgi_mock->mock( path_info => '/one/search' );
 
-    my $dispatch_mock = MockModule->new('Kinetic::Interface::REST::Dispatch');
-
     ok $rest->handle_request( CGI->new ),
       'Handling a good resource should succeed';
     is $rest->status, '200 OK', '... with an appropriate status code';
     ok $rest->response, '... and return an entity-body';
+    
+    # Note that because of the way we're mocking up path_info, URL encoding
+    # of parameters is *not* necessary
+    $cgi_mock->mock( 
+        path_info => '/one/search/STRING/name => "foo"/order_by/name',
+    );
+
+    ok $rest->handle_request( CGI->new ),
+      'Searching for resources should succeed';
+    is $rest->status, '200 OK', '... with an appropriate status code';
+    ok $rest->response, '... and return an entity-body';
+
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my $foo_guid = $foo->guid;
+    my $expected = <<"    END_XML";
+<?xml version="1.0"?>
+    <?xml-stylesheet 
+        type="text/xsl" 
+        href="http://foo/rest/server/?stylesheet=REST"?>
+    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
+                       xmlns:xlink="http://www.w3.org/1999/xlink">
+      <kinetic:description>Available instances</kinetic:description>
+      <kinetic:resource 
+        id="$foo_guid" 
+        xlink:href="http://foo/rest/server/one/lookup/guid/$foo_guid"/>
+    </kinetic:resources>
+    END_XML
+
+    is_xml $rest->response, $expected,
+      '$class_key/search/STRING/$search_string should return a list';
 }
 
 sub rest_faults : Test(7) {
@@ -242,7 +302,7 @@ sub rest_faults : Test(7) {
       '... and a human readable response';
 }
 
-sub basic_services : Test(no_plan) {
+sub basic_services : Test(3) {
     my $test = shift;
     my $rest = $test->REST;
 
@@ -286,7 +346,7 @@ sub basic_services : Test(no_plan) {
     diag "Clean up xml for which we have no resources";
 }
 
-sub xslt : Test(no_plan) {
+sub xslt : Test(2) {
     my $test = shift;
     my $rest = $test->REST;
 

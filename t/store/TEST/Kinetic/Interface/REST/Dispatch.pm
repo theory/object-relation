@@ -143,7 +143,7 @@ sub class_list : Test(2) {
       '... and calling it should return a list of resources';
 }
 
-sub handle : Test(4) {
+sub handle : Test(6) {
     my $test = shift;
     ok my $handle =
       *Kinetic::Interface::REST::Dispatch::_handle_rest_request{CODE},
@@ -178,7 +178,7 @@ sub handle : Test(4) {
     </kinetic:resources>
     END_XML
     is_xml $response, $expected,
-'Calling _handle_rest_request with a path of /$key/search should return all instances of said key';
+        '... but calling it with /$key/search should succeed';
 
     my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
     my $foo_guid = $foo->guid;
@@ -196,7 +196,44 @@ sub handle : Test(4) {
     </kinetic>
     END_XML
     is_xml $rest->response, $expected,
-        '... and $class_key/lookup/guid/$guid should return instance XML';
+      '... and $class_key/lookup/guid/$guid should return instance XML';
+
+    $handle->( $rest, $key, 'search', [ 'STRING', 'name => "foo"' ] );
+
+    $expected = <<"    END_XML";
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=REST"?>
+    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
+                       xmlns:xlink="http://www.w3.org/1999/xlink">
+      <kinetic:description>Available instances</kinetic:description>
+      <kinetic:resource id="$foo_guid" xlink:href="http://somehost.com/rest/one/lookup/guid/$foo_guid"/>
+    </kinetic:resources>
+    END_XML
+
+    is_xml $rest->response, $expected,
+      '$class_key/search/STRING/$search_string should return a list';
+
+    $handle->(
+        $rest, $key, 'search',
+        [
+            STRING   => 'name => "foo", OR(name => "bar")',
+            order_by => 'name',
+        ]
+    );
+    
+    my $bar_guid = $bar->guid;
+    $expected = <<"    END_XML";
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=REST"?>
+    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
+                     xmlns:xlink="http://www.w3.org/1999/xlink">
+      <kinetic:description>Available instances</kinetic:description>
+      <kinetic:resource id="$bar_guid" xlink:href="http://somehost.com/rest/one/lookup/guid/$bar_guid"/>
+      <kinetic:resource id="$foo_guid" xlink:href="http://somehost.com/rest/one/lookup/guid/$foo_guid"/>
+    </kinetic:resources>
+    END_XML
+    is_xml $rest->response, $expected,
+      '... and complex searches with constraints should also succeed';
 }
 
 1;
