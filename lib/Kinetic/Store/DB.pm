@@ -504,11 +504,19 @@ sub _set_search_type {
         while ( my ( $constraint, $value ) = splice @constraints, 0, 2 ) {
             $value = ASC  if 'ASC'  eq uc $value;    # convert to search subs
             $value = DESC if 'DESC' eq uc $value;    # convert to search subs
-            if ( exists $constraint_for{$constraint} ) {
-                push @{ $constraint_for{$constraint} } => $value;
+
+            # only "order_by" and "sort_order" constraints may
+            # be multi-valued
+            if ( $constraint =~ /^order_by|sort_order$/ ) {
+                if ( exists $constraint_for{$constraint} ) {
+                    push @{ $constraint_for{$constraint} } => $value;
+                }
+                else {
+                    $constraint_for{$constraint} = [$value];
+                }
             }
             else {
-                $constraint_for{$constraint} = [$value];
+                $constraint_for{$constraint} = $value;
             }
         }
         $search_params->[1] = \%constraint_for;
@@ -689,6 +697,7 @@ sub _get_sql_results {
     my $dbi_method = $self->_prepare_method;
     my $sth        = $self->_dbh->$dbi_method($sql);
     $self->_execute( $sth, $bind_params );
+
     if ( $self->_should_create_iterator ) {
         my $search_class = $self->{search_class};
         return Iterator->new(

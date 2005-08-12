@@ -21,6 +21,7 @@ package Kinetic::Interface::REST::Dispatch;
 use 5.008003;
 use strict;
 use version;
+use Data::Page;
 use Kinetic::Meta;
 use Kinetic::XML;
 use Kinetic::Meta::XML;
@@ -28,6 +29,8 @@ use Kinetic::Store;
 use Kinetic::Util::Constants qw/:http :data_store/;
 
 our $VERSION = version->new('0.0.1');
+
+use constant DEFAULT_LIMIT => 20;
 
 =head1 Name
 
@@ -83,7 +86,7 @@ sub _class_list {
     foreach my $key ( sort Kinetic::Meta->keys ) {
         next if Kinetic::Meta->for_key($key)->abstract;
         $response .=
-          qq'<kinetic:resource id="$key" xlink:href="${base_url}$key/search$query_string"/>';
+qq'<kinetic:resource id="$key" xlink:href="${base_url}$key/search$query_string"/>';
     }
     $response .= "</kinetic:resources>";
     return $rest->set_response($response);
@@ -95,37 +98,66 @@ sub _handle_rest_request {
 
     my $class;
     eval { $class = Kinetic::Meta->for_key($class_key) };
-    if ( !$class || !$message ) {
-        return _not_implemented($rest);
+    my ( $method, $ctor );
+    if ( $class && $message ) {
+        $method = $class->methods($message);
+        $ctor = $method ? '' : $class->constructors($message);
     }
-    if ( my $method = $class->methods($message) ) {
-        if ( $method->context == Class::Meta::CLASS ) {
-            my $response = $method->call( $class->package->new, @$args );
-            if ( 'search' eq $message ) {
-                return _instance_list( $rest, $class_key, $response );
-            }
-        }
-        else {
 
-            # XXX we're not actually doing anything with this yet.
-            my $obj = $class->contructors('lookup')->call(@$args)
-              or die;
-            $method->call( $obj, @$args );
+    return $method ? _handle_method( $method, $rest, $class, $args )
+      : $ctor ? _handle_constructor( $ctor, $rest, $class, $args )
+      : _not_implemented($rest);
+}
+
+sub _handle_constructor {
+    my ( $ctor, $rest, $class, $args ) = @_;
+    my $obj = $ctor->call( $class->package, @$args );
+    my $xml = Kinetic::XML->new(
+        {
+            object         => $obj,
+            stylesheet_url => $rest->stylesheet_url('instance'),
         }
-    }
-    elsif ( my $ctor = $class->constructors($message) ) {
-        my $obj = $ctor->call( $class->package, @$args );
-        my $xml = Kinetic::XML->new(
-            {
-                object         => $obj,
-                stylesheet_url => $rest->stylesheet_url('instance'),
-            }
-        )->dump_xml;
-        return $rest->set_response($xml, 'instance');
+    )->dump_xml;
+    return $rest->set_response( $xml, 'instance' );
+}
+
+sub _handle_method {
+    my ( $method, $rest, $class, $args ) = @_;
+    $args = _normalize_args( $method, $args );
+    if ( $method->context == Class::Meta::CLASS ) {
+        my $response = $method->call( $class->package->new, @$args );
+        if ( 'search' eq $method->name ) {
+            return _instance_list( $rest, $class->key, $response, $args );
+        }
     }
     else {
-        return _not_implemented($rest);
+
+        # XXX we're not actually doing anything with this yet.
+        my $obj = $class->contructors('lookup')->call(@$args)
+          or die;
+        $method->call( $obj, @$args );
     }
+}
+
+# since // is effectively a no-op in a path, the URL may have
+# "null" in the path to hold that segment open.  Here's where
+# we convert it to a space.
+#
+# we also set the limit on searches, if necessary
+sub _normalize_args {
+    my ( $method, $args ) = @_;
+    my @args;
+    my $limit_found = 0;
+    foreach my $arg (@$args) {
+        $arg = '' if 'null' eq $arg;
+        push @args, $arg;
+        $limit_found++ if 'limit' eq $arg;
+    }
+    if ( !$limit_found && 'search' eq $method->name ) {
+        push @args, 'STRING', '' unless @args;
+        push @args, 'limit', DEFAULT_LIMIT if 'search' eq $method->name;
+    }
+    return \@args;
 }
 
 sub _not_implemented {
@@ -151,7 +183,16 @@ keyed by guid.
 my $STORE = Kinetic::Store->new;
 
 sub _instance_list {
-    my ( $rest, $key, $iterator ) = @_;
+    my ( $rest, $key, $iterator, $args ) = @_;
+
+    my ( $limit, $offset );
+    if ($args) {
+        my %args = @$args;
+        $limit  = $args{limit};
+        $offset = $args{offset};
+    }
+    $limit  ||= DEFAULT_LIMIT;
+    $offset ||= 0;
 
     my $response     = _xml_header( $rest, 'Available instances' );
     my $base_url     = _rest_base_url($rest);
@@ -162,8 +203,7 @@ sub _instance_list {
         $num_resources++;
         my $guid = $resource->guid;
         $response .=
-qq'<kinetic:resource id="$guid" xlink:href="$base_url$key/lookup/guid/$guid$query_string"/>'
-          ,;
+qq'<kinetic:resource id="$guid" xlink:href="$base_url$key/lookup/guid/$guid$query_string"/>';
     }
     unless ($num_resources) {
         $response .=

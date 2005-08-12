@@ -85,7 +85,7 @@ sub setup : Test(setup) {
     my $test  = shift;
     my $store = Store->new;
     $test->{dbh} = $store->_dbh;
-    $test->clear_database;
+    $test->_clear_database;
     $test->{dbh}->begin_work;
     my $foo = One->new;
     $foo->name('foo');
@@ -100,10 +100,10 @@ sub setup : Test(setup) {
 }
 
 sub teardown : Test(teardown) {
-    shift->clear_database;
+    shift->_clear_database;
 }
 
-sub clear_database {
+sub _clear_database {
     my $test = shift;
     foreach my $key ( Kinetic::Meta->keys ) {
         next if Kinetic::Meta->for_key($key)->abstract;
@@ -114,45 +114,151 @@ sub clear_database {
 
 sub REST { shift->{REST} }
 
-sub web_test : Test(9) {
+sub web_test_paging : Test(no_plan) {
     my $test = shift;
     my $mech = Test::WWW::Mechanize->new;
+    my $url  = sprintf 'http://%s:%d/', DOMAIN, PORT;
+
+    #my $baz = One->new;
+    #$baz->name('snorfleglitz');
+    #$baz->save;
+    my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
+
     $mech->get_ok(
-        sprintf('http://%s:%d?type=html', DOMAIN, PORT),
-        'We should be able to fetch the main page'
+        "$url/one/search/STRING/null/order_by/name/limit/2?type=html",
+        'We should be able to fetch and limit the searches'
     );
-    $mech->title_is(
-        'Available resources',
-        '... and fetching the root should return a list of resources'
+
+    my $foo_guid = $foo->guid;
+    my $bar_guid = $bar->guid;
+    my $expected = <<"    END_XHTML";
+<?xml version="1.0"?>
+    <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+    <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
+      <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Available instances</title>
+      </head>
+      <body>
+        <table bgcolor="#eeeeee" border="1">
+          <tr>
+            <th>Available instances</th>
+          </tr>
+          <tr>
+            <td>
+              <a href="http://localhost:9000/rest/one/lookup/guid/$bar_guid?type=html">$bar_guid</a>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <a href="http://localhost:9000/rest/one/lookup/guid/$foo_guid?type=html">$foo_guid</a>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+    END_XHTML
+    is_xml $mech->content, $expected,
+      '... ordering and limiting searches should work';
+
+    $mech->get_ok(
+        "$url/one/search/STRING/null/order_by/name/limit/2/offset/2?type=html",
+        '... as should paging through result sets'
     );
-    $mech->follow_link_ok( 
-        {url_regex => qr/simple/},
+    my $baz_guid = $baz->guid;
+    $expected = <<"    END_XHTML";
+<?xml version="1.0"?>
+    <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+    <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
+      <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Available instances</title>
+      </head>
+      <body>
+        <table bgcolor="#eeeeee" border="1">
+          <tr>
+            <th>Available instances</th>
+          </tr>
+          <tr>
+            <td>
+              <a href="http://localhost:9000/rest/one/lookup/guid/$baz_guid?type=html">$baz_guid</a>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+    END_XHTML
+    is_xml $mech->content, $expected,
+      '... ordering and limiting searches should work';
+
+    $test->_clear_database;
+    for ( 'A' .. 'Z' ) {
+        my $object = One->new;
+        $object->name($_);
+        $object->save;
+    }
+
+    # now that we have 26 "One" objects in the database, let's make sure
+    # that the default max list is 20
+    $mech->get_ok(
+        "$url/one/search?type=html",
+        '... as should paging through result sets'
+    );
+    my @links = $mech->links;
+    is @links, 20, 'We should receive a maximum of 20 links in a result set.';
+    
+    $mech->get_ok(
+        "$url/one/search/STRING/null/limit/30?type=html",
+        '... but asking for more than the limit should work'
+    );
+    @links = $mech->links;
+    is @links, 26, '... and return the correct number of links';
+
+    $mech->get_ok(
+        "$url/one/search/STRING/null/limit/10?type=html",
+        '... but asking for fewer than the limit should work'
+    );
+    @links = $mech->links;
+    is @links, 10, '... and return the correct number of links';
+}
+
+sub web_test : Test(12) {
+    my $test = shift;
+    my $mech = Test::WWW::Mechanize->new;
+    my $url  = sprintf 'http://%s:%d/', DOMAIN, PORT;
+    
+    $mech->get_ok($url, 'Gettting the main page should succeed');
+    ok ! $mech->is_html, '... but it should not return HTML';
+    $mech->get_ok(
+        "$url?type=html",
+        'We should be able to fetch the main page and ask for HTML'
+    );
+    ok $mech->is_html, '... and get HTML back';
+    $mech->title_is( 'Available resources',
+        '... and fetching the root should return a list of resources' );
+    $mech->follow_link_ok(
+        { url_regex => qr/simple/ },
         '... and fetching a class link should succeed',
     );
-    $mech->title_is(
-        'Available instances',
-        '... and fetching the a class should return a list of instances'
-    );
+    $mech->title_is( 'Available instances',
+        '... and fetching the a class should return a list of instances' );
 
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
     my $foo_guid = $foo->guid;
 
-    $mech->follow_link_ok( 
-        {url_regex => qr/$foo_guid/},
+    $mech->follow_link_ok(
+        { url_regex => qr/$foo_guid/ },
         '... and fetching an instance link should succeed',
     );
-    $mech->title_is(
-        'simple',
+    $mech->title_is( 'simple',
         '... and fetching an instance of a class should return the html for it'
     );
-    $mech->content_like(
-        qr/$foo_guid/,
-        '... and it should be able to identify the object'
-    );
+    $mech->content_like( qr/$foo_guid/,
+        '... and it should be able to identify the object' );
 
     $mech->get_ok(
-        sprintf('http://%s:%d/one/search/STRING/name => "foo"?type=html', DOMAIN, PORT),
-        'We should be able to fetch the main page'
+        qq'$url/one/search/STRING/name => "foo"?type=html',
+        'We should be able to fetch via a search'
     );
 
     $foo_guid = $foo->guid;
@@ -179,7 +285,7 @@ sub web_test : Test(9) {
     </html>
     END_XHTML
     is_xml $mech->content, $expected,
-        'REST strings searches with HTML type speficied should return the correct HTML';
+'REST strings searches with HTML type specified should return the correct HTML';
 }
 
 sub constructor : Test(14) {
@@ -221,7 +327,7 @@ sub constructor : Test(14) {
       'Domains without a trailing slash should have it appended';
 
     is $rest->path, 'rest/server/',
-        '... and paths should have leading slashes removed and trailing slashes added';
+'... and paths should have leading slashes removed and trailing slashes added';
 }
 
 sub rest_interface : Test(19) {
@@ -244,19 +350,18 @@ sub rest_interface : Test(19) {
       'Handling a good resource should succeed';
     is $rest->status, '200 OK', '... with an appropriate status code';
     ok $rest->response, '... and return an entity-body';
-    
+
     # Note that because of the way we're mocking up path_info, URL encoding
     # of parameters is *not* necessary
-    $cgi_mock->mock( 
-        path_info => '/one/search/STRING/name => "foo"/order_by/name',
-    );
+    $cgi_mock->mock(
+        path_info => '/one/search/STRING/name => "foo"/order_by/name', );
 
     ok $rest->handle_request( CGI->new ),
       'Searching for resources should succeed';
     is $rest->status, '200 OK', '... with an appropriate status code';
     ok $rest->response, '... and return an entity-body';
 
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
     my $foo_guid = $foo->guid;
     my $expected = <<"    END_XML";
 <?xml version="1.0"?>

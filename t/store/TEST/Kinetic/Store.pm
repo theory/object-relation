@@ -996,6 +996,90 @@ sub limit : Test(12) {
     is_deeply \@letters, ['b' .. 'y'], 'and they should be all but the first and last letters';
 }
 
+sub string_limit : Test(12) {
+    my $test = shift;
+    return unless $test->_should_run;
+    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my $class = $foo->my_class;
+    my $store = Store->new;
+    ok my $iterator = $store->search( $class,
+        STRING   => '',
+        limit    => 2,
+        order_by => 'name',
+    ), 'A string search with a limit should succeed';
+    my @results = $test->_all_items($iterator);
+    is @results, 2, 'returning no more than the number of objects specified in the limit';
+
+    $iterator = $store->search( $class,
+        STRING   => '',
+        limit    => 4,
+        order_by => 'name',
+    );
+    @results = $test->_all_items($iterator);
+    is @results, 3, 'but no more than the number of objects available';
+
+    $iterator = $store->search( $class,
+        STRING   => '',
+        limit    => 0,
+        order_by => 'name',
+    );
+    @results = $test->_all_items($iterator);
+    ok ! @results, 'and no objects if the limit is 0';
+
+    for my $letter ( 'a' .. 'z' ) {
+        my $object = One->new;
+        $object->name($letter);
+        $object->save;
+    }
+    $iterator = $store->search( $class,
+        STRING   => '',
+        limit    => 30,
+        order_by => 'name',
+    );
+    @results = $test->_all_items($iterator);
+    is @results, 29, 'We should have all 26 letters of the alphabet plus the original three objects';
+
+    $iterator = $store->search( $class, 
+        STRING   => "name => LIKE '_'",
+        limit    => 30,
+        order_by => 'name',
+    );
+    @results = $test->_all_items($iterator);
+    is @results, 26, 'We should have all 26 letters of the alphabet';
+    
+    $iterator = $store->search( $class, 
+        STRING   => "name => LIKE '_'",
+        limit    => 13,
+        order_by => 'name',
+    );
+    @results = $test->_all_items($iterator);
+    is @results, 13, 'We should have 13 letters of the alphabet';
+    my @letters = map $_->name => @results;
+    is_deeply \@letters, ['a' .. 'm'], 'and they should be the first 13 letters';
+
+    $iterator = $store->search( $class, 
+        STRING   => "name => LIKE '_'",
+        limit    => 13,
+        order_by => 'name',
+        offset   => 13,
+    );
+    @results = $test->_all_items($iterator);
+    is @results, 13, 'We should have 13 letters of the alphabet';
+    @letters = map $_->name => @results;
+    is_deeply \@letters, ['n' .. 'z'], 'and they should be the last 13 letters';
+
+    $iterator = $store->search( $class, 
+        STRING   => "name => LIKE '_'",
+        limit    => 24,
+        order_by => 'name',
+        offset   => 1,
+    );
+    @results = $test->_all_items($iterator);
+    is @results, 24, 'We should have 24 letters of the alphabet';
+    @letters = map $_->name => @results;
+    is_deeply \@letters, ['b' .. 'y'], 'and they should be all but the first and last letters';
+}
+
 sub count : Test(8) {
     my $test = shift;
     return unless $test->_should_run;

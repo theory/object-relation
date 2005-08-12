@@ -14,6 +14,7 @@ my $build = Kinetic::Build->new(
         'aliased'                    => 0.11,
         'Class::Meta'                => 0.49,
         'Clone'                      => 0.15,
+        'Data::Page'                 => 2.00,
         'Data::UUID'                 => 0.11,
         'DateTime'                   => 0.24,
         'DateTime::Format::Strptime' => 1.0601,

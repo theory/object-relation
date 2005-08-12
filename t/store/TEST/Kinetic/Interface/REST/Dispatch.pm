@@ -236,4 +236,35 @@ sub handle : Test(6) {
       '... and complex searches with constraints should also succeed';
 }
 
+sub normalize_args : Test(7) {
+    my $test = shift;
+    ok my $normalize = *Kinetic::Interface::REST::Dispatch::_normalize_args{CODE},
+        '&_normalize_args is defined in the Dispatch package';
+
+    our $method_name = 'lookup';
+    {
+        package Faux::Method;
+        local $^W;
+        sub name { return $method_name }
+    }
+    my $method = bless {}, 'Faux::Method';
+    ok my $args = $normalize->($method, []),
+        '... and calling it should succeed';
+    is ref $args, 'ARRAY', '... returning an array reference';
+    is_deeply $args, [], '... which should be empty if we pass no args';
+
+    $args = $normalize->($method, [qw/foo null/]);
+    is_deeply $args, ['foo', ''],
+        '"null" should be converted to the empty string';
+
+    $method_name = 'search';
+    $args = $normalize->($method, []);
+    is_deeply $args, ['STRING', '', 'limit', 20],
+        'search methods should default to a limit of 20 objects';
+    
+    $args = $normalize->($method, [qw/STRING null limit 10/]);
+    is_deeply $args, ['STRING', '', 'limit', 10],
+        '... unless we explicitly override it';
+}
+
 1;
