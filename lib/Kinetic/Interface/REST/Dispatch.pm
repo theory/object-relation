@@ -21,7 +21,9 @@ package Kinetic::Interface::REST::Dispatch;
 use 5.008003;
 use strict;
 use version;
-use Data::Page;
+use Data::Pageset;
+use Params::Validate;
+
 use Kinetic::Meta;
 use Kinetic::XML;
 use Kinetic::Meta::XML;
@@ -53,6 +55,93 @@ methods directly.
 
 =cut
 
+##############################################################################
+
+=head3 new
+
+  my $dispatch = Kinetic::Interface::REST::Dispatch->new;
+
+The constructor.  Currently takes no arguments;
+
+=cut
+
+sub new {
+    my ($class) = @_;
+    bless {}, $class;
+}
+
+##############################################################################
+
+=head3 rest
+
+ $dispatch->rest([$rest]);
+
+Getter/setter for REST object.
+
+=cut
+
+sub rest {
+    my $self = shift;
+    return $self->{rest} unless @_;
+    $self->{rest} = shift;
+    return $self;
+}
+
+##############################################################################
+
+=head3 class_key
+
+  $dispatch->class_key([$class_key]);
+
+Getter/setter for class key we're working with.
+
+=cut
+
+sub class_key {
+    my $self = shift;
+    return $self->{class_key} unless @_;
+    $self->{class_key} = shift;
+    return $self;
+}
+
+##############################################################################
+
+=head3 message
+
+ $dispatch->message([$message]); 
+
+Getter/setter for message to be sent to class created from class key.
+
+=cut
+
+sub message {
+    my $self = shift;
+    return $self->{message} unless @_;
+    $self->{message} = shift;
+    return $self;
+}
+
+##############################################################################
+
+=head3 args
+
+  $dispatch->arg([\@args]);
+
+Getter/setter for args to accompany C<message>.  Returns an empty array
+reference if no args supplied.
+
+=cut
+
+sub args {
+    my $self = shift;
+    if (@_) {
+        $self->{args} = shift;
+        return $self;
+    }
+    $self->{args} ||= [];
+    return $self->{args};
+}
+
 sub _query_string {
     my $rest = shift;
     my $type = lc $rest->cgi->param('type') || return '';
@@ -62,9 +151,9 @@ sub _query_string {
 
 ##############################################################################
 
-=head3 _class_list
+=head3 class_list
 
-  Kinetic::Interface::REST::Dispatch::_class_list($rest);
+  $dispatch->class_list($rest);
 
 This function takes a L<Kinetic::Interface::REST|Kinetic::Interface::REST>
 instance and sets its content-type to C<text/xml> and its response to an XML
@@ -72,8 +161,10 @@ list of all classes registered with L<Kinetic::Meta|Kinetic::Meta>.
 
 =cut
 
-sub _class_list {
-    my ($rest) = @_;
+sub class_list {
+    my ($self) = @_;
+
+    my $rest = $self->rest;    # XXX exception
     if ( my $stylesheet = $rest->cgi->param('stylesheet') ) {
         my $xml = $rest->stylesheet;
         $rest->content_type(XML_CT)->response($xml);
@@ -92,27 +183,37 @@ qq'<kinetic:resource id="$key" xlink:href="${base_url}$key/search$query_string"/
     return $rest->set_response($response);
 }
 
-sub _handle_rest_request {
-    my ( $rest, $class_key, $message, $args ) = @_;
-    $args ||= [];
+=head3 handle_rest_request
+
+ $dispatch->handle_rest_request
+
+=cut
+
+sub handle_rest_request {
+    my ($self) = @_;
+
+    my $rest = $self->rest;
 
     my $class;
-    eval { $class = Kinetic::Meta->for_key($class_key) };
+    eval { $class = Kinetic::Meta->for_key( $self->class_key ) };
     my ( $method, $ctor );
+    my $message = $self->message;
     if ( $class && $message ) {
         $method = $class->methods($message);
         $ctor = $method ? '' : $class->constructors($message);
     }
 
-    return $method ? _handle_method( $method, $rest, $class, $args )
-      : $ctor ? _handle_constructor( $ctor, $rest, $class, $args )
-      : _not_implemented($rest);
+    my $args = $self->args;
+    return $method ? $self->_handle_method( $method, $class )
+      : $ctor ? $self->_handle_constructor( $ctor, $class )
+      : $self->_not_implemented;
 }
 
 sub _handle_constructor {
-    my ( $ctor, $rest, $class, $args ) = @_;
-    my $obj = $ctor->call( $class->package, @$args );
-    my $xml = Kinetic::XML->new(
+    my ( $self, $ctor, $class ) = @_;
+    my $obj  = $ctor->call( $class->package, @{ $self->args } );
+    my $rest = $self->rest;
+    my $xml  = Kinetic::XML->new(
         {
             object         => $obj,
             stylesheet_url => $rest->stylesheet_url('instance'),
@@ -122,12 +223,13 @@ sub _handle_constructor {
 }
 
 sub _handle_method {
-    my ( $method, $rest, $class, $args ) = @_;
+    my ( $self, $method, $class ) = @_;
+    my $args = $self->args;
     $args = _normalize_args( $method, $args );
     if ( $method->context == Class::Meta::CLASS ) {
         my $response = $method->call( $class->package->new, @$args );
         if ( 'search' eq $method->name ) {
-            return _instance_list( $rest, $class->key, $response, $args );
+            return $self->_instance_list( $response );
         }
     }
     else {
@@ -154,14 +256,20 @@ sub _normalize_args {
         $limit_found++ if 'limit' eq $arg;
     }
     if ( !$limit_found && 'search' eq $method->name ) {
+
+        # we push 'STRING', '' for a string search if we have no arguments
+        # because $object->search will fail with a limit as the first argument
+        # as Kinetic::Store::DB::search will assume the first argument is CODE
+        # search unless it's a defined search type name.
         push @args, 'STRING', '' unless @args;
-        push @args, 'limit', DEFAULT_LIMIT if 'search' eq $method->name;
+        push @args, 'limit', DEFAULT_LIMIT;
     }
     return \@args;
 }
 
 sub _not_implemented {
-    my $rest = shift;
+    my $self = shift;
+    my $rest = $self->rest;
     my $info = $rest->path_info;
     $rest->status(NOT_IMPLEMENTED_STATUS)
       ->response("No resource available to handle ($info)");
@@ -171,22 +279,22 @@ sub _not_implemented {
 
 =head3 _instance_list
 
-  Kinetic::Interface::REST::Dispatch::_instance_list($rest);
+  $dispatch->_instance_list($iterator);
 
-This function takes a L<Kinetic::Interface::REST|Kinetic::Interface::REST>
-instance and an iterator.  It sets the rest instance's content-type to
+This function takes an iterator.  It sets the rest instance's content-type to
 C<text/xml> and its response to an XML list of all resources in the iterator,
 keyed by guid.
 
 =cut
 
-my $STORE = Kinetic::Store->new;
-
 sub _instance_list {
-    my ( $rest, $key, $iterator, $args ) = @_;
+    my ( $self, $iterator ) = @_;
 
     my ( $limit, $offset );
+    my $args = $self->args;
     if ($args) {
+
+        # 0 == @$args % 2 must always be true
         my %args = @$args;
         $limit  = $args{limit};
         $offset = $args{offset};
@@ -194,23 +302,114 @@ sub _instance_list {
     $limit  ||= DEFAULT_LIMIT;
     $offset ||= 0;
 
+    my $rest = $self->rest;
     my $response     = _xml_header( $rest, 'Available instances' );
     my $base_url     = _rest_base_url($rest);
     my $query_string = _query_string($rest);
 
-    my $num_resources = 0;
+    my $instance_count = 0;
+    my $key = $self->class_key;
     while ( my $resource = $iterator->next ) {
-        $num_resources++;
+        $instance_count++;
         my $guid = $resource->guid;
         $response .=
 qq'<kinetic:resource id="$guid" xlink:href="$base_url$key/lookup/guid/$guid$query_string"/>';
     }
-    unless ($num_resources) {
+    unless ($instance_count) {
         $response .=
           '       <kinetic:resource id="No resources found" xlink:href="#"/>';
     }
+    else {
+        my $pageset = _pageset(
+            {
+                class_key => $key,
+                args      => $args,
+                count     => $instance_count,
+                limit     => $limit,
+                offset    => $offset,
+            }
+        );
+        if ($pageset) {
+            foreach my $page ( @{ $pageset->pages_in_set } ) {
+
+                # do something with page
+                #$response .= qq'        <kinetic:page id="[ Page $page ] "'
+                #          .  qq'xlink:href="$base_url';
+            }
+        }
+    }
     $response .= "</kinetic:resources>";
     return $rest->set_response($response);
+}
+
+##############################################################################
+
+=head3 _pageset
+
+  my $pageset = _pageset(\%pageset_info);
+
+This function examines the arguments provided, the current pageset limit and
+the current offset to determine if a pageset must be provided in the XML.
+Pageset info keys are defined as follows:
+
+=over 4
+
+=item * class_key
+
+The class key for the result set being paged.
+
+=item * args
+
+The original arguments supplied to the search/lookup method.
+
+=item * count
+
+The number of items on the current page.
+
+=item * limit
+
+The number of items per page.
+
+=item * offset
+
+The C<offset> supplied to the initial search.
+
+=back
+
+=cut
+
+sub _pageset {
+    my $page = validate(
+        @_,
+        {
+            class_key => 1,    # required
+            args      => 1,    # required
+            count  => { default => 0 },
+            limit  => { default => 0 },
+            offset => { default => 0 },
+        }
+    );
+
+    my $page_number =
+      $page->{limit} ? 1 + int( $page->{offset} / $page->{limit} ) : 1;
+
+    return if $page_number == 1 && $page->{count} < $page->{limit};
+
+    my $class = Kinetic::Meta->for_key( $page->{class_key} );
+    my ($count) = $class->package->count( @{ $page->{args} } );
+
+    # by setting the pages_per_set to '1', we defer annoyance of dealing
+    # with complicated page sets until such time we have enough data for
+    # this to be an issue
+    my $pageset = Data::Pageset->new(
+        {
+            'total_entries'    => $count,
+            'entries_per_page' => $page->{limit},
+            'pages_per_set'    => 1,
+            'current_page'     => $page_number,
+        }
+    );
+    return $pageset;
 }
 
 ##############################################################################

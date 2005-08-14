@@ -158,8 +158,10 @@ sub handle_request {
     # (from the URL)
     $_ = lc foreach $class_key, $method;
 
+    my $dispatch = Kinetic::Interface::REST::Dispatch->new;
+    $dispatch->rest($self);
     unless ($class_key) {
-        eval { Kinetic::Interface::REST::Dispatch::_class_list($self) };
+        eval { $dispatch->class_list };
         if ($@) {
             my $info = $cgi->path_info;
             $self->status(INTERNAL_SERVER_ERROR_STATUS)
@@ -173,8 +175,10 @@ sub handle_request {
         eval {
             require URI::Escape;
             $_ = URI::Escape::uri_unescape($_) foreach $class_key, $method, @args;
-            Kinetic::Interface::REST::Dispatch::_handle_rest_request( $self,
-                $class_key, $method, \@args );
+            $dispatch->class_key($class_key)
+                     ->message($method)
+                     ->args(\@args)
+                     ->handle_rest_request;
         };
         if ($@) {
             my $info = $cgi->path_info;

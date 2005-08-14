@@ -120,14 +120,79 @@ sub _path_info {
     return $test->{path_info};
 }
 
+sub page_set : Test(18) {
+    my $test = shift;
+
+    # we don't use can_ok because of the way &can is overridden
+    ok my $pageset = *Kinetic::Interface::REST::Dispatch::_pageset{CODE},
+      '_pageset() is defined in the Dispatch package';
+
+    for my $age ( 1 .. 100 ) {
+        my $object = Two->new;
+        $object->name("Name $age");
+        $object->one->name("One Name $age");
+        $object->age($age);
+        $object->save;
+    }
+    my ( $key, $args, $num_items, $limit, $offset ) = ( 'two', [], 19, 20, 0 );
+
+    my $get_pageset = sub {
+        $pageset->(
+            {
+                class_key => $key,
+                args      => $args,
+                count     => $num_items,
+                limit     => $limit,
+                offset    => $offset,
+            }
+        );
+    };
+    ok !$get_pageset->(),
+      '... and it should return false on first page if $count < $limit';
+
+    $num_items = $limit;
+    ok my $result = $get_pageset->(),
+      'On the first page, &_pageset should return true if $count == $limit';
+
+    isa_ok $result, 'Data::Pageset',
+      '... and the result should be a pageset object';
+
+    is $result->current_page,  1, '... telling us we are on the first page';
+    is $result->last_page,     5, '... and how many pages there are';
+    is $result->pages_per_set, 1, '... and how many pages are in each set';
+    is $result->total_entries, 100,
+      '... and we should have the correct number of entries';
+
+    $num_items = $limit - 1;
+    $offset    = $limit + 1;    # force it to page 2
+    ok $result = $get_pageset->(),
+      'We should get a pageset if we are not on the first page';
+
+    is $result->current_page,  2, '... telling us we are on the second page';
+    is $result->last_page,     5, '... and how many pages there are';
+    is $result->pages_per_set, 1, '... and how many pages are in each set';
+    is $result->total_entries, 100,
+      '... and we should have the correct number of entries';
+
+    $args = [ 'STRING', 'age => GT 43' ];
+    ok $result = $get_pageset->(), 'Pagesets should accept search criteria';
+
+    is $result->current_page,  2, '... telling us we are on the second page';
+    is $result->last_page,     3, '... and how many pages there are';
+    is $result->pages_per_set, 1, '... and how many pages are in each set';
+    is $result->total_entries, 57,
+      '... and we should have the correct number of entries';
+}
+
 sub class_list : Test(2) {
     my $test = shift;
 
     # we don't use can_ok because of the way &can is overridden
-    ok my $class_list = *Kinetic::Interface::REST::Dispatch::_class_list{CODE},
-      '_class_list() is defined in the Dispatch package';
+    my $dispatch = Dispatch->new;
+    can_ok $dispatch, 'class_list';
     my $rest = $test->{rest};
-    $class_list->($rest);
+    $dispatch->rest($rest);
+    $dispatch->class_list;
     my $expected = <<'    END_XML';
 <?xml version="1.0"?>
     <?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=REST"?>
@@ -144,21 +209,21 @@ sub class_list : Test(2) {
 }
 
 sub handle : Test(6) {
-    my $test = shift;
-    ok my $handle =
-      *Kinetic::Interface::REST::Dispatch::_handle_rest_request{CODE},
-      '_handle_rest_request() is defined in the Dispatch package';
+    my $test     = shift;
+    my $dispatch = Dispatch->new;
+    can_ok $dispatch, 'handle_rest_request';
     my $rest = $test->{rest};
-
-    my $key = One->my_class->key;
+    my $key  = One->my_class->key;
+    $dispatch->rest($rest)->class_key($key);
 
     # The error message used path info
     $test->_path_info("/$key/");
-    $handle->( $rest, $key );
+    $dispatch->handle_rest_request;
     is $rest->response, "No resource available to handle (/$key/)",
       'Calling _handle_rest_request() no message should fail';
 
-    $handle->( $rest, $key, 'search' );
+    $dispatch->message('search');
+    $dispatch->handle_rest_request;
     ( my $response = $rest->response ) =~ s/@{[GUID_RE]}/XXX/g;
     my $expected = <<'    END_XML';
 <?xml version="1.0"?>
@@ -178,11 +243,13 @@ sub handle : Test(6) {
     </kinetic:resources>
     END_XML
     is_xml $response, $expected,
-        '... but calling it with /$key/search should succeed';
+      '... but calling it with /$key/search should succeed';
 
     my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
     my $foo_guid = $foo->guid;
-    $handle->( $rest, $key, 'lookup', [ 'guid', $foo_guid ] );
+    $dispatch->message('lookup');
+    $dispatch->args( [ 'guid', $foo_guid ] );
+    $dispatch->handle_rest_request;
     $expected = <<"    END_XML";
     <?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=instance"?>
     <kinetic version="0.01">
@@ -198,7 +265,9 @@ sub handle : Test(6) {
     is_xml $rest->response, $expected,
       '... and $class_key/lookup/guid/$guid should return instance XML';
 
-    $handle->( $rest, $key, 'search', [ 'STRING', 'name => "foo"' ] );
+    $dispatch->message('search');
+    $dispatch->args( [ 'STRING', 'name => "foo"' ] );
+    $dispatch->handle_rest_request;
 
     $expected = <<"    END_XML";
 <?xml version="1.0"?>
@@ -213,15 +282,15 @@ sub handle : Test(6) {
     is_xml $rest->response, $expected,
       '$class_key/search/STRING/$search_string should return a list';
 
-    $handle->(
-        $rest, $key, 'search',
+    $dispatch->args(
         [
             STRING   => 'name => "foo", OR(name => "bar")',
             order_by => 'name',
         ]
     );
-    
+
     my $bar_guid = $bar->guid;
+    $dispatch->handle_rest_request;
     $expected = <<"    END_XML";
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=REST"?>
@@ -238,33 +307,35 @@ sub handle : Test(6) {
 
 sub normalize_args : Test(7) {
     my $test = shift;
-    ok my $normalize = *Kinetic::Interface::REST::Dispatch::_normalize_args{CODE},
-        '&_normalize_args is defined in the Dispatch package';
+    ok my $normalize =
+      *Kinetic::Interface::REST::Dispatch::_normalize_args{CODE},
+      '&_normalize_args is defined in the Dispatch package';
 
     our $method_name = 'lookup';
     {
+
         package Faux::Method;
         local $^W;
         sub name { return $method_name }
     }
     my $method = bless {}, 'Faux::Method';
-    ok my $args = $normalize->($method, []),
-        '... and calling it should succeed';
+    ok my $args = $normalize->( $method, [] ),
+      '... and calling it should succeed';
     is ref $args, 'ARRAY', '... returning an array reference';
     is_deeply $args, [], '... which should be empty if we pass no args';
 
-    $args = $normalize->($method, [qw/foo null/]);
-    is_deeply $args, ['foo', ''],
-        '"null" should be converted to the empty string';
+    $args = $normalize->( $method, [qw/foo null/] );
+    is_deeply $args, [ 'foo', '' ],
+      '"null" should be converted to the empty string';
 
     $method_name = 'search';
-    $args = $normalize->($method, []);
-    is_deeply $args, ['STRING', '', 'limit', 20],
-        'search methods should default to a limit of 20 objects';
-    
-    $args = $normalize->($method, [qw/STRING null limit 10/]);
-    is_deeply $args, ['STRING', '', 'limit', 10],
-        '... unless we explicitly override it';
+    $args = $normalize->( $method, [] );
+    is_deeply $args, [ 'STRING', '', 'limit', 20 ],
+      'search methods should default to a limit of 20 objects';
+
+    $args = $normalize->( $method, [qw/STRING null limit 10/] );
+    is_deeply $args, [ 'STRING', '', 'limit', 10 ],
+      '... unless we explicitly override it';
 }
 
 1;
