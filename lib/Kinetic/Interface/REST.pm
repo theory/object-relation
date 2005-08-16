@@ -18,7 +18,6 @@ package Kinetic::Interface::REST;
 # use, copy, create derivative works based on those contributions, and
 # sublicense and distribute those contributions and any derivatives thereof.
 
-use 5.008003;
 use strict;
 use version;
 our $VERSION = version->new('0.0.1');
@@ -26,6 +25,8 @@ use Kinetic::Util::Constants qw/:http/;
 use Kinetic::Util::Exceptions qw/:all/;
 use aliased 'Kinetic::View::XSLT';
 use aliased 'Kinetic::Interface::REST::Dispatch';
+
+use URI::Escape qw/uri_unescape/;
 
 =head1 Name
 
@@ -139,7 +140,7 @@ sub handle_request {
     }
 
     my @path_components = grep { /\S/ } split '/' => $cgi->path_info;
-    my @base_path       = split '/' => $self->path;
+    my @base_path = split '/' => $self->path;
 
     # remove base path from request, if it's there
     for my $component (@base_path) {
@@ -160,35 +161,27 @@ sub handle_request {
 
     my $dispatch = Kinetic::Interface::REST::Dispatch->new;
     $dispatch->rest($self);
-    unless ($class_key) {
+    if ( !$class_key ) {
         eval { $dispatch->class_list };
-        if ($@) {
+        if ( my $error = $@ ) {
             my $info = $cgi->path_info;
             $self->status(INTERNAL_SERVER_ERROR_STATUS)
-              ->response("Fatal error handling $info: $@");
-        }
-        else {
-            $self->status(OK_STATUS) unless $self->status;
+              ->response("Fatal error handling $info: $error");
         }
     }
     else {
         eval {
-            require URI::Escape;
-            $_ = URI::Escape::uri_unescape($_) foreach $class_key, $method, @args;
-            $dispatch->class_key($class_key)
-                     ->message($method)
-                     ->args(\@args)
-                     ->handle_rest_request;
+            $_ = uri_unescape($_) foreach $class_key, $method, @args;
+            $dispatch->class_key($class_key)->message($method)->args( \@args )
+              ->handle_rest_request;
         };
-        if ($@) {
+        if ( my $error = $@ ) {
             my $info = $cgi->path_info;
             $self->status(INTERNAL_SERVER_ERROR_STATUS)
-              ->response("Fatal error handling $info: $@");
-        }
-        else {
-            $self->status(OK_STATUS) unless $self->status;
+              ->response("Fatal error handling $info: $error");
         }
     }
+    $self->status(OK_STATUS) unless $self->status;
     return $self;
 }
 
@@ -372,7 +365,6 @@ sub resource_path {
     $resource_path =~ s/^$path//;
     $resource_path =~ s/^\///;
     $resource_path .= '/' unless $resource_path =~ /\/$/;
-## Please see file perltidy.ERR
     return '/' eq $resource_path ? '' : $resource_path;
 }
 

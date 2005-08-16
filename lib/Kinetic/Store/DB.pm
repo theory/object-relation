@@ -488,10 +488,13 @@ required to immediately follow them.
 
 sub _set_search_type {
     my ( $self, $search_params ) = @_;
-    $self->{search_type} =
-      !@$search_params                                 ? 'CODE'
-      : exists $SEARCH_TYPE_FOR{ $search_params->[0] } ? shift @$search_params
-      : 'CODE';
+    {
+        no warnings 'uninitialized';
+        $self->{search_type} =
+          ! @$search_params                                ? 'CODE'
+          : exists $SEARCH_TYPE_FOR{ $search_params->[0] } ? shift @$search_params
+          :                                                  'CODE';
+    }
     if ( 'STRING' eq $self->{search_type} && @$search_params > 1 ) {
         my @constraints = splice @$search_params, 1;
         if ( @constraints % 2 ) {

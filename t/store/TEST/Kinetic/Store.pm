@@ -1080,7 +1080,7 @@ sub string_limit : Test(12) {
     is_deeply \@letters, ['b' .. 'y'], 'and they should be all but the first and last letters';
 }
 
-sub count : Test(8) {
+sub count : Test(15) {
     my $test = shift;
     return unless $test->_should_run;
     my $store = Store->new;
@@ -1099,6 +1099,20 @@ sub count : Test(8) {
     is $count, 2, 'returning the correct count';
 
     ok ! ($count = $store->count($class, name => 'no such name')),
+        'and it should return a false count if nothing matches';
+    
+    ok $count = $foo->count,
+        'A search with only a class should succeed';
+    is $count, 3, 'returning a count of all instances';
+    ok $count = $foo->count(name => 'foo'),
+        'We should be able to count with a simple search';
+    is $count, 1, 'returning the correct count';
+
+    ok $count = $foo->count(name => GT 'c'),
+        'We should be able to count with any search operators';
+    is $count, 2, 'returning the correct count';
+
+    ok ! ($count = $foo->count(name => 'no such name')),
         'and it should return a false count if nothing matches';
 }
 

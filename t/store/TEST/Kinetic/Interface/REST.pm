@@ -118,11 +118,16 @@ sub web_test_paging : Test(no_plan) {
     my $test = shift;
     my $mech = Test::WWW::Mechanize->new;
     my $url  = sprintf 'http://%s:%d/', DOMAIN, PORT;
-return;
-    #my $baz = One->new;
-    #$baz->name('snorfleglitz');
-    #$baz->save;
+
     my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
+
+    $mech->get_ok(
+        "$url/one/search/STRING/null/order_by/name/limit/2",
+        'We should be able to fetch and limit the searches'
+    );
+    diag "Finish paging system.  We're almost there!";
+    #diag $mech->content;
+    return;
 
     $mech->get_ok(
         "$url/one/search/STRING/null/order_by/name/limit/2?type=html",
@@ -200,13 +205,11 @@ return;
 
     # now that we have 26 "One" objects in the database, let's make sure
     # that the default max list is 20
-    $mech->get_ok(
-        "$url/one/search?type=html",
-        '... as should paging through result sets'
-    );
+    $mech->get_ok( "$url/one/search?type=html",
+        '... as should paging through result sets' );
     my @links = $mech->links;
     is @links, 20, 'We should receive a maximum of 20 links in a result set.';
-    
+
     $mech->get_ok(
         "$url/one/search/STRING/null/limit/30?type=html",
         '... but asking for more than the limit should work'

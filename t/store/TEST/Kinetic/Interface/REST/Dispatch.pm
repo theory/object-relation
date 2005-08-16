@@ -91,17 +91,6 @@ sub teardown : Test(teardown) {
     delete( $test->{rest_mock} )->unmock_all;
 }
 
-my $should_run;
-
-sub _should_run {
-    return $should_run if defined $should_run;
-    my $test    = shift;
-    my $store   = Store->new;
-    my $package = ref $store;
-    $should_run = ref $test eq "TEST::$package";
-    return $should_run;
-}
-
 sub _query_string {
     my $test = shift;
     if (@_) {
@@ -120,12 +109,39 @@ sub _path_info {
     return $test->{path_info};
 }
 
-sub page_set : Test(18) {
+sub message_arg_handling : Test(8) {
+    my $dispatch = Dispatch->new;
+    can_ok $dispatch, 'args';
+    is_deeply $dispatch->args, [ STRING => '', limit => 20, offset => 0 ],
+      '... and calling it with no args set should return an empty search';
+
+    ok $dispatch->args( [qw/ foo bar /] ),
+      '... and setting the arguments should succeed';
+    is_deeply $dispatch->args, [qw/ foo bar limit 20 offset 0 /],
+      '... but it should return default limit and offset';
+
+    $dispatch->args( [qw/ this that limit 30 offset 0 /] );
+    is_deeply $dispatch->args, [qw/ this that limit 30 offset 0 /],
+      '... but it should not override a limit that is already supplied';
+
+    $dispatch->args( [qw/ limit 30 this that offset 0 /] );
+    is_deeply $dispatch->args, [qw/ limit 30 this that offset 0 /],
+      '... regardless of its position in the arg list';
+    
+    $dispatch->args( [qw/ this that limit 30 offset 20 /] );
+    is_deeply $dispatch->args, [qw/ this that limit 30 offset 20 /],
+      '... not should it override an offset already supplied';
+
+    $dispatch->args( [qw/ this that offset 10 limit 30 /] );
+    is_deeply $dispatch->args, [qw/ this that offset 10 limit 30 /],
+      '... regardless of its position in the list';
+}
+
+sub page_set : Test(17) {
     my $test = shift;
 
     # we don't use can_ok because of the way &can is overridden
-    ok my $pageset = *Kinetic::Interface::REST::Dispatch::_pageset{CODE},
-      '_pageset() is defined in the Dispatch package';
+    my $dispatch = Dispatch->new;
 
     for my $age ( 1 .. 100 ) {
         my $object = Two->new;
@@ -134,24 +150,26 @@ sub page_set : Test(18) {
         $object->age($age);
         $object->save;
     }
-    my ( $key, $args, $num_items, $limit, $offset ) = ( 'two', [], 19, 20, 0 );
+    my ( $num_items, $limit, $offset ) = ( 19, 20, 0 );
 
-    my $get_pageset = sub {
-        $pageset->(
-            {
-                class_key => $key,
-                args      => $args,
-                count     => $num_items,
-                limit     => $limit,
-                offset    => $offset,
-            }
-        );
+    # here we are deferring evaluation of the variables so we can
+    # later just change their values and have the dispatch method
+    # pick 'em up.
+    my $pageset_args = sub {
+        {
+            count    => $num_items,    # number of items
+              limit  => $limit,        # items per page
+              offset => $offset,       # item we're starting with
+        }
     };
-    ok !$get_pageset->(),
+
+    my $result =
+      $dispatch->class_key('two')->args( [] )->_pageset( $pageset_args->() );
+    ok !$result,
       '... and it should return false on first page if $count < $limit';
 
     $num_items = $limit;
-    ok my $result = $get_pageset->(),
+    ok $result = $dispatch->_pageset( $pageset_args->() ),
       'On the first page, &_pageset should return true if $count == $limit';
 
     isa_ok $result, 'Data::Pageset',
@@ -165,7 +183,7 @@ sub page_set : Test(18) {
 
     $num_items = $limit - 1;
     $offset    = $limit + 1;    # force it to page 2
-    ok $result = $get_pageset->(),
+    ok $result = $dispatch->_pageset( $pageset_args->() ),
       'We should get a pageset if we are not on the first page';
 
     is $result->current_page,  2, '... telling us we are on the second page';
@@ -174,8 +192,9 @@ sub page_set : Test(18) {
     is $result->total_entries, 100,
       '... and we should have the correct number of entries';
 
-    $args = [ 'STRING', 'age => GT 43' ];
-    ok $result = $get_pageset->(), 'Pagesets should accept search criteria';
+    $dispatch->args( [ 'STRING', 'age => GT 43' ] );
+    ok $result = $dispatch->_pageset( $pageset_args->() ),
+      'Pagesets should accept search criteria';
 
     is $result->current_page,  2, '... telling us we are on the second page';
     is $result->last_page,     3, '... and how many pages there are';

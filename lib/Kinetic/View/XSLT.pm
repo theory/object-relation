@@ -243,6 +243,9 @@ sub _stylesheet_rest {
             <xsl:apply-templates select="./kinetic:resource" />
           </xsl:for-each>
         </table>
+          <xsl:for-each select="kinetic:pages">
+            <xsl:apply-templates select="./kinetic:page" />
+          </xsl:for-each>
       </body>
     </html>
   </xsl:template>
@@ -258,6 +261,15 @@ sub _stylesheet_rest {
         </a>
       </td>
     </tr>
+  </xsl:template>
+
+  <xsl:template match="kinetic:page">
+    <a>
+      <xsl:attribute name="href">
+      <xsl:value-of select="@xlink:href"/>
+      </xsl:attribute>
+      <xsl:value-of select="@id" />
+    </a>
   </xsl:template>
 
 </xsl:stylesheet>
