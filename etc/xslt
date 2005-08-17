@@ -10,7 +10,7 @@ unless ( 2 == @ARGV ) {
 }
 
 my ( $xml_doc, $xslt_doc ) = @ARGV;
-foreach ($xml_doc, $xslt_doc) {
+foreach ( $xml_doc, $xslt_doc ) {
     local *FH;
     open FH, '<', $_ or die "Cannot open ($_) for reading: $!";
     $_ = do { local $/; <FH> };
