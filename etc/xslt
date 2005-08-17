@@ -1,0 +1,32 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+use aliased 'XML::LibXML';
+use aliased 'XML::LibXSLT';
+
+unless ( 2 == @ARGV ) {
+    die "Usage: $0 xml xslt";
+}
+
+my ( $xml_doc, $xslt_doc ) = @ARGV;
+foreach ($xml_doc, $xslt_doc) {
+    local *FH;
+    open FH, '<', $_ or die "Cannot open ($_) for reading: $!";
+    $_ = do { local $/; <FH> };
+    close FH;
+}
+
+my $parser = LibXML->new;
+my $transform;
+eval {
+    my $doc       = $parser->parse_string($xml_doc);
+    my $style_doc = $parser->parse_string($xslt_doc);
+
+    my $xslt  = LibXSLT->new;
+    my $sheet = $xslt->parse_stylesheet($style_doc);
+    my $html  = $sheet->transform($doc);
+    $transform = $sheet->output_string($html);
+};
+die $@ if $@;
+print $transform;
