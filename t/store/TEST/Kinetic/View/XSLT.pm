@@ -11,7 +11,7 @@ use Test::Exception;
 use Test::XML;
 
 use Kinetic::XML;
-use Kinetic::Util::Constants  qw/GUID_RE CURRENT_PAGE/;
+use Kinetic::Util::Constants  qw/UUID_RE CURRENT_PAGE/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(0) }
 
@@ -227,16 +227,16 @@ sub transform : Test(9) {
         <td></td>
       </tr>
       <tr>
-        <td>guid</td>
-        <td>@{[$foo->guid]}</td>
-      </tr>
-      <tr>
         <td>name</td>
         <td>foo</td>
       </tr>
       <tr>
         <td>state</td>
         <td>1</td>
+      </tr>
+      <tr>
+        <td>uuid</td>
+        <td>@{[$foo->uuid]}</td>
       </tr>
     </table>
   </body>
@@ -254,8 +254,8 @@ sub transform_pages : Test(5) {
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
-      <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/guid/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/guid/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX"/>
       <kinetic:pages>
         <kinetic:page id="[ Page 1 ]" xlink:href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/0" />
         <kinetic:page id="[ Page 2 ]" xlink:href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/2" />
@@ -280,12 +280,12 @@ sub transform_pages : Test(5) {
           </tr>
           <tr>
             <td>
-              <a href="http://domain/rest/one/lookup/guid/XXX">XXX</a>
+              <a href="http://domain/rest/one/lookup/uuid/XXX">XXX</a>
             </td>
           </tr>
           <tr>
             <td>
-              <a href="http://domain/rest/one/lookup/guid/XXX">XXX</a>
+              <a href="http://domain/rest/one/lookup/uuid/XXX">XXX</a>
             </td>
           </tr>
         </table>
@@ -303,8 +303,8 @@ sub transform_pages : Test(5) {
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
-      <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/guid/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/guid/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX"/>
       <kinetic:pages>
         <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
         <kinetic:page id="[ Page 2 ]" xlink:href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/2" />
@@ -329,12 +329,12 @@ sub transform_pages : Test(5) {
           </tr>
           <tr>
             <td>
-              <a href="http://domain/rest/one/lookup/guid/XXX">XXX</a>
+              <a href="http://domain/rest/one/lookup/uuid/XXX">XXX</a>
             </td>
           </tr>
           <tr>
             <td>
-              <a href="http://domain/rest/one/lookup/guid/XXX">XXX</a>
+              <a href="http://domain/rest/one/lookup/uuid/XXX">XXX</a>
             </td>
           </tr>
         </table>

@@ -20,7 +20,7 @@ use XML::Parser;
     require WWW::REST;
 }
 
-use Kinetic::Util::Constants qw/GUID_RE CURRENT_PAGE/;
+use Kinetic::Util::Constants qw/UUID_RE CURRENT_PAGE/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(1) }
 use TEST::REST::Server;
@@ -126,16 +126,16 @@ sub web_test_paging : Test(14) {
         'We should be able to fetch and limit the searches'
     );
 
-    my $foo_guid = $foo->guid;
-    my $bar_guid = $bar->guid;
+    my $foo_uuid = $foo->uuid;
+    my $bar_uuid = $bar->uuid;
     my $expected = <<"    END_XML";
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="http://localhost:9000/rest/?stylesheet=REST"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
-      <kinetic:resource id="$bar_guid" xlink:href="http://localhost:9000/rest/one/lookup/guid/$bar_guid"/>
-      <kinetic:resource id="$foo_guid" xlink:href="http://localhost:9000/rest/one/lookup/guid/$foo_guid"/>
+      <kinetic:resource id="$bar_uuid" xlink:href="http://localhost:9000/rest/one/lookup/uuid/$bar_uuid"/>
+      <kinetic:resource id="$foo_uuid" xlink:href="http://localhost:9000/rest/one/lookup/uuid/$foo_uuid"/>
       <kinetic:pages>
         <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
         <kinetic:page id="[ Page 2 ]" xlink:href="http://localhost:9000/rest/one/search/STRING/null/order_by/name/limit/2/offset/2" />
@@ -165,12 +165,12 @@ sub web_test_paging : Test(14) {
           </tr>
           <tr>
             <td>
-              <a href="http://localhost:9000/rest/one/lookup/guid/$bar_guid?type=html">$bar_guid</a>
+              <a href="http://localhost:9000/rest/one/lookup/uuid/$bar_uuid?type=html">$bar_uuid</a>
             </td>
           </tr>
           <tr>
             <td>
-              <a href="http://localhost:9000/rest/one/lookup/guid/$foo_guid?type=html">$foo_guid</a>
+              <a href="http://localhost:9000/rest/one/lookup/uuid/$foo_uuid?type=html">$foo_uuid</a>
             </td>
           </tr>
         </table>
@@ -188,7 +188,7 @@ sub web_test_paging : Test(14) {
         "$url/one/search/STRING/null/order_by/name/limit/2/offset/2?type=html",
         '... as should paging through result sets'
     );
-    my $baz_guid = $baz->guid;
+    my $baz_uuid = $baz->uuid;
 
     $expected = <<"    END_XHTML";
 <?xml version="1.0"?>
@@ -205,7 +205,7 @@ sub web_test_paging : Test(14) {
           </tr>
           <tr>
             <td>
-              <a href="http://localhost:9000/rest/one/lookup/guid/$baz_guid?type=html">$baz_guid</a>
+              <a href="http://localhost:9000/rest/one/lookup/uuid/$baz_uuid?type=html">$baz_uuid</a>
             </td>
           </tr>
         </table>
@@ -278,16 +278,16 @@ sub web_test : Test(12) {
         '... and fetching the a class should return a list of instances' );
 
     my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
-    my $foo_guid = $foo->guid;
+    my $foo_uuid = $foo->uuid;
 
     $mech->follow_link_ok(
-        { url_regex => qr/$foo_guid/ },
+        { url_regex => qr/$foo_uuid/ },
         '... and fetching an instance link should succeed',
     );
     $mech->title_is( 'simple',
         '... and fetching an instance of a class should return the html for it'
     );
-    $mech->content_like( qr/$foo_guid/,
+    $mech->content_like( qr/$foo_uuid/,
         '... and it should be able to identify the object' );
 
     $mech->get_ok(
@@ -295,7 +295,7 @@ sub web_test : Test(12) {
         'We should be able to fetch via a search'
     );
 
-    $foo_guid = $foo->guid;
+    $foo_uuid = $foo->uuid;
     my $expected = <<"    END_XHTML";
 <?xml version="1.0"?>
     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -311,7 +311,7 @@ sub web_test : Test(12) {
           </tr>
           <tr>
             <td>
-              <a href="http://localhost:9000/rest/one/lookup/guid/$foo_guid?type=html">$foo_guid</a>
+              <a href="http://localhost:9000/rest/one/lookup/uuid/$foo_uuid?type=html">$foo_uuid</a>
             </td>
           </tr>
         </table>
@@ -397,7 +397,7 @@ sub rest_interface : Test(19) {
     ok $rest->response, '... and return an entity-body';
 
     my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
-    my $foo_guid = $foo->guid;
+    my $foo_uuid = $foo->uuid;
     my $expected = <<"    END_XML";
 <?xml version="1.0"?>
     <?xml-stylesheet 
@@ -407,8 +407,8 @@ sub rest_interface : Test(19) {
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
       <kinetic:resource 
-        id="$foo_guid" 
-        xlink:href="http://foo/rest/server/one/lookup/guid/$foo_guid"/>
+        id="$foo_uuid" 
+        xlink:href="http://foo/rest/server/one/lookup/uuid/$foo_uuid"/>
     </kinetic:resources>
     END_XML
 
@@ -469,20 +469,20 @@ sub basic_services : Test(3) {
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
-      <kinetic:resource id="XXX" xlink:href="http://localhost:9000/rest/one/lookup/guid/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="http://localhost:9000/rest/one/lookup/guid/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="http://localhost:9000/rest/one/lookup/guid/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://localhost:9000/rest/one/lookup/uuid/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://localhost:9000/rest/one/lookup/uuid/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://localhost:9000/rest/one/lookup/uuid/XXX"/>
     </kinetic:resources>
     END_XML
     my $key     = One->my_class->key;
     my $one_xml = $rest->url("$key/search")->get;
-    $one_xml =~ s/@{[GUID_RE]}/XXX/g;
+    $one_xml =~ s/@{[UUID_RE]}/XXX/g;
     is_xml $one_xml, $expected,
       'Calling it with a resource/search should return a list of instances';
 
     $key = Two->my_class->key;
     my $two_xml = $rest->url("$key/search")->get;
-    $two_xml =~ s/@{[GUID_RE]}/XXX/g;
+    $two_xml =~ s/@{[UUID_RE]}/XXX/g;
     diag "Clean up xml for which we have no resources";
 }
 

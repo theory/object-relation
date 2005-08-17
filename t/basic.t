@@ -55,33 +55,33 @@ ok my $kinetic = MyApp::TestThingy->new, "Create new TestThingy";
 isa_ok $kinetic, 'MyApp::TestThingy';
 isa_ok $kinetic, 'Kinetic';
 
-# Check GUID.
-my $uuid = Data::UUID->new;
-ok my $guid = $kinetic->guid, "Get GUID";
-ok $uuid->from_string($guid), "It's a valid GUID";
-ok $uuid->from_hexstring($kinetic->guid_hex), "Valid Hex GUID";
-ok $uuid->from_b64string($kinetic->guid_base64), "Valid Base 64 GUID";
-ok $uuid->to_string($kinetic->guid_bin), "Valid binary GUID";
-ok my $attr = $class->attributes('guid'), "Get GUID attr object";
-is $attr->get($kinetic), $kinetic->guid, "Get GUID value";
-is $attr->name, 'guid', "Check GUID attr name";
-is $attr->label, 'GUID', "Check GUID attr label";
-ok $attr->required, 'Check GUID attr required';
+# Check UUID.
+my $ug = Data::UUID->new;
+ok my $uuid = $kinetic->uuid, "Get UUID";
+ok $ug->from_string($uuid), "It's a valid UUID";
+ok $ug->from_hexstring($kinetic->uuid_hex), "Valid Hex UUID";
+ok $ug->from_b64string($kinetic->uuid_base64), "Valid Base 64 UUID";
+ok $ug->to_string($kinetic->uuid_bin), "Valid binary UUID";
+ok my $attr = $class->attributes('uuid'), "Get UUID attr object";
+is $attr->get($kinetic), $kinetic->uuid, "Get UUID value";
+is $attr->name, 'uuid', "Check UUID attr name";
+is $attr->label, 'UUID', "Check UUID attr label";
+ok $attr->required, 'Check UUID attr required';
 eval { $attr->set($kinetic, 'foo') };
-ok my $err = $@, "Check GUID is read-only";
-eval { $kinetic->guid('foo') };
-ok $err = $@, "Check cannot set GUID";
-ok my $wm = $attr->widget_meta, "Get GUID widget meta object";
-is $wm->type, 'text', "Check GUID widget type";
+ok my $err = $@, "Check UUID is read-only";
+eval { $kinetic->uuid('foo') };
+ok $err = $@, "Check cannot set UUID";
+ok my $wm = $attr->widget_meta, "Get UUID widget meta object";
+is $wm->type, 'text', "Check UUID widget type";
 is $wm->tip, 'The globally unique identifier for this object',
-  "Check GUID widget tip";
+  "Check UUID widget tip";
 ok $kinetic = MyApp::TestThingy->new(
-    guid => '12CAD854-08BD-11D9-8AF0-8AB02ED80375'
-), "Create new kinetic and assign a GUID";
-is $kinetic->guid, '12CAD854-08BD-11D9-8AF0-8AB02ED80375',
-  "Our GUID should have been assigned";
-eval {  MyApp::TestThingy->new(guid => 'foo' ) };
-ok $err = $@, "We should get an error when using a bogus GUID";
+    uuid => '12CAD854-08BD-11D9-8AF0-8AB02ED80375'
+), "Create new kinetic and assign a UUID";
+is $kinetic->uuid, '12CAD854-08BD-11D9-8AF0-8AB02ED80375',
+  "Our UUID should have been assigned";
+eval {  MyApp::TestThingy->new(uuid => 'foo' ) };
+ok $err = $@, "We should get an error when using a bogus UUID";
 
 # Check state.
 is $kinetic->state, ACTIVE, "Check for active state";

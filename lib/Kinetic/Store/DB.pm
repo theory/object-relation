@@ -195,18 +195,18 @@ sub search {
 
 ##############################################################################
 
-=head3 search_guids
+=head3 search_uuids
 
-  my @guids = Store->search_guids($search_class, \@attributes, \%constraints);
-  my $guids = Store->search_guids($search_class, \@attributes, \%constraints);
+  my @uuids = Store->search_uuids($search_class, \@attributes, \%constraints);
+  my $uuids = Store->search_uuids($search_class, \@attributes, \%constraints);
 
-This method will return a list of guids matching the listed criteria.  It takes
+This method will return a list of uuids matching the listed criteria.  It takes
 the same arguments as C<search>.  In list context it returns a list.  In scalar
 context it returns an array reference.
 
 =cut
 
-sub search_guids {
+sub search_uuids {
     my ( $proto, $search_class, @search_params ) = @_;
     unless ( ref $search_class ) {
         $search_class = $proto->_get_class_from_key($search_class);
@@ -218,9 +218,9 @@ sub search_guids {
     local $self->{search_class} = $search_class;
     $self->_set_search_data;
     my ( $sql, $bind_params ) =
-      $self->_get_select_sql_and_bind_params( "guid", \@search_params );
-    my $guids = $self->_dbh->selectcol_arrayref( $sql, undef, @$bind_params );
-    return wantarray ? @$guids : $guids;
+      $self->_get_select_sql_and_bind_params( "uuid", \@search_params );
+    my $uuids = $self->_dbh->selectcol_arrayref( $sql, undef, @$bind_params );
+    return wantarray ? @$uuids : $uuids;
 }
 
 ##############################################################################

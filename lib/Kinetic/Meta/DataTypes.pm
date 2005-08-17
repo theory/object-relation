@@ -71,7 +71,7 @@ The Data types defined by this module are:
 
 =over 4
 
-=item guid
+=item uuid
 
 A globally unique identifier as generated to Data::UUID.
 
@@ -79,11 +79,11 @@ A globally unique identifier as generated to Data::UUID.
 
 my $ug = Data::UUID->new;
 Kinetic::Meta::Type->add(
-    key     => "guid",
+    key     => "uuid",
     name    => "Globally Unique Identifier",
     check   => sub {
         eval { $ug->from_string($_[0]) }
-          or throw_invalid(['Value "[_1]" is not a GUID', $_[0]]);
+          or throw_invalid(['Value "[_1]" is not a UUID', $_[0]]);
     }
 );
 

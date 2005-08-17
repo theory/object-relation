@@ -85,7 +85,7 @@ sub _set_id {
     # XXX last_insert_id() doesn't seem to work properly. Watch
     # http://sqlite.org/cvstrac/tktview?tn=1191 for the fix.
     my $result = $class->_dbh->selectcol_arrayref(
-        "SELECT id FROM $view WHERE guid = ?", undef, $object->guid
+        "SELECT id FROM $view WHERE uuid = ?", undef, $object->uuid
     );
     $object->id($result->[0]);
     return $class;

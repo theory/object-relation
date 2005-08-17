@@ -10,7 +10,7 @@ use Test::More;
 use Test::Exception;
 use Test::XML;
 
-use Kinetic::Util::Constants qw/GUID_RE/;
+use Kinetic::Util::Constants qw/UUID_RE/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(1) }
 
@@ -239,7 +239,7 @@ sub handle : Test(6) {
 
     $dispatch->message('search');
     $dispatch->handle_rest_request;
-    ( my $response = $rest->response ) =~ s/@{[GUID_RE]}/XXX/g;
+    ( my $response = $rest->response ) =~ s/@{[UUID_RE]}/XXX/g;
     my $expected = <<'    END_XML';
 <?xml version="1.0"?>
     <?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=REST"?>
@@ -248,22 +248,22 @@ sub handle : Test(6) {
     <kinetic:description>Available instances</kinetic:description>
         <kinetic:resource 
             id="XXX" 
-            xlink:href="http://somehost.com/rest/one/lookup/guid/XXX"/>
+            xlink:href="http://somehost.com/rest/one/lookup/uuid/XXX"/>
         <kinetic:resource 
             id="XXX" 
-            xlink:href="http://somehost.com/rest/one/lookup/guid/XXX"/>
+            xlink:href="http://somehost.com/rest/one/lookup/uuid/XXX"/>
         <kinetic:resource 
             id="XXX" 
-            xlink:href="http://somehost.com/rest/one/lookup/guid/XXX"/>
+            xlink:href="http://somehost.com/rest/one/lookup/uuid/XXX"/>
     </kinetic:resources>
     END_XML
     is_xml $response, $expected,
       '... but calling it with /$key/search should succeed';
 
     my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
-    my $foo_guid = $foo->guid;
+    my $foo_uuid = $foo->uuid;
     $dispatch->message('lookup');
-    $dispatch->args( [ 'guid', $foo_guid ] );
+    $dispatch->args( [ 'uuid', $foo_uuid ] );
     $dispatch->handle_rest_request;
     $expected = <<"    END_XML";
     <?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=instance"?>
@@ -271,14 +271,14 @@ sub handle : Test(6) {
       <instance key="one">
         <attr name="bool">1</attr>
         <attr name="description"></attr>
-        <attr name="guid">$foo_guid</attr>
         <attr name="name">foo</attr>
         <attr name="state">1</attr>
+        <attr name="uuid">$foo_uuid</attr>
       </instance>
     </kinetic>
     END_XML
     is_xml $rest->response, $expected,
-      '... and $class_key/lookup/guid/$guid should return instance XML';
+      '... and $class_key/lookup/uuid/$uuid should return instance XML';
 
     $dispatch->message('search');
     $dispatch->args( [ 'STRING', 'name => "foo"' ] );
@@ -290,7 +290,7 @@ sub handle : Test(6) {
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
-      <kinetic:resource id="$foo_guid" xlink:href="http://somehost.com/rest/one/lookup/guid/$foo_guid"/>
+      <kinetic:resource id="$foo_uuid" xlink:href="http://somehost.com/rest/one/lookup/uuid/$foo_uuid"/>
     </kinetic:resources>
     END_XML
 
@@ -304,7 +304,7 @@ sub handle : Test(6) {
         ]
     );
 
-    my $bar_guid = $bar->guid;
+    my $bar_uuid = $bar->uuid;
     $dispatch->handle_rest_request;
     $expected = <<"    END_XML";
 <?xml version="1.0"?>
@@ -312,8 +312,8 @@ sub handle : Test(6) {
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                      xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
-      <kinetic:resource id="$bar_guid" xlink:href="http://somehost.com/rest/one/lookup/guid/$bar_guid"/>
-      <kinetic:resource id="$foo_guid" xlink:href="http://somehost.com/rest/one/lookup/guid/$foo_guid"/>
+      <kinetic:resource id="$bar_uuid" xlink:href="http://somehost.com/rest/one/lookup/uuid/$bar_uuid"/>
+      <kinetic:resource id="$foo_uuid" xlink:href="http://somehost.com/rest/one/lookup/uuid/$foo_uuid"/>
     </kinetic:resources>
     END_XML
     is_xml $rest->response, $expected,

@@ -51,9 +51,9 @@ sub lookup : Test(8) {
     $one->description('ssalc tset');
     $one->save;
     can_ok One, 'lookup';
-    my $thing = One->lookup(guid => $one->guid);
+    my $thing = One->lookup(uuid => $one->uuid);
     is_deeply $test->_force_inflation($thing), $one, 'and it should return the correct object';
-    foreach my $method (qw/name description guid state/) {
+    foreach my $method (qw/name description uuid state/) {
         is $thing->$method, $one->$method, "$method() should behave the same";
     }
     throws_ok {One->lookup(no_such_attribute => 1)}
@@ -74,10 +74,10 @@ sub save : Test(10) {
 
     can_ok One, 'save';
     my $dbh = $test->{dbh};
-    my $result = $dbh->selectrow_hashref('SELECT id, guid, name, description, state, bool FROM one');
+    my $result = $dbh->selectrow_hashref('SELECT id, uuid, name, description, state, bool FROM one');
     ok ! $result, 'We should start with a fresh database';
     ok $one->save, 'and saving an object should be successful';
-    $result = $dbh->selectrow_hashref('SELECT id, guid, name, description, state, bool FROM one');
+    $result = $dbh->selectrow_hashref('SELECT id, uuid, name, description, state, bool FROM one');
     $result->{state} = State->new($result->{state});
     # XXX this works, but it might be a bit fragile
     is_deeply $one, $result, 'and the data should match what we pull from the database';
@@ -88,13 +88,13 @@ sub save : Test(10) {
     $one_prime->description('some description');
     $one_prime->save;
     is $test->_num_recs('one'), 2, 'and we should have one_prime records in the view';
-    $result = $dbh->selectrow_hashref('SELECT id, guid, name, description, state, bool FROM one WHERE name = \'bob\'');
+    $result = $dbh->selectrow_hashref('SELECT id, uuid, name, description, state, bool FROM one WHERE name = \'bob\'');
     $result->{state} = State->new($result->{state});
     is_deeply $one_prime, $result, 'and the data should match what we pull from the database';
     $one_prime->name('beelzebub');
     $one_prime->save;
-    my $guid = $dbh->quote($one_prime->guid);
-    $result = $dbh->selectrow_hashref("SELECT id, guid, name, description, state, bool FROM one WHERE guid = $guid");
+    my $uuid = $dbh->quote($one_prime->uuid);
+    $result = $dbh->selectrow_hashref("SELECT id, uuid, name, description, state, bool FROM one WHERE uuid = $uuid");
     $result->{state} = State->new($result->{state});
     is_deeply $one_prime, $result, 'and we should be able to update data';
     is $result->{name}, 'beelzebub', 'and return the correct results';
@@ -223,33 +223,33 @@ sub count : Test(8) {
         'and it should return a false count if nothing matches';
 }
 
-sub search_guids : Test(10) {
+sub search_uuids : Test(10) {
     my $test = shift;
     return unless $test->_should_run;
-    can_ok One, 'search_guids';
+    can_ok One, 'search_uuids';
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
-    ok my $guids = One->search_guids,
-        'A search for guids with only a class should succeed';
-    @$guids = sort @$guids;
-    my @expected = sort map {$_->guid} $foo, $bar, $baz;
-    is_deeply $guids, \@expected,
-        'and it should return the correct list of guids';
+    ok my $uuids = One->search_uuids,
+        'A search for uuids with only a class should succeed';
+    @$uuids = sort @$uuids;
+    my @expected = sort map {$_->uuid} $foo, $bar, $baz;
+    is_deeply $uuids, \@expected,
+        'and it should return the correct list of uuids';
 
-    ok $guids = One->search_guids(name => 'foo'),
-        'We should be able to search guids with a simple search';
-    is_deeply $guids, [$foo->guid], 'and return the correct guids';
+    ok $uuids = One->search_uuids(name => 'foo'),
+        'We should be able to search uuids with a simple search';
+    is_deeply $uuids, [$foo->uuid], 'and return the correct uuids';
 
-    ok $guids = One->search_guids(name => GT 'c', {order_by => 'name'}),
-        'We should be able to search guids with any search operators';
-    is_deeply $guids, [$foo->guid, $baz->guid], 'and return the correct guids';
+    ok $uuids = One->search_uuids(name => GT 'c', {order_by => 'name'}),
+        'We should be able to search uuids with any search operators';
+    is_deeply $uuids, [$foo->uuid, $baz->uuid], 'and return the correct uuids';
 
-    $guids = One->search_guids(name => 'no such name');
-    is_deeply $guids, [],
+    $uuids = One->search_uuids(name => 'no such name');
+    is_deeply $uuids, [],
         'and it should return nothing if nothing matches';
 
-    ok my @guids = One->search_guids(name => GT 'c', {order_by => 'name'}),
-        'search_guids should behave correctly in list context';
-    is_deeply \@guids, [$foo->guid, $baz->guid], 'and return the correct guids';
+    ok my @uuids = One->search_uuids(name => GT 'c', {order_by => 'name'}),
+        'search_uuids should behave correctly in list context';
+    is_deeply \@uuids, [$foo->uuid, $baz->uuid], 'and return the correct uuids';
 }
 
 1;

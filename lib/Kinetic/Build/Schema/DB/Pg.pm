@@ -64,7 +64,7 @@ C<setup_code()>).
 
 my %types = (
     string   => 'TEXT',
-    guid     => 'TEXT',
+    uuid     => 'TEXT',
     boolean  => 'BOOLEAN',
     whole    => 'INTEGER',
     state    => 'STATE',

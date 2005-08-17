@@ -193,15 +193,15 @@ sub _fetch_object {
     my $object;
     if ($self->{params}{update}) {
         my $store = Kinetic::Store->new;
-        $object = $store->lookup($class, guid => $data->{guid});
+        $object = $store->lookup($class, uuid => $data->{uuid});
         throw_not_found [
-            'I could not find guid "[_1]" in data store for the [_2] class',
-            $data->{guid},
+            'I could not find uuid "[_1]" in data store for the [_2] class',
+            $data->{uuid},
             $class->package
         ] unless $object;
     }
     else {
-        $object = $class->package->new(guid => $data->{guid});
+        $object = $class->package->new(uuid => $data->{uuid});
     }
     while (my ($attr_name, $value) = each %$data) {
         if (my $attr = $class->attributes($attr_name)) {
@@ -281,13 +281,13 @@ Multiple XML sections might be obtained if C<with_referenced> is false.
 
 If passed a true value, any contained Kinetic objects will be serialized
 within the XML for the main object. If it is false (the default), then
-contained objects will merely be referenced by GUID and name.
+contained objects will merely be referenced by UUID and name.
 
 =item with_collections
 
 If passed a true value, then collections of contained Kinetic objects will be
 serialized within the XML for the main object. If it is false (the default),
-then contained objects will merely be referenced by GUID and name.
+then contained objects will merely be referenced by UUID and name.
 
 =back
 =cut
@@ -348,11 +348,11 @@ sub _add_object_to_xml {
             my $relationship = $attr->relationship;
             my $object = $attr->get($object);
             if ($referenced{$relationship}) {
-                # just guid
+                # just uuid
                 my $name = $object->my_class->key;
                 $xml->StartElementLiteral('','instance');
                 $xml->AddAttributeLiteral('', key => $name);
-                $xml->AddAttributeLiteral('', guid => $object->guid);
+                $xml->AddAttributeLiteral('', uuid => $object->uuid);
                 $xml->AddAttributeLiteral('', referenced => 1);
                 $xml->EndElement;
                 if ($self->{params}{with_referenced}) {

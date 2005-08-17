@@ -66,7 +66,7 @@ dynamic).
 
 my %types = (
     string   => 'TEXT COLLATE nocase',
-    guid     => 'TEXT',
+    uuid     => 'TEXT',
     boolean  => 'SMALLINT',
     whole    => 'INTEGER',
     state    => 'INTEGER',

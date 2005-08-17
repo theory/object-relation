@@ -40,7 +40,7 @@ isa_ok $k2, 'MyApp::Simple';
 isa_ok $k2, 'Kinetic';
 isnt overload::StrVal($k2), overload::StrVal($kinetic),
   "Make sure they're different objects";
-isnt $k2->guid, $kinetic->guid, "Check for different GUID";
+isnt $k2->uuid, $kinetic->uuid, "Check for different UUID";
 is $k2->state, $kinetic->state, "Check for same state";
 is $k2->datetime, $kinetic->datetime, "Check for same datetime";
 isnt overload::StrVal($k2->datetime), overload::StrVal($kinetic->datetime),

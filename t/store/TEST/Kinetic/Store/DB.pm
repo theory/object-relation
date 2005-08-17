@@ -244,7 +244,7 @@ sub set_search_data : Test(9) {
     is_deeply \@keys, [qw/build_order columns lookup  metadata/],
         'and it should return the types of data that we are looking for';
     is_deeply [sort @{$results->{columns}}],
-        [qw/bool description guid id name state/],
+        [qw/bool description id name state uuid/],
         'which correctly identify the sql column names';
     is_deeply $results->{metadata},
         {
@@ -252,7 +252,7 @@ sub set_search_data : Test(9) {
                 columns => {
                     bool        => 'bool',
                     description => 'description',
-                    guid        => 'guid',
+                    uuid        => 'uuid',
                     id          => 'id',
                     name        => 'name',
                     state       => 'state',
@@ -269,15 +269,15 @@ sub set_search_data : Test(9) {
     is_deeply \@keys, [qw/build_order columns lookup  metadata/],
         'and it should return the types of data that we are looking for';
     is_deeply [sort @{$results->{columns}}],
-    [qw/ age date description guid id name one__bool one__description one__guid
-         one__id one__name one__state state /],
+    [qw/ age date description id name one__bool one__description one__id
+         one__name one__state one__uuid state uuid /],
         'which correctly identify the sql column names';
     my $metadata = {
         'TestApp::Simple::One' => {
             columns => {
                 one__bool        => 'bool',
                 one__description => 'description',
-                one__guid        => 'guid',
+                one__uuid        => 'uuid',
                 one__id          => 'id',
                 one__name        => 'name',
                 one__state       => 'state',
@@ -291,7 +291,7 @@ sub set_search_data : Test(9) {
                 age         => 'age',
                 date        => 'date',
                 description => 'description',
-                guid        => 'guid',
+                uuid        => 'uuid',
                 id          => 'id',
                 name        => 'name',
                 one__id     => 'one__id',
@@ -314,13 +314,13 @@ sub build_objects : Test(16) {
     can_ok Store, $method;
     my %sql_data =(
         id               => 2,
-        guid             => 'two asdfasdfasdfasdf',
+        uuid             => 'two asdfasdfasdfasdf',
         name             => 'two name',
         description      => 'two fake description',
         state            => 1,
         one__id          => 17,
         age              => 23,
-        one__guid        => 'one ASDFASDFASDFASDF',
+        one__uuid        => 'one ASDFASDFASDFASDF',
         one__name        => 'one name',
         one__description => 'one fake description',
         one__state       => 1,
@@ -333,7 +333,7 @@ sub build_objects : Test(16) {
           columns => {
             one__bool        => 'bool',
             one__description => 'description',
-            one__guid        => 'guid',
+            one__uuid        => 'uuid',
             one__id          => 'id',
             one__name        => 'name',
             one__state       => 'state',
@@ -346,7 +346,7 @@ sub build_objects : Test(16) {
           columns => {
             age         => 'age',
             description => 'description',
-            guid        => 'guid',
+            uuid        => 'uuid',
             id          => 'id',
             name        => 'name',
             one__id     => 'one__id',
@@ -363,7 +363,7 @@ sub build_objects : Test(16) {
     $store->search_class($two_class);
     my $object = $store->$method(\%sql_data);
     isa_ok $object, $two_class->package, 'and the object it returns';
-    foreach my $attr (qw/guid name description age/) {
+    foreach my $attr (qw/uuid name description age/) {
         is $object->$attr, $sql_data{$attr},
             'and basic attributes should be correct';
     }
@@ -375,7 +375,7 @@ sub build_objects : Test(16) {
     isa_ok $one, One->new->my_class->package,
         "and the contained object";
     is $one->{id}, 17, 'and it should have the correct id';
-    is $one->guid, 'one ASDFASDFASDFASDF', 'and basic attributes should be correct';
+    is $one->uuid, 'one ASDFASDFASDFASDF', 'and basic attributes should be correct';
     is $one->name, 'one name', 'and basic attributes should be correct';
     is $one->description, 'one fake description', 'and basic attributes should be correct';
     is $one->bool, 0, 'and basic attributes should be correct';
@@ -454,7 +454,7 @@ sub insert : Test(7) {
     $one->description('test class');
 
     can_ok Store, '_insert';
-    my $expected    = q{INSERT INTO one (guid, state, name, description, bool) VALUES (?, ?, ?, ?, ?)};
+    my $expected    = q{INSERT INTO one (uuid, state, name, description, bool) VALUES (?, ?, ?, ?, ?)};
     my $bind_params = [
         '1', # state: Active
         'Ovid',
@@ -499,9 +499,9 @@ sub update : Test(7) {
     $one->description('test class');
     can_ok Store, '_update';
     $one->{id} = 42;
-    # XXX The guid should not change, should it?  I should
+    # XXX The uuid should not change, should it?  I should
     # exclude it from this?
-    my $expected = "UPDATE one SET guid = ?, state = ?, name = ?, description = ?, "
+    my $expected = "UPDATE one SET uuid = ?, state = ?, name = ?, description = ?, "
                   ."bool = ? WHERE id = ?";
     my $bind_params = [
         '1', # state: Active
@@ -523,7 +523,7 @@ sub update : Test(7) {
         'and it should generate the correct sql';
     my $uuid = shift @$BIND;
     my $id   = pop @$BIND;
-    is $one->guid, $uuid, 'and the guid should be correct';
+    is $one->uuid, $uuid, 'and the uuid should be correct';
     is $one->{id}, $id, 'and the final bind param is the id';
     is_deeply $BIND, $bind_params,
         'and the correct bind params';

@@ -29,7 +29,7 @@ __PACKAGE__->runtests unless caller;
 sub startup : Test(startup) {
     my $test = shift;
     my $km_attribute = MockModule->new('Kinetic::Meta::Attribute');
-    $km_attribute->mock('default', 'default guid');
+    $km_attribute->mock('default', 'default uuid');
     $test->{km_attribute} = $km_attribute; # cache it so it stays mocked
 }
 
@@ -121,13 +121,13 @@ sub dump_xml : Test(2) {
         </constructors>
         <attributes>
           <attribute>
-            <name>guid</name>
-            <label>GUID</label>
-            <type>guid</type>
+            <name>uuid</name>
+            <label>UUID</label>
+            <type>uuid</type>
             <required>1</required>
             <unique>1</unique>
             <once>1</once>
-            <default>default guid</default>
+            <default>default uuid</default>
             <relationship></relationship>
             <authz>4</authz>
             <widget_meta>
@@ -142,7 +142,7 @@ sub dump_xml : Test(2) {
             <required>1</required>
             <unique></unique>
             <once></once>
-            <default>default guid</default>
+            <default>default uuid</default>
             <relationship></relationship>
             <authz>4</authz>
             <widget_meta>
@@ -157,7 +157,7 @@ sub dump_xml : Test(2) {
             <required>1</required>
             <unique></unique>
             <once></once>
-            <default>default guid</default>
+            <default>default uuid</default>
             <relationship></relationship>
             <authz>4</authz>
             <widget_meta>
@@ -172,7 +172,7 @@ sub dump_xml : Test(2) {
             <required></required>
             <unique></unique>
             <once></once>
-            <default>default guid</default>
+            <default>default uuid</default>
             <relationship></relationship>
             <authz>4</authz>
             <widget_meta>

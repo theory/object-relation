@@ -59,8 +59,8 @@ our %Lexicon = (
   'Value "[_1]" is not a valid [_2] object',
   "Value “[_1]” is not a valid [_2] object",
 
-  'Value "[_1]" is not a GUID',
-  "Value “[_1]” is not a GUID",
+  'Value "[_1]" is not a UUID',
+  "Value “[_1]” is not a UUID",
 
   'Attribute must be defined',
   'Attribute must be defined',
@@ -134,8 +134,8 @@ our %Lexicon = (
   'Attribute "[_1]" is not unique',
   "Attribute “[_1]” is not unique",
 
-  'I could not find guid "[_1]" in data store for the [_2] class',
-  "I could not find guid “[_1]” in the data store for the [_2] class",
+  'I could not find uuid "[_1]" in data store for the [_2] class',
+  "I could not find uuid “[_1]” in the data store for the [_2] class",
 
   'I could not load the class "[_1]": [_2]',
   "I could not load the class “[_1]”: [_2]",
@@ -204,7 +204,7 @@ our %Lexicon = (
   "Invalid method “[_1]”",
   
   # Kinetic Attribute labels and tips.
-  'GUID' => 'GUID',
+  'UUID' => 'UUID',
   'The globally unique identifier for this object',
   'The globally unique identifier for this object',
 

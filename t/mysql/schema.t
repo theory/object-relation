@@ -13,13 +13,13 @@ use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::mysql' };
 # cool. They don't seem to work with UNIQUE indexes, though.
 ( my $testsql = q{CREATE TABLE simple (
     id          INTEGER     NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    guid        LONGTEXT    NOT NULL,
+    uuid        LONGTEXT    NOT NULL,
     name        LONGTEXT    NOT NULL,
     description LONGTEXT,
     state       TINYINT     NOT NULL DEFAULT '1'
 );
 
-CREATE UNIQUE INDEX udx_simple_guid ON simple (guid(40));
+CREATE UNIQUE INDEX udx_simple_uuid ON simple (uuid(40));
 CREATE INDEX idx_simple_name ON simple (name(10));
 CREATE INDEX idx_simple_state ON simple (state);
 
@@ -29,7 +29,7 @@ CREATE TABLE simple_one (
 );
 
 CREATE VIEW one AS
-  SELECT simple.id, simple.guid, simple.name, simple.description, simple.state, simple_one.bool
+  SELECT simple.id, simple.uuid, simple.name, simple.description, simple.state, simple_one.bool
   FROM   simple, simple_one
   WHERE  simple.id = simple_one.id;
 
@@ -38,7 +38,7 @@ CREATE VIEW one AS
 # This view should be updatable, but I just getn an error when I try to
 # insert a value:
 #
-# mysql> insert into one (guid, name, description, state, bool)
+# mysql> insert into one (uuid, name, description, state, bool)
 #     -> values ('5', 'Fifth', '', 1, 1);
 # ERROR 1288 (HY000): The target table one of the INSERT is not updatable
 #

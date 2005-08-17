@@ -336,7 +336,7 @@ sub _not_implemented {
 
 This function takes an iterator.  It sets the rest instance's content-type to
 C<text/xml> and its response to an XML list of all resources in the iterator,
-keyed by guid.
+keyed by uuid.
 
 =cut
 
@@ -360,9 +360,9 @@ sub _instance_list {
     my $key            = $self->class_key;
     while ( my $resource = $iterator->next ) {
         $instance_count++;
-        my $guid = $resource->guid;
+        my $uuid = $resource->uuid;
         $response .=
-qq'<kinetic:resource id="$guid" xlink:href="$base_url$key/lookup/guid/$guid$query_string"/>';
+qq'<kinetic:resource id="$uuid" xlink:href="$base_url$key/lookup/uuid/$uuid$query_string"/>';
     }
     unless ($instance_count) {
         $response .=

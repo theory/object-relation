@@ -26,7 +26,7 @@ for my $class ($sg->classes) {
 
 # Test the schema attributes of the simple class attributes.
 my $simple_class = test_class('simple', '_simple', 4);
-test_attr($simple_class, 'guid', 'guid', 'idx_simple_guid');
+test_attr($simple_class, 'uuid', 'uuid', 'idx_simple_uuid');
 test_attr($simple_class, 'name', 'name', 'idx_simple_name');
 test_attr($simple_class, 'description', 'description');
 test_attr($simple_class, 'state', 'state', 'idx_simple_state');

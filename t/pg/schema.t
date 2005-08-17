@@ -52,7 +52,7 @@ is $simple->table, '_simple', "... Simple class has table '_simple'";
 # Check that the CREATE TABLE statement is correct.
 my $table = q{CREATE TABLE _simple (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
-    guid TEXT NOT NULL,
+    uuid TEXT NOT NULL,
     state STATE NOT NULL DEFAULT 1,
     name TEXT NOT NULL,
     description TEXT
@@ -62,7 +62,7 @@ eq_or_diff $sg->table_for_class($simple), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
-my $indexes = q{CREATE UNIQUE INDEX idx_simple_guid ON _simple (guid);
+my $indexes = q{CREATE UNIQUE INDEX idx_simple_uuid ON _simple (uuid);
 CREATE INDEX idx_simple_state ON _simple (state);
 CREATE INDEX idx_simple_name ON _simple (LOWER(name));
 };
@@ -73,24 +73,24 @@ eq_or_diff $sg->indexes_for_class($simple), $indexes,
 my $constraints = q{ALTER TABLE _simple
   ADD CONSTRAINT pk_simple_id PRIMARY KEY (id);
 
-CREATE FUNCTION simple_guid_once() RETURNS trigger AS '
+CREATE FUNCTION simple_uuid_once() RETURNS trigger AS '
   BEGIN
-    IF OLD.guid <> NEW.guid OR NEW.guid IS NULL
-        THEN RAISE EXCEPTION ''value of "guid" cannot be changed'';
+    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
+        THEN RAISE EXCEPTION ''value of "uuid" cannot be changed'';
     END IF;
     RETURN NEW;
   END;
 ' LANGUAGE plpgsql;
 
-CREATE TRIGGER simple_guid_once BEFORE UPDATE ON _simple
-    FOR EACH ROW EXECUTE PROCEDURE simple_guid_once();
+CREATE TRIGGER simple_uuid_once BEFORE UPDATE ON _simple
+    FOR EACH ROW EXECUTE PROCEDURE simple_uuid_once();
 };
 eq_or_diff $sg->constraints_for_class($simple), $constraints,
   "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
 my $view = q{CREATE VIEW simple AS
-  SELECT _simple.id AS id, _simple.guid AS guid, _simple.state AS state, _simple.name AS name, _simple.description AS description
+  SELECT _simple.id AS id, _simple.uuid AS uuid, _simple.state AS state, _simple.name AS name, _simple.description AS description
   FROM   _simple;
 };
 eq_or_diff $sg->view_for_class($simple), $view,
@@ -99,8 +99,8 @@ eq_or_diff $sg->view_for_class($simple), $view,
 # Check that the INSERT rule/trigger is correct.
 my $insert = q{CREATE RULE insert_simple AS
 ON INSERT TO simple DO INSTEAD (
-  INSERT INTO _simple (id, guid, state, name, description)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.state, NEW.name, NEW.description);
+  INSERT INTO _simple (id, uuid, state, name, description)
+  VALUES (NEXTVAL('seq_kinetic'), NEW.uuid, NEW.state, NEW.name, NEW.description);
 );
 };
 eq_or_diff $sg->insert_for_class($simple), $insert,
@@ -110,7 +110,7 @@ eq_or_diff $sg->insert_for_class($simple), $insert,
 my $update = q{CREATE RULE update_simple AS
 ON UPDATE TO simple DO INSTEAD (
   UPDATE _simple
-  SET    guid = NEW.guid, state = NEW.state, name = NEW.name, description = NEW.description
+  SET    uuid = NEW.uuid, state = NEW.state, name = NEW.name, description = NEW.description
   WHERE  id = OLD.id;
 );
 };
@@ -164,7 +164,7 @@ eq_or_diff $sg->constraints_for_class($one), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW one AS
-  SELECT simple.id AS id, simple.guid AS guid, simple.state AS state, simple.name AS name, simple.description AS description, simple_one.bool AS bool
+  SELECT simple.id AS id, simple.uuid AS uuid, simple.state AS state, simple.name AS name, simple.description AS description, simple_one.bool AS bool
   FROM   simple, simple_one
   WHERE  simple.id = simple_one.id;
 };
@@ -174,8 +174,8 @@ eq_or_diff $sg->view_for_class($one), $view,
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_one AS
 ON INSERT TO one DO INSTEAD (
-  INSERT INTO _simple (id, guid, state, name, description)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.state, NEW.name, NEW.description);
+  INSERT INTO _simple (id, uuid, state, name, description)
+  VALUES (NEXTVAL('seq_kinetic'), NEW.uuid, NEW.state, NEW.name, NEW.description);
 
   INSERT INTO simple_one (id, bool)
   VALUES (CURRVAL('seq_kinetic'), NEW.bool);
@@ -188,7 +188,7 @@ eq_or_diff $sg->insert_for_class($one), $insert,
 $update = q{CREATE RULE update_one AS
 ON UPDATE TO one DO INSTEAD (
   UPDATE _simple
-  SET    guid = NEW.guid, state = NEW.state, name = NEW.name, description = NEW.description
+  SET    uuid = NEW.uuid, state = NEW.state, name = NEW.name, description = NEW.description
   WHERE  id = OLD.id;
 
   UPDATE simple_one
@@ -254,7 +254,7 @@ eq_or_diff $sg->constraints_for_class($two), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW two AS
-  SELECT simple.id AS id, simple.guid AS guid, simple.state AS state, simple.name AS name, simple.description AS description, simple_two.one_id AS one__id, one.guid AS one__guid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, simple_two.age AS age, simple_two.date AS date
+  SELECT simple.id AS id, simple.uuid AS uuid, simple.state AS state, simple.name AS name, simple.description AS description, simple_two.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, simple_two.age AS age, simple_two.date AS date
   FROM   simple, simple_two, one
   WHERE  simple.id = simple_two.id AND simple_two.one_id = one.id;
 };
@@ -264,8 +264,8 @@ eq_or_diff $sg->view_for_class($two), $view,
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_two AS
 ON INSERT TO two DO INSTEAD (
-  INSERT INTO _simple (id, guid, state, name, description)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.state, NEW.name, NEW.description);
+  INSERT INTO _simple (id, uuid, state, name, description)
+  VALUES (NEXTVAL('seq_kinetic'), NEW.uuid, NEW.state, NEW.name, NEW.description);
 
   INSERT INTO simple_two (id, one_id, age, date)
   VALUES (CURRVAL('seq_kinetic'), NEW.one__id, NEW.age, NEW.date);
@@ -278,7 +278,7 @@ eq_or_diff $sg->insert_for_class($two), $insert,
 $update = q{CREATE RULE update_two AS
 ON UPDATE TO two DO INSTEAD (
   UPDATE _simple
-  SET    guid = NEW.guid, state = NEW.state, name = NEW.name, description = NEW.description
+  SET    uuid = NEW.uuid, state = NEW.state, name = NEW.name, description = NEW.description
   WHERE  id = OLD.id;
 
   UPDATE simple_two
@@ -313,7 +313,7 @@ is $relation->table, '_relation', "... Relation class has table '_relation'";
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE _relation (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
-    guid TEXT NOT NULL,
+    uuid TEXT NOT NULL,
     state STATE NOT NULL DEFAULT 1,
     one_id INTEGER NOT NULL,
     simple_id INTEGER NOT NULL
@@ -323,7 +323,7 @@ eq_or_diff $sg->table_for_class($relation), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
-$indexes = q{CREATE UNIQUE INDEX idx_relation_guid ON _relation (guid);
+$indexes = q{CREATE UNIQUE INDEX idx_relation_uuid ON _relation (uuid);
 CREATE INDEX idx_relation_state ON _relation (state);
 CREATE INDEX idx_relation_one_id ON _relation (one_id);
 CREATE INDEX idx_relation_simple_id ON _relation (simple_id);
@@ -344,17 +344,17 @@ ALTER TABLE _relation
   ADD CONSTRAINT fk_simple_id FOREIGN KEY (simple_id)
   REFERENCES _simple(id) ON DELETE RESTRICT;
 
-CREATE FUNCTION relation_guid_once() RETURNS trigger AS '
+CREATE FUNCTION relation_uuid_once() RETURNS trigger AS '
   BEGIN
-    IF OLD.guid <> NEW.guid OR NEW.guid IS NULL
-        THEN RAISE EXCEPTION ''value of "guid" cannot be changed'';
+    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
+        THEN RAISE EXCEPTION ''value of "uuid" cannot be changed'';
     END IF;
     RETURN NEW;
   END;
 ' LANGUAGE plpgsql;
 
-CREATE TRIGGER relation_guid_once BEFORE UPDATE ON _relation
-    FOR EACH ROW EXECUTE PROCEDURE relation_guid_once();
+CREATE TRIGGER relation_uuid_once BEFORE UPDATE ON _relation
+    FOR EACH ROW EXECUTE PROCEDURE relation_uuid_once();
 
 CREATE FUNCTION relation_one_id_once() RETURNS trigger AS '
   BEGIN
@@ -386,7 +386,7 @@ eq_or_diff $sg->constraints_for_class($relation), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW relation AS
-  SELECT _relation.id AS id, _relation.guid AS guid, _relation.state AS state, _relation.one_id AS one__id, one.guid AS one__guid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, _relation.simple_id AS simple__id, simple.guid AS simple__guid, simple.state AS simple__state, simple.name AS simple__name, simple.description AS simple__description
+  SELECT _relation.id AS id, _relation.uuid AS uuid, _relation.state AS state, _relation.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, _relation.simple_id AS simple__id, simple.uuid AS simple__uuid, simple.state AS simple__state, simple.name AS simple__name, simple.description AS simple__description
   FROM   _relation, one, simple
   WHERE  _relation.one_id = one.id AND _relation.simple_id = simple.id;
 };
@@ -397,8 +397,8 @@ eq_or_diff $sg->view_for_class($relation), $view,
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_relation AS
 ON INSERT TO relation DO INSTEAD (
-  INSERT INTO _relation (id, guid, state, one_id, simple_id)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.state, NEW.one__id, NEW.simple__id);
+  INSERT INTO _relation (id, uuid, state, one_id, simple_id)
+  VALUES (NEXTVAL('seq_kinetic'), NEW.uuid, NEW.state, NEW.one__id, NEW.simple__id);
 );
 };
 eq_or_diff $sg->insert_for_class($relation), $insert,
@@ -408,7 +408,7 @@ eq_or_diff $sg->insert_for_class($relation), $insert,
 $update = q{CREATE RULE update_relation AS
 ON UPDATE TO relation DO INSTEAD (
   UPDATE _relation
-  SET    guid = NEW.guid, state = NEW.state, one_id = NEW.one__id, simple_id = NEW.simple__id
+  SET    uuid = NEW.uuid, state = NEW.state, one_id = NEW.one__id, simple_id = NEW.simple__id
   WHERE  id = OLD.id;
 );
 };
@@ -439,7 +439,7 @@ is $composed->table, '_composed', "... Composed class has table '_composed'";
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE _composed (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
-    guid TEXT NOT NULL,
+    uuid TEXT NOT NULL,
     state STATE NOT NULL DEFAULT 1,
     one_id INTEGER
 );
@@ -448,7 +448,7 @@ eq_or_diff $sg->table_for_class($composed), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
-$indexes = q{CREATE UNIQUE INDEX idx_composed_guid ON _composed (guid);
+$indexes = q{CREATE UNIQUE INDEX idx_composed_uuid ON _composed (uuid);
 CREATE INDEX idx_composed_state ON _composed (state);
 CREATE INDEX idx_composed_one_id ON _composed (one_id);
 };
@@ -464,17 +464,17 @@ ALTER TABLE _composed
   ADD CONSTRAINT fk_one_id FOREIGN KEY (one_id)
   REFERENCES simple_one(id) ON DELETE RESTRICT;
 
-CREATE FUNCTION composed_guid_once() RETURNS trigger AS '
+CREATE FUNCTION composed_uuid_once() RETURNS trigger AS '
   BEGIN
-    IF OLD.guid <> NEW.guid OR NEW.guid IS NULL
-        THEN RAISE EXCEPTION ''value of "guid" cannot be changed'';
+    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
+        THEN RAISE EXCEPTION ''value of "uuid" cannot be changed'';
     END IF;
     RETURN NEW;
   END;
 ' LANGUAGE plpgsql;
 
-CREATE TRIGGER composed_guid_once BEFORE UPDATE ON _composed
-    FOR EACH ROW EXECUTE PROCEDURE composed_guid_once();
+CREATE TRIGGER composed_uuid_once BEFORE UPDATE ON _composed
+    FOR EACH ROW EXECUTE PROCEDURE composed_uuid_once();
 
 CREATE FUNCTION composed_one_id_once() RETURNS trigger AS '
   BEGIN
@@ -493,7 +493,7 @@ eq_or_diff $sg->constraints_for_class($composed), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW composed AS
-  SELECT _composed.id AS id, _composed.guid AS guid, _composed.state AS state, _composed.one_id AS one__id, one.guid AS one__guid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool
+  SELECT _composed.id AS id, _composed.uuid AS uuid, _composed.state AS state, _composed.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool
   FROM   _composed LEFT JOIN one ON _composed.one_id = one.id;
 };
 eq_or_diff $sg->view_for_class($composed), $view,
@@ -502,8 +502,8 @@ eq_or_diff $sg->view_for_class($composed), $view,
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_composed AS
 ON INSERT TO composed DO INSTEAD (
-  INSERT INTO _composed (id, guid, state, one_id)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.state, NEW.one__id);
+  INSERT INTO _composed (id, uuid, state, one_id)
+  VALUES (NEXTVAL('seq_kinetic'), NEW.uuid, NEW.state, NEW.one__id);
 );
 };
 eq_or_diff $sg->insert_for_class($composed), $insert,
@@ -513,7 +513,7 @@ eq_or_diff $sg->insert_for_class($composed), $insert,
 $update = q{CREATE RULE update_composed AS
 ON UPDATE TO composed DO INSTEAD (
   UPDATE _composed
-  SET    guid = NEW.guid, state = NEW.state, one_id = NEW.one__id
+  SET    uuid = NEW.uuid, state = NEW.state, one_id = NEW.one__id
   WHERE  id = OLD.id;
 );
 };
@@ -544,7 +544,7 @@ is $comp_comp->table, '_comp_comp', "... CompComp class has table 'comp_comp'";
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE _comp_comp (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
-    guid TEXT NOT NULL,
+    uuid TEXT NOT NULL,
     state STATE NOT NULL DEFAULT 1,
     composed_id INTEGER NOT NULL
 );
@@ -553,7 +553,7 @@ eq_or_diff $sg->table_for_class($comp_comp), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
-$indexes = q{CREATE UNIQUE INDEX idx_comp_comp_guid ON _comp_comp (guid);
+$indexes = q{CREATE UNIQUE INDEX idx_comp_comp_uuid ON _comp_comp (uuid);
 CREATE INDEX idx_comp_comp_state ON _comp_comp (state);
 CREATE INDEX idx_comp_comp_composed_id ON _comp_comp (composed_id);
 };
@@ -569,17 +569,17 @@ ALTER TABLE _comp_comp
   ADD CONSTRAINT fk_composed_id FOREIGN KEY (composed_id)
   REFERENCES _composed(id) ON DELETE RESTRICT;
 
-CREATE FUNCTION comp_comp_guid_once() RETURNS trigger AS '
+CREATE FUNCTION comp_comp_uuid_once() RETURNS trigger AS '
   BEGIN
-    IF OLD.guid <> NEW.guid OR NEW.guid IS NULL
-        THEN RAISE EXCEPTION ''value of "guid" cannot be changed'';
+    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
+        THEN RAISE EXCEPTION ''value of "uuid" cannot be changed'';
     END IF;
     RETURN NEW;
   END;
 ' LANGUAGE plpgsql;
 
-CREATE TRIGGER comp_comp_guid_once BEFORE UPDATE ON _comp_comp
-    FOR EACH ROW EXECUTE PROCEDURE comp_comp_guid_once();
+CREATE TRIGGER comp_comp_uuid_once BEFORE UPDATE ON _comp_comp
+    FOR EACH ROW EXECUTE PROCEDURE comp_comp_uuid_once();
 
 CREATE FUNCTION comp_comp_composed_id_once() RETURNS trigger AS '
   BEGIN
@@ -598,7 +598,7 @@ eq_or_diff $sg->constraints_for_class($comp_comp), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW comp_comp AS
-  SELECT _comp_comp.id AS id, _comp_comp.guid AS guid, _comp_comp.state AS state, _comp_comp.composed_id AS composed__id, composed.guid AS composed__guid, composed.state AS composed__state, composed.one__id AS composed__one__id, composed.one__guid AS composed__one__guid, composed.one__state AS composed__one__state, composed.one__name AS composed__one__name, composed.one__description AS composed__one__description, composed.one__bool AS composed__one__bool
+  SELECT _comp_comp.id AS id, _comp_comp.uuid AS uuid, _comp_comp.state AS state, _comp_comp.composed_id AS composed__id, composed.uuid AS composed__uuid, composed.state AS composed__state, composed.one__id AS composed__one__id, composed.one__uuid AS composed__one__uuid, composed.one__state AS composed__one__state, composed.one__name AS composed__one__name, composed.one__description AS composed__one__description, composed.one__bool AS composed__one__bool
   FROM   _comp_comp, composed
   WHERE  _comp_comp.composed_id = composed.id;
 };
@@ -608,8 +608,8 @@ eq_or_diff $sg->view_for_class($comp_comp), $view,
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_comp_comp AS
 ON INSERT TO comp_comp DO INSTEAD (
-  INSERT INTO _comp_comp (id, guid, state, composed_id)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.guid, NEW.state, NEW.composed__id);
+  INSERT INTO _comp_comp (id, uuid, state, composed_id)
+  VALUES (NEXTVAL('seq_kinetic'), NEW.uuid, NEW.state, NEW.composed__id);
 );
 };
 eq_or_diff $sg->insert_for_class($comp_comp), $insert,
@@ -619,7 +619,7 @@ eq_or_diff $sg->insert_for_class($comp_comp), $insert,
 $update = q{CREATE RULE update_comp_comp AS
 ON UPDATE TO comp_comp DO INSTEAD (
   UPDATE _comp_comp
-  SET    guid = NEW.guid, state = NEW.state, composed_id = NEW.composed__id
+  SET    uuid = NEW.uuid, state = NEW.state, composed_id = NEW.composed__id
   WHERE  id = OLD.id;
 );
 };

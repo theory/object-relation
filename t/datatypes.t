@@ -25,16 +25,16 @@ BEGIN {
 
     ok( $cm->add_constructor(name => 'new'), "Create new() constructor" );
 
-    # Add a GUID Attribute.
+    # Add a UUID Attribute.
     my $ug = Data::UUID->new;
-    ok( $cm->add_attribute( name     => 'guid',
+    ok( $cm->add_attribute( name     => 'uuid',
                             view     => Class::Meta::PUBLIC,
-                            type     => 'guid',
+                            type     => 'uuid',
                             required => 1,
                             default  => sub { $ug->create_str },
                             authz    => Class::Meta::READ,
                           ),
-        "Add guid attribute" );
+        "Add uuid attribute" );
 
     # Add a state attribute.
     ok( $cm->add_attribute( name     => 'state',
@@ -83,13 +83,13 @@ package main;
 ok( my $t = Kinetic::TestTypes->new,
     'Kinetic::TestTypes->new');
 
-# Test the GUID accessor.
-ok(my $guid = $t->guid, "Get GUID" );
-ok( Data::UUID->new->from_string($guid), "It's a valid GUID" );
+# Test the UUID accessor.
+ok(my $uuid = $t->uuid, "Get UUID" );
+ok( Data::UUID->new->from_string($uuid), "It's a valid UUID" );
 
 # Make sure we can't set it.
-eval { $t->guid($guid) };
-ok( $@, "Got error setting GUID" );
+eval { $t->uuid($uuid) };
+ok( $@, "Got error setting UUID" );
 
 # Test state accessor.
 is $t->state, Kinetic::Util::State->ACTIVE, "State should be active by default";

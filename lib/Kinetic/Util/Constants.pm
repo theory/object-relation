@@ -44,7 +44,7 @@ use constant OBJECT_DELIMITER => '__';
 use constant ATTR_DELIMITER   => '.';
 use constant PREPARE          => 'prepare';
 use constant CACHED           => 'prepare_cached';
-use constant GUID_RE          =>
+use constant UUID_RE          =>
   qr/[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}/;
 
 # HTTP content types
@@ -76,7 +76,7 @@ use Exporter::Tidy http => [
       ATTR_DELIMITER
       CACHED
       GROUP_OP
-      GUID_RE
+      UUID_RE
       OBJECT_DELIMITER
       PREPARE
       /
@@ -110,10 +110,10 @@ prepare and cache an SQL statement.
 
 A regular expression matching search grouping operators 'AND' and 'OR'.
 
-=item * GUID_RE
+=item * UUID_RE
 
-All objects in a data store have a GUID.  This regular expression matches
-GUIDs.  Assumes all letters are upper case.
+All objects in a data store have a UUID.  This regular expression matches
+UUIDs.  Assumes all letters are upper case.
 
 =item * OBJECT_DELIMITER
 

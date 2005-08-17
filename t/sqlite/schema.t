@@ -46,7 +46,7 @@ is $simple->table, '_simple', "... Simple class has table '_simple'";
 # Check that the CREATE TABLE statement is correct.
 my $table = q{CREATE TABLE _simple (
     id INTEGER NOT NULL PRIMARY KEY,
-    guid TEXT NOT NULL,
+    uuid TEXT NOT NULL,
     state INTEGER NOT NULL DEFAULT 1,
     name TEXT COLLATE nocase NOT NULL,
     description TEXT COLLATE nocase
@@ -56,7 +56,7 @@ eq_or_diff $sg->table_for_class($simple), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
-my $indexes = q{CREATE UNIQUE INDEX idx_simple_guid ON _simple (guid);
+my $indexes = q{CREATE UNIQUE INDEX idx_simple_uuid ON _simple (uuid);
 CREATE INDEX idx_simple_state ON _simple (state);
 CREATE INDEX idx_simple_name ON _simple (name);
 };
@@ -82,12 +82,12 @@ FOR EACH ROW BEGIN
   END;
 END;
 
-CREATE TRIGGER ck_simple_guid_once
+CREATE TRIGGER ck_simple_uuid_once
 BEFORE UPDATE ON _simple
 FOR EACH ROW BEGIN
   SELECT CASE
-    WHEN OLD.guid <> NEW.guid OR NEW.guid IS NULL
-    THEN RAISE(ABORT, 'value of "guid" cannot be changed')
+    WHEN OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
+    THEN RAISE(ABORT, 'value of "uuid" cannot be changed')
   END;
 END;
 };
@@ -97,7 +97,7 @@ eq_or_diff $sg->constraints_for_class($simple), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 my $view = q{CREATE VIEW simple AS
-  SELECT _simple.id AS id, _simple.guid AS guid, _simple.state AS state, _simple.name AS name, _simple.description AS description
+  SELECT _simple.id AS id, _simple.uuid AS uuid, _simple.state AS state, _simple.name AS name, _simple.description AS description
   FROM   _simple;
 };
 eq_or_diff $sg->view_for_class($simple), $view,
@@ -107,8 +107,8 @@ eq_or_diff $sg->view_for_class($simple), $view,
 my $insert = q{CREATE TRIGGER insert_simple
 INSTEAD OF INSERT ON simple
 FOR EACH ROW BEGIN
-  INSERT INTO _simple (guid, state, name, description)
-  VALUES (NEW.guid, NEW.state, NEW.name, NEW.description);
+  INSERT INTO _simple (uuid, state, name, description)
+  VALUES (NEW.uuid, NEW.state, NEW.name, NEW.description);
 END;
 };
 eq_or_diff $sg->insert_for_class($simple), $insert,
@@ -119,7 +119,7 @@ my $update = q{CREATE TRIGGER update_simple
 INSTEAD OF UPDATE ON simple
 FOR EACH ROW BEGIN
   UPDATE _simple
-  SET    guid = NEW.guid, state = NEW.state, name = NEW.name, description = NEW.description
+  SET    uuid = NEW.uuid, state = NEW.state, name = NEW.name, description = NEW.description
   WHERE  id = OLD.id;
 END;
 };
@@ -209,7 +209,7 @@ eq_or_diff $sg->constraints_for_class($one), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW one AS
-  SELECT simple.id AS id, simple.guid AS guid, simple.state AS state, simple.name AS name, simple.description AS description, simple_one.bool AS bool
+  SELECT simple.id AS id, simple.uuid AS uuid, simple.state AS state, simple.name AS name, simple.description AS description, simple_one.bool AS bool
   FROM   simple, simple_one
   WHERE  simple.id = simple_one.id;
 };
@@ -220,8 +220,8 @@ eq_or_diff $sg->view_for_class($one), $view,
 $insert = q{CREATE TRIGGER insert_one
 INSTEAD OF INSERT ON one
 FOR EACH ROW BEGIN
-  INSERT INTO _simple (guid, state, name, description)
-  VALUES (NEW.guid, NEW.state, NEW.name, NEW.description);
+  INSERT INTO _simple (uuid, state, name, description)
+  VALUES (NEW.uuid, NEW.state, NEW.name, NEW.description);
 
   INSERT INTO simple_one (id, bool)
   VALUES (last_insert_rowid(), NEW.bool);
@@ -235,7 +235,7 @@ $update = q{CREATE TRIGGER update_one
 INSTEAD OF UPDATE ON one
 FOR EACH ROW BEGIN
   UPDATE _simple
-  SET    guid = NEW.guid, state = NEW.state, name = NEW.name, description = NEW.description
+  SET    uuid = NEW.uuid, state = NEW.state, name = NEW.name, description = NEW.description
   WHERE  id = OLD.id;
 
   UPDATE simple_one
@@ -341,7 +341,7 @@ eq_or_diff $sg->constraints_for_class($two), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW two AS
-  SELECT simple.id AS id, simple.guid AS guid, simple.state AS state, simple.name AS name, simple.description AS description, simple_two.one_id AS one__id, one.guid AS one__guid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, simple_two.age AS age, simple_two.date AS date
+  SELECT simple.id AS id, simple.uuid AS uuid, simple.state AS state, simple.name AS name, simple.description AS description, simple_two.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, simple_two.age AS age, simple_two.date AS date
   FROM   simple, simple_two, one
   WHERE  simple.id = simple_two.id AND simple_two.one_id = one.id;
 };
@@ -352,8 +352,8 @@ eq_or_diff $sg->view_for_class($two), $view,
 $insert = q{CREATE TRIGGER insert_two
 INSTEAD OF INSERT ON two
 FOR EACH ROW BEGIN
-  INSERT INTO _simple (guid, state, name, description)
-  VALUES (NEW.guid, NEW.state, NEW.name, NEW.description);
+  INSERT INTO _simple (uuid, state, name, description)
+  VALUES (NEW.uuid, NEW.state, NEW.name, NEW.description);
 
   INSERT INTO simple_two (id, one_id, age, date)
   VALUES (last_insert_rowid(), NEW.one__id, NEW.age, NEW.date);
@@ -367,7 +367,7 @@ $update = q{CREATE TRIGGER update_two
 INSTEAD OF UPDATE ON two
 FOR EACH ROW BEGIN
   UPDATE _simple
-  SET    guid = NEW.guid, state = NEW.state, name = NEW.name, description = NEW.description
+  SET    uuid = NEW.uuid, state = NEW.state, name = NEW.name, description = NEW.description
   WHERE  id = OLD.id;
 
   UPDATE simple_two
@@ -403,7 +403,7 @@ is $relation->table, '_relation', "... Relation class has table '_relation'";
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE _relation (
     id INTEGER NOT NULL PRIMARY KEY,
-    guid TEXT NOT NULL,
+    uuid TEXT NOT NULL,
     state INTEGER NOT NULL DEFAULT 1,
     one_id INTEGER NOT NULL REFERENCES simple_one(id) ON DELETE RESTRICT,
     simple_id INTEGER NOT NULL REFERENCES _simple(id) ON DELETE RESTRICT
@@ -413,7 +413,7 @@ eq_or_diff $sg->table_for_class($relation), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
-$indexes = q{CREATE UNIQUE INDEX idx_relation_guid ON _relation (guid);
+$indexes = q{CREATE UNIQUE INDEX idx_relation_uuid ON _relation (uuid);
 CREATE INDEX idx_relation_state ON _relation (state);
 CREATE INDEX idx_relation_one_id ON _relation (one_id);
 CREATE INDEX idx_relation_simple_id ON _relation (simple_id);
@@ -441,12 +441,12 @@ FOR EACH ROW BEGIN
   END;
 END;
 
-CREATE TRIGGER ck_relation_guid_once
+CREATE TRIGGER ck_relation_uuid_once
 BEFORE UPDATE ON _relation
 FOR EACH ROW BEGIN
   SELECT CASE
-    WHEN OLD.guid <> NEW.guid OR NEW.guid IS NULL
-    THEN RAISE(ABORT, 'value of "guid" cannot be changed')
+    WHEN OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
+    THEN RAISE(ABORT, 'value of "uuid" cannot be changed')
   END;
 END;
 
@@ -525,7 +525,7 @@ eq_or_diff $sg->constraints_for_class($relation), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW relation AS
-  SELECT _relation.id AS id, _relation.guid AS guid, _relation.state AS state, _relation.one_id AS one__id, one.guid AS one__guid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, _relation.simple_id AS simple__id, simple.guid AS simple__guid, simple.state AS simple__state, simple.name AS simple__name, simple.description AS simple__description
+  SELECT _relation.id AS id, _relation.uuid AS uuid, _relation.state AS state, _relation.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, _relation.simple_id AS simple__id, simple.uuid AS simple__uuid, simple.state AS simple__state, simple.name AS simple__name, simple.description AS simple__description
   FROM   _relation, one, simple
   WHERE  _relation.one_id = one.id AND _relation.simple_id = simple.id;
 };
@@ -536,8 +536,8 @@ eq_or_diff $sg->view_for_class($relation), $view,
 $insert = q{CREATE TRIGGER insert_relation
 INSTEAD OF INSERT ON relation
 FOR EACH ROW BEGIN
-  INSERT INTO _relation (guid, state, one_id, simple_id)
-  VALUES (NEW.guid, NEW.state, NEW.one__id, NEW.simple__id);
+  INSERT INTO _relation (uuid, state, one_id, simple_id)
+  VALUES (NEW.uuid, NEW.state, NEW.one__id, NEW.simple__id);
 END;
 };
 eq_or_diff $sg->insert_for_class($relation), $insert,
@@ -548,7 +548,7 @@ $update = q{CREATE TRIGGER update_relation
 INSTEAD OF UPDATE ON relation
 FOR EACH ROW BEGIN
   UPDATE _relation
-  SET    guid = NEW.guid, state = NEW.state, one_id = NEW.one__id, simple_id = NEW.simple__id
+  SET    uuid = NEW.uuid, state = NEW.state, one_id = NEW.one__id, simple_id = NEW.simple__id
   WHERE  id = OLD.id;
 END;
 };
@@ -580,7 +580,7 @@ is $composed->table, '_composed', "... Composed class has table '_composed'";
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE _composed (
     id INTEGER NOT NULL PRIMARY KEY,
-    guid TEXT NOT NULL,
+    uuid TEXT NOT NULL,
     state INTEGER NOT NULL DEFAULT 1,
     one_id INTEGER REFERENCES simple_one(id) ON DELETE RESTRICT
 );
@@ -589,7 +589,7 @@ eq_or_diff $sg->table_for_class($composed), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
-$indexes = q{CREATE UNIQUE INDEX idx_composed_guid ON _composed (guid);
+$indexes = q{CREATE UNIQUE INDEX idx_composed_uuid ON _composed (uuid);
 CREATE INDEX idx_composed_state ON _composed (state);
 CREATE INDEX idx_composed_one_id ON _composed (one_id);
 };
@@ -616,12 +616,12 @@ FOR EACH ROW BEGIN
   END;
 END;
 
-CREATE TRIGGER ck_composed_guid_once
+CREATE TRIGGER ck_composed_uuid_once
 BEFORE UPDATE ON _composed
 FOR EACH ROW BEGIN
   SELECT CASE
-    WHEN OLD.guid <> NEW.guid OR NEW.guid IS NULL
-    THEN RAISE(ABORT, 'value of "guid" cannot be changed')
+    WHEN OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
+    THEN RAISE(ABORT, 'value of "uuid" cannot be changed')
   END;
 END;
 
@@ -665,7 +665,7 @@ eq_or_diff $sg->constraints_for_class($composed), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW composed AS
-  SELECT _composed.id AS id, _composed.guid AS guid, _composed.state AS state, _composed.one_id AS one__id, one.guid AS one__guid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool
+  SELECT _composed.id AS id, _composed.uuid AS uuid, _composed.state AS state, _composed.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool
   FROM   _composed LEFT JOIN one ON _composed.one_id = one.id;
 };
 eq_or_diff $sg->view_for_class($composed), $view,
@@ -675,8 +675,8 @@ eq_or_diff $sg->view_for_class($composed), $view,
 $insert = q{CREATE TRIGGER insert_composed
 INSTEAD OF INSERT ON composed
 FOR EACH ROW BEGIN
-  INSERT INTO _composed (guid, state, one_id)
-  VALUES (NEW.guid, NEW.state, NEW.one__id);
+  INSERT INTO _composed (uuid, state, one_id)
+  VALUES (NEW.uuid, NEW.state, NEW.one__id);
 END;
 };
 eq_or_diff $sg->insert_for_class($composed), $insert,
@@ -687,7 +687,7 @@ $update = q{CREATE TRIGGER update_composed
 INSTEAD OF UPDATE ON composed
 FOR EACH ROW BEGIN
   UPDATE _composed
-  SET    guid = NEW.guid, state = NEW.state, one_id = NEW.one__id
+  SET    uuid = NEW.uuid, state = NEW.state, one_id = NEW.one__id
   WHERE  id = OLD.id;
 END;
 };
@@ -719,7 +719,7 @@ is $comp_comp->table, '_comp_comp', "... CompComp class has table 'comp_comp'";
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE _comp_comp (
     id INTEGER NOT NULL PRIMARY KEY,
-    guid TEXT NOT NULL,
+    uuid TEXT NOT NULL,
     state INTEGER NOT NULL DEFAULT 1,
     composed_id INTEGER NOT NULL REFERENCES _composed(id) ON DELETE RESTRICT
 );
@@ -728,7 +728,7 @@ eq_or_diff $sg->table_for_class($comp_comp), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
-$indexes = q{CREATE UNIQUE INDEX idx_comp_comp_guid ON _comp_comp (guid);
+$indexes = q{CREATE UNIQUE INDEX idx_comp_comp_uuid ON _comp_comp (uuid);
 CREATE INDEX idx_comp_comp_state ON _comp_comp (state);
 CREATE INDEX idx_comp_comp_composed_id ON _comp_comp (composed_id);
 };
@@ -755,12 +755,12 @@ FOR EACH ROW BEGIN
   END;
 END;
 
-CREATE TRIGGER ck_comp_comp_guid_once
+CREATE TRIGGER ck_comp_comp_uuid_once
 BEFORE UPDATE ON _comp_comp
 FOR EACH ROW BEGIN
   SELECT CASE
-    WHEN OLD.guid <> NEW.guid OR NEW.guid IS NULL
-    THEN RAISE(ABORT, 'value of "guid" cannot be changed')
+    WHEN OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
+    THEN RAISE(ABORT, 'value of "uuid" cannot be changed')
   END;
 END;
 
@@ -805,7 +805,7 @@ eq_or_diff $sg->constraints_for_class($comp_comp), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW comp_comp AS
-  SELECT _comp_comp.id AS id, _comp_comp.guid AS guid, _comp_comp.state AS state, _comp_comp.composed_id AS composed__id, composed.guid AS composed__guid, composed.state AS composed__state, composed.one__id AS composed__one__id, composed.one__guid AS composed__one__guid, composed.one__state AS composed__one__state, composed.one__name AS composed__one__name, composed.one__description AS composed__one__description, composed.one__bool AS composed__one__bool
+  SELECT _comp_comp.id AS id, _comp_comp.uuid AS uuid, _comp_comp.state AS state, _comp_comp.composed_id AS composed__id, composed.uuid AS composed__uuid, composed.state AS composed__state, composed.one__id AS composed__one__id, composed.one__uuid AS composed__one__uuid, composed.one__state AS composed__one__state, composed.one__name AS composed__one__name, composed.one__description AS composed__one__description, composed.one__bool AS composed__one__bool
   FROM   _comp_comp, composed
   WHERE  _comp_comp.composed_id = composed.id;
 };
@@ -816,8 +816,8 @@ eq_or_diff $sg->view_for_class($comp_comp), $view,
 $insert = q{CREATE TRIGGER insert_comp_comp
 INSTEAD OF INSERT ON comp_comp
 FOR EACH ROW BEGIN
-  INSERT INTO _comp_comp (guid, state, composed_id)
-  VALUES (NEW.guid, NEW.state, NEW.composed__id);
+  INSERT INTO _comp_comp (uuid, state, composed_id)
+  VALUES (NEW.uuid, NEW.state, NEW.composed__id);
 END;
 };
 eq_or_diff $sg->insert_for_class($comp_comp), $insert,
@@ -828,7 +828,7 @@ $update = q{CREATE TRIGGER update_comp_comp
 INSTEAD OF UPDATE ON comp_comp
 FOR EACH ROW BEGIN
   UPDATE _comp_comp
-  SET    guid = NEW.guid, state = NEW.state, composed_id = NEW.composed__id
+  SET    uuid = NEW.uuid, state = NEW.state, composed_id = NEW.composed__id
   WHERE  id = OLD.id;
 END;
 };

@@ -92,7 +92,7 @@ BEGIN {
         $one->name('one_name');
         bless {
             objects => {
-                $one->guid => $one,
+                $one->uuid => $one,
             },
             objects_by_name => {
                 one => $one,
@@ -101,7 +101,7 @@ BEGIN {
     }
     sub lookup {
         my ($self, $search_class, %params) = @_;
-        return $self->{objects}{$params{guid}};
+        return $self->{objects}{$params{uuid}};
     }
     # not in the Store class, but used here as a testing hook
     sub _lookup {
@@ -121,7 +121,7 @@ sub write_xml : Test(5) {
     $one->name('some name');
     $one->description('some description');
     my $xml = XML->new({ object => $one });
-    my $one_guid = $one->guid;
+    my $one_uuid = $one->uuid;
     my $file = 'one_xml';
     $xml->write_xml(file => $file);
     file_exists_ok $file, '... and it should create the file';
@@ -153,7 +153,7 @@ sub update_from_xml : Test(4) {
     can_ok XML, 'update_from_xml';
     my $fstore = Faux::Store->new;
     my $one = $fstore->_lookup('one');
-    my $updated_object = One->new(guid => $one->guid);
+    my $updated_object = One->new(uuid => $one->uuid);
     my $store = MockModule->new('Kinetic::Store');
     $store->mock(new => Faux::Store->new);
     $updated_object->name($one->name);
@@ -163,15 +163,15 @@ sub update_from_xml : Test(4) {
     my $xml = XML->new({object => $updated_object}); # note that one does not have an id
     my $xml_string = $xml->dump_xml;
     my $object = $test->_force_inflation(XML->update_from_xml($xml_string));
-    ok exists $object->{id}, '... and an existing guid should provide its ID for the update';
+    ok exists $object->{id}, '... and an existing uuid should provide its ID for the update';
     is_deeply $object, $updated_object, '... and the new object should be correct';
 
-    $updated_object->{guid} = 'No such guid';
+    $updated_object->{uuid} = 'No such uuid';
     $xml = XML->new({ object => $updated_object}); 
     $xml_string = $xml->dump_xml;
     throws_ok {XML->update_from_xml($xml_string)}
         'Kinetic::Util::Exception::Fatal::NotFound',
-        '... but a non-existing guid should throw an exception';
+        '... but a non-existing uuid should throw an exception';
 }
 
 sub new_from_xml : Test(7) {
@@ -184,7 +184,7 @@ sub new_from_xml : Test(7) {
     my $no_version = <<'    END_XML';
     <kinetic>
       <instance key="one">
-        <attr name="guid">Fake guid</attr>
+        <attr name="uuid">Fake uuid</attr>
         <attr name="name">some name</attr>
         <attr name="description">some description</attr>
         <attr name="state">1</attr>
@@ -200,7 +200,7 @@ sub new_from_xml : Test(7) {
     my $no_such_class = <<'    END_XML';
     <kinetic version="0.01">
       <instance key="no_such_class">
-        <attr name="guid">Fake guid</attr>
+        <attr name="uuid">Fake uuid</attr>
         <attr name="name">some name</attr>
         <attr name="description">some description</attr>
         <attr name="state">1</attr>
@@ -236,12 +236,12 @@ sub new_from_xml : Test(7) {
 
     my $contained_xml = <<"    END_XML"; 
     <kinetic version="0.01">
-      <two guid="@{[$two->guid]}">
+      <two uuid="@{[$two->uuid]}">
         <age></age>
         <date>1968-06-17T00:00:00</date>
         <description></description>
         <name>june17</name>
-        <one guid="@{[$one->guid]}">
+        <one uuid="@{[$one->uuid]}">
           <bool>1</bool>
           <description>some description</description>
           <name>some name</name>
@@ -293,16 +293,16 @@ sub dump_xml : Test(7) {
     $one->name('some name');
     $one->description('some description');
     my $xml = XML->new($one);
-    my $one_guid = $one->guid;
+    my $one_uuid = $one->uuid;
     can_ok $xml, 'dump_xml';
     is_xml $xml->dump_xml, <<"    END_XML", '... and it should return the correct XML';
     <kinetic version="0.01">
       <instance key="one">
         <attr name="bool">1</attr>
         <attr name="description">some description</attr>
-        <attr name="guid">$one_guid</attr>
         <attr name="name">some name</attr>
         <attr name="state">1</attr>
+        <attr name="uuid">$one_uuid</attr>
       </instance>
     </kinetic>
     END_XML
@@ -315,23 +315,23 @@ sub dump_xml : Test(7) {
     ));
     $not_referenced->one($one);
     $xml->object($not_referenced);
-    my $not_referenced_guid = $not_referenced->guid;
+    my $not_referenced_uuid = $not_referenced->uuid;
     is_xml $xml->dump_xml(with_referenced => 1), <<"    END_XML", '... contained object should also be represented correctly';
     <kinetic version="0.01">
       <instance key="two">
         <attr name="age"></attr>
         <attr name="date">1968-06-17T00:00:00</attr>
         <attr name="description"></attr>
-        <attr name="guid">$not_referenced_guid</attr>
         <attr name="name">june17</attr>
         <instance key="one">
           <attr name="bool">1</attr>
           <attr name="description">some description</attr>
-          <attr name="guid">$one_guid</attr>
           <attr name="name">some name</attr>
           <attr name="state">1</attr>
+          <attr name="uuid">$one_uuid</attr>
         </instance>
         <attr name="state">1</attr>
+        <attr name="uuid">$not_referenced_uuid</attr>
       </instance>
     </kinetic>
     END_XML
@@ -341,16 +341,16 @@ sub dump_xml : Test(7) {
         <attr name="age"></attr>
         <attr name="date">1968-06-17T00:00:00</attr>
         <attr name="description"></attr>
-        <attr name="guid">$not_referenced_guid</attr>
         <attr name="name">june17</attr>
         <instance key="one">
           <attr name="bool">1</attr>
           <attr name="description">some description</attr>
-          <attr name="guid">$one_guid</attr>
           <attr name="name">some name</attr>
           <attr name="state">1</attr>
+          <attr name="uuid">$one_uuid</attr>
         </instance>
         <attr name="state">1</attr>
+        <attr name="uuid">$not_referenced_uuid</attr>
       </instance>
     </kinetic>
     END_XML
@@ -359,27 +359,27 @@ sub dump_xml : Test(7) {
     my $thingy = MyTestThingy->new(foo => 'bar');
     $partof->thingy($thingy);
     $xml->object($partof);
-    my ($partof_guid, $thingy_guid) = ($partof->guid, $thingy->guid);
-    is_xml $xml->dump_xml, <<"    END_XML", 'Referenced objects should only include the GUID';
+    my ($partof_uuid, $thingy_uuid) = ($partof->uuid, $thingy->uuid);
+    is_xml $xml->dump_xml, <<"    END_XML", 'Referenced objects should only include the UUID';
     <kinetic version="0.01">
       <instance key="partof">
-        <attr name="guid">$partof_guid</attr>
         <attr name="state">1</attr>
-        <instance key="thingy" guid="$thingy_guid" referenced="1"/>
+        <instance key="thingy" uuid="$thingy_uuid" referenced="1"/>
+        <attr name="uuid">$partof_uuid</attr>
       </instance>
     </kinetic>
     END_XML
     is_xml $xml->dump_xml(with_referenced => 1), <<"    END_XML", '... but they should append the referenced object if you ask nicely';
     <kinetic version="0.01">
       <instance key="partof">
-        <attr name="guid">$partof_guid</attr>
         <attr name="state">1</attr>
-        <instance key="thingy" guid="$thingy_guid" referenced="1"/>
+        <instance key="thingy" uuid="$thingy_uuid" referenced="1"/>
+        <attr name="uuid">$partof_uuid</attr>
       </instance>
       <instance key="thingy">
         <attr name="foo">bar</attr>
-        <attr name="guid">$thingy_guid</attr>
         <attr name="state">1</attr>
+        <attr name="uuid">$thingy_uuid</attr>
       </instance>
     </kinetic>
     END_XML
@@ -387,15 +387,15 @@ sub dump_xml : Test(7) {
     my $foo = One->new;
     $foo->name('foo');
     $xml->object($foo);
-    my $guid = $foo->guid;
+    my $uuid = $foo->uuid;
     is_xml $xml->dump_xml, <<"    END_XML", '... and if the object has an id, it should be in the XML';
     <kinetic version="0.01">
       <instance key="one">
         <attr name="bool">1</attr>
         <attr name="description"></attr>
-        <attr name="guid">$guid</attr>
         <attr name="name">foo</attr>
         <attr name="state">1</attr>
+        <attr name="uuid">$uuid</attr>
       </instance>
     </kinetic>
     END_XML
@@ -410,16 +410,16 @@ sub dump_xml_with_stylesheet : Test(9) {
         object         => $one,
         stylesheet_url => $stylesheet,
     });
-    my $one_guid = $one->guid;
+    my $one_uuid = $one->uuid;
     is_xml $xml->dump_xml, <<"    END_XML", 'Supplying a stylesheet URL should embed it in the XML';
     <?xml-stylesheet type="text/xsl" href="$stylesheet"?>
     <kinetic version="0.01">
       <instance key="one">
         <attr name="bool">1</attr>
         <attr name="description">some description</attr>
-        <attr name="guid">$one_guid</attr>
         <attr name="name">some name</attr>
         <attr name="state">1</attr>
+        <attr name="uuid">$one_uuid</attr>
       </instance>
     </kinetic>
     END_XML
@@ -439,9 +439,9 @@ sub dump_xml_with_stylesheet : Test(9) {
       <instance key="one">
         <attr name="bool">1</attr>
         <attr name="description">some description</attr>
-        <attr name="guid">$one_guid</attr>
         <attr name="name">some name</attr>
         <attr name="state">1</attr>
+        <attr name="uuid">$one_uuid</attr>
       </instance>
     </kinetic>
     END_XML
@@ -456,9 +456,9 @@ sub dump_xml_with_stylesheet : Test(9) {
       <instance key="one">
         <attr name="bool">1</attr>
         <attr name="description">some description</attr>
-        <attr name="guid">$one_guid</attr>
         <attr name="name">some name</attr>
         <attr name="state">1</attr>
+        <attr name="uuid">$one_uuid</attr>
       </instance>
     </kinetic>
     END_XML
@@ -475,16 +475,16 @@ sub specify_desired_attributes : Test(13) {
 
     my $xml = XML->new({
         object         => $one,
-        attributes     => [qw/bool guid state/],
+        attributes     => [qw/bool uuid state/],
     });
 
-    my $one_guid = $one->guid;
+    my $one_uuid = $one->uuid;
     is_xml $xml->dump_xml, <<"    END_XML", 'Specifying desired attributes to be returned should work';
     <kinetic version="0.01">
       <instance key="one">
         <attr name="bool">1</attr>
-        <attr name="guid">$one_guid</attr>
         <attr name="state">1</attr>
+        <attr name="uuid">$one_uuid</attr>
       </instance>
     </kinetic>
     END_XML
@@ -518,9 +518,9 @@ sub specify_desired_attributes : Test(13) {
       <instance key="one">
         <attr name="bool">1</attr>
         <attr name="description">some description</attr>
-        <attr name="guid">$one_guid</attr>
         <attr name="name">some name</attr>
         <attr name="state">1</attr>
+        <attr name="uuid">$one_uuid</attr>
       </instance>
     </kinetic>
     END_XML
@@ -539,7 +539,7 @@ sub specify_desired_attributes : Test(13) {
     ));
     $two->one($one);
     $xml->object($two);
-    my $two_guid = $two->guid;
+    my $two_uuid = $two->uuid;
     $xml->attributes(undef);
     is_xml $xml->dump_xml(with_referenced => 1), <<"    END_XML", 'Contained object should also be represented correctly';
     <kinetic version="0.01">
@@ -547,58 +547,58 @@ sub specify_desired_attributes : Test(13) {
         <attr name="age"></attr>
         <attr name="date">1968-06-17T00:00:00</attr>
         <attr name="description"></attr>
-        <attr name="guid">$two_guid</attr>
         <attr name="name">june17</attr>
         <instance key="one">
           <attr name="bool">1</attr>
           <attr name="description">some description</attr>
-          <attr name="guid">$one_guid</attr>
           <attr name="name">some name</attr>
           <attr name="state">1</attr>
+          <attr name="uuid">$one_uuid</attr>
         </instance>
         <attr name="state">1</attr>
+        <attr name="uuid">$two_uuid</attr>
       </instance>
     </kinetic>
     END_XML
     
-    $xml->attributes([qw/date guid name one/]);
+    $xml->attributes([qw/date uuid name one/]);
     is_xml $xml->dump_xml(with_referenced => 1), <<"    END_XML", '... even if we specify them directly';
     <kinetic version="0.01">
       <instance key="two">
         <attr name="date">1968-06-17T00:00:00</attr>
-        <attr name="guid">$two_guid</attr>
         <attr name="name">june17</attr>
         <instance key="one">
           <attr name="bool">1</attr>
           <attr name="description">some description</attr>
-          <attr name="guid">$one_guid</attr>
           <attr name="name">some name</attr>
           <attr name="state">1</attr>
+          <attr name="uuid">$one_uuid</attr>
         </instance>
+        <attr name="uuid">$two_uuid</attr>
       </instance>
     </kinetic>
     END_XML
 
-    $xml->attributes([qw/name one.guid one.name/]);
+    $xml->attributes([qw/name one.uuid one.name/]);
     is_xml $xml->dump_xml(with_referenced => 1), <<"    END_XML", '... or specify their attributes without specifying the object';
     <kinetic version="0.01">
       <instance key="two">
         <attr name="name">june17</attr>
         <instance key="one">
-          <attr name="guid">$one_guid</attr>
           <attr name="name">some name</attr>
+          <attr name="uuid">$one_uuid</attr>
         </instance>
       </instance>
     </kinetic>
     END_XML
 
-    $xml->attributes([qw/date guid name/]);
+    $xml->attributes([qw/date uuid name/]);
     is_xml $xml->dump_xml(with_referenced => 1), <<"    END_XML", 'with_referenced is a no-op if they specify attributes but not the contained object';
     <kinetic version="0.01">
       <instance key="two">
         <attr name="date">1968-06-17T00:00:00</attr>
-        <attr name="guid">$two_guid</attr>
         <attr name="name">june17</attr>
+        <attr name="uuid">$two_uuid</attr>
       </instance>
     </kinetic>
     END_XML

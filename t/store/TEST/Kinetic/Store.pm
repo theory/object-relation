@@ -38,10 +38,10 @@ sub save : Test(10) {
     my $store = Store->new;
     can_ok $store, 'save';
     my $dbh = $test->{dbh};
-    my $result = $dbh->selectrow_hashref('SELECT id, guid, name, description, state, bool FROM one');
+    my $result = $dbh->selectrow_hashref('SELECT id, uuid, name, description, state, bool FROM one');
     ok ! $result, 'We should start with a fresh database';
     ok $one->save, 'and saving an object should be successful';
-    $result = $dbh->selectrow_hashref('SELECT id, guid, name, description, state, bool FROM one');
+    $result = $dbh->selectrow_hashref('SELECT id, uuid, name, description, state, bool FROM one');
     $result->{state} = State->new($result->{state});
     # XXX this works, but it might be a bit fragile
     is_deeply $one, $result, 'and the data should match what we pull from the database';
@@ -52,13 +52,13 @@ sub save : Test(10) {
     $two->description('some description');
     $two->save;
     is $test->_num_recs('one'), 2, 'and we should have two records in the view';
-    $result = $dbh->selectrow_hashref('SELECT id, guid, name, description, state, bool FROM one WHERE name = \'bob\'');
+    $result = $dbh->selectrow_hashref('SELECT id, uuid, name, description, state, bool FROM one WHERE name = \'bob\'');
     $result->{state} = State->new($result->{state});
     is_deeply $two, $result, 'and the data should match what we pull from the database';
     $two->name('beelzebub');
     $two->save;
-    my $guid = $dbh->quote($two->guid);
-    $result = $dbh->selectrow_hashref("SELECT id, guid, name, description, state, bool FROM one WHERE guid = $guid");
+    my $uuid = $dbh->quote($two->uuid);
+    $result = $dbh->selectrow_hashref("SELECT id, uuid, name, description, state, bool FROM one WHERE uuid = $uuid");
     $result->{state} = State->new($result->{state});
     is_deeply $two, $result, 'and we should be able to update data';
     is $result->{name}, 'beelzebub', 'and return the correct results';
@@ -1138,66 +1138,66 @@ sub count_by_key : Test(8) {
         'and it should return a false count if nothing matches';
 }
 
-sub search_guids : Test(10) {
+sub search_uuids : Test(10) {
     my $test = shift;
     return unless $test->_should_run;
     my $store = Store->new;
-    can_ok $store, 'search_guids';
+    can_ok $store, 'search_uuids';
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $class = $foo->my_class;
-    ok my $guids = $store->search_guids($class),
-        'A search for guids with only a class should succeed';
-    @$guids = sort @$guids;
-    my @expected = sort map {$_->guid} $foo, $bar, $baz;
-    is_deeply $guids, \@expected,
-        'and it should return the correct list of guids';
+    ok my $uuids = $store->search_uuids($class),
+        'A search for uuids with only a class should succeed';
+    @$uuids = sort @$uuids;
+    my @expected = sort map {$_->uuid} $foo, $bar, $baz;
+    is_deeply $uuids, \@expected,
+        'and it should return the correct list of uuids';
 
-    ok $guids = $store->search_guids($class, name => 'foo'),
-        'We should be able to search guids with a simple search';
-    is_deeply $guids, [$foo->guid], 'and return the correct guids';
+    ok $uuids = $store->search_uuids($class, name => 'foo'),
+        'We should be able to search uuids with a simple search';
+    is_deeply $uuids, [$foo->uuid], 'and return the correct uuids';
 
-    ok $guids = $store->search_guids($class, name => GT 'c', {order_by => 'name'}),
-        'We should be able to search guids with any search operators';
-    is_deeply $guids, [$foo->guid, $baz->guid], 'and return the correct guids';
+    ok $uuids = $store->search_uuids($class, name => GT 'c', {order_by => 'name'}),
+        'We should be able to search uuids with any search operators';
+    is_deeply $uuids, [$foo->uuid, $baz->uuid], 'and return the correct uuids';
 
-    $guids = $store->search_guids($class, name => 'no such name');
-    is_deeply $guids, [],
+    $uuids = $store->search_uuids($class, name => 'no such name');
+    is_deeply $uuids, [],
         'and it should return nothing if nothing matches';
 
-    ok my @guids = $store->search_guids($class, name => GT 'c', {order_by => 'name'}),
-        'search_guids should behave correctly in list context';
-    is_deeply \@guids, [$foo->guid, $baz->guid], 'and return the correct guids';
+    ok my @uuids = $store->search_uuids($class, name => GT 'c', {order_by => 'name'}),
+        'search_uuids should behave correctly in list context';
+    is_deeply \@uuids, [$foo->uuid, $baz->uuid], 'and return the correct uuids';
 }
 
-sub search_guids_by_key : Test(10) {
+sub search_uuids_by_key : Test(10) {
     my $test = shift;
     return unless $test->_should_run;
     my $store = Store->new;
-    can_ok $store, 'search_guids';
+    can_ok $store, 'search_uuids';
     my ($foo, $bar, $baz) = @{$test->{test_objects}};
     my $key = $foo->my_class->key;
-    ok my $guids = $store->search_guids($key),
-        'A search for guids with only a class should succeed';
-    @$guids = sort @$guids;
-    my @expected = sort map {$_->guid} $foo, $bar, $baz;
-    is_deeply $guids, \@expected,
-        'and it should return the correct list of guids';
+    ok my $uuids = $store->search_uuids($key),
+        'A search for uuids with only a class should succeed';
+    @$uuids = sort @$uuids;
+    my @expected = sort map {$_->uuid} $foo, $bar, $baz;
+    is_deeply $uuids, \@expected,
+        'and it should return the correct list of uuids';
 
-    ok $guids = $store->search_guids($key, name => 'foo'),
-        'We should be able to search guids with a simple search';
-    is_deeply $guids, [$foo->guid], 'and return the correct guids';
+    ok $uuids = $store->search_uuids($key, name => 'foo'),
+        'We should be able to search uuids with a simple search';
+    is_deeply $uuids, [$foo->uuid], 'and return the correct uuids';
 
-    ok $guids = $store->search_guids($key, name => GT 'c', {order_by => 'name'}),
-        'We should be able to search guids with any search operators';
-    is_deeply $guids, [$foo->guid, $baz->guid], 'and return the correct guids';
+    ok $uuids = $store->search_uuids($key, name => GT 'c', {order_by => 'name'}),
+        'We should be able to search uuids with any search operators';
+    is_deeply $uuids, [$foo->uuid, $baz->uuid], 'and return the correct uuids';
 
-    $guids = $store->search_guids($key, name => 'no such name');
-    is_deeply $guids, [],
+    $uuids = $store->search_uuids($key, name => 'no such name');
+    is_deeply $uuids, [],
         'and it should return nothing if nothing matches';
 
-    ok my @guids = $store->search_guids($key, name => GT 'c', {order_by => 'name'}),
-        'search_guids should behave correctly in list context';
-    is_deeply \@guids, [$foo->guid, $baz->guid], 'and return the correct guids';
+    ok my @uuids = $store->search_uuids($key, name => GT 'c', {order_by => 'name'}),
+        'search_uuids should behave correctly in list context';
+    is_deeply \@uuids, [$foo->uuid, $baz->uuid], 'and return the correct uuids';
 }
 
 sub search_or : Test(13) {
@@ -1414,9 +1414,9 @@ sub lookup : Test(8) {
     $two->description('ssalc tset');
     $two->save;
     can_ok $store, 'lookup';
-    my $thing = $store->lookup($two->my_class, guid => $two->guid);
+    my $thing = $store->lookup($two->my_class, uuid => $two->uuid);
     is_deeply $test->_force_inflation($thing), $two, 'and it should return the correct object';
-    foreach my $method (qw/name description guid state/) {
+    foreach my $method (qw/name description uuid state/) {
         is $thing->$method, $two->$method, "$method() should behave the same";
     }
     throws_ok {$store->lookup($two->my_class, 'no_such_attribute' => 1)}
@@ -1443,9 +1443,9 @@ sub lookup_by_key : Test(8) {
     $two->save;
     can_ok $store, 'lookup';
     my $key = $two->my_class->key;
-    my $thing = $store->lookup($key, guid => $two->guid);
+    my $thing = $store->lookup($key, uuid => $two->uuid);
     is_deeply $test->_force_inflation($thing), $two, 'and it should return the correct object';
-    foreach my $method (qw/name description guid state/) {
+    foreach my $method (qw/name description uuid state/) {
         is $thing->$method, $two->$method, "$method() should behave the same";
     }
     throws_ok {$store->lookup($key, 'no_such_attribute' => 1)}

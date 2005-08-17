@@ -186,12 +186,12 @@ sub new {
 
 =head3 lookup
 
-  my $bric_obj = $store->lookup($class, guid => $guid);
+  my $bric_obj = $store->lookup($class, uuid => $uuid);
   $bric_obj = $store->lookup($class, unique_attr => $value);
 
 Method to look up objects in the Kinetic data store by a unique identifier.
 Most often the identifier used will be  globally unique object identifier.
-However, for Kinetic classes that allow unique identifiers other than GUIDs
+However, for Kinetic classes that allow unique identifiers other than UUIDs
 -- that is, system-wide (rather than globally) unique identifiers -- then an
 appropriate key/value pair may be used for the lookup. No SQL wildcards or
 regular expressions will be allowed. The lookup value must be a complete
@@ -251,7 +251,7 @@ argument to C<search()>. The available search modifiers are:
 The name of an object attribute or an array reference of object attributes to
 sort by. All sorting is done in a case-insensitive fashion. The actual sort
 order is dependent on the ordering rules of your data store. I<Do not> pass
-"guid" as a sort parameter, as it will always be used for sorting, anyway. If
+"uuid" as a sort parameter, as it will always be used for sorting, anyway. If
 this modifier isn't passed in, the class will select a default or set of
 default attributes to sort by.
 
@@ -312,12 +312,12 @@ B<Throws:>
 
 ##############################################################################
 
-=head3 search_guids
+=head3 search_uuids
 
-  my @guids = $store->search_guids( $class => @search_params );
-  my $guids_aref = $store->search_guids( $class => @search_params );
+  my @uuids = $store->search_uuids( $class => @search_params );
+  my $uuids_aref = $store->search_uuids( $class => @search_params );
 
-Returns a list or array reference of GUIDs for the the class C<$class> based
+Returns a list or array reference of UUIDs for the the class C<$class> based
 on the search parameters. See L<Search Parameters Explained|"SEARCH PARAMETERS
 EXPLAINED"> for details on specifying search parameters. Returns an empty list
 in an array context and an empty array reference in a scalar context when no
@@ -333,12 +333,12 @@ B<Throws:>
 
 =cut
 
-sub search_guids {
+sub search_uuids {
     my $self = shift;
     unless (ref $self) { # they called it as a class method
         $self = $self->new;
     }
-    $self->search_guids(@_);
+    $self->search_uuids(@_);
 }
 
 ##############################################################################
@@ -348,7 +348,7 @@ sub search_guids {
   my $count = $store->count( $class => @search_params );
 
 Returns a count of the number of objects that would be found by C<search()>
-(or the number of GUIDs that would be returned by C<search_guids()>) for the
+(or the number of UUIDs that would be returned by C<search_uuids()>) for the
 class C<$class> based on the search parameters. See L<Search Parameters
 Explained|"SEARCH PARAMETERS EXPLAINED"> for details on specifying search
 parameters. Returns "0" when no results would be found in the search.
@@ -465,7 +465,7 @@ sub _add_store_meta {
 =head1 Search Parameters Explained
 
 The specification for search parameters to be passed to the C<search()>,
-C<search_guids()>, and C<count()> methods has been designed to maximize
+C<search_uuids()>, and C<count()> methods has been designed to maximize
 flexibility and ease of use by making it as Perlish as possible. This means
 that you can search on multiple object attributes of different types,
 attributes on contained or related objects, and values that are equivalent to
@@ -483,7 +483,7 @@ classes. Kinetic::Phony::Person has the following attributes:
 
 =over 4
 
-=item guid
+=item uuid
 
 =item last_name
 
@@ -502,7 +502,7 @@ objects, which have the following attributes:
 
 =over 4
 
-=item guid
+=item uuid
 
 =item type
 
@@ -603,10 +603,10 @@ the other behavior).
 
 Attentive readers will realize that the first example, wherein we passed in a
 <$contact> object as the search criterion, is actually a shortcut for using
-its C<guid> attribute. The equivalent would be:
+its C<uuid> attribute. The equivalent would be:
 
   my $iter = $store->search('Kinetic::Phony::Person' =>
-                            'contact.guid' => $contact->get_guid);
+                            'contact.uuid' => $contact->get_uuid);
 
 =cut
 
@@ -771,13 +771,13 @@ even if our phony contact objects stringify to their value attributes, an
 argument to a C<contact> search parameter will always search by the contact
 object ID:
 
-  # XXX the docs say "ID", but this says GUID.  Which is it?
+  # XXX the docs say "ID", but this says UUID.  Which is it?
   # right now I'll assume ID as its easier.  However, is this
   # distinction necessary?  Is it OK to just search by "person
   # has this object" and complete hide from the developer the
   # fact that it's joining on anything?
 
-  # Search by contact object GUID.
+  # Search by contact object UUID.
   my $iter = $store->search('Kinetic::Phony::Person' =>
                             'contact' => $contact);
 
@@ -1234,7 +1234,7 @@ You're better off using explicit parentheses:
                             AND ( first_name  => 'Larry'  );
 
 Note that this caveat especially applies to the C<search()> method (as opposed
-to the C<search_guids()> and C<count()> methods) when used with its optional
+to the C<search_uuids()> and C<count()> methods) when used with its optional
 final hash reference argument. This search, for example, will likely trigger an
 exception:
 

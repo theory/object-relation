@@ -122,13 +122,13 @@ Multiple XML sections might be obtained if C<with_contained> is false.
 
 If passed a true value, any contained Kinetic objects will be serialized
 within the XML for the main object. If it is false (the default), then
-contained objects will merely be referenced by GUID and name.
+contained objects will merely be referenced by UUID and name.
 
 =item with_collections
 
 If passed a true value, then collections of contained Kinetic objects will be
 serialized within the XML for the main object. If it is false (the default),
-then contained objects will merely be referenced by GUID and name.
+then contained objects will merely be referenced by UUID and name.
 
 =back
 =cut
