@@ -11,7 +11,7 @@ use Test::Exception;
 use Test::XML;
 
 use Kinetic::XML;
-use Kinetic::Util::Constants  qw/GUID_RE/;
+use Kinetic::Util::Constants  qw/GUID_RE CURRENT_PAGE/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(0) }
 
@@ -159,6 +159,7 @@ sub transform : Test(9) {
       <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
       <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
     </table>
+    <p></p>
   </body>
 </html>
     END_XHTML
@@ -193,6 +194,7 @@ sub transform : Test(9) {
       <tr><td><a href="http://somehost.com/rest/simple">simple</a></td></tr>
       <tr><td><a href="http://somehost.com/rest/two">two</a></td></tr>
     </table>
+    <p></p>
   </body>
 </html>
     END_XHTML
@@ -240,6 +242,113 @@ sub transform : Test(9) {
   </body>
 </html>
     END_XHTML
+}
+
+sub transform_pages : Test(5) {
+    my $test = shift;
+    my $xslt = XSLT->new(type => 'REST');
+
+    my $xml = <<'    END_XML';
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="http://localhost:9000/rest/?stylesheet=REST"?>
+    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
+                       xmlns:xlink="http://www.w3.org/1999/xlink">
+      <kinetic:description>Available instances</kinetic:description>
+      <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/guid/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/guid/XXX"/>
+      <kinetic:pages>
+        <kinetic:page id="[ Page 1 ]" xlink:href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/0" />
+        <kinetic:page id="[ Page 2 ]" xlink:href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/2" />
+      </kinetic:pages>
+    </kinetic:resources>
+    END_XML
+    ok my $xhtml = $xslt->transform($xml), 
+        'Calling transform() with XML that has pages should succeed';
+
+    is_xml $xhtml, <<'    END_XHTML', '... and return xml with pages';
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+    <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
+      <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Available instances</title>
+      </head>
+      <body>
+        <table bgcolor="#eeeeee" border="1">
+          <tr>
+            <th>Available instances</th>
+          </tr>
+          <tr>
+            <td>
+              <a href="http://domain/rest/one/lookup/guid/XXX">XXX</a>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <a href="http://domain/rest/one/lookup/guid/XXX">XXX</a>
+            </td>
+          </tr>
+        </table>
+        <p>
+          <a href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/0">[ Page 1 ]</a>
+          <a href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/2">[ Page 2 ]</a>
+        </p>
+      </body>
+    </html>
+    END_XHTML
+    
+    $xml = <<"    END_XML";
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="http://localhost:9000/rest/?stylesheet=REST"?>
+    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
+                       xmlns:xlink="http://www.w3.org/1999/xlink">
+      <kinetic:description>Available instances</kinetic:description>
+      <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/guid/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/guid/XXX"/>
+      <kinetic:pages>
+        <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
+        <kinetic:page id="[ Page 2 ]" xlink:href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/2" />
+      </kinetic:pages>
+    </kinetic:resources>
+    END_XML
+    ok $xhtml = $xslt->transform($xml), 
+        'Calling transform() with XML that has pages should succeed';
+
+    is_xml $xhtml, <<"    END_XHTML", '... and return xml with pages';
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+    <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
+      <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Available instances</title>
+      </head>
+      <body>
+        <table bgcolor="#eeeeee" border="1">
+          <tr>
+            <th>Available instances</th>
+          </tr>
+          <tr>
+            <td>
+              <a href="http://domain/rest/one/lookup/guid/XXX">XXX</a>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <a href="http://domain/rest/one/lookup/guid/XXX">XXX</a>
+            </td>
+          </tr>
+        </table>
+        <p>
+          [ Page 1 ]
+          <a href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/2">[ Page 2 ]</a>
+        </p>
+      </body>
+    </html>
+    END_XHTML
+    
+    ok $xhtml = $xslt->transform($xml), 
+        '... but it should not create page links to the current page';
+
 }
 
 1;

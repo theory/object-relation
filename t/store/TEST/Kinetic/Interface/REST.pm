@@ -20,7 +20,7 @@ use XML::Parser;
     require WWW::REST;
 }
 
-use Kinetic::Util::Constants qw/GUID_RE/;
+use Kinetic::Util::Constants qw/GUID_RE CURRENT_PAGE/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(1) }
 use TEST::REST::Server;
@@ -114,7 +114,7 @@ sub _clear_database {
 
 sub REST { shift->{REST} }
 
-sub web_test_paging : Test(no_plan) {
+sub web_test_paging : Test(14) {
     my $test = shift;
     my $mech = Test::WWW::Mechanize->new;
     my $url  = sprintf 'http://%s:%d/', DOMAIN, PORT;
@@ -125,18 +125,32 @@ sub web_test_paging : Test(no_plan) {
         "$url/one/search/STRING/null/order_by/name/limit/2",
         'We should be able to fetch and limit the searches'
     );
-    diag "Finish paging system.  We're almost there!";
-    #diag $mech->content;
-    return;
+
+    my $foo_guid = $foo->guid;
+    my $bar_guid = $bar->guid;
+    my $expected = <<"    END_XML";
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="http://localhost:9000/rest/?stylesheet=REST"?>
+    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
+                       xmlns:xlink="http://www.w3.org/1999/xlink">
+      <kinetic:description>Available instances</kinetic:description>
+      <kinetic:resource id="$bar_guid" xlink:href="http://localhost:9000/rest/one/lookup/guid/$bar_guid"/>
+      <kinetic:resource id="$foo_guid" xlink:href="http://localhost:9000/rest/one/lookup/guid/$foo_guid"/>
+      <kinetic:pages>
+        <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
+        <kinetic:page id="[ Page 2 ]" xlink:href="http://localhost:9000/rest/one/search/STRING/null/order_by/name/limit/2/offset/2" />
+      </kinetic:pages>
+    </kinetic:resources>
+    END_XML
+
+    is_xml $mech->content, $expected, '... and have appropriate pages added, if available';
 
     $mech->get_ok(
         "$url/one/search/STRING/null/order_by/name/limit/2?type=html",
         'We should be able to fetch and limit the searches'
     );
 
-    my $foo_guid = $foo->guid;
-    my $bar_guid = $bar->guid;
-    my $expected = <<"    END_XHTML";
+    $expected = <<"    END_XHTML";
 <?xml version="1.0"?>
     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
     <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
@@ -160,6 +174,10 @@ sub web_test_paging : Test(no_plan) {
             </td>
           </tr>
         </table>
+        <p>
+          [ Page 1 ]
+          <a href="http://localhost:9000/rest/one/search/STRING/null/order_by/name/limit/2/offset/2?type=html">[ Page 2 ]</a>
+        </p>
       </body>
     </html>
     END_XHTML
@@ -171,6 +189,7 @@ sub web_test_paging : Test(no_plan) {
         '... as should paging through result sets'
     );
     my $baz_guid = $baz->guid;
+
     $expected = <<"    END_XHTML";
 <?xml version="1.0"?>
     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -190,6 +209,10 @@ sub web_test_paging : Test(no_plan) {
             </td>
           </tr>
         </table>
+        <p>
+          <a href="http://localhost:9000/rest/one/search/STRING/null/order_by/name/limit/2/offset/0?type=html">[ Page 1 ]</a>
+          [ Page 2 ]
+        </p>
       </body>
     </html>
     END_XHTML
@@ -205,24 +228,32 @@ sub web_test_paging : Test(no_plan) {
 
     # now that we have 26 "One" objects in the database, let's make sure
     # that the default max list is 20
+    # We should also get two pages listed, but the current page is not linked
     $mech->get_ok( "$url/one/search?type=html",
         '... as should paging through result sets' );
     my @links = $mech->links;
-    is @links, 20, 'We should receive a maximum of 20 links in a result set.';
+    is @links, 21, 'We should receive 20 instance links and 1 page links';
 
     $mech->get_ok(
         "$url/one/search/STRING/null/limit/30?type=html",
-        '... but asking for more than the limit should work'
+        'Asking for more than the limit should work'
     );
     @links = $mech->links;
-    is @links, 26, '... and return the correct number of links';
+    is @links, 26, '... and return only instance links';
 
     $mech->get_ok(
         "$url/one/search/STRING/null/limit/10?type=html",
-        '... but asking for fewer than the limit should work'
+        'Asking for fewer than the limit should work'
     );
     @links = $mech->links;
-    is @links, 10, '... and return the correct number of links';
+    is @links, 12, '... and return the correct number of links';
+    
+    $mech->get_ok(
+        "$url/one/search/STRING/null/limit/26?type=html",
+        'Asking for exactly the number of links that exist should work'
+    );
+    @links = $mech->links;
+    is @links, 26, '... and return no page links';
 }
 
 sub web_test : Test(12) {
@@ -284,6 +315,7 @@ sub web_test : Test(12) {
             </td>
           </tr>
         </table>
+        <p></p>
       </body>
     </html>
     END_XHTML

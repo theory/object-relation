@@ -27,7 +27,7 @@ use Kinetic::Meta;
 use Kinetic::XML;
 use Kinetic::Meta::XML;
 use Kinetic::Store;
-use Kinetic::Util::Constants qw/:http :data_store/;
+use Kinetic::Util::Constants qw/:http :data_store :xslt/;
 
 our $VERSION = version->new('0.0.1');
 
@@ -281,7 +281,8 @@ sub _handle_method {
             return $self->_instance_list($response);
         }
         else {
-            # XXX 
+
+            # XXX
         }
     }
     else {
@@ -378,19 +379,23 @@ qq'<kinetic:resource id="$guid" xlink:href="$base_url$key/lookup/guid/$guid$quer
         if ($pageset) {
             my @args = $self->get_args;
 
-            my $url = "$base_url/$key/search/";
-            $url .= join '/', @args;
+            my $url = "$base_url$key/search/";
+            $url .= join '/', map { '' eq $_ ? 'null' : $_ } @args;
             $url =~ s{offset/\d+}{offset/\%d};
             $url .= $query_string;
 
             $response .= '<kinetic:pages>';
-            foreach my $page ( @{ $pageset->pages_in_set } ) {
+            foreach my $set ( $pageset->first_page .. $pageset->last_page ) {
 
-                # do something with page
-                my $offset = ( $page - 1 ) * $limit;
-                my $link_url = sprintf $url, $offset;
-                $response .= qq'<kinetic:page id="[ Page $page ]" '
-                  . qq'xlink:href="$link_url" />\n';
+                if ($set == $pageset->current_page) {
+                    $response .= qq'<kinetic:page id="[ Page $set ]" xlink:href="@{[CURRENT_PAGE]}" />\n';
+                }
+                else {
+                    my $offset = ( $set - 1 ) * $limit;
+                    my $link_url = sprintf $url, $offset;
+                    $response .= qq'<kinetic:page id="[ Page $set ]" '
+                    . qq'xlink:href="$link_url" />\n';
+                }
             }
             $response .= "</kinetic:pages>";
         }
@@ -449,6 +454,9 @@ sub _pageset {
     # relevant to the count and may cause it to fail.
     my ($total_entries) =
       $self->class->package->count( $self->get_args( 0, 1 ) );
+
+    # don't create a pageset if there is only one page
+    return if $current_page == 1 && $page->{limit} == $total_entries;
 
     # by setting the pages_per_set to '1', we defer annoyance of dealing
     # with complicated page sets until such time we have enough data for

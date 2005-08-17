@@ -44,8 +44,8 @@ use constant OBJECT_DELIMITER => '__';
 use constant ATTR_DELIMITER   => '.';
 use constant PREPARE          => 'prepare';
 use constant CACHED           => 'prepare_cached';
-use constant GUID_RE          => 
-    qr/[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}/;
+use constant GUID_RE          =>
+  qr/[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}/;
 
 # HTTP content types
 use constant TEXT_CT => 'text/plain';
@@ -57,24 +57,35 @@ use constant OK_STATUS                    => '200 OK';
 use constant INTERNAL_SERVER_ERROR_STATUS => '500 Internal Server Error';
 use constant NOT_IMPLEMENTED_STATUS       => '501 Not Implemented';
 
-use Exporter::Tidy
-    http       => [qw/
-        HTML_CT
-        TEXT_CT
-        XML_CT
+# XSLT
+use constant CURRENT_PAGE => '#';
 
-        OK_STATUS
-        INTERNAL_SERVER_ERROR_STATUS
-        NOT_IMPLEMENTED_STATUS
-    /],
-    data_store => [qw/
-        ATTR_DELIMITER
-        CACHED 
-        GROUP_OP 
-        GUID_RE
-        OBJECT_DELIMITER 
-        PREPARE 
-    /];
+use Exporter::Tidy http => [
+    qw/
+      HTML_CT
+      TEXT_CT
+      XML_CT
+
+      OK_STATUS
+      INTERNAL_SERVER_ERROR_STATUS
+      NOT_IMPLEMENTED_STATUS
+      /
+  ],
+  data_store => [
+    qw/
+      ATTR_DELIMITER
+      CACHED
+      GROUP_OP
+      GUID_RE
+      OBJECT_DELIMITER
+      PREPARE
+      /
+  ],
+  xslt => [
+    qw/
+      CURRENT_PAGE
+      /
+  ];
 
 =head1 :data_store
 
@@ -160,6 +171,18 @@ C<501 Not Implemented>
 =item * OK_STATUS
 
 C<200 OK>
+
+=back
+
+=head1 :xslt
+
+=over 4
+
+=item * CURRENT_PAGE
+
+This is a marker used in XML documents to indicate a link to the current page.
+Usually such a link is not desired and XSLT should not make a link if it finds
+a C<CURRENT_PAGE> marker.
 
 =back
 

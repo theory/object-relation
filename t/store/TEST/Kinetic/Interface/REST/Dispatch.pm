@@ -93,20 +93,16 @@ sub teardown : Test(teardown) {
 
 sub _query_string {
     my $test = shift;
-    if (@_) {
-        $test->{query_string} = [@_];
-        return $test;
-    }
-    return $test->{query_string};
+    return $test->{query_string} unless @_;
+    $test->{query_string} = [@_];
+    return $test;
 }
 
 sub _path_info {
     my $test = shift;
-    if (@_) {
-        $test->{path_info} = shift;
-        return $test;
-    }
-    return $test->{path_info};
+    return $test->{path_info} unless @_;
+    $test->{path_info} = shift;
+    return $test;
 }
 
 sub message_arg_handling : Test(8) {

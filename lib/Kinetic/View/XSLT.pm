@@ -23,6 +23,7 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 use Kinetic::Util::Exceptions qw/:all/;
+use Kinetic::Util::Constants qw/CURRENT_PAGE/;
 use aliased 'XML::LibXML';
 use aliased 'XML::LibXSLT';
 
@@ -215,7 +216,7 @@ sub transform {
 =cut
 
 sub _stylesheet_rest {
-    return <<'    END_STYLE_SHEET';
+    return <<"    END_STYLE_SHEET";
 <xsl:stylesheet version="1.0"
       xmlns:kinetic="http://www.kineticode.com/rest"
       xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
@@ -243,33 +244,58 @@ sub _stylesheet_rest {
             <xsl:apply-templates select="./kinetic:resource" />
           </xsl:for-each>
         </table>
-          <xsl:for-each select="kinetic:pages">
+
+        <!--                                                    -->
+        <!-- For the time being, we'll just have to accept that -->
+        <!-- we have empty <p></p> tags on docs without pages   -->
+        <!-- It's been too much of a timesink to fix this :(    -->
+        <!--                                                    -->
+
+        <p>
+          <xsl:for-each select="/kinetic:resources/kinetic:pages">
             <xsl:apply-templates select="./kinetic:page" />
           </xsl:for-each>
+        </p>
       </body>
     </html>
   </xsl:template>
+  
+  <!--                                                  -->
+  <!-- Find all instances and create hyperlinks for 'em -->
+  <!--                                                  -->
   
   <xsl:template match="kinetic:resource">
     <tr>
       <td>
         <a>
           <xsl:attribute name="href">
-            <xsl:value-of select="@xlink:href"/>
+            <xsl:value-of select="\@xlink:href"/>
           </xsl:attribute>
-          <xsl:value-of select="@id" />
+          <xsl:value-of select="\@id" />
         </a>
       </td>
     </tr>
   </xsl:template>
 
+  <!--                                              -->
+  <!-- Find all pages and create hyperlinks for 'em -->
+  <!-- ... but don't create a link to current page  -->
+  <!--                                              -->
+
   <xsl:template match="kinetic:page">
-    <a>
-      <xsl:attribute name="href">
-      <xsl:value-of select="@xlink:href"/>
-      </xsl:attribute>
-      <xsl:value-of select="@id" />
-    </a>
+    <xsl:choose>
+      <xsl:when test="\@xlink:href = '@{[CURRENT_PAGE]}'">
+        <xsl:value-of select="\@id" />
+      </xsl:when>
+      <xsl:otherwise>
+        <a>
+        <xsl:attribute name="href">
+          <xsl:value-of select="\@xlink:href"/>
+        </xsl:attribute>
+        <xsl:value-of select="\@id" />
+        </a>
+      </xsl:otherwise>
+    </xsl:choose>
   </xsl:template>
 
 </xsl:stylesheet>
@@ -306,7 +332,9 @@ sub _stylesheet_instance {
     </html>
   </xsl:template>
   
+  <!--                                 -->
   <!-- display an individual attribute -->
+  <!--                                 -->
   
   <xsl:template match="attr">
     <tr>
