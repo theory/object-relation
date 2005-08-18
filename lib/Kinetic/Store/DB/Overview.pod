@@ -54,20 +54,20 @@ succeeded.
 
 =head2 C<< $self->_save($object) >>
 
-This method is called by C<save> to handle the actual saving of objects.  It
+This method is called by C<save> to handle the actual saving of objects. It
 calls itself recursively if it encounters a contained object, thus allowing
 for a single save to be called at the top level.
 
-Classes in the Kinetic store are represented as tables.  A subclass may
-I<inherit> from another table and I<contain> other tables.  Rather than write
+Classes in the Kinetic store are represented as tables. A subclass may
+I<inherit> from another table and I<contain> other tables. Rather than write
 complicated SQL to manage these relationships, a view is created that makes
 managing these relationships as simple as working with a single table.
 C<SELECT>ing from a view is relatively trivial, as one might assume.
 C<INSERT>ing or C<UPDATE>ing (sic) is just as trivial and, behind the scenes,
 activate triggers or call rules that take the C<INSERT> or C<UPDATE> and
-create or modify the appropriate records.  Thus, C<Kinetic::Store::DB>
-merely needs to determine the name of the view and the correct column names for
-said view.
+create or modify the appropriate records. Thus, C<Kinetic::Store::DB> merely
+needs to determine the name of the view and the correct column names for said
+view.
 
 When C<< $object->save >> is called, the C<_save> method first determines the
 Kinetic class to which the object belongs:
@@ -86,11 +86,11 @@ method.
       $self->_save( $attribute->get($object) );
   }
 
-Every Kinetic class has a set of attributes, either direct
-attributes or referenced attributes.  The "referenced" attributes refer to
-contained objects.  Once the contained objects have been saved, we need to save
-the actual object.  This is done by determining the names of the view's columns
-for each attribute and its value.
+Every Kinetic class has a set of attributes, either direct attributes or
+referenced attributes. The "referenced" attributes refer to contained objects.
+Once the contained objects have been saved, we need to save the actual object.
+This is done by determining the names of the view's columns for each attribute
+and its value.
 
     foreach my $attribute ( $kinetic_class->attributes ) {
         push @columns => $attribute->_view_column;
@@ -101,33 +101,36 @@ for each attribute and its value.
     }
 
 Once we have this, we now have all the information we need to save the object.
-If the object has an C<id> attribute (the C<id> is for internal use only -- other classes
-should never see this), we know it already exists in the database so we call
-the C<_update> method.  Otherwise, we call the C<_insert> method.
+If the object has an C<id> attribute (the C<id> is for internal use only --
+other classes should never see this), we know it already exists in the
+database so we call the C<_update> method. Otherwise, we call the C<_insert>
+method.
 
-The C<_insert> and C<_update> methods are very similar.  They join the column
+The C<_insert> and C<_update> methods are very similar. They join the column
 names and create placeholders (bind parameters) and use the view name for the
-table name.  Then they execute the resulting SQL using the attribute values for
-the bind values.  The C<_insert> method then sets the object ID.
+table name. Then they execute the resulting SQL using the attribute values for
+the bind values. The C<_insert> method then sets the object ID.
 
 =head2 C<< $kinetic_object->search( @params ) >>
 
 The C<< $object->search >> method is where the real magic happens.  The
 C<< $object->search_guids >>, C<< $object->lookup >> and C<< $object->count >>
-methods are closely related, so the following description applies to them also.
+methods are closely related, so the following description applies to them
+also.
 
   my $iter = $kinetic_object->search( @search_params );
 
-This method returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> object
-containing all objects that match the search parameters. See
-L<Kinetic::Store|Kinetic::Store> for detailed information about search parameters.
+This method returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator>
+object containing all objects that match the search parameters. See
+L<Kinetic::Store|Kinetic::Store> for detailed information about search
+parameters.
 
 First we'll give a general overview of how the C<search> method works and then
 we'll go into detail about the various parts.
 
-As usual, C<search> calls C<_search> internally.  The latter method
-determines what type of search we are working with.  This "type" of search
-is either C<CODE> or C<STRING>.  A C<CODE> search looks like this:
+As usual, C<search> calls C<_search> internally. The latter method determines
+what type of search we are working with. This "type" of search is either
+C<CODE> or C<STRING>. A C<CODE> search looks like this:
 
  $object->search( \@parameters, \%constraints );
 
@@ -154,12 +157,12 @@ Here is a concrete example.  These searches are equivalent:
       sort_order => 'DESC',
    );
 
-The "parameters" correspond to what one would find in a C<WHERE> clause and the
-"contraints" are things such as "limit", "offset" or other things that affect
-the how results are returned.
+The "parameters" correspond to what one would find in a C<WHERE> clause and
+the "contraints" are things such as "limit", "offset" or other things that
+affect the how results are returned.
 
-B<Note>:  If no parameters are supplied, every object for a given class is
-returned.  Constraints are optional.  However, if you want constraints for
+B<Note>: If no parameters are supplied, every object for a given class is
+returned. Constraints are optional. However, if you want constraints for
 string searches, you must pass an empty string search, first:
 
   $object->search( STRING => '', @constraints );
@@ -174,25 +177,24 @@ The above searches might translate to SQL as follows (loosely):
           $view.age  DESC
 
 The reason there are both C<CODE> and C<STRING> searches is the former is used
-from Perl and the latter is used externally, such as from an AJAX call.  It is
+from Perl and the latter is used externally, such as from an AJAX call. It is
 important to note, though, that C<eval()> is not used with C<STRING> searches.
 Instead, the the string is lexed into a series of tokens the search parser
-understands.  More on this later.
+understands. More on this later.
 
-As of this writing, C<_search> determines the type of search by calling
-the C<&_set_search_type> method to examine the
-first parameter.  If it's
-"STRING", we have a string search.  Otherwise, it's assumed to be a code
-search.  No other search methods are supported at this time.  If we have a
-I<STRING> search type, we check to see if there are any constraints and
-convert them into a hashref matching the I<CODE> search type hashref.
+As of this writing, C<_search> determines the type of search by calling the
+C<&_set_search_type> method to examine the first parameter. If it's "STRING",
+we have a string search. Otherwise, it's assumed to be a code search. No other
+search methods are supported at this time. If we have a I<STRING> search type,
+we check to see if there are any constraints and convert them into a hashref
+matching the I<CODE> search type hashref.
 
 Once the search type is determined, we set the search data via a method
-cleverly named C<&_set_search_data>.  This method uses the C<Kinetic::Meta>
+cleverly named C<&_set_search_data>. This method uses the C<Kinetic::Meta>
 introspection API to determine all relevant information necessary to conduct
-the search and convert results back into Kinetic objects.  Because this method
+the search and convert results back into Kinetic objects. Because this method
 is relatively expensive, the information is cached and subsequent calls will
-fetch the cached results.  If a Kinetic object's metadata is altered, the cache
+fetch the cached results. If a Kinetic object's metadata is altered, the cache
 will need to be cleared (but this should never happen).
 
 Then, we use the view's columns and the search parameters and constraints to
@@ -209,10 +211,10 @@ Now for details of the fiddly bits.
 
 =head2 C<< $store->_set_search_type( \@search ) >>
 
-This method is straightforward.  As mentioned earlier, if the first argument
-is I<STRING>, then we have a string search and the third argument
-and beyond are considered to be constraints. The constrains are converted into a
-hashref that matches the I<CODE> hashref.
+This method is straightforward. As mentioned earlier, if the first argument is
+I<STRING>, then we have a string search and the third argument and beyond are
+considered to be constraints. The constrains are converted into a hashref that
+matches the I<CODE> hashref.
 
 =head2 C<< $store->_set_search_data >>
 
@@ -224,10 +226,10 @@ down into an object and its contained objects.
 
 =head2 C<< $store->_get_select_sql_and_bind_params( $columns, \@search ) >>
 
-Once again, we have a fairly straightforward method.  When we get here, we
+Once again, we have a fairly straightforward method. When we get here, we
 fetch the name of the view, we build a C<WHERE> clause from the
-C<&_make_where_clause> method, add any constraints, and return the
-SQL and bind parameters.  The relevant code looks like this:
+C<&_make_where_clause> method, add any constraints, and return the SQL and
+bind parameters. The relevant code looks like this:
 
   my ( $where_clause, $bind_params )
     = $self->_make_where_clause($search_request);
@@ -238,10 +240,10 @@ SQL and bind parameters.  The relevant code looks like this:
 
 =head2 C<< $self->_make_where_clause( \@search ) >>
 
-This is where the start of the real magic happens.  This method returns a C<WHERE>
-clause and an arrayref of any appropriate bind parameters for that C<where> clause.
-Returns an empty string and an empty array ref (the bind parameters) if no C<WHERE>
-clause can be generated.
+This is where the start of the real magic happens. This method returns a
+C<WHERE> clause and an arrayref of any appropriate bind parameters for that
+C<where> clause. Returns an empty string and an empty array ref (the bind
+parameters) if no C<WHERE> clause can be generated.
 
 Here's the tricky bit:
 
@@ -251,7 +253,7 @@ Here's the tricky bit:
 
 The C<code_lexer_stream> and C<string_lexer_stream> functions are exported by
 C<Kinetic::Store::Lexer::Code> and C<Kinetic::Store::Lexer::String>,
-respectively.  Each takes the appropriate search parameters (either the Perl
+respectively. Each takes the appropriate search parameters (either the Perl
 code or the search string) and returns a virtually identical stream of tokens.
 You can see details of their behavior in C<t/lexer/code.t> and
 C<t/lexer/string.t>.
@@ -280,13 +282,13 @@ tokens:
   [ 'VALUE',           3 ],
 
 With a few exceptions, merely quoting the Perl code is what is necessary to
-turn a I<CODE> search into a I<STRING> search.  This may seem a bit strange,
+turn a I<CODE> search into a I<STRING> search. This may seem a bit strange,
 but what it gives us is this:
 
     my $intermediate_representation = parse( $stream, $store );
 
-The parse method is exported by C<Kinetic::Store::Parser::DB>.  This parser
-uses the parsing methods exported by C<Kinetic::Store::Parser>.  The latter
+The parse method is exported by C<Kinetic::Store::Parser::DB>. This parser
+uses the parsing methods exported by C<Kinetic::Store::Parser>. The latter
 module is very similar to the parser described in the book "Higher Order Perl"
 by Mark-Jason Dominus.
 
@@ -295,10 +297,10 @@ list of L<Kinetic::Store::Search|Kinetic::Store::Search> objects and groups of
 said objects (see L<Kinetic::Store::Parser::DB|Kinetic::Store::Parser::DB> for
 more information on this).
 
-This aproach allows us to have multiple search interfaces and one parser
-for all searches.  This simplifies the code tremendously.  Further, if other
-data stores (such as LDAP or XML) are implemented in the future, they can use the same
-IR to handle their searches.  Nothing up to this point is specific to SQL.
+This aproach allows us to have multiple search interfaces and one parser for
+all searches. This simplifies the code tremendously. Further, if other data
+stores (such as LDAP or XML) are implemented in the future, they can use the
+same IR to handle their searches. Nothing up to this point is specific to SQL.
 
 =head2 C<< $store->_convert_ir_to_where_clause( $ir ) >>
 
@@ -308,26 +310,26 @@ C<&_convert_ir_to_where_clause> method.
     my ( $where_clause, $bind_params )
       = $self->_convert_ir_to_where_clause($ir);
 
-This method essentially walks through the IR array and for each element
-in the array, builds up a "where snippet" and pushes it onto a stack and pushes
-the associated bind param onto a stack, too.  These "snippets" resemble things
-such as:
+This method essentially walks through the IR array and for each element in the
+array, builds up a "where snippet" and pushes it onto a stack and pushes the
+associated bind param onto a stack, too. These "snippets" resemble things such
+as:
 
   LOWER(name) LIKE LOWER(?)
   age >= ?
   foo = ?
   LOWER(one__value) = LOWER(?)
 
-Note that some snippets have the column and its value lower-cased.  This is
+Note that some snippets have the column and its value lower-cased. This is
 because most searches are case-insensitive.
 
 The last snippet in the example above, because it has an embedded
-double-underscore, refers to a contained object's field.  While it's all in the
+double-underscore, refers to a contained object's field. While it's all in the
 same view, inside of the database it's actually in a separate table.
 
 In order to build these snippets, each C<Kinetic::Store::Search> object has a
-C<search_method> method.  The method name returned corresponds to a method that
-must be defined in C<Kinetic::Store::DB> or a subclass.  It works like this:
+C<search_method> method. The method name returned corresponds to a method that
+must be defined in C<Kinetic::Store::DB> or a subclass. It works like this:
 
   my $search_method    = $search_object->search_method;
   my ( $token, $bind ) = $store->$search_method( $search_object );
@@ -340,9 +342,9 @@ methods).
 
 Now that we have the C<WHERE> clause built up, we go back up to the
 C<&_get_select_sql_and_bind_params> method, add the constraints (relatively
-straightforward), and finally call the C<&_get_sql_results> method.  This
-method usually returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> object
-representing the results of a given C<search>.  Some methods require all
+straightforward), and finally call the C<&_get_sql_results> method. This
+method usually returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator>
+object representing the results of a given C<search>. Some methods require all
 results to be returned at once, but whether an iterator or all results are
 required, it effectively boils down to this:
 
@@ -356,16 +358,16 @@ required, it effectively boils down to this:
 
 For a given hashref returned by C<< $sth->fetchrow_hashref >>, the
 C<&_build_object_from_hashref> method will return an object representing that
-row.  Note that the hashref may represent multiple objects because an object
-can contain other objects.  C<&_build_object_from_hashref> resolves this by
+row. Note that the hashref may represent multiple objects because an object
+can contain other objects. C<&_build_object_from_hashref> resolves this by
 utilizing the metadata assembled by C<&_set_search_data> to match the table
 columns for each object and pull them off of the metadata hashref with hash
 slices.
 
 =head2 Conclusion
 
-Well, I guess there's no conclusion to be given.  That pretty much explains how
-things work internally.  Any questions?
+Well, I guess there's no conclusion to be given. That pretty much explains how
+things work internally. Any questions?
 
 Oh, wait.  This is POD.  You can't ask me any questions.  Ha, ha, ha!
 
