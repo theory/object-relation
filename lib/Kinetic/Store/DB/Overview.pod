@@ -69,7 +69,7 @@ create or modify the appropriate records. Thus, C<Kinetic::Store::DB> merely
 needs to determine the name of the view and the correct column names for said
 view.
 
-When C<< $object->save >> is called, the C<_save> method first determines the
+When C<< $object->save >> is called, the C<&_save> method first determines the
 Kinetic class to which the object belongs:
 
   my $kinetic_class = $object->my_class;
@@ -79,7 +79,7 @@ Then, it determines the name of the view that represents this class:
   my $view = $kinetic_class->key;
 
 If a Kinetic class contains (or "references") other objects, we first iterate
-over those other objects and save them by recursively calling the C<_save>
+over those other objects and save them by recursively calling the C<&_save>
 method.
 
   foreach my $attribute ( $kinetic_class->ref_attributes ) {
@@ -103,13 +103,13 @@ and its value.
 Once we have this, we now have all the information we need to save the object.
 If the object has an C<id> attribute (the C<id> is for internal use only --
 other classes should never see this), we know it already exists in the
-database so we call the C<_update> method. Otherwise, we call the C<_insert>
+database so we call the C<&_update> method. Otherwise, we call the C<&_insert>
 method.
 
-The C<_insert> and C<_update> methods are very similar. They join the column
+The C<&_insert> and C<&_update> methods are very similar. They join the column
 names and create placeholders (bind parameters) and use the view name for the
 table name. Then they execute the resulting SQL using the attribute values for
-the bind values. The C<_insert> method then sets the object ID.
+the bind values. The C<&_insert> method then sets the object ID.
 
 =head2 C<< $kinetic_object->search( @params ) >>
 
@@ -128,7 +128,7 @@ parameters.
 First we'll give a general overview of how the C<search> method works and then
 we'll go into detail about the various parts.
 
-As usual, C<search> calls C<_search> internally. The latter method determines
+As usual, C<search> calls C<&_search> internally. The latter method determines
 what type of search we are working with. This "type" of search is either
 C<CODE> or C<STRING>. A C<CODE> search looks like this:
 
@@ -182,7 +182,7 @@ important to note, though, that C<eval()> is not used with C<STRING> searches.
 Instead, the the string is lexed into a series of tokens the search parser
 understands. More on this later.
 
-As of this writing, C<_search> determines the type of search by calling the
+As of this writing, C<&_search> determines the type of search by calling the
 C<&_set_search_type> method to examine the first parameter. If it's "STRING",
 we have a string search. Otherwise, it's assumed to be a code search. No other
 search methods are supported at this time. If we have a I<STRING> search type,
@@ -221,7 +221,7 @@ matches the I<CODE> hashref.
 This method sets the search data used for the current search. Since this is
 expensive, we cache search data for each search class. The search data
 consists of the SQL columns that will be used in the search SQL and metadata
-that C<_build_object_from_hashref> will use to break the returned SQL data
+that C<&_build_object_from_hashref> will use to break the returned SQL data
 down into an object and its contained objects.
 
 =head2 C<< $store->_get_select_sql_and_bind_params( $columns, \@search ) >>
