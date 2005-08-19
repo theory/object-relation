@@ -53,14 +53,14 @@ for a given store.
 =cut
 
 # predefine a few things
-my $lparen    = _(OP =>  '(');
-my $rparen    = _(OP =>  ')');
-my $lbracket  = _(OP =>  '[');
-my $rbracket  = _(OP =>  ']');
-my $fat_comma = _(OP => '=>');
-my $comma     = _(OP =>  ',');
+my $lparen    = match(OP =>  '(');
+my $rparen    = match(OP =>  ')');
+my $lbracket  = match(OP =>  '[');
+my $rbracket  = match(OP =>  ']');
+my $fat_comma = match(OP => '=>');
+my $comma     = match(OP =>  ',');
 
-my $search_value = _('VALUE');
+my $search_value = match('VALUE');
 sub _search_value { $search_value }
 
 my $value;
@@ -68,7 +68,7 @@ my $Value = parser { $value->(@_) };
 $value = alternate(
   $search_value,
   T(
-    _('UNDEF'),
+    match('UNDEF'),
     sub { undef }
   )
 );
@@ -76,7 +76,7 @@ my $any;
 my $Any = parser { $any->(@_) };
 $any = T(
   concatenate(
-    _(KEYWORD => 'ANY'),
+    match(KEYWORD => 'ANY'),
     $lparen,
     $value,
     T(
@@ -98,7 +98,7 @@ $any = T(
     $rparen,
   ),
   sub {
-    # any is in an arrayref because $normal_value has star(_('COMPARE'))
+    # any is in an arrayref because $normal_value has star(match('COMPARE'))
     # and that returns the keyword in an arrayref
     [ ['ANY'], [ _normalize_value($_[2]), map { _normalize_value($_) } @{$_[3]} ] ]
   }
@@ -108,7 +108,7 @@ my $normal_value = T(
   concatenate(
     alternate(
       concatenate(
-        star(_('COMPARE')),
+        star(match('COMPARE')),
         $value
       ),
       $any
@@ -119,7 +119,7 @@ my $normal_value = T(
 
 my $between_value = T(
   concatenate(
-    star(_(KEYWORD => 'BETWEEN')), # 0
+    star(match(KEYWORD => 'BETWEEN')), # 0
        $lbracket,                  # 1
          $Value,                   # 2
          alternate(
@@ -134,9 +134,9 @@ my $between_value = T(
 
 my $search = T(
   concatenate( 
-       _('IDENTIFIER'),
+       match('IDENTIFIER'),
        $fat_comma,
-    star(_(KEYWORD => 'NOT')),
+    star(match(KEYWORD => 'NOT')),
     alternate(
       $normal_value,
       $between_value
@@ -169,8 +169,8 @@ $statement = T(
     T(
       concatenate(
         alternate(
-          _(KEYWORD => 'AND'),
-          _(KEYWORD => 'OR')
+          match(KEYWORD => 'AND'),
+          match(KEYWORD => 'OR')
         ),
         $lparen, $statement_list, $rparen
       ),
@@ -240,7 +240,7 @@ my $entire_input = T(
 
 =head3 parse
 
-  my ($ir) = parse($stream, $self);
+  my $ir = parse($stream, $store);
 
 This function takes a lexer stream produced by a Kinetic lexer a the store
 object to be searched.  It returns an intermediate representation suitable
