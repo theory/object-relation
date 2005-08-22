@@ -290,7 +290,7 @@ but what it gives us is this:
 The parse method is exported by C<Kinetic::Store::Parser>. This parser
 uses the parsing methods exported by C<Kinetic::Store::Parser>. The latter
 module is very similar to the parser described in the book "Higher Order Perl"
-by Mark-Jason Dominus.
+by Mark Jason Dominus.
 
 The intermediate representation (IR) returned by the parser is essentially a
 list of L<Kinetic::Store::Search|Kinetic::Store::Search> objects and groups of

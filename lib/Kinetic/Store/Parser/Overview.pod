@@ -35,7 +35,7 @@ C<Kinetic::Store::Parser> class operates.
 =head1 Grammar
 
 The C<Kinetic::Store::Parser> uses the Parser module described in "Higher
-Order Perl" by Mark-Jason Dominus to transform a series of tokens into an
+Order Perl" by Mark Jason Dominus to transform a series of tokens into an
 intermediate representation the C<Kinetic::Store> subclasses can use to
 initiate searches against a datastore.
 

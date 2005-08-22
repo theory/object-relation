@@ -17,7 +17,7 @@ Kinetic::HOP::Stream - Streams (see "Higher Order Perl")
 =head1 Description
 
 This package is based on the Stream.pm code from the book "Higher Order Perl",
-by Mark-Jason Dominus.
+by Mark Jason Dominus.
 
 =cut
 

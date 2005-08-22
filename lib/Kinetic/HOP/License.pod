@@ -3,7 +3,7 @@
 =head1 DESCRIPTION
 
 The following is the license for the software derived from the book
-"Higher Order Perl" by Mark-Jason Dominus.
+"Higher Order Perl" by Mark Jason Dominus.
 
 =head1 About the Software
 
