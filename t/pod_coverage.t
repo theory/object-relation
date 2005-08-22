@@ -10,9 +10,9 @@ plan skip_all => "Test::Pod::Coverage required for testing POD coverage" if $@;
 # we don't have tests for these because they're pulled from
 # HOP (Higher Order Perl)
 my %TODO = map { $_ => 1 } qw/
-    Kinetic::HOP::Parser
-    Kinetic::HOP::Stream
-/;
+  Kinetic::HOP::Parser
+  Kinetic::HOP::Stream
+  /;
 diag "Don't forget to update the pod at some point"
   if %TODO;
 
@@ -21,32 +21,34 @@ diag "Don't forget to update the pod at some point"
 # This was *not* fun to debug
 
 my %exceptions = (
-    'Kinetic::Interface::REST'   => qr/^Dispatch|XSLT$/,
-    'Kinetic::Store'             => qr/^ASC|DESC|EQ|NE$/,
-    'Kinetic::Store::DB'         => qr/^Incomplete|Iterator|Meta|Search$/,
-    'Kinetic::Store::Lexer'      => qr/^allinput|blocks|iterator_to_stream|make_lexer|tokens|records$/,
-    'Kinetic::Store::Parser'     => qr/^Search$/,
-    'Kinetic::Store::Search'     => qr/^Incomplete$/,
-    'Kinetic::Util::Collection'  => qr/^Iterator$/,
-    'Kinetic::View::XSLT'        => qr/^LibXML|LibXSLT$/,
-    'Kinetic::XML'               => qr/^XML$/,
+    'Kinetic::HOP::Lexer' =>
+      qr/^allinput|blocks|iterator_to_stream|make_lexer|tokens|records$/,
+    'Kinetic::Interface::REST'  => qr/^Dispatch|XSLT$/,
+    'Kinetic::Store'            => qr/^ASC|DESC|EQ|NE$/,
+    'Kinetic::Store::DB'        => qr/^Incomplete|Iterator|Meta|Search$/,
+    'Kinetic::Store::Parser'    => qr/^Search$/,
+    'Kinetic::Store::Search'    => qr/^Incomplete$/,
+    'Kinetic::Util::Collection' => qr/^Iterator$/,
+    'Kinetic::View::XSLT'       => qr/^LibXML|LibXSLT$/,
+    'Kinetic::XML'              => qr/^XML$/,
 );
 
-my @modules = grep { ! exists $exceptions{$_} } Test::Pod::Coverage::all_modules();
+my @modules =
+  grep { !exists $exceptions{$_} } Test::Pod::Coverage::all_modules();
 plan tests => @modules + keys %exceptions;
 
 foreach my $module (@modules) {
-    if (exists $TODO{$module}) {
-        TODO: {
+    if ( exists $TODO{$module} ) {
+      TODO: {
             local $TODO = "Known incomplete POD for $module";
             pod_coverage_ok($module);
-        };
+        }
     }
     else {
         pod_coverage_ok($module);
     }
 }
 
-while (my ($module, $subs_to_ignore) = each %exceptions) {
+while ( my ( $module, $subs_to_ignore ) = each %exceptions ) {
     pod_coverage_ok( $module, { trustme => [$subs_to_ignore] } );
 }

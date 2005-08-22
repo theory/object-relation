@@ -43,7 +43,7 @@ use strict;
 use warnings;
 use Kinetic::Util::Exceptions qw/throw_search/;
 use Kinetic::HOP::Stream 'node';
-use Kinetic::Store::Lexer ':all';
+use Kinetic::HOP::Lexer ':all';
 use Carp qw/croak/;
 
 use Exporter::Tidy default => [qw/string_lexer_stream/];

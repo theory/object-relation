@@ -1,15 +1,15 @@
-package Kinetic::Store::Lexer;
+package Kinetic::HOP::Lexer;
 
 # $Id: Code.pm 1364 2005-03-08 03:53:03Z curtis $
 
 =head1 Name
 
-Kinetic::Store::Lexer - Lexer for Kinetic searches
+Kinetic::HOP::Lexer - Lexer for Kinetic searches
 
 =head1 Synopsis
 
-  use Kinetic::Store::Lexer::Code qw/lexer_stream/;
-  my $stream = lexer_stream([ 
+  use Kinetic::HOP::Lexer::Code qw/code_lexer_stream/;
+  my $stream = code_lexer_stream([ 
     name => NOT LIKE 'foo%',
     OR (age => GE 21)
   ]);
