@@ -21,12 +21,12 @@ package Kinetic::Store::Parser;
 use strict;
 use Exporter::Tidy default => ['parse'];
 
-use Kinetic::Store::Parser::HOP   qw/:all/;
+use Kinetic::DateTime::Incomplete qw/is_incomplete_iso8601/;
+use Kinetic::HOP::Parser          qw/:all/;
+use Kinetic::HOP::Stream          qw/:all/;
 use Kinetic::Store::Search;
 use Kinetic::Util::Constants      qw/:data_store/;
 use Kinetic::Util::Exceptions     qw/throw_search/;
-use Kinetic::HOP::Stream          qw/:all/;
-use Kinetic::DateTime::Incomplete qw/is_incomplete_iso8601/;
 
 =head1 Name
 

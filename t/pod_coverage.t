@@ -10,7 +10,7 @@ plan skip_all => "Test::Pod::Coverage required for testing POD coverage" if $@;
 # we don't have tests for these because they're pulled from
 # HOP (Higher Order Perl)
 my %TODO = map { $_ => 1 } qw/
-    Kinetic::Store::Parser::HOP
+    Kinetic::HOP::Parser
     Kinetic::HOP::Stream
 /;
 diag "Don't forget to update the pod at some point"

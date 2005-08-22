@@ -1,4 +1,4 @@
-package Kinetic::Store::Parser::HOP;
+package Kinetic::HOP::Parser;
 
 use strict;
 use warnings;
