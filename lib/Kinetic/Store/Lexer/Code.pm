@@ -45,7 +45,7 @@ use warnings;
 use overload;
 use Kinetic::Store qw/:all/;
 use Kinetic::Util::Exceptions 'throw_search';
-use Kinetic::Util::Stream 'node';
+use Kinetic::HOP::Stream 'node';
 
 use Exporter::Tidy default => ['code_lexer_stream'];
 

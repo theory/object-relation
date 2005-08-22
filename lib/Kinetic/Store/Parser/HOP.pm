@@ -1,11 +1,17 @@
 package Kinetic::Store::Parser::HOP;
-use Kinetic::Util::Stream ':all';
-use base Exporter;
-@EXPORT_OK = qw(parser nothing End_of_Input lookfor
+
+use strict;
+use warnings;
+
+use base 'Exporter';
+use Kinetic::HOP::Stream ':all';
+
+our @EXPORT_OK = qw(parser nothing End_of_Input lookfor
   alternate concatenate star list_of
   operator T null_list match debug
   error action test);
-%EXPORT_TAGS = ( 'all' => \@EXPORT_OK );
+
+our %EXPORT_TAGS = ( 'all' => \@EXPORT_OK );
 
 sub parser (&);    # Advance declaration - see below
 
@@ -68,7 +74,7 @@ sub concatenate {
             push @values, $v;
         }
         return ( \@values, $input );
-      };
+    };
 }
 
 ## Chapter 8 section 3.2
@@ -109,6 +115,7 @@ sub T {
         my $input = shift;
         if ( my ( $value, $newinput ) = $parser->($input) ) {
             local $^W;    # using this to suppress 'uninitialized' warnings
+            $value = [$value] if 'undef' eq $value;
             $value = $transform->(@$value);
             return ( $value, $newinput );
         }
@@ -169,6 +176,8 @@ sub operator {
 
 ## Chapter 8 section 4.7.1
 
+our %N;
+
 sub error {
     my ( $checker, $continuation ) = @_;
     my $p;
@@ -216,3 +225,12 @@ sub test {
 sub debug { shift; @_ }    # see Parser::Debug::debug
 
 1;
+
+__END__
+
+=head1 Copyright and License
+
+This software is derived from code in the book "Higher Order Perl" by Mark
+Jason Dominus.  This software is licensed under the terms outlined in
+L<Kinetic::HOP::License|Kinetic::HOP::License>.
+

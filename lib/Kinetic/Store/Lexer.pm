@@ -59,7 +59,7 @@ our @EXPORT_OK = qw/
 /;
 our %EXPORT_TAGS = ( all => \@EXPORT_OK );
 
-use Kinetic::Util::Stream 'node';
+use Kinetic::HOP::Stream 'node';
 
 sub allinput {
     my $fh = shift;

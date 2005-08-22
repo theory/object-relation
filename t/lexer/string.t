@@ -6,7 +6,7 @@ use Test::More tests => 41;
 #use Test::More 'no_plan';
 
 use lib 'lib/', '../lib/';
-use Kinetic::Util::Stream 'drop';
+use Kinetic::HOP::Stream 'drop';
 BEGIN {
     use_ok 'Kinetic::Store::Lexer::String', qw/string_lexer_stream/ or die;
 }
