@@ -6,10 +6,24 @@ use warnings;
 use base 'Exporter';
 use Kinetic::HOP::Stream ':all';
 
-our @EXPORT_OK = qw(parser nothing End_of_Input lookfor
-  alternate concatenate star list_of
-  operator T null_list match debug
-  error action test);
+our @EXPORT_OK = qw(
+  action
+  alternate 
+  concatenate 
+  debug
+  End_of_Input
+  error
+  list_of
+  lookfor
+  match 
+  nothing
+  null_list 
+  operator 
+  parser
+  star 
+  T 
+  test
+);
 
 our %EXPORT_TAGS = ( 'all' => \@EXPORT_OK );
 

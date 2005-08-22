@@ -8,7 +8,7 @@ Kinetic::HOP::Lexer - Lexer for Kinetic searches
 
 =head1 Synopsis
 
-  use Kinetic::HOP::Lexer::Code qw/code_lexer_stream/;
+  use Kinetic::Store::Lexer::Code qw/code_lexer_stream/;
   my $stream = code_lexer_stream([ 
     name => NOT LIKE 'foo%',
     OR (age => GE 21)
@@ -38,7 +38,6 @@ our @EXPORT_OK = qw/
     blocks
     iterator_to_stream
     make_lexer
-    records
     tokens
 /;
 our %EXPORT_TAGS = ( all => \@EXPORT_OK );

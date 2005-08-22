@@ -2,31 +2,32 @@
 use warnings;
 use strict;
 
-use Test::More tests => 16;
+use Test::More tests => 17;
 #use Test::More 'no_plan';
 
 use lib 'lib/', '../lib/';
 
 BEGIN {
-    use_ok 'Kinetic::HOP::Stream', ':all' or die;
+    use_ok 'Kinetic::HOP::Parser', ':all' or die;
 }
 
 my @exported = qw(
-  cut_loops
-  cutsort
-  drop
-  filter
-  head
-  iterate_function
-  list_to_stream
-  merge
-  node
-  promise
-  show
-  tail
-  transform
-  upfrom
-  upto
+  action
+  alternate 
+  concatenate 
+  debug
+  End_of_Input
+  error
+  list_of
+  lookfor
+  match 
+  nothing
+  null_list 
+  operator 
+  parser
+  star 
+  T 
+  test
 );
 
 foreach my $function (@exported) {
