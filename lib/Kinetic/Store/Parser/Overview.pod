@@ -18,27 +18,27 @@
 
 =head1 Name
 
-Kinetic::Store::Parser::DB::Overview - Developer's overview of 
-Kinetic::Store::Parser::DB
+Kinetic::Store::Parser::Overview - Developer's overview of 
+Kinetic::Store::Parser
 
 =head1 Synopsis
 
-See L<Kinetic::Store::Parser::DB|Kinetic::Store::Parser::DB>.
+See L<Kinetic::Store::Parser|Kinetic::Store::Parser>.
 
 =head1 Description
 
 This document explains how the parsing system turns search requests into an
 I<Intermediate Representation> (IR) suitable for searching a datastore.
 
-This discussion will be a high-level overview of how the 
-C<Kinetic::Store::Parser::DB> class operates.
+This discussion will be a high-level overview of how the
+C<Kinetic::Store::Parser> class operates.
 
 =head1 Grammar
 
-The C<Kinetic::Store::Parser::DB> uses the Parser module described in
-"Higher Order Perl" by Mark-Jason Dominus to transform a series of tokens
-into an intermediate representation the C<Kinetic::Store> subclasses can
-use to initiate searches against a datastore.
+The C<Kinetic::Store::Parser> uses the Parser module described in "Higher
+Order Perl" by Mark-Jason Dominus to transform a series of tokens into an
+intermediate representation the C<Kinetic::Store> subclasses can use to
+initiate searches against a datastore.
 
 The following non-standard BNF grammar describes the legal grammar allowed for
 searches.  I say "non-standard" because of the existence of regular expressions
@@ -134,7 +134,7 @@ discarded.
 Parsing is the act of converting the lexed tokens into a data structure that
 suits a given task.  This structure is often referred to as an 
 I<intermediate representation>, or I<IR>.  This document will briefly discuss 
-the IR created by C<Kinetic::Store::Parser::DB> and how it's created.
+the IR created by C<Kinetic::Store::Parser> and how it's created.
 
 =back
 

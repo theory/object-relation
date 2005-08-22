@@ -18,7 +18,7 @@ use Kinetic::Store::Lexer::String qw/string_lexer_stream/;
 use Kinetic::Store::Lexer::Code   qw/code_lexer_stream/;
 
 BEGIN {
-    use_ok 'Kinetic::Store::Parser::DB', qw/parse/ or die;
+    use_ok 'Kinetic::Store::Parser', qw/parse/ or die;
 }
 
 my @tokens = (
@@ -31,7 +31,7 @@ my $faux_stream = [
     sub { shift @tokens }
 ];
 
-#*search_value = \&Kinetic::Store::Parser::DB::_search_value;
+#*search_value = \&Kinetic::Store::Parser::_search_value;
 #diag Dumper (search_value($faux_stream)->());
 #diag Dumper $faux_stream->();
 #diag Dumper string_lexer_stream("name => 'bar'");
@@ -99,9 +99,9 @@ my $age_search = Search->new(
     column   => 'age',
 );
 
-can_ok 'Kinetic::Store::Parser::DB', '_extract_statements';
+can_ok 'Kinetic::Store::Parser', '_extract_statements';
 my @statements = (1, [2, [3,[]]]);
-my $statements = [Kinetic::Store::Parser::DB::_extract_statements(\@statements)];
+my $statements = [Kinetic::Store::Parser::_extract_statements(\@statements)];
 is_deeply 
     $statements,
     [1,2,3],

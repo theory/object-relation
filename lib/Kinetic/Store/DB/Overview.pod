@@ -287,14 +287,14 @@ but what it gives us is this:
 
     my $intermediate_representation = parse( $stream, $store );
 
-The parse method is exported by C<Kinetic::Store::Parser::DB>. This parser
+The parse method is exported by C<Kinetic::Store::Parser>. This parser
 uses the parsing methods exported by C<Kinetic::Store::Parser>. The latter
 module is very similar to the parser described in the book "Higher Order Perl"
 by Mark-Jason Dominus.
 
 The intermediate representation (IR) returned by the parser is essentially a
 list of L<Kinetic::Store::Search|Kinetic::Store::Search> objects and groups of
-said objects (see L<Kinetic::Store::Parser::DB|Kinetic::Store::Parser::DB> for
+said objects (see L<Kinetic::Store::Parser|Kinetic::Store::Parser> for
 more information on this).
 
 This aproach allows us to have multiple search interfaces and one parser for

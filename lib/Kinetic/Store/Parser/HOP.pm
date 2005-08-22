@@ -1,4 +1,4 @@
-package Kinetic::Store::Parser;
+package Kinetic::Store::Parser::HOP;
 use Kinetic::Util::Stream ':all';
 use base Exporter;
 @EXPORT_OK = qw(parser nothing End_of_Input lookfor

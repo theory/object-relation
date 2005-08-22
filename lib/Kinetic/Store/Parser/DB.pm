@@ -1,4 +1,4 @@
-package Kinetic::Store::Parser::DB;
+package Kinetic::Store::Parser;
 
 # $Id: Store.pm 1671 2005-05-10 00:24:33Z curtis $
 
@@ -21,7 +21,7 @@ package Kinetic::Store::Parser::DB;
 use strict;
 use Exporter::Tidy default => ['parse'];
 
-use Kinetic::Store::Parser        qw/:all/;
+use Kinetic::Store::Parser::HOP   qw/:all/;
 use Kinetic::Store::Search;
 use Kinetic::Util::Constants      qw/:data_store/;
 use Kinetic::Util::Exceptions     qw/throw_search/;
@@ -30,11 +30,11 @@ use Kinetic::DateTime::Incomplete qw/is_incomplete_iso8601/;
 
 =head1 Name
 
-Kinetic::Store::Parser::DB - The Kinetic parser for DB stores
+Kinetic::Store::Parser - The Kinetic parser for search requests
 
 =head1 Synopsis
 
-  use Kinetic::Store::Parser::DB qw/parse/;
+  use Kinetic::Store::Parser qw/parse/;
   use Kinetic::Store::Lexer::Code qw/lexer_stream/;
 
   sub _create_ir {

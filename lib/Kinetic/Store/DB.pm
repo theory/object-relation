@@ -24,7 +24,7 @@ use DBI;
 
 use Kinetic::Util::Exceptions qw/:all/;
 use Kinetic::Store qw/:sorting/;
-use Kinetic::Store::Parser::DB qw/parse/;
+use Kinetic::Store::Parser qw/parse/;
 use Kinetic::Store::Lexer::Code qw/code_lexer_stream/;
 use Kinetic::Store::Lexer::String qw/string_lexer_stream/;
 use Kinetic::Util::Constants qw/:data_store/;
