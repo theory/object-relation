@@ -39,49 +39,52 @@ that a Kinetic parser can parse.
 See L<Kinetic::Parser::DB|Kinetic::Parser::DB> for an example.
 
 =cut
+
 use strict;
 use warnings;
 use Kinetic::Util::Exceptions qw/throw_search/;
-use Kinetic::HOP::Stream 'node';
-use Kinetic::HOP::Lexer ':all';
+use Kinetic::HOP::Stream qw/node iterator_to_stream/;
+use Kinetic::HOP::Lexer qw/make_lexer/;
 use Carp qw/croak/;
 
 use Exporter::Tidy default => [qw/string_lexer_stream/];
 use Regexp::Common;
 use Text::ParseWords;
 
-my $QUOTED = $RE{quoted};
-my $NUM = $RE{num}{real};
-my $VALUE  = qr/(?!\.(?!\d))(?:$QUOTED|$NUM)/;
+my $QUOTED  = $RE{quoted};
+my $NUM     = $RE{num}{real};
+my $VALUE   = qr/(?!\.(?!\d))(?:$QUOTED|$NUM)/;
 my $COMPARE = qr/(?:LIKE|GT|LT|GE|LE|NE|MATCH|EQ)/;
 
 my @TOKENS = (
-    [ 
-      'VALUE',                                   # value before keyword
-      $VALUE, 
-      sub {[$_[1], _strip_quotes($_[0])]} 
+    [
+        'VALUE',    # value before keyword
+        $VALUE,
+        sub { [ $_[0], _strip_quotes( $_[1] ) ] }
     ],
-    [ 'UNDEF',      'undef'                        ],
-    [ 'COMPARE',    $COMPARE                       ], # compare && keyword before identifier
-    [ 'KEYWORD',    qr/(?:BETWEEN|AND|OR|ANY|NOT)/ ],
-    [ 'IDENTIFIER', qr/[[:alpha:]][.[:word:]]*/    ],
-    [ 'WHITESPACE', qr/\s*/, sub {()}              ],
-    [ 'OP',         qr/(?:[,\]\[()]|=>)/           ],
+    [ 'UNDEF',     'undef'                            ],
+
+    # compare && keyword before identifier
+    [ 'COMPARE',    $COMPARE                          ],
+    [ 'KEYWORD',    qr/(?:BETWEEN|AND|OR|ANY|NOT)/    ],
+    [ 'IDENTIFIER', qr/[[:alpha:]][.[:word:]]*/       ],
+    [ 'WHITESPACE', qr/\s*/,               sub { () } ],
+    [ 'OP',         qr/(?:[,\]\[()]|=>)/              ],
 );
 
-sub _search_tokens { @TOKENS };
+sub _search_tokens { @TOKENS }
 
 sub _lex {
     my @search = @_;
-    my $lexer = make_lexer( sub { shift @search }, @TOKENS);
+    my $lexer = make_lexer( sub { shift @search }, @TOKENS );
     my @tokens;
-    while (my $token = $lexer->()) {
+    while ( my $token = $lexer->() ) {
         push @tokens => $token;
     }
     return \@tokens;
 }
 
-sub _strip_quotes { # naive
+sub _strip_quotes {    # naive
     my $string = shift;
     $string =~ s/^(['"`])(.*)\1$/$2/;
     $string =~ s/\\\\/\\/g;
@@ -103,7 +106,7 @@ Kinetic parsers should be able to turn into an intermediate representation.
 sub string_lexer_stream {
     my @input = @_;
     my $input = sub { shift @input };
-    return iterator_to_stream(make_lexer($input, _search_tokens()));
+    return iterator_to_stream( make_lexer( $input, _search_tokens() ) );
 }
 
 1;

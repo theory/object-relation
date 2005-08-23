@@ -8,8 +8,8 @@ Kinetic::HOP::Stream - Streams (see "Higher Order Perl")
 
 =head1 Synopsis
 
-  use Kinetic::Store::Lexer::Code qw/lexer_stream/;
-  my $stream = lexer_stream([ 
+  use Kinetic::Store::Lexer::Code qw/code_lexer_stream/;
+  my $stream = code_lexer_stream([ 
     name => NOT LIKE 'foo%',
     OR (age => GE 21)
   ]);
@@ -19,47 +19,128 @@ Kinetic::HOP::Stream - Streams (see "Higher Order Perl")
 This package is based on the Stream.pm code from the book "Higher Order Perl",
 by Mark Jason Dominus.
 
+A stream is conceptually similar to a linked list. However, we may have an
+infinite stream. As infinite amounts of data are frequently taxing to the
+memory of most systems, the tail of the list may be a I<promise>. A promise,
+in this context, is merely a promise that the code will compute the rest of
+the list if necessary. Thus, the rest of the list does not exist until
+actually needed.
+
 =cut
 
 use warnings;
 use strict;
 
 use base 'Exporter';
-our @EXPORT_OK = qw(node head tail drop upto upfrom show promise
-  filter transform merge list_to_stream cutsort
-  iterate_function cut_loops);
+our @EXPORT_OK = qw(
+  drop
+  filter
+  head
+  iterator_to_stream
+  list_to_stream
+  merge
+  node
+  promise
+  show
+  tail
+  transform
+);
 
 our %EXPORT_TAGS = ( 'all' => \@EXPORT_OK );
+
+=head1 FUNCTIONS
+
+All functions in this package may be exported on demand. Nothing is exported
+by default.
+
+ use Kinetic::HOP::Stream ':all';
+ use Kinetic::HOP::Stream qw/node drop/;
+
+=head2 Exportable functions
+
+The following functions are exported on demand.
+
+=cut
+
+##############################################################################
+
+=head3 node
+
+ my $node = node( $head, $tail );
+
+Returns a node for a stream. A node is merely a two-element array reference:
+
+ [ $head, $tail ]
+
+The tail of the node may be a I<promise> to compute the actual tail when
+needed. Thus, we want to use the proper C<head> and C<tail> functions to
+manipulate the stream rather than reaching directly into the array references.
+
+=cut
 
 sub node {
     my ( $h, $t ) = @_;
     [ $h, $t ];
 }
 
+##############################################################################
+
+=head3 head
+
+  my $head = head( $node );
+
+Returns the head of a node.
+
+=cut
+
 sub head {
     my ($s) = @_;
     $s->[0];
 }
 
+##############################################################################
+
+=head3 is_promise
+
+  if ( is_promise($tail) ) {
+     ...
+  }
+
+Returns true if the tail of a node is a promise. Generally this function is
+used internally.
+
+=cut
+
 sub is_promise {
     UNIVERSAL::isa( $_[0], 'CODE' );
 }
+
+##############################################################################
+
+=head3 promise
+
+  my $promise = promise { ... };
+
+A utility function with a code prototype (C<< sub promise(&); >>) allowing one
+to specify a coderef with curly braces and omit the C<sub> keyword.
+
+=cut
+
 sub promise (&) { $_[0] }
 
-## Chapter 6 section 2.1
+##############################################################################
 
-sub upto {
-    my ( $m, $n ) = @_;
-    return if $m > $n;
-    node( $m, promise { upto( $m + 1, $n ) } );
-}
+=head3 show
 
-sub upfrom {
-    my ($m) = @_;
-    node( $m, promise { upfrom( $m + 1 ) } );
-}
+ show( $stream, [ $number_of_nodes ] ); 
 
-## Chapter 6 section 2.2
+This is a debugging function that will print C<$number_of_nodes> of the stream
+C<$stream>.
+
+Omitting the second argument will print all elements of the stream. This is
+not recommended for infinite streams (duh).
+
+=cut
 
 sub show {
     my ( $s, $n ) = @_;
@@ -70,7 +151,16 @@ sub show {
     _print($/);
 }
 
-## Chapter 6 section 2.2
+##############################################################################
+
+=head3 drop
+
+  my $head = drop( $stream );
+
+This is the C<shift> function for streams. It returns the head of the stream
+and and modifies the stream in-place to be the tail of the stream.
+
+=cut
 
 sub drop {
     my $h = head( $_[0] );
@@ -78,7 +168,16 @@ sub drop {
     return $h;
 }
 
-## Chapter 6 section 2.2
+##############################################################################
+
+=head3 transform
+
+  my $new_stream = transform { $_[0] * 2 } $old_stream;
+
+This is the C<map> function for streams. It returns a new stream, but is not
+recommended for infinite streams.
+
+=cut
 
 sub transform (&$) {
     my $f = shift;
@@ -87,7 +186,16 @@ sub transform (&$) {
     node( $f->( head($s) ), promise { transform ( $f, tail($s) ) } );
 }
 
-## Chapter 6 section 2.2
+##############################################################################
+
+=head3 filter
+
+  my $new_stream = filter { $_[0] % 2 } $old_stream;
+
+This is the C<grep> function for streams. It returns a new stream, but is not
+recommended for infinite streams.
+
+=cut
 
 sub filter (&$) {
     my $f = shift;
@@ -99,7 +207,15 @@ sub filter (&$) {
     node( head($s), promise { filter ( $f, tail($s) ) } );
 }
 
-## Chapter 6 section 3.1
+##############################################################################
+
+=head3 tail
+
+ my $tail = tail( $stream ); 
+
+Returns the I<tail> of a stream.
+
+=cut
 
 sub tail {
     my ($s) = @_;
@@ -109,7 +225,17 @@ sub tail {
     $s->[1];
 }
 
-## Chapter 6 section 4
+##############################################################################
+
+=head3 merge
+
+  my $merged_stream = merge( $stream1, $stream2 );
+
+This function takes two streams assumed to be in sorted order and merges them
+into a new stream, also in sorted order. Tails of the streams are promises, so
+infinite streams are fine.
+
+=cut
 
 sub merge {
     my ( $S, $T ) = @_;
@@ -127,7 +253,15 @@ sub merge {
     }
 }
 
-## Chapter 6 section 5.3
+##############################################################################
+
+=head3 list_to_stream
+
+  my $stream = list_to_stream(@list);
+
+Converts a list into a stream.
+
+=cut
 
 sub list_to_stream {
     my $node = pop;
@@ -136,88 +270,22 @@ sub list_to_stream {
     }
     $node;
 }
-sub insert (\@$$);
 
-sub cutsort {
-    my ( $s, $cmp, $cut, @pending ) = @_;
-    my @emit;
+##############################################################################
 
-    while ($s) {
-        while ( @pending && $cut->( $pending[0], head($s) ) ) {
-            push @emit, shift @pending;
-        }
+=head3 iterator_to_stream
 
-        if (@emit) {
-            return list_to_stream( @emit,
-                promise { cutsort( $s, $cmp, $cut, @pending ) } );
-        }
-        else {
-            insert( @pending, head($s), $cmp );
-            $s = tail($s);
-        }
-    }
+  my $stream = iterator_to_stream($iterator);
 
-    return list_to_stream( @pending, undef );
-}
+Converts an iterator into a stream.
 
-## Chapter 6 section 5.3
+=cut
 
-sub insert (\@$$) {
-    my ( $a, $e, $cmp ) = @_;
-    my ( $lo, $hi ) = ( 0, scalar(@$a) );
-    while ( $lo < $hi ) {
-        my $med = int( ( $lo + $hi ) / 2 );
-        my $d = $cmp->( $a->[$med], $e );
-        if ( $d <= 0 ) {
-            $lo = $med + 1;
-        }
-        else {
-            $hi = $med;
-        }
-    }
-    splice( @$a, $lo, 0, $e );
-}
-
-## Chapter 6 section 6.1
-
-sub iterate_function {
-    my ( $f, $x ) = @_;
-    my $s;
-    $s = node( $x, promise { &transform( $f, $s ) } );
-}
-
-## Chapter 6 section 6.3
-
-sub cut_loops {
-    my ( $tortoise, $hare ) = @_;
-    return unless $tortoise;
-
-    # The hare and tortoise start at the same place
-    $hare = $tortoise unless defined $hare;
-
-    # The hare moves two steps every time the tortoise moves one
-    $hare = tail( tail($hare) );
-
-    # If the hare and the tortoise are in the same place, cut the loop
-    return if head($tortoise) == head($hare);
-
-    return node( head($tortoise),
-        promise { cut_loops( tail($tortoise), $hare ) } );
-}
-
-## Chapter 6 section 6.3
-
-sub cut_loops2 {
-    my ( $tortoise, $hare, $n ) = @_;
-    return unless $tortoise;
-    $hare = $tortoise unless defined $hare;
-
-    $hare = tail( tail($hare) );
-    return
-      if head($tortoise) == head($hare)
-      && $n++;
-    return node( head($tortoise),
-        promise { cut_loops( tail($tortoise), $hare, $n ) } );
+sub iterator_to_stream {
+    my $it = shift;
+    my $v  = $it->();
+    return unless defined $v;
+    node( $v, sub { iterator_to_stream($it) } );
 }
 
 sub _print { print @_ }
@@ -229,7 +297,7 @@ __END__
 =head1 Copyright and License
 
 This software is derived from code in the book "Higher Order Perl" by Mark
-Jason Dominus.  This software is licensed under the terms outlined in
+Jason Dominus. This software is licensed under the terms outlined in
 L<Kinetic::HOP::License|Kinetic::HOP::License>.
 
 =cut

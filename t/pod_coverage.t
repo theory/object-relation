@@ -11,7 +11,6 @@ plan skip_all => "Test::Pod::Coverage required for testing POD coverage" if $@;
 # HOP (Higher Order Perl)
 my %TODO = map { $_ => 1 } qw/
   Kinetic::HOP::Parser
-  Kinetic::HOP::Stream
   /;
 diag "Don't forget to update the pod at some point"
   if %TODO;
@@ -21,8 +20,6 @@ diag "Don't forget to update the pod at some point"
 # This was *not* fun to debug
 
 my %exceptions = (
-    'Kinetic::HOP::Lexer' =>
-      qr/^allinput|blocks|iterator_to_stream|make_lexer|tokens|records$/,
     'Kinetic::Interface::REST'  => qr/^Dispatch|XSLT$/,
     'Kinetic::Store'            => qr/^ASC|DESC|EQ|NE$/,
     'Kinetic::Store::DB'        => qr/^Incomplete|Iterator|Meta|Search$/,
