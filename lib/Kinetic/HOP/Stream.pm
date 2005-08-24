@@ -1,6 +1,6 @@
 package Kinetic::HOP::Stream;
 
-# $Id: Code.pm 1364 2005-03-08 03:53:03Z curtis $
+# $Id: Stream.pm 1364 2005-03-08 03:53:03Z curtis $
 
 =head1 Name
 

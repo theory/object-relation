@@ -1,5 +1,29 @@
 package Kinetic::HOP::Parser;
 
+# $Id: Parser.pm 1364 2005-03-08 03:53:03Z curtis $
+
+=head1 Name
+
+Kinetic::HOP::Parser - Parser (see "Higher Order Perl")
+
+=head1 Synopsis
+
+  use Kinetic::HOP::Parser qw/:all/;
+  
+  # assemble a bunch of parsers according to a grammar
+  
+=head1 Description
+
+This package is based on the Parser.pm code from the book "Higher Order Perl",
+by Mark Jason Dominus.
+
+This module implements recursive-descent parsers by allowing programmers to
+build a bunch of smaller parsers to represent grammar elements and assemble
+them into a full parser. Pages 376 to 415 of the first edition of HOP should
+be enough to get you up to speed :)
+
+=cut
+
 use strict;
 use warnings;
 
@@ -8,40 +32,109 @@ use Kinetic::HOP::Stream ':all';
 
 our @EXPORT_OK = qw(
   action
-  alternate 
-  concatenate 
+  alternate
+  concatenate
   debug
   End_of_Input
   error
   list_of
   lookfor
-  match 
+  match
   nothing
-  null_list 
-  operator 
+  null_list
+  operator
   parser
-  star 
-  T 
+  star
+  T
   test
 );
 
 our %EXPORT_TAGS = ( 'all' => \@EXPORT_OK );
 
-sub parser (&);    # Advance declaration - see below
+sub parser (&);    # Forward declaration - see below
 
-## Chapter 8 section 3.1
+##############################################################################
+
+=head3 nothing
+
+  my ($parsed, $remainder) = nothing($stream);
+
+C<nothing> is a special purpose parser which is used internally.  It always
+succeeds and returns I<undef> for C<$parsed> and the C<$remainder> is the
+unaltered input C<$stream>.
+
+=cut
 
 sub nothing {
     my $input = shift;
     return ( undef, $input );
 }
 
+##############################################################################
+
+=head3 End_of_Input
+
+  if (End_of_Input($stream)) {
+    ...
+  }
+
+C<End_of_Input> is another special purpose parser which only succeeds if there
+is no input left in the stream.  It's generally used in the I<start symbol> of
+the grammar.
+
+  # entire_input ::= statements 'End_Of_Input'
+
+  my $entire_input = concatenate(
+    $statements,
+    \&End_of_Input
+  );
+
+
+=cut
+
 sub End_of_Input {
     my $input = shift;
     defined($input) ? () : ( undef, undef );
 }
 
-## Chapter 8 section 3.1
+##############################################################################
+
+=head3 lookfor
+
+  my $parser = lookfor($label, [\&get_value], [$param]); # or
+  my $parser = lookfor(\@label_and_optional_values, [\&get_value], [$param]);
+  my ($parsed, $remaining_stream) = $parser->($stream);
+
+The following details the arguments to C<lookfor>.
+
+=over 4
+
+=item * C<$label> or C<@label_and_optional_values>
+
+The first argument is either a scalar with the token label or an array
+reference. The first element in the array reference should be the token label
+and subsequent elements can be anything you need. Usually the second element
+is the token value, but if you need more than this, that's OK.
+
+=item * C<\&get_value>
+
+If an optional C<get_value> subroutine is supplied, that C<get_value> will be
+applied to the parsed value prior to it being returned. This is useful if
+non-standard tokens are being passed in or if we wish to preprocess the
+returned values.
+
+=item * C<$param>
+
+If needed, additional arguments besides the current matched token can be
+passed to C<&get_value>. Supply them as the third argument (which can be any
+data structure you wish, so long as it's a single scalar value).
+
+=back
+
+In practice, the full power of this function is rarely needed and C<match> is
+used instead.
+
+=cut
 
 sub lookfor {
     my $wanted = shift;
@@ -49,29 +142,59 @@ sub lookfor {
     my $u      = shift;
 
     $wanted = [$wanted] unless ref $wanted;
-    my $parser = parser {
+    return parser {
         my $input = shift;
         return unless defined $input;
         my $next = head($input);
         for my $i ( 0 .. $#$wanted ) {
             next unless defined $wanted->[$i];
-            local $^W;    # supress unitialized warnings XXX
+            local $^W;    # suppress unitialized warnings XXX
             return unless $wanted->[$i] eq $next->[$i];
         }
         my $wanted_value = $value->( $next, $u );
         return ( $wanted_value, tail($input) );
     };
-
-    return $parser;
 }
+
+##############################################################################
+
+=head3 match
+
+  my $parser = match($label, [$value]);
+  my ($parsed, $remainder) = $parser->($stream);
+
+This function takes a label and an optional value and builds a parser which
+matches them by dispatching to C<lookfor> with the arguments as an array
+reference. See C<lookfor> for more information.
+
+=cut
 
 sub match { @_ = [@_]; goto &lookfor }
 
-## Chapter 8 section 3.1
+##############################################################################
+
+=head3 parser
+
+  my $parser = parser { 'some code' };
+
+Currently, this is merely syntactic sugar that allows us to declare a naked
+block as a subroutine (i.e., omit the "sub" keyword).
+
+=cut
 
 sub parser (&) { $_[0] }
 
-## Chapter 8 section 3.2
+##############################################################################
+
+=head3 concatenate
+
+  my $parser = concatenate(@parsers);
+  ok ($values, $remainder) = $parser->($stream);
+
+This function takes a list of parsers and returns a new parser. The new parser
+succeeds if all parsers passed to C<concatenate> succeed sequentially.
+
+=cut
 
 sub concatenate {
     shift unless ref $_[0];
@@ -91,7 +214,17 @@ sub concatenate {
     };
 }
 
-## Chapter 8 section 3.2
+##############################################################################
+
+=head3 alternate
+
+  my $parser = alternate(@parsers);
+  my ($parsed, $remainder) = $parser->stream;
+
+This function behaves like C<concatenate> but matches one of any tokens
+(rather than all tokens sequentially).
+
+=cut
 
 sub alternate {
     my @p = @_;
@@ -139,12 +272,35 @@ sub T {
     };
 }
 
-## Chapter 8 section 4.3
+##############################################################################
+
+=head3 null_list
+
+  my ($parsed, $remainder) = null_list($stream);
+
+This special purpose parser always succeeds and returns an empty array
+reference and the stream.
+
+=cut
 
 sub null_list {
     my $input = shift;
     return ( [], $input );
 }
+
+##############################################################################
+
+=head3 star
+
+  my $parser = star($another_parser);
+  my ($parsed, $remainder) = $parser->($stream);
+
+This parser always succeeds and matches zero or more instances of
+C<$another_parser>.  If it matches zero, it returns the same results as
+C<null_list>.  Otherwise, it returns and array ref of the matched values and
+the remainder of the stream.
+
+=cut
 
 sub star {
     my $p = shift;
@@ -245,6 +401,6 @@ __END__
 =head1 Copyright and License
 
 This software is derived from code in the book "Higher Order Perl" by Mark
-Jason Dominus.  This software is licensed under the terms outlined in
+Jason Dominus. This software is licensed under the terms outlined in
 L<Kinetic::HOP::License|Kinetic::HOP::License>.
 
