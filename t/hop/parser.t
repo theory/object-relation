@@ -2,8 +2,8 @@
 use warnings;
 use strict;
 
-#use Test::More tests => 17;
-use Test::More 'no_plan';
+use Test::More tests => 123;
+#use Test::More 'no_plan';
 
 use lib 'lib/', '../lib/';
 
@@ -12,9 +12,17 @@ BEGIN {
 }
 
 use Kinetic::HOP::Stream qw/node list_to_stream/;
-use Kinetic::Util::Exceptions; # auto stacktrace
+use Kinetic::Util::Exceptions;    # auto stacktrace
+
+sub run_parser {
+    my ( $parser, $stream ) = @_;
+    die "You must call run_parser() in list context"
+      unless wantarray;
+    return $parser->($stream);
+}
 
 my @exported = qw(
+  absorb
   action
   alternate
   concatenate
@@ -22,12 +30,15 @@ my @exported = qw(
   End_of_Input
   error
   list_of
+  list_values_of
   lookfor
   match
   nothing
   null_list
   operator
   parser
+  rlist_of
+  rlist_values_of
   star
   T
   test
@@ -46,6 +57,40 @@ ok my $sub = parser {'Ovid'}, 'parser() should accept a bare block as a sub';
 is $sub->(), 'Ovid', '... and we should be able to call the sub';
 
 #
+# Begin testing special purpose parsers
+#
+
+#
+# nothing
+#
+
+my ( $parsed, $remainder ) = nothing("anything");
+ok !defined $parsed, 'nothing() will always return "undef" for what was parsed';
+is_deeply $remainder, "anything", '... and should return the input unaltered';
+
+#
+# End_of_Input
+#
+
+my @succeeds = End_of_Input("anything");
+ok !@succeeds, 'End_of_Input() should fail if data left in the stream';
+
+@succeeds = End_of_Input(undef);
+ok @succeeds, '... and it should succeed if no data is left in the stream';
+
+#
+# null_list
+#
+
+( $parsed, $remainder ) = null_list("anything");
+is_deeply $parsed, [], 'The null_list() parser should always succeed';
+is_deeply $remainder, "anything", '... and return the input as the remainder';
+
+#
+# Begin testing parser generators
+#
+
+#
 # lookfor: test passing a bare label
 #
 
@@ -62,8 +107,8 @@ my @tokens = (
     node( VAL => 17 ),
 );
 my $stream = list_to_stream(@tokens);
-ok my ( $parsed, $remainder ) = $parser->($stream),
-  'The lookfor() parser should succeed if the first token matches';
+( $parsed, $remainder ) = $parser->($stream);
+ok $parsed, 'The lookfor() parser should succeed if the first token matches';
 is $parsed, '+', '... returning what we are looking for';
 my $expected = [ [ 'VAR', 'x' ], [ [ 'VAL', 3 ], [ 'VAL', 17 ] ] ];
 is_deeply $remainder, $expected, '... and then the rest of the stream';
@@ -191,24 +236,6 @@ is $parsed, '+', '... returning what we are looking for';
 is_deeply $remainder, $expected, '... and then the rest of the stream';
 
 #
-# nothing
-#
-
-( $parsed, $remainder ) = nothing($stream);
-ok !defined $parsed, 'nothing() will always return "undef" for what was parsed';
-is_deeply $remainder, $stream, '... and should return the input unaltered';
-
-#
-# End_of_Input
-#
-
-my @succeeds = End_of_Input($stream);
-ok !@succeeds, 'End_of_Input() should fail if data left in the stream';
-
-@succeeds = End_of_Input(undef);
-ok @succeeds, '... and it should succeed if no data is left in the stream';
-
-#
 # concatenate:  we should be able to concatenate stream tokens
 #
 
@@ -245,11 +272,9 @@ ok $parser = concatenate(
   ),
   'We should be able to concatenate multiple parsers';
 
-diag "Uncomment the following when we figure out what's wrong!";
-
-#( $parsed, $remainder ) = $parser->($stream);
-#is_deeply $parsed, [qw/ + x 3 17 /],
-#  '... and it should be able to parse the entire stream';
+( $parsed, $remainder ) = $parser->($stream);
+is_deeply $parsed, [qw/ + x 3 17 /],
+  '... and it should be able to parse the entire stream';
 
 #
 # alternate:  we should be able to alternate stream tokens
@@ -264,69 +289,293 @@ ok $parser = alternate( match('VAR'), match('VAL') ),
 @succeeds = $parser->($stream);
 ok !@succeeds, '... but it should always fail';
 
-$parser = alternate( match('Foo'), match('OP') );
-( $parsed, $remainder ) = $parser->($stream);
+( $parsed, $remainder ) =
+  run_parser( alternate( match('Foo'), match('OP') ), $stream );
 is $parsed, '+', 'alternate() should succeed even if one match is bad';
 is_deeply $remainder, $expected,
   '... and the remainder should be the rest of the stream';
 
-$parser = alternate( match('OP'), match('Foo') );
-( $parsed, $remainder ) = $parser->($stream);
+( $parsed, $remainder ) =
+  run_parser( alternate( match('OP'), match('Foo') ), $stream );
 is $parsed, '+', '... regardless of the order they are in';
 is_deeply $remainder, $expected,
   '... and the remainder should be the rest of the stream';
 
-$parser = alternate( match('OP'), match('OP') );
-( $parsed, $remainder ) = $parser->($stream);
+( $parsed, $remainder ) =
+  run_parser( alternate( match('OP'), match('OP') ), $stream );
 is $parsed, '+', '... or if they are duplicate tokens';
 is_deeply $remainder, $expected,
   '... and the remainder should be the rest of the stream';
 
-$parser = alternate(
-    match('VAL'), match('Foo'), match('BAR'), match('~'),
-    match('OP'),  match('INT'),
+( $parsed, $remainder ) = run_parser(
+    alternate(
+        match('VAL'), match('Foo'), match('BAR'), match('~'),
+        match('OP'),  match('INT'),
+    ),
+    $stream
 );
-( $parsed, $remainder ) = $parser->($stream);
 is $parsed, '+',
   'We should be able to alternate over an arbitrary amount of tokens';
 is_deeply $remainder, $expected,
   '... and the remainder should be the rest of the stream';
 
 #
-# null_list
-#
-
-( $parsed, $remainder ) = null_list($stream);
-is_deeply $parsed, [], 'The null_list() parser should always succeed';
-is_deeply $remainder, $stream, '... and return the input as the remainder';
-
-#
 # star:  generates a "zero or more" parser
 #
 
-$parser = star( match('Foo') );
-( $parsed, $remainder ) = $parser->($stream);
+( $parsed, $remainder ) = run_parser( star( match('Foo') ), $stream );
 is_deeply $parsed, [], 'The star() parser should always succeed';
 is_deeply $remainder, $stream,
   '... and return the input as the remainder if it did not match';
 
-$parser = star( match('OP') );
-( $parsed, $remainder ) = $parser->($stream);
+( $parsed, $remainder ) = run_parser( star( match('OP') ), $stream );
 is_deeply $parsed, ['+'],
-  'The start() parser should return the first value if matched';
+  'The star() parser should return the first value if matched';
 is_deeply $remainder, $expected, '... and then the remainder of the stream';
 
-$parser = star( alternate( match('VAR'), match('OP') ) );
-( $parsed, $remainder ) = $parser->($stream);
+( $parsed, $remainder ) =
+  run_parser( star( alternate( match('VAR'), match('OP') ) ), $stream );
 is_deeply $parsed, [ '+', 'x' ],
-  'The start() parser should return all the values matched';
+  'The star() parser should return all the values matched';
 is_deeply $remainder, [ [ VAL => 3 ], [ VAL => 17 ] ],
   '... and then the remainder of the stream';
 
-$parser = star( alternate( match('VAL'), match('VAR'), match('OP') ) );
-#( $parsed, $remainder ) = $parser->($stream);
-#is_deeply $parsed, [ '+', 'x', 3, 17 ],
-#  'The start() parser should return all the values matched';
-#is_deeply $remainder, [ [ VAL => 3 ], [ VAL => 17 ] ],
-#  '... and then the remainder of the stream';
-#diag $remainder;
+( $parsed, $remainder ) =
+  run_parser( star( alternate( match('VAL'), match('VAR'), match('OP') ) ),
+    $stream );
+is_deeply $parsed, [ '+', 'x', 3, 17 ],
+  'The star() parser should return all the values matched';
+ok !defined $remainder, '... and should be able to match an entire stream';
+
+@tokens = (
+    node( FOO => 1 ),
+    node( FOO => 2 ),
+    node( FOO => 3 ),
+    node( FOO => 4 ),
+    node( FOO => 5 ),
+    node( BAR => 6 ),
+    node( FOO => 7 ),
+);
+my $foo_stream = list_to_stream(@tokens);
+( $parsed, $remainder ) = run_parser( star( match('FOO') ), $foo_stream );
+is_deeply $parsed, [qw/1 2 3 4 5/], 'star() be able to slurp up multiple items';
+is_deeply $remainder, [ [ BAR => 6 ], [ FOO => 7 ] ],
+  '... and return the rest of the stream';
+
+#
+# list_of
+#
+
+@tokens = (
+    node( INT   => 2 ),
+    node( COMMA => ',' ),
+    node( INT   => 7 ),
+    node( COMMA => ',' ),
+    node( INT   => 4 ),
+    node( COMMA => ',' ),
+);
+my $int_list_stream = list_to_stream(@tokens);
+
+( $parsed, $remainder ) =
+  run_parser( list_of( match('INT') ), $int_list_stream );
+is_deeply $parsed, [ 2, ',', 7, ',', 4 ],
+  'The list_of() parser should return all the values matched';
+is_deeply $remainder, [ [ COMMA => ',' ] ],
+  '... and then the remainder of the stream';
+
+@tokens = (
+    node( INT       => 2 ),
+    node( NOT_COMMA => ',' ),
+    node( INT       => 7 ),
+    node( COMMA     => ',' ),
+    node( INT       => 4 ),
+    node( COMMA     => ',' ),
+);
+$int_list_stream = list_to_stream(@tokens);
+
+( $parsed, $remainder ) =
+  run_parser( list_of( match('INT') ), $int_list_stream );
+is_deeply $parsed, [2],
+  'The list_of() parser should be able to match just one item in a list';
+
+@tokens = (
+    node( INT => 2 ),
+    node( SEP => ',' ),
+    node( INT => 7 ),
+    node( SEP => ',' ),
+    node( INT => 4 ),
+    node( SEP => ',' ),
+);
+$int_list_stream = list_to_stream(@tokens);
+
+( $parsed, $remainder ) =
+  run_parser( list_of( match('INT'), match('SEP') ), $int_list_stream );
+is_deeply $parsed, [ 2, ',', 7, ',', 4 ],
+  '... and it should allow us to override the separator';
+is_deeply $remainder, [ [ SEP => ',' ] ],
+  '... and then the remainder of the stream';
+
+#
+# list_values_of
+#
+
+@tokens = (
+    node( INT   => 2 ),
+    node( COMMA => ',' ),
+    node( INT   => 7 ),
+    node( COMMA => ',' ),
+    node( INT   => 4 ),
+    node( COMMA => ',' ),
+);
+$int_list_stream = list_to_stream(@tokens);
+
+( $parsed, $remainder ) =
+  run_parser( list_values_of( match('INT') ), $int_list_stream );
+is_deeply $parsed, [ qw/ 2 7 4 /],
+  'The list_values_of() parser should return all the values matched';
+is_deeply $remainder, [ [ COMMA => ',' ] ],
+  '... and then the remainder of the stream';
+
+@tokens = (
+    node( INT       => 2 ),
+    node( NOT_COMMA => ',' ),
+    node( INT       => 7 ),
+    node( COMMA     => ',' ),
+    node( INT       => 4 ),
+    node( COMMA     => ',' ),
+);
+$int_list_stream = list_to_stream(@tokens);
+
+( $parsed, $remainder ) =
+  run_parser( list_values_of( match('INT') ), $int_list_stream );
+is_deeply $parsed, [2],
+  'The list_values_of() parser should be able to match just one item in a list';
+
+@tokens = (
+    node( INT => 2 ),
+    node( SEP => ',' ),
+    node( INT => 7 ),
+    node( SEP => ',' ),
+    node( INT => 4 ),
+    node( SEP => ',' ),
+);
+$int_list_stream = list_to_stream(@tokens);
+
+( $parsed, $remainder ) =
+  run_parser( list_values_of( match('INT'), match('SEP') ), $int_list_stream );
+is_deeply $parsed, [ qw/ 2 7 4 / ],
+  '... and it should allow us to override the separator';
+is_deeply $remainder, [ [ SEP => ',' ] ],
+  '... and then the remainder of the stream';
+
+#
+# rlist_of
+#
+
+@tokens = (
+    node( COMMA => ',' ),
+    node( INT   => 2 ),
+    node( COMMA => ',' ),
+    node( INT   => 7 ),
+    node( COMMA => ',' ),
+    node( INT   => 4 ),
+    node( COMMA => ',' ),
+);
+$int_list_stream = list_to_stream(@tokens);
+
+( $parsed, $remainder ) =
+  run_parser( rlist_of( match('INT') ), $int_list_stream );
+is_deeply $parsed, [ ',', 2, ',', 7, ',', 4 ],
+  'The rlist_of() parser should return all the values matched';
+is_deeply $remainder, [ [ COMMA => ',' ] ],
+  '... and then the remainder of the stream';
+
+@tokens = (
+    node( COMMA     => ',' ),
+    node( INT       => 2 ),
+    node( NOT_COMMA => ',' ),
+    node( INT       => 7 ),
+    node( COMMA     => ',' ),
+    node( INT       => 4 ),
+    node( COMMA     => ',' ),
+);
+$int_list_stream = list_to_stream(@tokens);
+
+( $parsed, $remainder ) =
+  run_parser( rlist_of( match('INT') ), $int_list_stream );
+is_deeply $parsed, [',', 2],
+  'The rlist_of() parser should be able to match just one item in a list';
+
+@tokens = (
+    node( SEP => ',' ),
+    node( INT => 2 ),
+    node( SEP => ',' ),
+    node( INT => 7 ),
+    node( SEP => ',' ),
+    node( INT => 4 ),
+    node( SEP => ',' ),
+);
+$int_list_stream = list_to_stream(@tokens);
+
+( $parsed, $remainder ) =
+  run_parser( rlist_of( match('INT'), match('SEP') ), $int_list_stream );
+is_deeply $parsed, [ ',', 2, ',', 7, ',', 4 ],
+  '... and it should allow us to override the separator';
+is_deeply $remainder, [ [ SEP => ',' ] ],
+  '... and then the remainder of the stream';
+
+#
+# rlist_values_of
+#
+
+@tokens = (
+    node( COMMA => ',' ),
+    node( INT   => 2 ),
+    node( COMMA => ',' ),
+    node( INT   => 7 ),
+    node( COMMA => ',' ),
+    node( INT   => 4 ),
+    node( COMMA => ',' ),
+);
+$int_list_stream = list_to_stream(@tokens);
+
+( $parsed, $remainder ) =
+  run_parser( rlist_values_of( match('INT') ), $int_list_stream );
+is_deeply $parsed, [ qw/ 2 7 4 /],
+  'The rlist_values_of() parser should return all the values matched';
+is_deeply $remainder, [ [ COMMA => ',' ] ],
+  '... and then the remainder of the stream';
+
+@tokens = (
+    node( COMMA     => ',' ),
+    node( INT       => 2 ),
+    node( NOT_COMMA => ',' ),
+    node( INT       => 7 ),
+    node( COMMA     => ',' ),
+    node( INT       => 4 ),
+    node( COMMA     => ',' ),
+);
+$int_list_stream = list_to_stream(@tokens);
+
+( $parsed, $remainder ) =
+  run_parser( rlist_values_of( match('INT') ), $int_list_stream );
+is_deeply $parsed, [2],
+  'The rlist_values_of() parser should be able to match just one item in a list';
+
+@tokens = (
+    node( SEP => ',' ),
+    node( INT => 2 ),
+    node( SEP => ',' ),
+    node( INT => 7 ),
+    node( SEP => ',' ),
+    node( INT => 4 ),
+    node( SEP => ',' ),
+);
+$int_list_stream = list_to_stream(@tokens);
+
+( $parsed, $remainder ) =
+  run_parser( rlist_values_of( match('INT'), match('SEP') ), $int_list_stream );
+is_deeply $parsed, [ qw/ 2 7 4 / ],
+  '... and it should allow us to override the separator';
+is_deeply $remainder, [ [ SEP => ',' ] ],
+  '... and then the remainder of the stream';

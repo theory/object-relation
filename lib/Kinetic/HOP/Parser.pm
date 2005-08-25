@@ -31,6 +31,7 @@ use base 'Exporter';
 use Kinetic::HOP::Stream ':all';
 
 our @EXPORT_OK = qw(
+  absorb
   action
   alternate
   concatenate
@@ -38,12 +39,15 @@ our @EXPORT_OK = qw(
   End_of_Input
   error
   list_of
+  list_values_of
   lookfor
   match
   nothing
   null_list
   operator
   parser
+  rlist_of
+  rlist_values_of
   star
   T
   test
@@ -152,7 +156,17 @@ sub lookfor {
             return unless $wanted->[$i] eq $next->[$i];
         }
         my $wanted_value = $value->( $next, $u );
-        return ( $wanted_value, tail($input) );
+        my $tail         = tail($input);
+
+        # the following is unlikely to affect a stream with a promise
+        # for a tail as the promise tends to Do The Right Thing.
+        #
+        # Otherwise, the AoA stream might just return an aref for
+        # the tail instead of an AoA.  This breaks things
+        if ( 'ARRAY' eq ref $tail && 'ARRAY' ne ref $tail->[0] ) {
+            $tail = [$tail];
+        }
+        return ( $wanted_value, $tail );
     };
 }
 
@@ -194,6 +208,11 @@ sub parser (&) { $_[0] }
 This function takes a list of parsers and returns a new parser. The new parser
 succeeds if all parsers passed to C<concatenate> succeed sequentially.
 
+C<concatenate> will discard undefined values.  This allows us to do this and
+only return the desired value(s).
+
+  concatenate(absorb($lparent), $value, absorb($rparent))
+
 =cut
 
 sub concatenate {
@@ -208,7 +227,7 @@ sub concatenate {
         my @values;
         for (@p) {
             ( $v, $input ) = $_->($input) or return;
-            push @values, $v;
+            push @values, $v if defined $v; # assumes we wish to discard undef
         }
         return ( \@values, $input );
     };
@@ -243,18 +262,144 @@ sub alternate {
     };
 }
 
-## Chapter 8 section 3.3
+##############################################################################
+
+=head3 list_of
+
+  my $parser = list_of( $element, $separator );
+  my ($parsed, $remainder) = $parser->($stream);
+
+This function takes two parsers and returns a new parser which matches a
+C<$separator> delimited list of C<$element> items.
+
+=cut
 
 sub list_of {
     my ( $element, $separator ) = @_;
     $separator = lookfor('COMMA') unless defined $separator;
 
-    return concatenate( $element, star( $separator, $element ) );
+    return T(
+        concatenate( $element, star( concatenate( $separator, $element ) ) ),
+        sub {
+            my @matches = shift;
+            if ( my $tail = shift ) {
+                foreach my $match (@$tail) {
+                    push @matches, @$match;
+                }
+            }
+            return \@matches;
+        }
+    );
 }
 
-1;
+##############################################################################
 
-## Chapter 8 section 4
+=head3 rlist_of
+
+  my $parser = list_of( $element, $separator );
+  my ($parsed, $remainder) = $parser->($stream);
+
+This function takes two parsers and returns a new parser which matches a
+C<$separator> delimited list of C<$element> items.  Unlike C<list_of>, this
+parser expects a leading C<$separator> in what it matches.
+
+=cut
+
+sub rlist_of {
+    my ( $element, $separator ) = @_;
+    $separator = lookfor('COMMA') unless defined $separator;
+
+    return T(
+        concatenate( $separator, list_of( $element, $separator ) ),
+        sub { [ $_[0], @{$_[1]} ] }
+    );
+}
+
+##############################################################################
+
+=head3 list_values_of
+
+  my $parser = list_of( $element, $separator );
+  my ($parsed, $remainder) = $parser->($stream);
+
+This parser generator is the same as C<&list_of>, but it only returns the
+elements, not the separators.
+
+=cut
+
+sub list_values_of {
+    my ( $element, $separator ) = @_;
+    $separator = lookfor('COMMA') unless defined $separator;
+
+    return T(
+        concatenate(
+            $element, star( concatenate( absorb($separator), $element ) )
+        ),
+        sub {
+            my @matches = shift;
+            if ( my $tail = shift ) {
+                foreach my $match (@$tail) {
+                    push @matches, grep defined $_, @$match;
+                }
+            }
+            return \@matches;
+        }
+    );
+}
+
+##############################################################################
+
+=head3 rlist_values_of
+
+  my $parser = list_of( $element, $separator );
+  my ($parsed, $remainder) = $parser->($stream);
+
+This parser generator is the same as C<&list_values_of>, but it only returns
+the elements, not the separators.
+
+List C<rlist_of>, it expects a separator at the beginning of the list.
+
+=cut
+
+sub rlist_values_of {
+    my ( $element, $separator ) = @_;
+    $separator = lookfor('COMMA') unless defined $separator;
+
+    return T(
+        concatenate( $separator, list_values_of( $element, $separator ) ),
+        sub { $_[1] }
+    );
+}
+
+
+##############################################################################
+
+=head3 absorb
+
+  my $parser = absorb( $parser );
+  my ($parsed, $remainder) = $parser->($stream);
+
+This special-purpose parser will allow you to match a given item but not
+actually return anything.  This is very useful when matching commas in lists,
+statement separators, etc.
+
+=cut
+
+sub absorb {
+    my $parser = shift;
+    return T( $parser, sub { () } );
+}
+
+##############################################################################
+
+=head3 T
+
+  my @result = T( $parser, \&transform );
+
+Given a parser and a transformation sub, this function will apply the
+tranformation to the values returned by the parser, if any.
+
+=cut
 
 sub T {
     my ( $parser, $transform ) = @_;
@@ -262,7 +407,7 @@ sub T {
         my $input = shift;
         if ( my ( $value, $newinput ) = $parser->($input) ) {
             local $^W;    # using this to suppress 'uninitialized' warnings
-            $value = [$value] if 'undef' eq $value;
+            $value = [$value] if !ref $value;
             $value = $transform->(@$value);
             return ( $value, $newinput );
         }

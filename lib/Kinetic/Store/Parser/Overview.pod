@@ -49,8 +49,8 @@ C<%RE> hash used in I<search_value> are from C<Regexp::Common>.
   statements     ::= statement | statement ',' statements
 
   statement      ::= statement_list
-                   | '(' statement_list ')' 'and'
-                   | '(' statement_list ')' 'or'
+                   | 'and' '(' statement_list ')'
+                   | 'or'  '(' statement_list ')'
 
   statement_list ::= search
                    | search ','                      # allow trailing commmas
@@ -62,8 +62,7 @@ C<%RE> hash used in I<search_value> are from C<Regexp::Common>.
                    | identifier '=>'       between_value
                    | identifier '=>' 'NOT' between_value
 
-  normal_value   ::= compare value
-                   | any
+  normal_value   ::= value | compare value | any
 
   between_value  ::= 'BETWEEN' '[' value ','  value ']'
                    | 'BETWEEN' '[' value '=>' value ']'

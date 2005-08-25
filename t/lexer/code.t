@@ -4,7 +4,6 @@ use strict;
 
 use Test::More tests => 36;
 #use Test::More 'no_plan';
-use Data::Dumper;
 
 use lib 'lib';
 use Kinetic::HOP::Stream 'drop';
