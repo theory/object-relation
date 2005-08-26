@@ -176,7 +176,6 @@ $normal_value =
   T( alternate( concatenate( star( match('COMPARE') ), $Value ), $Any ),
     sub { [ $_[0][0], $_[1] ] } );
 
-#
 #  between_value  ::= 'BETWEEN' '[' value ','  value ']'
 #                   | 'BETWEEN' '[' value '=>' value ']'
 #                   |           '[' value ','  value ']'
@@ -414,8 +413,17 @@ sub parse {
             'Kinetic::Store' ];
     }
     $STORE = $store;
-    my ( $results, $remainder ) = $entire_input->($stream);
+    my ( $results, $remainder ) = eval { $entire_input->($stream) };
 
+    if ( my $error = $@ ) {
+        if ( 'ARRAY' eq ref $@ ) {
+            my $message = fetch_error( $error );
+            throw_search [
+                "Could not parse search request:\n\n[_1]",
+                $message
+            ];
+        }
+    }
     # XXX really need to figure out a more descriptive error message
     throw_search 'Could not parse search request' if $remainder or !$results;
     return $results;

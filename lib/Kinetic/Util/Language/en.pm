@@ -101,8 +101,14 @@ our %Lexicon = (
   "([_1]) cannot be a value.",
   "([_1]) cannot be a value.",
 
+  "Could not lex search request.  Found bad tokens ([_1])",
+  "Could not lex search request.  Found bad tokens ([_1])",
+
   'Could not parse search request',
   'Could not parse search request',
+
+  "Could not parse search request:\n\n[_1]",
+  "Could not parse search request:\n\n[_1]",
 
   'Failed to convert IR to where clause.  This should not happen.',
   'Failed to convert IR to where clause.  This should not happen.',

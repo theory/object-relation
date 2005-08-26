@@ -2,16 +2,22 @@
 use warnings;
 use strict;
 
-use Test::More tests => 41;
+use Test::More tests => 42;
 #use Test::More 'no_plan';
+use Test::Exception;
 
 use lib 'lib/', '../lib/';
 use Kinetic::HOP::Stream 'drop';
+
 BEGIN {
     use_ok 'Kinetic::Store::Lexer::String', qw/string_lexer_stream/ or die;
 }
 
 *lex = \&Kinetic::Store::Lexer::String::_lex;
+
+throws_ok { lex("name ~~ 'foo'") }
+  'Kinetic::Util::Exception::Fatal::Search',
+  'A malformed search request should throw an exception';
 
 ok my $tokens = lex("name => 'foo'"),
     '... and we should be able to lex a basic string';
@@ -55,8 +61,9 @@ is_deeply lex("-.3"), [['VALUE', "-.3"]],
 is_deeply lex("-3E5"), [['VALUE', "-3E5"]],
     '... or scientific notation';
 
-is_deeply lex("."), ["."],
-    '... but a standalone period should fail to lex';
+throws_ok { lex(".") }
+  'Kinetic::Util::Exception::Fatal::Search',
+  '... but a standalone period should fail to lex';
 
 is_deeply lex("object.name"), [['IDENTIFIER', 'object.name']],
     '... and should not be pulled out of an identifier';

@@ -2,6 +2,7 @@
 use warnings;
 use strict;
 
+use Test::Exception;
 use Test::More tests => 123;
 #use Test::More 'no_plan';
 
@@ -72,10 +73,14 @@ is_deeply $remainder, "anything", '... and should return the input unaltered';
 # End_of_Input
 #
 
-my @succeeds = End_of_Input("anything");
-ok !@succeeds, 'End_of_Input() should fail if data left in the stream';
+# XXX This parser dies instead of throwing an exception because this module
+# is not used directly, but is instead used by Kinetic::Store::Parser which
+# catches the die() and handles the error itself.
 
-@succeeds = End_of_Input(undef);
+dies_ok { End_of_Input("anything") }
+    'End_of_Input() should fail if data left in the stream';
+
+my @succeeds = End_of_Input(undef);
 ok @succeeds, '... and it should succeed if no data is left in the stream';
 
 #

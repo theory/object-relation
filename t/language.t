@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use diagnostics;
 #use Test::More qw(no_plan);
-use Test::More tests => 280;
+use Test::More tests => 286;
 use File::Spec;
 use File::Find;
 

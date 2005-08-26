@@ -36,6 +36,7 @@ our @EXPORT_OK = qw(
   alternate
   concatenate
   debug
+  fetch_error
   End_of_Input
   error
   list_of
@@ -98,8 +99,14 @@ the grammar.
 
 sub End_of_Input {
     my $input = shift;
-    defined($input) ? () : ( undef, undef );
+    return ( undef, undef ) unless defined($input);
+    die [ "End of input", $input ];
 }
+
+#sub End_of_Input {
+#    my $input = shift;
+#    defined($input) ? () : ( undef, undef );
+#}
 
 ##############################################################################
 
@@ -538,6 +545,47 @@ sub test {
 }
 
 sub debug { shift; @_ }    # see Parser::Debug::debug
+
+my $error;
+sub fetch_error {
+    my ( $fail, $depth ) = @_;
+
+    # clear the error unless it's a recursive call
+    $error = '' if __PACKAGE__ ne caller;
+    $depth ||= 0;
+    my $I = "  " x $depth;
+    my ( $type, $position, $data ) = @$fail;
+    my $pos_desc = "";
+
+    while ( length($pos_desc) < 40 ) {
+        if ($position) {
+            my $h = head($position);
+            $pos_desc .= "[@$h] ";
+        }
+        else {
+            $pos_desc .= "End of input ";
+            last;
+        }
+        $position = tail($position);
+    }
+    chop $pos_desc;
+    $pos_desc .= "..." if defined $position;
+
+    if ( $type eq 'TOKEN' ) {
+        $error .= "${I}Wanted [@$data] instead of '$pos_desc'\n";
+    }
+    elsif ( $type eq 'End of input' ) {
+        $error .= "${I}Wanted EOI instead of '$pos_desc'\n";
+    }
+    elsif ( $type eq 'ALT' ) {
+        my $any = $depth ? "Or any" : "Any";
+        $error .= "${I}$any of the following:\n";
+        for (@$data) {
+            fetch_error( $_, $depth + 1 );
+        }
+    }
+    return $error;
+}
 
 1;
 

@@ -81,6 +81,12 @@ sub _lex {
     while ( my $token = $lexer->() ) {
         push @tokens => $token;
     }
+    if ( my @bad_tokens = grep { ! ref $_ } @tokens ) {
+        throw_search [
+            "Could not lex search request.  Found bad tokens ([_1])",
+            join ', ' => @bad_tokens
+        ];
+    }
     return \@tokens;
 }
 
