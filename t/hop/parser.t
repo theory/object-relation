@@ -3,8 +3,9 @@ use warnings;
 use strict;
 
 use Test::Exception;
-use Test::More tests => 123;
-#use Test::More 'no_plan';
+
+#use Test::More tests => 123;
+use Test::More 'no_plan';
 
 use lib 'lib/', '../lib/';
 
@@ -37,6 +38,7 @@ my @exported = qw(
   nothing
   null_list
   operator
+  optional
   parser
   rlist_of
   rlist_values_of
@@ -78,7 +80,7 @@ is_deeply $remainder, "anything", '... and should return the input unaltered';
 # catches the die() and handles the error itself.
 
 dies_ok { End_of_Input("anything") }
-    'End_of_Input() should fail if data left in the stream';
+  'End_of_Input() should fail if data left in the stream';
 
 my @succeeds = End_of_Input(undef);
 ok @succeeds, '... and it should succeed if no data is left in the stream';
@@ -102,7 +104,7 @@ is_deeply $remainder, "anything", '... and return the input as the remainder';
 ok my $parser = lookfor('OP'),
   'lookfor() should return a parser which can look for tokens.';
 
-ok !$parser->( [ [ 'VAL' => 3 ] ] ),
+dies_ok { $parser->( [ [ 'VAL' => 3 ] ] ) }
   '... and the parser will fail if the first token does not match';
 
 my @tokens = (
@@ -125,7 +127,7 @@ is_deeply $remainder, $expected, '... and then the rest of the stream';
 ok $parser = lookfor( ['OP'] ),
   'lookfor() should return a parser if we supply an array ref with a label';
 
-ok !$parser->( [ [ 'VAL' => 3 ] ] ),
+dies_ok { $parser->( [ [ 'VAL' => 3 ] ] ) }
   '... and the parser will fail if the first token does not match';
 
 ( $parsed, $remainder ) = $parser->($stream);
@@ -141,7 +143,7 @@ is_deeply $remainder, $expected, '... and then the rest of the stream';
 ok $parser = lookfor( [ OP => '+' ] ),
   'lookfor() should succeed if we supply an array ref with a "label => value"';
 
-ok !$parser->( [ [ 'VAL' => 3 ] ] ),
+dies_ok { $parser->( [ [ 'VAL' => 3 ] ] ) }
   '... and the parser will fail if the first token does not match';
 
 ( $parsed, $remainder ) = $parser->($stream);
@@ -166,7 +168,7 @@ my $get_value = sub {
 ok $parser = lookfor( ['OP'], $get_value ),
   'lookfor() should succeed if we supply an array ref with a "label => value"';
 
-ok !$parser->( [ [ 'VAL' => 3 ] ] ),
+dies_ok { $parser->( [ [ 'VAL' => 3 ] ] ) }
   '... and the parser will fail if the first token does not match';
 
 ( $parsed, $remainder ) = $parser->($stream);
@@ -194,7 +196,7 @@ $get_value = sub {
 ok $parser = lookfor( ['OP'], $get_value, \%opname_for ),
   'lookfor() should succeed with the three argument syntax';
 
-ok !$parser->( [ [ 'VAL' => 3 ] ] ),
+dies_ok { $parser->( [ [ 'VAL' => 3 ] ] ) }
   '... and the parser will fail if the first token does not match';
 
 ( $parsed, $remainder ) = $parser->($stream);
@@ -215,7 +217,7 @@ is $parsed, '*', '... just like we expect them to';
 
 ok $parser = match('OP'), 'match() should return a parser if we supply a label';
 
-ok !$parser->( [ [ 'VAL' => 3 ] ] ),
+dies_ok { $parser->( [ [ 'VAL' => 3 ] ] ) }
   '... and the parser will fail if the first token does not match';
 
 ( $parsed, $remainder ) = $parser->($stream);
@@ -231,7 +233,7 @@ is_deeply $remainder, $expected, '... and then the rest of the stream';
 ok $parser = match( OP => '+' ),
   'match() should succeed if we supply a "label => value"';
 
-ok !$parser->( [ [ 'VAL' => 3 ] ] ),
+dies_ok { $parser->( [ [ 'VAL' => 3 ] ] ) }
   '... and the parser will fail if the first token does not match';
 
 ( $parsed, $remainder ) = $parser->($stream);
@@ -266,8 +268,8 @@ is_deeply $remainder, $expected_remainder,
 
 ok $parser = concatenate( match('OP'), match( VAR => 'no such var' ), ),
   'We should be able to concatenate multiple parsers';
-@succeeds = $parser->($stream);
-ok !@succeeds, '... but the parser should fail if the tokens do not match';
+dies_ok { $parser->($stream) }
+  '... but the parser should fail if the tokens do not match';
 
 ok $parser = concatenate(
     match('OP'),
@@ -291,8 +293,7 @@ ok !@succeeds, '... but it should always fail';
 
 ok $parser = alternate( match('VAR'), match('VAL') ),
   'We should be able to alternate on incorrect tokens';
-@succeeds = $parser->($stream);
-ok !@succeeds, '... but it should always fail';
+dies_ok { $parser->($stream) } '... but it should always fail';
 
 ( $parsed, $remainder ) =
   run_parser( alternate( match('Foo'), match('OP') ), $stream );
@@ -436,7 +437,7 @@ $int_list_stream = list_to_stream(@tokens);
 
 ( $parsed, $remainder ) =
   run_parser( list_values_of( match('INT') ), $int_list_stream );
-is_deeply $parsed, [ qw/ 2 7 4 /],
+is_deeply $parsed, [qw/ 2 7 4 /],
   'The list_values_of() parser should return all the values matched';
 is_deeply $remainder, [ [ COMMA => ',' ] ],
   '... and then the remainder of the stream';
@@ -468,7 +469,7 @@ $int_list_stream = list_to_stream(@tokens);
 
 ( $parsed, $remainder ) =
   run_parser( list_values_of( match('INT'), match('SEP') ), $int_list_stream );
-is_deeply $parsed, [ qw/ 2 7 4 / ],
+is_deeply $parsed, [qw/ 2 7 4 /],
   '... and it should allow us to override the separator';
 is_deeply $remainder, [ [ SEP => ',' ] ],
   '... and then the remainder of the stream';
@@ -508,7 +509,7 @@ $int_list_stream = list_to_stream(@tokens);
 
 ( $parsed, $remainder ) =
   run_parser( rlist_of( match('INT') ), $int_list_stream );
-is_deeply $parsed, [',', 2],
+is_deeply $parsed, [ ',', 2 ],
   'The rlist_of() parser should be able to match just one item in a list';
 
 @tokens = (
@@ -546,7 +547,7 @@ $int_list_stream = list_to_stream(@tokens);
 
 ( $parsed, $remainder ) =
   run_parser( rlist_values_of( match('INT') ), $int_list_stream );
-is_deeply $parsed, [ qw/ 2 7 4 /],
+is_deeply $parsed, [qw/ 2 7 4 /],
   'The rlist_values_of() parser should return all the values matched';
 is_deeply $remainder, [ [ COMMA => ',' ] ],
   '... and then the remainder of the stream';
@@ -565,7 +566,7 @@ $int_list_stream = list_to_stream(@tokens);
 ( $parsed, $remainder ) =
   run_parser( rlist_values_of( match('INT') ), $int_list_stream );
 is_deeply $parsed, [2],
-  'The rlist_values_of() parser should be able to match just one item in a list';
+'The rlist_values_of() parser should be able to match just one item in a list';
 
 @tokens = (
     node( SEP => ',' ),
@@ -580,7 +581,24 @@ $int_list_stream = list_to_stream(@tokens);
 
 ( $parsed, $remainder ) =
   run_parser( rlist_values_of( match('INT'), match('SEP') ), $int_list_stream );
-is_deeply $parsed, [ qw/ 2 7 4 / ],
+is_deeply $parsed, [qw/ 2 7 4 /],
   '... and it should allow us to override the separator';
 is_deeply $remainder, [ [ SEP => ',' ] ],
   '... and then the remainder of the stream';
+
+#
+# optional()
+#
+
+@tokens = ( node( 'FOO' => 1 ), node( 'FOO' => 2 ), );
+$foo_stream = list_to_stream(@tokens);
+( $parsed, $remainder ) = run_parser( optional( match('FOO') ), $foo_stream );
+is_deeply $parsed, [1], 'optional() should be able to match an item';
+is_deeply $remainder, [ [ FOO => 2 ] ], '... but only one of that item';
+
+@tokens = ( node( 'OOF' => 1 ), node( 'FOO' => 1 ), node( 'FOO' => 2 ), );
+$foo_stream = list_to_stream(@tokens);
+( $parsed, $remainder ) = run_parser( optional( match('FOO') ), $foo_stream );
+is_deeply $parsed, [], 'optional() should mean the item is not required';
+is_deeply $remainder, $foo_stream,
+  '... and we should return the stream unchanged';

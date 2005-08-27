@@ -28,7 +28,9 @@ use strict;
 use warnings;
 
 use base 'Exporter';
-use Kinetic::HOP::Stream ':all';
+use Kinetic::HOP::Stream qw/drop tail head/;
+
+our %N;
 
 our @EXPORT_OK = qw(
   absorb
@@ -46,6 +48,7 @@ our @EXPORT_OK = qw(
   nothing
   null_list
   operator
+  optional
   parser
   rlist_of
   rlist_values_of
@@ -150,31 +153,38 @@ used instead.
 sub lookfor {
     my $wanted = shift;
     my $value  = shift || sub { $_[0][1] };
-    my $u      = shift;
+    my $param  = shift;
 
     $wanted = [$wanted] unless ref $wanted;
-    return parser {
+    my $parser = parser {
         my $input = shift;
-        return unless defined $input;
+        unless ( defined $input ) {
+            die [ 'TOKEN', $input, $wanted ];
+        }
+
         my $next = head($input);
         for my $i ( 0 .. $#$wanted ) {
             next unless defined $wanted->[$i];
-            local $^W;    # suppress unitialized warnings XXX
-            return unless $wanted->[$i] eq $next->[$i];
+            no warnings 'uninitialized';
+            unless ($wanted->[$i] eq $next->[$i]) {
+                die [ 'TOKEN', $input, $wanted ];
+            }
         }
-        my $wanted_value = $value->( $next, $u );
-        my $tail         = tail($input);
+        my $wanted_value = $value->( $next, $param );
 
         # the following is unlikely to affect a stream with a promise
         # for a tail as the promise tends to Do The Right Thing.
         #
         # Otherwise, the AoA stream might just return an aref for
         # the tail instead of an AoA.  This breaks things
+        my $tail = tail($input);
         if ( 'ARRAY' eq ref $tail && 'ARRAY' ne ref $tail->[0] ) {
             $tail = [$tail];
         }
         return ( $wanted_value, $tail );
     };
+    $N{$parser} = "[@$wanted]";
+    return $parser;
 }
 
 ##############################################################################
@@ -224,17 +234,16 @@ only return the desired value(s).
 
 sub concatenate {
     shift unless ref $_[0];
-    my @p = @_;
-    return \&nothing if @p == 0;
-    return $p[0]     if @p == 1;
+    my @parsers = @_;
+    return \&nothing   if @parsers == 0;
+    return $parsers[0] if @parsers == 1;
 
     my $parser = parser {
         my $input = shift;
-        my $v;
-        my @values;
-        for (@p) {
-            ( $v, $input ) = $_->($input) or return;
-            push @values, $v if defined $v; # assumes we wish to discard undef
+        my ( $v, @values );
+        for (@parsers) {
+            ( $v, $input ) = $_->($input);
+            push @values, $v if defined $v;   # assumes we wish to discard undef
         }
         return ( \@values, $input );
     };
@@ -253,20 +262,32 @@ This function behaves like C<concatenate> but matches one of any tokens
 =cut
 
 sub alternate {
-    my @p = @_;
+    my @parsers = @_;
     return parser { return () }
-      if @p == 0;
-    return $p[0] if @p == 1;
+      if @parsers == 0;
+    return $parsers[0] if @parsers == 1;
+
     my $parser = parser {
         my $input = shift;
-        my ( $v, $newinput );
-        for (@p) {
-            if ( ( $v, $newinput ) = $_->($input) ) {
+        my @failures;
+
+        for (@parsers) {
+            my ( $v, $newinput ) = eval { $_->($input) };
+            if ($@) {
+                die unless ref $@; # not a parser failure
+                push @failures, $@;
+            }
+            else {
                 return ( $v, $newinput );
             }
         }
-        return;
+        die [ 'ALT', $input, \@failures ];
     };
+    {
+        no warnings 'uninitialized';
+        $N{$parser} = "(" . join ( " | ", map $N{$_}, @parsers ) . ")";
+    }
+    return $parser;
 }
 
 ##############################################################################
@@ -316,10 +337,8 @@ sub rlist_of {
     my ( $element, $separator ) = @_;
     $separator = lookfor('COMMA') unless defined $separator;
 
-    return T(
-        concatenate( $separator, list_of( $element, $separator ) ),
-        sub { [ $_[0], @{$_[1]} ] }
-    );
+    return T( concatenate( $separator, list_of( $element, $separator ) ),
+        sub { [ $_[0], @{ $_[1] } ] } );
 }
 
 ##############################################################################
@@ -372,12 +391,9 @@ sub rlist_values_of {
     my ( $element, $separator ) = @_;
     $separator = lookfor('COMMA') unless defined $separator;
 
-    return T(
-        concatenate( $separator, list_values_of( $element, $separator ) ),
-        sub { $_[1] }
-    );
+    return T( concatenate( $separator, list_values_of( $element, $separator ) ),
+        sub { $_[1] } );
 }
-
 
 ##############################################################################
 
@@ -469,6 +485,25 @@ sub star {
     );
 }
 
+##############################################################################
+
+=head3 optional
+
+ my $parser = optional($another_parser);
+ my ($parser, $remainder) = $parser->(stream); 
+
+This parser matches 0 or 1 of the given parser item.
+
+=cut
+
+sub optional {
+    my $parser = shift;
+    return alternate (
+        T($parser, sub { [ shift ] }),
+        \&null_list,
+    );
+}
+
 ## Chapter 8 section 4.4
 
 sub operator {
@@ -498,30 +533,16 @@ sub operator {
 
 ## Chapter 8 section 4.7.1
 
-our %N;
-
 sub error {
-    my ( $checker, $continuation ) = @_;
-    my $p;
-    $p = parser {
+    my ($try) = @_;
+    return parser {
         my $input = shift;
-
-        while ( defined($input) ) {
-            if ( my ( undef, $result ) = $checker->($input) ) {
-                $input = $result;
-                last;
-            }
-            else {
-                drop($input);
-            }
+        my @result = eval { $try->($input) };
+        if ($@) {
+            die ref $@ ? $@ : "Internal error ($@)";
         }
-
-        return unless defined $input;
-
-        return $continuation->($input);
+        return @result;
     };
-    $N{$p} = "errhandler($N{$continuation} -> $N{$checker})";
-    return $p;
 }
 
 ## Chapter 8 section 6
@@ -547,6 +568,7 @@ sub test {
 sub debug { shift; @_ }    # see Parser::Debug::debug
 
 my $error;
+
 sub fetch_error {
     my ( $fail, $depth ) = @_;
 

@@ -22,7 +22,7 @@ use strict;
 use IO::File;
 use XML::Genx::Simple;
 use XML::Simple;
-use Kinetic::Util::Exceptions ':all';
+use Kinetic::Util::Exceptions qw/throw_io throw_xml throw_invalid_class/;
 
 use Kinetic::Meta;
 use constant XML_VERSION => '0.01';

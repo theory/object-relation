@@ -22,7 +22,14 @@ use strict;
 use base qw(Kinetic::Store);
 use DBI;
 
-use Kinetic::Util::Exceptions qw/:all/;
+use Kinetic::Util::Exceptions qw/
+  panic
+  throw_attribute
+  throw_invalid
+  throw_invalid_class
+  throw_search
+  throw_unimplemented
+  /;
 use Kinetic::Store qw/:sorting/;
 use Kinetic::Store::Parser qw/parse/;
 use Kinetic::Store::Lexer::Code qw/code_lexer_stream/;
@@ -491,9 +498,10 @@ sub _set_search_type {
     {
         no warnings 'uninitialized';
         $self->{search_type} =
-          ! @$search_params                                ? 'CODE'
-          : exists $SEARCH_TYPE_FOR{ $search_params->[0] } ? shift @$search_params
-          :                                                  'CODE';
+          !@$search_params ? 'CODE'
+          : exists $SEARCH_TYPE_FOR{ $search_params->[0] }
+          ? shift @$search_params
+          : 'CODE';
     }
     if ( 'STRING' eq $self->{search_type} && @$search_params > 1 ) {
         my @constraints = splice @$search_params, 1;

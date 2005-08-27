@@ -22,7 +22,8 @@ use 5.008003;
 use strict;
 use version;
 our $VERSION = version->new('0.0.1');
-use Kinetic::Util::Exceptions qw/:all/;
+use Kinetic::Util::Exceptions
+  qw/panic throw_exlib throw_required throw_unsupported/;
 use Kinetic::Util::Constants qw/CURRENT_PAGE/;
 use aliased 'XML::LibXML';
 use aliased 'XML::LibXSLT';

@@ -23,7 +23,15 @@ use IO::File;
 use XML::Genx::Simple;
 use XML::Simple;
 use Kinetic::Util::Constants qw/ATTR_DELIMITER/;
-use Kinetic::Util::Exceptions ':all';
+use Kinetic::Util::Exceptions qw/
+  throw_invalid
+  throw_invalid_class
+  throw_io
+  throw_not_found
+  throw_required
+  throw_unknown_class
+  throw_xml
+  /;
 
 use Kinetic::Meta;
 use Kinetic::Store;
@@ -80,12 +88,12 @@ C<stylesheet_url>, it will be included in the XML.
 =cut
 
 sub new {
-    my ($class, $args) = @_;
+    my ( $class, $args ) = @_;
     $args = 'HASH' eq ref $args ? $args : { object => $args };
     my $self = bless {}, $class;
-    $self->object($args->{object} || ());
-    $self->attributes($args->{attributes} || ());
-    $self->stylesheet_url($args->{stylesheet_url} || ());
+    $self->object( $args->{object}                 || () );
+    $self->attributes( $args->{attributes}         || () );
+    $self->stylesheet_url( $args->{stylesheet_url} || () );
     $self;
 }
 
@@ -106,14 +114,15 @@ object.
 =cut
 
 sub new_from_xml {
-    my ($class, $xml_string, $params) = @_;
-    throw_required ['Required argument "[_1]" to [_2] not found', 1, 'new_from_xml()']
-        unless $xml_string;
+    my ( $class, $xml_string, $params ) = @_;
+    throw_required [ 'Required argument "[_1]" to [_2] not found', 1,
+        'new_from_xml()' ]
+      unless $xml_string;
     my $self = $class->new;
     $self->{params} = $params || {};
     my $data = $self->_get_hash_from_xml($xml_string);
-    my ($key) = keys %$data; # XXX Currently assumes only one key
-    return $self->_fetch_object($key, $data->{$key}, $params);
+    my ($key) = keys %$data;    # XXX Currently assumes only one key
+    return $self->_fetch_object( $key, $data->{$key}, $params );
 }
 
 ##############################################################################
@@ -129,23 +138,21 @@ missing or if the XML is not valid Kinetic XML.
 =cut
 
 sub _get_hash_from_xml {
-    my ($self, $xml_string) = @_;
+    my ( $self, $xml_string ) = @_;
     my $xml  = XML::Simple->new;
     my $data = $xml->XMLin(
-        $xml_string, 
-        suppressempty => undef, 
+        $xml_string,
+        suppressempty => undef,
         keyattr       => [],
+
         #ForceArray    => [ 'instance' ], # XXX maybe later?
     );
     my $version = delete $data->{version}
-        or throw_xml "XML must have a version number.";
-    if (
-        exists $data->{instance} 
-            && 
-        exists $data->{instance}{attr} 
-            &&
-        'ARRAY' eq ref $data->{instance}{attr}
-    ) {
+      or throw_xml "XML must have a version number.";
+    if (   exists $data->{instance}
+        && exists $data->{instance}{attr}
+        && 'ARRAY' eq ref $data->{instance}{attr} )
+    {
         $data = _rewrite_xml_hash($data);
     }
     return $data;
@@ -153,18 +160,17 @@ sub _get_hash_from_xml {
 
 sub _rewrite_xml_hash {
     my $hash = shift;
+
     #print Dumper($hash);
     my $attributes = $hash->{instance}{attr};
     my %attributes;
-    if (exists $hash->{instance}{instance}) {
-        %attributes = %{_rewrite_xml_hash($hash->{instance})};
+    if ( exists $hash->{instance}{instance} ) {
+        %attributes = %{ _rewrite_xml_hash( $hash->{instance} ) };
     }
     foreach my $attribute (@$attributes) {
-        $attributes{$attribute->{name}} = $attribute->{content};
+        $attributes{ $attribute->{name} } = $attribute->{content};
     }
-    my %rewrite = (
-        $hash->{instance}{key} => \%attributes,
-    );
+    my %rewrite = ( $hash->{instance}{key} => \%attributes, );
     return \%rewrite;
 }
 
@@ -181,31 +187,33 @@ handled correctly.
 =cut
 
 sub _fetch_object {
-    my ($self, $key, $data) = @_;
-    foreach my $attribute (keys %$data) {
-        if ('HASH' eq ref $data->{$attribute}) {
-            $data->{$attribute} = $self->_fetch_object($attribute, $data->{$attribute});
+    my ( $self, $key, $data ) = @_;
+    foreach my $attribute ( keys %$data ) {
+        if ( 'HASH' eq ref $data->{$attribute} ) {
+            $data->{$attribute} =
+              $self->_fetch_object( $attribute, $data->{$attribute} );
         }
     }
     my $class = Kinetic::Meta->for_key($key)
-        or throw_unknown_class ['I could not find the class for key "[_1]"', $key];
+      or
+      throw_unknown_class [ 'I could not find the class for key "[_1]"', $key ];
 
     my $object;
-    if ($self->{params}{update}) {
+    if ( $self->{params}{update} ) {
         my $store = Kinetic::Store->new;
-        $object = $store->lookup($class, uuid => $data->{uuid});
+        $object = $store->lookup( $class, uuid => $data->{uuid} );
         throw_not_found [
             'I could not find uuid "[_1]" in data store for the [_2] class',
-            $data->{uuid},
-            $class->package
-        ] unless $object;
+            $data->{uuid}, $class->package
+          ]
+          unless $object;
     }
     else {
-        $object = $class->package->new(uuid => $data->{uuid});
+        $object = $class->package->new( uuid => $data->{uuid} );
     }
-    while (my ($attr_name, $value) = each %$data) {
-        if (my $attr = $class->attributes($attr_name)) {
-            $attr->bake($object,$value);
+    while ( my ( $attr_name, $value ) = each %$data ) {
+        if ( my $attr = $class->attributes($attr_name) ) {
+            $attr->bake( $object, $value );
         }
     }
     return $object;
@@ -223,8 +231,8 @@ order to update its values.
 =cut
 
 sub update_from_xml {
-    my ($class, $xml) = @_;
-    return $class->new_from_xml($xml, {update => 1});
+    my ( $class, $xml ) = @_;
+    return $class->new_from_xml( $xml, { update => 1 } );
 }
 
 ##############################################################################
@@ -253,12 +261,12 @@ B<Throws:>
 sub write_xml {
     my $self   = shift;
     my %params = @_;
-    my $fh = delete $params{handle} || do {
+    my $fh     = delete $params{handle} || do {
         my $file = delete $params{file};
-        IO::File->new($file, ">:utf8")
-          or throw_io ['Cannot open file "[_1]": [_2]', $file, $!];
+        IO::File->new( $file, ">:utf8" )
+          or throw_io [ 'Cannot open file "[_1]": [_2]', $file, $! ];
     };
-    $fh->print($self->dump_xml(%params));
+    $fh->print( $self->dump_xml(%params) );
     $fh->close;
     return $self;
 }
@@ -293,76 +301,87 @@ then contained objects will merely be referenced by UUID and name.
 =cut
 
 my @OBJECTS;
+
 sub dump_xml {
     my $self   = shift;
     my %params = @_;
     my $object = $self->object;
     push @OBJECTS => $object;
     local $self->{params} = \%params;
-    my $xml    = XML::Genx::Simple->new;
+    my $xml = XML::Genx::Simple->new;
     eval {
         $xml->StartDocString;
-        if (my $url = $self->{stylesheet_url}) {
-            $xml->PI('xml-stylesheet', qq'type="text/xsl" href="$url"');
+        if ( my $url = $self->{stylesheet_url} ) {
+            $xml->PI( 'xml-stylesheet', qq'type="text/xsl" href="$url"' );
         }
         $xml->StartElementLiteral('kinetic');
-        $xml->AddAttributeLiteral(version => XML_VERSION);
-        while (my $object = shift @OBJECTS) {
-            $self->_add_object_to_xml($xml, $object);
+        $xml->AddAttributeLiteral( version => XML_VERSION );
+        while ( my $object = shift @OBJECTS ) {
+            $self->_add_object_to_xml( $xml, $object );
         }
         $xml->EndElement;
         $xml->EndDocument;
     };
-    throw_xml ["Writing XML failed: [_1]", $@] if $@;
+    throw_xml [ "Writing XML failed: [_1]", $@ ] if $@;
     return $xml->GetDocString;
 }
 
-# XXX should this be somewhere else?  I'm not sure.  I don't like the 
+# XXX should this be somewhere else?  I'm not sure.  I don't like the
 # hardcoding of so much data.  I think a centralized metadata repository
 # might be nice.
 
 my %referenced = (
-    has             => 0,
-    type_of         => 1,
-    part_of         => 1,
-    references      => 1,
-    extends         => 0,
-    child_of        => 1,
-    mediates        => 0,
+    has        => 0,
+    type_of    => 1,
+    part_of    => 1,
+    references => 1,
+    extends    => 0,
+    child_of   => 1,
+    mediates   => 0,
+
     # "many" relationships
     has_many        => 0,
     references_many => 1,
     part_of_many    => 1,
 );
+
 sub _add_object_to_xml {
-    my ($self, $xml, $object) = @_;
+    my ( $self, $xml, $object ) = @_;
     $xml->StartElementLiteral('instance');
     my $key = $object->my_class->key;
-    $xml->AddAttributeLiteral(key => $key);
+    $xml->AddAttributeLiteral( key => $key );
     local $self->{_curr_key} = $key;
 
-    foreach my $attr (sort {$a->name cmp $b->name} $object->my_class->attributes) {
+    foreach
+      my $attr ( sort { $a->name cmp $b->name } $object->my_class->attributes )
+    {
         my $name = $attr->name;
         next unless $self->_is_requested_attribute($name);
-        if ($attr->references) {
+        if ( $attr->references ) {
             my $relationship = $attr->relationship;
-            my $object = $attr->get($object);
-            if ($referenced{$relationship}) {
+            my $object       = $attr->get($object);
+            if ( $referenced{$relationship} ) {
+
                 # just uuid
                 my $name = $object->my_class->key;
-                $xml->StartElementLiteral('','instance');
-                $xml->AddAttributeLiteral('', key => $name);
-                $xml->AddAttributeLiteral('', uuid => $object->uuid);
-                $xml->AddAttributeLiteral('', referenced => 1);
+                $xml->StartElementLiteral( '', 'instance' );
+                $xml->AddAttributeLiteral( '', key        => $name );
+                $xml->AddAttributeLiteral( '', uuid       => $object->uuid );
+                $xml->AddAttributeLiteral( '', referenced => 1 );
                 $xml->EndElement;
-                if ($self->{params}{with_referenced}) {
+                if ( $self->{params}{with_referenced} ) {
                     push @OBJECTS => $object;
                 }
-            } else {
-                $self->_add_object_to_xml($xml, $object);
             }
-        } else {
-            $xml->Element(attr => ($attr->raw($object) || ''), name => $name);
+            else {
+                $self->_add_object_to_xml( $xml, $object );
+            }
+        }
+        else {
+            $xml->Element(
+                attr => ( $attr->raw($object) || '' ),
+                name => $name
+            );
         }
     }
     $xml->EndElement;
@@ -385,18 +404,17 @@ sub object {
     my $self = shift;
     if (@_) {
         my $object = shift;
-        unless (UNIVERSAL::isa($object, 'Kinetic')) {
-            throw_invalid_class [
-                'Argument "[_1]" is not a valid [_2] object',
-                1,
-                'Kinetic'
-            ];
+        unless ( UNIVERSAL::isa( $object, 'Kinetic' ) ) {
+            throw_invalid_class [ 'Argument "[_1]" is not a valid [_2] object',
+                1, 'Kinetic' ];
         }
         $self->{object}    = $object;
         $self->{_curr_key} = $object->my_class->key;
-        if (exists $self->{_attributes}) {
-            if (my $attributes = delete $self->{_attributes}{CURR_KEY_PLACEHOLDER}) {
-                $self->{_attributes}{$self->{_curr_key}} = $attributes;
+        if ( exists $self->{_attributes} ) {
+            if ( my $attributes =
+                delete $self->{_attributes}{CURR_KEY_PLACEHOLDER} )
+            {
+                $self->{_attributes}{ $self->{_curr_key} } = $attributes;
             }
         }
         return $self;
@@ -442,18 +460,19 @@ all of them to be returned in the XML.
 =cut
 
 sub attributes {
-    my $self = shift;
+    my $self      = shift;
     my $delimiter = qr/\Q@{[ATTR_DELIMITER]}\E/;
     if (@_) {
         my $attributes = shift;
-        if (ref $attributes && 'ARRAY' ne ref $attributes) {
+        if ( ref $attributes && 'ARRAY' ne ref $attributes ) {
             throw_invalid [
                 "Bad type for [_1].  Should be [_2].",
                 'attributes',
                 '"none" or "ARRAY"'
-            ],
+              ],
+              ;
         }
-        unless (defined $attributes) {
+        unless ( defined $attributes ) {
             delete @{$self}{qw/attributes _attributes/};
         }
         else {
@@ -462,10 +481,12 @@ sub attributes {
             $self->{attributes}  = $attributes;
             $attributes = [$attributes] unless ref $attributes;
             foreach my $attr (@$attributes) {
-                my ($key, $value) = $attr =~ /$delimiter/
-                    ? (split /$delimiter/ => $attr, 2)  # one.name -> one       => name
-                    : ($curr_key, $attr);       # name     -> $curr_key => name
-                if ($key ne $curr_key) {
+                my ( $key, $value ) = $attr =~ /$delimiter/
+                  ? ( split /$delimiter/ => $attr,
+                    2 )    # one.name -> one       => name
+                  : ( $curr_key, $attr );    # name     -> $curr_key => name
+                if ( $key ne $curr_key ) {
+
                     # if they specify one.name, make sure that "one"
                     # is listed in the requested attributes.  Otherwise,
                     # we won't get "one"
@@ -481,9 +502,10 @@ sub attributes {
 }
 
 sub _is_requested_attribute {
-    my ($self, $attr) = @_;
-    my $key = $self->{_curr_key};
+    my ( $self, $attr ) = @_;
+    my $key                  = $self->{_curr_key};
     my $specified_attributes = $self->{_attributes}{$key};
+
     # assumes all attributes if they didn't specify any
     return $attr unless $specified_attributes;
     return exists $specified_attributes->{$attr} ? $attr : ();

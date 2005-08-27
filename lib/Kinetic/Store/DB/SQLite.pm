@@ -24,7 +24,7 @@ use Encode qw(_utf8_on);
 
 use Kinetic::Store            qw(:logical);
 use Kinetic::Util::Config     qw(:sqlite);
-use Kinetic::Util::Exceptions qw(:all);
+use Kinetic::Util::Exceptions qw(throw_unsupported);
 use Exception::Class::DBI;
 
 use constant _connect_args => (

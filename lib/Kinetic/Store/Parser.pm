@@ -37,10 +37,10 @@ use Exporter::Tidy default => ['parse'];
 
 use Kinetic::DateTime::Incomplete qw/is_incomplete_iso8601/;
 use Kinetic::HOP::Parser qw/:all/;
-use Kinetic::HOP::Stream qw/:all/;
+use Kinetic::HOP::Stream qw/drop list_to_stream/;
 use Kinetic::Store::Search;
 use Kinetic::Util::Constants qw/:data_store/;
-use Kinetic::Util::Exceptions qw/throw_search/;
+use Kinetic::Util::Exceptions qw/panic throw_search/;
 
 =head1 Name
 
@@ -119,8 +119,9 @@ my $Statement_list = parser { $statement_list->(@_) };
 
 #  entire_input   ::= statements 'End_Of_Input'
 
-my $entire_input =
-  T( concatenate( $Statements, \&End_of_Input ), sub { $_[0] } );
+my $entire_input = error(
+  T( concatenate( $Statements, \&End_of_Input ), sub { $_[0] } )
+);
 
 #  statements     ::= statement | statement ',' statements
 
@@ -152,7 +153,7 @@ $statement = T(
 $statement_list = concatenate(
     $Search,
     star( rlist_values_of( $Statement, $comma ) ),
-    absorb( star($comma) ),    # allow a trailing comma
+    absorb( optional($comma) ),    # allow a trailing comma
 );
 
 #  search         ::= identifier '=>'       normal_value
@@ -164,7 +165,7 @@ $search = T(
     concatenate(
         match('IDENTIFIER'),
         absorb($fat_comma),
-        star( match( KEYWORD => 'NOT' ) ),
+        optional( match( KEYWORD => 'NOT' ) ),
         alternate( $Normal_value, $Between_value )
     ),
     sub { _make_search(@_) }
@@ -173,7 +174,7 @@ $search = T(
 #  normal_value   ::= value | compare value | any
 
 $normal_value =
-  T( alternate( concatenate( star( match('COMPARE') ), $Value ), $Any ),
+  T( alternate( concatenate( optional( match('COMPARE') ), $Value ), $Any ),
     sub { [ $_[0][0], $_[1] ] } );
 
 #  between_value  ::= 'BETWEEN' '[' value ','  value ']'
@@ -183,7 +184,7 @@ $normal_value =
 
 $between_value = T(
     concatenate(
-        absorb( star( match( KEYWORD => 'BETWEEN' ) ) ),
+        absorb( optional( match( KEYWORD => 'BETWEEN' ) ) ),
         absorb($lbracket),
         $Value,
         absorb($either_comma),
@@ -210,12 +211,13 @@ $any = T(
         absorb($lparen), 
         $Value,
         rlist_values_of($search_value, $either_comma),
-        absorb( star($comma) ),           # allow a trailing comma
+        absorb( optional($comma) ),           # allow a trailing comma
         absorb( $rparen ),
     ),
     sub {
 
-        # any is in an arrayref because $normal_value has star(match('COMPARE'))
+        # any is in an arrayref because $normal_value has 
+        # optional(match('COMPARE'))
         # and that returns the keyword in an arrayref
         [
             ['ANY'],
@@ -371,23 +373,13 @@ sub _make_search {
         # special case for searching on a contained object id ...
         my $id_column = $column . OBJECT_DELIMITER . 'id';
         unless ( $STORE->_search_data_has_column($id_column) ) {
-            throw_search [
-                "Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]",
-                $column,
-                $negated,
-                $operator,
-                $value,
-                "Unknown column '$column'"
-            ];
+            die "Don't know how to search for ($column $negated $operator $value): unknown column ($column)";
         }
         $column = $id_column;
         $value  =
           'ARRAY' eq ref $value ? [ map $_->id => @$value ]
           : ref $value ? $value->id
-          : throw_search [
-            'Object key "[_1]" must point to an object, not a scalar ([_2])',
-            $id_column, $value
-          ];
+          : die qq'Object key "$id_column" must point to an object, not a scalar ($value)';
     }
 
     return Kinetic::Store::Search->new(
@@ -416,16 +408,19 @@ sub parse {
     my ( $results, $remainder ) = eval { $entire_input->($stream) };
 
     if ( my $error = $@ ) {
-        if ( 'ARRAY' eq ref $@ ) {
+        if ( 'ARRAY' eq ref $error ) {
             my $message = fetch_error( $error );
             throw_search [
                 "Could not parse search request:\n\n[_1]",
                 $message
             ];
         }
+        else {
+            throw_search 'Could not parse search request' if $remainder or !$results;
+            panic "Unknown error ($error)";
+        }
     }
     # XXX really need to figure out a more descriptive error message
-    throw_search 'Could not parse search request' if $remainder or !$results;
     return $results;
 }
 

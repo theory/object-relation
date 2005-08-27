@@ -5,7 +5,7 @@ package Kinetic::::Party::Person::User;
 use strict;
 use base qw(Kinetic::Party::Person);
 use Kinetic::Util::Config qw(:user);
-use Kinetic::Util::Exceptions qw(:all);
+use Kinetic::Util::Exceptions qw(throw_password);
 use Digest::MD5;
 
 =head1 Name

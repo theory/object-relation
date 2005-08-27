@@ -22,7 +22,7 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 use Kinetic::Util::Constants qw/:http/;
-use Kinetic::Util::Exceptions qw/:all/;
+use Kinetic::Util::Exceptions qw/throw_required/;
 use aliased 'Kinetic::View::XSLT';
 use aliased 'Kinetic::Interface::REST::Dispatch';
 

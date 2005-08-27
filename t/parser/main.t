@@ -47,6 +47,10 @@ BEGIN {
 
 my $store = Faux::Store->new;
 
+# XXX uncomment the following lines to see the context error reporting
+# parse( string_lexer_stream("name => NOT ~ 'foo'"), $store );
+#__END__
+
 throws_ok {
     parse( string_lexer_stream("no_such_column => NOT 'foo'"), $store ) }
   'Kinetic::Util::Exception::Fatal::Search',
@@ -93,10 +97,13 @@ my $statements =
 is_deeply $statements, [ 1, 2, 3 ],
   '... and it should return the correct items';
 
+$ENV{DEBUG} = 1;
 my $result = parse( string_lexer_stream("name => 'foo'"), $store );
 ok $result, '... and string parsing basic searches should succeed';
 is_deeply $result, [$name_search],
   '... and it should return the correct results';
+$ENV{DEBUG} = 0;
+ 
 $result = parse( code_lexer_stream( [ name => 'foo' ] ), $store );
 ok $result, '... and code parsing basic searches should succeed';
 is_deeply $result, [$name_search],
