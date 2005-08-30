@@ -161,25 +161,20 @@ sub handle_request {
 
     my $dispatch = Kinetic::Interface::REST::Dispatch->new;
     $dispatch->rest($self);
-    if ( !$class_key ) {
-        eval { $dispatch->class_list };
-        if ( my $error = $@ ) {
-            my $info = $cgi->path_info;
-            $self->status(INTERNAL_SERVER_ERROR_STATUS)
-              ->response("Fatal error handling $info: $error");
+    eval {
+        if ( !$class_key ) {
+            $dispatch->class_list;
         }
-    }
-    else {
-        eval {
+        else {
             $_ = uri_unescape($_) foreach $class_key, $method, @args;
-            $dispatch->class_key($class_key)->message($method)->args( \@args )
+            $dispatch->class_key($class_key)->method($method)->args( \@args )
               ->handle_rest_request;
-        };
-        if ( my $error = $@ ) {
-            my $info = $cgi->path_info;
-            $self->status(INTERNAL_SERVER_ERROR_STATUS)
-              ->response("Fatal error handling $info: $error");
         }
+    };
+    if ( my $error = $@ ) {
+        my $info = $cgi->path_info;
+        $self->status(INTERNAL_SERVER_ERROR_STATUS)
+          ->response("Fatal error handling $info: $error");
     }
     $self->status(OK_STATUS) unless $self->status;
     return $self;

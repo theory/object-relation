@@ -105,12 +105,23 @@ sub _path_info {
     return $test;
 }
 
-sub message_arg_handling : Test(8) {
+sub method_arg_handling : Test(no_plan) {
+
+    # also test for lookup
     my $dispatch = Dispatch->new;
     can_ok $dispatch, 'args';
-    is_deeply $dispatch->args, [ STRING => '', limit => 20, offset => 0 ],
-      '... and calling it with no args set should return an empty search';
+    $dispatch->method('lookup');
+    is_deeply $dispatch->args, [],
+      'Calling lookup args() with no args set should return an empty arg list';
+    ok $dispatch->args( [qw/ foo bar /] ),
+      '... and setting the arguments should succeed';
+    is_deeply $dispatch->args, [qw/ foo bar /],
+      '... and we should be able to reset the args';
 
+    $dispatch->method('search');
+    ok $dispatch->args( [] ), 'Setting search args should succceed';
+    is_deeply $dispatch->args, [ STRING => '', limit => 20, offset => 0 ],
+      '... and setting them with no args set should return a default search';
     ok $dispatch->args( [qw/ foo bar /] ),
       '... and setting the arguments should succeed';
     is_deeply $dispatch->args, [qw/ foo bar limit 20 offset 0 /],
@@ -123,7 +134,7 @@ sub message_arg_handling : Test(8) {
     $dispatch->args( [qw/ limit 30 this that offset 0 /] );
     is_deeply $dispatch->args, [qw/ limit 30 this that offset 0 /],
       '... regardless of its position in the arg list';
-    
+
     $dispatch->args( [qw/ this that limit 30 offset 20 /] );
     is_deeply $dispatch->args, [qw/ this that limit 30 offset 20 /],
       '... not should it override an offset already supplied';
@@ -136,7 +147,6 @@ sub message_arg_handling : Test(8) {
 sub page_set : Test(17) {
     my $test = shift;
 
-    # we don't use can_ok because of the way &can is overridden
     my $dispatch = Dispatch->new;
 
     for my $age ( 1 .. 100 ) {
@@ -160,7 +170,8 @@ sub page_set : Test(17) {
     };
 
     my $result =
-      $dispatch->class_key('two')->args( [] )->_pageset( $pageset_args->() );
+      $dispatch->class_key('two')->method('search')->args( [] )
+      ->_pageset( $pageset_args->() );
     ok !$result,
       '... and it should return false on first page if $count < $limit';
 
@@ -223,7 +234,7 @@ sub class_list : Test(2) {
       '... and calling it should return a list of resources';
 }
 
-sub handle : Test(6) {
+sub handle : Test(5) {
     my $test     = shift;
     my $dispatch = Dispatch->new;
     can_ok $dispatch, 'handle_rest_request';
@@ -235,9 +246,9 @@ sub handle : Test(6) {
     $test->_path_info("/$key/");
     $dispatch->handle_rest_request;
     is $rest->response, "No resource available to handle (/$key/)",
-      'Calling _handle_rest_request() no message should fail';
+      'Calling _handle_rest_request() with no method should fail';
 
-    $dispatch->message('search');
+    $dispatch->method('search');
     $dispatch->handle_rest_request;
     ( my $response = $rest->response ) =~ s/@{[UUID_RE]}/XXX/g;
     my $expected = <<'    END_XML';
@@ -255,17 +266,21 @@ sub handle : Test(6) {
         <kinetic:resource 
             id="XXX" 
             xlink:href="http://somehost.com/rest/one/lookup/uuid/XXX"/>
+        <kinetic:search_parameters>
+            <kinetic:parameter type="class_key">one</kinetic:parameter>
+            <kinetic:parameter type="limit">20</kinetic:parameter>
+            <kinetic:parameter type="arguments"></kinetic:parameter>
+        </kinetic:search_parameters>
     </kinetic:resources>
     END_XML
-    is_xml $response, $expected,
-      '... but calling it with /$key/search should succeed';
 
     my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
     my $foo_uuid = $foo->uuid;
-    $dispatch->message('lookup');
+    $dispatch->method('lookup');
     $dispatch->args( [ 'uuid', $foo_uuid ] );
     $dispatch->handle_rest_request;
     $expected = <<"    END_XML";
+<?xml version="1.0"?>
     <?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=instance"?>
     <kinetic version="0.01">
       <instance key="one">
@@ -280,7 +295,7 @@ sub handle : Test(6) {
     is_xml $rest->response, $expected,
       '... and $class_key/lookup/uuid/$uuid should return instance XML';
 
-    $dispatch->message('search');
+    $dispatch->method('search');
     $dispatch->args( [ 'STRING', 'name => "foo"' ] );
     $dispatch->handle_rest_request;
 
@@ -291,6 +306,11 @@ sub handle : Test(6) {
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
       <kinetic:resource id="$foo_uuid" xlink:href="http://somehost.com/rest/one/lookup/uuid/$foo_uuid"/>
+      <kinetic:search_parameters>
+        <kinetic:parameter type="class_key">one</kinetic:parameter>
+        <kinetic:parameter type="limit">20</kinetic:parameter>
+        <kinetic:parameter type="arguments">name =&gt; &quot;foo&quot;</kinetic:parameter>   
+      </kinetic:search_parameters>
     </kinetic:resources>
     END_XML
 
@@ -314,43 +334,16 @@ sub handle : Test(6) {
       <kinetic:description>Available instances</kinetic:description>
       <kinetic:resource id="$bar_uuid" xlink:href="http://somehost.com/rest/one/lookup/uuid/$bar_uuid"/>
       <kinetic:resource id="$foo_uuid" xlink:href="http://somehost.com/rest/one/lookup/uuid/$foo_uuid"/>
+      <kinetic:search_parameters>
+        <kinetic:parameter type="class_key">one</kinetic:parameter>
+        <kinetic:parameter type="limit">20</kinetic:parameter>
+        <kinetic:parameter type="arguments">name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)</kinetic:parameter>
+        <kinetic:parameter type="order_by">name</kinetic:parameter>
+      </kinetic:search_parameters>
     </kinetic:resources>
     END_XML
     is_xml $rest->response, $expected,
       '... and complex searches with constraints should also succeed';
-}
-
-sub normalize_args : Test(7) {
-    my $test = shift;
-    ok my $normalize =
-      *Kinetic::Interface::REST::Dispatch::_normalize_args{CODE},
-      '&_normalize_args is defined in the Dispatch package';
-
-    our $method_name = 'lookup';
-    {
-
-        package Faux::Method;
-        local $^W;
-        sub name { return $method_name }
-    }
-    my $method = bless {}, 'Faux::Method';
-    ok my $args = $normalize->( $method, [] ),
-      '... and calling it should succeed';
-    is ref $args, 'ARRAY', '... returning an array reference';
-    is_deeply $args, [], '... which should be empty if we pass no args';
-
-    $args = $normalize->( $method, [qw/foo null/] );
-    is_deeply $args, [ 'foo', '' ],
-      '"null" should be converted to the empty string';
-
-    $method_name = 'search';
-    $args = $normalize->( $method, [] );
-    is_deeply $args, [ 'STRING', '', 'limit', 20 ],
-      'search methods should default to a limit of 20 objects';
-
-    $args = $normalize->( $method, [qw/STRING null limit 10/] );
-    is_deeply $args, [ 'STRING', '', 'limit', 10 ],
-      '... unless we explicitly override it';
 }
 
 1;

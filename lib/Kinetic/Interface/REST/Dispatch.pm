@@ -20,20 +20,24 @@ package Kinetic::Interface::REST::Dispatch;
 
 use strict;
 use version;
+use Clone qw/clone/;
 use Data::Pageset;
+use HTML::Entities qw/encode_entities/;
 use Params::Validate;
+use Readonly;
 
 use Kinetic::Meta;
 use Kinetic::XML;
 use Kinetic::Meta::XML;
 use Kinetic::Store;
-use Kinetic::Util::Constants qw/:http :data_store :xslt/;
+use Kinetic::Util::Constants qw/:http :xslt/;
 
 our $VERSION = version->new('0.0.1');
 
-use constant DEFAULT_LIMIT => 20;
-use constant DEFAULT_ARGS  =>
-  [ 'STRING', '', 'limit', DEFAULT_LIMIT, 'offset', 0 ];
+Readonly my $PLACEHOLDER         => 'null';
+Readonly my $DEFAULT_LIMIT       => 20;
+Readonly my $DEFAULT_SEARCH_ARGS =>
+  [ 'STRING', '', 'limit', $DEFAULT_LIMIT, 'offset', 0 ];
 
 =head1 Name
 
@@ -50,7 +54,7 @@ Kinetic::REST - REST services provider
 =head1 Description
 
 This is the dispatch class to which
-L<Kinetic::Interface::REST|Kinetic::Interface::REST> will dispatch messages.
+L<Kinetic::Interface::REST|Kinetic::Interface::REST> will dispatch methods.
 This is kept in a separate class to ensure that REST servers do not call these
 methods directly.
 
@@ -128,18 +132,18 @@ sub class {
 
 ##############################################################################
 
-=head3 message
+=head3 method
 
- $dispatch->message([$message]); 
+ $dispatch->method([$method]); 
 
-Getter/setter for message to be sent to class created from class key.
+Getter/setter for method to be sent to class created from class key.
 
 =cut
 
-sub message {
+sub method {
     my $self = shift;
-    return $self->{message} unless @_;
-    $self->{message} = shift;
+    return $self->{method} unless @_;
+    $self->{method} = shift;
     return $self;
 }
 
@@ -149,7 +153,7 @@ sub message {
 
   $dispatch->arg([\@args]);
 
-Getter/setter for args to accompany C<message>.  If the supplied argument
+Getter/setter for args to accompany C<method>.  If the supplied argument
 reference is emtpy, it will set a default of an empty string search, a
 default limit and a default offset to 0.
 
@@ -157,23 +161,35 @@ default limit and a default offset to 0.
 
 sub args {
     my $self = shift;
+
     if (@_) {
         my $args = shift;
-        if (@$args) {
-            if ( !grep { $_ eq 'limit' } @$args ) {
-                push @$args, 'limit', DEFAULT_LIMIT;
-            }
-            if ( !grep { $_ eq 'offset' } @$args ) {
-                push @$args, 'offset', 0;
-            }
+        foreach my $curr_arg (@$args) {
+            $curr_arg = '' if $PLACEHOLDER eq $curr_arg;
         }
-        else {
-            $args = DEFAULT_ARGS;
+        if ( 'search' eq $self->method ) {
+            if (@$args) {
+                if ( !grep { $_ eq 'limit' } @$args ) {
+                    push @$args, 'limit', $DEFAULT_LIMIT;
+                }
+                if ( !grep { $_ eq 'offset' } @$args ) {
+                    push @$args, 'offset', 0;
+                }
+            }
+            else {
+                $args = [];
+                push @$args, $_ foreach @$DEFAULT_SEARCH_ARGS;
+            }
         }
         $self->{args} = $args;
         return $self;
     }
-    $self->{args} ||= DEFAULT_ARGS;
+    unless ( $self->{args} ) {
+        $self->{args} = [];
+        if ( 'search' eq $self->method ) {
+            push @{ $self->{args} }, $_ foreach @$DEFAULT_SEARCH_ARGS;
+        }
+    }
     return $self->{args};
 }
 
@@ -183,8 +199,8 @@ sub args {
 
   my @args = $dispatch->get_args( 0, 1 );
 
-This method will return message arguments by index, starting with zero.  If no
-arguments are supplied to this method, all message arguments will be returned.
+This method will return method arguments by index, starting with zero.  If no
+arguments are supplied to this method, all method arguments will be returned.
 Can take one or more arguments.  Returns a list of the arguments.
 
 =cut
@@ -245,17 +261,17 @@ qq'<kinetic:resource id="$key" xlink:href="${base_url}$key/search$query_string"/
 sub handle_rest_request {
     my ($self) = @_;
 
-    my ( $class, $method, $ctor );
+    my ( $class, $method_object, $ctor );
     eval { $class = Kinetic::Meta->for_key( $self->class_key ) };
-    my $message = $self->message;
-    if ( $class && $message ) {
+    my $method = $self->method;
+    if ( $class && $method ) {
         $self->class($class);
-        $method = $class->methods($message);
-        $ctor = $method ? '' : $class->constructors($message);
+        $method_object = $class->methods($method);
+        $ctor = $method_object ? '' : $class->constructors($method);
     }
 
-    return $ctor ? $self->_handle_constructor($ctor)
-      : $method  ? $self->_handle_method($method)
+    return $ctor       ? $self->_handle_constructor($ctor)
+      : $method_object ? $self->_handle_method($method_object)
       : $self->_not_implemented;
 }
 
@@ -274,9 +290,9 @@ sub _handle_constructor {
 
 sub _handle_method {
     my ( $self, $method ) = @_;
-    my $args = _normalize_args( $method, $self->args );
+
     if ( $method->context == Class::Meta::CLASS ) {
-        my $response = $method->call( $self->class->package, @$args );
+        my $response = $method->call( $self->class->package, @{ $self->args } );
         if ( 'search' eq $method->name ) {
             return $self->_instance_list($response);
         }
@@ -288,36 +304,10 @@ sub _handle_method {
     else {
 
         # XXX we're not actually doing anything with this yet.
-        my $obj = $self->class->contructors('lookup')->call(@$args)
-          or die;
-        $method->call( $obj, @$args );
+        #my $obj = $self->class->contructors('lookup')->call(@$args)
+        #  or die;
+        #$method->call( $obj, @$args );
     }
-}
-
-# since // is effectively a no-op in a path, the URL may have
-# "null" in the path to hold that segment open.  Here's where
-# we convert it to a space.
-#
-# we also set the limit on searches, if necessary
-sub _normalize_args {
-    my ( $method, $args ) = @_;
-    my @args;
-    my $limit_found = 0;
-    foreach my $arg (@$args) {
-        $arg = '' if 'null' eq $arg;
-        push @args, $arg;
-        $limit_found++ if 'limit' eq $arg;
-    }
-    if ( !$limit_found && 'search' eq $method->name ) {
-
-        # we push 'STRING', '' for a string search if we have no arguments
-        # because $object->search will fail with a limit as the first argument
-        # as Kinetic::Store::DB::search will assume the first argument is CODE
-        # search unless it's a defined search type name.
-        push @args, 'STRING', '' unless @args;
-        push @args, 'limit', DEFAULT_LIMIT;
-    }
-    return \@args;
 }
 
 sub _not_implemented {
@@ -343,13 +333,12 @@ keyed by uuid.
 sub _instance_list {
     my ( $self, $iterator ) = @_;
 
-    my ( $limit, $offset );
     my $args = $self->args;
 
     # 0 == @$args % 2 must always be true
-    my %args = @$args;
-    $limit  = $args{limit};
-    $offset = $args{offset};
+    my %args   = @$args;
+    my $limit  = $args{limit};
+    my $offset = $args{offset};
 
     my $rest         = $self->rest;
     my $response     = _xml_header( $rest, 'Available instances' );
@@ -364,44 +353,86 @@ sub _instance_list {
         $response .=
 qq'<kinetic:resource id="$uuid" xlink:href="$base_url$key/lookup/uuid/$uuid$query_string"/>';
     }
-    unless ($instance_count) {
+
+    if ($instance_count) {
+        $response .=
+          $self->_add_pageset( $instance_count, $base_url, $query_string );
+        $response .= $self->_add_search_data;
+    }
+    else {
         $response .=
           '       <kinetic:resource id="No resources found" xlink:href="#"/>';
     }
-    if ($instance_count) {
-        my $pageset = $self->_pageset(
-            {
-                count  => $instance_count,
-                limit  => $limit,
-                offset => $offset,
-            }
-        );
-        if ($pageset) {
-            my @args = $self->get_args;
-
-            my $url = "$base_url$key/search/";
-            $url .= join '/', map { '' eq $_ ? 'null' : $_ } @args;
-            $url =~ s{offset/\d+}{offset/\%d};
-            $url .= $query_string;
-
-            $response .= '<kinetic:pages>';
-            foreach my $set ( $pageset->first_page .. $pageset->last_page ) {
-
-                if ($set == $pageset->current_page) {
-                    $response .= qq'<kinetic:page id="[ Page $set ]" xlink:href="@{[CURRENT_PAGE]}" />\n';
-                }
-                else {
-                    my $offset = ( $set - 1 ) * $limit;
-                    my $link_url = sprintf $url, $offset;
-                    $response .= qq'<kinetic:page id="[ Page $set ]" '
-                    . qq'xlink:href="$link_url" />\n';
-                }
-            }
-            $response .= "</kinetic:pages>";
-        }
-    }
     $response .= "</kinetic:resources>";
     return $rest->set_response($response);
+}
+
+sub _add_search_data {
+    my $self      = shift;
+    my $class_key = $self->class_key;
+    my $args      = $self->args;
+    my %arg_for   = @$args;
+
+    $arg_for{STRING} = encode_entities( $arg_for{STRING} );
+
+    my $search_order = '';
+    while ( defined( my $arg = shift @$args ) ) {
+        next unless 'order_by' eq $arg || 'sort_order' eq $arg;
+        my $value = encode_entities( shift @$args );
+        $search_order .=
+          qq'<kinetic:parameter type="$arg">$value</kinetic:parameter>\n';
+    }
+    local $/ = "\n";
+    chomp $search_order;
+
+    return <<"    END_SEARCH_DATA";
+      <kinetic:search_parameters>
+        <kinetic:parameter type="class_key">$class_key</kinetic:parameter>
+        <kinetic:parameter type="limit">$arg_for{limit}</kinetic:parameter>
+        <kinetic:parameter type="arguments">$arg_for{STRING}</kinetic:parameter>
+        $search_order
+      </kinetic:search_parameters>
+    END_SEARCH_DATA
+}
+
+sub _add_pageset {
+    my ( $self, $instance_count, $base_url, $query_string ) = @_;
+
+    my $response = '';
+    my %arg_for  = @{ $self->args };
+
+    my $pageset = $self->_pageset(
+        {
+            count  => $instance_count,
+            limit  => $arg_for{limit},
+            offset => $arg_for{offset},
+        }
+    );
+    if ($pageset) {
+        my @args = $self->get_args;
+
+        my $url = "$base_url@{ [ $self->class_key ] }/search/";
+        $url .= join '/', map { '' eq $_ ? $PLACEHOLDER : $_ } @args;
+        $url =~ s{offset/\d+}{offset/\%d};
+        $url .= $query_string;
+
+        $response .= ' <kinetic:pages> ';
+        foreach my $set ( $pageset->first_page .. $pageset->last_page ) {
+
+            if ( $set == $pageset->current_page ) {
+                $response .= qq'<kinetic:page id="[ Page $set ]" '
+                  . qq'xlink:href="@{[CURRENT_PAGE]}"/>\n';
+            }
+            else {
+                my $current_offset = ( $set - 1 ) * $arg_for{limit};
+                my $link_url = sprintf $url, $current_offset;
+                $response .= qq' <kinetic:page id="[ Page $set ]" '
+                  . qq'xlink:href="$link_url"/>\n';
+            }
+        }
+        $response .= "</kinetic:pages>";
+    }
+    return $response;
 }
 
 ##############################################################################

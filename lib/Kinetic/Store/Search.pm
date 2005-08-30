@@ -28,14 +28,16 @@ use aliased 'Kinetic::DateTime::Incomplete';
 
 # generic getter/setters
 my @_ATTRIBUTES = qw/
-    column
-    negated
-    operator
-    place_holder
-    search_class
-/;
+  column
+  negated
+  operator
+  place_holder
+  search_class
+  /;
+
 # getter/setter with custom behavior
 my @ATTRIBUTES = ( 'data', @_ATTRIBUTES );
+
 # simple getter/setter lookup table
 my %ATTR_LOOKUP;
 @ATTR_LOOKUP{@ATTRIBUTES} = undef;
@@ -43,30 +45,30 @@ my %ATTR_LOOKUP;
 # for a given "operator", the value should be a sub that will return
 # the correct store class search method.
 my %COMPARE_DISPATCH = (
+    ANY     => \&_ANY_SEARCH,
     EQ      => sub { _am_i_eq_or_not(shift) },
     NOT     => sub { _am_i_eq_or_not(shift) },
     LIKE    => sub { '_LIKE_SEARCH' },
     MATCH   => sub { '_MATCH_SEARCH' },
     BETWEEN => \&_BETWEEN_SEARCH,
-    GT      => sub { shift->_GT_LT_SEARCH('<=', '>') },
-    LT      => sub { shift->_GT_LT_SEARCH('>=', '<') },
-    GE      => sub { shift->_GT_LT_SEARCH('<', '>=') },
-    LE      => sub { shift->_GT_LT_SEARCH('>', '<=') },
+    GT      => sub { shift->_GT_LT_SEARCH( '<=', '>' ) },
+    LT      => sub { shift->_GT_LT_SEARCH( '>=', '<' ) },
+    GE      => sub { shift->_GT_LT_SEARCH( '<',  '>=' ) },
+    LE      => sub { shift->_GT_LT_SEARCH( '>',  '<=' ) },
     NE      => sub {
         my ($search) = @_;
         $search->negated('NOT');
         $search->operator('EQ');
         return _am_i_eq_or_not($search);
     },
-    ANY     => \&_ANY_SEARCH,
 );
 
 sub _GT_LT_SEARCH {
-    my ($search, $neg_op, $op) = @_;
-    $search->operator($search->negated ? $neg_op : $op);
-    return UNIVERSAL::isa($search->data, Incomplete)
-        ? '_date_handler'
-        : '_GT_LT_SEARCH';
+    my ( $search, $neg_op, $op ) = @_;
+    $search->operator( $search->negated ? $neg_op : $op );
+    return UNIVERSAL::isa( $search->data, Incomplete )
+      ? '_date_handler'
+      : '_GT_LT_SEARCH';
 }
 
 =head1 Name
@@ -77,7 +79,7 @@ Kinetic::Store::Search - Manage Kinetic search parameters
 
   use Kinetic::Store::Search;
   my $search = Kinetic::Store::Search->new(
-      column         => $column,
+      column       => $column,
       operator     => $operator,
       negated      => $negated,
       place_holder => $place_holder,
@@ -128,18 +130,16 @@ for the corresponding parameter to understand its function.
 =cut
 
 sub new {
-    my ($class, %attributes) = @_;
+    my ( $class, %attributes ) = @_;
+
     # XXX why am I sorting these keys?
-    my @invalid = grep ! exists $ATTR_LOOKUP{$_} => sort keys %attributes;
+    my @invalid = grep !exists $ATTR_LOOKUP{$_} => sort keys %attributes;
     if (@invalid) {
-        throw_search [
-            "Unknown attributes to [_1]: [_2]",
-            "$class->new",
-            "@invalid"
-        ];
+        throw_search [ "Unknown attributes to [_1]: [_2]", "$class->new",
+            "@invalid" ];
     }
     my $self = bless {} => $class;
-    while (my ($attribute, $value) = each %attributes) {
+    while ( my ( $attribute, $value ) = each %attributes ) {
         $self->$attribute($value);
     }
     return $self;
@@ -154,7 +154,7 @@ foreach my $attribute (@_ATTRIBUTES) {
             return $self;
         }
         return $self->{$attribute};
-    }
+      }
 }
 
 ##############################################################################
@@ -169,29 +169,27 @@ method the store L<Kinetic::Store|Kinetic::Store> class should dispatch to.
 =cut
 
 sub search_method {
-    my $self  = shift;
-    my $column  = $self->column;
-    my $value = $self->data;
-    my $neg   = $self->negated;
-    my $op    = $self->operator;
-    my $error = "Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]";
+    my $self   = shift;
+    my $column = $self->column;
+    my $value  = $self->data;
+    my $neg    = $self->negated;
+    my $op     = $self->operator;
+    my $error  = "Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]";
     no warnings 'uninitialized';
-    throw_search [ $error, $column, $neg, $op, $value,
-        "undefined operator." ] unless defined $op;
+    throw_search [ $error, $column, $neg, $op, $value, "undefined operator." ]
+      unless defined $op;
+
     # if it's blessed, assume that it's an object whose overloading will
     # provide the correct search data
-    if ( ref $value && ! blessed($value) && 'ARRAY' ne ref $value) {
+    if ( ref $value && !blessed($value) && 'ARRAY' ne ref $value ) {
         throw_search [
-            $error,
-            $column, $neg, $op, $value,
+            $error, $column, $neg, $op, $value,
             "don't know how to handle value."
         ];
     }
-    my $op_sub = $COMPARE_DISPATCH{$op} or throw_search [
-        $error,
-        $column, $neg, $op, $value,
-        "unknown op ($op)."
-    ];
+    my $op_sub = $COMPARE_DISPATCH{$op}
+      or
+      throw_search [ $error, $column, $neg, $op, $value, "unknown op ($op)." ];
     my $search_method = $op_sub->($self);
     return $search_method;
 }
@@ -201,10 +199,11 @@ sub data {
     if (@_) {
         my $data = shift;
         $self->{data} = $data;
+
         # XXX Is this too early? If it is, we should push this test into
         # the operator() method. For now, it works and all tests pass.
-        unless ($self->operator) {
-             $self->operator('ARRAY' eq ref $data ? 'BETWEEN' : 'EQ');
+        unless ( $self->operator ) {
+            $self->operator( 'ARRAY' eq ref $data ? 'BETWEEN' : 'EQ' );
         }
         return $self;
     }
@@ -214,54 +213,56 @@ sub data {
 sub _ANY_SEARCH {
     my $search = shift;
     my $data   = $search->data;
-    unless ('ARRAY' eq ref $data) {
-        panic "PANIC: ANY search data is not an array ref. This should never happen.";
+    unless ( 'ARRAY' eq ref $data ) {
+        panic
+"PANIC: ANY search data is not an array ref. This should never happen.";
     }
     my %types;
     {
         no warnings;
         $types{ ref $_ }++ foreach @$data;
     }
-    unless (1 == keys %types) {
+    unless ( 1 == keys %types ) {
         throw_search "All types to an ANY search must match";
     }
     return Incomplete eq ref $data->[0]
-        ? '_date_handler'
-        : '_ANY_SEARCH';
+      ? '_date_handler'
+      : '_ANY_SEARCH';
 }
 
 sub _BETWEEN_SEARCH {
     my $search = shift;
     my $data   = $search->data;
-    unless ('ARRAY' eq ref $data) {
-        panic "PANIC: BETWEEN search data is not an array ref. This should never happen.";
+    unless ( 'ARRAY' eq ref $data ) {
+        panic
+"PANIC: BETWEEN search data is not an array ref. This should never happen.";
     }
-    unless (2 == @$data) {
+    unless ( 2 == @$data ) {
         my $count = @$data;
         throw_search [
             "BETWEEN searches should have two terms. You have [_1] term(s).",
             $count
-        ]
+        ];
     }
-    if (ref $data->[0] ne ref $data->[1]) {
+    if ( ref $data->[0] ne ref $data->[1] ) {
         throw_search [
-            "BETWEEN searches must be between identical types. You have ([_1]) and ([_2])",
-            ref $data->[0], ref $data->[1]
+"BETWEEN searches must be between identical types. You have ([_1]) and ([_2])",
+            ref $data->[0],
+            ref $data->[1]
         ];
     }
     return Incomplete eq ref $data->[0]
-        ? '_date_handler'
-        : '_BETWEEN_SEARCH';
+      ? '_date_handler'
+      : '_BETWEEN_SEARCH';
 }
 
 sub _am_i_eq_or_not {
     my ($search) = @_;
-    my $data     = $search->data;
-    $search->operator($search->negated ? '!=' : '=');
-    return
-        ! defined $data                     ? '_NULL_SEARCH'
-        : UNIVERSAL::isa($data, Incomplete) ? '_date_handler'
-        :                                     '_EQ_SEARCH';
+    my $data = $search->data;
+    $search->operator( $search->negated ? '!=' : '=' );
+    return !defined $data ? '_NULL_SEARCH'
+      : UNIVERSAL::isa( $data, Incomplete ) ? '_date_handler'
+      : '_EQ_SEARCH';
 }
 
 ##############################################################################

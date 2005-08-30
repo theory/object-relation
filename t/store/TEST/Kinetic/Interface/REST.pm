@@ -140,6 +140,12 @@ sub web_test_paging : Test(14) {
         <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
         <kinetic:page id="[ Page 2 ]" xlink:href="http://localhost:9000/rest/one/search/STRING/null/order_by/name/limit/2/offset/2" />
       </kinetic:pages>
+      <kinetic:search_parameters>
+        <kinetic:parameter type="class_key">one</kinetic:parameter>
+        <kinetic:parameter type="limit">2</kinetic:parameter>
+        <kinetic:parameter type="arguments"></kinetic:parameter>
+        <kinetic:parameter type="order_by">name</kinetic:parameter>
+      </kinetic:search_parameters>
     </kinetic:resources>
     END_XML
 
@@ -409,6 +415,12 @@ sub rest_interface : Test(19) {
       <kinetic:resource 
         id="$foo_uuid" 
         xlink:href="http://foo/rest/server/one/lookup/uuid/$foo_uuid"/>
+      <kinetic:search_parameters>
+        <kinetic:parameter type="class_key">one</kinetic:parameter>
+        <kinetic:parameter type="limit">20</kinetic:parameter>
+        <kinetic:parameter type="arguments">name =&gt; &quot;foo&quot;</kinetic:parameter>
+        <kinetic:parameter type="order_by">name</kinetic:parameter>
+      </kinetic:search_parameters>
     </kinetic:resources>
     END_XML
 
@@ -472,6 +484,11 @@ sub basic_services : Test(3) {
       <kinetic:resource id="XXX" xlink:href="http://localhost:9000/rest/one/lookup/uuid/XXX"/>
       <kinetic:resource id="XXX" xlink:href="http://localhost:9000/rest/one/lookup/uuid/XXX"/>
       <kinetic:resource id="XXX" xlink:href="http://localhost:9000/rest/one/lookup/uuid/XXX"/>
+      <kinetic:search_parameters>
+        <kinetic:parameter type="class_key">one</kinetic:parameter>
+        <kinetic:parameter type="limit">20</kinetic:parameter>
+        <kinetic:parameter type="arguments"></kinetic:parameter>
+      </kinetic:search_parameters>
     </kinetic:resources>
     END_XML
     my $key     = One->my_class->key;
