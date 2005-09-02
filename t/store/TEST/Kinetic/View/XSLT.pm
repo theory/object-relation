@@ -71,6 +71,68 @@ sub teardown : Test(teardown) {
     delete( $test->{db_mock} )->unmock_all;
 }
 
+sub search_form : Test(no_plan) {
+    my $test = shift;
+    my $xslt = XSLT->new( type => 'REST' );
+
+    my $xml = <<'    END_XML';
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=browse"?>
+    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
+                       xmlns:xlink="http://www.w3.org/1999/xlink">
+      <kinetic:description>Available instances</kinetic:description>
+      <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
+      <kinetic:class_key>one</kinetic:class_key>
+      <kinetic:search_parameters>
+        <kinetic:parameter type="search">name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)</kinetic:parameter>
+        <kinetic:parameter type="limit">20</kinetic:parameter>
+        <kinetic:parameter type="order_by">name</kinetic:parameter>
+      </kinetic:search_parameters>
+    </kinetic:resources>
+    END_XML
+    ok my $xhtml = $xslt->transform($xml),
+      'Calling transform() with valid XML should succeed';
+
+    is_xml $xhtml, <<'    END_XHTML', '... and return the correct xhtml';
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>Available instances</title>
+  </head>
+  <body>
+    <form method="GET">
+      <input type="hidden" name="class_key" value="one"/>
+      <table>
+        <tr>
+          <td>Search:</td>
+          <td><input type="text" name="search" value="name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)"/></td>
+        </tr>
+        <tr>
+          <td>Limit:</td>
+          <td><input type="text" name="limit" value="20"/></td>
+        </tr>
+        <tr>
+          <td>Order by:</td>
+          <td><input type="text" name="order_by" value="name"/></td>
+        </tr>
+      </table>
+    </form>
+    <table bgcolor="#eeeeee" border="1">
+      <tr><th>Available instances</th></tr>
+      <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
+      <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
+      <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
+    </table>
+    <p></p>
+  </body>
+</html>
+    END_XHTML
+}
+
 sub constructor : Test(6) {
     my $test = shift;
     can_ok XSLT, 'new';
@@ -153,6 +215,11 @@ sub transform : Test(9) {
   <title>Available instances</title>
   </head>
   <body>
+    <!-- empty form because search_parameters was not in the XML -->
+    <form method="GET">
+      <input type="hidden" name="class_key" value="" />
+      <table></table>
+    </form>
     <table bgcolor="#eeeeee" border="1">
       <tr><th>Available instances</th></tr>
       <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
@@ -188,6 +255,11 @@ sub transform : Test(9) {
   <title>Available resources</title>
   </head>
   <body>
+    <!-- empty form because search_parameters was not in the XML -->
+    <form method="GET">
+      <input type="hidden" name="class_key" value="" />
+      <table></table>
+    </form>
     <table bgcolor="#eeeeee" border="1">
       <tr><th>Available resources</th></tr>
       <tr><td><a href="http://somehost.com/rest/one">one</a></td></tr>
@@ -274,6 +346,11 @@ sub transform_pages : Test(5) {
         <title>Available instances</title>
       </head>
       <body>
+        <!-- empty form because search_parameters was not in the XML -->
+        <form method="GET">
+        <input type="hidden" name="class_key" value="" />
+        <table></table>
+        </form>
         <table bgcolor="#eeeeee" border="1">
           <tr>
             <th>Available instances</th>
@@ -323,6 +400,11 @@ sub transform_pages : Test(5) {
         <title>Available instances</title>
       </head>
       <body>
+        <!-- empty form because search_parameters was not in the XML -->
+        <form method="GET">
+          <input type="hidden" name="class_key" value="" />
+          <table></table>
+        </form>
         <table bgcolor="#eeeeee" border="1">
           <tr>
             <th>Available instances</th>

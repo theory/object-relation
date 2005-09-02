@@ -237,6 +237,26 @@ sub _stylesheet_rest {
         <title><xsl:value-of select="/kinetic:resources/kinetic:description" /></title>
       </head>
       <body>
+        
+        <!--                       -->
+        <!-- build the search form -->
+        <!--                       -->
+
+        <form method="GET">
+          <input>
+            <xsl:attribute name="type">hidden</xsl:attribute>
+            <xsl:attribute name="name">class_key</xsl:attribute>
+            <xsl:attribute name="value">
+              <xsl:value-of select="/kinetic:resources/kinetic:class_key"/>
+            </xsl:attribute>
+          </input>
+          <table>
+            <xsl:for-each select="/kinetic:resources/kinetic:search_parameters">
+              <xsl:apply-templates select="./kinetic:parameter" />
+            </xsl:for-each>
+          </table>
+        </form>
+        
         <table bgcolor="#eeeeee" border="1">
           <tr>
             <th><xsl:value-of select="/kinetic:resources/kinetic:description" /></th>
@@ -261,6 +281,29 @@ sub _stylesheet_rest {
     </html>
   </xsl:template>
   
+  <!--                                                -->
+  <!-- Find all parameters and create inputs for them -->
+  <!--                                                -->
+  
+  <xsl:template match="kinetic:parameter">
+    <tr>
+      <td>
+        <xsl:call-template name="proper-case-name">
+          <xsl:with-param name="expr" select="\@type"/>
+        </xsl:call-template>:</td> <!-- closing td must be here due to whitespace issues -->
+      <td>
+        <input>
+          <xsl:attribute name="type">text</xsl:attribute>
+          <xsl:attribute name="name">
+            <xsl:value-of select="\@type"/>
+          </xsl:attribute>
+          <xsl:attribute name="value">
+            <xsl:value-of select="."/>
+          </xsl:attribute>
+        </input>
+      </td>
+    </tr>
+  </xsl:template>
   <!--                                                  -->
   <!-- Find all instances and create hyperlinks for 'em -->
   <!--                                                  -->
@@ -298,6 +341,19 @@ sub _stylesheet_rest {
       </xsl:otherwise>
     </xsl:choose>
   </xsl:template>
+
+  <xsl:template name="proper-case-name">
+    <xsl:param name="expr"/>
+    <xsl:variable name="uc" 
+      select="'ABCDEFGHIJKLMNOPQRSTUVWXYZ '"/>
+    <xsl:variable name="lc" 
+      select="'abcdefghijklmnopqrstuvwxyz_'"/>        
+    <xsl:value-of 
+      select="concat(
+          translate(substring(\$expr,1,1),\$lc,\$uc), 
+          translate(substring(\$expr, 2), '_', ' ')
+      )"/>
+  </xsl:template> 
 
 </xsl:stylesheet>
     END_STYLE_SHEET

@@ -22,6 +22,10 @@ use aliased 'Kinetic::Interface::REST::Dispatch';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
 
+use Readonly;
+Readonly my $DOMAIN => 'http://somehost.com/';
+Readonly my $PATH   => 'rest/';
+
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->any_supported(qw/pg sqlite/)
     ? 0
@@ -75,8 +79,8 @@ sub setup : Test(setup) {
     $test->{cgi_mock}  = $cgi_mock;
     $test->{rest_mock} = $rest_mock;
     $test->{rest}      = REST->new(
-        domain => 'http://somehost.com/',
-        path   => 'rest/'
+        domain => $DOMAIN,
+        path   => $PATH
     );
     $test->_path_info('');
     $test->{query_string} = undef;
@@ -104,6 +108,8 @@ sub _path_info {
     $test->{path_info} = shift;
     return $test;
 }
+
+sub _url { $DOMAIN.$PATH }
 
 sub method_arg_handling : Test(no_plan) {
 
@@ -212,22 +218,22 @@ sub page_set : Test(17) {
 
 sub class_list : Test(2) {
     my $test = shift;
+    my $url  = _url();
 
-    # we don't use can_ok because of the way &can is overridden
     my $dispatch = Dispatch->new;
     can_ok $dispatch, 'class_list';
     my $rest = $test->{rest};
     $dispatch->rest($rest);
     $dispatch->class_list;
-    my $expected = <<'    END_XML';
+    my $expected = <<"    END_XML";
 <?xml version="1.0"?>
-    <?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=REST"?>
+    <?xml-stylesheet type="text/xsl" href="${url}?stylesheet=REST"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
     <kinetic:description>Available resources</kinetic:description>
-          <kinetic:resource id="one" xlink:href="http://somehost.com/rest/one/search"/>
-          <kinetic:resource id="simple" xlink:href="http://somehost.com/rest/simple/search"/>
-          <kinetic:resource id="two" xlink:href="http://somehost.com/rest/two/search"/>
+          <kinetic:resource id="one" xlink:href="${url}one/search"/>
+          <kinetic:resource id="simple" xlink:href="${url}simple/search"/>
+          <kinetic:resource id="two" xlink:href="${url}two/search"/>
     </kinetic:resources>
     END_XML
     is_xml $rest->response, $expected,
@@ -237,6 +243,8 @@ sub class_list : Test(2) {
 sub handle : Test(5) {
     my $test     = shift;
     my $dispatch = Dispatch->new;
+    my $url      = _url();
+
     can_ok $dispatch, 'handle_rest_request';
     my $rest = $test->{rest};
     my $key  = One->my_class->key;
@@ -251,23 +259,23 @@ sub handle : Test(5) {
     $dispatch->method('search');
     $dispatch->handle_rest_request;
     ( my $response = $rest->response ) =~ s/@{[UUID_RE]}/XXX/g;
-    my $expected = <<'    END_XML';
+    my $expected = <<"    END_XML";
 <?xml version="1.0"?>
-    <?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=REST"?>
+    <?xml-stylesheet type="text/xsl" href="${url}?stylesheet=REST"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                     xmlns:xlink="http://www.w3.org/1999/xlink">
     <kinetic:description>Available instances</kinetic:description>
         <kinetic:resource 
             id="XXX" 
-            xlink:href="http://somehost.com/rest/one/lookup/uuid/XXX"/>
+            xlink:href="${url}one/lookup/uuid/XXX"/>
         <kinetic:resource 
             id="XXX" 
-            xlink:href="http://somehost.com/rest/one/lookup/uuid/XXX"/>
+            xlink:href="${url}one/lookup/uuid/XXX"/>
         <kinetic:resource 
             id="XXX" 
-            xlink:href="http://somehost.com/rest/one/lookup/uuid/XXX"/>
+            xlink:href="${url}one/lookup/uuid/XXX"/>
+        <kinetic:class_key>one</kinetic:class_key>
         <kinetic:search_parameters>
-            <kinetic:parameter type="class_key">one</kinetic:parameter>
             <kinetic:parameter type="limit">20</kinetic:parameter>
             <kinetic:parameter type="arguments"></kinetic:parameter>
         </kinetic:search_parameters>
@@ -281,7 +289,7 @@ sub handle : Test(5) {
     $dispatch->handle_rest_request;
     $expected = <<"    END_XML";
 <?xml version="1.0"?>
-    <?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=instance"?>
+    <?xml-stylesheet type="text/xsl" href="${url}?stylesheet=instance"?>
     <kinetic version="0.01">
       <instance key="one">
         <attr name="bool">1</attr>
@@ -301,15 +309,16 @@ sub handle : Test(5) {
 
     $expected = <<"    END_XML";
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=REST"?>
+<?xml-stylesheet type="text/xsl" href="${url}?stylesheet=REST"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
-      <kinetic:resource id="$foo_uuid" xlink:href="http://somehost.com/rest/one/lookup/uuid/$foo_uuid"/>
+      <kinetic:resource id="$foo_uuid" xlink:href="${url}one/lookup/uuid/$foo_uuid"/>
+      <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>
-        <kinetic:parameter type="class_key">one</kinetic:parameter>
+        <kinetic:parameter type="search">name =&gt; &quot;foo&quot;</kinetic:parameter>   
         <kinetic:parameter type="limit">20</kinetic:parameter>
-        <kinetic:parameter type="arguments">name =&gt; &quot;foo&quot;</kinetic:parameter>   
+        <kinetic:parameter type="order_by"></kinetic:parameter>
       </kinetic:search_parameters>
     </kinetic:resources>
     END_XML
@@ -328,16 +337,16 @@ sub handle : Test(5) {
     $dispatch->handle_rest_request;
     $expected = <<"    END_XML";
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=REST"?>
+<?xml-stylesheet type="text/xsl" href="${url}?stylesheet=REST"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                      xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
-      <kinetic:resource id="$bar_uuid" xlink:href="http://somehost.com/rest/one/lookup/uuid/$bar_uuid"/>
-      <kinetic:resource id="$foo_uuid" xlink:href="http://somehost.com/rest/one/lookup/uuid/$foo_uuid"/>
+      <kinetic:resource id="$bar_uuid" xlink:href="${url}one/lookup/uuid/$bar_uuid"/>
+      <kinetic:resource id="$foo_uuid" xlink:href="${url}one/lookup/uuid/$foo_uuid"/>
+      <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>
-        <kinetic:parameter type="class_key">one</kinetic:parameter>
+        <kinetic:parameter type="search">name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)</kinetic:parameter>
         <kinetic:parameter type="limit">20</kinetic:parameter>
-        <kinetic:parameter type="arguments">name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)</kinetic:parameter>
         <kinetic:parameter type="order_by">name</kinetic:parameter>
       </kinetic:search_parameters>
     </kinetic:resources>

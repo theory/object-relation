@@ -19,8 +19,6 @@ package Kinetic::Interface::REST;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use version;
-our $VERSION = version->new('0.0.1');
 use Kinetic::Util::Constants qw/:http/;
 use Kinetic::Util::Exceptions qw/throw_required/;
 use aliased 'Kinetic::View::XSLT';

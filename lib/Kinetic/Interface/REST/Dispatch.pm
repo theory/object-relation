@@ -20,7 +20,6 @@ package Kinetic::Interface::REST::Dispatch;
 
 use strict;
 use version;
-use Clone qw/clone/;
 use Data::Pageset;
 use HTML::Entities qw/encode_entities/;
 use Params::Validate;
@@ -375,21 +374,28 @@ sub _add_search_data {
 
     $arg_for{STRING} = encode_entities( $arg_for{STRING} );
 
-    my $search_order = '';
+    my $search_order;
+    my $order_by = 0;
     while ( defined( my $arg = shift @$args ) ) {
-        next unless 'order_by' eq $arg || 'sort_order' eq $arg;
         my $value = encode_entities( shift @$args );
-        $search_order .=
+        next unless 'order_by' eq $arg || 'sort_order' eq $arg;
+        $order_by     = 1;
+        $search_order =
           qq'<kinetic:parameter type="$arg">$value</kinetic:parameter>\n';
+
+        # XXX We last out of this as we only want the first order_by for this
+        # and we don't yet handle sort_order.
+        # we'll fix this after I have more XSLT experience
+        last;
     }
-    local $/ = "\n";
-    chomp $search_order;
+    $search_order = '<kinetic:parameter type="order_by"/>'
+      unless $order_by;
 
     return <<"    END_SEARCH_DATA";
+      <kinetic:class_key>$class_key</kinetic:class_key>
       <kinetic:search_parameters>
-        <kinetic:parameter type="class_key">$class_key</kinetic:parameter>
+        <kinetic:parameter type="search">$arg_for{STRING}</kinetic:parameter>
         <kinetic:parameter type="limit">$arg_for{limit}</kinetic:parameter>
-        <kinetic:parameter type="arguments">$arg_for{STRING}</kinetic:parameter>
         $search_order
       </kinetic:search_parameters>
     END_SEARCH_DATA
