@@ -362,7 +362,6 @@ $html_header
             </td>
           </tr>
         </table>
-        <p></p>
       </body>
     </html>
     END_XHTML

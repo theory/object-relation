@@ -127,7 +127,6 @@ sub search_form : Test(no_plan) {
       <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
       <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
     </table>
-    <p></p>
   </body>
 </html>
     END_XHTML
@@ -226,7 +225,6 @@ sub transform : Test(9) {
       <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
       <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
     </table>
-    <p></p>
   </body>
 </html>
     END_XHTML
@@ -266,7 +264,6 @@ sub transform : Test(9) {
       <tr><td><a href="http://somehost.com/rest/simple">simple</a></td></tr>
       <tr><td><a href="http://somehost.com/rest/two">two</a></td></tr>
     </table>
-    <p></p>
   </body>
 </html>
     END_XHTML

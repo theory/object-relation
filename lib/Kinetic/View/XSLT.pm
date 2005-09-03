@@ -228,7 +228,7 @@ sub _stylesheet_rest {
   <xsl:output method="xml"
     doctype-public="-//W3C//DTD XHTML 1.0 Strict//EN"  
     doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"
-      indent="yes"/>
+    indent="yes"/>
 
   <xsl:template match="/">
     <html>
@@ -243,13 +243,10 @@ sub _stylesheet_rest {
         <!--                       -->
 
         <form method="GET">
-          <input>
-            <xsl:attribute name="type">hidden</xsl:attribute>
-            <xsl:attribute name="name">class_key</xsl:attribute>
-            <xsl:attribute name="value">
-              <xsl:value-of select="/kinetic:resources/kinetic:class_key"/>
-            </xsl:attribute>
-          </input>
+          <input 
+            type="hidden" 
+            name="class_key" 
+            value="{/kinetic:resources/kinetic:class_key}"/>
           <table>
             <xsl:for-each select="/kinetic:resources/kinetic:search_parameters">
               <xsl:apply-templates select="./kinetic:parameter" />
@@ -266,17 +263,17 @@ sub _stylesheet_rest {
           </xsl:for-each>
         </table>
 
-        <!--                                                    -->
-        <!-- For the time being, we'll just have to accept that -->
-        <!-- we have empty <p></p> tags on docs without pages   -->
-        <!-- It's been too much of a timesink to fix this :(    -->
-        <!--                                                    -->
+        <!--                                        -->
+        <!-- Only build page links if we have pages -->
+        <!--                                        -->
 
-        <p>
-          <xsl:for-each select="/kinetic:resources/kinetic:pages">
-            <xsl:apply-templates select="./kinetic:page" />
-          </xsl:for-each>
-        </p>
+        <xsl:if test="/kinetic:resources/kinetic:pages">
+          <p>
+            <xsl:for-each select="/kinetic:resources/kinetic:pages">
+              <xsl:apply-templates select="./kinetic:page" />
+            </xsl:for-each>
+          </p>
+        </xsl:if>
       </body>
     </html>
   </xsl:template>
@@ -292,18 +289,11 @@ sub _stylesheet_rest {
           <xsl:with-param name="expr" select="\@type"/>
         </xsl:call-template>:</td> <!-- closing td must be here due to whitespace issues -->
       <td>
-        <input>
-          <xsl:attribute name="type">text</xsl:attribute>
-          <xsl:attribute name="name">
-            <xsl:value-of select="\@type"/>
-          </xsl:attribute>
-          <xsl:attribute name="value">
-            <xsl:value-of select="."/>
-          </xsl:attribute>
-        </input>
+        <input type="text" name="{\@type}" value="{.}"/>
       </td>
     </tr>
   </xsl:template>
+
   <!--                                                  -->
   <!-- Find all instances and create hyperlinks for 'em -->
   <!--                                                  -->
@@ -311,12 +301,7 @@ sub _stylesheet_rest {
   <xsl:template match="kinetic:resource">
     <tr>
       <td>
-        <a>
-          <xsl:attribute name="href">
-            <xsl:value-of select="\@xlink:href"/>
-          </xsl:attribute>
-          <xsl:value-of select="\@id" />
-        </a>
+        <a href="{\@xlink:href}"><xsl:value-of select="\@id" /></a>
       </td>
     </tr>
   </xsl:template>
@@ -332,12 +317,7 @@ sub _stylesheet_rest {
         <xsl:value-of select="\@id" />
       </xsl:when>
       <xsl:otherwise>
-        <a>
-        <xsl:attribute name="href">
-          <xsl:value-of select="\@xlink:href"/>
-        </xsl:attribute>
-        <xsl:value-of select="\@id" />
-        </a>
+        <a href="{\@xlink:href}"><xsl:value-of select="\@id" /></a>
       </xsl:otherwise>
     </xsl:choose>
   </xsl:template>
@@ -371,7 +351,7 @@ sub _stylesheet_instance {
   <xsl:output method="xml"
     doctype-public="-//W3C//DTD XHTML 1.0 Strict//EN"  
     doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"
-      indent="yes"/>
+    indent="yes"/>
 
   <xsl:template match="/">
     <html>
@@ -399,7 +379,7 @@ sub _stylesheet_instance {
         <xsl:value-of select="@name"/>
       </td>
       <td>
-        <xsl:value-of select="." />
+        <xsl:apply-templates/>
       </td>
     </tr>
   </xsl:template>
