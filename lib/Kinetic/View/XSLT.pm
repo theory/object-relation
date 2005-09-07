@@ -230,11 +230,11 @@ sub _stylesheet_rest {
     doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"
     indent="yes"/>
 
-  <xsl:template match="/">
+  <xsl:template match="kinetic:resources">
     <html>
       <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-        <title><xsl:value-of select="/kinetic:resources/kinetic:description" /></title>
+        <title><xsl:value-of select="kinetic:description" /></title>
       </head>
       <body>
         
@@ -246,20 +246,20 @@ sub _stylesheet_rest {
           <input 
             type="hidden" 
             name="class_key" 
-            value="{/kinetic:resources/kinetic:class_key}"/>
+            value="{kinetic:class_key}"/>
           <table>
-            <xsl:for-each select="/kinetic:resources/kinetic:search_parameters">
-              <xsl:apply-templates select="./kinetic:parameter" />
+            <xsl:for-each select="kinetic:search_parameters">
+              <xsl:apply-templates select="kinetic:parameter" />
             </xsl:for-each>
           </table>
         </form>
         
         <table bgcolor="#eeeeee" border="1">
           <tr>
-            <th><xsl:value-of select="/kinetic:resources/kinetic:description" /></th>
+            <th><xsl:value-of select="kinetic:description" /></th>
           </tr>
-          <xsl:for-each select="kinetic:resources">
-            <xsl:apply-templates select="./kinetic:resource" />
+          <xsl:for-each select=".">
+            <xsl:apply-templates select="kinetic:resource" />
           </xsl:for-each>
         </table>
 
@@ -267,10 +267,10 @@ sub _stylesheet_rest {
         <!-- Only build page links if we have pages -->
         <!--                                        -->
 
-        <xsl:if test="/kinetic:resources/kinetic:pages">
+        <xsl:if test="kinetic:pages">
           <p>
-            <xsl:for-each select="/kinetic:resources/kinetic:pages">
-              <xsl:apply-templates select="./kinetic:page" />
+            <xsl:for-each select="kinetic:pages">
+              <xsl:apply-templates select="kinetic:page" />
             </xsl:for-each>
           </p>
         </xsl:if>
@@ -353,16 +353,16 @@ sub _stylesheet_instance {
     doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"
     indent="yes"/>
 
-  <xsl:template match="/">
+  <xsl:template match="kinetic">
     <html>
-    <head><title><xsl:value-of select="/kinetic/instance/@key" /></title></head>
+    <head><title><xsl:value-of select="instance/@key" /></title></head>
     <body>
       <table bgcolor="#eeeeee" border="1">
         <tr>
-          <th colspan="2"><xsl:value-of select="/kinetic/instance/@key" /></th>
+          <th colspan="2"><xsl:value-of select="instance/@key" /></th>
         </tr>
-        <xsl:for-each select="/kinetic/instance">
-          <xsl:apply-templates select="./attr" />
+        <xsl:for-each select="instance">
+          <xsl:apply-templates select="attr" />
         </xsl:for-each>
       </table>
     </body>
