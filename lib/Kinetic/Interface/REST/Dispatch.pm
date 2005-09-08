@@ -232,12 +232,7 @@ list of all classes registered with L<Kinetic::Meta|Kinetic::Meta>.
 sub class_list {
     my ($self) = @_;
 
-    my $rest = $self->rest;
-    if ( my $stylesheet = $rest->cgi->param('stylesheet') ) {
-        my $xml = $rest->stylesheet;
-        $rest->content_type(XML_CT)->response($xml);
-        return;
-    }
+    my $rest     = $self->rest;
     my $response = _xml_header( $rest, 'Available resources' );
 
     my $base_url     = _rest_base_url($rest);
@@ -281,7 +276,7 @@ sub _handle_constructor {
     my $xml  = Kinetic::XML->new(
         {
             object         => $obj,
-            stylesheet_url => $rest->stylesheet_url('instance'),
+            stylesheet_url => INSTANCE_XSLT,
         }
     )->dump_xml;
     return $rest->set_response( $xml, 'instance' );
@@ -540,7 +535,7 @@ responses.
 
 sub _xml_header {
     my ( $rest, $title ) = @_;
-    my $stylesheet = $rest->stylesheet_url('REST');
+    my $stylesheet = SEARCH_XSLT;
     my $domain     = $rest->domain;
     my $path       = $rest->path;
     return <<"    END_HEADER";

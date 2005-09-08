@@ -38,10 +38,6 @@ Kinetic::View::XSLT - XSLT services provider
 
  my $xslt  = Kinetic::View::XSLT->new(type => 'REST');
  my $xhtml = $xslt->transform($rest_xml);
- $xslt->type('instance');
- $xhtml    = $xslt->transform($instance_xml);
- my $stylesheet = $xslt->stylesheet;
- my $stylesheet = $xslt->stylesheet($type);
 
 =head1 Description
 
@@ -217,7 +213,7 @@ sub transform {
 =cut
 
 sub _stylesheet_rest {
-    return <<"    END_STYLE_SHEET";
+    return <<'    END_STYLE_SHEET';
 <xsl:stylesheet version="1.0"
       xmlns:kinetic="http://www.kineticode.com/rest"
       xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
@@ -305,10 +301,10 @@ sub _stylesheet_rest {
     <tr>
       <td>
         <xsl:call-template name="proper-case-name">
-          <xsl:with-param name="expr" select="\@type"/>
+          <xsl:with-param name="expr" select="@type"/>
         </xsl:call-template>:</td> <!-- closing td must be here due to whitespace issues -->
       <td>
-        <input type="text" name="{\@type}" value="{.}"/>
+        <input type="text" name="{@type}" value="{.}"/>
       </td>
     </tr>
   </xsl:template>
@@ -320,7 +316,7 @@ sub _stylesheet_rest {
   <xsl:template match="kinetic:resource">
     <tr>
       <td>
-        <a href="{\@xlink:href}"><xsl:value-of select="\@id" /></a>
+        <a href="{@xlink:href}"><xsl:value-of select="@id" /></a>
       </td>
     </tr>
   </xsl:template>
@@ -332,11 +328,11 @@ sub _stylesheet_rest {
 
   <xsl:template match="kinetic:page">
     <xsl:choose>
-      <xsl:when test="\@xlink:href = '@{[CURRENT_PAGE]}'">
-        <xsl:value-of select="\@id" />
+      <xsl:when test="@xlink:href = '#'">
+        <xsl:value-of select="@id" />
       </xsl:when>
       <xsl:otherwise>
-        <a href="{\@xlink:href}"><xsl:value-of select="\@id" /></a>
+        <a href="{@xlink:href}"><xsl:value-of select="@id" /></a>
       </xsl:otherwise>
     </xsl:choose>
   </xsl:template>
@@ -349,8 +345,8 @@ sub _stylesheet_rest {
       select="'abcdefghijklmnopqrstuvwxyz_'"/>        
     <xsl:value-of 
       select="concat(
-          translate(substring(\$expr,1,1),\$lc,\$uc), 
-          translate(substring(\$expr, 2), '_', ' ')
+          translate(substring($expr,1,1),$lc,$uc), 
+          translate(substring($expr, 2), '_', ' ')
       )"/>
   </xsl:template> 
 

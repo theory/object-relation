@@ -59,7 +59,9 @@ use constant NOT_IMPLEMENTED_STATUS       => '501 Not Implemented';
 use constant NOT_FOUND_STATUS             => '404 Not Found';
 
 # XSLT
-use constant CURRENT_PAGE => '#';
+use constant CURRENT_PAGE  => '#';
+use constant SEARCH_XSLT   => '/xslt/search.xsl';
+use constant INSTANCE_XSLT => '/xslt/instance.xsl';
 
 use Exporter::Tidy http => [
     qw/
@@ -86,6 +88,8 @@ use Exporter::Tidy http => [
   xslt => [
     qw/
       CURRENT_PAGE
+      SEARCH_XSLT
+      INSTANCE_XSLT
       /
   ];
 
@@ -189,6 +193,14 @@ C<200 OK>
 This is a marker used in XML documents to indicate a link to the current page.
 Usually such a link is not desired and XSLT should not make a link if it finds
 a C<CURRENT_PAGE> marker.
+
+=item * SEARCH_XSLT
+
+Location of XSLT for managing searches.
+
+=item * INSTANCE_XSLT
+
+Location of XSLT for displaying Kinetic instances.
 
 =back
 

@@ -15,10 +15,12 @@ sub new {
 }
 
 my $DOC_ROOT      = 'WWW';
-my $STATIC        = qr/(js|css)$/;
+my $STATIC        = qr/(js|css|xslt?)$/;
 my %CONTENT_TYPES = (
-    js  => 'text/javascript',
-    css => 'text/css',
+    js   => 'text/javascript',
+    css  => 'text/css',
+    xsl  => 'text/xml',
+    xslt => 'text/xml',
 );
 
 sub handle_request {

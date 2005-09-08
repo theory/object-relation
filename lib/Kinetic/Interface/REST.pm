@@ -363,63 +363,6 @@ sub resource_path {
 
 ##############################################################################
 
-=head3 stylesheet
-
-  my $stylesheet = $rest->stylesheet;
-
-Returns XSLT stylesheet for the requested resource.
-
-=cut
-
-sub stylesheet {
-    my $self  = shift;
-    my $sheet = $self->cgi->param('stylesheet')
-      || return;    # XXX not implemented?
-    eval { $self->xslt->type($sheet) };
-    return $self->xslt->stylesheet unless $@;
-}
-
-##############################################################################
-
-=head3 stylesheet_url
-
-  my $url = $rest->stylesheet_url('instance');
-
-Returns a URL which will return the requested stylesheet type.  Supported
-stylesheet types are listed in L<Kinetic::View::XSLT|Kinetic::View|XSLT>.
-
-=cut
-
-sub stylesheet_url {
-    my ( $rest, $sheet ) = @_;
-
-    # XXX has side-effect of setting xslt stylesheet type.  Bad?
-    eval { $rest->xslt->type($sheet) };
-    unless ($@) {
-        return $rest->domain . $rest->path . '?stylesheet=' . $sheet;
-    }
-    else {
-        $rest->status(NOT_IMPLEMENTED_STATUS)->content_type(TEXT_CT)
-          ->response("Unknown stylesheet ($sheet)");
-        return;
-    }
-}
-
-##############################################################################
-
-=head3 xslt
-
-  my $xslt = $rest->xslt;
-
-Read only.  This method returns the L<Kinetic::View::XSLT|Kinetic::View::XSLT>
-object that was set when the REST server was instantiated.
-
-=cut
-
-sub xslt { shift->{xslt} }
-
-##############################################################################
-
 =head3 set_response
 
   $rest->set_response($xml, [$type]);

@@ -10,7 +10,7 @@ use Test::More;
 use Test::Exception;
 use Test::XML;
 
-use Kinetic::Util::Constants qw/UUID_RE/;
+use Kinetic::Util::Constants qw/UUID_RE :xslt/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(1) }
 
@@ -227,7 +227,7 @@ sub class_list : Test(2) {
     $dispatch->class_list;
     my $expected = <<"    END_XML";
 <?xml version="1.0"?>
-    <?xml-stylesheet type="text/xsl" href="${url}?stylesheet=REST"?>
+    <?xml-stylesheet type="text/xsl" href="@{[SEARCH_XSLT]}"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
     <kinetic:description>Available resources</kinetic:description>
@@ -263,7 +263,7 @@ sub handle : Test(5) {
     ( my $response = $rest->response ) =~ s/@{[UUID_RE]}/XXX/g;
     my $expected = <<"    END_XML";
 <?xml version="1.0"?>
-    <?xml-stylesheet type="text/xsl" href="${url}?stylesheet=REST"?>
+    <?xml-stylesheet type="text/xsl" href="@{[SEARCH_XSLT]}"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                     xmlns:xlink="http://www.w3.org/1999/xlink">
     <kinetic:description>Available instances</kinetic:description>
@@ -293,7 +293,7 @@ sub handle : Test(5) {
     $dispatch->handle_rest_request;
     $expected = <<"    END_XML";
 <?xml version="1.0"?>
-    <?xml-stylesheet type="text/xsl" href="${url}?stylesheet=instance"?>
+    <?xml-stylesheet type="text/xsl" href="@{[INSTANCE_XSLT]}"?>
     <kinetic version="0.01">
       <instance key="one">
         <attr name="bool">1</attr>
@@ -313,7 +313,7 @@ sub handle : Test(5) {
 
     $expected = <<"    END_XML";
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="${url}?stylesheet=REST"?>
+<?xml-stylesheet type="text/xsl" href="@{[SEARCH_XSLT]}"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
@@ -343,7 +343,7 @@ sub handle : Test(5) {
     $dispatch->handle_rest_request;
     $expected = <<"    END_XML";
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="${url}?stylesheet=REST"?>
+<?xml-stylesheet type="text/xsl" href="@{[SEARCH_XSLT]}"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                      xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>

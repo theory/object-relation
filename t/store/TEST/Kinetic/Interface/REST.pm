@@ -20,7 +20,7 @@ use XML::Parser;
     require WWW::REST;
 }
 
-use Kinetic::Util::Constants qw/UUID_RE CURRENT_PAGE/;
+use Kinetic::Util::Constants qw/UUID_RE :xslt/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(1) }
 use TEST::REST::Server;
@@ -120,7 +120,7 @@ sub _xml_header {
     my $server = shift || 'http://localhost:9000/rest/';
     return <<"    END_XML";
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="$server?stylesheet=REST"?>
+<?xml-stylesheet type="text/xsl" href="@{[SEARCH_XSLT]}"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>$title</kinetic:description>
