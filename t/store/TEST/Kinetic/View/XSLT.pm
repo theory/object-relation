@@ -81,6 +81,8 @@ sub search_form : Test(no_plan) {
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
+      <kinetic:domain>http://www.example.com/</kinetic:domain>
+      <kinetic:path>rest/</kinetic:path>
       <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
       <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
       <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
@@ -100,32 +102,63 @@ sub search_form : Test(no_plan) {
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
   <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <title>Available instances</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Available instances</title>
+    <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
   </head>
-  <body>
-    <form method="GET">
-      <input type="hidden" name="class_key" value="one"/>
+  <body onload="document.search_form.search.focus()">
+    <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
+      <input type="hidden" name="class_key" value="one" />
+      <input type="hidden" name="domain" value="http://www.example.com/" />
+      <input type="hidden" name="path" value="rest/" />
       <table>
-        <tr>
-          <td>Search:</td>
-          <td><input type="text" name="search" value="name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)"/></td>
-        </tr>
-        <tr>
-          <td>Limit:</td>
-          <td><input type="text" name="limit" value="20"/></td>
-        </tr>
-        <tr>
-          <td>Order by:</td>
-          <td><input type="text" name="order_by" value="name"/></td>
-        </tr>
+      <tr>
+        <td>Search:</td>
+        <td>
+          <input type="text" name="search" value="name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)" />
+        </td>
+      </tr>
+      <tr>
+        <td>Limit:</td>
+        <td>
+          <input type="text" name="limit" value="20" />
+        </td>
+      </tr>
+      <tr>
+        <td>Order by:</td>
+        <td>
+          <input type="text" name="order_by" value="name" />
+        </td>
+      </tr>
+      <tr>
+        <td>Sort order:</td>
+        <td>
+          <select name="sort_order">
+            <option value="ASC">Ascending</option>
+            <option value="DESC">Descending</option>
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <input type="submit" value="Search" onclick="javascript:do_search(this)" />
+        </td>
+      </tr>
       </table>
     </form>
     <table bgcolor="#eeeeee" border="1">
-      <tr><th>Available instances</th></tr>
-      <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
-      <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
-      <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
+      <tr>
+        <th>Available instances</th>
+      </tr>
+      <tr>
+        <td><a href="http://somehost.com/rest/one/XXX">XXX</a></td>
+      </tr>
+      <tr>
+        <td><a href="http://somehost.com/rest/one/XXX">XXX</a></td>
+      </tr>
+      <tr>
+        <td><a href="http://somehost.com/rest/one/XXX">XXX</a></td>
+      </tr>
     </table>
   </body>
 </html>
@@ -197,6 +230,9 @@ sub transform : Test(9) {
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
+      <kinetic:class_key>one</kinetic:class_key>
+      <kinetic:domain>http://www.example.com/</kinetic:domain>
+      <kinetic:path>rest/</kinetic:path>
       <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
       <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
       <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
@@ -210,23 +246,49 @@ sub transform : Test(9) {
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
   <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <title>Available instances</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Available instances</title>
+    <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
   </head>
-  <body>
-    <!-- empty form because search_parameters was not in the XML -->
-    <form method="GET">
-      <input type="hidden" name="class_key" value="" />
-      <table></table>
+  <body onload="document.search_form.search.focus()">
+    <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
+      <input type="hidden" name="class_key" value="one" />
+      <input type="hidden" name="domain" value="http://www.example.com/" />
+      <input type="hidden" name="path" value="rest/" />
+      <table>
+        <tr>
+          <td>Sort order:</td>
+          <td>
+            <select name="sort_order">
+              <option value="ASC">Ascending</option>
+              <option value="DESC">Descending</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <input type="submit" value="Search" onclick="javascript:do_search(this)" />
+          </td>
+        </tr>
+      </table>
     </form>
-    <table bgcolor="#eeeeee" border="1">
-      <tr><th>Available instances</th></tr>
-      <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
-      <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
-      <tr><td><a href="http://somehost.com/rest/one/XXX">XXX</a></td></tr>
-    </table>
+  <table bgcolor="#eeeeee" border="1">
+    <tr>
+      <th>Available instances</th>
+    </tr>
+    <tr>
+      <td><a href="http://somehost.com/rest/one/XXX">XXX</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://somehost.com/rest/one/XXX">XXX</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://somehost.com/rest/one/XXX">XXX</a></td>
+    </tr>
+  </table>
   </body>
 </html>
+    
     END_XHTML
 
     $xml = <<'    END_XML';
@@ -235,6 +297,9 @@ sub transform : Test(9) {
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">   
       <kinetic:description>Available resources</kinetic:description>
+      <kinetic:domain>http://www.example.com/</kinetic:domain>
+      <kinetic:domain>http://www.example.com/</kinetic:domain>
+      <kinetic:path>rest/</kinetic:path>
       <kinetic:resource id="one" xlink:href="http://somehost.com/rest/one"/>
       <kinetic:resource id="simple" xlink:href="http://somehost.com/rest/simple"/>
       <kinetic:resource id="two" xlink:href="http://somehost.com/rest/two"/>
@@ -253,11 +318,6 @@ sub transform : Test(9) {
   <title>Available resources</title>
   </head>
   <body>
-    <!-- empty form because search_parameters was not in the XML -->
-    <form method="GET">
-      <input type="hidden" name="class_key" value="" />
-      <table></table>
-    </form>
     <table bgcolor="#eeeeee" border="1">
       <tr><th>Available resources</th></tr>
       <tr><td><a href="http://somehost.com/rest/one">one</a></td></tr>
@@ -323,6 +383,8 @@ sub transform_pages : Test(5) {
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
+      <kinetic:domain>http://www.example.com/</kinetic:domain>
+      <kinetic:path>rest/</kinetic:path>
       <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX"/>
       <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX"/>
       <kinetic:pages>
@@ -343,11 +405,6 @@ sub transform_pages : Test(5) {
         <title>Available instances</title>
       </head>
       <body>
-        <!-- empty form because search_parameters was not in the XML -->
-        <form method="GET">
-        <input type="hidden" name="class_key" value="" />
-        <table></table>
-        </form>
         <table bgcolor="#eeeeee" border="1">
           <tr>
             <th>Available instances</th>
@@ -377,6 +434,8 @@ sub transform_pages : Test(5) {
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
+      <kinetic:domain>http://www.example.com/</kinetic:domain>
+      <kinetic:path>rest/</kinetic:path>
       <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX"/>
       <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX"/>
       <kinetic:pages>
@@ -397,11 +456,6 @@ sub transform_pages : Test(5) {
         <title>Available instances</title>
       </head>
       <body>
-        <!-- empty form because search_parameters was not in the XML -->
-        <form method="GET">
-          <input type="hidden" name="class_key" value="" />
-          <table></table>
-        </form>
         <table bgcolor="#eeeeee" border="1">
           <tr>
             <th>Available instances</th>

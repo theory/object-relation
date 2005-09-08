@@ -4,6 +4,7 @@
 
 use strict;
 use warnings;
+use Getopt::Long;
 use lib 't/lib/', 'lib', 't/sample/lib';
 use Kinetic::Meta;
 use aliased 'TestApp::Simple::One';
@@ -12,7 +13,12 @@ use aliased 'Kinetic::DateTime';
 use aliased 'Kinetic::Store';
 use TEST::REST::Server;
 
-my $port = shift || 9000;
+GetOptions(
+    'p|port=i'      => \my $port,
+    'i|instances=i' => \my $instances,
+);
+$port      ||= 9000;
+$instances ||= 20;
 
 print "Creating test objects\n";
 
@@ -40,11 +46,10 @@ Two->new(
     age         => 22
 )->save;
 
-my $limit = 100;
-print "Creating $limit 'Two' objects for paging tests ...\n\n";
+print "Creating $instances 'Two' objects for paging tests ...\n\n";
 {
     local $| = 1;    # temporarily turn off buffering
-    for ( 1 .. $limit ) {
+    for ( 1 .. $instances ) {
         printf "%4d", $_;
         print "\n" unless $_ % 10;
         Two->new(
@@ -72,7 +77,7 @@ print "Hit <RETURN> to stop the server\n";
 <STDIN>;
 
 my $store = Store->new;
-my $dbh = $store->_dbh;
+my $dbh   = $store->_dbh;
 print "Deleting objects in database\n";
 foreach my $key ( Kinetic::Meta->keys ) {
     next if Kinetic::Meta->for_key($key)->abstract;

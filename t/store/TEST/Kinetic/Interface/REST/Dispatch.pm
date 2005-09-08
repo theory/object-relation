@@ -231,6 +231,8 @@ sub class_list : Test(2) {
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
     <kinetic:description>Available resources</kinetic:description>
+    <kinetic:domain>$DOMAIN</kinetic:domain>
+    <kinetic:path>$PATH</kinetic:path>
           <kinetic:resource id="one" xlink:href="${url}one/search"/>
           <kinetic:resource id="simple" xlink:href="${url}simple/search"/>
           <kinetic:resource id="two" xlink:href="${url}two/search"/>
@@ -265,6 +267,8 @@ sub handle : Test(5) {
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                     xmlns:xlink="http://www.w3.org/1999/xlink">
     <kinetic:description>Available instances</kinetic:description>
+    <kinetic:domain>$DOMAIN</kinetic:domain>
+    <kinetic:path>$PATH</kinetic:path>
         <kinetic:resource 
             id="XXX" 
             xlink:href="${url}one/lookup/uuid/XXX"/>
@@ -313,6 +317,8 @@ sub handle : Test(5) {
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
+      <kinetic:domain>$DOMAIN</kinetic:domain>
+      <kinetic:path>$PATH</kinetic:path>
       <kinetic:resource id="$foo_uuid" xlink:href="${url}one/lookup/uuid/$foo_uuid"/>
       <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>
@@ -341,6 +347,8 @@ sub handle : Test(5) {
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                      xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
+      <kinetic:domain>$DOMAIN</kinetic:domain>
+      <kinetic:path>$PATH</kinetic:path>
       <kinetic:resource id="$bar_uuid" xlink:href="${url}one/lookup/uuid/$bar_uuid"/>
       <kinetic:resource id="$foo_uuid" xlink:href="${url}one/lookup/uuid/$foo_uuid"/>
       <kinetic:class_key>one</kinetic:class_key>

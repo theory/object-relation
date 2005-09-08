@@ -189,6 +189,8 @@ sub web_test_paging : Test(14) {
     my $header = _xml_header('Available instances');
     my $expected = <<"    END_XML";
 $header
+      <kinetic:domain>http://localhost:9000/</kinetic:domain>
+      <kinetic:path>rest/</kinetic:path>
       <kinetic:resource id="$bar_uuid" xlink:href="${url}one/lookup/uuid/$bar_uuid"/>
       <kinetic:resource id="$foo_uuid" xlink:href="${url}one/lookup/uuid/$foo_uuid"/>
       <kinetic:pages>
@@ -214,29 +216,69 @@ $header
     my $html_header = _html_header('Available instances');
     my $search_form = _search_form('', 2, 'name');
     $expected = <<"    END_XHTML";
-$html_header
-        $search_form
-        <table bgcolor="#eeeeee" border="1">
-          <tr>
-            <th>Available instances</th>
-          </tr>
-          <tr>
-            <td>
-              <a href="${url}one/lookup/uuid/$bar_uuid?type=html">$bar_uuid</a>
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <a href="${url}one/lookup/uuid/$foo_uuid?type=html">$foo_uuid</a>
-            </td>
-          </tr>
-        </table>
-        <p>
-          [ Page 1 ]
-          <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/2?type=html">[ Page 2 ]</a>
-        </p>
-      </body>
-    </html>
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Available instances</title>
+    <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
+  </head>
+  <body onload="document.search_form.search.focus()">
+    <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
+      <input type="hidden" name="class_key" value="one" />
+      <input type="hidden" name="domain" value="http://localhost:9000/" />
+      <input type="hidden" name="path" value="rest/" />
+      <table>
+        <tr>
+          <td>Search:</td>
+          <td><input type="text" name="search" value="" /></td>
+        </tr>
+        <tr>
+          <td>Limit:</td>
+          <td><input type="text" name="limit" value="2" /></td>
+        </tr>
+        <tr>
+          <td>Order by:</td>
+          <td><input type="text" name="order_by" value="name" /></td>
+        </tr>
+        <tr>
+          <td>Sort order:</td>
+          <td>
+            <select name="sort_order">
+              <option value="ASC">Ascending</option>
+              <option value="DESC">Descending</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <input type="submit" value="Search" onclick="javascript:do_search(this)" />
+          </td>
+        </tr>
+      </table>
+    </form>
+    <table bgcolor="#eeeeee" border="1">
+      <tr>
+        <th>Available instances</th>
+      </tr>
+      <tr>
+        <td>
+          <a href="${url}one/lookup/uuid/$bar_uuid?type=html">$bar_uuid</a>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <a href="${url}one/lookup/uuid/$foo_uuid?type=html">$foo_uuid</a>
+        </td>
+      </tr>
+    </table>
+    <p>
+      [ Page 1 ]
+      <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/2?type=html">[ Page 2 ]</a>
+    </p>
+  </body>
+</html>
     END_XHTML
     is_xml $mech->content, $expected,
       '... ordering and limiting searches should work';
@@ -248,24 +290,64 @@ $html_header
     my $baz_uuid = $baz->uuid;
 
     $expected = <<"    END_XHTML";
-$html_header
-        $search_form
-        <table bgcolor="#eeeeee" border="1">
-          <tr>
-            <th>Available instances</th>
-          </tr>
-          <tr>
-            <td>
-              <a href="${url}one/lookup/uuid/$baz_uuid?type=html">$baz_uuid</a>
-            </td>
-          </tr>
-        </table>
-        <p>
-          <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/0?type=html">[ Page 1 ]</a>
-          [ Page 2 ]
-        </p>
-      </body>
-    </html>
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Available instances</title>
+    <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
+  </head>
+  <body onload="document.search_form.search.focus()">
+    <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
+      <input type="hidden" name="class_key" value="one" />
+      <input type="hidden" name="domain" value="http://localhost:9000/" />
+      <input type="hidden" name="path" value="rest/" />
+      <table>
+        <tr>
+        <td>Search:</td>
+          <td><input type="text" name="search" value="" /></td>
+        </tr>
+        <tr>
+          <td>Limit:</td>
+          <td><input type="text" name="limit" value="2" /></td>
+        </tr>
+        <tr>
+          <td>Order by:</td>
+          <td><input type="text" name="order_by" value="name" /></td>
+        </tr>
+        <tr>
+          <td>Sort order:</td>
+          <td>
+            <select name="sort_order">
+              <option value="ASC">Ascending</option>
+              <option value="DESC">Descending</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <input type="submit" value="Search" onclick="javascript:do_search(this)" />
+          </td>
+        </tr>
+      </table>
+    </form>
+    <table bgcolor="#eeeeee" border="1">
+      <tr>
+        <th>Available instances</th>
+      </tr>
+      <tr>
+        <td>
+          <a href="${url}one/lookup/uuid/$baz_uuid?type=html">$baz_uuid</a>
+        </td>
+      </tr>
+    </table>
+    <p>
+      <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/0?type=html">[ Page 1 ]</a>
+      [ Page 2 ]
+    </p>
+  </body>
+</html>
     END_XHTML
     is_xml $mech->content, $expected,
       '... ordering and limiting searches should work';
@@ -350,20 +432,62 @@ sub web_test : Test(12) {
     my $html_header = _html_header('Available instances');
     my $search_form = _search_form('name =&gt; &quot;foo&quot;', 20, '');
     my $expected = <<"    END_XHTML";
-$html_header
-        $search_form
-        <table bgcolor="#eeeeee" border="1">
-          <tr>
-            <th>Available instances</th>
-          </tr>
-          <tr>
-            <td>
-              <a href="${url}one/lookup/uuid/$foo_uuid?type=html">$foo_uuid</a>
-            </td>
-          </tr>
-        </table>
-      </body>
-    </html>
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Available instances</title>
+    <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
+  </head>
+  <body onload="document.search_form.search.focus()">
+    <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
+      <input type="hidden" name="class_key" value="one" />
+      <input type="hidden" name="domain" value="http://localhost:9000/" />
+      <input type="hidden" name="path" value="rest/" />
+      <table>
+        <tr>
+          <td>Search:</td>
+          <td>
+            <input type="text" name="search" value="name =&gt; &quot;foo&quot;" />
+          </td>
+        </tr>
+        <tr>
+          <td>Limit:</td>
+          <td><input type="text" name="limit" value="20" /></td>
+        </tr>
+        <tr>
+          <td>Order by:</td>
+          <td><input type="text" name="order_by" value="" /></td>
+        </tr>
+        <tr>
+          <td>Sort order:</td>
+          <td>
+            <select name="sort_order">
+              <option value="ASC">Ascending</option>
+              <option value="DESC">Descending</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <input type="submit" value="Search" onclick="javascript:do_search(this)" />
+          </td>
+        </tr>
+      </table>
+    </form>
+    <table bgcolor="#eeeeee" border="1">
+      <tr>
+        <th>Available instances</th>
+      </tr>
+      <tr>
+        <td>
+          <a href="${url}one/lookup/uuid/$foo_uuid?type=html">$foo_uuid</a>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
     END_XHTML
     is_xml $mech->content, $expected,
 'REST strings searches with HTML type specified should return the correct HTML';
@@ -447,6 +571,8 @@ sub rest_interface : Test(19) {
     my $header = _xml_header('Available instances', 'http://foo/rest/server/');
     my $expected = <<"    END_XML";
 $header
+      <kinetic:domain>http://foo/</kinetic:domain>
+      <kinetic:path>rest/server/</kinetic:path>
       <kinetic:resource 
         id="$foo_uuid" 
         xlink:href="http://foo/rest/server/one/lookup/uuid/$foo_uuid"/>
@@ -500,6 +626,8 @@ sub basic_services : Test(3) {
     my $header = _xml_header('Available resources');
     my $expected = <<"    END_XML";
 $header
+      <kinetic:domain>http://localhost:9000/</kinetic:domain>
+      <kinetic:path>rest/</kinetic:path>
       <kinetic:resource id="one"     xlink:href="${url}one/search"/>
       <kinetic:resource id="simple"  xlink:href="${url}simple/search"/>
       <kinetic:resource id="two"     xlink:href="${url}two/search"/>
@@ -511,6 +639,8 @@ $header
     $header = _xml_header('Available instances');
     $expected = <<"    END_XML";
 $header
+      <kinetic:domain>http://localhost:9000/</kinetic:domain>
+      <kinetic:path>rest/</kinetic:path>
       <kinetic:resource id="XXX" xlink:href="${url}one/lookup/uuid/XXX"/>
       <kinetic:resource id="XXX" xlink:href="${url}one/lookup/uuid/XXX"/>
       <kinetic:resource id="XXX" xlink:href="${url}one/lookup/uuid/XXX"/>

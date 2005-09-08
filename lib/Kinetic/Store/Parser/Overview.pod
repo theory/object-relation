@@ -61,6 +61,10 @@ C<%RE> hash used in I<search_value> are from C<Regexp::Common>.
                    | identifier '=>' 'NOT' normal_value
                    | identifier '=>'       between_value
                    | identifier '=>' 'NOT' between_value
+                   | identifier            normal_value
+                   | identifier      'NOT' normal_value
+                   | identifier            between_value
+                   | identifier      'NOT' between_value
 
   normal_value   ::= value | compare value | any
 

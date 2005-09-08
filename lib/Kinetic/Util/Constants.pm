@@ -56,6 +56,7 @@ use constant HTML_CT => 'text/html';
 use constant OK_STATUS                    => '200 OK';
 use constant INTERNAL_SERVER_ERROR_STATUS => '500 Internal Server Error';
 use constant NOT_IMPLEMENTED_STATUS       => '501 Not Implemented';
+use constant NOT_FOUND_STATUS             => '404 Not Found';
 
 # XSLT
 use constant CURRENT_PAGE => '#';
@@ -69,6 +70,7 @@ use Exporter::Tidy http => [
       OK_STATUS
       INTERNAL_SERVER_ERROR_STATUS
       NOT_IMPLEMENTED_STATUS
+      NOT_FOUND_STATUS
       /
   ],
   data_store => [
@@ -167,6 +169,10 @@ C<500 Internal Server Error>
 =item * NOT_IMPLEMENTED_STATUS
 
 C<501 Not Implemented>
+
+=item * NOT_FOUND_STATUS
+
+C<404 Not Found>
 
 =item * OK_STATUS
 

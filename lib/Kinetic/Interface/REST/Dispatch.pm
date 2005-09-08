@@ -541,12 +541,16 @@ responses.
 sub _xml_header {
     my ( $rest, $title ) = @_;
     my $stylesheet = $rest->stylesheet_url('REST');
+    my $domain     = $rest->domain;
+    my $path       = $rest->path;
     return <<"    END_HEADER";
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="$stylesheet"?>
 <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                    xmlns:xlink="http://www.w3.org/1999/xlink">
 <kinetic:description>$title</kinetic:description>
+<kinetic:domain>$domain</kinetic:domain>
+<kinetic:path>$path</kinetic:path>
     END_HEADER
 }
 

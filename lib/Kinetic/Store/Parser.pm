@@ -160,11 +160,15 @@ $statement_list = concatenate(
 #                   | identifier '=>' 'NOT' normal_value
 #                   | identifier '=>'       between_value
 #                   | identifier '=>' 'NOT' between_value
+#                   | identifier            normal_value
+#                   | identifier      'NOT' normal_value
+#                   | identifier            between_value
+#                   | identifier      'NOT' between_value
 
 $search = T(
     concatenate(
         match('IDENTIFIER'),
-        absorb($fat_comma),
+        absorb(optional($fat_comma)),
         optional( match( KEYWORD => 'NOT' ) ),
         alternate( $Normal_value, $Between_value )
     ),

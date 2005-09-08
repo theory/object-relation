@@ -224,7 +224,6 @@ sub _stylesheet_rest {
       xmlns:xlink="http://www.w3.org/1999/xlink"
       xmlns:fo="http://www.w3.org/1999/XSL/Format"
       xmlns="http://www.w3.org/1999/xhtml">
-
   <xsl:output method="xml"
     doctype-public="-//W3C//DTD XHTML 1.0 Strict//EN"  
     doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"
@@ -235,24 +234,44 @@ sub _stylesheet_rest {
       <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
         <title><xsl:value-of select="kinetic:description" /></title>
+        <xsl:if test="kinetic:class_key">
+        <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"/>
+        </xsl:if>
       </head>
       <body>
+        <xsl:if test="kinetic:class_key">
+          <xsl:attribute name="onload">document.search_form.search.focus()</xsl:attribute>
+        </xsl:if>
         
-        <!--                       -->
-        <!-- build the search form -->
-        <!--                       -->
+        <!--                        -->
+        <!-- build the search form  -->
+        <!-- if there's a class key -->
+        <!--                        -->
 
-        <form method="GET">
-          <input 
-            type="hidden" 
-            name="class_key" 
-            value="{kinetic:class_key}"/>
+        <xsl:if test="kinetic:class_key">
+        <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false">
+          <input type="hidden" name="class_key" value="{kinetic:class_key}"/>
+          <input type="hidden" name="domain"    value="{kinetic:domain}"/>
+          <input type="hidden" name="path"      value="{kinetic:path}"/>
           <table>
             <xsl:for-each select="kinetic:search_parameters">
               <xsl:apply-templates select="kinetic:parameter" />
             </xsl:for-each>
+            <tr>
+              <td>Sort order:</td>
+              <td>
+                <select name="sort_order">
+                  <option value="ASC">Ascending</option>
+                  <option value="DESC">Descending</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2"><input type="submit" value="Search" onclick="javascript:do_search(this)"/></td>
+            </tr>
           </table>
         </form>
+        </xsl:if>
         
         <table bgcolor="#eeeeee" border="1">
           <tr>
