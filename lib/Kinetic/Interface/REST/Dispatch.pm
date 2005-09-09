@@ -33,6 +33,7 @@ use Kinetic::Util::Constants qw/:http :xslt/;
 
 our $VERSION = version->new('0.0.1');
 
+Readonly my $MAX_ATTRIBUTE_INDEX => 4;
 Readonly my $PLACEHOLDER         => 'null';
 Readonly my $DEFAULT_LIMIT       => 20;
 Readonly my $DEFAULT_SEARCH_ARGS =>
@@ -341,7 +342,17 @@ sub _instance_list {
 
     my $instance_count = 0;
     my $key            = $self->class_key;
+    my @attributes;
     while ( my $resource = $iterator->next ) {
+        unless (@attributes) {
+            @attributes =
+              grep { !$_->references } $resource->my_class->attributes;
+            my $i = $MAX_ATTRIBUTE_INDEX < $#attributes
+                ? $MAX_ATTRIBUTE_INDEX
+                : $#attributes;
+            # don't list all attributes
+            @attributes = @attributes[0 .. $i]
+        }
         $instance_count++;
         my $uuid = $resource->uuid;
         $response .=

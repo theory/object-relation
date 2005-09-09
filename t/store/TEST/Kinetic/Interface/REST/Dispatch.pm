@@ -261,14 +261,19 @@ sub handle : Test(5) {
     $dispatch->method('search');
     $dispatch->handle_rest_request;
     ( my $response = $rest->response ) =~ s/@{[UUID_RE]}/XXX/g;
+    #uuid
+    #state
+    #name
+    #description
+    #bool
     my $expected = <<"    END_XML";
 <?xml version="1.0"?>
-    <?xml-stylesheet type="text/xsl" href="@{[SEARCH_XSLT]}"?>
+<?xml-stylesheet type="text/xsl" href="@{[SEARCH_XSLT]}"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                     xmlns:xlink="http://www.w3.org/1999/xlink">
-    <kinetic:description>Available instances</kinetic:description>
-    <kinetic:domain>$DOMAIN</kinetic:domain>
-    <kinetic:path>$PATH</kinetic:path>
+        <kinetic:description>Available instances</kinetic:description>
+        <kinetic:domain>$DOMAIN</kinetic:domain>
+        <kinetic:path>$PATH</kinetic:path>
         <kinetic:resource 
             id="XXX" 
             xlink:href="${url}one/lookup/uuid/XXX"/>

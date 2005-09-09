@@ -63,6 +63,9 @@ use constant CURRENT_PAGE  => '#';
 use constant SEARCH_XSLT   => '/xslt/search.xsl';
 use constant INSTANCE_XSLT => '/xslt/instance.xsl';
 
+# Directories
+use constant WWW_DIR => './www';
+
 use Exporter::Tidy http => [
     qw/
       HTML_CT
@@ -73,6 +76,11 @@ use Exporter::Tidy http => [
       HTTP_INTERNAL_SERVER_ERROR
       HTTP_NOT_IMPLEMENTED
       HTTP_NOT_FOUND
+      /
+  ],
+  data => [
+    qw/
+      WWW_DIR
       /
   ],
   data_store => [
@@ -181,6 +189,16 @@ C<404 Not Found>
 =item * HTTP_OK
 
 C<200 OK>
+
+=back
+
+=head1 :data
+
+=over 4
+
+=item * WWW_DIR
+
+The location of the WWW directory.
 
 =back
 

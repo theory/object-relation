@@ -68,6 +68,9 @@ our %Lexicon = (
   'Localization for "[_1]" not found',
   "Localization for “[_1]” not found",
 
+  'File "[_1]" not found',
+  "File “[_1]” not found",
+
   'Cannot assign to read-only attribute "[_1]"',
   "Cannot assign to read-only attribute “[_1]”",
 

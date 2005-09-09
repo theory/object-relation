@@ -219,8 +219,11 @@ use Exception::Class(
 
 =item Kinetic::Util::Exception::Fatal::NotFound
 
-Object Not Found exception.  Thrown if an object in a data store is not
-found.
+Object Not Found exception.  Thrown if something searched for is not found.
+Usually this is for objects in data stores, but also might be used for
+anything that is being looked for (such as a file).
+
+
 Alias: C<throw_not_found>.
 
 =cut
