@@ -160,7 +160,8 @@ sub handle_request {
     my $dispatch = Kinetic::Interface::REST::Dispatch->new;
     $dispatch->rest($self);
     eval {
-        if ( !$class_key ) {
+        if ( !$class_key )
+        {
             $dispatch->class_list;
         }
         else {
@@ -171,10 +172,10 @@ sub handle_request {
     };
     if ( my $error = $@ ) {
         my $info = $cgi->path_info;
-        $self->status(INTERNAL_SERVER_ERROR_STATUS)
+        $self->status(HTTP_INTERNAL_SERVER_ERROR)
           ->response("Fatal error handling $info: $error");
     }
-    $self->status(OK_STATUS) unless $self->status;
+    $self->status(HTTP_OK) unless $self->status;
     return $self;
 }
 

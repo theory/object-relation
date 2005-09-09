@@ -53,10 +53,10 @@ use constant XML_CT  => 'text/xml';
 use constant HTML_CT => 'text/html';
 
 # HTTP status codes
-use constant OK_STATUS                    => '200 OK';
-use constant INTERNAL_SERVER_ERROR_STATUS => '500 Internal Server Error';
-use constant NOT_IMPLEMENTED_STATUS       => '501 Not Implemented';
-use constant NOT_FOUND_STATUS             => '404 Not Found';
+use constant HTTP_OK                    => '200 OK';
+use constant HTTP_INTERNAL_SERVER_ERROR => '500 Internal Server Error';
+use constant HTTP_NOT_IMPLEMENTED       => '501 Not Implemented';
+use constant HTTP_NOT_FOUND             => '404 Not Found';
 
 # XSLT
 use constant CURRENT_PAGE  => '#';
@@ -69,10 +69,10 @@ use Exporter::Tidy http => [
       TEXT_CT
       XML_CT
 
-      OK_STATUS
-      INTERNAL_SERVER_ERROR_STATUS
-      NOT_IMPLEMENTED_STATUS
-      NOT_FOUND_STATUS
+      HTTP_OK
+      HTTP_INTERNAL_SERVER_ERROR
+      HTTP_NOT_IMPLEMENTED
+      HTTP_NOT_FOUND
       /
   ],
   data_store => [
@@ -166,19 +166,19 @@ Use with HTTP C<Status:> header.
 
 =over 4
 
-=item * INTERNAL_SERVER_ERROR_STATUS
+=item * HTTP_INTERNAL_SERVER_ERROR
 
 C<500 Internal Server Error>
 
-=item * NOT_IMPLEMENTED_STATUS
+=item * HTTP_NOT_IMPLEMENTED
 
 C<501 Not Implemented>
 
-=item * NOT_FOUND_STATUS
+=item * HTTP_NOT_FOUND
 
 C<404 Not Found>
 
-=item * OK_STATUS
+=item * HTTP_OK
 
 C<200 OK>
 

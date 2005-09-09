@@ -308,7 +308,7 @@ sub _not_implemented {
     my $self = shift;
     my $rest = $self->rest;
     my $info = $rest->path_info;
-    $rest->status(NOT_IMPLEMENTED_STATUS)
+    $rest->status(HTTP_NOT_IMPLEMENTED)
       ->response("No resource available to handle ($info)");
 }
 

@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Available instances</title>
+    <script type="text/javascript" src="../jsan/JSAN.js"></script>
+    <script type="text/javascript">
+      function runTest () {
+        JSAN.use('Test.More');
+        JSAN.includePath = ['../../../www/js'];
+        JSAN.use('Kinetic.Search');
+        plan({tests: 14});
+        //plan({noPlan: true});
+        var search = new Kinetic.Search;
+        isaOK(search, 'Kinetic.Search');
+
+        diag('canOK(object, method) appears to be broken');
+        canOK('Kinetic.Search', '_addSearchConstraint')
+        var result = search._addSearchConstraint('foo','bar');
+        is(result, '/foo/bar', '_addSearchConstraint should return proper constraints');
+        result = search._addSearchConstraint('foo','bar baz');
+        is(result, '/foo/bar%20baz', '... and they should be URI escaped');
+        result = search._addSearchConstraint('foo','');
+        is(result, '', '... but it should return an empty string if the value is empty');
+
+        result = search._addSearchConstraint('search', '');
+        is(result, '/search/STRING/null', 'null searches should be handled appropriately');
+        result = search._addSearchConstraint('search', 'foo');
+        is(result, '/search/STRING/foo', '... as should searches with a value');
+        result = search._addSearchConstraint('search', 'foo => bar');
+        is(result, '/search/STRING/foo%20%3D%3E%20bar', '... and they should be properly escaped');
+
+        canOK('Kinetic.Search', 'buildURL');
+        var search_form = document.search_form;
+        result = search.buildURL(search_form);
+        ok(result, '... and calling it with a form should succeed');
+        var expected = 'http://www.example.com/rest/one'
+          + '/search/STRING/name%20%3D%3E%20%22foo%22%2C%20OR%28name%20%3D%3E%20%22bar%22%29'
+          + '/limit/20'
+          + '/order_by/name'
+          + '/sort_order/ASC';
+        is(result, expected, '... and it should return the correct url');
+
+        search_form.search.value = '';
+        result = search.buildURL(search_form);
+        var expected = 'http://www.example.com/rest/one'
+          + '/search/STRING/null'
+          + '/limit/20'
+          + '/order_by/name'
+          + '/sort_order/ASC';
+        is(result, expected, '... even if we have a null search');
+
+        search_form.order_by.value = '';
+        result = search.buildURL(search_form);
+        var expected = 'http://www.example.com/rest/one'
+          + '/search/STRING/null'
+          + '/limit/20';
+        is(result, expected, '... and it should not have a sort order if the order_by is null');
+
+        search_form.limit.value = '';
+        result = search.buildURL(search_form);
+        var expected = 'http://www.example.com/rest/one'
+          + '/search/STRING/null';
+        is(result, expected, '... and it should not have a limit if it is null');
+      }
+    </script>
+  </head>
+  <body>
+    <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
+      <input type="hidden" name="class_key" value="one" />
+      <input type="hidden" name="domain"    value="http://www.example.com/" />
+      <input type="hidden" name="path"      value="rest/" />
+      <table>
+        <tr>
+          <td>
+            <input type="text" name="search" value="name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)" />
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <input type="text" name="limit" value="20" />
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <input type="text" name="order_by" value="name" />
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <select name="sort_order">
+              <option value="ASC">Ascending</option>
+              <option value="DESC">Descending</option>
+            </select>
+          </td>
+        </tr>
+        <!-- omitting the submit button -->
+      </table>
+    </form>
+    <!-- the rest of this is not relevant -->
+    <pre id="test"><script type="text/javascript">runTest(); </script></pre>
+  </body>
+</html>
