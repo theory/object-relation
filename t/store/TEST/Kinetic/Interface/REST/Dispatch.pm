@@ -10,6 +10,13 @@ use Test::More;
 use Test::Exception;
 use Test::XML;
 
+use lib 't/store';
+use TEST::Kinetic::Traits::Common qw/:all/;
+use TEST::Kinetic::Traits::REST qw/:all/;
+# we're not using the following until some bugs are fixed.  See the
+# 'trait' for more notes
+
+#use Class::Trait 'TEST::Kinetic::Traits::REST';
 use Kinetic::Util::Constants qw/UUID_RE :xslt/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(1) }
@@ -51,7 +58,7 @@ sub setup : Test(setup) {
     $bar->name('bar');
     $store->save($bar);
     my $baz = One->new;
-    $baz->name('snorfleglitz');
+    $baz->name('baz');
     $store->save($baz);
     $test->{test_objects} = [ $foo, $bar, $baz ];
     $test->{param} = sub {
@@ -109,9 +116,16 @@ sub _path_info {
     return $test;
 }
 
-sub _url { $DOMAIN.$PATH }
+sub instance_attributes {
+    my $test = shift;
+    return $test->{attributes} unless @_;
+    $test->{attributes} = shift;
+    return $test;
+}
 
-sub method_arg_handling : Test(no_plan) {
+sub _url { $DOMAIN . $PATH }
+
+sub method_arg_handling : Test(12) {
 
     # also test for lookup
     my $dispatch = Dispatch->new;
@@ -233,16 +247,16 @@ sub class_list : Test(2) {
     <kinetic:description>Available resources</kinetic:description>
     <kinetic:domain>$DOMAIN</kinetic:domain>
     <kinetic:path>$PATH</kinetic:path>
-          <kinetic:resource id="one" xlink:href="${url}one/search"/>
-          <kinetic:resource id="simple" xlink:href="${url}simple/search"/>
-          <kinetic:resource id="two" xlink:href="${url}two/search"/>
+        <kinetic:resource id="one"    xlink:href="${url}one/search"/>
+        <kinetic:resource id="simple" xlink:href="${url}simple/search"/>
+        <kinetic:resource id="two"    xlink:href="${url}two/search"/>
     </kinetic:resources>
     END_XML
     is_xml $rest->response, $expected,
       '... and calling it should return a list of resources';
 }
 
-sub handle : Test(5) {
+sub handle : Test(6) {
     my $test     = shift;
     my $dispatch = Dispatch->new;
     my $url      = _url();
@@ -260,12 +274,18 @@ sub handle : Test(5) {
 
     $dispatch->method('search');
     $dispatch->handle_rest_request;
-    ( my $response = $rest->response ) =~ s/@{[UUID_RE]}/XXX/g;
-    #uuid
-    #state
-    #name
-    #description
-    #bool
+    my $response = $rest->response;
+
+    my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
+    my %instance_for;
+    $test->desired_attributes( [qw/ state name description bool /] );
+    @instance_for{qw/foo bar baz/} =
+      map { $test->instance_data($_) } ( $foo, $bar, $baz );
+    my @instance_order     = $test->instance_order($response);
+    my $expected_instances =
+      $test->expected_instance_xml( $url, 'one', \%instance_for,
+        \@instance_order );
+
     my $expected = <<"    END_XML";
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="@{[SEARCH_XSLT]}"?>
@@ -274,24 +294,17 @@ sub handle : Test(5) {
         <kinetic:description>Available instances</kinetic:description>
         <kinetic:domain>$DOMAIN</kinetic:domain>
         <kinetic:path>$PATH</kinetic:path>
-        <kinetic:resource 
-            id="XXX" 
-            xlink:href="${url}one/lookup/uuid/XXX"/>
-        <kinetic:resource 
-            id="XXX" 
-            xlink:href="${url}one/lookup/uuid/XXX"/>
-        <kinetic:resource 
-            id="XXX" 
-            xlink:href="${url}one/lookup/uuid/XXX"/>
+        $expected_instances
         <kinetic:class_key>one</kinetic:class_key>
         <kinetic:search_parameters>
+            <kinetic:parameter type="search"/>
             <kinetic:parameter type="limit">20</kinetic:parameter>
-            <kinetic:parameter type="arguments"></kinetic:parameter>
+            <kinetic:parameter type="order_by"/>
         </kinetic:search_parameters>
     </kinetic:resources>
     END_XML
+    is_xml( $response, $expected, '... and it should return the correct XML' );
 
-    my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
     my $foo_uuid = $foo->uuid;
     $dispatch->method('lookup');
     $dispatch->args( [ 'uuid', $foo_uuid ] );
@@ -316,6 +329,9 @@ sub handle : Test(5) {
     $dispatch->args( [ 'STRING', 'name => "foo"' ] );
     $dispatch->handle_rest_request;
 
+    my $instance =
+      $test->expected_instance_xml( $url, 'one', \%instance_for, ['foo'] );
+
     $expected = <<"    END_XML";
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="@{[SEARCH_XSLT]}"?>
@@ -324,7 +340,7 @@ sub handle : Test(5) {
       <kinetic:description>Available instances</kinetic:description>
       <kinetic:domain>$DOMAIN</kinetic:domain>
       <kinetic:path>$PATH</kinetic:path>
-      <kinetic:resource id="$foo_uuid" xlink:href="${url}one/lookup/uuid/$foo_uuid"/>
+      $instance
       <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>
         <kinetic:parameter type="search">name =&gt; &quot;foo&quot;</kinetic:parameter>   
@@ -344,6 +360,8 @@ sub handle : Test(5) {
         ]
     );
 
+    $expected_instances =
+      $test->expected_instance_xml( $url, 'one', \%instance_for, [qw/bar foo/] );
     my $bar_uuid = $bar->uuid;
     $dispatch->handle_rest_request;
     $expected = <<"    END_XML";
@@ -354,8 +372,7 @@ sub handle : Test(5) {
       <kinetic:description>Available instances</kinetic:description>
       <kinetic:domain>$DOMAIN</kinetic:domain>
       <kinetic:path>$PATH</kinetic:path>
-      <kinetic:resource id="$bar_uuid" xlink:href="${url}one/lookup/uuid/$bar_uuid"/>
-      <kinetic:resource id="$foo_uuid" xlink:href="${url}one/lookup/uuid/$foo_uuid"/>
+      $expected_instances
       <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>
         <kinetic:parameter type="search">name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)</kinetic:parameter>

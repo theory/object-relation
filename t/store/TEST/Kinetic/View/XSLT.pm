@@ -11,6 +11,9 @@ use Test::Exception;
 use Test::XML;
 
 use Kinetic::XML;
+use lib 't/store';
+use TEST::Kinetic::Traits::Common qw/:all/;
+use TEST::Kinetic::Traits::HTML qw/:all/;
 use Kinetic::Util::Constants qw/UUID_RE CURRENT_PAGE/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(0) }
@@ -62,6 +65,7 @@ sub setup : Test(setup) {
             return grep { !( $i++ % 2 ) } @query_string;
         }
     };
+    $test->desired_attributes( [qw/ state name description bool /] );
 }
 
 sub teardown : Test(teardown) {
@@ -97,6 +101,7 @@ sub search_form : Test(no_plan) {
     ok my $xhtml = $xslt->transform($xml),
       'Calling transform() with valid XML should succeed';
 
+    my $instance_table = $test->instance_table(@{$test->{test_objects}});
     is_xml $xhtml, <<'    END_XHTML', '... and return the correct xhtml';
 <?xml version="1.0"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -146,20 +151,7 @@ sub search_form : Test(no_plan) {
       </tr>
       </table>
     </form>
-    <table bgcolor="#eeeeee" border="1">
-      <tr>
-        <th>Available instances</th>
-      </tr>
-      <tr>
-        <td><a href="http://somehost.com/rest/one/XXX">XXX</a></td>
-      </tr>
-      <tr>
-        <td><a href="http://somehost.com/rest/one/XXX">XXX</a></td>
-      </tr>
-      <tr>
-        <td><a href="http://somehost.com/rest/one/XXX">XXX</a></td>
-      </tr>
-    </table>
+    $instance_table
   </body>
 </html>
     END_XHTML

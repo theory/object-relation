@@ -30,9 +30,11 @@ use Kinetic::XML;
 use Kinetic::Meta::XML;
 use Kinetic::Store;
 use Kinetic::Util::Constants qw/:http :xslt/;
+use Kinetic::View::XSLT;
 
 our $VERSION = version->new('0.0.1');
 
+Readonly my %DONT_DISPLAY        => ( uuid => 1 );
 Readonly my $MAX_ATTRIBUTE_INDEX => 4;
 Readonly my $PLACEHOLDER         => 'null';
 Readonly my $DEFAULT_LIMIT       => 20;
@@ -289,6 +291,7 @@ sub _handle_method {
     if ( $method->context == Class::Meta::CLASS ) {
         my $response = $method->call( $self->class->package, @{ $self->args } );
         if ( 'search' eq $method->name ) {
+            $self->rest->xslt('REST');
             return $self->_instance_list($response);
         }
         else {
@@ -346,7 +349,7 @@ sub _instance_list {
     while ( my $resource = $iterator->next ) {
         unless (@attributes) {
             @attributes =
-              grep { !$_->references } $resource->my_class->attributes;
+              grep { !$_->references && ! exists $DONT_DISPLAY{$_->name} } $resource->my_class->attributes;
             my $i = $MAX_ATTRIBUTE_INDEX < $#attributes
                 ? $MAX_ATTRIBUTE_INDEX
                 : $#attributes;
@@ -355,8 +358,14 @@ sub _instance_list {
         }
         $instance_count++;
         my $uuid = $resource->uuid;
-        $response .=
-qq'<kinetic:resource id="$uuid" xlink:href="$base_url$key/lookup/uuid/$uuid$query_string"/>';
+        my $url  = "$base_url$key/lookup/uuid/$uuid$query_string";
+        $response .= qq'<kinetic:resource id="$uuid" xlink:href="$url">\n';
+        foreach my $attribute (@attributes) {
+            my $method = $attribute->name;
+            my $value  = ($resource->$method || '');
+            $response .= qq'<kinetic:attribute name="$method">$value</kinetic:attribute>\n';
+        }
+        $response .= qq'</kinetic:resource>\n';
     }
 
     if ($instance_count) {
@@ -546,7 +555,7 @@ responses.
 
 sub _xml_header {
     my ( $rest, $title ) = @_;
-    my $stylesheet = SEARCH_XSLT;
+    my $stylesheet = Kinetic::View::XSLT->location($rest->xslt);
     my $domain     = $rest->domain;
     my $path       = $rest->path;
     return <<"    END_HEADER";

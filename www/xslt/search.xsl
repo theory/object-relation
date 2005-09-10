@@ -54,9 +54,17 @@
         </xsl:if>
         
         <table bgcolor="#eeeeee" border="1">
+
+          <!-- Build table headers -->
+
           <tr>
-            <th><xsl:value-of select="kinetic:description" /></th>
+            <xsl:for-each select="kinetic:resource[1]/kinetic:attribute">
+            <th><xsl:value-of select="@name"/></th>
+            </xsl:for-each>
           </tr>
+
+          <!-- Build table rows -->
+
           <xsl:for-each select=".">
             <xsl:apply-templates select="kinetic:resource" />
           </xsl:for-each>
@@ -99,9 +107,9 @@
   
   <xsl:template match="kinetic:resource">
     <tr>
-      <td>
-        <a href="{@xlink:href}"><xsl:value-of select="@id" /></a>
-      </td>
+      <xsl:for-each select="kinetic:attribute">
+      <td><a href="{../@xlink:href}"><xsl:apply-templates/></a></td>
+      </xsl:for-each>
     </tr>
   </xsl:template>
 

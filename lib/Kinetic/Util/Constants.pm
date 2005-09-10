@@ -59,9 +59,10 @@ use constant HTTP_NOT_IMPLEMENTED       => '501 Not Implemented';
 use constant HTTP_NOT_FOUND             => '404 Not Found';
 
 # XSLT
-use constant CURRENT_PAGE  => '#';
-use constant SEARCH_XSLT   => '/xslt/search.xsl';
-use constant INSTANCE_XSLT => '/xslt/instance.xsl';
+use constant CURRENT_PAGE   => '#';
+use constant RESOURCES_XSLT => '/xslt/resources.xsl';
+use constant SEARCH_XSLT    => '/xslt/search.xsl';
+use constant INSTANCE_XSLT  => '/xslt/instance.xsl';
 
 # Directories
 use constant WWW_DIR => './www';
@@ -96,6 +97,7 @@ use Exporter::Tidy http => [
   xslt => [
     qw/
       CURRENT_PAGE
+      RESOURCES_XSLT
       SEARCH_XSLT
       INSTANCE_XSLT
       /
@@ -211,6 +213,11 @@ The location of the WWW directory.
 This is a marker used in XML documents to indicate a link to the current page.
 Usually such a link is not desired and XSLT should not make a link if it finds
 a C<CURRENT_PAGE> marker.
+
+=item * RESOURCES_XSLT
+
+Location of XSLT for listing available resources (Kinetic classes in the data
+store).
 
 =item * SEARCH_XSLT
 

@@ -6,6 +6,10 @@ use strict;
 use warnings;
 
 use base 'TEST::Class::Kinetic';
+use lib 't/store';
+use TEST::Kinetic::Traits::Common qw/:all/;
+use TEST::Kinetic::Traits::REST qw/:all/;
+use TEST::Kinetic::Traits::HTML qw/:all/;
 use Test::More;
 use Test::Exception;
 use Test::WWW::Mechanize;
@@ -98,6 +102,7 @@ sub setup : Test(setup) {
     $baz->name('snorfleglitz');
     $baz->save;
     $test->{test_objects} = [ $foo, $bar, $baz ];
+    $test->desired_attributes( [qw/ state name description bool /] );
 }
 
 sub teardown : Test(teardown) {
@@ -116,11 +121,12 @@ sub _clear_database {
 sub REST { shift->{REST} }
 
 sub _xml_header {
-    my $title = shift;
+    my $title  = shift;
+    my $xslt   = $title =~ /resources/ ? RESOURCES_XSLT: SEARCH_XSLT;
     my $server = shift || 'http://localhost:9000/rest/';
     return <<"    END_XML";
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="@{[SEARCH_XSLT]}"?>
+<?xml-stylesheet type="text/xsl" href="$xslt"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>$title</kinetic:description>
@@ -142,7 +148,7 @@ sub _html_header {
 }
 
 sub _search_form {
-    my ($search, $limit, $order_by) = @_;
+    my ( $search, $limit, $order_by ) = @_;
     return <<"    END_FORM";
     <form method="GET">
         <input type="hidden" name="class_key" value="one" />
@@ -170,7 +176,7 @@ sub _search_form {
     END_FORM
 }
 
-sub _url { $DOMAIN.$PATH }
+sub _url { $DOMAIN . $PATH }
 
 sub web_test_paging : Test(14) {
     my $test = shift;
@@ -186,13 +192,21 @@ sub web_test_paging : Test(14) {
 
     my $foo_uuid = $foo->uuid;
     my $bar_uuid = $bar->uuid;
-    my $header = _xml_header('Available instances');
+    my $header   = _xml_header('Available instances');
+    my %instance_for;
+    @instance_for{qw/foo bar baz/} =
+      map { $test->instance_data($_) } ( $foo, $bar, $baz );
+    my $response           = $mech->content;
+    my @instance_order     = $test->instance_order($response);
+    my $expected_instances =
+      $test->expected_instance_xml( $url, 'one', \%instance_for,
+        \@instance_order );
+
     my $expected = <<"    END_XML";
 $header
       <kinetic:domain>http://localhost:9000/</kinetic:domain>
       <kinetic:path>rest/</kinetic:path>
-      <kinetic:resource id="$bar_uuid" xlink:href="${url}one/lookup/uuid/$bar_uuid"/>
-      <kinetic:resource id="$foo_uuid" xlink:href="${url}one/lookup/uuid/$foo_uuid"/>
+      $expected_instances
       <kinetic:pages>
         <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
         <kinetic:page id="[ Page 2 ]" xlink:href="${url}one/search/STRING/null/order_by/name/limit/2/offset/2" />
@@ -206,7 +220,11 @@ $header
     </kinetic:resources>
     END_XML
 
-    is_xml $mech->content, $expected, '... and have appropriate pages added, if available';
+    #is_well_formed_xml $response, 'The response should be well-formed xml';
+    #diag $response;
+    #return;
+    is_xml $response, $expected,
+      '... and have appropriate pages added, if available';
 
     $mech->get_ok(
         "${url}one/search/STRING/null/order_by/name/limit/2?type=html",
@@ -214,7 +232,9 @@ $header
     );
 
     my $html_header = _html_header('Available instances');
-    my $search_form = _search_form('', 2, 'name');
+    my $search_form = _search_form( '', 2, 'name' );
+
+    my $instances = $test->instance_table( $bar, $foo );
     $expected = <<"    END_XHTML";
 <?xml version="1.0"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -258,21 +278,7 @@ $header
         </tr>
       </table>
     </form>
-    <table bgcolor="#eeeeee" border="1">
-      <tr>
-        <th>Available instances</th>
-      </tr>
-      <tr>
-        <td>
-          <a href="${url}one/lookup/uuid/$bar_uuid?type=html">$bar_uuid</a>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <a href="${url}one/lookup/uuid/$foo_uuid?type=html">$foo_uuid</a>
-        </td>
-      </tr>
-    </table>
+    $instances
     <p>
       [ Page 1 ]
       <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/2?type=html">[ Page 2 ]</a>
@@ -287,9 +293,8 @@ $header
         "${url}one/search/STRING/null/order_by/name/limit/2/offset/2?type=html",
         '... as should paging through result sets'
     );
-    my $baz_uuid = $baz->uuid;
-
-    $expected = <<"    END_XHTML";
+    $instances = $test->instance_table($baz);
+    $expected  = <<"    END_XHTML";
 <?xml version="1.0"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
@@ -332,16 +337,7 @@ $header
         </tr>
       </table>
     </form>
-    <table bgcolor="#eeeeee" border="1">
-      <tr>
-        <th>Available instances</th>
-      </tr>
-      <tr>
-        <td>
-          <a href="${url}one/lookup/uuid/$baz_uuid?type=html">$baz_uuid</a>
-        </td>
-      </tr>
-    </table>
+    $instances
     <p>
       <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/0?type=html">[ Page 1 ]</a>
       [ Page 2 ]
@@ -365,44 +361,43 @@ $header
     $mech->get_ok( "${url}one/search?type=html",
         '... as should paging through result sets' );
     my @links = $mech->links;
-    is @links, 21, 'We should receive 20 instance links and 1 page links';
+    is @links, 81, 'We should receive 80 instance links and 1 page links';
 
     $mech->get_ok(
         "${url}one/search/STRING/null/limit/30?type=html",
         'Asking for more than the limit should work'
     );
     @links = $mech->links;
-    is @links, 26, '... and return only instance links';
+    is @links, 104, '... and return only instance links';
 
     $mech->get_ok(
         "${url}one/search/STRING/null/limit/10?type=html",
         'Asking for fewer than the limit should work'
     );
     @links = $mech->links;
-    is @links, 12, '... and return the correct number of links';
-    
+    is @links, 42, '... and return the correct number of links';
+
     $mech->get_ok(
         "${url}one/search/STRING/null/limit/26?type=html",
         'Asking for exactly the number of links that exist should work'
     );
     @links = $mech->links;
-    is @links, 26, '... and return no page links';
+    is @links, 104, '... and return no page links';
 }
 
 sub web_test : Test(12) {
     my $test = shift;
     my $mech = Test::WWW::Mechanize->new;
-    my $url  = _url();;
-    
-    $mech->get_ok($url, 'Gettting the main page should succeed');
-    ok ! $mech->is_html, '... but it should not return HTML';
-    $mech->get_ok(
-        "$url?type=html",
-        'We should be able to fetch the main page and ask for HTML'
-    );
+    my $url  = _url();
+
+    $mech->get_ok( $url, 'Gettting the main page should succeed' );
+    ok !$mech->is_html, '... but it should not return HTML';
+    $mech->get_ok( "$url?type=html",
+        'We should be able to fetch the main page and ask for HTML' );
     ok $mech->is_html, '... and get HTML back';
     $mech->title_is( 'Available resources',
         '... and fetching the root should return a list of resources' );
+
     $mech->follow_link_ok(
         { url_regex => qr/simple/ },
         '... and fetching a class link should succeed',
@@ -430,8 +425,9 @@ sub web_test : Test(12) {
 
     $foo_uuid = $foo->uuid;
     my $html_header = _html_header('Available instances');
-    my $search_form = _search_form('name =&gt; &quot;foo&quot;', 20, '');
-    my $expected = <<"    END_XHTML";
+    my $search_form = _search_form( 'name =&gt; &quot;foo&quot;', 20, '' );
+    my $instances   = $test->instance_table($foo);
+    my $expected    = <<"    END_XHTML";
 <?xml version="1.0"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
@@ -476,16 +472,7 @@ sub web_test : Test(12) {
         </tr>
       </table>
     </form>
-    <table bgcolor="#eeeeee" border="1">
-      <tr>
-        <th>Available instances</th>
-      </tr>
-      <tr>
-        <td>
-          <a href="${url}one/lookup/uuid/$foo_uuid?type=html">$foo_uuid</a>
-        </td>
-      </tr>
-    </table>
+    $instances
   </body>
 </html>
     END_XHTML
@@ -568,14 +555,20 @@ sub rest_interface : Test(19) {
 
     my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
     my $foo_uuid = $foo->uuid;
-    my $header = _xml_header('Available instances', 'http://foo/rest/server/');
+    my $header   =
+      _xml_header( 'Available instances', 'http://foo/rest/server/' );
+    my %instance_for;
+    @instance_for{qw/foo bar baz/} =
+      map { $test->instance_data($_) } ( $foo, $bar, $baz );
+    my $expected_instances =
+      $test->expected_instance_xml( 'http://foo/rest/server/', 'one',
+        \%instance_for, ['foo'] );
+
     my $expected = <<"    END_XML";
 $header
       <kinetic:domain>http://foo/</kinetic:domain>
       <kinetic:path>rest/server/</kinetic:path>
-      <kinetic:resource 
-        id="$foo_uuid" 
-        xlink:href="http://foo/rest/server/one/lookup/uuid/$foo_uuid"/>
+      $expected_instances
       <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>
         <kinetic:parameter type="search">name =&gt; &quot;foo&quot;</kinetic:parameter>
@@ -623,7 +616,7 @@ sub basic_services : Test(3) {
     throws_ok { $rest->url('no_such_resource/')->get } qr/501 Not Implemented/,
       '... as should calling it with a non-existent resource';
 
-    my $header = _xml_header('Available resources');
+    my $header   = _xml_header('Available resources');
     my $expected = <<"    END_XML";
 $header
       <kinetic:domain>http://localhost:9000/</kinetic:domain>
@@ -636,14 +629,23 @@ $header
     is_xml $rest->get, $expected,
       'Calling it without a resource should return a list of resources';
 
-    $header = _xml_header('Available instances');
+    my $key     = One->my_class->key;
+    my $one_xml = $rest->url("$key/search")->get;
+    my %instance_for;
+    @instance_for{qw/foo bar baz/} =
+      map { $test->instance_data($_) } ( @{ $test->{test_objects} } );
+
+    # XXX Yuck.  Fix this later
+    my @order = map { s/snorfleglitz/baz/; $_ } $test->instance_order($one_xml);
+    my $expected_instances =
+      $test->expected_instance_xml( 'http://localhost:9000/rest/', 'one',
+        \%instance_for, \@order );
+    $header   = _xml_header('Available instances');
     $expected = <<"    END_XML";
 $header
       <kinetic:domain>http://localhost:9000/</kinetic:domain>
       <kinetic:path>rest/</kinetic:path>
-      <kinetic:resource id="XXX" xlink:href="${url}one/lookup/uuid/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="${url}one/lookup/uuid/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="${url}one/lookup/uuid/XXX"/>
+      $expected_instances
       <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>
         <kinetic:parameter type="search"></kinetic:parameter>
@@ -652,9 +654,6 @@ $header
       </kinetic:search_parameters>
     </kinetic:resources>
     END_XML
-    my $key     = One->my_class->key;
-    my $one_xml = $rest->url("$key/search")->get;
-    $one_xml =~ s/@{[UUID_RE]}/XXX/g;
     is_xml $one_xml, $expected,
       'Calling it with a resource/search should return a list of instances';
 

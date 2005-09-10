@@ -77,7 +77,7 @@ sub new {
         content_type => '',
         domain       => $args{domain},
         path         => $args{path},
-        xslt         => XSLT->new( type => 'REST' ),
+        xslt         => 'REST',
     } => $class;
 }
 
@@ -162,6 +162,7 @@ sub handle_request {
     eval {
         if ( !$class_key )
         {
+            $self->xslt('resources');
             $dispatch->class_list;
         }
         else {
@@ -192,11 +193,30 @@ status suitable for use in an http header.
 
 sub status {
     my $self = shift;
-    if (@_) {
-        $self->{status} = shift;
-        return $self;
-    }
-    $self->{status};
+    return $self->{status} unless @_;
+    $self->{status} = shift;
+    return $self;
+}
+
+##############################################################################
+
+=head3 xslt
+
+  my $xslt = $rest->xslt;
+
+If the call to C<handle_request> succeeded, this method should return the
+type of xslt suitable for transforming the XML to HTML.
+
+Available XSLT types are listing in
+L<Kinetic::View::XSLT|Kinetic::View::XSLT>.
+
+=cut
+
+sub xslt {
+    my $self = shift;
+    return $self->{xslt} unless @_;
+    $self->{xslt} = shift;
+    return $self;
 }
 
 ##############################################################################
@@ -374,15 +394,15 @@ This method, when passed $xml and an optional response type (defaults to
 =cut
 
 sub set_response {
-    my ( $rest, $xml, $type ) = @_;
-    $type ||= 'REST';
-    my $content_type = $rest->desired_content_type || XML_CT;
+    my ( $self, $xml, $type ) = @_;
+    my $content_type = $self->desired_content_type || XML_CT;
     my $content = $xml;
     if ( HTML_CT eq $content_type ) {
+        $type ||= $self->xslt;
         my $xslt = XSLT->new( type => $type );
         $content = $xslt->transform($xml);
     }
-    $rest->content_type($content_type)->response($content);
+    $self->content_type($content_type)->response($content);
 }
 
 ##############################################################################
