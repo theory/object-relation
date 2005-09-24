@@ -5,6 +5,7 @@ package Kinetic::Meta::Class;
 use strict;
 use base 'Class::Meta::Class';
 use Kinetic::Util::Context;
+use Kinetic::Util::Exceptions qw/throw_fatal/;
 
 =head1 Name
 
@@ -42,6 +43,25 @@ the additional attributes.
 
 =cut
 
+=for private
+
+The C<import()> method is merely a placeholder to ensure that
+L<Kinetic::Meta|Kinetic::Meta> can dispatch its import symbols to a variety
+of classes and "just work".  This class is specifically documented as accepting
+those symbols.  See the documentation for L<Kinetic::Meta|Kinetic::Meta> for
+more information.
+
+=cut
+
+sub import {
+    my ( $pkg, $symbol ) = @_;
+    return unless $symbol;
+
+    # currently a no-op
+    return if ( ':with_dbstore_api' eq $symbol );
+    throw_fatal [ 'Unknown import symbol "[_1]"', shift ];
+}
+
 ##############################################################################
 # Instance Methods.
 ##############################################################################
@@ -59,7 +79,7 @@ Returns the localized form of the name of the class, such as "Thingy".
 =cut
 
 sub name {
-    Kinetic::Util::Context->language->maketext(shift->SUPER::name);
+    Kinetic::Util::Context->language->maketext( shift->SUPER::name );
 }
 
 ##############################################################################
@@ -74,7 +94,7 @@ Returns the localized plural form of the name of the class, such as
 =cut
 
 sub plural_name {
-    Kinetic::Util::Context->language->maketext(shift->{plural_name});
+    Kinetic::Util::Context->language->maketext( shift->{plural_name} );
 }
 
 ##############################################################################
@@ -94,7 +114,7 @@ only more efficient, thanks to build-time caching.
 
 =cut
 
-sub ref_attributes { @{shift->{ref_attrs}} }
+sub ref_attributes { @{ shift->{ref_attrs} } }
 
 ##############################################################################
 
@@ -111,7 +131,7 @@ only more efficient, thanks to build-time caching.
 
 =cut
 
-sub direct_attributes { @{shift->{direct_attrs}} }
+sub direct_attributes { @{ shift->{direct_attrs} } }
 
 ##############################################################################
 
@@ -124,8 +144,8 @@ the a list of thereferenced attributes for use by C<ref_attributes()>.
 
 sub build {
     my $self = shift->SUPER::build(@_);
-    $self->{ref_attrs}    = [ grep {   $_->references } $self->attributes ];
-    $self->{direct_attrs} = [ grep { ! $_->references } $self->attributes ];
+    $self->{ref_attrs}    = [ grep { $_->references } $self->attributes ];
+    $self->{direct_attrs} = [ grep { !$_->references } $self->attributes ];
     return $self;
 }
 

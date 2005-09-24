@@ -8,7 +8,7 @@ use warnings;
 use base 'TEST::Class::Kinetic';
 use lib 't/store';
 use TEST::Kinetic::Traits::Common qw/:all/;
-use TEST::Kinetic::Traits::REST qw/:all/;
+use TEST::Kinetic::Traits::XML qw/:all/;
 use TEST::Kinetic::Traits::HTML qw/:all/;
 use Test::More;
 use Test::Exception;
@@ -101,8 +101,10 @@ sub setup : Test(setup) {
     my $baz = One->new;
     $baz->name('snorfleglitz');
     $baz->save;
-    $test->{test_objects} = [ $foo, $bar, $baz ];
+    $test->test_objects([ $foo, $bar, $baz ]);
     $test->desired_attributes( [qw/ state name description bool /] );
+    $test->domain('http://localhost:9000')
+         ->path('rest');
 }
 
 sub teardown : Test(teardown) {
@@ -147,35 +149,6 @@ sub _html_header {
     END_HTML
 }
 
-sub _search_form {
-    my ( $search, $limit, $order_by ) = @_;
-    return <<"    END_FORM";
-    <form method="GET">
-        <input type="hidden" name="class_key" value="one" />
-        <table>
-        <tr>
-            <td>Search:</td>
-            <td>
-            <input type="text" name="search" value="$search" />
-            </td>
-        </tr>
-        <tr>
-            <td>Limit:</td>
-            <td>
-            <input type="text" name="limit" value="$limit" />
-            </td>
-        </tr>
-        <tr>
-            <td>Order by:</td>
-            <td>
-            <input type="text" name="order_by" value="$order_by" />
-            </td>
-        </tr>
-        </table>
-    </form>
-    END_FORM
-}
-
 sub _url { $DOMAIN . $PATH }
 
 sub web_test_paging : Test(14) {
@@ -183,7 +156,7 @@ sub web_test_paging : Test(14) {
     my $mech = Test::WWW::Mechanize->new;
     my $url  = _url();
 
-    my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
+    my ( $foo, $bar, $baz ) = $test->test_objects;
 
     $mech->get_ok(
         "${url}one/search/STRING/null/order_by/name/limit/2",
@@ -232,9 +205,9 @@ $header
     );
 
     my $html_header = _html_header('Available instances');
-    my $search_form = _search_form( '', 2, 'name' );
+    my $search_form = $test->search_form('one', '', 2, 'name' );
 
-    my $instances = $test->instance_table( $bar, $foo );
+    my $instances = $test->instance_table( 'type=html', $bar, $foo );
     $expected = <<"    END_XHTML";
 <?xml version="1.0"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -245,39 +218,7 @@ $header
     <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
   </head>
   <body onload="document.search_form.search.focus()">
-    <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
-      <input type="hidden" name="class_key" value="one" />
-      <input type="hidden" name="domain" value="http://localhost:9000/" />
-      <input type="hidden" name="path" value="rest/" />
-      <table>
-        <tr>
-          <td>Search:</td>
-          <td><input type="text" name="search" value="" /></td>
-        </tr>
-        <tr>
-          <td>Limit:</td>
-          <td><input type="text" name="limit" value="2" /></td>
-        </tr>
-        <tr>
-          <td>Order by:</td>
-          <td><input type="text" name="order_by" value="name" /></td>
-        </tr>
-        <tr>
-          <td>Sort order:</td>
-          <td>
-            <select name="sort_order">
-              <option value="ASC">Ascending</option>
-              <option value="DESC">Descending</option>
-            </select>
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2">
-            <input type="submit" value="Search" onclick="javascript:do_search(this)" />
-          </td>
-        </tr>
-      </table>
-    </form>
+    $search_form
     $instances
     <p>
       [ Page 1 ]
@@ -293,7 +234,8 @@ $header
         "${url}one/search/STRING/null/order_by/name/limit/2/offset/2?type=html",
         '... as should paging through result sets'
     );
-    $instances = $test->instance_table($baz);
+    $search_form = $test->search_form('one', '', 2, 'name' );
+    $instances = $test->instance_table('type=html', $baz);
     $expected  = <<"    END_XHTML";
 <?xml version="1.0"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -304,39 +246,7 @@ $header
     <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
   </head>
   <body onload="document.search_form.search.focus()">
-    <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
-      <input type="hidden" name="class_key" value="one" />
-      <input type="hidden" name="domain" value="http://localhost:9000/" />
-      <input type="hidden" name="path" value="rest/" />
-      <table>
-        <tr>
-        <td>Search:</td>
-          <td><input type="text" name="search" value="" /></td>
-        </tr>
-        <tr>
-          <td>Limit:</td>
-          <td><input type="text" name="limit" value="2" /></td>
-        </tr>
-        <tr>
-          <td>Order by:</td>
-          <td><input type="text" name="order_by" value="name" /></td>
-        </tr>
-        <tr>
-          <td>Sort order:</td>
-          <td>
-            <select name="sort_order">
-              <option value="ASC">Ascending</option>
-              <option value="DESC">Descending</option>
-            </select>
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2">
-            <input type="submit" value="Search" onclick="javascript:do_search(this)" />
-          </td>
-        </tr>
-      </table>
-    </form>
+    $search_form
     $instances
     <p>
       <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/0?type=html">[ Page 1 ]</a>
@@ -405,7 +315,7 @@ sub web_test : Test(12) {
     $mech->title_is( 'Available instances',
         '... and fetching the a class should return a list of instances' );
 
-    my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
+    my ( $foo, $bar, $baz ) = $test->test_objects;
     my $foo_uuid = $foo->uuid;
 
     $mech->follow_link_ok(
@@ -425,8 +335,8 @@ sub web_test : Test(12) {
 
     $foo_uuid = $foo->uuid;
     my $html_header = _html_header('Available instances');
-    my $search_form = _search_form( 'name =&gt; &quot;foo&quot;', 20, '' );
-    my $instances   = $test->instance_table($foo);
+    my $search_form = $test->search_form( 'one', 'name =&gt; &quot;foo&quot;', 20, '' );
+    my $instances   = $test->instance_table('type=html', $foo);
     my $expected    = <<"    END_XHTML";
 <?xml version="1.0"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -437,41 +347,7 @@ sub web_test : Test(12) {
     <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
   </head>
   <body onload="document.search_form.search.focus()">
-    <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
-      <input type="hidden" name="class_key" value="one" />
-      <input type="hidden" name="domain" value="http://localhost:9000/" />
-      <input type="hidden" name="path" value="rest/" />
-      <table>
-        <tr>
-          <td>Search:</td>
-          <td>
-            <input type="text" name="search" value="name =&gt; &quot;foo&quot;" />
-          </td>
-        </tr>
-        <tr>
-          <td>Limit:</td>
-          <td><input type="text" name="limit" value="20" /></td>
-        </tr>
-        <tr>
-          <td>Order by:</td>
-          <td><input type="text" name="order_by" value="" /></td>
-        </tr>
-        <tr>
-          <td>Sort order:</td>
-          <td>
-            <select name="sort_order">
-              <option value="ASC">Ascending</option>
-              <option value="DESC">Descending</option>
-            </select>
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2">
-            <input type="submit" value="Search" onclick="javascript:do_search(this)" />
-          </td>
-        </tr>
-      </table>
-    </form>
+    $search_form
     $instances
   </body>
 </html>
@@ -553,7 +429,7 @@ sub rest_interface : Test(19) {
     is $rest->status, '200 OK', '... with an appropriate status code';
     ok $rest->response, '... and return an entity-body';
 
-    my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
+    my ( $foo, $bar, $baz ) = $test->test_objects;
     my $foo_uuid = $foo->uuid;
     my $header   =
       _xml_header( 'Available instances', 'http://foo/rest/server/' );
@@ -633,7 +509,7 @@ $header
     my $one_xml = $rest->url("$key/search")->get;
     my %instance_for;
     @instance_for{qw/foo bar baz/} =
-      map { $test->instance_data($_) } ( @{ $test->{test_objects} } );
+      map { $test->instance_data($_) } $test->test_objects;
 
     # XXX Yuck.  Fix this later
     my @order = map { s/snorfleglitz/baz/; $_ } $test->instance_order($one_xml);
@@ -660,7 +536,6 @@ $header
     $key = Two->my_class->key;
     my $two_xml = $rest->url("$key/search")->get;
     $two_xml =~ s/@{[UUID_RE]}/XXX/g;
-    diag "Clean up xml for which we have no resources";
 }
 
 sub xslt : Test(2) {

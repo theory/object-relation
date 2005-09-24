@@ -4,8 +4,8 @@ use strict;
 
 use Test::Exception;
 
-#use Test::More tests => 123;
-use Test::More 'no_plan';
+use Test::More tests => 128;
+#use Test::More 'no_plan';
 
 use lib 'lib/', '../lib/';
 

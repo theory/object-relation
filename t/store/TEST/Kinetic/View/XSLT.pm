@@ -14,6 +14,7 @@ use Kinetic::XML;
 use lib 't/store';
 use TEST::Kinetic::Traits::Common qw/:all/;
 use TEST::Kinetic::Traits::HTML qw/:all/;
+use TEST::Kinetic::Traits::XML qw/:all/;
 use Kinetic::Util::Constants qw/UUID_RE CURRENT_PAGE/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(0) }
@@ -52,7 +53,7 @@ sub setup : Test(setup) {
     my $baz = One->new;
     $baz->name('snorfleglitz');
     $store->save($baz);
-    $test->{test_objects} = [ $foo, $bar, $baz ];
+    $test->test_objects([ $foo, $bar, $baz ]);
     $test->{param} = sub {
         my $self         = shift;
         my @query_string = @{ $test->_query_string || [] };
@@ -75,21 +76,26 @@ sub teardown : Test(teardown) {
     delete( $test->{db_mock} )->unmock_all;
 }
 
-sub search_form : Test(no_plan) {
+sub build_search_form : Test(no_plan) {
     my $test = shift;
     my $xslt = XSLT->new( type => 'REST' );
 
-    my $xml = <<'    END_XML';
+    my %instance_for;
+    @instance_for{qw/foo bar baz/} =
+      map { $test->instance_data($_) } $test->test_objects;
+    my $expected_instances =
+      $test->expected_instance_xml( 'http://www.example.com/rest/',
+        'one', \%instance_for, [qw/foo bar baz/] );
+
+    my $xml = <<"    END_XML";
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=browse"?>
+<?xml-stylesheet type="text/xsl" href="http://www.example.com/rest/?stylesheet=browse"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
       <kinetic:domain>http://www.example.com/</kinetic:domain>
       <kinetic:path>rest/</kinetic:path>
-      <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
+      $expected_instances
       <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>
         <kinetic:parameter type="search">name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)</kinetic:parameter>
@@ -100,9 +106,16 @@ sub search_form : Test(no_plan) {
     END_XML
     ok my $xhtml = $xslt->transform($xml),
       'Calling transform() with valid XML should succeed';
+    $test->domain('http://www.example.com/');
+    $test->path('rest');
+    my $search_form =
+      $test->search_form( 'one',
+        'name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)',
+        20, 'name' );
 
-    my $instance_table = $test->instance_table(@{$test->{test_objects}});
-    is_xml $xhtml, <<'    END_XHTML', '... and return the correct xhtml';
+    my $instance_table =
+      $test->instance_table( '', $test->test_objects );
+    my $expected = <<"    END_XHTML";
 <?xml version="1.0"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
@@ -112,49 +125,12 @@ sub search_form : Test(no_plan) {
     <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
   </head>
   <body onload="document.search_form.search.focus()">
-    <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
-      <input type="hidden" name="class_key" value="one" />
-      <input type="hidden" name="domain" value="http://www.example.com/" />
-      <input type="hidden" name="path" value="rest/" />
-      <table>
-      <tr>
-        <td>Search:</td>
-        <td>
-          <input type="text" name="search" value="name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)" />
-        </td>
-      </tr>
-      <tr>
-        <td>Limit:</td>
-        <td>
-          <input type="text" name="limit" value="20" />
-        </td>
-      </tr>
-      <tr>
-        <td>Order by:</td>
-        <td>
-          <input type="text" name="order_by" value="name" />
-        </td>
-      </tr>
-      <tr>
-        <td>Sort order:</td>
-        <td>
-          <select name="sort_order">
-            <option value="ASC">Ascending</option>
-            <option value="DESC">Descending</option>
-          </select>
-        </td>
-      </tr>
-      <tr>
-        <td colspan="2">
-          <input type="submit" value="Search" onclick="javascript:do_search(this)" />
-        </td>
-      </tr>
-      </table>
-    </form>
+    $search_form
     $instance_table
   </body>
 </html>
     END_XHTML
+    is_xml $xhtml, $expected, '... and return the correct xhtml';
 }
 
 sub constructor : Test(6) {
@@ -216,24 +192,39 @@ sub transform : Test(9) {
       'Kinetic::Util::Exception::ExternalLib',
       '... as should calling it with an argument that is not valid XML';
 
-    my $xml = <<'    END_XML';
+    my %instance_for;
+    @instance_for{qw/foo bar baz/} =
+      map { $test->instance_data($_) } $test->test_objects;
+    my $expected_instances =
+      $test->expected_instance_xml( 'http://www.example.com/rest/',
+        'one', \%instance_for, [qw/foo bar baz/] );
+
+    my $xml = <<"    END_XML";
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=browse"?>
     <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
                        xmlns:xlink="http://www.w3.org/1999/xlink">
       <kinetic:description>Available instances</kinetic:description>
-      <kinetic:class_key>one</kinetic:class_key>
       <kinetic:domain>http://www.example.com/</kinetic:domain>
       <kinetic:path>rest/</kinetic:path>
-      <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="http://somehost.com/rest/one/XXX"/>
+      $expected_instances
+      <kinetic:class_key>one</kinetic:class_key>
+      <kinetic:search_parameters>
+        <kinetic:parameter type="search">name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)</kinetic:parameter>
+        <kinetic:parameter type="limit">20</kinetic:parameter>
+        <kinetic:parameter type="order_by">name</kinetic:parameter>
+      </kinetic:search_parameters>
     </kinetic:resources>
     END_XML
     ok my $xhtml = $xslt->transform($xml),
       'Calling transform() with valid XML should succeed';
-
-    is_xml $xhtml, <<'    END_XHTML', '... and return the correct xhtml';
+    $test->domain('http://www.example.com/')->path('rest');
+    my $search_form =
+      $test->search_form( 'one',
+        'name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)',
+        20, 'name' );
+    my $instance_table = $test->instance_table( '', $test->test_objects );
+    my $expected       = <<"    END_XHTML";
 <?xml version="1.0"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
@@ -243,45 +234,12 @@ sub transform : Test(9) {
     <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
   </head>
   <body onload="document.search_form.search.focus()">
-    <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
-      <input type="hidden" name="class_key" value="one" />
-      <input type="hidden" name="domain" value="http://www.example.com/" />
-      <input type="hidden" name="path" value="rest/" />
-      <table>
-        <tr>
-          <td>Sort order:</td>
-          <td>
-            <select name="sort_order">
-              <option value="ASC">Ascending</option>
-              <option value="DESC">Descending</option>
-            </select>
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2">
-            <input type="submit" value="Search" onclick="javascript:do_search(this)" />
-          </td>
-        </tr>
-      </table>
-    </form>
-  <table bgcolor="#eeeeee" border="1">
-    <tr>
-      <th>Available instances</th>
-    </tr>
-    <tr>
-      <td><a href="http://somehost.com/rest/one/XXX">XXX</a></td>
-    </tr>
-    <tr>
-      <td><a href="http://somehost.com/rest/one/XXX">XXX</a></td>
-    </tr>
-    <tr>
-      <td><a href="http://somehost.com/rest/one/XXX">XXX</a></td>
-    </tr>
-  </table>
+  $search_form
+  $instance_table
   </body>
 </html>
-    
     END_XHTML
+    is_xml $xhtml, $expected, '... and return the correct xhtml';
 
     $xml = <<'    END_XML';
 <?xml version="1.0"?>
@@ -290,7 +248,6 @@ sub transform : Test(9) {
                        xmlns:xlink="http://www.w3.org/1999/xlink">   
       <kinetic:description>Available resources</kinetic:description>
       <kinetic:domain>http://www.example.com/</kinetic:domain>
-      <kinetic:domain>http://www.example.com/</kinetic:domain>
       <kinetic:path>rest/</kinetic:path>
       <kinetic:resource id="one" xlink:href="http://somehost.com/rest/one"/>
       <kinetic:resource id="simple" xlink:href="http://somehost.com/rest/simple"/>
@@ -298,6 +255,7 @@ sub transform : Test(9) {
     </kinetic:resources>
     END_XML
 
+    $xslt->type('resources');
     ok $xhtml = $xslt->transform($xml),
       'Calling transform() with valid XML should succeed';
 
@@ -319,7 +277,8 @@ sub transform : Test(9) {
   </body>
 </html>
     END_XHTML
-    my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
+
+    my ( $foo, $bar, $baz ) = $test->test_objects;
     $xml = Kinetic::XML->new( { object => $foo } )->dump_xml;
 
     $xslt->type('instance');
@@ -365,7 +324,7 @@ sub transform : Test(9) {
     END_XHTML
 }
 
-sub transform_pages : Test(5) {
+sub transform_pages : Test(3) {
     my $test = shift;
     my $xslt = XSLT->new( type => 'REST' );
 
@@ -377,8 +336,14 @@ sub transform_pages : Test(5) {
       <kinetic:description>Available instances</kinetic:description>
       <kinetic:domain>http://www.example.com/</kinetic:domain>
       <kinetic:path>rest/</kinetic:path>
-      <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX"/>
-      <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX"/>
+      <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX">
+        <kinetic:attribute name="name">foo</kinetic:attribute>
+        <kinetic:attribute name="rank">General</kinetic:attribute>
+      </kinetic:resource>
+      <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX">
+        <kinetic:attribute name="name">bar</kinetic:attribute>
+        <kinetic:attribute name="rank">Private</kinetic:attribute>
+      </kinetic:resource>
       <kinetic:pages>
         <kinetic:page id="[ Page 1 ]" xlink:href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/0" />
         <kinetic:page id="[ Page 2 ]" xlink:href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/2" />
@@ -390,7 +355,7 @@ sub transform_pages : Test(5) {
 
     is_xml $xhtml, <<'    END_XHTML', '... and return xml with pages';
 <?xml version="1.0"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+    <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
     <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
       <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
@@ -399,17 +364,16 @@ sub transform_pages : Test(5) {
       <body>
         <table bgcolor="#eeeeee" border="1">
           <tr>
-            <th>Available instances</th>
+            <th>name</th>
+            <th>rank</th>
           </tr>
           <tr>
-            <td>
-              <a href="http://domain/rest/one/lookup/uuid/XXX">XXX</a>
-            </td>
+            <td><a href="http://domain/rest/one/lookup/uuid/XXX">foo</a></td>
+            <td><a href="http://domain/rest/one/lookup/uuid/XXX">General</a></td>
           </tr>
           <tr>
-            <td>
-              <a href="http://domain/rest/one/lookup/uuid/XXX">XXX</a>
-            </td>
+            <td><a href="http://domain/rest/one/lookup/uuid/XXX">bar</a></td>
+            <td><a href="http://domain/rest/one/lookup/uuid/XXX">Private</a></td>
           </tr>
         </table>
         <p>
@@ -438,41 +402,6 @@ sub transform_pages : Test(5) {
     END_XML
     ok $xhtml = $xslt->transform($xml),
       'Calling transform() with XML that has pages should succeed';
-
-    is_xml $xhtml, <<"    END_XHTML", '... and return xml with pages';
-<?xml version="1.0"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-    <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
-      <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-        <title>Available instances</title>
-      </head>
-      <body>
-        <table bgcolor="#eeeeee" border="1">
-          <tr>
-            <th>Available instances</th>
-          </tr>
-          <tr>
-            <td>
-              <a href="http://domain/rest/one/lookup/uuid/XXX">XXX</a>
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <a href="http://domain/rest/one/lookup/uuid/XXX">XXX</a>
-            </td>
-          </tr>
-        </table>
-        <p>
-          [ Page 1 ]
-          <a href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/2">[ Page 2 ]</a>
-        </p>
-      </body>
-    </html>
-    END_XHTML
-
-    ok $xhtml = $xslt->transform($xml),
-      '... but it should not create page links to the current page';
 }
 
 1;

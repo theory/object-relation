@@ -12,7 +12,7 @@ use Test::XML;
 
 use lib 't/store';
 use TEST::Kinetic::Traits::Common qw/:all/;
-use TEST::Kinetic::Traits::REST qw/:all/;
+use TEST::Kinetic::Traits::XML qw/:all/;
 # we're not using the following until some bugs are fixed.  See the
 # 'trait' for more notes
 
@@ -60,7 +60,7 @@ sub setup : Test(setup) {
     my $baz = One->new;
     $baz->name('baz');
     $store->save($baz);
-    $test->{test_objects} = [ $foo, $bar, $baz ];
+    $test->test_objects([ $foo, $bar, $baz ]);
     $test->{param} = sub {
         my $self         = shift;
         my @query_string = @{ $test->_query_string || [] };
@@ -276,7 +276,7 @@ sub handle : Test(6) {
     $dispatch->handle_rest_request;
     my $response = $rest->response;
 
-    my ( $foo, $bar, $baz ) = @{ $test->{test_objects} };
+    my ( $foo, $bar, $baz ) = $test->test_objects;
     my %instance_for;
     $test->desired_attributes( [qw/ state name description bool /] );
     @instance_for{qw/foo bar baz/} =

@@ -1,4 +1,4 @@
-package TEST::Kinetic::Traits::REST;
+package TEST::Kinetic::Traits::XML;
 
 #use Class::Trait 'base';
 

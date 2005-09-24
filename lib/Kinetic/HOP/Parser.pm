@@ -106,11 +106,6 @@ sub End_of_Input {
     die [ "End of input", $input ];
 }
 
-#sub End_of_Input {
-#    my $input = shift;
-#    defined($input) ? () : ( undef, undef );
-#}
-
 ##############################################################################
 
 =head3 lookfor

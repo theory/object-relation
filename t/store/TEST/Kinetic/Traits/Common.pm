@@ -13,7 +13,21 @@ use warnings;
 # but since inheritance is not an option, I will be importing these methods
 # directly into the required namespaces.
 
-use Exporter::Tidy default => [ qw/ desired_attributes / ];
+use Exporter::Tidy default => [ qw/ 
+    desired_attributes 
+    test_objects
+/ ];
+
+sub test_objects {
+    my $test = shift;
+    unless (@_) {
+        return wantarray ? @{ $test->{test_objects} } : $test->{test_objects};
+    }
+    my $objects = shift;
+    $objects = [ $objects ] unless 'ARRAY' eq ref $objects;
+    $test->{test_objects} = $objects;
+    $test;
+}
 
 sub desired_attributes {
     my $test = shift;

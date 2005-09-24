@@ -13,10 +13,82 @@ use warnings;
 # but since inheritance is not an option, I will be importing these methods
 # directly into the required namespaces.
 
-use Exporter::Tidy default => [ qw/ instance_table / ];
+use Exporter::Tidy default => [ qw/ 
+    domain
+    instance_table
+    path
+    search_form
+/ ];
+
+sub domain {
+    my $test = shift;
+    return $test->{domain} unless @_;
+    my $domain = shift;
+    $domain .= '/' unless $domain =~ m{/$};
+    $test->{domain} = $domain;
+    return $test;
+}
+
+sub path {
+    my $test = shift;
+    return $test->{path} unless @_;
+    my $path = shift;
+    $path .= '/' if $path && $path !~ m{/$};
+    $test->{path} = $path;
+    return $test;
+}
+
+sub search_form {
+    my ( $test, $class_key, $search, $limit, $order_by ) = @_;
+    my $domain = $test->domain;
+    my $path   = $test->path;
+    return <<"    END_FORM";
+    <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
+      <input type="hidden" name="class_key" value="$class_key" />
+      <input type="hidden" name="domain" value="$domain" />
+      <input type="hidden" name="path" value="$path" />
+      <table>
+        <tr>
+          <td>Search:</td>
+          <td>
+            <input type="text" name="search" value="$search" />
+          </td>
+        </tr>
+        <tr>
+          <td>Limit:</td>
+          <td>
+            <input type="text" name="limit" value="$limit" />
+          </td>
+        </tr>
+        <tr>
+          <td>Order by:</td>
+          <td>
+            <input type="text" name="order_by" value="$order_by" />
+          </td>
+        </tr>
+        <tr>
+          <td>Sort order:</td>
+          <td>
+            <select name="sort_order">
+              <option value="ASC">Ascending</option>
+              <option value="DESC">Descending</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <input type="submit" value="Search" onclick="javascript:do_search(this)" />
+          </td>
+        </tr>
+      </table>
+    </form>
+    END_FORM
+}
 
 sub instance_table {
-    my ($test, @objects) = @_;
+    my ($test, $query,  @objects) = @_;
+    my $url = $test->domain.$test->path;
+    $query = "?$query" if $query;
     my $table = '<table bgcolor="#eeeeee" border="1"><tr>';
     my @attributes = $test->desired_attributes;
     foreach my $attr (@attributes) {
@@ -30,7 +102,7 @@ sub instance_table {
             my $value = ($object->$attr||'');
             $table .= <<"            END_ATTR";
     <td>
-    <a href="http://localhost:9000/rest/one/lookup/uuid/$uuid?type=html">$value</a>
+    <a href="${url}one/lookup/uuid/$uuid$query">$value</a>
     </td>
             END_ATTR
         }
