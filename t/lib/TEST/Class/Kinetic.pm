@@ -29,9 +29,6 @@ use File::Find;
 use File::Spec::Functions;
 use aliased 'Test::MockModule';
 
-# we use this library because Kinetic test traits are stored here
-use lib 't/store';
-
 __PACKAGE__->runtests unless caller;
 
 =head1 Name
