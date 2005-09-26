@@ -10,8 +10,7 @@ use Test::More;
 use Test::Exception;
 use Test::XML;
 
-use lib 't/store';
-use TEST::Kinetic::Traits::Common qw/:all/;
+use TEST::Kinetic::Traits::Store qw/:all/;
 use TEST::Kinetic::Traits::XML qw/:all/;
 # we're not using the following until some bugs are fixed.  See the
 # 'trait' for more notes

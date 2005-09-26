@@ -10,6 +10,9 @@ use Test::More;
 use Test::Exception;
 use Encode qw(is_utf8);
 
+use lib 't/store';
+use TEST::Kinetic::Traits::Store qw/:all/;
+
 use aliased 'Kinetic::Store' => 'Store', ':all';
 
 use aliased 'Kinetic::DateTime';
@@ -70,7 +73,7 @@ sub search : Test(19) {
     return unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'search';
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     foreach ($foo, $bar, $baz) {
         $_->name($_->name.chr(0x100));
         $_->save;
@@ -120,7 +123,7 @@ sub search_from_key : Test(10) {
     return unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'search';
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     foreach ($foo, $bar, $baz) {
         $_->name($_->name.chr(0x100));
         $_->save;
@@ -149,7 +152,7 @@ sub string_search : Test(19) {
     return unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'search';
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     foreach ($foo, $bar, $baz) {
         $_->name($_->name.chr(0x100));
         $_->save;
@@ -921,7 +924,7 @@ sub string_search_compound : Test(9) {
 sub limit : Test(12) {
     my $test = shift;
     return unless $test->_should_run;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
     ok my $iterator = $store->search(
@@ -999,7 +1002,7 @@ sub limit : Test(12) {
 sub string_limit : Test(12) {
     my $test = shift;
     return unless $test->_should_run;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
     ok my $iterator = $store->search( $class,
@@ -1085,7 +1088,7 @@ sub count : Test(15) {
     return unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'count';
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     ok my $count = $store->count($class),
         'A search with only a class should succeed';
@@ -1121,7 +1124,7 @@ sub count_by_key : Test(8) {
     return unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'count';
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $key = $foo->my_class->key;
     ok my $count = $store->count($key),
         'A search with only a class should succeed';
@@ -1143,7 +1146,7 @@ sub search_uuids : Test(10) {
     return unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'search_uuids';
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     ok my $uuids = $store->search_uuids($class),
         'A search for uuids with only a class should succeed';
@@ -1174,7 +1177,7 @@ sub search_uuids_by_key : Test(10) {
     return unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'search_uuids';
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $key = $foo->my_class->key;
     ok my $uuids = $store->search_uuids($key),
         'A search for uuids with only a class should succeed';
@@ -1203,7 +1206,7 @@ sub search_uuids_by_key : Test(10) {
 sub search_or : Test(13) {
     my $test = shift;
     return unless $test->_should_run;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
     ok my $iterator = $store->search(
@@ -1259,7 +1262,7 @@ sub search_or : Test(13) {
 sub search_and : Test(15) {
     my $test = shift;
     return unless $test->_should_run;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
     ok my $iterator = $store->search(
@@ -1326,7 +1329,7 @@ sub search_overloaded : Test(11) {
         sub new       { my ($pkg, $val) = @_; bless \$val => $pkg; }
         sub to_string { ${$_[0]} }
     }
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
 
@@ -1459,7 +1462,7 @@ sub lookup_by_key : Test(8) {
 sub search_between : Test(6) {
     my $test = shift;
     return unless $test->_should_run;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
     my $iterator = $store->search($class, name => ['b' => 'g']);
@@ -1488,7 +1491,7 @@ sub search_between : Test(6) {
 sub search_gt : Test(6) {
     my $test = shift;
     return unless $test->_should_run;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
     ok my $iterator = $store->search(
@@ -1515,7 +1518,7 @@ sub search_gt : Test(6) {
 sub search_lt : Test(6) {
     my $test = shift;
     return unless $test->_should_run;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
     ok my $iterator = $store->search(
@@ -1542,7 +1545,7 @@ sub search_lt : Test(6) {
 sub search_eq : Test(14) {
     my $test = shift;
     return unless $test->_should_run;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
     ok my $iterator = $store->search(
@@ -1594,7 +1597,7 @@ sub search_eq : Test(14) {
 sub search_ge : Test(6) {
     my $test = shift;
     return unless $test->_should_run;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
     ok my $iterator = $store->search(
@@ -1621,7 +1624,7 @@ sub search_ge : Test(6) {
 sub search_le : Test(6) {
     my $test = shift;
     return unless $test->_should_run;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
     ok my $iterator = $store->search(
@@ -1648,7 +1651,7 @@ sub search_le : Test(6) {
 sub search_like : Test(6) {
     my $test = shift;
     return unless $test->_should_run;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
     ok my $iterator = $store->search(
@@ -1675,7 +1678,7 @@ sub search_like : Test(6) {
 sub search_null : Test(6) {
     my $test = shift;
     return unless $test->_should_run;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     $foo->description('this is a description');
     my $store = Store->new;
     $foo->save;
@@ -1705,7 +1708,7 @@ sub search_null : Test(6) {
 sub search_in : Test(6) {
     my $test = shift;
     return unless $test->_should_run;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
     ok my $iterator = $store->search(

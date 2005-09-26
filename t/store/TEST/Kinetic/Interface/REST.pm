@@ -6,8 +6,7 @@ use strict;
 use warnings;
 
 use base 'TEST::Class::Kinetic';
-use lib 't/store';
-use TEST::Kinetic::Traits::Common qw/:all/;
+use TEST::Kinetic::Traits::Store qw/:all/;
 use TEST::Kinetic::Traits::XML qw/:all/;
 use TEST::Kinetic::Traits::HTML qw/:all/;
 use Test::More;

@@ -1,4 +1,4 @@
-package TEST::Kinetic::Traits::Common;
+package TEST::Kinetic::Traits::Store;
 
 #use Class::Trait 'base';
 

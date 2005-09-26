@@ -12,6 +12,7 @@ use Encode qw(is_utf8);
 
 use aliased 'Test::MockModule';
 
+use TEST::Kinetic::Traits::Store qw/test_objects/;
 use Kinetic::Store qw/:all/;
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Util::State';
@@ -105,7 +106,7 @@ sub search : Test(19) {
     my $test = shift;
     return unless $test->_should_run;
     can_ok One, 'search';
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     foreach ($foo, $bar, $baz) {
         $_->name($_->name.chr(0x100));
         $_->save;
@@ -154,7 +155,7 @@ sub string_search : Test(19) {
     my $test = shift;
     return unless $test->_should_run;
     can_ok One, 'search';
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     foreach ($foo, $bar, $baz) {
         $_->name($_->name.chr(0x100));
         $_->save;
@@ -206,7 +207,7 @@ sub count : Test(8) {
     my $test = shift;
     return unless $test->_should_run;
     can_ok One, 'count';
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     ok my $count = One->count,
         'A search with only a class should succeed';
@@ -227,7 +228,7 @@ sub search_uuids : Test(10) {
     my $test = shift;
     return unless $test->_should_run;
     can_ok One, 'search_uuids';
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     ok my $uuids = One->search_uuids,
         'A search for uuids with only a class should succeed';
     @$uuids = sort @$uuids;
