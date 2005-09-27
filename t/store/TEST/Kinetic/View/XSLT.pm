@@ -14,7 +14,7 @@ use Kinetic::XML;
 use TEST::Kinetic::Traits::Store qw/:all/;
 use TEST::Kinetic::Traits::HTML qw/:all/;
 use TEST::Kinetic::Traits::XML qw/:all/;
-use Kinetic::Util::Constants qw/UUID_RE CURRENT_PAGE/;
+use Kinetic::Util::Constants qw/UUID_RE CURRENT_PAGE :labels/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(0) }
 
@@ -66,6 +66,8 @@ sub setup : Test(setup) {
         }
     };
     $test->desired_attributes( [qw/ state name description bool /] );
+    $test->domain('http://www.example.com/');
+    $test->path('rest/');
 }
 
 sub teardown : Test(teardown) {
@@ -79,21 +81,12 @@ sub build_search_form : Test(no_plan) {
     my $test = shift;
     my $xslt = XSLT->new( type => 'REST' );
 
-    my %instance_for;
-    @instance_for{qw/foo bar baz/} =
-      map { $test->instance_data($_) } $test->test_objects;
     my $expected_instances =
-      $test->expected_instance_xml( 'http://www.example.com/rest/',
-        'one', \%instance_for, [qw/foo bar baz/] );
+      $test->expected_instance_xml( scalar $test->test_objects );
+    my $header = $test->header_xml(AVAILABLE_INSTANCES);
 
     my $xml = <<"    END_XML";
-<?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://www.example.com/rest/?stylesheet=browse"?>
-    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
-                       xmlns:xlink="http://www.w3.org/1999/xlink">
-      <kinetic:description>Available instances</kinetic:description>
-      <kinetic:domain>http://www.example.com/</kinetic:domain>
-      <kinetic:path>rest/</kinetic:path>
+$header
       $expected_instances
       <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>
@@ -114,16 +107,9 @@ sub build_search_form : Test(no_plan) {
 
     my $instance_table =
       $test->instance_table( '', $test->test_objects );
+    my $html_header = $test->header_html(AVAILABLE_INSTANCES);
     my $expected = <<"    END_XHTML";
-<?xml version="1.0"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Available instances</title>
-    <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
-  </head>
-  <body onload="document.search_form.search.focus()">
+$html_header
     $search_form
     $instance_table
   </body>
@@ -191,21 +177,12 @@ sub transform : Test(9) {
       'Kinetic::Util::Exception::ExternalLib',
       '... as should calling it with an argument that is not valid XML';
 
-    my %instance_for;
-    @instance_for{qw/foo bar baz/} =
-      map { $test->instance_data($_) } $test->test_objects;
     my $expected_instances =
-      $test->expected_instance_xml( 'http://www.example.com/rest/',
-        'one', \%instance_for, [qw/foo bar baz/] );
+      $test->expected_instance_xml( scalar $test->test_objects );
+    my $header = $test->header_xml(AVAILABLE_INSTANCES);
 
     my $xml = <<"    END_XML";
-<?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=browse"?>
-    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
-                       xmlns:xlink="http://www.w3.org/1999/xlink">
-      <kinetic:description>Available instances</kinetic:description>
-      <kinetic:domain>http://www.example.com/</kinetic:domain>
-      <kinetic:path>rest/</kinetic:path>
+$header
       $expected_instances
       <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>
@@ -223,16 +200,9 @@ sub transform : Test(9) {
         'name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)',
         20, 'name' );
     my $instance_table = $test->instance_table( '', $test->test_objects );
+    my $html_header = $test->header_html(AVAILABLE_INSTANCES);
     my $expected       = <<"    END_XHTML";
-<?xml version="1.0"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Available instances</title>
-    <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
-  </head>
-  <body onload="document.search_form.search.focus()">
+$html_header
   $search_form
   $instance_table
   </body>
@@ -240,14 +210,9 @@ sub transform : Test(9) {
     END_XHTML
     is_xml $xhtml, $expected, '... and return the correct xhtml';
 
-    $xml = <<'    END_XML';
-<?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://somehost.com/rest/?stylesheet=browse"?>
-    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
-                       xmlns:xlink="http://www.w3.org/1999/xlink">   
-      <kinetic:description>Available resources</kinetic:description>
-      <kinetic:domain>http://www.example.com/</kinetic:domain>
-      <kinetic:path>rest/</kinetic:path>
+    $header = $test->header_xml(AVAILABLE_RESOURCES);
+    $xml = <<"    END_XML";
+$header
       <kinetic:resource id="one" xlink:href="http://somehost.com/rest/one"/>
       <kinetic:resource id="simple" xlink:href="http://somehost.com/rest/simple"/>
       <kinetic:resource id="two" xlink:href="http://somehost.com/rest/two"/>
@@ -258,17 +223,11 @@ sub transform : Test(9) {
     ok $xhtml = $xslt->transform($xml),
       'Calling transform() with valid XML should succeed';
 
-    is_xml $xhtml, <<'    END_XHTML', '... and return the correct xhtml';
-<?xml version="1.0"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
-  <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <title>Available resources</title>
-  </head>
-  <body>
+    $html_header = $test->header_html(AVAILABLE_RESOURCES);
+    is_xml $xhtml, <<"    END_XHTML", '... and return the correct xhtml';
+$html_header
     <table bgcolor="#eeeeee" border="1">
-      <tr><th>Available resources</th></tr>
+      <tr><th>@{[AVAILABLE_RESOURCES]}</th></tr>
       <tr><td><a href="http://somehost.com/rest/one">one</a></td></tr>
       <tr><td><a href="http://somehost.com/rest/simple">simple</a></td></tr>
       <tr><td><a href="http://somehost.com/rest/two">two</a></td></tr>
@@ -284,15 +243,9 @@ sub transform : Test(9) {
     ok $xhtml = $xslt->transform($xml),
       'Calling transform() with valid XML should succeed';
 
+    $html_header = $test->header_html('one');
     is_xml $xhtml, <<"    END_XHTML", '... and return the correct xhtml';
-<?xml version="1.0"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>one</title>
-  </head>
-  <body>
+$html_header
     <table bgcolor="#eeeeee" border="1">
       <tr>
         <th colspan="2">one</th>
@@ -327,14 +280,9 @@ sub transform_pages : Test(3) {
     my $test = shift;
     my $xslt = XSLT->new( type => 'REST' );
 
-    my $xml = <<'    END_XML';
-<?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://localhost:9000/rest/?stylesheet=REST"?>
-    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
-                       xmlns:xlink="http://www.w3.org/1999/xlink">
-      <kinetic:description>Available instances</kinetic:description>
-      <kinetic:domain>http://www.example.com/</kinetic:domain>
-      <kinetic:path>rest/</kinetic:path>
+    my $header = $test->header_xml(AVAILABLE_RESOURCES);
+    my $xml = <<"    END_XML";
+$header
       <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX">
         <kinetic:attribute name="name">foo</kinetic:attribute>
         <kinetic:attribute name="rank">General</kinetic:attribute>
@@ -352,15 +300,9 @@ sub transform_pages : Test(3) {
     ok my $xhtml = $xslt->transform($xml),
       'Calling transform() with XML that has pages should succeed';
 
-    is_xml $xhtml, <<'    END_XHTML', '... and return xml with pages';
-<?xml version="1.0"?>
-    <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-    <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
-      <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-        <title>Available instances</title>
-      </head>
-      <body>
+    my $html_header = $test->header_html(AVAILABLE_RESOURCES);
+    is_xml $xhtml, <<"    END_XHTML", '... and return xml with pages';
+$html_header
         <table bgcolor="#eeeeee" border="1">
           <tr>
             <th>name</th>
@@ -384,13 +326,7 @@ sub transform_pages : Test(3) {
     END_XHTML
 
     $xml = <<"    END_XML";
-<?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="http://localhost:9000/rest/?stylesheet=REST"?>
-    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
-                       xmlns:xlink="http://www.w3.org/1999/xlink">
-      <kinetic:description>Available instances</kinetic:description>
-      <kinetic:domain>http://www.example.com/</kinetic:domain>
-      <kinetic:path>rest/</kinetic:path>
+$header
       <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX"/>
       <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX"/>
       <kinetic:pages>

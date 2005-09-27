@@ -9,6 +9,7 @@ use Test::More;
 use Test::Exception;
 use base 'TEST::Kinetic::Store';
 #use base 'TEST::Class::Kinetic';
+use TEST::Kinetic::Traits::Store qw/test_objects/;
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Meta::Attribute';
@@ -54,7 +55,7 @@ sub setup : Test(setup) {
     my $baz = One->new;
     $baz->name('snorfleglitz');
     $store->save($baz);
-    $test->{test_objects} = [$foo, $bar, $baz];
+    $test->test_objects([$foo, $bar, $baz]);
 }
 
 sub teardown : Test(teardown) {

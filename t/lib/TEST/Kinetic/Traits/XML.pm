@@ -1,6 +1,7 @@
 package TEST::Kinetic::Traits::XML;
 
 #use Class::Trait 'base';
+# required url() from Traits::HTML
 
 use strict;
 use warnings;
@@ -12,32 +13,75 @@ use warnings;
 # coupled, but not by inheritance.  The tests need to share functionality
 # but since inheritance is not an option, I will be importing these methods
 # directly into the required namespaces.
-
+ 
+use Kinetic::Util::Constants qw/:xslt/;
 use Exporter::Tidy default => [
     qw/
-      instance_data
       instance_order
       expected_instance_xml
+      header_xml
       /
 ];
 
-sub instance_data {
-    my ( $test, $object ) = @_;
-    my @attributes = $test->desired_attributes;
-    my %values_of;
-    @values_of{@attributes} = map { $object->$_ } @attributes;
-    $values_of{uuid} = $object->uuid;
-    return \%values_of;
-}
+##############################################################################
+
+=head1 Available methods
+
+=head2 Instance methods
+
+The following methods are are methods related to the production of XML
+documents.
+
+=cut
+
+##############################################################################
+
+=head3 instance_order
+
+  my @order = $test->instance_order( $xml, [$key] );
+
+This method returns the attributes values from XSLT generated XML for a
+given attribute C<$key> in the order found in the XML.  C<$key> is optional
+and defaults to I<name> if not supplied.
+
+This method is useful when the order of objects returned from the data store
+is unknown but you need to specify that order in C<expected_instance_xml>.
+
+=cut
 
 sub instance_order {
-    my ( $test, $xml ) = @_;
-    my @order = $xml =~ /<kinetic:attribute name="name">([^<]*)/g;
+    my ( $test, $xml, $key ) = @_;
+    $key ||= 'name';
+    my @order = $xml =~ /<kinetic:attribute name="$key">([^<]*)/g;
     return wantarray ? @order : \@order;
 }
 
+##############################################################################
+
+=head3 expected_instance_xml
+
+  my $xml_snippet = $test->expected_instance_xml( \@objects, [\@order], [$key] );
+
+This method will return an XML snippet for the given objects.  This snippet
+should match the XML returned by the XSLT REST type.
+
+The order of objects listed in the XML is the same as the order of objects
+passed in.  If this is unknown, you may pass in a second argument, an array
+reference, with a list of the object "keys".  The objects will be sorted in the
+same order as the objects "key" values.  The name of the key defaults to "name"
+unless otherwise noted.
+
+=cut
+
 sub expected_instance_xml {
-    my ( $test, $url, $class_key, $instance_ref, $order_ref ) = @_;
+    my ( $test, $objects, $order_ref, $key ) = @_;
+    $key ||= 'name';
+    my $class_key = $objects->[0]->my_class->key;
+    unless ($order_ref) {
+        @$order_ref = map { $_->$key } @$objects;
+    }
+    my %instance_for = map { $_->$key, _instance_data( $test, $_) } @$objects;
+    my $url = $test->url;
     my @attributes = $test->desired_attributes;
     my $instance_xml = <<"    END_INSTANCE_XML";
     <kinetic:resource id="%s" xlink:href="${url}${class_key}/lookup/uuid/%s">
@@ -50,11 +94,48 @@ sub expected_instance_xml {
     foreach my $instance (@$order_ref) {
         $result .= sprintf $instance_xml,
           map { defined $_ ? $_ : '' } 
-            ( $instance_ref->{$instance}{uuid} ) x 2,
-            map { $instance_ref->{$instance}{$_} } 
+            ( $instance_for{$instance}{uuid} ) x 2,
+            map { $instance_for{$instance}{$_} } 
               @attributes;
     }
     return $result;
+}
+
+sub _instance_data {
+    my ( $test, $object ) = @_;
+    my @attributes = $test->desired_attributes;
+    my %values_of;
+    @values_of{@attributes} = map { $object->$_ } @attributes;
+    $values_of{uuid} = $object->uuid;
+    return \%values_of;
+}
+
+##############################################################################
+
+=head3 header_xml
+
+ my $header = $test->header_xml($title);
+
+Given a title for an XML document, this method will return the "header" of xml
+that matches the XML returned by C<Kinetic::REST::Dispatch>.
+
+=cut
+
+sub header_xml {
+    my ($test, $title)  = @_;
+    my $xslt   = $title =~ /resources/ ? RESOURCES_XSLT: SEARCH_XSLT;
+    my $server = $test->url;
+    my $domain = $test->domain;
+    my $path   = $test->path;
+    return <<"    END_XML";
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="$xslt"?>
+    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
+                       xmlns:xlink="http://www.w3.org/1999/xlink">
+      <kinetic:description>$title</kinetic:description>
+      <kinetic:domain>$domain</kinetic:domain>
+      <kinetic:path>$path</kinetic:path>
+    END_XML
 }
 
 1;

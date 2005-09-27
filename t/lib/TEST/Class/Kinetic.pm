@@ -300,33 +300,6 @@ sub tck_cleanup : Test(teardown) {
     }
 }
 
-##############################################################################
-
-=head3 _force_inflation
-
-  $object = $test->_force_inflation($object);
-
-This protected method is used by subclasses to force the inflation of values of
-Kinetic objects when tested with is_deeply and friends.
-
-=cut
-
-sub _force_inflation {
-    my ($test, $object) = @_;
-    return unless $object;
-    no warnings 'void';
-    foreach my $attr ($object->my_class->attributes) {
-        if ($attr->references) {
-            $test->_force_inflation($attr->get($object));
-        }
-        else {
-            my $name = $attr->name;
-            $object->$name; # this is what forces inflation
-        }
-    }
-    return $object;
-}
-
 1;
 __END__
 

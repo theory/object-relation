@@ -175,7 +175,7 @@ Returns false if no such stylesheet can be found.
 =cut
 
 sub location {
-    my ($class, $name) = @_;
+    my ( $class, $name ) = @_;
     return unless exists $STYLESHEET_FOR{$name};
     return $STYLESHEET_FOR{$name}{name};
 }

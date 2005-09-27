@@ -64,6 +64,10 @@ use constant RESOURCES_XSLT => '/xslt/resources.xsl';
 use constant SEARCH_XSLT    => '/xslt/search.xsl';
 use constant INSTANCE_XSLT  => '/xslt/instance.xsl';
 
+# Labels
+use constant AVAILABLE_INSTANCES => 'Available instances';
+use constant AVAILABLE_RESOURCES => 'Available resources';
+
 # Directories
 use constant WWW_DIR => './www';
 
@@ -92,6 +96,12 @@ use Exporter::Tidy http => [
       UUID_RE
       OBJECT_DELIMITER
       PREPARE
+      /
+  ],
+  labels => [
+    qw/
+      AVAILABLE_INSTANCES
+      AVAILABLE_RESOURCES
       /
   ],
   xslt => [
@@ -191,6 +201,20 @@ C<404 Not Found>
 =item * HTTP_OK
 
 C<200 OK>
+
+=back
+
+=head1 :labels
+
+=over 4 
+
+=item * AVAILABLE_INSTANCES
+
+Title for "Available instances" returned in REST services.
+
+=item * AVAILABLE_RESOURCES
+
+Title for "Available resources" returned in REST services.
 
 =back
 

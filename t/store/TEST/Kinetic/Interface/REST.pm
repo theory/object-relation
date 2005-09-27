@@ -23,7 +23,7 @@ use XML::Parser;
     require WWW::REST;
 }
 
-use Kinetic::Util::Constants qw/UUID_RE :xslt/;
+use Kinetic::Util::Constants qw/UUID_RE :xslt :labels/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(1) }
 use TEST::REST::Server;
@@ -39,11 +39,6 @@ use aliased 'Kinetic::Util::State';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
 
-use Readonly;
-Readonly my $PORT   => '9000';
-Readonly my $DOMAIN => "http://localhost:$PORT/";
-Readonly my $PATH   => 'rest/';
-
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->any_supported(qw/pg sqlite/)
     ? 0
@@ -56,21 +51,27 @@ my $PID;
 
 sub start_server : Test(startup) {
     my $test   = shift;
+    my $port   = '9000';
+    my $domain = "http://localhost:$port/";
+    my $path   = 'rest/';
+
     my $server = TEST::REST::Server->new(
         {
-            domain => $DOMAIN,
-            path   => $PATH,
-            args   => [$PORT]
+            domain => $domain,
+            path   => $path,
+            args   => [$port]
         }
     );
     $PID = $server->background;
-    $test->{REST} = WWW::REST->new($DOMAIN);
+    $test->{REST} = WWW::REST->new($domain);
     my $dispatch = sub {
         my $REST = shift;
         die $REST->status_line, "\n\n", $REST->content if $REST->is_error;
         return $REST->content;
     };
     $test->{REST}->dispatch($dispatch);
+    $test->domain($domain);
+    $test->path($path);
 }
 
 sub shutdown_server : Test(shutdown) {
@@ -121,39 +122,10 @@ sub _clear_database {
 
 sub REST { shift->{REST} }
 
-sub _xml_header {
-    my $title  = shift;
-    my $xslt   = $title =~ /resources/ ? RESOURCES_XSLT: SEARCH_XSLT;
-    my $server = shift || 'http://localhost:9000/rest/';
-    return <<"    END_XML";
-<?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="$xslt"?>
-    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
-                       xmlns:xlink="http://www.w3.org/1999/xlink">
-      <kinetic:description>$title</kinetic:description>
-    END_XML
-}
-
-sub _html_header {
-    my $title = shift;
-    return <<"    END_HTML";
-<?xml version="1.0"?>
-    <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-    <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
-      <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-        <title>$title</title>
-      </head>
-      <body>
-    END_HTML
-}
-
-sub _url { $DOMAIN . $PATH }
-
 sub web_test_paging : Test(14) {
     my $test = shift;
     my $mech = Test::WWW::Mechanize->new;
-    my $url  = _url();
+    my $url  = $test->url;
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
 
@@ -164,20 +136,14 @@ sub web_test_paging : Test(14) {
 
     my $foo_uuid = $foo->uuid;
     my $bar_uuid = $bar->uuid;
-    my $header   = _xml_header('Available instances');
-    my %instance_for;
-    @instance_for{qw/foo bar baz/} =
-      map { $test->instance_data($_) } ( $foo, $bar, $baz );
+    my $header   = $test->header_xml(AVAILABLE_INSTANCES);
     my $response           = $mech->content;
     my @instance_order     = $test->instance_order($response);
     my $expected_instances =
-      $test->expected_instance_xml( $url, 'one', \%instance_for,
-        \@instance_order );
+      $test->expected_instance_xml( [$foo, $bar, $baz], \@instance_order );
 
     my $expected = <<"    END_XML";
 $header
-      <kinetic:domain>http://localhost:9000/</kinetic:domain>
-      <kinetic:path>rest/</kinetic:path>
       $expected_instances
       <kinetic:pages>
         <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
@@ -203,20 +169,12 @@ $header
         'We should be able to fetch and limit the searches'
     );
 
-    my $html_header = _html_header('Available instances');
+    my $html_header = $test->header_html(AVAILABLE_INSTANCES);
     my $search_form = $test->search_form('one', '', 2, 'name' );
 
     my $instances = $test->instance_table( 'type=html', $bar, $foo );
     $expected = <<"    END_XHTML";
-<?xml version="1.0"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Available instances</title>
-    <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
-  </head>
-  <body onload="document.search_form.search.focus()">
+$html_header
     $search_form
     $instances
     <p>
@@ -241,7 +199,7 @@ $header
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Available instances</title>
+    <title>@{[AVAILABLE_INSTANCES]}</title>
     <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
   </head>
   <body onload="document.search_form.search.focus()">
@@ -297,21 +255,21 @@ $header
 sub web_test : Test(12) {
     my $test = shift;
     my $mech = Test::WWW::Mechanize->new;
-    my $url  = _url();
+    my $url  = $test->url;
 
     $mech->get_ok( $url, 'Gettting the main page should succeed' );
     ok !$mech->is_html, '... but it should not return HTML';
     $mech->get_ok( "$url?type=html",
         'We should be able to fetch the main page and ask for HTML' );
     ok $mech->is_html, '... and get HTML back';
-    $mech->title_is( 'Available resources',
+    $mech->title_is( AVAILABLE_RESOURCES,
         '... and fetching the root should return a list of resources' );
 
     $mech->follow_link_ok(
         { url_regex => qr/simple/ },
         '... and fetching a class link should succeed',
     );
-    $mech->title_is( 'Available instances',
+    $mech->title_is( AVAILABLE_INSTANCES,
         '... and fetching the a class should return a list of instances' );
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
@@ -333,7 +291,7 @@ sub web_test : Test(12) {
     );
 
     $foo_uuid = $foo->uuid;
-    my $html_header = _html_header('Available instances');
+    my $html_header = $test->header_html(AVAILABLE_INSTANCES);
     my $search_form = $test->search_form( 'one', 'name =&gt; &quot;foo&quot;', 20, '' );
     my $instances   = $test->instance_table('type=html', $foo);
     my $expected    = <<"    END_XHTML";
@@ -342,7 +300,7 @@ sub web_test : Test(12) {
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Available instances</title>
+    <title>@{[AVAILABLE_INSTANCES]}</title>
     <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
   </head>
   <body onload="document.search_form.search.focus()">
@@ -401,6 +359,8 @@ sub rest_interface : Test(19) {
     my $test  = shift;
     my $class = 'Kinetic::Interface::REST';
     my $rest  = $class->new( domain => 'http://foo/', path => 'rest/server/' );
+    $test->domain('http://foo/');
+    $test->path('rest/server/');
 
     foreach my $method (qw/cgi status response content_type/) {
         can_ok $rest, $method;
@@ -430,19 +390,11 @@ sub rest_interface : Test(19) {
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $foo_uuid = $foo->uuid;
-    my $header   =
-      _xml_header( 'Available instances', 'http://foo/rest/server/' );
-    my %instance_for;
-    @instance_for{qw/foo bar baz/} =
-      map { $test->instance_data($_) } ( $foo, $bar, $baz );
-    my $expected_instances =
-      $test->expected_instance_xml( 'http://foo/rest/server/', 'one',
-        \%instance_for, ['foo'] );
+    my $header   = $test->header_xml( AVAILABLE_INSTANCES );
+    my $expected_instances = $test->expected_instance_xml( [$foo] );
 
     my $expected = <<"    END_XML";
 $header
-      <kinetic:domain>http://foo/</kinetic:domain>
-      <kinetic:path>rest/server/</kinetic:path>
       $expected_instances
       <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>
@@ -458,8 +410,11 @@ $header
 }
 
 sub rest_faults : Test(7) {
+    my $test = shift;
     my $class = 'Kinetic::Interface::REST';
     my $rest  = $class->new( domain => 'http://foo/', path => 'rest/server/' );
+    $test->domain('http://foo/');
+    $test->path('rest/server/');
 
     # set up necessary mocked packages for handle_request() tests
     can_ok $rest, 'handle_request';
@@ -486,16 +441,14 @@ sub rest_faults : Test(7) {
 sub basic_services : Test(3) {
     my $test = shift;
     my $rest = $test->REST;
-    my $url  = _url();
+    my $url  = $test->url;
 
     throws_ok { $rest->url('no_such_resource/')->get } qr/501 Not Implemented/,
       '... as should calling it with a non-existent resource';
 
-    my $header   = _xml_header('Available resources');
+    my $header   = $test->header_xml(AVAILABLE_RESOURCES);
     my $expected = <<"    END_XML";
 $header
-      <kinetic:domain>http://localhost:9000/</kinetic:domain>
-      <kinetic:path>rest/</kinetic:path>
       <kinetic:resource id="one"     xlink:href="${url}one/search"/>
       <kinetic:resource id="simple"  xlink:href="${url}simple/search"/>
       <kinetic:resource id="two"     xlink:href="${url}two/search"/>
@@ -506,20 +459,13 @@ $header
 
     my $key     = One->my_class->key;
     my $one_xml = $rest->url("$key/search")->get;
-    my %instance_for;
-    @instance_for{qw/foo bar baz/} =
-      map { $test->instance_data($_) } $test->test_objects;
-
     # XXX Yuck.  Fix this later
-    my @order = map { s/snorfleglitz/baz/; $_ } $test->instance_order($one_xml);
+    my @order = $test->instance_order($one_xml);
     my $expected_instances =
-      $test->expected_instance_xml( 'http://localhost:9000/rest/', 'one',
-        \%instance_for, \@order );
-    $header   = _xml_header('Available instances');
+      $test->expected_instance_xml( scalar $test->test_objects, \@order );
+    $header   = $test->header_xml(AVAILABLE_INSTANCES);
     $expected = <<"    END_XML";
 $header
-      <kinetic:domain>http://localhost:9000/</kinetic:domain>
-      <kinetic:path>rest/</kinetic:path>
       $expected_instances
       <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>

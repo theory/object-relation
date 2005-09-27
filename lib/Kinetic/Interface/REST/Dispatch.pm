@@ -29,7 +29,7 @@ use Kinetic::Meta;
 use Kinetic::XML;
 use Kinetic::Meta::XML;
 use Kinetic::Store;
-use Kinetic::Util::Constants qw/:http :xslt/;
+use Kinetic::Util::Constants qw/:http :xslt :labels/;
 use Kinetic::View::XSLT;
 
 our $VERSION = version->new('0.0.1');
@@ -236,7 +236,7 @@ sub class_list {
     my ($self) = @_;
 
     my $rest     = $self->rest;
-    my $response = _xml_header( $rest, 'Available resources' );
+    my $response = _xml_header( $rest, AVAILABLE_RESOURCES );
 
     my $base_url     = _rest_base_url($rest);
     my $query_string = _query_string($rest);
@@ -339,7 +339,7 @@ sub _instance_list {
     my $offset = $args{offset};
 
     my $rest         = $self->rest;
-    my $response     = _xml_header( $rest, 'Available instances' );
+    my $response     = _xml_header( $rest, AVAILABLE_INSTANCES );
     my $base_url     = _rest_base_url($rest);
     my $query_string = _query_string($rest);
 

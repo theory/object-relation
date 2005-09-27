@@ -12,7 +12,7 @@ use Encode qw(is_utf8);
 
 use aliased 'Test::MockModule';
 
-use TEST::Kinetic::Traits::Store qw/test_objects/;
+use TEST::Kinetic::Traits::Store qw/test_objects force_inflation/;
 use Kinetic::Store qw/:all/;
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Util::State';
@@ -31,7 +31,7 @@ sub _all_items {
     my ($test, $iterator) = @_;
     my @iterator;
     while (my $object = $iterator->next) {
-        push @iterator => $test->_force_inflation($object);
+        push @iterator => $test->force_inflation($object);
     }
     return @iterator;
 }
@@ -53,7 +53,7 @@ sub lookup : Test(8) {
     $one->save;
     can_ok One, 'lookup';
     my $thing = One->lookup(uuid => $one->uuid);
-    is_deeply $test->_force_inflation($thing), $one, 'and it should return the correct object';
+    is_deeply $test->force_inflation($thing), $one, 'and it should return the correct object';
     foreach my $method (qw/name description uuid state/) {
         is $thing->$method, $one->$method, "$method() should behave the same";
     }
@@ -124,30 +124,30 @@ sub search : Test(19) {
     ok $iterator = One->search(name => $foo->name),
         'and an exact match should succeed';
     isa_ok $iterator, Iterator, 'and the object it returns';
-    is_deeply $test->_force_inflation($iterator->next), $foo,
+    is_deeply $test->force_inflation($iterator->next), $foo,
         'and the first item should match the correct object';
-    ok ! $test->_force_inflation($iterator->next), 'and there should be the correct number of objects';
+    ok ! $test->force_inflation($iterator->next), 'and there should be the correct number of objects';
 
     ok $iterator = One->search(name => $foo->name),
         'We should also be able to call search as a class method';
     isa_ok $iterator, Iterator, 'and the object it returns';
-    is_deeply $test->_force_inflation($iterator->next), $foo,
+    is_deeply $test->force_inflation($iterator->next), $foo,
         'and it should return the same results as an instance method';
-    ok ! $test->_force_inflation($iterator->next), 'and there should be the correct number of objects';
+    ok ! $test->force_inflation($iterator->next), 'and there should be the correct number of objects';
 
     ok $iterator = One->search(name => ucfirst $foo->name),
         'Case-insensitive searches should work';
     isa_ok $iterator, Iterator, 'and the object it returns';
-    is_deeply $test->_force_inflation($iterator->next), $foo,
+    is_deeply $test->force_inflation($iterator->next), $foo,
          'and they should return data even if the case does not match';
 
     $iterator = One->search(name => $foo->name, description => 'asdf');
-    ok ! $test->_force_inflation($iterator->next),
+    ok ! $test->force_inflation($iterator->next),
         'but searching for non-existent values will return no results';
     $foo->description('asdf');
     $foo->save;
     $iterator = One->search(name => $foo->name, description => 'asdf');
-    is_deeply $test->_force_inflation($iterator->next), $foo,
+    is_deeply $test->force_inflation($iterator->next), $foo,
         '... and it should be the correct results';
 }
 
@@ -172,34 +172,34 @@ sub string_search : Test(19) {
     ok $iterator = One->search(STRING => "name => '@{[$foo->name]}'"),
         'and an exact match should succeed';
     isa_ok $iterator, Iterator, 'and the object it returns';
-    is_deeply $test->_force_inflation($iterator->next), $foo,
+    is_deeply $test->force_inflation($iterator->next), $foo,
         'and the first item should match the correct object';
-    ok ! $test->_force_inflation($iterator->next), 'and there should be the correct number of objects';
+    ok ! $test->force_inflation($iterator->next), 'and there should be the correct number of objects';
 
     ok $iterator = One->search(STRING => "name => '@{[$foo->name]}'"),
         'We should also be able to call search as a class method';
     isa_ok $iterator, Iterator, 'and the object it returns';
-    is_deeply $test->_force_inflation($iterator->next), $foo,
+    is_deeply $test->force_inflation($iterator->next), $foo,
         'and it should return the same results as an instance method';
-    ok ! $test->_force_inflation($iterator->next), 'and there should be the correct number of objects';
+    ok ! $test->force_inflation($iterator->next), 'and there should be the correct number of objects';
 
     ok $iterator = One->search(
         STRING => "name => '@{[ucfirst $foo->name]}'"
     ), 'Case-insensitive searches should work';
     isa_ok $iterator, Iterator, 'and the object it returns';
-    is_deeply $test->_force_inflation($iterator->next), $foo,
+    is_deeply $test->force_inflation($iterator->next), $foo,
          'and they should return data even if the case does not match';
 
     $iterator = One->search(
         STRING => "name => '@{[$foo->name]}', description => 'asdf'");
-    ok ! $test->_force_inflation($iterator->next),
+    ok ! $test->force_inflation($iterator->next),
         'but searching for non-existent values will return no results';
     $foo->description('asdf');
     $foo->save;
     $iterator = One->search(
         STRING => "name => '@{[$foo->name]}', description => 'asdf'"
     );
-    is_deeply $test->_force_inflation($iterator->next), $foo,
+    is_deeply $test->force_inflation($iterator->next), $foo,
         '... and it should be the correct results';
 }
 

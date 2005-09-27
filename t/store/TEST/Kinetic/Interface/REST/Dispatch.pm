@@ -12,11 +12,12 @@ use Test::XML;
 
 use TEST::Kinetic::Traits::Store qw/:all/;
 use TEST::Kinetic::Traits::XML qw/:all/;
+use TEST::Kinetic::Traits::HTML qw/:all/;
 # we're not using the following until some bugs are fixed.  See the
 # 'trait' for more notes
 
 #use Class::Trait 'TEST::Kinetic::Traits::REST';
-use Kinetic::Util::Constants qw/UUID_RE :xslt/;
+use Kinetic::Util::Constants qw/UUID_RE :xslt :labels/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(1) }
 
@@ -90,6 +91,9 @@ sub setup : Test(setup) {
     );
     $test->_path_info('');
     $test->{query_string} = undef;
+    $test->desired_attributes( [qw/ state name description bool /] );
+    $test->domain($DOMAIN);
+    $test->path($PATH);
 }
 
 sub teardown : Test(teardown) {
@@ -236,16 +240,12 @@ sub class_list : Test(2) {
     my $dispatch = Dispatch->new;
     can_ok $dispatch, 'class_list';
     my $rest = $test->{rest};
+    $rest->xslt('resources');
     $dispatch->rest($rest);
     $dispatch->class_list;
+    my $header = $test->header_xml(AVAILABLE_RESOURCES);
     my $expected = <<"    END_XML";
-<?xml version="1.0"?>
-    <?xml-stylesheet type="text/xsl" href="@{[SEARCH_XSLT]}"?>
-    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
-                       xmlns:xlink="http://www.w3.org/1999/xlink">
-    <kinetic:description>Available resources</kinetic:description>
-    <kinetic:domain>$DOMAIN</kinetic:domain>
-    <kinetic:path>$PATH</kinetic:path>
+$header
         <kinetic:resource id="one"    xlink:href="${url}one/search"/>
         <kinetic:resource id="simple" xlink:href="${url}simple/search"/>
         <kinetic:resource id="two"    xlink:href="${url}two/search"/>
@@ -276,23 +276,13 @@ sub handle : Test(6) {
     my $response = $rest->response;
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
-    my %instance_for;
-    $test->desired_attributes( [qw/ state name description bool /] );
-    @instance_for{qw/foo bar baz/} =
-      map { $test->instance_data($_) } ( $foo, $bar, $baz );
     my @instance_order     = $test->instance_order($response);
     my $expected_instances =
-      $test->expected_instance_xml( $url, 'one', \%instance_for,
-        \@instance_order );
+      $test->expected_instance_xml( scalar $test->test_objects, \@instance_order );
+    my $header = $test->header_xml(AVAILABLE_INSTANCES);
 
     my $expected = <<"    END_XML";
-<?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="@{[SEARCH_XSLT]}"?>
-    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
-                    xmlns:xlink="http://www.w3.org/1999/xlink">
-        <kinetic:description>Available instances</kinetic:description>
-        <kinetic:domain>$DOMAIN</kinetic:domain>
-        <kinetic:path>$PATH</kinetic:path>
+$header
         $expected_instances
         <kinetic:class_key>one</kinetic:class_key>
         <kinetic:search_parameters>
@@ -329,16 +319,10 @@ sub handle : Test(6) {
     $dispatch->handle_rest_request;
 
     my $instance =
-      $test->expected_instance_xml( $url, 'one', \%instance_for, ['foo'] );
+      $test->expected_instance_xml( [$foo] );
 
     $expected = <<"    END_XML";
-<?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="@{[SEARCH_XSLT]}"?>
-    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
-                       xmlns:xlink="http://www.w3.org/1999/xlink">
-      <kinetic:description>Available instances</kinetic:description>
-      <kinetic:domain>$DOMAIN</kinetic:domain>
-      <kinetic:path>$PATH</kinetic:path>
+$header
       $instance
       <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>
@@ -359,18 +343,11 @@ sub handle : Test(6) {
         ]
     );
 
-    $expected_instances =
-      $test->expected_instance_xml( $url, 'one', \%instance_for, [qw/bar foo/] );
+    $expected_instances = $test->expected_instance_xml( [ $bar, $foo ] );
     my $bar_uuid = $bar->uuid;
     $dispatch->handle_rest_request;
     $expected = <<"    END_XML";
-<?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="@{[SEARCH_XSLT]}"?>
-    <kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
-                     xmlns:xlink="http://www.w3.org/1999/xlink">
-      <kinetic:description>Available instances</kinetic:description>
-      <kinetic:domain>$DOMAIN</kinetic:domain>
-      <kinetic:path>$PATH</kinetic:path>
+$header
       $expected_instances
       <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>

@@ -9,6 +9,7 @@ use base 'TEST::Kinetic::Store::DB';
 use Test::More;
 use Test::Exception;
 
+use TEST::Kinetic::Traits::Store qw/test_objects/;
 use Kinetic::Store qw/:all/;
 
 use aliased 'TestApp::Simple::One';
@@ -24,7 +25,7 @@ __PACKAGE__->runtests unless caller;
 
 sub full_text_search : Test(1) {
     my $test = shift;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Kinetic::Store->new;
     throws_ok {$store->search($class => 'full text search string')}
@@ -34,7 +35,7 @@ sub full_text_search : Test(1) {
 
 sub search_match : Test(1) {
     my $test = shift;
-    my ($foo, $bar, $baz) = @{$test->{test_objects}};
+    my ($foo, $bar, $baz) = $test->test_objects;
     my $store = Kinetic::Store->new;
     throws_ok {$store->search( $foo->my_class, name => MATCH '(a|b)%' ) }
         'Kinetic::Util::Exception::Fatal::Unsupported',

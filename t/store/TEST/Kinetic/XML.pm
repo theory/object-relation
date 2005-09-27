@@ -14,6 +14,7 @@ use Test::File::Contents;
 
 use Encode qw(is_utf8);
 
+use TEST::Kinetic::Traits::Store qw/test_objects force_inflation/;
 use Kinetic::Meta;
 use Kinetic::Util::Language::en;
 use aliased 'Kinetic::DateTime';
@@ -162,7 +163,7 @@ sub update_from_xml : Test(4) {
     $updated_object->description('This is not the same description');
     my $xml = XML->new({object => $updated_object}); # note that one does not have an id
     my $xml_string = $xml->dump_xml;
-    my $object = $test->_force_inflation(XML->update_from_xml($xml_string));
+    my $object = $test->force_inflation(XML->update_from_xml($xml_string));
     ok exists $object->{id}, '... and an existing uuid should provide its ID for the update';
     is_deeply $object, $updated_object, '... and the new object should be correct';
 
@@ -218,7 +219,7 @@ sub new_from_xml : Test(7) {
     $one->description('some description');
     my $xml = XML->new({ object => $one});
     my $xml_string = $xml->dump_xml;
-    my $object = $test->_force_inflation(XML->new_from_xml($xml_string));
+    my $object = $test->force_inflation(XML->new_from_xml($xml_string));
     is_deeply $object, $one, '... and it should return a valid object';
 
     my $two = Two->new;
@@ -231,7 +232,7 @@ sub new_from_xml : Test(7) {
     $two->one($one);
     $xml->object($two);
     $xml_string = $xml->dump_xml;
-    $object = $test->_force_inflation(XML->new_from_xml($xml_string));
+    $object = $test->force_inflation(XML->new_from_xml($xml_string));
     is_deeply $object, $two, 'Contained objects should be deserializable, too';
 
     my $contained_xml = <<"    END_XML"; 
@@ -251,7 +252,7 @@ sub new_from_xml : Test(7) {
       </two>
     </kinetic>
     END_XML
-    $object = $test->_force_inflation(XML->new_from_xml($contained_xml));
+    $object = $test->force_inflation(XML->new_from_xml($contained_xml));
     is_deeply $object, $two, '... even if we are using old-style xml';
 }
 
