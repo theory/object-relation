@@ -12,16 +12,21 @@
 
   <xsl:template match="kinetic">
     <html>
-    <head><title><xsl:value-of select="instance/@key" /></title></head>
+    <head>
+        <link rel="stylesheet" href="/css/rest.css"/>
+        <title><xsl:value-of select="instance/@key" /></title>
+    </head>
     <body>
-      <table bgcolor="#eeeeee" border="1">
-        <tr>
-          <th colspan="2"><xsl:value-of select="instance/@key" /></th>
-        </tr>
-        <xsl:for-each select="instance">
-          <xsl:apply-templates select="attr" />
-        </xsl:for-each>
-      </table>
+      <div class="listing"> 
+        <table border="1">
+          <tr>
+            <th colspan="2"><xsl:value-of select="instance/@key" /></th>
+          </tr>
+          <xsl:for-each select="instance">
+            <xsl:apply-templates select="attr" />
+          </xsl:for-each>
+        </table>
+      </div>
     </body>
     </html>
   </xsl:template>

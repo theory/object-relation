@@ -13,17 +13,20 @@
     <html>
       <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <link rel="stylesheet" href="/css/rest.css"/>
         <title><xsl:value-of select="kinetic:description" /></title>
       </head>
       <body>
-        <table bgcolor="#eeeeee" border="1">
-          <tr>
-            <th><xsl:value-of select="kinetic:description" /></th>
-          </tr>
-          <xsl:for-each select=".">
-            <xsl:apply-templates select="kinetic:resource" />
-          </xsl:for-each>
-        </table>
+        <div class="listing">
+          <table border="1">
+            <tr>
+              <th><xsl:value-of select="kinetic:description" /></th>
+            </tr>
+            <xsl:for-each select=".">
+              <xsl:apply-templates select="kinetic:resource" />
+            </xsl:for-each>
+          </table>
+        </div>
 
         <!--                                        -->
         <!-- Only build page links if we have pages -->

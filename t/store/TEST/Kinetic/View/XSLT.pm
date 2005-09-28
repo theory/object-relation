@@ -226,12 +226,14 @@ $header
     $html_header = $test->header_html(AVAILABLE_RESOURCES);
     is_xml $xhtml, <<"    END_XHTML", '... and return the correct xhtml';
 $html_header
-    <table bgcolor="#eeeeee" border="1">
-      <tr><th>@{[AVAILABLE_RESOURCES]}</th></tr>
-      <tr><td><a href="http://somehost.com/rest/one">one</a></td></tr>
-      <tr><td><a href="http://somehost.com/rest/simple">simple</a></td></tr>
-      <tr><td><a href="http://somehost.com/rest/two">two</a></td></tr>
-    </table>
+    <div class="listing">
+      <table border="1">
+        <tr><th>@{[AVAILABLE_RESOURCES]}</th></tr>
+        <tr><td><a href="http://somehost.com/rest/one">one</a></td></tr>
+        <tr><td><a href="http://somehost.com/rest/simple">simple</a></td></tr>
+        <tr><td><a href="http://somehost.com/rest/two">two</a></td></tr>
+      </table>
+    </div>
   </body>
 </html>
     END_XHTML
@@ -246,31 +248,33 @@ $html_header
     $html_header = $test->header_html('one');
     is_xml $xhtml, <<"    END_XHTML", '... and return the correct xhtml';
 $html_header
-    <table bgcolor="#eeeeee" border="1">
-      <tr>
-        <th colspan="2">one</th>
-      </tr>
-      <tr>
-        <td>bool</td>
-        <td>1</td>
-      </tr>
-      <tr>
-        <td>description</td>
-        <td></td>
-      </tr>
-      <tr>
-        <td>name</td>
-        <td>foo</td>
-      </tr>
-      <tr>
-        <td>state</td>
-        <td>1</td>
-      </tr>
-      <tr>
-        <td>uuid</td>
-        <td>@{[$foo->uuid]}</td>
-      </tr>
-    </table>
+    <div class="listing">
+      <table border="1">
+        <tr>
+          <th colspan="2">one</th>
+        </tr>
+        <tr>
+          <td>bool</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>description</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>name</td>
+          <td>foo</td>
+        </tr>
+        <tr>
+          <td>state</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>uuid</td>
+          <td>@{[$foo->uuid]}</td>
+        </tr>
+      </table>
+    </div>
   </body>
 </html>
     END_XHTML
@@ -303,20 +307,22 @@ $header
     my $html_header = $test->header_html(AVAILABLE_RESOURCES);
     is_xml $xhtml, <<"    END_XHTML", '... and return xml with pages';
 $html_header
-        <table bgcolor="#eeeeee" border="1">
-          <tr>
-            <th>name</th>
-            <th>rank</th>
-          </tr>
-          <tr>
-            <td><a href="http://domain/rest/one/lookup/uuid/XXX">foo</a></td>
-            <td><a href="http://domain/rest/one/lookup/uuid/XXX">General</a></td>
-          </tr>
-          <tr>
-            <td><a href="http://domain/rest/one/lookup/uuid/XXX">bar</a></td>
-            <td><a href="http://domain/rest/one/lookup/uuid/XXX">Private</a></td>
-          </tr>
-        </table>
+        <div class="listing">
+          <table border="1">
+            <tr>
+              <th>name</th>
+              <th>rank</th>
+            </tr>
+            <tr>
+              <td><a href="http://domain/rest/one/lookup/uuid/XXX">foo</a></td>
+              <td><a href="http://domain/rest/one/lookup/uuid/XXX">General</a></td>
+            </tr>
+            <tr>
+              <td><a href="http://domain/rest/one/lookup/uuid/XXX">bar</a></td>
+              <td><a href="http://domain/rest/one/lookup/uuid/XXX">Private</a></td>
+            </tr>
+          </table>
+        </div>
         <p>
           <a href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/0">[ Page 1 ]</a>
           <a href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/2">[ Page 2 ]</a>

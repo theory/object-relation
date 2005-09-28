@@ -192,17 +192,10 @@ $html_header
         '... as should paging through result sets'
     );
     $search_form = $test->search_form('one', '', 2, 'name' );
-    $instances = $test->instance_table('type=html', $baz);
-    $expected  = <<"    END_XHTML";
-<?xml version="1.0"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>@{[AVAILABLE_INSTANCES]}</title>
-    <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
-  </head>
-  <body onload="document.search_form.search.focus()">
+    $instances   = $test->instance_table('type=html', $baz);
+    $html_header = $test->header_html(AVAILABLE_INSTANCES);
+    $expected    = <<"    END_XHTML";
+$html_header
     $search_form
     $instances
     <p>
@@ -294,16 +287,9 @@ sub web_test : Test(12) {
     my $html_header = $test->header_html(AVAILABLE_INSTANCES);
     my $search_form = $test->search_form( 'one', 'name =&gt; &quot;foo&quot;', 20, '' );
     my $instances   = $test->instance_table('type=html', $foo);
+    $html_header    = $test->header_html(AVAILABLE_INSTANCES);
     my $expected    = <<"    END_XHTML";
-<?xml version="1.0"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>@{[AVAILABLE_INSTANCES]}</title>
-    <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"></script>
-  </head>
-  <body onload="document.search_form.search.focus()">
+$html_header
     $search_form
     $instances
   </body>
