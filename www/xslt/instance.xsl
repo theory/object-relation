@@ -18,9 +18,9 @@
     </head>
     <body>
       <div class="listing"> 
-        <table border="1">
+        <table>
           <tr>
-            <th colspan="2"><xsl:value-of select="instance/@key" /></th>
+            <th class="header" colspan="2"><xsl:value-of select="instance/@key" /></th>
           </tr>
           <xsl:for-each select="instance">
             <xsl:apply-templates select="attr" />
@@ -36,7 +36,7 @@
   <!--                                 -->
   
   <xsl:template match="attr">
-    <tr>
+    <tr class="row_{position() mod 2}">
       <td>
         <xsl:value-of select="@name"/>
       </td>

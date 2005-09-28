@@ -57,13 +57,13 @@
         </xsl:if>
         
         <div class="listing">
-          <table border="1">
+          <table>
 
             <!-- Build table headers -->
 
             <tr>
               <xsl:for-each select="kinetic:resource[1]/kinetic:attribute">
-              <th><xsl:value-of select="@name"/></th>
+              <th class="header"><xsl:value-of select="@name"/></th>
               </xsl:for-each>
             </tr>
 
@@ -80,11 +80,13 @@
         <!--                                        -->
 
         <xsl:if test="kinetic:pages">
+        <div class="pages">
           <p>
             <xsl:for-each select="kinetic:pages">
               <xsl:apply-templates select="kinetic:page" />
             </xsl:for-each>
           </p>
+        </div>
         </xsl:if>
       </body>
     </html>
@@ -111,7 +113,7 @@
   <!--                                                  -->
   
   <xsl:template match="kinetic:resource">
-    <tr>
+    <tr class="row_{position() mod 2}">
       <xsl:for-each select="kinetic:attribute">
       <td><a href="{../@xlink:href}"><xsl:apply-templates/></a></td>
       </xsl:for-each>

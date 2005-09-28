@@ -177,10 +177,12 @@ $header
 $html_header
     $search_form
     $instances
-    <p>
-      [ Page 1 ]
-      <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/2?type=html">[ Page 2 ]</a>
-    </p>
+    <div class="pages">
+      <p>
+        [ Page 1 ]
+        <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/2?type=html">[ Page 2 ]</a>
+      </p>
+    </div>
   </body>
 </html>
     END_XHTML
@@ -198,10 +200,12 @@ $html_header
 $html_header
     $search_form
     $instances
-    <p>
-      <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/0?type=html">[ Page 1 ]</a>
-      [ Page 2 ]
-    </p>
+    <div class="pages">
+      <p>
+        <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/0?type=html">[ Page 1 ]</a>
+        [ Page 2 ]
+      </p>
+    </div>
   </body>
 </html>
     END_XHTML

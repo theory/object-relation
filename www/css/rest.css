@@ -45,19 +45,23 @@ a.menuselect:hover {
     margin-top:       0px;
 }
 
-.search_form, .listing {
+.search_form, .listing, .pages {
     border-right:     black thin solid;
     border-top:       black thin solid;
     border-left:      black thin solid;
     border-bottom:    black thin solid;
     padding-right:    5px;
     padding-left:     5px;
-    padding-bottom:   5px;
-    padding-top:      5px;
     margin-bottom:    2px;
     margin-top:       2px;
 }
-.search_form {
+
+.search_form, .listing {
+    padding-bottom:   5px;
+    padding-top:      5px;
+}
+
+.search_form, .pages {
     color:            #202060;
     background-color: #eeeeee
 }
@@ -65,8 +69,25 @@ a.menuselect:hover {
 .listing {
     text-align:       left;
     color:            #202060;
-    font-family:      courier, monospace;
     background-color: #C0C0C0
+}
+
+/*
+    Alternating colors for table rows
+*/
+
+.row_0 { background-color: #aaaaaa }
+.row_1 { background-color: #eeeeee }
+
+/*
+    Make first letter of header uppercase
+*/
+
+.header:first-letter { text-transform: uppercase }
+.header {
+    color:            white;
+    background-color: black;
+    font-size:        16px;
 }
 
 /*

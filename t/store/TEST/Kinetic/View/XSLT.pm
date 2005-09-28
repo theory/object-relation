@@ -227,11 +227,11 @@ $header
     is_xml $xhtml, <<"    END_XHTML", '... and return the correct xhtml';
 $html_header
     <div class="listing">
-      <table border="1">
-        <tr><th>@{[AVAILABLE_RESOURCES]}</th></tr>
-        <tr><td><a href="http://somehost.com/rest/one">one</a></td></tr>
-        <tr><td><a href="http://somehost.com/rest/simple">simple</a></td></tr>
-        <tr><td><a href="http://somehost.com/rest/two">two</a></td></tr>
+      <table>
+        <tr><th class="header">@{[AVAILABLE_RESOURCES]}</th></tr>
+        <tr class="row_1"><td><a href="http://somehost.com/rest/one">one</a></td></tr>
+        <tr class="row_0"><td><a href="http://somehost.com/rest/simple">simple</a></td></tr>
+        <tr class="row_1"><td><a href="http://somehost.com/rest/two">two</a></td></tr>
       </table>
     </div>
   </body>
@@ -249,27 +249,27 @@ $html_header
     is_xml $xhtml, <<"    END_XHTML", '... and return the correct xhtml';
 $html_header
     <div class="listing">
-      <table border="1">
+      <table>
         <tr>
-          <th colspan="2">one</th>
+          <th class="header" colspan="2">one</th>
         </tr>
-        <tr>
+        <tr class="row_1">
           <td>bool</td>
           <td>1</td>
         </tr>
-        <tr>
+        <tr class="row_0">
           <td>description</td>
           <td></td>
         </tr>
-        <tr>
+        <tr class="row_1">
           <td>name</td>
           <td>foo</td>
         </tr>
-        <tr>
+        <tr class="row_0">
           <td>state</td>
           <td>1</td>
         </tr>
-        <tr>
+        <tr class="row_1">
           <td>uuid</td>
           <td>@{[$foo->uuid]}</td>
         </tr>
@@ -308,25 +308,27 @@ $header
     is_xml $xhtml, <<"    END_XHTML", '... and return xml with pages';
 $html_header
         <div class="listing">
-          <table border="1">
+          <table>
             <tr>
-              <th>name</th>
-              <th>rank</th>
+              <th class="header">name</th>
+              <th class="header">rank</th>
             </tr>
-            <tr>
+            <tr class="row_1">
               <td><a href="http://domain/rest/one/lookup/uuid/XXX">foo</a></td>
               <td><a href="http://domain/rest/one/lookup/uuid/XXX">General</a></td>
             </tr>
-            <tr>
+            <tr class="row_0">
               <td><a href="http://domain/rest/one/lookup/uuid/XXX">bar</a></td>
               <td><a href="http://domain/rest/one/lookup/uuid/XXX">Private</a></td>
             </tr>
           </table>
         </div>
-        <p>
-          <a href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/0">[ Page 1 ]</a>
-          <a href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/2">[ Page 2 ]</a>
-        </p>
+        <div class="pages">
+          <p>
+            <a href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/0">[ Page 1 ]</a>
+            <a href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/2">[ Page 2 ]</a>
+          </p>
+        </div>
       </body>
     </html>
     END_XHTML

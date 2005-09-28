@@ -237,15 +237,17 @@ sub instance_table {
     my ( $test, $query, @objects ) = @_;
     my $url = $test->url;
     $query = "?$query" if $query;
-    my $table      = '<div class="listing"><table border="1"><tr>';
+    my $table      = '<div class="listing"><table><tr>';
     my @attributes = $test->desired_attributes;
     foreach my $attr (@attributes) {
-        $table .= "<th>$attr</th>";
+        $table .= qq{<th class="header">$attr</th>};
     }
     $table .= '</tr>';
+    my $odd_even = 0;
     foreach my $object (@objects) {
         my $uuid = $object->uuid;
-        $table .= '<tr>';
+        $odd_even = ! $odd_even || 0; # creating alternating row colors
+        $table .= qq{<tr class="row_$odd_even">};
         foreach my $attr (@attributes) {
             my $value = ( $object->$attr || '' );
             $table .= <<"            END_ATTR";

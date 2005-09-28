@@ -18,9 +18,9 @@
       </head>
       <body>
         <div class="listing">
-          <table border="1">
+          <table>
             <tr>
-              <th><xsl:value-of select="kinetic:description" /></th>
+              <th class="header"><xsl:value-of select="kinetic:description" /></th>
             </tr>
             <xsl:for-each select=".">
               <xsl:apply-templates select="kinetic:resource" />
@@ -49,7 +49,7 @@
   <!--                                                  -->
   
   <xsl:template match="kinetic:resource">
-    <tr>
+    <tr class="row_{position() mod 2}">
       <td>
         <a href="{@xlink:href}"><xsl:value-of select="@id" /></a>
       </td>
