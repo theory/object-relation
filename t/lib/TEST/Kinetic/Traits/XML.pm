@@ -2,6 +2,8 @@ package TEST::Kinetic::Traits::XML;
 
 #use Class::Trait 'base';
 # required url() from Traits::HTML
+# required domain() from Traits::HTML
+# required path() from Traits::HTML
 
 use strict;
 use warnings;
@@ -20,6 +22,7 @@ use Exporter::Tidy default => [
       instance_order
       expected_instance_xml
       header_xml
+      resource_list_xml
       /
 ];
 
@@ -84,12 +87,12 @@ sub expected_instance_xml {
     my $url = $test->url;
     my @attributes = $test->desired_attributes;
     my $instance_xml = <<"    END_INSTANCE_XML";
-    <kinetic:resource id="%s" xlink:href="${url}${class_key}/lookup/uuid/%s">
+    <kinetic:instance id="%s" xlink:href="${url}${class_key}/lookup/uuid/%s">
     END_INSTANCE_XML
     foreach my $attr (@attributes) {
         $instance_xml .= qq'<kinetic:attribute name="$attr">%s</kinetic:attribute>\n';
     }
-    $instance_xml .= "    </kinetic:resource>\n";
+    $instance_xml .= "    </kinetic:instance>\n";
     my $result = '';
     foreach my $instance (@$order_ref) {
         $result .= sprintf $instance_xml,
@@ -136,6 +139,35 @@ sub header_xml {
       <kinetic:domain>$domain</kinetic:domain>
       <kinetic:path>$path</kinetic:path>
     END_XML
+}
+
+##############################################################################
+
+=head3 resource_list_xml
+
+ my $resource_list_xml = $test->resource_list_xml([$no_namespaces]);
+
+This method will return the current resource list for an XML document.
+
+If passed a true value, the returned XML will not have namespaces.  This is
+due to an apparent limitation in L<XML::Genx|XML::Genx>.
+
+=cut
+
+sub resource_list_xml {
+    my ($test, $no_namespaces) = @_;
+    my $url       = $test->url;
+    my $resources = '';
+    my ($kinetic, $xlink) = qw( kinetic: xlink: );
+    if ($no_namespaces) {
+        ($kinetic, $xlink) = ('','');
+    }
+    foreach my $key ( sort Kinetic::Meta->keys ) {
+        next if Kinetic::Meta->for_key($key)->abstract;
+        $resources .=
+qq'<${kinetic}resource id="$key" ${xlink}href="$url$key/search"/>';
+    }
+    return $resources;
 }
 
 1;

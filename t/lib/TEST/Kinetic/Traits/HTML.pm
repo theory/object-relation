@@ -20,6 +20,8 @@ use Exporter::Tidy default => [
       header_html
       instance_table
       path
+      query_string
+      resource_list_html
       search_form
       url
       /
@@ -102,6 +104,35 @@ sub path {
 
 ##############################################################################
 
+=head3 query_string
+
+  my $query_string = $test->query_string;
+  $test->query_string('foo=bar');
+
+This is the getter/setter for query strings.  An undefined query string will
+set the query string to the empty string.
+
+A defined query string will add a question mark to the beginning of a query
+string if it does not exist.
+
+=cut
+
+sub query_string {
+    my $test = shift;
+    return $test->{query_string} || '' unless @_;
+    if ( defined( my $query_string = shift ) ) {
+        $query_string =~ s{^(?=[^?])}{?}g;
+        $test->{query_string} = $query_string;
+    }
+    else {
+        $test->{query_string} = '';
+    }
+    return $test;
+}
+    
+
+##############################################################################
+
 =head3 url
 
   my $url = $test->url;
@@ -175,7 +206,7 @@ sub search_form {
     my $domain = $test->domain;
     my $path   = $test->path;
     return <<"    END_FORM";
-    <div class="search_form">
+    <div class="search">
       <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
         <input type="hidden" name="class_key" value="$class_key" />
         <input type="hidden" name="domain" value="$domain" />
@@ -223,22 +254,21 @@ sub search_form {
 
 =head3 instance_table
 
-  my $table = $test->instance_table($query_string, @objects);
+  my $table = $test->instance_table(@objects);
 
-This method returns the instance table that the XSLT generates.  It expects to
-know which query string (if any) is required and a list of Kinetic objects.
+This method returns the instance table that the XSLT generates.
 
-Internally it calls a C<desired_attributes> method to return a list of the
-attributes which will be included in the instance table.
+Assumes C<query_string>, C<url> and C<desired_attributes> are set.
 
 =cut
 
 sub instance_table {
-    my ( $test, $query, @objects ) = @_;
-    my $url = $test->url;
-    $query = "?$query" if $query;
-    my $table      = '<div class="listing"><table><tr>';
+    my ( $test, @objects ) = @_;
+    my $url        = $test->url;
+    my $query      = $test->query_string;
     my @attributes = $test->desired_attributes;
+
+    my $table      = '<div class="listing"><table><tr>';
     foreach my $attr (@attributes) {
         $table .= qq{<th class="header">$attr</th>};
     }
@@ -262,4 +292,28 @@ sub instance_table {
     return $table;
 }
 
+##############################################################################
+
+=head3 resource_list_html
+
+ my $resource_list_html = $test->resource_list_html;
+
+This method will return the current resource list for an HTML document.
+
+Assumes C<query_string> and C<url> are set.
+
+=cut
+
+sub resource_list_html {
+    my ($test) = shift;
+    my $base_url  = $test->url;
+    my $query     = $test->query_string;
+    my $resources = '<div id="sidebar"><ul>';
+    foreach my $key ( sort Kinetic::Meta->keys ) {
+        next if Kinetic::Meta->for_key($key)->abstract;
+        $resources .= qq'<li><a href="${base_url}$key/search$query">$key</a></li>\n';
+    }
+    $resources .= '</ul></div>';
+    return $resources;
+}
 1;

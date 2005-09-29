@@ -73,6 +73,7 @@ this class.
   my $xml = Kinetic::XML->new({
     object         => $object,
     stylesheet_url => $url,
+    resources_url => $url,
   });
 
 Creates and returns a new xml object.  It optionally takes a L<Kinetic|Kinetic>
@@ -94,6 +95,7 @@ sub new {
     $self->object( $args->{object}                 || () );
     $self->attributes( $args->{attributes}         || () );
     $self->stylesheet_url( $args->{stylesheet_url} || () );
+    $self->resources_url( $args->{resources_url}   || () );
     $self;
 }
 
@@ -161,7 +163,6 @@ sub _get_hash_from_xml {
 sub _rewrite_xml_hash {
     my $hash = shift;
 
-    #print Dumper($hash);
     my $attributes = $hash->{instance}{attr};
     my %attributes;
     if ( exists $hash->{instance}{instance} ) {
@@ -298,6 +299,7 @@ serialized within the XML for the main object. If it is false (the default),
 then contained objects will merely be referenced by UUID and name.
 
 =back
+
 =cut
 
 my @OBJECTS;
@@ -305,8 +307,7 @@ my @OBJECTS;
 sub dump_xml {
     my $self   = shift;
     my %params = @_;
-    my $object = $self->object;
-    push @OBJECTS => $object;
+    push @OBJECTS => $self->object;
     local $self->{params} = \%params;
     my $xml = XML::Genx::Simple->new;
     eval {
@@ -316,7 +317,18 @@ sub dump_xml {
         }
         $xml->StartElementLiteral('kinetic');
         $xml->AddAttributeLiteral( version => XML_VERSION );
+        if ( my $url = $self->resources_url ) {
+            foreach my $key ( sort Kinetic::Meta->keys ) {
+                next if Kinetic::Meta->for_key($key)->abstract;
+                $xml->StartElementLiteral('resource');
+                $xml->AddAttributeLiteral( id   => $key );
+                $xml->AddAttributeLiteral( href => "$url$key/search" );
+                $xml->EndElement;
+            }
+        }
         while ( my $object = shift @OBJECTS ) {
+
+            # may push objects onto @OBJECTS
             $self->_add_object_to_xml( $xml, $object );
         }
         $xml->EndElement;
@@ -424,6 +436,31 @@ sub object {
 
 ##############################################################################
 
+=head3 resources_url
+
+  my $url = $xml->resources_url;
+  $xml->resources_url($url);
+
+Getter/setter for resources url.  If present, the resulting XML will also
+include a list of available resources (non-abstract Kinetic class key names).
+This is primarily used for the REST interface.
+
+=cut
+
+sub resources_url {
+    my $self = shift;
+    return $self->{resources_url} unless @_;
+    if ( defined( my $url = shift ) ) {
+        $self->{resources_url} = $url;
+    }
+    else {
+        $self->{resources_url} = '';
+    }
+    return $self;
+}
+
+##############################################################################
+
 =head3 stylesheet_url
 
   $xml->stylesheet_url($stylesheet_url);
@@ -482,8 +519,11 @@ sub attributes {
             $attributes = [$attributes] unless ref $attributes;
             foreach my $attr (@$attributes) {
                 my ( $key, $value ) = $attr =~ /$delimiter/
-                  ? ( split /$delimiter/ => $attr,
-                    2 )    # one.name -> one       => name
+                  ? (
+                    split
+                      /$delimiter/ => $attr,
+                    2
+                  )    # one.name -> one       => name
                   : ( $curr_key, $attr );    # name     -> $curr_key => name
                 if ( $key ne $curr_key ) {
 

@@ -45,7 +45,7 @@ a.menuselect:hover {
     margin-top:       0px;
 }
 
-.search_form, .listing, .pages {
+.search, .listing, .pages {
     border-right:     black thin solid;
     border-top:       black thin solid;
     border-left:      black thin solid;
@@ -54,22 +54,34 @@ a.menuselect:hover {
     padding-left:     5px;
     margin-bottom:    2px;
     margin-top:       2px;
+    margin-left:      180px; /* see sidebar */
 }
 
-.search_form, .listing {
+.search, .listing {
     padding-bottom:   5px;
     padding-top:      5px;
 }
 
-.search_form, .pages {
+.search, .pages {
     color:            #202060;
-    background-color: #eeeeee
+    background-color: #eeeeee;
 }
 
 .listing {
     text-align:       left;
     color:            #202060;
-    background-color: #C0C0C0
+    background-color: #C0C0C0;
+}
+
+#sidebar {
+    border-right:     black thin solid;
+    border-top:       black thin solid;
+    border-left:      black thin solid;
+    border-bottom:    black thin solid;
+    margin-bottom:    2px;
+    width:            176px;
+    float:            left;
+    background-color: #C0C0C0;
 }
 
 /*

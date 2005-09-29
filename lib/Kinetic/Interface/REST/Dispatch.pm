@@ -27,14 +27,13 @@ use Readonly;
 
 use Kinetic::Meta;
 use Kinetic::XML;
-use Kinetic::Meta::XML;
 use Kinetic::Store;
 use Kinetic::Util::Constants qw/:http :xslt :labels/;
 use Kinetic::View::XSLT;
 
 our $VERSION = version->new('0.0.1');
 
-Readonly my %DONT_DISPLAY        => ( uuid => 1 );
+Readonly my %DONT_DISPLAY => ( uuid => 1 );
 Readonly my $MAX_ATTRIBUTE_INDEX => 4;
 Readonly my $PLACEHOLDER         => 'null';
 Readonly my $DEFAULT_LIMIT       => 20;
@@ -214,8 +213,8 @@ sub get_args {
 }
 
 sub _query_string {
-    my $rest = shift;
-    my $type = lc $rest->cgi->param('type') || return '';
+    my $self = shift;
+    my $type = lc $self->rest->cgi->param('type') || return '';
     return '' if 'xml' eq $type;    # because this is the default
     return "?type=$type";
 }
@@ -236,17 +235,25 @@ sub class_list {
     my ($self) = @_;
 
     my $rest     = $self->rest;
-    my $response = _xml_header( $rest, AVAILABLE_RESOURCES );
-
-    my $base_url     = _rest_base_url($rest);
-    my $query_string = _query_string($rest);
-    foreach my $key ( sort Kinetic::Meta->keys ) {
-        next if Kinetic::Meta->for_key($key)->abstract;
-        $response .=
-qq'<kinetic:resource id="$key" xlink:href="${base_url}$key/search$query_string"/>';
-    }
+    my $response = $self->_xml_header(AVAILABLE_RESOURCES);
+    $response .= $self->_get_resources;
     $response .= "</kinetic:resources>";
     return $rest->set_response($response);
+}
+
+sub _get_resources {
+    my ($self) = @_;
+    my $rest         = $self->rest;
+    my $base_url     = $self->_rest_base_url;
+    my $query_string = $self->_query_string;
+
+    my $resources = '';
+    foreach my $key ( sort Kinetic::Meta->keys ) {
+        next if Kinetic::Meta->for_key($key)->abstract;
+        $resources .=
+qq'<kinetic:resource id="$key" xlink:href="${base_url}$key/search$query_string"/>';
+    }
+    return $resources;
 }
 
 =head3 handle_rest_request
@@ -280,6 +287,7 @@ sub _handle_constructor {
         {
             object         => $obj,
             stylesheet_url => INSTANCE_XSLT,
+            resources_url  => $self->_rest_base_url,
         }
     )->dump_xml;
     return $rest->set_response( $xml, 'instance' );
@@ -338,34 +346,39 @@ sub _instance_list {
     my $limit  = $args{limit};
     my $offset = $args{offset};
 
-    my $rest         = $self->rest;
-    my $response     = _xml_header( $rest, AVAILABLE_INSTANCES );
-    my $base_url     = _rest_base_url($rest);
-    my $query_string = _query_string($rest);
+    my $rest     = $self->rest;
+    my $response = $self->_xml_header(AVAILABLE_INSTANCES);
+    $response .= $self->_get_resources;
+    my $base_url     = $self->_rest_base_url;
+    my $query_string = $self->_query_string;
 
     my $instance_count = 0;
     my $key            = $self->class_key;
     my @attributes;
-    while ( my $resource = $iterator->next ) {
+    while ( my $instance = $iterator->next ) {
         unless (@attributes) {
             @attributes =
-              grep { !$_->references && ! exists $DONT_DISPLAY{$_->name} } $resource->my_class->attributes;
-            my $i = $MAX_ATTRIBUTE_INDEX < $#attributes
-                ? $MAX_ATTRIBUTE_INDEX
-                : $#attributes;
+              grep { !$_->references && !exists $DONT_DISPLAY{ $_->name } }
+              $instance->my_class->attributes;
+            my $i =
+              $MAX_ATTRIBUTE_INDEX < $#attributes
+              ? $MAX_ATTRIBUTE_INDEX
+              : $#attributes;
+
             # don't list all attributes
-            @attributes = @attributes[0 .. $i]
+            @attributes = @attributes[ 0 .. $i ];
         }
         $instance_count++;
-        my $uuid = $resource->uuid;
+        my $uuid = $instance->uuid;
         my $url  = "$base_url$key/lookup/uuid/$uuid$query_string";
-        $response .= qq'<kinetic:resource id="$uuid" xlink:href="$url">\n';
+        $response .= qq'<kinetic:instance id="$uuid" xlink:href="$url">\n';
         foreach my $attribute (@attributes) {
             my $method = $attribute->name;
-            my $value  = ($resource->$method || '');
-            $response .= qq'<kinetic:attribute name="$method">$value</kinetic:attribute>\n';
+            my $value = ( $instance->$method || '' );
+            $response .=
+qq'<kinetic:attribute name="$method">$value</kinetic:attribute>\n';
         }
-        $response .= qq'</kinetic:resource>\n';
+        $response .= qq'</kinetic:instance>\n';
     }
 
     if ($instance_count) {
@@ -375,7 +388,7 @@ sub _instance_list {
     }
     else {
         $response .=
-          '       <kinetic:resource id="No resources found" xlink:href="#"/>';
+          '       <kinetic:instance id="No resources found" xlink:href="#"/>';
     }
     $response .= "</kinetic:resources>";
     return $rest->set_response($response);
@@ -389,19 +402,29 @@ sub _add_search_data {
 
     $arg_for{STRING} = encode_entities( $arg_for{STRING} );
 
-    my $search_order;
-    my $order_by = 0;
+    my $search_order = '';
+    my ( $order_by, $sort_order ) = ( 0, 0 );
+    my @sort_options = ( ASC  => 'Ascending', DESC => 'Descending' );
     while ( defined( my $arg = shift @$args ) ) {
-        my $value = encode_entities( shift @$args );
         next unless 'order_by' eq $arg || 'sort_order' eq $arg;
-        $order_by     = 1;
-        $search_order =
-          qq'<kinetic:parameter type="$arg">$value</kinetic:parameter>\n';
+        my $value = encode_entities( shift @$args );
+        if ( 'order_by' eq $arg && !$order_by ) {
+            $order_by = 1;
+            $search_order .=
+              qq'<kinetic:parameter type="$arg">$value</kinetic:parameter>\n';
+        }
+        if ( 'sort_order' eq $arg && !$sort_order ) {
+            $sort_order = 1;
+            $search_order .= _widget( $arg, 'select', $value, \@sort_options );
+        }
 
         # XXX We last out of this as we only want the first order_by for this
-        # and we don't yet handle sort_order.
-        # we'll fix this after I have more XSLT experience
-        last;
+        last if $order_by && $sort_order;
+    }
+
+    # make Ascending sort order the default
+    if ( ! $sort_order ) {
+        $search_order .= _widget('sort_order', 'select', 'ASC', \@sort_options );
     }
     $search_order = '<kinetic:parameter type="order_by"/>'
       unless $order_by;
@@ -414,6 +437,18 @@ sub _add_search_data {
         $search_order
       </kinetic:search_parameters>
     END_SEARCH_DATA
+}
+
+sub _widget {
+    my ($search_type, $widget_type, $value, $options) = @_;
+    my $widget = qq{<kinetic:parameter type="$search_type" widget="$widget_type">};
+    for (my $i = 0; $i < @$options; $i += 2) {
+        my ($option, $label) = @{$options}[$i, $i+1];
+        my $selected = $option eq $value ? ' selected="selected"' : '';
+        $widget .= qq{  <kinetic:option name="$option"$selected>$label</kinetic:option>\n};
+    }
+    $widget .= "</kinetic:parameter>\n";
+    return $widget;
 }
 
 sub _add_pageset {
@@ -528,17 +563,17 @@ sub _pageset {
 
 =head3 _rest_base_url
 
-  my $rest_url_format = _rest_base_url($rest);
+  my $rest_url_format = $self->_rest_base_url;
 
-Takes a L<Kinetic::Interface::REST|Kinetic::Interface::REST> instance as an
-argument.  Returns a URL suitable for embedding in XML or XHTML hrefs.
-Format is the in the form of C<$url%s$query_string>.  This allows setting
-additional REST path info items.
+Returns a URL suitable for embedding in XML or XHTML hrefs.  Format is the in
+the form of C<$url%s$query_string>.  This allows setting additional REST path
+info items.
 
 =cut
 
 sub _rest_base_url {
-    my $rest = shift;
+    my $self = shift;
+    my $rest = $self->rest;
     return join '' => map $rest->$_ => qw/domain path/;
 }
 
@@ -546,16 +581,16 @@ sub _rest_base_url {
 
 =head3 _xml_header
 
-  my $response = _xml_header($rest, $title);
+  my $response = $self->_xml_header($title);
 
-Given a rest instance title, this method returns an XML header for REST
-responses.
+Given a title, this method returns an XML header for REST responses.
 
 =cut
 
 sub _xml_header {
-    my ( $rest, $title ) = @_;
-    my $stylesheet = Kinetic::View::XSLT->location($rest->xslt);
+    my ( $self, $title ) = @_;
+    my $rest       = $self->rest;
+    my $stylesheet = Kinetic::View::XSLT->location( $rest->xslt );
     my $domain     = $rest->domain;
     my $path       = $rest->path;
     return <<"    END_HEADER";

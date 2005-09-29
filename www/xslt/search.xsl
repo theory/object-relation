@@ -24,13 +24,25 @@
           <xsl:attribute name="onload">document.search_form.search.focus()</xsl:attribute>
         </xsl:if>
         
+        <!--                         -->
+        <!-- Build the resource list -->
+        <!--                         -->
+
+        <div id="sidebar">
+          <ul>
+            <xsl:for-each select=".">
+              <xsl:apply-templates select="kinetic:resource" />
+            </xsl:for-each>
+          </ul>
+        </div>
+
         <!--                        -->
         <!-- build the search form  -->
         <!-- if there's a class key -->
         <!--                        -->
 
         <xsl:if test="kinetic:class_key">
-        <div class="search_form">
+        <div class="search">
           <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false">
             <input type="hidden" name="class_key" value="{kinetic:class_key}"/>
             <input type="hidden" name="domain"    value="{kinetic:domain}"/>
@@ -62,7 +74,7 @@
             <!-- Build table headers -->
 
             <tr>
-              <xsl:for-each select="kinetic:resource[1]/kinetic:attribute">
+              <xsl:for-each select="kinetic:instance[1]/kinetic:attribute">
               <th class="header"><xsl:value-of select="@name"/></th>
               </xsl:for-each>
             </tr>
@@ -70,7 +82,7 @@
             <!-- Build table rows -->
 
             <xsl:for-each select=".">
-              <xsl:apply-templates select="kinetic:resource" />
+              <xsl:apply-templates select="kinetic:instance" />
             </xsl:for-each>
           </table>
         </div>
@@ -109,10 +121,20 @@
   </xsl:template>
 
   <!--                                                  -->
-  <!-- Find all instances and create hyperlinks for 'em -->
+  <!-- Find all resources and create hyperlinks for 'em -->
   <!--                                                  -->
   
   <xsl:template match="kinetic:resource">
+    <li>
+      <a href="{@xlink:href}"><xsl:value-of select="@id" /></a>
+    </li>
+  </xsl:template>
+
+  <!--                                                  -->
+  <!-- Find all instances and create hyperlinks for 'em -->
+  <!--                                                  -->
+  
+  <xsl:template match="kinetic:instance">
     <tr class="row_{position() mod 2}">
       <xsl:for-each select="kinetic:attribute">
       <td><a href="{../@xlink:href}"><xsl:apply-templates/></a></td>

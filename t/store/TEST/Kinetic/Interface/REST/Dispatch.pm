@@ -279,10 +279,12 @@ sub handle : Test(6) {
     my @instance_order     = $test->instance_order($response);
     my $expected_instances =
       $test->expected_instance_xml( scalar $test->test_objects, \@instance_order );
-    my $header = $test->header_xml(AVAILABLE_INSTANCES);
+    my $header    = $test->header_xml(AVAILABLE_INSTANCES);
+    my $resources = $test->resource_list_xml;
 
     my $expected = <<"    END_XML";
 $header
+        $resources
         $expected_instances
         <kinetic:class_key>one</kinetic:class_key>
         <kinetic:search_parameters>
@@ -298,10 +300,12 @@ $header
     $dispatch->method('lookup');
     $dispatch->args( [ 'uuid', $foo_uuid ] );
     $dispatch->handle_rest_request;
+    my $no_namespace_resources = $test->resource_list_xml(1);
     $expected = <<"    END_XML";
 <?xml version="1.0"?>
     <?xml-stylesheet type="text/xsl" href="@{[INSTANCE_XSLT]}"?>
     <kinetic version="0.01">
+      $no_namespace_resources
       <instance key="one">
         <attr name="bool">1</attr>
         <attr name="description"></attr>
@@ -318,11 +322,11 @@ $header
     $dispatch->args( [ 'STRING', 'name => "foo"' ] );
     $dispatch->handle_rest_request;
 
-    my $instance =
-      $test->expected_instance_xml( [$foo] );
+    my $instance  = $test->expected_instance_xml( [$foo] );
 
     $expected = <<"    END_XML";
 $header
+      $resources
       $instance
       <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>
@@ -344,10 +348,10 @@ $header
     );
 
     $expected_instances = $test->expected_instance_xml( [ $bar, $foo ] );
-    my $bar_uuid = $bar->uuid;
     $dispatch->handle_rest_request;
     $expected = <<"    END_XML";
 $header
+      $resources
       $expected_instances
       <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>

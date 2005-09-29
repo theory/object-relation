@@ -43,9 +43,8 @@
     </html>
   </xsl:template>
   
-
   <!--                                                  -->
-  <!-- Find all instances and create hyperlinks for 'em -->
+  <!-- Find all resources and create hyperlinks for 'em -->
   <!--                                                  -->
   
   <xsl:template match="kinetic:resource">

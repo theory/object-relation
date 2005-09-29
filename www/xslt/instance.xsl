@@ -17,6 +17,19 @@
         <title><xsl:value-of select="instance/@key" /></title>
     </head>
     <body>
+
+      <!--                         -->
+      <!-- Build the resource list -->
+      <!--                         -->
+
+      <div id="sidebar">
+        <ul>
+          <xsl:for-each select=".">
+            <xsl:apply-templates select="resource" />
+          </xsl:for-each>
+        </ul>
+      </div>
+
       <div class="listing"> 
         <table>
           <tr>
@@ -31,6 +44,16 @@
     </html>
   </xsl:template>
   
+  <!--                                                  -->
+  <!-- Find all resources and create hyperlinks for 'em -->
+  <!--                                                  -->
+  
+  <xsl:template match="resource">
+    <li>
+      <a href="{@href}"><xsl:value-of select="@id" /></a>
+    </li>
+  </xsl:template>
+
   <!--                                 -->
   <!-- display an individual attribute -->
   <!--                                 -->

@@ -104,7 +104,8 @@ sub setup : Test(setup) {
     $test->test_objects([ $foo, $bar, $baz ]);
     $test->desired_attributes( [qw/ state name description bool /] );
     $test->domain('http://localhost:9000')
-         ->path('rest');
+         ->path('rest')
+         ->query_string('type=html');
 }
 
 sub teardown : Test(teardown) {
@@ -141,9 +142,11 @@ sub web_test_paging : Test(14) {
     my @instance_order     = $test->instance_order($response);
     my $expected_instances =
       $test->expected_instance_xml( [$foo, $bar, $baz], \@instance_order );
+    my $resources          = $test->resource_list_xml;
 
     my $expected = <<"    END_XML";
 $header
+      $resources
       $expected_instances
       <kinetic:pages>
         <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
@@ -169,12 +172,14 @@ $header
         'We should be able to fetch and limit the searches'
     );
 
-    my $html_header = $test->header_html(AVAILABLE_INSTANCES);
-    my $search_form = $test->search_form('one', '', 2, 'name' );
+    my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
+    my $html_resources = $test->resource_list_html;
+    my $search_form    = $test->search_form('one', '', 2, 'name' );
+    my $instances      = $test->instance_table( $bar, $foo );
 
-    my $instances = $test->instance_table( 'type=html', $bar, $foo );
     $expected = <<"    END_XHTML";
 $html_header
+    $html_resources
     $search_form
     $instances
     <div class="pages">
@@ -194,10 +199,12 @@ $html_header
         '... as should paging through result sets'
     );
     $search_form = $test->search_form('one', '', 2, 'name' );
-    $instances   = $test->instance_table('type=html', $baz);
+    $instances   = $test->instance_table($baz);
     $html_header = $test->header_html(AVAILABLE_INSTANCES);
+    $html_resources = $test->resource_list_html;
     $expected    = <<"    END_XHTML";
 $html_header
+    $html_resources
     $search_form
     $instances
     <div class="pages">
@@ -225,28 +232,28 @@ $html_header
     $mech->get_ok( "${url}one/search?type=html",
         '... as should paging through result sets' );
     my @links = $mech->links;
-    is @links, 81, 'We should receive 80 instance links and 1 page links';
+    is @links, 84, 'We should receive 80 instance links and 1 page links';
 
     $mech->get_ok(
         "${url}one/search/STRING/null/limit/30?type=html",
         'Asking for more than the limit should work'
     );
     @links = $mech->links;
-    is @links, 104, '... and return only instance links';
+    is @links, 107, '... and return only instance links';
 
     $mech->get_ok(
         "${url}one/search/STRING/null/limit/10?type=html",
         'Asking for fewer than the limit should work'
     );
     @links = $mech->links;
-    is @links, 42, '... and return the correct number of links';
+    is @links, 45, '... and return the correct number of links';
 
     $mech->get_ok(
         "${url}one/search/STRING/null/limit/26?type=html",
         'Asking for exactly the number of links that exist should work'
     );
     @links = $mech->links;
-    is @links, 104, '... and return no page links';
+    is @links, 107, '... and return no page links';
 }
 
 sub web_test : Test(12) {
@@ -288,12 +295,14 @@ sub web_test : Test(12) {
     );
 
     $foo_uuid = $foo->uuid;
-    my $html_header = $test->header_html(AVAILABLE_INSTANCES);
-    my $search_form = $test->search_form( 'one', 'name =&gt; &quot;foo&quot;', 20, '' );
-    my $instances   = $test->instance_table('type=html', $foo);
-    $html_header    = $test->header_html(AVAILABLE_INSTANCES);
+    my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
+    my $search_form    = $test->search_form( 'one', 'name =&gt; &quot;foo&quot;', 20, '' );
+    my $instances      = $test->instance_table($foo);
+    $html_header       = $test->header_html(AVAILABLE_INSTANCES);
+    my $html_resources = $test->resource_list_html;
     my $expected    = <<"    END_XHTML";
 $html_header
+    $html_resources
     $search_form
     $instances
   </body>
@@ -379,13 +388,14 @@ sub rest_interface : Test(19) {
     ok $rest->response, '... and return an entity-body';
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
-    my $foo_uuid = $foo->uuid;
-    my $header   = $test->header_xml( AVAILABLE_INSTANCES );
-    my $expected_instances = $test->expected_instance_xml( [$foo] );
+    my $header    = $test->header_xml( AVAILABLE_INSTANCES );
+    my $instances = $test->expected_instance_xml( [$foo] );
+    my $resources = $test->resource_list_xml;       
 
     my $expected = <<"    END_XML";
 $header
-      $expected_instances
+      $resources
+      $instances
       <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>
         <kinetic:parameter type="search">name =&gt; &quot;foo&quot;</kinetic:parameter>
@@ -436,12 +446,11 @@ sub basic_services : Test(3) {
     throws_ok { $rest->url('no_such_resource/')->get } qr/501 Not Implemented/,
       '... as should calling it with a non-existent resource';
 
-    my $header   = $test->header_xml(AVAILABLE_RESOURCES);
+    my $header    = $test->header_xml(AVAILABLE_RESOURCES);
+    my $resources = $test->resource_list_xml;
     my $expected = <<"    END_XML";
 $header
-      <kinetic:resource id="one"     xlink:href="${url}one/search"/>
-      <kinetic:resource id="simple"  xlink:href="${url}simple/search"/>
-      <kinetic:resource id="two"     xlink:href="${url}two/search"/>
+    $resources
     </kinetic:resources>
     END_XML
     is_xml $rest->get, $expected,
@@ -451,12 +460,13 @@ $header
     my $one_xml = $rest->url("$key/search")->get;
     # XXX Yuck.  Fix this later
     my @order = $test->instance_order($one_xml);
-    my $expected_instances =
+    my $instances =
       $test->expected_instance_xml( scalar $test->test_objects, \@order );
     $header   = $test->header_xml(AVAILABLE_INSTANCES);
     $expected = <<"    END_XML";
 $header
-      $expected_instances
+      $resources
+      $instances
       <kinetic:class_key>one</kinetic:class_key>
       <kinetic:search_parameters>
         <kinetic:parameter type="search"></kinetic:parameter>
