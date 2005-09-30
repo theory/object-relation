@@ -326,7 +326,12 @@ Those methods are:
         widget_meta   => Kinetic::Meta::Widget->new(
             type    => 'dropdown',
             tip     => 'The state of this object',
-            options => [ ACTIVE, INACTIVE, DELETED, PURGED ],
+            options => sub {[
+                [ ACTIVE->value   => ACTIVE->name   ],
+                [ INACTIVE->value => INACTIVE->name ],
+                [ DELETED->value  => DELETED->name  ],
+                [ PURGED->value   => PUGRGE->name   ],
+            ]}
         )
     );
 
