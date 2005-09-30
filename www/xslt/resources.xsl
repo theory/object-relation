@@ -17,28 +17,13 @@
         <title><xsl:value-of select="kinetic:description" /></title>
       </head>
       <body>
-        <div class="listing">
-          <table>
-            <tr>
-              <th class="header"><xsl:value-of select="kinetic:description" /></th>
-            </tr>
-            <xsl:for-each select=".">
-              <xsl:apply-templates select="kinetic:resource" />
+        <div id="sidebar">
+          <ul>
+            <xsl:for-each select="kinetic:resource">
+              <xsl:apply-templates select="." />
             </xsl:for-each>
-          </table>
+          </ul>
         </div>
-
-        <!--                                        -->
-        <!-- Only build page links if we have pages -->
-        <!--                                        -->
-
-        <xsl:if test="kinetic:pages">
-          <p>
-            <xsl:for-each select="kinetic:pages">
-              <xsl:apply-templates select="kinetic:page" />
-            </xsl:for-each>
-          </p>
-        </xsl:if>
       </body>
     </html>
   </xsl:template>
@@ -48,27 +33,7 @@
   <!--                                                  -->
   
   <xsl:template match="kinetic:resource">
-    <tr class="row_{position() mod 2}">
-      <td>
-        <a href="{@xlink:href}"><xsl:value-of select="@id" /></a>
-      </td>
-    </tr>
-  </xsl:template>
-
-  <!--                                              -->
-  <!-- Find all pages and create hyperlinks for 'em -->
-  <!-- ... but don't create a link to current page  -->
-  <!--                                              -->
-
-  <xsl:template match="kinetic:page">
-    <xsl:choose>
-      <xsl:when test="@xlink:href = '#'">
-        <xsl:value-of select="@id" />
-      </xsl:when>
-      <xsl:otherwise>
-        <a href="{@xlink:href}"><xsl:value-of select="@id" /></a>
-      </xsl:otherwise>
-    </xsl:choose>
+    <li><a href="{@xlink:href}"><xsl:value-of select="@id" /></a></li>
   </xsl:template>
 
 </xsl:stylesheet>

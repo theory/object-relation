@@ -227,13 +227,12 @@ $header
     $html_header = $test->header_html(AVAILABLE_RESOURCES);
     is_xml $xhtml, <<"    END_XHTML", '... and return the correct xhtml';
 $html_header
-    <div class="listing">
-      <table>
-        <tr><th class="header">@{[AVAILABLE_RESOURCES]}</th></tr>
-        <tr class="row_1"><td><a href="http://somehost.com/rest/one">one</a></td></tr>
-        <tr class="row_0"><td><a href="http://somehost.com/rest/simple">simple</a></td></tr>
-        <tr class="row_1"><td><a href="http://somehost.com/rest/two">two</a></td></tr>
-      </table>
+    <div id="sidebar">
+      <ul>
+        <li><a href="http://somehost.com/rest/one">one</a></li>
+        <li><a href="http://somehost.com/rest/simple">simple</a></li>
+        <li><a href="http://somehost.com/rest/two">two</a></li>
+      </ul>
     </div>
   </body>
 </html>
