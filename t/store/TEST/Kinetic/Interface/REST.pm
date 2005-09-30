@@ -143,7 +143,7 @@ sub web_test_paging : Test(14) {
     my $expected_instances =
       $test->expected_instance_xml( [$foo, $bar, $baz], \@instance_order );
     my $resources          = $test->resource_list_xml;
-
+    my $search = $test->search_data_xml({ key => 'one', limit => 2, order_by => 'name'});
     my $expected = <<"    END_XML";
 $header
       $resources
@@ -152,12 +152,7 @@ $header
         <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
         <kinetic:page id="[ Page 2 ]" xlink:href="${url}one/search/STRING/null/order_by/name/limit/2/offset/2" />
       </kinetic:pages>
-      <kinetic:class_key>one</kinetic:class_key>
-      <kinetic:search_parameters>
-        <kinetic:parameter type="search"></kinetic:parameter>
-        <kinetic:parameter type="limit">2</kinetic:parameter>
-        <kinetic:parameter type="order_by">name</kinetic:parameter>
-      </kinetic:search_parameters>
+      $search
     </kinetic:resources>
     END_XML
 
@@ -391,17 +386,13 @@ sub rest_interface : Test(19) {
     my $header    = $test->header_xml( AVAILABLE_INSTANCES );
     my $instances = $test->expected_instance_xml( [$foo] );
     my $resources = $test->resource_list_xml;       
+    my $search    = $test->search_data_xml({ key => 'one', search => 'name => "foo"', order_by => 'name'});
 
     my $expected = <<"    END_XML";
 $header
       $resources
       $instances
-      <kinetic:class_key>one</kinetic:class_key>
-      <kinetic:search_parameters>
-        <kinetic:parameter type="search">name =&gt; &quot;foo&quot;</kinetic:parameter>
-        <kinetic:parameter type="limit">20</kinetic:parameter>
-        <kinetic:parameter type="order_by">name</kinetic:parameter>
-      </kinetic:search_parameters>
+      $search
     </kinetic:resources>
     END_XML
 
@@ -462,17 +453,13 @@ $header
     my @order = $test->instance_order($one_xml);
     my $instances =
       $test->expected_instance_xml( scalar $test->test_objects, \@order );
-    $header   = $test->header_xml(AVAILABLE_INSTANCES);
+    $header    = $test->header_xml(AVAILABLE_INSTANCES);
+    my $search = $test->search_data_xml({key => 'one'});
     $expected = <<"    END_XML";
 $header
       $resources
       $instances
-      <kinetic:class_key>one</kinetic:class_key>
-      <kinetic:search_parameters>
-        <kinetic:parameter type="search"></kinetic:parameter>
-        <kinetic:parameter type="limit">20</kinetic:parameter>
-        <kinetic:parameter type="order_by"></kinetic:parameter>
-      </kinetic:search_parameters>
+      $search
     </kinetic:resources>
     END_XML
     is_xml $one_xml, $expected,
@@ -483,15 +470,18 @@ $header
     $two_xml =~ s/@{[UUID_RE]}/XXX/g;
 }
 
-sub xslt : Test(2) {
+sub xslt : Test(3) {
     my $test = shift;
     my $rest = $test->REST;
 
     is_well_formed_xml $rest->get( stylesheet => 'instance' ),
-      'Requesting an instance stylesheet should return valid xml';
+      'Requesting an "instance" stylesheet should return valid xml';
 
-    is_well_formed_xml $rest->get( stylesheet => 'REST' ),
-      'Requesting a REST stylesheet should return valid xml';
+    is_well_formed_xml $rest->get( stylesheet => 'search' ),
+      'Requesting a "search" stylesheet should return valid xml';
+
+    is_well_formed_xml $rest->get( stylesheet => 'resources' ),
+      'Requesting a "resources" stylesheet should return valid xml';
 }
 
 1;

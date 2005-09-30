@@ -2,16 +2,23 @@ package TEST::REST::Server;
 use base qw(HTTP::Server::Simple::CGI);
 use Kinetic::Interface::REST;
 use Kinetic::Util::Constants qw/:http/;
+use Kinetic::View::XSLT;
 
 my $REST_SERVER;
 
+my $CACHING = 1;
+
 sub new {
-    my ( $class, $args ) = @_;
+    my ( $class, $value_for ) = @_;
+    if ( $value_for->{no_cache} ) {
+        $CACHING = 0;
+    }
     $REST_SERVER = Kinetic::Interface::REST->new(
-        domain => $args->{domain},
-        path   => $args->{path}
+        domain => $value_for->{domain},
+        path   => $value_for->{path}
     );
-    $class->SUPER::new( @{ $args->{args} } );
+    Kinetic::View::XSLT->cache_xslt($CACHING);
+    $class->SUPER::new( @{ $value_for->{args} } );
 }
 
 my $DOC_ROOT      = 'WWW';
@@ -23,23 +30,33 @@ my %CONTENT_TYPES = (
     xslt => 'text/xml',
 );
 
+my $STATIC_CACHE_FOR;
+
 sub handle_request {
     my ( $self, $cgi ) = @_;
     my $NEWLINE = "\r\n";
     my ( $status, $type, $response );
+    $status = OK_STATUS;
+
     if ( $cgi->path_info =~ $STATIC ) {
         $type = $CONTENT_TYPES{$1};
-        my $file = $DOC_ROOT . $cgi->path_info;
-        local *FH;
-        unless ( open FH, '<', $file ) {
-            $status   = NOT_FOUND_STATUS;
-            $type     = TEXT_CT;
-            $response = 'No resource found to handle ' . $cgi->path_info;
-        }
-        else {
-            $status   = OK_STATUS;
-            $response = do { local $/; <FH> };
-            close FH;
+        my $path = $cgi->path_info;
+
+        if ( !defined( $response = $STATIC_CACHE_FOR{$path} ) ) {
+            my $file = $DOC_ROOT . $path;
+            local *FH;
+            unless ( open FH, '<', $file ) {
+                $status   = NOT_FOUND_STATUS;
+                $type     = TEXT_CT;
+                $response = 'No resource found to handle ' . $path;
+            }
+            else {
+                $response = do { local $/; <FH> };
+                if ($CACHING) {
+                    $STATIC_CACHE_FOR{$path} = $response;
+                }
+                close FH;
+            }
         }
     }
     else {

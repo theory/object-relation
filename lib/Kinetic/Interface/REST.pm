@@ -77,7 +77,7 @@ sub new {
         content_type => '',
         domain       => $args{domain},
         path         => $args{path},
-        xslt         => 'REST',
+        xslt         => 'search',
     } => $class;
 }
 
@@ -389,7 +389,7 @@ sub resource_path {
   $rest->set_response($xml, [$type]);
  
 This method, when passed $xml and an optional response type (defaults to
-'REST'), will set the content-type and entity-body of the REST response.
+'search'), will set the content-type and entity-body of the REST response.
 
 =cut
 

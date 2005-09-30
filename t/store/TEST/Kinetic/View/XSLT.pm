@@ -80,26 +80,23 @@ sub teardown : Test(teardown) {
 
 sub build_search_form : Test(no_plan) {
     my $test = shift;
-    my $xslt = XSLT->new( type => 'REST' );
+    my $xslt = XSLT->new( type => 'search' );
 
     $test->domain('http://www.example.com/');
     $test->path('rest');
 
-    my $header    = $test->header_xml(AVAILABLE_INSTANCES);
-    my $resources = $test->resource_list_xml;
-    my $instances = $test->expected_instance_xml( scalar $test->test_objects );
-
     my $search = 'name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)';
+
+    my $header     = $test->header_xml(AVAILABLE_INSTANCES);
+    my $resources  = $test->resource_list_xml;
+    my $instances  = $test->expected_instance_xml( scalar $test->test_objects );
+    my $search_xml = $test->search_data_xml({key => 'one', search => $search, order_by => 'name'});
+
     my $xml = <<"    END_XML";
 $header
       $resources
       $instances
-      <kinetic:class_key>one</kinetic:class_key>
-      <kinetic:search_parameters>
-        <kinetic:parameter type="search">$search</kinetic:parameter>
-        <kinetic:parameter type="limit">20</kinetic:parameter>
-        <kinetic:parameter type="order_by">name</kinetic:parameter>
-      </kinetic:search_parameters>
+      $search_xml
     </kinetic:resources>
     END_XML
     ok my $xhtml = $xslt->transform($xml),
@@ -148,18 +145,18 @@ sub type : Test(5) {
       '... and calling it with an unknown type should throw an exception';
     is $xslt->type, 'instance',
       '... and it should return the type set in the constructor';
-    ok $xslt->type('REST'),
+    ok $xslt->type('search'),
       'Calling type() with a valid XSLT type should succeed';
-    is $xslt->type, 'REST', '... setting the type to the requested value';
+    is $xslt->type, 'search', '... setting the type to the requested value';
 }
 
 sub stylesheet : Test(3) {
     my $test = shift;
-    my $xslt = XSLT->new( type => 'REST' );
+    my $xslt = XSLT->new( type => 'search' );
     can_ok $xslt, 'stylesheet';
 
     my $xml = $xslt->stylesheet;
-    is_well_formed_xml $xml, '... and it should return valid XML for "REST"';
+    is_well_formed_xml $xml, '... and it should return valid XML for "search"';
 
     $xslt->type('instance');
     $xml = $xslt->stylesheet;
@@ -169,7 +166,7 @@ sub stylesheet : Test(3) {
 
 sub transform : Test(9) {
     my $test = shift;
-    my $xslt = XSLT->new( type => 'REST' );
+    my $xslt = XSLT->new( type => 'search' );
     can_ok $xslt, 'transform';
 
     throws_ok { $xslt->transform }
@@ -186,17 +183,14 @@ sub transform : Test(9) {
     my $expected_instances =
       $test->expected_instance_xml( scalar $test->test_objects );
 
-    my $search = 'name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)';
+    my $search     = 'name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)';
+    my $search_xml = $test->search_data_xml({key => 'one', search => $search, order_by => 'name'});
+
     my $xml = <<"    END_XML";
 $header
       $resources
       $expected_instances
-      <kinetic:class_key>one</kinetic:class_key>
-      <kinetic:search_parameters>
-        <kinetic:parameter type="search">$search</kinetic:parameter>
-        <kinetic:parameter type="limit">20</kinetic:parameter>
-        <kinetic:parameter type="order_by">name</kinetic:parameter>
-      </kinetic:search_parameters>
+      $search_xml
     </kinetic:resources>
     END_XML
     ok my $xhtml = $xslt->transform($xml),
@@ -295,7 +289,7 @@ $html_header
 
 sub transform_pages : Test(3) {
     my $test = shift;
-    my $xslt = XSLT->new( type => 'REST' );
+    my $xslt = XSLT->new( type => 'search' );
 
     my $header = $test->header_xml(AVAILABLE_RESOURCES);
     my $xml = <<"    END_XML";

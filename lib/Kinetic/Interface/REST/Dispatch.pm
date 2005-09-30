@@ -168,7 +168,7 @@ sub args {
         foreach my $curr_arg (@$args) {
             $curr_arg = '' if $PLACEHOLDER eq $curr_arg;
         }
-        if ( 'search' eq $self->method ) {
+        if ( 'search' eq ($self->method || '') ) {
             if (@$args) {
                 if ( !grep { $_ eq 'limit' } @$args ) {
                     push @$args, 'limit', $DEFAULT_LIMIT;
@@ -299,7 +299,7 @@ sub _handle_method {
     if ( $method->context == Class::Meta::CLASS ) {
         my $response = $method->call( $self->class->package, @{ $self->args } );
         if ( 'search' eq $method->name ) {
-            $self->rest->xslt('REST');
+            $self->rest->xslt('search');
             return $self->_instance_list($response);
         }
         else {
@@ -422,12 +422,14 @@ sub _add_search_data {
         last if $order_by && $sort_order;
     }
 
+    # must have default order_by
+    if ( ! $order_by ) {
+        $search_order .= qq{<kinetic:parameter type="order_by" />\n};
+    }
     # make Ascending sort order the default
     if ( ! $sort_order ) {
         $search_order .= _widget('sort_order', 'select', 'ASC', \@sort_options );
     }
-    $search_order = '<kinetic:parameter type="order_by"/>'
-      unless $order_by;
 
     return <<"    END_SEARCH_DATA";
       <kinetic:class_key>$class_key</kinetic:class_key>
@@ -441,13 +443,13 @@ sub _add_search_data {
 
 sub _widget {
     my ($search_type, $widget_type, $value, $options) = @_;
-    my $widget = qq{<kinetic:parameter type="$search_type" widget="$widget_type">};
+    my $widget = qq{        <kinetic:parameter type="$search_type" widget="$widget_type">\n};
     for (my $i = 0; $i < @$options; $i += 2) {
         my ($option, $label) = @{$options}[$i, $i+1];
         my $selected = $option eq $value ? ' selected="selected"' : '';
-        $widget .= qq{  <kinetic:option name="$option"$selected>$label</kinetic:option>\n};
+        $widget .= qq{          <kinetic:option name="$option"$selected>$label</kinetic:option>\n};
     }
-    $widget .= "</kinetic:parameter>\n";
+    $widget .= "        </kinetic:parameter>\n";
     return $widget;
 }
 

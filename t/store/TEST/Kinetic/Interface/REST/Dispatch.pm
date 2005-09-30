@@ -22,6 +22,9 @@ use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(1) }
 
 use aliased 'Test::MockModule';
+use aliased 'XML::XPath';
+use XML::XPath::XMLParser;
+
 use aliased 'Kinetic::Store' => 'Store', ':all';
 use aliased 'Kinetic::Interface::REST';
 use aliased 'Kinetic::Interface::REST::Dispatch';
@@ -119,14 +122,126 @@ sub _path_info {
     return $test;
 }
 
-sub instance_attributes {
+sub _url { $DOMAIN . $PATH }
+
+sub add_search_data : Test(41) {
     my $test = shift;
-    return $test->{attributes} unless @_;
-    $test->{attributes} = shift;
-    return $test;
+    can_ok Dispatch, '_add_search_data';
+    my @args = (
+        STRING     => 'name eq "foo"',
+        limit      => 20,
+        order_by   => 'name',
+        sort_order => 'ASC',
+    );
+    _test_search_data('test_class', \@args, 'Normal searches should succeed');
+    
+    @args = (
+        STRING     => '',
+        limit      => 5,
+        order_by   => 'age',
+        sort_order => 'DESC',
+    );
+    _test_search_data('some_class', \@args, 'Empty searches should succeed');
+
+    @args = (
+        STRING     => '',
+        limit      => 5,
+        order_by   => 'age',
+    );
+    _test_search_data('some_class', \@args, 'Leaving off sort_order should succeed');
+
+    @args = (
+        STRING     => 'age gt 3',
+        limit      => 30,
+    );
+    _test_search_data('some_class', \@args, 'Leaving off order_by and sort_order should succeed');
+
+    @args = (
+        STRING     => '',
+        limit      => 5,
+        sort_order => 'ASC',
+    );
+    _test_search_data('some_class', \@args, 'Leaving off order_by should succeed');
+
 }
 
-sub _url { $DOMAIN . $PATH }
+##############################################################################
+
+=head3 _test_search_data
+
+  _test_search_data($class_key, \@_add_search_data_args, $description);
+
+
+This functions akes the search class_key and the arguments to
+_add_search_data() and knows how to validate the resulting XML.
+
+Performs 8 tests per run and uses C<$description> as the first test name.
+
+=cut
+
+sub _test_search_data { 
+    my ($test_class, $args, $description) = @_;
+    $description ||= '';
+
+    # copy the args and set the defaults
+    my %args = @$args;
+    $args{STRING}     = ''    unless exists $args{STRING};
+    $args{order_by}   = ''    unless exists $args{order_by};
+    $args{limit}      = 20    unless exists $args{limit};
+    $args{sort_order} = 'ASC' unless exists $args{sort_order};
+
+
+    my $dispatch = Dispatch->new;
+    $dispatch->class_key($test_class);
+    $dispatch->args($args);
+    ok my $snippet = $dispatch->_add_search_data, $description;
+    my $xml   = _wrap_xml_snippet($snippet);
+
+    my $xpath = XPath->new( xml => $xml );
+    my $node  = $xpath->findnodes_as_string('/snippet/kinetic:class_key');
+    is $node, qq{<kinetic:class_key>$test_class</kinetic:class_key>},
+        '... and the class key should be set correctly';
+
+    my $parameters = '/snippet/kinetic:search_parameters/kinetic:parameter';
+    while (my ($arg, $value) = each %args) {
+        $arg = 'search' if 'STRING' eq $arg;
+        if ( 'sort_order' eq $arg ) {
+            my $node = $xpath->findnodes_as_string(qq{$parameters\[\@type = "sort_order"]});
+            like $node, qr/<kinetic:parameter type="sort_order" widget="select">.*/,
+                '... and the sort order should be identified as a "select" widget';
+
+            foreach my $order ( [ASC => 'Ascending'], [DESC => 'Descending'] ) { 
+                my ($selected, $not) = $value eq $order->[0]
+                    ? ( ' selected="selected"', '' )
+                    : ( '', ' not ' );
+                $node = $xpath->findnodes_as_string(
+                    qq{$parameters\[\@type = "sort_order"]/kinetic:option[\@name = "$order->[0]"]}
+                );
+                is $node, 
+                    qq{<kinetic:option name="$order->[0]"$selected>$order->[1]</kinetic:option>},
+                    qq[... and the ascending option should${not}be selected];
+            }
+        }
+        else {
+            my $node = $xpath->findnodes_as_string(qq{$parameters\[\@type = "$arg"]});
+            my $expected = (defined $value && ! $value && "0" ne $value)
+                ? qq{<kinetic:parameter type="$arg" />}
+                : qq{<kinetic:parameter type="$arg">$value</kinetic:parameter>};
+            is $node, $expected, "... and the $arg should be set correctly"; 
+        }
+    }
+}
+        
+sub _wrap_xml_snippet {
+    my $snippet = shift;
+    return <<"    END_XML";
+<?xml version="1.0"?>
+    <snippet xmlns:kinetic="http://www.example.com/">
+            xmlns:xlink="http://www.w3.org/1999/xlink">
+    $snippet
+    </snippet>
+    END_XML
+}
 
 sub method_arg_handling : Test(12) {
 
@@ -279,21 +394,18 @@ sub handle : Test(6) {
     my @instance_order     = $test->instance_order($response);
     my $expected_instances =
       $test->expected_instance_xml( scalar $test->test_objects, \@instance_order );
-    my $header    = $test->header_xml(AVAILABLE_INSTANCES);
-    my $resources = $test->resource_list_xml;
+    my $header     = $test->header_xml(AVAILABLE_INSTANCES);
+    my $resources  = $test->resource_list_xml;
+    my $search_xml = $test->search_data_xml( { key => 'one' } ); 
 
     my $expected = <<"    END_XML";
 $header
         $resources
         $expected_instances
-        <kinetic:class_key>one</kinetic:class_key>
-        <kinetic:search_parameters>
-            <kinetic:parameter type="search"/>
-            <kinetic:parameter type="limit">20</kinetic:parameter>
-            <kinetic:parameter type="order_by"/>
-        </kinetic:search_parameters>
+        $search_xml
     </kinetic:resources>
     END_XML
+
     is_xml( $response, $expected, '... and it should return the correct XML' );
 
     my $foo_uuid = $foo->uuid;
@@ -323,42 +435,30 @@ $header
     $dispatch->handle_rest_request;
 
     my $instance  = $test->expected_instance_xml( [$foo] );
+    my $search    = $test->search_data_xml( { key => 'one', search => 'name => "foo"' } );
 
     $expected = <<"    END_XML";
 $header
       $resources
       $instance
-      <kinetic:class_key>one</kinetic:class_key>
-      <kinetic:search_parameters>
-        <kinetic:parameter type="search">name =&gt; &quot;foo&quot;</kinetic:parameter>   
-        <kinetic:parameter type="limit">20</kinetic:parameter>
-        <kinetic:parameter type="order_by"></kinetic:parameter>
-      </kinetic:search_parameters>
+      $search
     </kinetic:resources>
     END_XML
 
     is_xml $rest->response, $expected,
       '$class_key/search/STRING/$search_string should return a list';
 
-    $dispatch->args(
-        [
-            STRING   => 'name => "foo", OR(name => "bar")',
-            order_by => 'name',
-        ]
-    );
+    my $search_string = 'name => "foo", OR(name => "bar")';
+    $dispatch->args( [ STRING   => $search_string, order_by => 'name' ]);
 
     $expected_instances = $test->expected_instance_xml( [ $bar, $foo ] );
+    $search = $test->search_data_xml( { key => 'one', search => $search_string, order_by => 'name' } );
     $dispatch->handle_rest_request;
     $expected = <<"    END_XML";
 $header
       $resources
       $expected_instances
-      <kinetic:class_key>one</kinetic:class_key>
-      <kinetic:search_parameters>
-        <kinetic:parameter type="search">name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)</kinetic:parameter>
-        <kinetic:parameter type="limit">20</kinetic:parameter>
-        <kinetic:parameter type="order_by">name</kinetic:parameter>
-      </kinetic:search_parameters>
+      $search
     </kinetic:resources>
     END_XML
     is_xml $rest->response, $expected,

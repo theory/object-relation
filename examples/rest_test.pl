@@ -13,9 +13,12 @@ use aliased 'Kinetic::DateTime';
 use aliased 'Kinetic::Store';
 use TEST::REST::Server;
 
+our $VERSION = 1.0;
+
 GetOptions(
-    'p|port=i'      => \my $port,
-    'i|instances=i' => \my $instances,
+    'port=i'      => \my $port,
+    'instances=i' => \my $instances,
+    'no-cache'    => \my $no_cache,
 );
 $port      ||= 9000;
 $instances ||= 20;
@@ -65,9 +68,10 @@ print "Creating $instances 'Two' objects for paging tests ...\n\n";
 print "\nStarting test server on localhost:$port\n";
 my $server = TEST::REST::Server->new(
     {
-        domain => "http://localhost:$port/",
-        path   => '',
-        args   => [$port],
+        domain   => "http://localhost:$port/",
+        path     => '',
+        no_cache => $no_cache,
+        args     => [$port],
     }
 );
 
@@ -95,7 +99,16 @@ Test the Kinetic Rest Server
 
 =head1 SYNOPSIS
 
- rest_server.pl [port_number]
+ rest_server.pl [options]
+
+Options:
+
+ -p, --port=$num       Specify a port number to run the server on.  Default 
+                       is port 9000.
+ -i, --instances=$num  The number of test 'Two' object instances to create for
+                       paging tests.  Default is 20.
+ -n, --no-cache        CSS, Javascript, images and XSLT will not be cached if
+                       this option is set.  Useful for debugging.
 
 =head1 NOTES
 

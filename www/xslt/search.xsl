@@ -52,15 +52,6 @@
                 <xsl:apply-templates select="kinetic:parameter" />
               </xsl:for-each>
               <tr>
-                <td>Sort order:</td>
-                <td>
-                  <select name="sort_order">
-                    <option value="ASC">Ascending</option>
-                    <option value="DESC">Descending</option>
-                  </select>
-                </td>
-              </tr>
-              <tr>
                 <td colspan="2"><input type="submit" value="Search" onclick="javascript:do_search(this)"/></td>
               </tr>
             </table>
@@ -115,7 +106,31 @@
           <xsl:with-param name="expr" select="@type"/>
         </xsl:call-template>:</td> <!-- closing td must be here due to whitespace issues -->
       <td>
+
+        <!--                         -->
+        <!-- build <select/> widgets -->
+        <!--                         -->
+
+        <xsl:if test="@widget = 'select'">
+        <select name="{@type}">
+          <xsl:for-each select="kinetic:option">
+            <option value="{@name}">
+              <xsl:if test="@selected = 'selected'">
+                <xsl:attribute name="selected">selected</xsl:attribute>
+              </xsl:if>
+              <xsl:apply-templates/>
+            </option>
+          </xsl:for-each>
+        </select>
+        </xsl:if>
+        
+        <!--                        -->
+        <!-- build <input/> widgets -->
+        <!--                        -->
+        
+        <xsl:if test="not(@widget)">
         <input type="text" name="{@type}" value="{.}"/>
+        </xsl:if>
       </td>
     </tr>
   </xsl:template>

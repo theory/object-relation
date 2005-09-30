@@ -36,7 +36,7 @@ Kinetic::View::XSLT - XSLT services provider
 
  use Kinetic::View::XSLT;
 
- my $xslt  = Kinetic::View::XSLT->new(type => 'REST');
+ my $xslt  = Kinetic::View::XSLT->new(type => 'search');
  my $xhtml = $xslt->transform($rest_xml);
 
 =head1 Description
@@ -88,6 +88,27 @@ sub new {
 =head2 Class Methods
 
 =cut
+
+##############################################################################
+
+=head3 cache_xslt
+
+  if ($xslt->cache_xslt) { ... }
+  $xslt->cache_xslt(0); # don't cache it
+
+Be default, once XSLT has been fetched, it will be cached.  This method, if
+set to a false value, will cause caching to be ignored.  Setting it to a true
+value will re-enable caching.  This method is mostly for debugging.
+
+=cut
+
+my $CACHE_XSLT = 1;
+sub cache_xslt {
+    my $class = shift;
+    return $CACHE_XSLT unless @_;
+    $CACHE_XSLT = shift;
+    return $class;
+}
 
 ##############################################################################
 # Instance Methods.
@@ -145,7 +166,7 @@ my %STYLESHEET_FOR = (
         handler => \&_stylesheet_instance,
         name    => INSTANCE_XSLT,
     },
-    REST => {
+    search => {
         handler => \&_stylesheet_rest,
         name    => SEARCH_XSLT,
     },

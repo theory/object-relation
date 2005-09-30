@@ -54,6 +54,7 @@ my $build = Kinetic::Build->new(
         'Test::Pod::Coverage'        => 0.08, # this is recommended, not required.
         'Test::WWW::Mechanize'       => 1.06,
         'Test::XML'                  => 0.07,
+        'XML::XPath'                 => 1.13,
     },
 );
 

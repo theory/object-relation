@@ -16,6 +16,7 @@ use warnings;
 # but since inheritance is not an option, I will be importing these methods
 # directly into the required namespaces.
  
+use HTML::Entities qw/encode_entities/;
 use Kinetic::Util::Constants qw/:xslt/;
 use Exporter::Tidy default => [
     qw/
@@ -23,6 +24,7 @@ use Exporter::Tidy default => [
       expected_instance_xml
       header_xml
       resource_list_xml
+      search_data_xml
       /
 ];
 
@@ -168,6 +170,50 @@ sub resource_list_xml {
 qq'<${kinetic}resource id="$key" ${xlink}href="$url$key/search"/>';
     }
     return $resources;
+}
+
+##############################################################################
+
+=head3 search_data_xml
+
+  my $search_xml = $test->search_data_xml({
+    key        => $class_key,
+    search     => $search_string, # optional.  Should be unencoded if supplied.
+    limit      => $limit,         # optional.  Defaults to 20
+    order_by   => $order_by,      # optional
+    sort_order => $sort_order     # optional.  Defaults to ASC
+  });
+
+This method returns the search parameters XML snippet that is built by the
+REST dispatch class.  C<$sort_order>, if present, should be I<ASC> or 
+I<DESC>.
+
+=cut
+
+sub search_data_xml {
+    my ($test, $value_for) = @_;
+    $value_for->{search}     = ''    unless exists $value_for->{search};
+    $value_for->{limit}      = 20    unless exists $value_for->{limit};
+    $value_for->{order_by}   = ''    unless exists $value_for->{order_by};
+    $value_for->{sort_order} = 'ASC' unless exists $value_for->{sort_order};
+    map { encode_entities( $value_for->{$_} ) } keys %$value_for;   
+
+    my $xml = <<"    END_XML"; 
+        <kinetic:class_key>$value_for->{key}</kinetic:class_key>
+        <kinetic:search_parameters>
+    END_XML
+    foreach my $arg ( qw/ search limit order_by / ) {
+        $xml .= qq[<kinetic:parameter type="$arg">$value_for->{$arg}</kinetic:parameter>\n];
+    }
+    $xml .= '<kinetic:parameter type="sort_order" widget="select">';
+    foreach my $order ( [ASC => 'Ascending'], [DESC => 'Descending'] ) {
+        my $selected = $value_for->{sort_order} eq $order->[0]
+            ? ( ' selected="selected"' )
+            : ( '' );
+        $xml .= qq{<kinetic:option name="$order->[0]"$selected>$order->[1]</kinetic:option>};
+    }
+    $xml .= "</kinetic:parameter></kinetic:search_parameters>";
+    return $xml;
 }
 
 1;
