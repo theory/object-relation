@@ -16,7 +16,7 @@
         <link rel="stylesheet" href="/css/rest.css"/>
         <title><xsl:value-of select="kinetic:description" /></title>
         <xsl:if test="kinetic:class_key">
-        <script language="JavaScript1.2" type="text/javascript" src="/js/search.js"/>
+        <script language="JavaScript1.2" type="text/javascript" src="/js/Kinetic/Search.js"/>
         </xsl:if>
       </head>
       <body>
@@ -43,16 +43,17 @@
 
         <xsl:if test="kinetic:class_key">
         <div class="search">
-          <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false">
+          <form method="get" name="search_form" onsubmit="doSearch(this); return false">
             <input type="hidden" name="class_key" value="{kinetic:class_key}"/>
             <input type="hidden" name="domain"    value="{kinetic:domain}"/>
             <input type="hidden" name="path"      value="{kinetic:path}"/>
+            <input type="hidden" name="type"      value="{kinetic:type}"/>
             <table>
               <xsl:for-each select="kinetic:search_parameters">
                 <xsl:apply-templates select="kinetic:parameter" />
               </xsl:for-each>
               <tr>
-                <td colspan="2"><input type="submit" value="Search" onclick="javascript:do_search(this)"/></td>
+                <td colspan="2"><input type="submit" value="Search"/></td>
               </tr>
             </table>
           </form>

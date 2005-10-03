@@ -304,12 +304,6 @@ sub set_search_data : Test(9) {
         'and the necessary information to build the multiple objects';
 }
 
-sub search : Test(1) {
-    my $method = 'search';
-    can_ok Store, $method;
-    diag "Hey, where's the rest of this test?";
-}
-
 sub build_objects : Test(16) {
     my $method = '_build_object_from_hashref';
     can_ok Store, $method;

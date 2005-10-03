@@ -39,6 +39,7 @@ Readonly my $PLACEHOLDER         => 'null';
 Readonly my $DEFAULT_LIMIT       => 20;
 Readonly my $DEFAULT_SEARCH_ARGS =>
   [ 'STRING', '', 'limit', $DEFAULT_LIMIT, 'offset', 0 ];
+Readonly my $NS                  => 'kinetic';
 
 =head1 Name
 
@@ -237,7 +238,7 @@ sub class_list {
     my $rest     = $self->rest;
     my $response = $self->_xml_header(AVAILABLE_RESOURCES);
     $response .= $self->_get_resources;
-    $response .= "</kinetic:resources>";
+    $response .= "</$NS:resources>";
     return $rest->set_response($response);
 }
 
@@ -251,7 +252,7 @@ sub _get_resources {
     foreach my $key ( sort Kinetic::Meta->keys ) {
         next if Kinetic::Meta->for_key($key)->abstract;
         $resources .=
-qq'<kinetic:resource id="$key" xlink:href="${base_url}$key/search$query_string"/>';
+qq'<$NS:resource id="$key" xlink:href="${base_url}$key/search$query_string"/>';
     }
     return $resources;
 }
@@ -371,26 +372,26 @@ sub _instance_list {
         $instance_count++;
         my $uuid = $instance->uuid;
         my $url  = "$base_url$key/lookup/uuid/$uuid$query_string";
-        $response .= qq'<kinetic:instance id="$uuid" xlink:href="$url">\n';
+        $response .= qq'<$NS:instance id="$uuid" xlink:href="$url">\n';
         foreach my $attribute (@attributes) {
             my $method = $attribute->name;
             my $value = ( $instance->$method || '' );
             $response .=
-qq'<kinetic:attribute name="$method">$value</kinetic:attribute>\n';
+qq'<$NS:attribute name="$method">$value</$NS:attribute>\n';
         }
-        $response .= qq'</kinetic:instance>\n';
+        $response .= qq'</$NS:instance>\n';
     }
 
     if ($instance_count) {
         $response .=
-          $self->_add_pageset( $instance_count, $base_url, $query_string );
+          $self->_add_pageset( $instance_count );
         $response .= $self->_add_search_data;
     }
     else {
         $response .=
-          '       <kinetic:instance id="No resources found" xlink:href="#"/>';
+          qq'       <$NS:instance id="No resources found" xlink:href="#"/>';
     }
-    $response .= "</kinetic:resources>";
+    $response .= "</$NS:resources>";
     return $rest->set_response($response);
 }
 
@@ -411,7 +412,7 @@ sub _add_search_data {
         if ( 'order_by' eq $arg && !$order_by ) {
             $order_by = 1;
             $search_order .=
-              qq'<kinetic:parameter type="$arg">$value</kinetic:parameter>\n';
+              qq'<$NS:parameter type="$arg">$value</$NS:parameter>\n';
         }
         if ( 'sort_order' eq $arg && !$sort_order ) {
             $sort_order = 1;
@@ -424,7 +425,7 @@ sub _add_search_data {
 
     # must have default order_by
     if ( ! $order_by ) {
-        $search_order .= qq{<kinetic:parameter type="order_by" />\n};
+        $search_order .= qq{<$NS:parameter type="order_by" />\n};
     }
     # make Ascending sort order the default
     if ( ! $sort_order ) {
@@ -432,29 +433,32 @@ sub _add_search_data {
     }
 
     return <<"    END_SEARCH_DATA";
-      <kinetic:class_key>$class_key</kinetic:class_key>
-      <kinetic:search_parameters>
-        <kinetic:parameter type="search">$arg_for{STRING}</kinetic:parameter>
-        <kinetic:parameter type="limit">$arg_for{limit}</kinetic:parameter>
+      <$NS:class_key>$class_key</$NS:class_key>
+      <$NS:search_parameters>
+        <$NS:parameter type="search">$arg_for{STRING}</$NS:parameter>
+        <$NS:parameter type="limit">$arg_for{limit}</$NS:parameter>
         $search_order
-      </kinetic:search_parameters>
+      </$NS:search_parameters>
     END_SEARCH_DATA
 }
 
 sub _widget {
     my ($search_type, $widget_type, $value, $options) = @_;
-    my $widget = qq{        <kinetic:parameter type="$search_type" widget="$widget_type">\n};
+    my $widget = qq{        <$NS:parameter type="$search_type" widget="$widget_type">\n};
     for (my $i = 0; $i < @$options; $i += 2) {
         my ($option, $label) = @{$options}[$i, $i+1];
         my $selected = $option eq $value ? ' selected="selected"' : '';
-        $widget .= qq{          <kinetic:option name="$option"$selected>$label</kinetic:option>\n};
+        $widget .= qq{          <$NS:option name="$option"$selected>$label</$NS:option>\n};
     }
-    $widget .= "        </kinetic:parameter>\n";
+    $widget .= "        </$NS:parameter>\n";
     return $widget;
 }
 
 sub _add_pageset {
-    my ( $self, $instance_count, $base_url, $query_string ) = @_;
+    my ( $self, $instance_count ) = @_;
+
+    my $base_url     = $self->_rest_base_url;
+    my $query_string = $self->_query_string;
 
     my $response = '';
     my %arg_for  = @{ $self->args };
@@ -474,21 +478,21 @@ sub _add_pageset {
         $url =~ s{offset/\d+}{offset/\%d};
         $url .= $query_string;
 
-        $response .= ' <kinetic:pages> ';
+        $response .= " <$NS:pages> ";
         foreach my $set ( $pageset->first_page .. $pageset->last_page ) {
 
             if ( $set == $pageset->current_page ) {
-                $response .= qq'<kinetic:page id="[ Page $set ]" '
+                $response .= qq'<$NS:page id="[ Page $set ]" '
                   . qq'xlink:href="@{[CURRENT_PAGE]}"/>\n';
             }
             else {
                 my $current_offset = ( $set - 1 ) * $arg_for{limit};
                 my $link_url = sprintf $url, $current_offset;
-                $response .= qq' <kinetic:page id="[ Page $set ]" '
+                $response .= qq' <$NS:page id="[ Page $set ]" '
                   . qq'xlink:href="$link_url"/>\n';
             }
         }
-        $response .= "</kinetic:pages>";
+        $response .= "</$NS:pages>";
     }
     return $response;
 }
@@ -595,14 +599,16 @@ sub _xml_header {
     my $stylesheet = Kinetic::View::XSLT->location( $rest->xslt );
     my $domain     = $rest->domain;
     my $path       = $rest->path;
+    my $type       = lc $self->rest->cgi->param('type') || '';
     return <<"    END_HEADER";
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="$stylesheet"?>
-<kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" 
+<$NS:resources xmlns:$NS="http://www.kineticode.com/rest" 
                    xmlns:xlink="http://www.w3.org/1999/xlink">
-<kinetic:description>$title</kinetic:description>
-<kinetic:domain>$domain</kinetic:domain>
-<kinetic:path>$path</kinetic:path>
+<$NS:description>$title</$NS:description>
+<$NS:domain>$domain</$NS:domain>
+<$NS:path>$path</$NS:path>
+<$NS:type>$type</$NS:type>
     END_HEADER
 }
 
@@ -614,7 +620,7 @@ __END__
 
 =head1 Copyright and License
 
-Copyright (c) 2004-2005 Kineticode, Inc. <info@kineticode.com>
+Copyright (c) 2004-2005 Kineticode, Inc. <info@$NSode.com>
 
 This work is made available under the terms of Version 2 of the GNU General
 Public License. You should have received a copy of the GNU General Public

@@ -101,11 +101,10 @@ sub setup : Test(setup) {
     my $baz = One->new;
     $baz->name('snorfleglitz');
     $baz->save;
-    $test->test_objects([ $foo, $bar, $baz ]);
+    $test->test_objects( [ $foo, $bar, $baz ] );
     $test->desired_attributes( [qw/ state name description bool /] );
-    $test->domain('http://localhost:9000')
-         ->path('rest')
-         ->query_string('type=html');
+    $test->domain('http://localhost:9000')->path('rest')
+      ->query_string('type=html');
 }
 
 sub teardown : Test(teardown) {
@@ -129,21 +128,24 @@ sub web_test_paging : Test(14) {
     my $url  = $test->url;
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
+    $test->query_string('');
 
     $mech->get_ok(
         "${url}one/search/STRING/null/order_by/name/limit/2",
         'We should be able to fetch and limit the searches'
     );
 
-    my $foo_uuid = $foo->uuid;
-    my $bar_uuid = $bar->uuid;
-    my $header   = $test->header_xml(AVAILABLE_INSTANCES);
+    my $foo_uuid           = $foo->uuid;
+    my $bar_uuid           = $bar->uuid;
+    my $header             = $test->header_xml(AVAILABLE_INSTANCES);
     my $response           = $mech->content;
     my @instance_order     = $test->instance_order($response);
     my $expected_instances =
-      $test->expected_instance_xml( [$foo, $bar, $baz], \@instance_order );
-    my $resources          = $test->resource_list_xml;
-    my $search = $test->search_data_xml({ key => 'one', limit => 2, order_by => 'name'});
+      $test->expected_instance_xml( [ $foo, $bar, $baz ], \@instance_order );
+    my $resources = $test->resource_list_xml;
+    my $search    =
+      $test->search_data_xml(
+        { key => 'one', limit => 2, order_by => 'name' } );
     my $expected = <<"    END_XML";
 $header
       $resources
@@ -156,12 +158,10 @@ $header
     </kinetic:resources>
     END_XML
 
-    #is_well_formed_xml $response, 'The response should be well-formed xml';
-    #diag $response;
-    #return;
     is_xml $response, $expected,
       '... and have appropriate pages added, if available';
 
+    $test->query_string('type=html');
     $mech->get_ok(
         "${url}one/search/STRING/null/order_by/name/limit/2?type=html",
         'We should be able to fetch and limit the searches'
@@ -169,8 +169,10 @@ $header
 
     my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
     my $html_resources = $test->resource_list_html;
-    my $search_form    = $test->search_form('one', '', 2, 'name' );
-    my $instances      = $test->instance_table( $bar, $foo );
+    my $search_form    =
+      $test->search_form( { key => 'one', limit => 2, order_by => 'name' } );
+    my $instances = $test->instance_table( $bar, $foo );
+    my $footer    = $test->footer_html;
 
     $expected = <<"    END_XHTML";
 $html_header
@@ -183,8 +185,7 @@ $html_header
         <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/2?type=html">[ Page 2 ]</a>
       </p>
     </div>
-  </body>
-</html>
+    $footer
     END_XHTML
     is_xml $mech->content, $expected,
       '... ordering and limiting searches should work';
@@ -193,11 +194,10 @@ $html_header
         "${url}one/search/STRING/null/order_by/name/limit/2/offset/2?type=html",
         '... as should paging through result sets'
     );
-    $search_form = $test->search_form('one', '', 2, 'name' );
-    $instances   = $test->instance_table($baz);
-    $html_header = $test->header_html(AVAILABLE_INSTANCES);
+    $instances      = $test->instance_table($baz);
+    $html_header    = $test->header_html(AVAILABLE_INSTANCES);
     $html_resources = $test->resource_list_html;
-    $expected    = <<"    END_XHTML";
+    $expected       = <<"    END_XHTML";
 $html_header
     $html_resources
     $search_form
@@ -208,8 +208,7 @@ $html_header
         [ Page 2 ]
       </p>
     </div>
-  </body>
-</html>
+    $footer
     END_XHTML
     is_xml $mech->content, $expected,
       '... ordering and limiting searches should work';
@@ -291,18 +290,20 @@ sub web_test : Test(12) {
 
     $foo_uuid = $foo->uuid;
     my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
-    my $search_form    = $test->search_form( 'one', 'name =&gt; &quot;foo&quot;', 20, '' );
-    my $instances      = $test->instance_table($foo);
-    $html_header       = $test->header_html(AVAILABLE_INSTANCES);
     my $html_resources = $test->resource_list_html;
-    my $expected    = <<"    END_XHTML";
+    my $search_form    =
+      $test->search_form( { key => 'one', search => 'name => "foo"' } );
+    my $instances = $test->instance_table($foo);
+    my $footer    = $test->footer_html;
+
+    my $expected = <<"    END_XHTML";
 $html_header
     $html_resources
     $search_form
     $instances
-  </body>
-</html>
+    $footer
     END_XHTML
+    use TEST::Kinetic::Traits::Debug;
     is_xml $mech->content, $expected,
 'REST strings searches with HTML type specified should return the correct HTML';
 }
@@ -377,16 +378,19 @@ sub rest_interface : Test(19) {
     $cgi_mock->mock(
         path_info => '/one/search/STRING/name => "foo"/order_by/name', );
 
+    $test->query_string('');
     ok $rest->handle_request( CGI->new ),
       'Searching for resources should succeed';
     is $rest->status, '200 OK', '... with an appropriate status code';
     ok $rest->response, '... and return an entity-body';
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
-    my $header    = $test->header_xml( AVAILABLE_INSTANCES );
+    my $header    = $test->header_xml(AVAILABLE_INSTANCES);
     my $instances = $test->expected_instance_xml( [$foo] );
-    my $resources = $test->resource_list_xml;       
-    my $search    = $test->search_data_xml({ key => 'one', search => 'name => "foo"', order_by => 'name'});
+    my $resources = $test->resource_list_xml;
+    my $search    =
+      $test->search_data_xml(
+        { key => 'one', search => 'name => "foo"', order_by => 'name' } );
 
     my $expected = <<"    END_XML";
 $header
@@ -401,7 +405,7 @@ $header
 }
 
 sub rest_faults : Test(7) {
-    my $test = shift;
+    my $test  = shift;
     my $class = 'Kinetic::Interface::REST';
     my $rest  = $class->new( domain => 'http://foo/', path => 'rest/server/' );
     $test->domain('http://foo/');
@@ -437,9 +441,10 @@ sub basic_services : Test(3) {
     throws_ok { $rest->url('no_such_resource/')->get } qr/501 Not Implemented/,
       '... as should calling it with a non-existent resource';
 
+    $test->query_string('');
     my $header    = $test->header_xml(AVAILABLE_RESOURCES);
     my $resources = $test->resource_list_xml;
-    my $expected = <<"    END_XML";
+    my $expected  = <<"    END_XML";
 $header
     $resources
     </kinetic:resources>
@@ -449,12 +454,13 @@ $header
 
     my $key     = One->my_class->key;
     my $one_xml = $rest->url("$key/search")->get;
+
     # XXX Yuck.  Fix this later
-    my @order = $test->instance_order($one_xml);
+    my @order     = $test->instance_order($one_xml);
     my $instances =
       $test->expected_instance_xml( scalar $test->test_objects, \@order );
-    $header    = $test->header_xml(AVAILABLE_INSTANCES);
-    my $search = $test->search_data_xml({key => 'one'});
+    $header = $test->header_xml(AVAILABLE_INSTANCES);
+    my $search = $test->search_data_xml( { key => 'one' } );
     $expected = <<"    END_XML";
 $header
       $resources

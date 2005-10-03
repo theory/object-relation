@@ -104,16 +104,17 @@ $header
 
     my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
     my $html_resources = $test->resource_list_html('');;
-    my $search_form    = $test->search_form( 'one', $search, 20, 'name' );
+    my $search_form    =
+      $test->search_form( { key => 'one', search => $search, order_by => 'name' } );
     my $instance_table = $test->instance_table( $test->test_objects );
+    my $footer         = $test->footer_html;
 
     my $expected = <<"    END_XHTML";
 $html_header
     $html_resources
     $search_form
     $instance_table
-  </body>
-</html>
+    $footer
     END_XHTML
     is_xml $xhtml, $expected, '... and return the correct xhtml';
 }
@@ -198,16 +199,17 @@ $header
 
     my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
     my $html_resources = $test->resource_list_html;
-    my $search_form    = $test->search_form( 'one', $search, 20, 'name' );
+    my $search_form    =
+      $test->search_form( { key => 'one', search => $search, order_by => 'name' } );
     my $instance_table = $test->instance_table( $test->test_objects );
+    my $footer         = $test->footer_html;
 
     my $expected       = <<"    END_XHTML";
 $html_header
   $html_resources
   $search_form
   $instance_table
-  </body>
-</html>
+  $footer
     END_XHTML
     is_xml $xhtml, $expected, '... and return the correct xhtml';
 
@@ -234,8 +236,7 @@ $html_header
         <li><a href="http://somehost.com/rest/two">two</a></li>
       </ul>
     </div>
-  </body>
-</html>
+    $footer
     END_XHTML
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
@@ -281,8 +282,7 @@ $html_header
         </tr>
       </table>
     </div>
-  </body>
-</html>
+    $footer
     END_XHTML
 }
 
@@ -312,7 +312,8 @@ $header
     ok my $xhtml = $xslt->transform($xml),
       'Calling transform() with XML that has pages should succeed';
 
-    my $html_header    = $test->header_html(AVAILABLE_RESOURCES);
+    my $html_header = $test->header_html(AVAILABLE_RESOURCES);
+    my $footer      = $test->footer_html;
 
     is_xml $xhtml, <<"    END_XHTML", '... and return xml with pages';
 $html_header
@@ -344,8 +345,7 @@ $html_header
             <a href="http://domain/rest/one/search/STRING/NULL/order_by/name/limit/2/offset/2">[ Page 2 ]</a>
           </p>
         </div>
-      </body>
-    </html>
+        $footer
     END_XHTML
 
     $xml = <<"    END_XML";

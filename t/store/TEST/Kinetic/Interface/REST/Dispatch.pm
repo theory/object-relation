@@ -64,23 +64,10 @@ sub setup : Test(setup) {
     $baz->name('baz');
     $store->save($baz);
     $test->test_objects([ $foo, $bar, $baz ]);
-    $test->{param} = sub {
-        my $self         = shift;
-        my @query_string = @{ $test->_query_string || [] };
-        my %param        = @query_string;
-        if (@_) {
-            return $param{ +shift };
-        }
-        else {
-            my $i = 0;
-            return grep { !( $i++ % 2 ) } @query_string;
-        }
-    };
 
     # set up mock cgi and path methods
     my $cgi_mock = MockModule->new('CGI');
     $cgi_mock->mock( path_info => sub { $test->_path_info } );
-    $cgi_mock->mock( param => $test->{param} );
     my $rest_mock = MockModule->new('Kinetic::Interface::REST');
     {
         local $^W;    # because CGI.pm is throwing uninitialized errors :(
@@ -93,7 +80,6 @@ sub setup : Test(setup) {
         path   => $PATH
     );
     $test->_path_info('');
-    $test->{query_string} = undef;
     $test->desired_attributes( [qw/ state name description bool /] );
     $test->domain($DOMAIN);
     $test->path($PATH);
@@ -108,21 +94,12 @@ sub teardown : Test(teardown) {
     delete( $test->{rest_mock} )->unmock_all;
 }
 
-sub _query_string {
-    my $test = shift;
-    return $test->{query_string} unless @_;
-    $test->{query_string} = [@_];
-    return $test;
-}
-
 sub _path_info {
     my $test = shift;
     return $test->{path_info} unless @_;
     $test->{path_info} = shift;
     return $test;
 }
-
-sub _url { $DOMAIN . $PATH }
 
 sub add_search_data : Test(41) {
     my $test = shift;
@@ -350,7 +327,7 @@ sub page_set : Test(17) {
 
 sub class_list : Test(2) {
     my $test = shift;
-    my $url  = _url();
+    my $url  = $test->url;
 
     my $dispatch = Dispatch->new;
     can_ok $dispatch, 'class_list';
@@ -373,7 +350,7 @@ $header
 sub handle : Test(6) {
     my $test     = shift;
     my $dispatch = Dispatch->new;
-    my $url      = _url();
+    my $url      = $test->url;
 
     can_ok $dispatch, 'handle_rest_request';
     my $rest = $test->{rest};

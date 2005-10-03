@@ -15,7 +15,7 @@ use warnings;
 # coupled, but not by inheritance.  The tests need to share functionality
 # but since inheritance is not an option, I will be importing these methods
 # directly into the required namespaces.
- 
+
 use HTML::Entities qw/encode_entities/;
 use Kinetic::Util::Constants qw/:xslt/;
 use Exporter::Tidy default => [
@@ -85,23 +85,22 @@ sub expected_instance_xml {
     unless ($order_ref) {
         @$order_ref = map { $_->$key } @$objects;
     }
-    my %instance_for = map { $_->$key, _instance_data( $test, $_) } @$objects;
-    my $url = $test->url;
-    my @attributes = $test->desired_attributes;
+    my %instance_for = map { $_->$key, _instance_data( $test, $_ ) } @$objects;
+    my $url          = $test->url;
+    my @attributes   = $test->desired_attributes;
     my $instance_xml = <<"    END_INSTANCE_XML";
     <kinetic:instance id="%s" xlink:href="${url}${class_key}/lookup/uuid/%s">
     END_INSTANCE_XML
     foreach my $attr (@attributes) {
-        $instance_xml .= qq'<kinetic:attribute name="$attr">%s</kinetic:attribute>\n';
+        $instance_xml .=
+          qq'<kinetic:attribute name="$attr">%s</kinetic:attribute>\n';
     }
     $instance_xml .= "    </kinetic:instance>\n";
     my $result = '';
     foreach my $instance (@$order_ref) {
         $result .= sprintf $instance_xml,
-          map { defined $_ ? $_ : '' } 
-            ( $instance_for{$instance}{uuid} ) x 2,
-            map { $instance_for{$instance}{$_} } 
-              @attributes;
+          map { defined $_ ? $_ : '' } ( $instance_for{$instance}{uuid} ) x 2,
+          map { $instance_for{$instance}{$_} } @attributes;
     }
     return $result;
 }
@@ -127,11 +126,14 @@ that matches the XML returned by C<Kinetic::REST::Dispatch>.
 =cut
 
 sub header_xml {
-    my ($test, $title)  = @_;
+    my ( $test, $title ) = @_;
     my $xslt   = $title =~ /resources/ ? RESOURCES_XSLT: SEARCH_XSLT;
     my $server = $test->url;
     my $domain = $test->domain;
     my $path   = $test->path;
+    my $query  = $test->query_string;
+    my ($type) = $query =~ /type=([[:word:]]+)/;
+    $type ||= '';
     return <<"    END_XML";
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="$xslt"?>
@@ -140,6 +142,7 @@ sub header_xml {
       <kinetic:description>$title</kinetic:description>
       <kinetic:domain>$domain</kinetic:domain>
       <kinetic:path>$path</kinetic:path>
+      <kinetic:type>$type</kinetic:type>
     END_XML
 }
 
@@ -157,17 +160,17 @@ due to an apparent limitation in L<XML::Genx|XML::Genx>.
 =cut
 
 sub resource_list_xml {
-    my ($test, $no_namespaces) = @_;
+    my ( $test, $no_namespaces ) = @_;
     my $url       = $test->url;
     my $resources = '';
-    my ($kinetic, $xlink) = qw( kinetic: xlink: );
+    my ( $kinetic, $xlink ) = qw( kinetic: xlink: );
     if ($no_namespaces) {
-        ($kinetic, $xlink) = ('','');
+        ( $kinetic, $xlink ) = ( '', '' );
     }
     foreach my $key ( sort Kinetic::Meta->keys ) {
         next if Kinetic::Meta->for_key($key)->abstract;
         $resources .=
-qq'<${kinetic}resource id="$key" ${xlink}href="$url$key/search"/>';
+          qq'<${kinetic}resource id="$key" ${xlink}href="$url$key/search"/>';
     }
     return $resources;
 }
@@ -191,26 +194,32 @@ I<DESC>.
 =cut
 
 sub search_data_xml {
-    my ($test, $value_for) = @_;
+    my ( $test, $value_for ) = @_;
     $value_for->{search}     = ''    unless exists $value_for->{search};
     $value_for->{limit}      = 20    unless exists $value_for->{limit};
     $value_for->{order_by}   = ''    unless exists $value_for->{order_by};
     $value_for->{sort_order} = 'ASC' unless exists $value_for->{sort_order};
-    map { encode_entities( $value_for->{$_} ) } keys %$value_for;   
 
-    my $xml = <<"    END_XML"; 
+    foreach my $key ( keys %$value_for ) {
+        $value_for->{$key} = encode_entities( $value_for->{$key} );
+    }
+
+    my $xml = <<"    END_XML";
         <kinetic:class_key>$value_for->{key}</kinetic:class_key>
         <kinetic:search_parameters>
     END_XML
-    foreach my $arg ( qw/ search limit order_by / ) {
-        $xml .= qq[<kinetic:parameter type="$arg">$value_for->{$arg}</kinetic:parameter>\n];
+    foreach my $arg (qw/ search limit order_by /) {
+        $xml .=
+qq[<kinetic:parameter type="$arg">$value_for->{$arg}</kinetic:parameter>\n];
     }
     $xml .= '<kinetic:parameter type="sort_order" widget="select">';
-    foreach my $order ( [ASC => 'Ascending'], [DESC => 'Descending'] ) {
-        my $selected = $value_for->{sort_order} eq $order->[0]
-            ? ( ' selected="selected"' )
-            : ( '' );
-        $xml .= qq{<kinetic:option name="$order->[0]"$selected>$order->[1]</kinetic:option>};
+    foreach my $order ( [ ASC => 'Ascending' ], [ DESC => 'Descending' ] ) {
+        my $selected =
+          $value_for->{sort_order} eq $order->[0]
+          ? (' selected="selected"')
+          : ('');
+        $xml .=
+qq{<kinetic:option name="$order->[0]"$selected>$order->[1]</kinetic:option>};
     }
     $xml .= "</kinetic:parameter></kinetic:search_parameters>";
     return $xml;
