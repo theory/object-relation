@@ -43,11 +43,11 @@
 
         <xsl:if test="kinetic:class_key">
         <div class="search">
-          <form method="get" name="search_form" onsubmit="doSearch(this); return false">
-            <input type="hidden" name="class_key" value="{kinetic:class_key}"/>
-            <input type="hidden" name="domain"    value="{kinetic:domain}"/>
-            <input type="hidden" name="path"      value="{kinetic:path}"/>
-            <input type="hidden" name="type"      value="{kinetic:type}"/>
+          <form action="/{kinetic:path}" method="get" name="search_form" onsubmit="doSearch(this); return false">
+            <input type="hidden" name="_class_key" value="{kinetic:class_key}"/>
+            <input type="hidden" name="_domain"    value="{kinetic:domain}"/>
+            <input type="hidden" name="_path"      value="{kinetic:path}"/>
+            <input type="hidden" name="_type"      value="{kinetic:type}"/>
             <table>
               <xsl:for-each select="kinetic:search_parameters">
                 <xsl:apply-templates select="kinetic:parameter" />

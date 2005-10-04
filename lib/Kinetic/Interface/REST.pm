@@ -19,7 +19,7 @@ package Kinetic::Interface::REST;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use Kinetic::Util::Constants qw/:http/;
+use Kinetic::Util::Constants qw/:http :rest/;
 use Kinetic::Util::Exceptions qw/throw_required/;
 use aliased 'Kinetic::View::XSLT';
 use aliased 'Kinetic::Interface::REST::Dispatch';
@@ -129,7 +129,7 @@ sub handle_request {
     my ( $self, $cgi ) = @_;
     $self->cgi($cgi)->status('')->response('')->content_type('');
     $self->desired_content_type(XML_CT);
-    if ( my $type = $cgi->param('type') ) {
+    if ( my $type = $cgi->param(TYPE_PARAM) ) {
         my $desired_content_type =
           'html'   eq lc $type ? HTML_CT
           : 'text' eq lc $type ? TEXT_CT
@@ -137,24 +137,9 @@ sub handle_request {
         $self->desired_content_type($desired_content_type);
     }
 
-    my @path_components = grep { /\S/ } split '/' => $cgi->path_info;
-    my @base_path = split '/' => $self->path;
-
-    # remove base path from request, if it's there
-    for my $component (@base_path) {
-        no warnings 'uninitialized';
-        if ( $component eq $path_components[0] ) {
-            shift @path_components;
-        }
-        else {
-            last;
-        }
-    }
-
-    my ( $class_key, $method, @args ) = @path_components;
+    my ( $class_key, $method, @args ) = $self->_get_request;
 
     # the following variables should be case-insensitive
-    # (from the URL)
     $_ = lc foreach $class_key, $method;
 
     my $dispatch = Kinetic::Interface::REST::Dispatch->new;
@@ -166,7 +151,6 @@ sub handle_request {
             $dispatch->class_list;
         }
         else {
-            $_ = uri_unescape($_) foreach $class_key, $method, @args;
             $dispatch->class_key($class_key)->method($method)->args( \@args )
               ->handle_rest_request;
         }
@@ -178,6 +162,62 @@ sub handle_request {
     }
     $self->status(HTTP_OK) unless $self->status;
     return $self;
+}
+
+sub _get_request {
+    my $self = shift;
+
+    my @request = $self->_get_request_from_path_info;
+
+    # naive.  We may have more than one "basic" parameters in
+    # the future (currently it's TYPE_PARAM)
+    if ( !@request || ($self->cgi->param || 0) > 1 ) {
+        @request = $self->_get_request_from_query_string;
+    }
+    return @request;
+}
+
+sub _get_request_from_path_info {
+    my $self      = shift;
+    my $cgi       = $self->cgi;
+    my @request   = grep { /\S/ } split '/' => $cgi->path_info;
+    my @base_path = split '/' => $self->path;
+
+    # remove base path from request, if it's there
+    for my $component (@base_path) {
+        no warnings 'uninitialized';
+        if ( $component eq $request[0] ) {
+            shift @request;
+        }
+        else {
+            last;
+        }
+    }
+    $_ = uri_unescape($_) foreach @request;
+    return @request;
+}
+
+sub _get_request_from_query_string {
+    my $self = shift;
+    my $cgi  = $self->cgi;
+
+    my $class_key = $cgi->param(CLASS_KEY_PARAM);
+    my $method    = 'search';
+
+    my @params = grep { !/^_/ } $cgi->param;    # skip private parameters
+    my @args;
+    foreach my $param (@params) {
+        my $value = $cgi->param($param);
+        if ( 'search' eq $param ) {
+            $param = 'STRING';
+            if ( !defined $value || '' eq $value ) {
+                $value = 'null';
+            }
+        }
+        next unless defined $value && '' ne $value;
+        push @args, $param, $value;
+    }
+    return ( $class_key, $method, @args );
 }
 
 ##############################################################################

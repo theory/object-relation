@@ -28,7 +28,7 @@ use Readonly;
 use Kinetic::Meta;
 use Kinetic::XML;
 use Kinetic::Store;
-use Kinetic::Util::Constants qw/:http :xslt :labels/;
+use Kinetic::Util::Constants qw/:http :xslt :labels TYPE_PARAM/;
 use Kinetic::View::XSLT;
 
 our $VERSION = version->new('0.0.1');
@@ -215,9 +215,9 @@ sub get_args {
 
 sub _query_string {
     my $self = shift;
-    my $type = lc $self->rest->cgi->param('type') || return '';
+    my $type = lc $self->rest->cgi->param(TYPE_PARAM) || return '';
     return '' if 'xml' eq $type;    # because this is the default
-    return "?type=$type";
+    return "?". TYPE_PARAM . "=$type";
 }
 
 ##############################################################################
@@ -599,7 +599,7 @@ sub _xml_header {
     my $stylesheet = Kinetic::View::XSLT->location( $rest->xslt );
     my $domain     = $rest->domain;
     my $path       = $rest->path;
-    my $type       = lc $self->rest->cgi->param('type') || '';
+    my $type       = lc $self->rest->cgi->param(TYPE_PARAM) || '';
     return <<"    END_HEADER";
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="$stylesheet"?>

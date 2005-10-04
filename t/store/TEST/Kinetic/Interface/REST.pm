@@ -23,7 +23,7 @@ use XML::Parser;
     require WWW::REST;
 }
 
-use Kinetic::Util::Constants qw/UUID_RE :xslt :labels/;
+use Kinetic::Util::Constants qw/:rest UUID_RE :xslt :labels/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(1) }
 use TEST::REST::Server;
@@ -104,7 +104,7 @@ sub setup : Test(setup) {
     $test->test_objects( [ $foo, $bar, $baz ] );
     $test->desired_attributes( [qw/ state name description bool /] );
     $test->domain('http://localhost:9000')->path('rest')
-      ->query_string('type=html');
+      ->query_string("@{[TYPE_PARAM]}=html");
 }
 
 sub teardown : Test(teardown) {
@@ -122,7 +122,105 @@ sub _clear_database {
 
 sub REST { shift->{REST} }
 
-sub web_test_paging : Test(14) {
+sub search_by_query_string : Test(8) {
+    my $test = shift;
+    my $mech = Test::WWW::Mechanize->new;
+    my $url  = $test->url;
+
+    my ( $foo, $bar, $baz ) = $test->test_objects;
+    $test->query_string('');
+
+    $mech->get_ok(
+"${url}?@{[CLASS_KEY_PARAM]}=one;search=;order_by=name;limit=2;sort_order=",
+        'We should be able to search by query string'
+    );
+
+    my $foo_uuid           = $foo->uuid;
+    my $bar_uuid           = $bar->uuid;
+    my $header             = $test->header_xml(AVAILABLE_INSTANCES);
+    my $response           = $mech->content;
+    my @instance_order     = $test->instance_order($response);
+    my $expected_instances =
+      $test->expected_instance_xml( [ $foo, $bar, $baz ], \@instance_order );
+    my $resources = $test->resource_list_xml;
+    my $search    =
+      $test->search_data_xml(
+        { key => 'one', limit => 2, order_by => 'name' } );
+    my $expected = <<"    END_XML";
+$header
+      $resources
+      $expected_instances
+      <kinetic:pages>
+        <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
+        <kinetic:page id="[ Page 2 ]" xlink:href="${url}one/search/STRING/null/order_by/name/limit/2/offset/2" />
+      </kinetic:pages>
+      $search
+    </kinetic:resources>
+    END_XML
+
+    is_xml $response, $expected, '... and have the correct data returned';
+
+    $mech->get_ok(
+"${url}one/search?@{[CLASS_KEY_PARAM]}=one;search=;order_by=name;limit=2;sort_order=",
+        'We should be able to search with a query string and partial path info'
+    );
+    is_xml $response, $expected, '... and have the correct data returned';
+
+    $test->query_string("@{[TYPE_PARAM]}=html");
+    $mech->get_ok(
+"${url}?@{[CLASS_KEY_PARAM]}=one;search=;order_by=name;limit=2;sort_order=;@{[TYPE_PARAM]}=html",
+        'We should be able to fetch and limit the searches'
+    );
+
+    my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
+    my $html_resources = $test->resource_list_html;
+    my $search_form    =
+      $test->search_form( { key => 'one', limit => 2, order_by => 'name' } );
+    my $instances = $test->instance_table( $bar, $foo );
+    my $footer    = $test->footer_html;
+
+    $expected = <<"    END_XHTML";
+$html_header
+    $html_resources
+    $search_form
+    $instances
+    <div class="pages">
+      <p>
+        [ Page 1 ]
+        <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/2?@{[TYPE_PARAM]}=html">[ Page 2 ]</a>
+      </p>
+    </div>
+    $footer
+    END_XHTML
+    is_xml $mech->content, $expected,
+      '... ordering and limiting searches should work';
+
+    $mech->get_ok(
+"${url}?@{[CLASS_KEY_PARAM]}=one;search=;order_by=name;limit=2;sort_order=;offset=2;@{[TYPE_PARAM]}=html",
+        '... as should paging through result sets'
+    );
+    $instances      = $test->instance_table($baz);
+    $html_header    = $test->header_html(AVAILABLE_INSTANCES);
+    $html_resources = $test->resource_list_html;
+
+    $expected = <<"    END_XHTML";
+$html_header
+    $html_resources
+    $search_form
+    $instances
+    <div class="pages">
+      <p>
+        <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/0?@{[TYPE_PARAM]}=html">[ Page 1 ]</a>
+        [ Page 2 ]
+      </p>
+    </div>
+    $footer
+    END_XHTML
+    is_xml $mech->content, $expected,
+      '... ordering and limiting searches should work';
+}
+
+sub web_test_paging : Test(15) {
     my $test = shift;
     my $mech = Test::WWW::Mechanize->new;
     my $url  = $test->url;
@@ -161,9 +259,9 @@ $header
     is_xml $response, $expected,
       '... and have appropriate pages added, if available';
 
-    $test->query_string('type=html');
+    $test->query_string("@{[TYPE_PARAM]}=html");
     $mech->get_ok(
-        "${url}one/search/STRING/null/order_by/name/limit/2?type=html",
+"${url}one/search/STRING/null/order_by/name/limit/2?@{[TYPE_PARAM]}=html",
         'We should be able to fetch and limit the searches'
     );
 
@@ -182,7 +280,7 @@ $html_header
     <div class="pages">
       <p>
         [ Page 1 ]
-        <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/2?type=html">[ Page 2 ]</a>
+        <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/2?@{[TYPE_PARAM]}=html">[ Page 2 ]</a>
       </p>
     </div>
     $footer
@@ -191,20 +289,21 @@ $html_header
       '... ordering and limiting searches should work';
 
     $mech->get_ok(
-        "${url}one/search/STRING/null/order_by/name/limit/2/offset/2?type=html",
+"${url}one/search/STRING/null/order_by/name/limit/2/offset/2?@{[TYPE_PARAM]}=html",
         '... as should paging through result sets'
     );
     $instances      = $test->instance_table($baz);
     $html_header    = $test->header_html(AVAILABLE_INSTANCES);
     $html_resources = $test->resource_list_html;
-    $expected       = <<"    END_XHTML";
+
+    $expected = <<"    END_XHTML";
 $html_header
     $html_resources
     $search_form
     $instances
     <div class="pages">
       <p>
-        <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/0?type=html">[ Page 1 ]</a>
+        <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/0?@{[TYPE_PARAM]}=html">[ Page 1 ]</a>
         [ Page 2 ]
       </p>
     </div>
@@ -212,6 +311,11 @@ $html_header
     END_XHTML
     is_xml $mech->content, $expected,
       '... ordering and limiting searches should work';
+
+    $mech->get_ok(
+"${url}one/search/STRING/null/order_by/name/limit/2/offset/2?@{[TYPE_PARAM]}=html",
+        '... as should paging through result sets'
+    );
 
     $test->_clear_database;
     for ( 'A' .. 'Z' ) {
@@ -223,27 +327,25 @@ $html_header
     # now that we have 26 "One" objects in the database, let's make sure
     # that the default max list is 20
     # We should also get two pages listed, but the current page is not linked
-    $mech->get_ok( "${url}one/search?type=html",
-        '... as should paging through result sets' );
+    $mech->get_ok(
+        "${url}one/search?@{[TYPE_PARAM]}=html",
+        '... as should paging through result sets'
+    );
     my @links = $mech->links;
     is @links, 84, 'We should receive 80 instance links and 1 page links';
 
-    $mech->get_ok(
-        "${url}one/search/STRING/null/limit/30?type=html",
-        'Asking for more than the limit should work'
-    );
+    $mech->get_ok( "${url}one/search/STRING/null/limit/30?@{[TYPE_PARAM]}=html",
+        'Asking for more than the limit should work' );
     @links = $mech->links;
     is @links, 107, '... and return only instance links';
 
-    $mech->get_ok(
-        "${url}one/search/STRING/null/limit/10?type=html",
-        'Asking for fewer than the limit should work'
-    );
+    $mech->get_ok( "${url}one/search/STRING/null/limit/10?@{[TYPE_PARAM]}=html",
+        'Asking for fewer than the limit should work' );
     @links = $mech->links;
     is @links, 45, '... and return the correct number of links';
 
     $mech->get_ok(
-        "${url}one/search/STRING/null/limit/26?type=html",
+        "${url}one/search/STRING/null/limit/26?@{[TYPE_PARAM]}=html",
         'Asking for exactly the number of links that exist should work'
     );
     @links = $mech->links;
@@ -257,7 +359,7 @@ sub web_test : Test(12) {
 
     $mech->get_ok( $url, 'Gettting the main page should succeed' );
     ok !$mech->is_html, '... but it should not return HTML';
-    $mech->get_ok( "$url?type=html",
+    $mech->get_ok( "$url?@{[TYPE_PARAM]}=html",
         'We should be able to fetch the main page and ask for HTML' );
     ok $mech->is_html, '... and get HTML back';
     $mech->title_is( AVAILABLE_RESOURCES,
@@ -284,9 +386,8 @@ sub web_test : Test(12) {
         '... and it should be able to identify the object' );
 
     $mech->get_ok(
-        qq'${url}one/search/STRING/name => "foo"?type=html',
-        'We should be able to fetch via a search'
-    );
+        qq'${url}one/search/STRING/name => "foo"?@{[TYPE_PARAM]}=html',
+        'We should be able to fetch via a search' );
 
     $foo_uuid = $foo->uuid;
     my $html_header    = $test->header_html(AVAILABLE_INSTANCES);

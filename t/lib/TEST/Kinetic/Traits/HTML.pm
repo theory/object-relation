@@ -6,6 +6,7 @@ package TEST::Kinetic::Traits::HTML;
 use strict;
 use warnings;
 use HTML::Entities qw/encode_entities/;
+use Kinetic::Util::Constants qw/:rest/; # form params
 
 # note that the following is a stop-gap measure until Class::Trait has
 # a couple of bugs fixed.  Bugs have been reported back to the author.
@@ -238,15 +239,15 @@ sub search_form {
     my $domain = $test->domain;
     my $path   = $test->path;
     my $query  = $test->query_string;
-    my ($type) = $query =~ /type=([[:word:]]+)/;
+    my ($type) = $query =~ /@{[TYPE_PARAM]}=([[:word:]]+)/;
     $type ||= '';
     return <<"    END_FORM";
     <div class="search">
-      <form method="get" name="search_form" onsubmit="doSearch(this); return false" id="search_form">
-        <input type="hidden" name="class_key" value="$value_for->{key}" />
-        <input type="hidden" name="domain" value="$domain" />
-        <input type="hidden" name="path" value="$path" />
-        <input type="hidden" name="type" value="$type" />
+      <form action="/$path" method="get" name="search_form" onsubmit="doSearch(this); return false" id="search_form">
+        <input type="hidden" name="@{[CLASS_KEY_PARAM]}" value="$value_for->{key}" />
+        <input type="hidden" name="@{[DOMAIN_PARAM]}" value="$domain" />
+        <input type="hidden" name="@{[PATH_PARAM]}" value="$path" />
+        <input type="hidden" name="@{[TYPE_PARAM]}" value="$type" />
         <table>
           <tr>
             <td>Search:</td>

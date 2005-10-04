@@ -22,14 +22,14 @@ Kinetic.Search = function () {};                 // constructor
 Kinetic.Search.prototype = {
     buildURL: function (data) {
         // data from form
-        var class_key  = data.class_key.value;
-        var domain     = data.domain.value;
-        var path       = data.path.value;
+        var class_key  = data._class_key.value;
+        var domain     = data._domain.value;
+        var path       = data._path.value;
+        var type       = data._type.value;
         var search     = data.search.value;
         var limit      = data.limit.value;
         var order_by   = data.order_by.value;
         var sort_order = data.sort_order.value;
-        var type       = data.type.value;
 
         // base url 
         var url = domain + path + class_key;
@@ -42,7 +42,7 @@ Kinetic.Search.prototype = {
             url = url + this._addSearchConstraint('sort_order', sort_order);
         }
         if (type) {
-            url = url + '?type=' + type;
+            url = url + '?_type=' + type;
         }
         return url;
     },

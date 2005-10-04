@@ -64,6 +64,12 @@ use constant RESOURCES_XSLT => '/xslt/resources.xsl';
 use constant SEARCH_XSLT    => '/xslt/search.xsl';
 use constant INSTANCE_XSLT  => '/xslt/instance.xsl';
 
+# REST
+use constant CLASS_KEY_PARAM => '_class_key';
+use constant DOMAIN_PARAM    => '_domain';
+use constant PATH_PARAM      => '_path';
+use constant TYPE_PARAM      => '_type';
+
 # Labels
 use constant AVAILABLE_INSTANCES => 'Available instances';
 use constant AVAILABLE_RESOURCES => 'Available resources';
@@ -98,6 +104,14 @@ use Exporter::Tidy http => [
       PREPARE
       /
   ],
+  rest => [
+    qw/
+      CLASS_KEY_PARAM
+      DOMAIN_PARAM
+      PATH_PARAM
+      TYPE_PARAM
+      /
+  ],
   labels => [
     qw/
       AVAILABLE_INSTANCES
@@ -113,7 +127,7 @@ use Exporter::Tidy http => [
       /
   ];
 
-=head1 :data_store
+=head2 :data_store
 
 These constants all relate to the data store and data various data store
 modules need to manipulate it.
@@ -156,7 +170,31 @@ an SQL statement.
 
 =back
 
-=head1 HTTP
+=head2 :rest
+
+These constants are related to the REST interface.
+
+=over 4
+
+=item * CLASS_KEY_PARAM
+
+C<class_key> for current search.
+
+=item * DOMAIN_PARAM
+
+Domain of server.
+
+=item * PATH_PARAM
+
+REST base path.
+
+=item * TYPE_PARAM
+
+Content type to return to client instead of XML.  Currently only supports 'html'.
+
+=back
+
+=head2 :http
 
 HTTP related constants.  These are content types or status codes.
 
@@ -204,7 +242,7 @@ C<200 OK>
 
 =back
 
-=head1 :labels
+=head2 :labels
 
 =over 4 
 
@@ -218,7 +256,7 @@ Title for "Available resources" returned in REST services.
 
 =back
 
-=head1 :data
+=head2 :data
 
 =over 4
 
@@ -228,7 +266,7 @@ The location of the WWW directory.
 
 =back
 
-=head1 :xslt
+=head2 :xslt
 
 =over 4
 
