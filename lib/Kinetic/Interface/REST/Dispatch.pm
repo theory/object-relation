@@ -19,27 +19,28 @@ package Kinetic::Interface::REST::Dispatch;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use version;
 use Data::Pageset;
 use HTML::Entities qw/encode_entities/;
-use Params::Validate;
-use Readonly;
+use Params::Validate qw/validate/;
+use XML::Genx::Simple;
 
 use Kinetic::Meta;
 use Kinetic::XML;
 use Kinetic::Store;
-use Kinetic::Util::Constants qw/:http :xslt :labels TYPE_PARAM/;
+use Kinetic::Util::Constants qw/:http :xslt :labels :rest/;
 use Kinetic::View::XSLT;
 
 our $VERSION = version->new('0.0.1');
 
-Readonly my %DONT_DISPLAY => ( uuid => 1 );
+use Readonly;
+Readonly my $NS                  => 'kinetic';
+Readonly my $XML_DECLARATION     => '<?xml version="1.0"?>';
+Readonly my %DONT_DISPLAY        => ( uuid => 1 );
 Readonly my $MAX_ATTRIBUTE_INDEX => 4;
 Readonly my $PLACEHOLDER         => 'null';
 Readonly my $DEFAULT_LIMIT       => 20;
 Readonly my $DEFAULT_SEARCH_ARGS =>
   [ 'STRING', '', 'limit', $DEFAULT_LIMIT, 'offset', 0 ];
-Readonly my $NS                  => 'kinetic';
 
 =head1 Name
 
@@ -169,7 +170,7 @@ sub args {
         foreach my $curr_arg (@$args) {
             $curr_arg = '' if $PLACEHOLDER eq $curr_arg;
         }
-        if ( 'search' eq ($self->method || '') ) {
+        if ( 'search' eq ( $self->method || '' ) ) {
             if (@$args) {
                 if ( !grep { $_ eq 'limit' } @$args ) {
                     push @$args, 'limit', $DEFAULT_LIMIT;
@@ -217,7 +218,7 @@ sub _query_string {
     my $self = shift;
     my $type = lc $self->rest->cgi->param(TYPE_PARAM) || return '';
     return '' if 'xml' eq $type;    # because this is the default
-    return "?". TYPE_PARAM . "=$type";
+    return "?" . TYPE_PARAM . "=$type";
 }
 
 ##############################################################################
@@ -235,11 +236,9 @@ list of all classes registered with L<Kinetic::Meta|Kinetic::Meta>.
 sub class_list {
     my ($self) = @_;
 
-    my $rest     = $self->rest;
-    my $response = $self->_xml_header(AVAILABLE_RESOURCES);
-    $response .= $self->_get_resources;
-    $response .= "</$NS:resources>";
-    return $rest->set_response($response);
+    my $response =
+      $XML_DECLARATION . "\n" . $self->_class_list_xml(AVAILABLE_RESOURCES);
+    return $self->rest->set_response($response);
 }
 
 sub _get_resources {
@@ -377,14 +376,13 @@ sub _instance_list {
             my $method = $attribute->name;
             my $value = ( $instance->$method || '' );
             $response .=
-qq'<$NS:attribute name="$method">$value</$NS:attribute>\n';
+              qq'<$NS:attribute name="$method">$value</$NS:attribute>\n';
         }
         $response .= qq'</$NS:instance>\n';
     }
 
     if ($instance_count) {
-        $response .=
-          $self->_add_pageset( $instance_count );
+        $response .= $self->_add_pageset($instance_count);
         $response .= $self->_add_search_data;
     }
     else {
@@ -405,7 +403,7 @@ sub _add_search_data {
 
     my $search_order = '';
     my ( $order_by, $sort_order ) = ( 0, 0 );
-    my @sort_options = ( ASC  => 'Ascending', DESC => 'Descending' );
+    my @sort_options = ( ASC => 'Ascending', DESC => 'Descending' );
     while ( defined( my $arg = shift @$args ) ) {
         next unless 'order_by' eq $arg || 'sort_order' eq $arg;
         my $value = encode_entities( shift @$args );
@@ -424,12 +422,14 @@ sub _add_search_data {
     }
 
     # must have default order_by
-    if ( ! $order_by ) {
+    if ( !$order_by ) {
         $search_order .= qq{<$NS:parameter type="order_by" />\n};
     }
+
     # make Ascending sort order the default
-    if ( ! $sort_order ) {
-        $search_order .= _widget('sort_order', 'select', 'ASC', \@sort_options );
+    if ( !$sort_order ) {
+        $search_order .=
+          _widget( 'sort_order', 'select', 'ASC', \@sort_options );
     }
 
     return <<"    END_SEARCH_DATA";
@@ -443,12 +443,14 @@ sub _add_search_data {
 }
 
 sub _widget {
-    my ($search_type, $widget_type, $value, $options) = @_;
-    my $widget = qq{        <$NS:parameter type="$search_type" widget="$widget_type">\n};
-    for (my $i = 0; $i < @$options; $i += 2) {
-        my ($option, $label) = @{$options}[$i, $i+1];
+    my ( $search_type, $widget_type, $value, $options ) = @_;
+    my $widget =
+      qq{        <$NS:parameter type="$search_type" widget="$widget_type">\n};
+    for ( my $i = 0 ; $i < @$options ; $i += 2 ) {
+        my ( $option, $label ) = @{$options}[ $i, $i + 1 ];
         my $selected = $option eq $value ? ' selected="selected"' : '';
-        $widget .= qq{          <$NS:option name="$option"$selected>$label</$NS:option>\n};
+        $widget .=
+qq{          <$NS:option name="$option"$selected>$label</$NS:option>\n};
     }
     $widget .= "        </$NS:parameter>\n";
     return $widget;
@@ -610,6 +612,63 @@ sub _xml_header {
 <$NS:path>$path</$NS:path>
 <$NS:type>$type</$NS:type>
     END_HEADER
+}
+
+sub _class_list_xml {
+    my ( $self, $title ) = @_;
+
+    my $rest        = $self->rest;
+    my $stylesheet  = Kinetic::View::XSLT->location( $rest->xslt );
+    my $output_type = lc $self->rest->cgi->param(TYPE_PARAM) || '';
+
+    my $xml = XML::Genx::Simple->new;
+    $xml->StartDocString;
+
+    # declare namespaces
+    my $kinetic_ns =
+      $xml->DeclareNamespace( 'http://www.kineticode.com/rest' => 'kinetic' );
+    my $xlink_ns =
+      $xml->DeclareNamespace( 'http://www.w3.org/1999/xlink' => 'xlink' );
+
+    # declar elements
+    my $resources = $xml->DeclareElement( $kinetic_ns => 'resources' );
+    my $desc      = $xml->DeclareElement( $kinetic_ns => 'description' );
+    my $domain    = $xml->DeclareElement( $kinetic_ns => 'domain' );
+    my $path      = $xml->DeclareElement( $kinetic_ns => 'path' );
+    my $type      = $xml->DeclareElement( $kinetic_ns => 'type' );
+    my $resource  = $xml->DeclareElement( $kinetic_ns => 'resource' );
+    my $href      = $xml->DeclareAttribute( $xlink_ns => 'href' );
+    my $id        = $xml->DeclareAttribute('id');
+
+    # metadata
+    $xml->PI( 'xml-stylesheet', qq{type="text/xsl" href="$stylesheet"} );
+    $resources->StartElement;
+    $xlink_ns->AddNamespace;
+    $xml->Element( $desc   => $title );
+    $xml->Element( $domain => $rest->domain );
+    $xml->Element( $path   => $rest->path );
+    $xml->Element( $type   => $output_type );
+
+    # add the resources
+    my $base_url     = $self->_rest_base_url;
+    my $query_string = $self->_query_string;
+    foreach my $key ( sort Kinetic::Meta->keys ) {
+        next if Kinetic::Meta->for_key($key)->abstract;
+        $resource->StartElement;
+        $id->AddAttribute($key);
+        $href->AddAttribute("${base_url}$key/search$query_string");
+        $xml->EndElement;
+    }
+    $xml->EndElement;
+    $xml->EndDocument;
+    return $xml->GetDocString;
+}
+
+sub _xml {
+    my $self = shift;
+    return $self->{xml} unless @_;
+    $self->{xml} = shift;
+    return $self;
 }
 
 1;
