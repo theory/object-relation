@@ -28,6 +28,7 @@ use Kinetic::Meta;
 use Kinetic::XML;
 use Kinetic::Store;
 use Kinetic::Util::Constants qw/:http :xslt :labels :rest/;
+use Kinetic::Util::Exceptions qw/throw_fatal/;
 use Kinetic::View::XSLT;
 
 our $VERSION = version->new('0.0.1');
@@ -320,6 +321,73 @@ keyed by uuid.
 
 =cut
 
+sub _xml {
+    my $self = shift;
+    return $self->{xml}{generator} unless @_;
+    $self->{xml}{generator} = shift;
+    return $self;
+}
+
+sub _xml_ns {
+    my $self = shift;
+    my $name = shift;
+    if ( 'HASH' eq ref $name ) {
+        delete $self->{xml}{ns};
+        while ( my ( $ns, $value ) = each %$name ) {
+            $self->{xml}{ns}{$ns} = $value;
+        }
+        return $self;
+    }
+    unless (@_) {
+        unless ( exists $self->{xml}{ns}{$name} ) {
+            throw_fatal [ 'No such attribute "[_1]" for [_2]', $name,
+                'XML namespace' ];
+        }
+        return $self->{xml}{ns}{$name};
+    }
+    $self->{xml}{ns}{$name} = shift;
+}
+
+sub _xml_attr {
+    my $self = shift;
+    my $name = shift;
+    if ( 'HASH' eq ref $name ) {
+        delete $self->{xml}{attr};
+        while ( my ( $attr, $value ) = each %$name ) {
+            $self->{xml}{attr}{$attr} = $value;
+        }
+        return $self;
+    }
+    unless (@_) {
+        unless ( exists $self->{xml}{attr}{$name} ) {
+            throw_fatal [ 'No such attribute "[_1]" for [_2]', $name,
+                'XML attribute' ];
+        }
+        return $self->{xml}{attr}{$name};
+    }
+    $self->{xml}{attr}{$name} = shift;
+}
+
+sub _xml_elem {
+    my $self = shift;
+    my $name = shift;
+    if ( 'HASH' eq ref $name ) {
+        delete $self->{xml}{elem};
+        while ( my ( $elem, $value ) = each %$name ) {
+            $self->{xml}{elem}{$elem} = $value;
+        }
+        return $self;
+    }
+    unless (@_) {
+        unless ( exists $self->{xml}{elem}{$name} ) {
+            throw_fatal [ 'No such attribute "[_1]" for [_2]', $name,
+                'XML element' ];
+        }
+        return $self->{xml}{elem}{$name};
+    }
+    $self->{xml}{elem}{$name} = shift;
+}
+
 sub _instance_list_xml {
     my ( $self, $iterator ) = @_;
 
@@ -328,171 +396,116 @@ sub _instance_list_xml {
     my $output_type = lc $self->rest->cgi->param(TYPE_PARAM) || '';
 
     my $xml = XML::Genx::Simple->new;
+    $self->_xml($xml);
     $xml->StartDocString;
 
-    # declare namespaces
-    my $kinetic_ns =
-      $xml->DeclareNamespace( 'http://www.kineticode.com/rest' => 'kinetic' );
-    my $xlink_ns =
-      $xml->DeclareNamespace( 'http://www.w3.org/1999/xlink' => 'xlink' );
+    my %ns_for = (
+        kinetic => $xml->DeclareNamespace(
+            'http://www.kineticode.com/rest' => 'kinetic'
+        ),
+        xlink =>
+          $xml->DeclareNamespace( 'http://www.w3.org/1999/xlink' => 'xlink' ),
+    );
+    $self->_xml_ns( \%ns_for );
 
-    # declare search metadata
-    my $desc   = $xml->DeclareElement( $kinetic_ns => 'description' );
-    my $domain = $xml->DeclareElement( $kinetic_ns => 'domain' );
-    my $path   = $xml->DeclareElement( $kinetic_ns => 'path' );
-    my $type   = $xml->DeclareElement( $kinetic_ns => 'type' );
+    my %elem_for = (
 
-    # instance list
-    my $resources = $xml->DeclareElement( $kinetic_ns => 'resources' );
-    my $resource  = $xml->DeclareElement( $kinetic_ns => 'resource' );
-    my $instance  = $xml->DeclareElement( $kinetic_ns => 'instance' );
-    my $attribute = $xml->DeclareElement( $kinetic_ns => 'attribute' );
+        # declare search metadata
+        desc   => $xml->DeclareElement( $ns_for{kinetic} => 'description' ),
+        domain => $xml->DeclareElement( $ns_for{kinetic} => 'domain' ),
+        path   => $xml->DeclareElement( $ns_for{kinetic} => 'path' ),
+        type   => $xml->DeclareElement( $ns_for{kinetic} => 'type' ),
 
-    # page sets
-    my $pages = $xml->DeclareElement( $kinetic_ns => 'pages' );
-    my $page  = $xml->DeclareElement( $kinetic_ns => 'page' );
+        # instance list
+        resources => $xml->DeclareElement( $ns_for{kinetic} => 'resources' ),
+        resource  => $xml->DeclareElement( $ns_for{kinetic} => 'resource' ),
+        instance  => $xml->DeclareElement( $ns_for{kinetic} => 'instance' ),
+        attribute => $xml->DeclareElement( $ns_for{kinetic} => 'attribute' ),
 
-    # search parameters
-    my $class_key  = $xml->DeclareElement( $kinetic_ns => 'class_key' );
-    my $parameters = $xml->DeclareElement( $kinetic_ns => 'search_parameters' );
-    my $parameter  = $xml->DeclareElement( $kinetic_ns => 'parameter' );
-    my $option_elem = $xml->DeclareElement( $kinetic_ns => 'option' );
+        # search parameters
+        class_key => $xml->DeclareElement( $ns_for{kinetic} => 'class_key' ),
+        parameters =>
+          $xml->DeclareElement( $ns_for{kinetic} => 'search_parameters' ),
+        parameter => $xml->DeclareElement( $ns_for{kinetic} => 'parameter' ),
+        option    => $xml->DeclareElement( $ns_for{kinetic} => 'option' ),
+    );
+    $self->_xml_elem( \%elem_for );
 
     # attributes
-    my $href      = $xml->DeclareAttribute( $xlink_ns => 'href' );
-    my $id        = $xml->DeclareAttribute('id');
-    my $type_attr = $xml->DeclareAttribute('type');
-    my $name_attr = $xml->DeclareAttribute('name');
-    my $widget    = $xml->DeclareAttribute('widget');
-    my $selected  = $xml->DeclareAttribute('selected');
+    my %attr_for = (
+        href     => $xml->DeclareAttribute( $ns_for{xlink} => 'href' ),
+        id       => $xml->DeclareAttribute('id'),
+        type     => $xml->DeclareAttribute('type'),
+        name     => $xml->DeclareAttribute('name'),
+        widget   => $xml->DeclareAttribute('widget'),
+        selected => $xml->DeclareAttribute('selected'),
+    );
+    $self->_xml_attr( \%attr_for );
 
     # add search metadata
     $xml->PI( 'xml-stylesheet', qq{type="text/xsl" href="$stylesheet"} );
-    $resources->StartElement;
-    $xlink_ns->AddNamespace;
-    $xml->Element( $desc   => AVAILABLE_INSTANCES );
-    $xml->Element( $domain => $rest->domain );
-    $xml->Element( $path   => $rest->path );
-    $xml->Element( $type   => $output_type );
+    $elem_for{resources}->StartElement;
+    $ns_for{xlink}->AddNamespace;
+    $xml->Element( $elem_for{desc}   => AVAILABLE_INSTANCES );
+    $xml->Element( $elem_for{domain} => $rest->domain );
+    $xml->Element( $elem_for{path}   => $rest->path );
+    $xml->Element( $elem_for{type}   => $output_type );
 
     # add the resources
     my $base_url     = $self->_rest_base_url;
     my $query_string = $self->_query_string;
     foreach my $key ( sort Kinetic::Meta->keys ) {
         next if Kinetic::Meta->for_key($key)->abstract;
-        $resource->StartElement;
-        $id->AddAttribute($key);
-        $href->AddAttribute("${base_url}$key/search$query_string");
+        $elem_for{resource}->StartElement;
+        $attr_for{id}->AddAttribute($key);
+        $attr_for{href}->AddAttribute("${base_url}$key/search$query_string");
         $xml->EndElement;
     }
 
     # add the instances
 
-    my $instance_count = 0;
-    my $key            = $self->class_key;
-    my @attributes;
-    while ( my $curr_instance = $iterator->next ) {
-        unless (@attributes) {
-            @attributes =
-              grep { !$_->references && !exists $DONT_DISPLAY{ $_->name } }
-              $curr_instance->my_class->attributes;
-            my $i =
-              $MAX_ATTRIBUTE_INDEX < $#attributes
-              ? $MAX_ATTRIBUTE_INDEX
-              : $#attributes;
-
-            # don't list all attributes
-            @attributes = @attributes[ 0 .. $i ];
-        }
-        $instance_count++;
-        my $uuid = $curr_instance->uuid;
-        my $url  = "$base_url$key/lookup/uuid/$uuid$query_string";
-        $instance->StartElement;
-        $id->AddAttribute($uuid);
-        $href->AddAttribute($url);
-        foreach my $instance_attribute (@attributes) {
-            my $method = $instance_attribute->name;
-            my $value = ( $curr_instance->$method || '' );
-            $attribute->StartElement;
-            $name_attr->AddAttribute($method);
-            $xml->AddText($value);
-            $xml->EndElement;
-        }
-        $xml->EndElement;
-    }
+    my $instance_count = $self->_add_instances($iterator);
 
     if ($instance_count) {
-
-        # add pageset
         my %arg_for = @{ $self->args };
-        my $pageset = $self->_pageset(
-            {
-                count  => $instance_count,
-                limit  => $arg_for{limit},
-                offset => $arg_for{offset},
-            }
-        );
-        if ($pageset) {
-            my @args = $self->get_args;
 
-            my $url = "$base_url@{ [ $self->class_key ] }/search/";
-            $url .= join '/', map { '' eq $_ ? $PLACEHOLDER : $_ } @args;
-            $url =~ s{offset/\d+}{offset/\%d};
-            $url .= $query_string;
-
-            $pages->StartElement;
-            foreach my $set ( $pageset->first_page .. $pageset->last_page ) {
-
-                $page->StartElement;
-                $id->AddAttribute("[ Page $set ]");
-                if ( $set == $pageset->current_page ) {
-                    $href->AddAttribute(CURRENT_PAGE);
-                }
-                else {
-                    my $current_offset = ( $set - 1 ) * $arg_for{limit};
-                    my $link_url = sprintf $url, $current_offset;
-                    $href->AddAttribute($link_url);
-                }
-                $xml->EndElement;
-            }
-            $xml->EndElement;
-        }
+        $self->_add_pageset($instance_count);
 
         my ( $order_by, $sort_order ) = ( 0, 0 );
-        $xml->Element( $class_key, $self->class_key );
-        $parameters->StartElement;
-        $parameter->StartElement;
-        $type_attr->AddAttribute('search');
+        $xml->Element( $elem_for{class_key}, $self->class_key );
+        $elem_for{parameters}->StartElement;
+        $elem_for{parameter}->StartElement;
+        $attr_for{type}->AddAttribute('search');
         $xml->AddText( $arg_for{STRING} );
         $xml->EndElement;
-        $parameter->StartElement;
-        $type_attr->AddAttribute('limit');
+        $elem_for{parameter}->StartElement;
+        $attr_for{type}->AddAttribute('limit');
         $xml->AddText( $arg_for{limit} );
         $xml->EndElement;
 
         my @sort_options = ( ASC => 'Ascending', DESC => 'Descending' );
-        my $args    = $self->args;
+        my $args = $self->args;
         while ( defined( my $arg = shift @$args ) ) {
             next unless 'order_by' eq $arg || 'sort_order' eq $arg;
             my $value = shift @$args;
             if ( 'order_by' eq $arg && !$order_by ) {
                 $order_by = 1;
-                $parameter->StartElement;
-                $type_attr->AddAttribute($arg);
+                $elem_for{parameter}->StartElement;
+                $attr_for{type}->AddAttribute($arg);
                 $xml->AddText($value);
                 $xml->EndElement;
             }
             if ( 'sort_order' eq $arg && !$sort_order ) {
                 $sort_order = 1;
-                $parameter->StartElement;
-                $type_attr->AddAttribute($arg);
-                $widget->AddAttribute('select');
+                $elem_for{parameter}->StartElement;
+                $attr_for{type}->AddAttribute($arg);
+                $attr_for{widget}->AddAttribute('select');
                 for ( my $i = 0 ; $i < @sort_options ; $i += 2 ) {
                     my ( $option, $label ) = @sort_options[ $i, $i + 1 ];
-                    $option_elem->StartElement;
-                    $name_attr->AddAttribute($option);
+                    $elem_for{option}->StartElement;
+                    $attr_for{name}->AddAttribute($option);
                     if ( $option eq $value ) {
-                        $selected->AddAttribute('selected');
+                        $attr_for{selected}->AddAttribute('selected');
                     }
                     $xml->AddText($label);
                     $xml->EndElement;
@@ -506,22 +519,22 @@ sub _instance_list_xml {
 
         # must have default order_by
         if ( !$order_by ) {
-            $parameter->StartElement;
-            $type_attr->AddAttribute('order_by');
+            $elem_for{parameter}->StartElement;
+            $attr_for{type}->AddAttribute('order_by');
             $xml->EndElement;
         }
 
         # make Ascending sort order the default
         if ( !$sort_order ) {
-            $parameter->StartElement;
-            $type_attr->AddAttribute('sort_order');
-            $widget->AddAttribute('select');
+            $elem_for{parameter}->StartElement;
+            $attr_for{type}->AddAttribute('sort_order');
+            $attr_for{widget}->AddAttribute('select');
             for ( my $i = 0 ; $i < @sort_options ; $i += 2 ) {
                 my ( $option, $label ) = @sort_options[ $i, $i + 1 ];
-                $option_elem->StartElement;
-                $name_attr->AddAttribute($option);
+                $elem_for{option}->StartElement;
+                $attr_for{name}->AddAttribute($option);
                 if ( $option eq 'ASC' ) {
-                    $selected->AddAttribute('selected');
+                    $attr_for{selected}->AddAttribute('selected');
                 }
                 $xml->AddText($label);
                 $xml->EndElement;
@@ -531,15 +544,100 @@ sub _instance_list_xml {
         $xml->EndElement;
     }
     else {
-        $instance->StartElement;
-        $id->AddAttribute('No resources found');
-        $href->AddAttribute(CURRENT_PAGE);
+        $elem_for{instance}->StartElement;
+        $attr_for{id}->AddAttribute('No resources found');
+        $attr_for{href}->AddAttribute(CURRENT_PAGE);
         $xml->EndElement;
     }
 
     $xml->EndElement;
     $xml->EndDocument;
     return $xml->GetDocString;
+}
+
+sub _add_instances {
+    my ( $self, $iterator ) = @_;
+    my $instance_count = 0;
+    my @attributes;
+    my $base_url     = $self->_rest_base_url;
+    my $query_string = $self->_query_string;
+    my $xml          = $self->_xml;
+
+    while ( my $instance = $iterator->next ) {
+        unless (@attributes) {
+            @attributes =
+              grep { !$_->references && !exists $DONT_DISPLAY{ $_->name } }
+              $instance->my_class->attributes;
+            my $i =
+              $MAX_ATTRIBUTE_INDEX < $#attributes
+              ? $MAX_ATTRIBUTE_INDEX
+              : $#attributes;
+
+            # don't list all attributes
+            @attributes = @attributes[ 0 .. $i ];
+        }
+        $instance_count++;
+        my $uuid = $instance->uuid;
+        my $url  =
+          "$base_url" . $self->class_key . "/lookup/uuid/$uuid$query_string";
+        $self->_xml_elem('instance')->StartElement;
+        $self->_xml_attr('id')->AddAttribute($uuid);
+        $self->_xml_attr('href')->AddAttribute($url);
+        foreach my $instance_attribute (@attributes) {
+            my $method = $instance_attribute->name;
+            my $value = ( $instance->$method || '' );
+            $self->_xml_elem('attribute')->StartElement;
+            $self->_xml_attr('name')->AddAttribute($method);
+            $xml->AddText($value);
+            $xml->EndElement;
+        }
+        $xml->EndElement;
+    }
+    return $instance_count;
+}
+
+sub _add_pageset {
+    my ( $self, $instance_count ) = @_;
+
+    my %arg_for = @{ $self->args };
+    my $pageset = $self->_pageset(
+        {
+            count  => $instance_count,
+            limit  => $arg_for{limit},
+            offset => $arg_for{offset},
+        }
+    );
+    return unless $pageset;
+    my @args = $self->get_args;
+
+    my $base_url     = $self->_rest_base_url;
+    my $query_string = $self->_query_string;
+    my $url          = "$base_url@{ [ $self->class_key ] }/search/";
+    $url .= join '/', map { '' eq $_ ? $PLACEHOLDER : $_ } @args;
+    $url =~ s{offset/\d+}{offset/\%d};
+    $url .= $query_string;
+
+    # page sets
+    my $xml   = $self->_xml;
+    my $pages = $xml->DeclareElement( $self->_xml_ns('kinetic') => 'pages' );
+    my $page  = $xml->DeclareElement( $self->_xml_ns('kinetic') => 'page' );
+
+    $pages->StartElement;
+    foreach my $set ( $pageset->first_page .. $pageset->last_page ) {
+
+        $page->StartElement;
+        $self->_xml_attr('id')->AddAttribute("[ Page $set ]");
+        if ( $set == $pageset->current_page ) {
+            $self->_xml_attr('href')->AddAttribute(CURRENT_PAGE);
+        }
+        else {
+            my $current_offset = ( $set - 1 ) * $arg_for{limit};
+            my $link_url = sprintf $url, $current_offset;
+            $self->_xml_attr('href')->AddAttribute($link_url);
+        }
+        $xml->EndElement;
+    }
+    $xml->EndElement;
 }
 
 sub _instance_list {
@@ -659,8 +757,10 @@ sub _class_list_xml {
     my $path      = $xml->DeclareElement( $kinetic_ns => 'path' );
     my $type      = $xml->DeclareElement( $kinetic_ns => 'type' );
     my $resource  = $xml->DeclareElement( $kinetic_ns => 'resource' );
-    my $href      = $xml->DeclareAttribute( $xlink_ns => 'href' );
-    my $id        = $xml->DeclareAttribute('id');
+
+    # declare attributes
+    my $href_attr = $xml->DeclareAttribute( $xlink_ns => 'href' );
+    my $id_attr   = $xml->DeclareAttribute('id');
 
     # metadata
     $xml->PI( 'xml-stylesheet', qq{type="text/xsl" href="$stylesheet"} );
@@ -677,8 +777,8 @@ sub _class_list_xml {
     foreach my $key ( sort Kinetic::Meta->keys ) {
         next if Kinetic::Meta->for_key($key)->abstract;
         $resource->StartElement;
-        $id->AddAttribute($key);
-        $href->AddAttribute("${base_url}$key/search$query_string");
+        $id_attr->AddAttribute($key);
+        $href_attr->AddAttribute("${base_url}$key/search$query_string");
         $xml->EndElement;
     }
     $xml->EndElement;
