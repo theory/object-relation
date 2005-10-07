@@ -104,11 +104,7 @@ sub _path_info {
 
 sub add_search_data : Test(41) {
     my $test = shift;
-    # XXX I need to think about how to redo these tests.
-    # Switching to XML::Genx means that we no longer return XML
-    # snippets.  Thus, this code is no longer valid but we still
-    # need to test this logic.
-    return;
+
     can_ok Dispatch, '_add_search_data';
     my @args = (
         STRING     => 'name eq "foo"',
@@ -179,15 +175,24 @@ sub _test_search_data {
     my $dispatch = Dispatch->new;
     $dispatch->class_key($test_class);
     $dispatch->args($args);
-    ok my $snippet = $dispatch->_add_search_data, $description;
-    my $xml = _wrap_xml_snippet($snippet);
+    my $xml_builder = $dispatch->_xml_setup;
+    $xml_builder->StartDocString;
+    $dispatch->_xml_elem('resources')->StartElement;
+    $dispatch->_xml_ns('xlink')->AddNamespace;
+
+    ok $dispatch->_add_search_data(1), $description;
+    $xml_builder->EndElement;
+    $xml_builder->EndDocument;
+    my $xml = $xml_builder->GetDocString;
 
     my $xpath = XPath->new( xml => $xml );
-    my $node = $xpath->findnodes_as_string('/snippet/kinetic:class_key');
+    my $node =
+      $xpath->findnodes_as_string('/kinetic:resources/kinetic:class_key');
     is $node, qq{<kinetic:class_key>$test_class</kinetic:class_key>},
       '... and the class key should be set correctly';
 
-    my $parameters = '/snippet/kinetic:search_parameters/kinetic:parameter';
+    my $parameters =
+      '/kinetic:resources/kinetic:search_parameters/kinetic:parameter';
     while ( my ( $arg, $value ) = each %args ) {
         $arg = 'search' if 'STRING' eq $arg;
         if ( 'sort_order' eq $arg ) {
