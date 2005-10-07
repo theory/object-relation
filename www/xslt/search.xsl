@@ -63,19 +63,34 @@
         <div class="listing">
           <table>
 
-            <!-- Build table headers -->
+            <xsl:choose>
 
-            <tr>
-              <xsl:for-each select="kinetic:instance[1]/kinetic:attribute">
-              <th class="header"><xsl:value-of select="@name"/></th>
-              </xsl:for-each>
-            </tr>
+              <!-- the search has results -->
 
-            <!-- Build table rows -->
+              <xsl:when test="kinetic:instance/kinetic:attribute">
+              
+                <!-- Build table headers -->
 
-            <xsl:for-each select=".">
-              <xsl:apply-templates select="kinetic:instance" />
-            </xsl:for-each>
+                <tr>
+                  <xsl:for-each select="kinetic:instance[1]/kinetic:attribute">
+                  <th class="header"><xsl:value-of select="@name"/></th>
+                  </xsl:for-each>
+                </tr>
+
+                <!-- Build table rows -->
+
+                <xsl:for-each select=".">
+                  <xsl:apply-templates select="kinetic:instance" />
+                </xsl:for-each>
+              </xsl:when>
+              
+              <!-- the search has no results -->
+              
+              <xsl:otherwise>
+                <tr><td><xsl:value-of select="kinetic:instance/@id"/></td></tr>
+              </xsl:otherwise>
+            </xsl:choose>
+
           </table>
         </div>
 
@@ -107,31 +122,34 @@
           <xsl:with-param name="expr" select="@type"/>
         </xsl:call-template>:</td> <!-- closing td must be here due to whitespace issues -->
       <td>
-
-        <!--                         -->
-        <!-- build <select/> widgets -->
-        <!--                         -->
-
-        <xsl:if test="@widget = 'select'">
-        <select name="{@type}">
-          <xsl:for-each select="kinetic:option">
-            <option value="{@name}">
-              <xsl:if test="@selected = 'selected'">
-                <xsl:attribute name="selected">selected</xsl:attribute>
-              </xsl:if>
-              <xsl:apply-templates/>
-            </option>
-          </xsl:for-each>
-        </select>
-        </xsl:if>
+        <xsl:choose>
         
-        <!--                        -->
-        <!-- build <input/> widgets -->
-        <!--                        -->
-        
-        <xsl:if test="not(@widget)">
-        <input type="text" name="{@type}" value="{.}"/>
-        </xsl:if>
+          <!--                         -->
+          <!-- build <select/> widgets -->
+          <!--                         -->
+
+          <xsl:when test="@widget = 'select'">
+          <select name="{@type}">
+            <xsl:for-each select="kinetic:option">
+              <option value="{@name}">
+                <xsl:if test="@selected = 'selected'">
+                  <xsl:attribute name="selected">selected</xsl:attribute>
+                </xsl:if>
+                <xsl:apply-templates/>
+              </option>
+            </xsl:for-each>
+          </select>
+          </xsl:when>
+          
+          <!--                        -->
+          <!-- build <input/> widgets -->
+          <!--                        -->
+          
+          <xsl:otherwise>
+          <input type="text" name="{@type}" value="{.}"/>
+          </xsl:otherwise>
+
+        </xsl:choose>
       </td>
     </tr>
   </xsl:template>

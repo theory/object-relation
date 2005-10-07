@@ -10,6 +10,7 @@ use Test::More;
 use Test::Exception;
 use Test::XML;
 
+use aliased 'Test::MockModule';
 use TEST::Kinetic::Traits::Store qw/:all/;
 use TEST::Kinetic::Traits::XML qw/:all/;
 use TEST::Kinetic::Traits::HTML qw/:all/;
@@ -20,7 +21,7 @@ use TEST::Kinetic::Traits::HTML qw/:all/;
 #use Class::Trait 'TEST::Kinetic::Traits::REST';
 use Kinetic::Util::Constants qw/UUID_RE :xslt :labels/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
-BEGIN { sig_handlers(1) }
+BEGIN { sig_handlers(0) }
 
 use aliased 'Test::MockModule';
 use aliased 'XML::XPath';
@@ -112,7 +113,8 @@ sub add_search_data : Test(41) {
         order_by   => 'name',
         sort_order => 'ASC',
     );
-    _test_search_data( 'test_class', \@args, 'Normal searches should succeed' );
+    $test->_test_search_data( 'test_class', \@args,
+        'Normal searches should succeed' );
 
     @args = (
         STRING     => '',
@@ -120,21 +122,22 @@ sub add_search_data : Test(41) {
         order_by   => 'age',
         sort_order => 'DESC',
     );
-    _test_search_data( 'some_class', \@args, 'Empty searches should succeed' );
+    $test->_test_search_data( 'some_class', \@args,
+        'Empty searches should succeed' );
 
     @args = (
         STRING   => '',
         limit    => 5,
         order_by => 'age',
     );
-    _test_search_data( 'some_class', \@args,
+    $test->_test_search_data( 'some_class', \@args,
         'Leaving off sort_order should succeed' );
 
     @args = (
         STRING => 'age gt 3',
         limit  => 30,
     );
-    _test_search_data( 'some_class', \@args,
+    $test->_test_search_data( 'some_class', \@args,
         'Leaving off order_by and sort_order should succeed' );
 
     @args = (
@@ -142,16 +145,126 @@ sub add_search_data : Test(41) {
         limit      => 5,
         sort_order => 'ASC',
     );
-    _test_search_data( 'some_class', \@args,
+    $test->_test_search_data( 'some_class', \@args,
         'Leaving off order_by should succeed' );
+}
 
+sub add_pagesets : Test(no_plan) {
+    my $test = shift;
+
+    can_ok Dispatch, '_add_pageset';
+    return; # xxx fix it later
+    my @args = (
+        STRING         => 'name eq "foo"',
+        limit          => 10,
+        order_by       => 'name',
+        sort_order     => 'ASC',
+        _current_count => 10,                # number of items on current pages
+        _total_objects => 55,                # total which meet search criteria
+    );
+    $test->_test_pageset( 'test_class', \@args,
+        'Normal searches should create pagesets' );
+
+    @args = (
+        STRING         => '',
+        limit          => 5,
+        order_by       => 'age',
+        sort_order     => 'DESC',
+        _current_count => 10,                # number of items on current pages
+        _total_objects => 55,                # total which meet search criteria
+    );
+    $test->_test_pageset( 'some_class', \@args,
+        'Empty searches should succeed' );
+
+    @args = (
+        STRING   => '',
+        limit    => 5,
+        order_by => 'age',
+    );
+    $test->_test_pageset( 'some_class', \@args,
+        'Leaving off sort_order should succeed' );
+
+    @args = (
+        STRING => 'age gt 3',
+        limit  => 30,
+    );
+    $test->_test_pageset( 'some_class', \@args,
+        'Leaving off order_by and sort_order should succeed' );
+
+    @args = (
+        STRING     => '',
+        limit      => 5,
+        sort_order => 'ASC',
+    );
+
+    $test->_test_pageset( 'some_class', \@args,
+        'Leaving off order_by on pagesets should succeed' );
+    <STDIN>;
+}
+
+sub _test_pageset {
+    my $test = shift;
+    my ( $test_class, $args, $description ) = @_;
+    ok my ( $xml, $arg_for ) = $test->_get_pageset_xml(@_), $description;
+
+    my $num_pages =
+      $arg_for->{_current_count}
+      ? $arg_for->{_total_objects} / $arg_for->{_current_count}
+      : 0;
+    $num_pages++ unless int($num_pages) == $num_pages;
+    $num_pages = int($num_pages);
+    my $xpath      = XPath->new( xml => $xml );
+    my $parameters = '/kinetic:resources/kinetic:pages/kinetic:page';
+    my $node       =
+      $xpath->findnodes_as_string(
+        qq{$parameters\[\@id = "[ Page $num_pages ]"]});
+    like $node, qr/\Q[ Page $num_pages ]/,
+      '... and we should have the correct number of pages';
+    my ($url) = $node =~ /xlink:href="([^"]*)/;
+    diag $node;
+    diag $url;
+    diag $xml;
+
+    $node =
+      $xpath->findnodes_as_string(
+        qq{$parameters\[\@id = "[ Page @{[$num_pages ]}"]});    # "
+    ok !$node, '... but no more';
+}
+
+sub _get_pageset_xml {
+    my ( $test, $test_class, $args, $description ) = @_;
+    $description ||= '';
+
+    # copy the args and set the defaults
+    use Tie::IxHash;
+
+    # simple interface
+    my $t = tie( my %args, 'Tie::IxHash', @$args );    # need an ordered hash
+    $args{STRING}     = 'null' unless exists $args{STRING};
+    $args{order_by}   = 'null' unless exists $args{order_by};
+    $args{limit}      = 20     unless exists $args{limit};
+    $args{sort_order} = 'ASC'  unless exists $args{sort_order};
+
+    my $current = delete $args{_current_count};
+    my $total   = delete $args{_total_objects};
+    $current = $args{limit}     unless defined $current;
+    $total   = $args{limit} * 2 unless defined $total;
+
+    my $dispatch = Dispatch->new;
+    $dispatch->rest( $test->{rest} );
+    $dispatch->class_key($test_class);
+    $dispatch->args( [%args] );
+    my $dispatch_mock = MockModule->new('Kinetic::Interface::REST::Dispatch');
+    $dispatch_mock->mock( _count => $total );
+    my $xml = $test->_get_xml( $dispatch, '_add_pageset', $current );
+    return ( $xml, \%args );
 }
 
 ##############################################################################
 
 =head3 _test_search_data
 
-  _test_search_data($class_key, \@_add_search_data_args, $description);
+  $test->_test_search_data($class_key, \@_add_search_data_args, $description);
 
 
 This functions akes the search class_key and the arguments to
@@ -162,8 +275,12 @@ Performs 8 tests per run and uses C<$description> as the first test name.
 =cut
 
 sub _test_search_data {
-    my ( $test_class, $args, $description ) = @_;
+    my ( $test, $test_class, $args, $description ) = @_;
     $description ||= '';
+
+    # XXX pull this out when done debugging page sets
+    my $dispatch_mock = MockModule->new('Kinetic::Interface::REST::Dispatch');
+    $dispatch_mock->mock( _count => sub { 10 } );
 
     # copy the args and set the defaults
     my %args = @$args;
@@ -175,15 +292,8 @@ sub _test_search_data {
     my $dispatch = Dispatch->new;
     $dispatch->class_key($test_class);
     $dispatch->args($args);
-    my $xml_builder = $dispatch->_xml_setup;
-    $xml_builder->StartDocString;
-    $dispatch->_xml_elem('resources')->StartElement;
-    $dispatch->_xml_ns('xlink')->AddNamespace;
-
-    ok $dispatch->_add_search_data(1), $description;
-    $xml_builder->EndElement;
-    $xml_builder->EndDocument;
-    my $xml = $xml_builder->GetDocString;
+    ok my $xml = $test->_get_xml( $dispatch, '_add_search_data', 1 ),
+      $description;
 
     my $xpath = XPath->new( xml => $xml );
     my $node =
@@ -231,16 +341,21 @@ qq{<kinetic:option name="$order->[0]"$selected>$order->[1]</kinetic:option>},
     }
 }
 
-sub _wrap_xml_snippet {
-    my $snippet = shift;
-    return <<"    END_XML";
-<?xml version="1.0"?>
-    <snippet xmlns:kinetic="http://www.example.com/">
-            xmlns:xlink="http://www.w3.org/1999/xlink">
-    $snippet
-    </snippet>
-    END_XML
+sub _get_xml {
+    my ( $test, $object, $method, @args ) = @_;
+    my $xml_builder = $object->_xml_setup;
+    $xml_builder->StartDocString;
+    $object->_xml_elem('resources')->StartElement;
+    $object->_xml_ns('xlink')->AddNamespace;
+
+    $object->$method(@args);
+    $xml_builder->EndElement;
+    $xml_builder->EndDocument;
+    return $xml_builder->GetDocString;
 }
+
+1;
+__END__
 
 sub method_arg_handling : Test(12) {
 

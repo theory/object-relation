@@ -8,7 +8,6 @@ use Test::Exception;
 
 use lib 'lib', '../lib';
 
-use aliased 'Test::MockModule';
 use aliased 'Kinetic::Store::Search';
 use aliased 'Kinetic::DateTime::Incomplete';
 

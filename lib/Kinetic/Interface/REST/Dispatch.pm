@@ -525,74 +525,44 @@ sub _add_search_data {
     my ( $self, $instance_count ) = @_;
     my $xml = $self->_xml;
 
-    if ($instance_count) {
-        my %arg_for = @{ $self->args };
+    my %arg_for = @{ $self->args };
 
-        $self->_add_pageset($instance_count);
+    $self->_add_pageset($instance_count);
 
-        my ( $order_by, $sort_order ) = ( 0, 0 );
-        $xml->Element( $self->_xml_elem('class_key'), $self->class_key );
-        $self->_xml_elem('parameters')->StartElement;
-        $self->_xml_elem('parameter')->StartElement;
-        $self->_xml_attr('type')->AddAttribute('search');
-        $xml->AddText( $arg_for{STRING} );
-        $xml->EndElement;
-        $self->_xml_elem('parameter')->StartElement;
-        $self->_xml_attr('type')->AddAttribute('limit');
-        $xml->AddText( $arg_for{limit} );
-        $xml->EndElement;
+    my ( $order_by, $sort_order ) = ( 0, 0 );
+    $xml->Element( $self->_xml_elem('class_key'), $self->class_key );
+    $self->_xml_elem('parameters')->StartElement;
+    $self->_xml_elem('parameter')->StartElement;
+    $self->_xml_attr('type')->AddAttribute('search');
+    $xml->AddText( $arg_for{STRING} );
+    $xml->EndElement;
+    $self->_xml_elem('parameter')->StartElement;
+    $self->_xml_attr('type')->AddAttribute('limit');
+    $xml->AddText( $arg_for{limit} );
+    $xml->EndElement;
 
-        my @sort_options = ( ASC => 'Ascending', DESC => 'Descending' );
-        my $args = $self->args;
-        while ( defined( my $arg = shift @$args ) ) {
-            next unless 'order_by' eq $arg || 'sort_order' eq $arg;
-            my $value = shift @$args;
-            if ( 'order_by' eq $arg && !$order_by ) {
-                $order_by = 1;
-                $self->_xml_elem('parameter')->StartElement;
-                $self->_xml_attr('type')->AddAttribute($arg);
-                $xml->AddText($value);
-                $xml->EndElement;
-            }
-            if ( 'sort_order' eq $arg && !$sort_order ) {
-                $sort_order = 1;
-                $self->_xml_elem('parameter')->StartElement;
-                $self->_xml_attr('type')->AddAttribute($arg);
-                $self->_xml_attr('widget')->AddAttribute('select');
-                for ( my $i = 0 ; $i < @sort_options ; $i += 2 ) {
-                    my ( $option, $label ) = @sort_options[ $i, $i + 1 ];
-                    $self->_xml_elem('option')->StartElement;
-                    $self->_xml_attr('name')->AddAttribute($option);
-                    if ( $option eq $value ) {
-                        $self->_xml_attr('selected')->AddAttribute('selected');
-                    }
-                    $xml->AddText($label);
-                    $xml->EndElement;
-                }
-                $xml->EndElement;
-            }
-
-           # XXX We last out of this as we only want the first order_by for this
-            last if $order_by && $sort_order;
-        }
-
-        # must have default order_by
-        if ( !$order_by ) {
+    my @sort_options = ( ASC => 'Ascending', DESC => 'Descending' );
+    my $args = $self->args;
+    while ( defined( my $arg = shift @$args ) ) {
+        next unless 'order_by' eq $arg || 'sort_order' eq $arg;
+        my $value = shift @$args;
+        if ( 'order_by' eq $arg && !$order_by ) {
+            $order_by = 1;
             $self->_xml_elem('parameter')->StartElement;
-            $self->_xml_attr('type')->AddAttribute('order_by');
+            $self->_xml_attr('type')->AddAttribute($arg);
+            $xml->AddText($value);
             $xml->EndElement;
         }
-
-        # make Ascending sort order the default
-        if ( !$sort_order ) {
+        if ( 'sort_order' eq $arg && !$sort_order ) {
+            $sort_order = 1;
             $self->_xml_elem('parameter')->StartElement;
-            $self->_xml_attr('type')->AddAttribute('sort_order');
+            $self->_xml_attr('type')->AddAttribute($arg);
             $self->_xml_attr('widget')->AddAttribute('select');
             for ( my $i = 0 ; $i < @sort_options ; $i += 2 ) {
                 my ( $option, $label ) = @sort_options[ $i, $i + 1 ];
                 $self->_xml_elem('option')->StartElement;
                 $self->_xml_attr('name')->AddAttribute($option);
-                if ( $option eq 'ASC' ) {
+                if ( $option eq $value ) {
                     $self->_xml_attr('selected')->AddAttribute('selected');
                 }
                 $xml->AddText($label);
@@ -600,14 +570,37 @@ sub _add_search_data {
             }
             $xml->EndElement;
         }
+
+        # XXX We last out of this as we only want the first order_by for this
+        last if $order_by && $sort_order;
+    }
+
+    # must have default order_by
+    if ( !$order_by ) {
+        $self->_xml_elem('parameter')->StartElement;
+        $self->_xml_attr('type')->AddAttribute('order_by');
         $xml->EndElement;
     }
-    else {
-        $self->_xml_elem('instance')->StartElement;
-        $self->_xml_attr('id')->AddAttribute('No resources found');
-        $self->_xml_attr('href')->AddAttribute(CURRENT_PAGE);
+
+    # make Ascending sort order the default
+    if ( !$sort_order ) {
+        $self->_xml_elem('parameter')->StartElement;
+        $self->_xml_attr('type')->AddAttribute('sort_order');
+        $self->_xml_attr('widget')->AddAttribute('select');
+        for ( my $i = 0 ; $i < @sort_options ; $i += 2 ) {
+            my ( $option, $label ) = @sort_options[ $i, $i + 1 ];
+            $self->_xml_elem('option')->StartElement;
+            $self->_xml_attr('name')->AddAttribute($option);
+            if ( $option eq 'ASC' ) {
+                $self->_xml_attr('selected')->AddAttribute('selected');
+            }
+            $xml->AddText($label);
+            $xml->EndElement;
+        }
         $xml->EndElement;
     }
+    $xml->EndElement;
+
     return $self;
 }
 
@@ -658,6 +651,13 @@ sub _add_instances {
             $xml->AddText($value);
             $xml->EndElement;
         }
+        $xml->EndElement;
+    }
+
+    unless ($instance_count) {
+        $self->_xml_elem('instance')->StartElement;
+        $self->_xml_attr('id')->AddAttribute('No resources found');
+        $self->_xml_attr('href')->AddAttribute(CURRENT_PAGE);
         $xml->EndElement;
     }
     return $instance_count;
@@ -781,24 +781,25 @@ sub _pageset {
     my $page = validate(
         @_,
         {
-            count  => { default => 0 },
+            count  => { default => 0 },    # number of items on current page
             limit  => { default => 0 },
             offset => { default => 0 },
         }
     );
-    $page->{offset} ||= 0; # XXX sometimes this is undef.  Find out why
+    $page->{offset} ||= 0;    # XXX sometimes this is undef.  Find out why
 
     # current page == page number
     my $current_page =
       $page->{limit} ? 1 + int( $page->{offset} / $page->{limit} ) : 1;
 
+    #{
+    #    use Data::Dumper::Names;
+    #    my $count = $self->_count;
+    #    warn Dumper( $current_page, $page, $count );
+    #}
     return if $current_page == 1 && $page->{count} < $page->{limit};
 
-    # the first two dispatch->args should be the search string.  After that
-    # are constraints for limit, order_by, etc.  These constraints are not
-    # relevant to the count and may cause it to fail.
-    my ($total_entries) =
-      $self->class->package->count( $self->get_args( 0, 1 ) );
+    my $total_entries = $self->_count;
 
     # don't create a pageset if there is only one page
     return if $current_page == 1 && $page->{limit} == $total_entries;
@@ -815,6 +816,16 @@ sub _pageset {
         }
     );
     return $pageset;
+}
+
+sub _count {
+    my $self = shift;
+
+    # the first two dispatch->args should be the search string.  After that
+    # are constraints for limit, order_by, etc.  These constraints are not
+    # relevant to the count and may cause it to fail.
+    my ($count) = $self->class->package->count( $self->get_args( 0, 1 ) );
+    return $count;
 }
 
 ##############################################################################
