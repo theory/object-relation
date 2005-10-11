@@ -25,6 +25,7 @@ BEGIN { sig_handlers(0) }
 
 use aliased 'Test::MockModule';
 use aliased 'XML::XPath';
+use Array::AsHash;
 use XML::XPath::XMLParser;
 
 use aliased 'Kinetic::Store' => 'Store', ':all';
@@ -103,6 +104,133 @@ sub _path_info {
     return $test;
 }
 
+sub add_pagesets : Test(no_plan) {
+    my $test = shift;
+
+    can_ok Dispatch, '_add_pageset';
+
+    my @args = (
+        STRING         => 'name eq "foo"',
+        limit          => 10,
+        order_by       => 'name',
+        sort_order     => 'ASC',
+        _current_count => 10,                # number of items on current pages
+        _total_objects => 55,                # total which meet search criteria
+    );
+    $test->_test_pageset( 'test_class', \@args,
+        'Normal searches should create pagesets' );
+    return;                                  # xxx fix it later
+    @args = (
+        STRING         => '',
+        limit          => 5,
+        order_by       => 'age',
+        sort_order     => 'DESC',
+        _current_count => 10,                # number of items on current pages
+        _total_objects => 55,                # total which meet search criteria
+    );
+    $test->_test_pageset( 'some_class', \@args,
+        'Empty searches should succeed' );
+
+    @args = (
+        STRING   => '',
+        limit    => 5,
+        order_by => 'age',
+    );
+    $test->_test_pageset( 'some_class', \@args,
+        'Leaving off sort_order should succeed' );
+
+    @args = (
+        STRING => 'age gt 3',
+        limit  => 30,
+    );
+    $test->_test_pageset( 'some_class', \@args,
+        'Leaving off order_by and sort_order should succeed' );
+
+    @args = (
+        STRING     => '',
+        limit      => 5,
+        sort_order => 'ASC',
+    );
+
+    $test->_test_pageset( 'some_class', \@args,
+        'Leaving off order_by on pagesets should succeed' );
+    <STDIN>;
+}
+
+sub _test_pageset {
+    my $test = shift;
+    my ( $test_class, $args, $description ) = @_;
+    my $orig_args = Array::AsHash->new( { array => $args } );
+    ok my ( $xml, $arg_for ) = $test->_get_pageset_xml(@_), $description;
+
+    my $num_pages =
+      $orig_args->get('_current_count')
+      ? $orig_args->get('_total_objects') / $orig_args->get('_current_count')
+      : 0;
+    $num_pages++ unless int($num_pages) == $num_pages;
+    $num_pages = int($num_pages);
+    my $xpath      = XPath->new( xml => $xml );
+    my $parameters = '/kinetic:resources/kinetic:pages/kinetic:page';
+    my $node       =
+      $xpath->findnodes_as_string(
+        qq{$parameters\[\@id = "[ Page $num_pages ]"]});
+    like $node, qr/\Q[ Page $num_pages ]/,
+      '... and we should have the correct number of pages';
+    my ($url) = $node =~ /xlink:href="([^"]*)/;
+    diag $node;
+    diag $url;
+    diag $xml;
+
+    $node =
+      $xpath->findnodes_as_string(
+        qq{$parameters\[\@id = "[ Page @{[$num_pages ]}"]});    # "
+    ok !$node, '... but no more';
+}
+
+sub _get_pageset_xml {
+    my ( $test, $test_class, $args, $description ) = @_;
+    $description ||= '';
+    $args = Array::AsHash->new(
+        {
+            array => $args,
+            clone => 1,
+        }
+    );
+
+    $args->put( STRING     => 'null' ) unless $args->exists('STRING');
+    $args->put( order_by   => 'null' ) unless $args->exists('order_by');
+    $args->put( limit      => 20 )     unless $args->exists('limit');
+    $args->put( sort_order => 'ASC' )  unless $args->exists('sort_order');
+
+    my $current = $args->delete('_current_count');
+    my $total   = $args->delete('_total_objects');
+    $current = $args->get('limit')     unless defined $current;
+    $total   = $args->get('limit') * 2 unless defined $total;
+
+    my $dispatch = Dispatch->new;
+    $dispatch->rest( $test->{rest} );
+    $dispatch->class_key($test_class);
+    $dispatch->args($args);
+    my $dispatch_mock = MockModule->new('Kinetic::Interface::REST::Dispatch');
+    $dispatch_mock->mock( _count => $total );
+    my $xml = $test->_get_xml( $dispatch, '_add_pageset', $current );
+    return ( $xml, $args );
+}
+
+sub _get_xml {
+    my ( $test, $object, $method, @args ) = @_;
+    my $xml_builder = $object->_xml_setup;
+    $xml_builder->StartDocString;
+    $object->_xml_elem('resources')->StartElement;
+    $object->_xml_ns('xlink')->AddNamespace;
+
+    my $count = 1;
+    $object->$method(@args);
+    $xml_builder->EndElement;
+    $xml_builder->EndDocument;
+    return $xml_builder->GetDocString;
+}
+
 sub add_search_data : Test(41) {
     my $test = shift;
 
@@ -149,117 +277,6 @@ sub add_search_data : Test(41) {
         'Leaving off order_by should succeed' );
 }
 
-sub add_pagesets : Test(no_plan) {
-    my $test = shift;
-
-    can_ok Dispatch, '_add_pageset';
-    return; # xxx fix it later
-    my @args = (
-        STRING         => 'name eq "foo"',
-        limit          => 10,
-        order_by       => 'name',
-        sort_order     => 'ASC',
-        _current_count => 10,                # number of items on current pages
-        _total_objects => 55,                # total which meet search criteria
-    );
-    $test->_test_pageset( 'test_class', \@args,
-        'Normal searches should create pagesets' );
-
-    @args = (
-        STRING         => '',
-        limit          => 5,
-        order_by       => 'age',
-        sort_order     => 'DESC',
-        _current_count => 10,                # number of items on current pages
-        _total_objects => 55,                # total which meet search criteria
-    );
-    $test->_test_pageset( 'some_class', \@args,
-        'Empty searches should succeed' );
-
-    @args = (
-        STRING   => '',
-        limit    => 5,
-        order_by => 'age',
-    );
-    $test->_test_pageset( 'some_class', \@args,
-        'Leaving off sort_order should succeed' );
-
-    @args = (
-        STRING => 'age gt 3',
-        limit  => 30,
-    );
-    $test->_test_pageset( 'some_class', \@args,
-        'Leaving off order_by and sort_order should succeed' );
-
-    @args = (
-        STRING     => '',
-        limit      => 5,
-        sort_order => 'ASC',
-    );
-
-    $test->_test_pageset( 'some_class', \@args,
-        'Leaving off order_by on pagesets should succeed' );
-    <STDIN>;
-}
-
-sub _test_pageset {
-    my $test = shift;
-    my ( $test_class, $args, $description ) = @_;
-    ok my ( $xml, $arg_for ) = $test->_get_pageset_xml(@_), $description;
-
-    my $num_pages =
-      $arg_for->{_current_count}
-      ? $arg_for->{_total_objects} / $arg_for->{_current_count}
-      : 0;
-    $num_pages++ unless int($num_pages) == $num_pages;
-    $num_pages = int($num_pages);
-    my $xpath      = XPath->new( xml => $xml );
-    my $parameters = '/kinetic:resources/kinetic:pages/kinetic:page';
-    my $node       =
-      $xpath->findnodes_as_string(
-        qq{$parameters\[\@id = "[ Page $num_pages ]"]});
-    like $node, qr/\Q[ Page $num_pages ]/,
-      '... and we should have the correct number of pages';
-    my ($url) = $node =~ /xlink:href="([^"]*)/;
-    diag $node;
-    diag $url;
-    diag $xml;
-
-    $node =
-      $xpath->findnodes_as_string(
-        qq{$parameters\[\@id = "[ Page @{[$num_pages ]}"]});    # "
-    ok !$node, '... but no more';
-}
-
-sub _get_pageset_xml {
-    my ( $test, $test_class, $args, $description ) = @_;
-    $description ||= '';
-
-    # copy the args and set the defaults
-    use Tie::IxHash;
-
-    # simple interface
-    my $t = tie( my %args, 'Tie::IxHash', @$args );    # need an ordered hash
-    $args{STRING}     = 'null' unless exists $args{STRING};
-    $args{order_by}   = 'null' unless exists $args{order_by};
-    $args{limit}      = 20     unless exists $args{limit};
-    $args{sort_order} = 'ASC'  unless exists $args{sort_order};
-
-    my $current = delete $args{_current_count};
-    my $total   = delete $args{_total_objects};
-    $current = $args{limit}     unless defined $current;
-    $total   = $args{limit} * 2 unless defined $total;
-
-    my $dispatch = Dispatch->new;
-    $dispatch->rest( $test->{rest} );
-    $dispatch->class_key($test_class);
-    $dispatch->args( [%args] );
-    my $dispatch_mock = MockModule->new('Kinetic::Interface::REST::Dispatch');
-    $dispatch_mock->mock( _count => $total );
-    my $xml = $test->_get_xml( $dispatch, '_add_pageset', $current );
-    return ( $xml, \%args );
-}
-
 ##############################################################################
 
 =head3 _test_search_data
@@ -278,16 +295,26 @@ sub _test_search_data {
     my ( $test, $test_class, $args, $description ) = @_;
     $description ||= '';
 
+    $args = Array::AsHash->new(
+        {
+            array => $args,
+            clone => 1,
+        }
+    );
+
+    $args->put( STRING     => 'null' ) unless $args->exists('STRING');
+    $args->put( order_by   => 'null' ) unless $args->exists('order_by');
+    $args->put( limit      => 20 )     unless $args->exists('limit');
+    $args->put( sort_order => 'ASC' )  unless $args->exists('sort_order');
+
+    my $current = $args->delete('_current_count');
+    my $total   = $args->delete('_total_objects');
+    $current = $args->get('limit')     unless defined $current;
+    $total   = $args->get('limit') * 2 unless defined $total;
+
     # XXX pull this out when done debugging page sets
     my $dispatch_mock = MockModule->new('Kinetic::Interface::REST::Dispatch');
     $dispatch_mock->mock( _count => sub { 10 } );
-
-    # copy the args and set the defaults
-    my %args = @$args;
-    $args{STRING}     = ''    unless exists $args{STRING};
-    $args{order_by}   = ''    unless exists $args{order_by};
-    $args{limit}      = 20    unless exists $args{limit};
-    $args{sort_order} = 'ASC' unless exists $args{sort_order};
 
     my $dispatch = Dispatch->new;
     $dispatch->class_key($test_class);
@@ -303,7 +330,7 @@ sub _test_search_data {
 
     my $parameters =
       '/kinetic:resources/kinetic:search_parameters/kinetic:parameter';
-    while ( my ( $arg, $value ) = each %args ) {
+    while ( my ( $arg, $value ) = $args->each ) {
         $arg = 'search' if 'STRING' eq $arg;
         if ( 'sort_order' eq $arg ) {
             my $node =
@@ -341,58 +368,58 @@ qq{<kinetic:option name="$order->[0]"$selected>$order->[1]</kinetic:option>},
     }
 }
 
-sub _get_xml {
-    my ( $test, $object, $method, @args ) = @_;
-    my $xml_builder = $object->_xml_setup;
-    $xml_builder->StartDocString;
-    $object->_xml_elem('resources')->StartElement;
-    $object->_xml_ns('xlink')->AddNamespace;
-
-    $object->$method(@args);
-    $xml_builder->EndElement;
-    $xml_builder->EndDocument;
-    return $xml_builder->GetDocString;
-}
-
-1;
-__END__
-
 sub method_arg_handling : Test(12) {
 
     # also test for lookup
     my $dispatch = Dispatch->new;
     can_ok $dispatch, 'args';
     $dispatch->method('lookup');
-    is_deeply $dispatch->args, [],
-      'Calling lookup args() with no args set should return an empty arg list';
-    ok $dispatch->args( [qw/ foo bar /] ),
+    ok $dispatch->args->isa('Array::AsHash'),
+'Calling lookup args() with no args set should return an array as hash object';
+    ok $dispatch->args( Array::AsHash->new( { array => [qw/ foo bar /] } ) ),
       '... and setting the arguments should succeed';
-    is_deeply $dispatch->args, [qw/ foo bar /],
+    is_deeply scalar $dispatch->args->get_array, [qw/ foo bar /],
       '... and we should be able to reset the args';
 
     $dispatch->method('search');
-    ok $dispatch->args( [] ), 'Setting search args should succceed';
-    is_deeply $dispatch->args, [ STRING => '', limit => 20, offset => 0 ],
+    ok $dispatch->args( Array::AsHash->new ),
+      'Setting search args should succceed';
+    is_deeply scalar $dispatch->args->get_array,
+      [ STRING => '', limit => 20, offset => 0 ],
       '... and setting them with no args set should return a default search';
-    ok $dispatch->args( [qw/ foo bar /] ),
+
+    ok $dispatch->args( Array::AsHash->new( { array => [qw/ foo bar /] } ) ),
       '... and setting the arguments should succeed';
-    is_deeply $dispatch->args, [qw/ foo bar limit 20 offset 0 /],
+    is_deeply scalar $dispatch->args->get_array,
+      [qw/ foo bar limit 20 offset 0 /],
       '... but it should return default limit and offset';
 
-    $dispatch->args( [qw/ this that limit 30 offset 0 /] );
-    is_deeply $dispatch->args, [qw/ this that limit 30 offset 0 /],
+    $dispatch->args(
+        Array::AsHash->new( { array => [qw/ this that limit 30 offset 0 /] } )
+    );
+    is_deeply scalar $dispatch->args->get_array,
+      [qw/ this that limit 30 offset 0 /],
       '... but it should not override a limit that is already supplied';
 
-    $dispatch->args( [qw/ limit 30 this that offset 0 /] );
-    is_deeply $dispatch->args, [qw/ limit 30 this that offset 0 /],
+    $dispatch->args(
+        Array::AsHash->new( { array => [qw/ limit 30 this that offset 0 /] } )
+    );
+    is_deeply scalar $dispatch->args->get_array,
+      [qw/ limit 30 this that offset 0 /],
       '... regardless of its position in the arg list';
 
-    $dispatch->args( [qw/ this that limit 30 offset 20 /] );
-    is_deeply $dispatch->args, [qw/ this that limit 30 offset 20 /],
+    $dispatch->args(
+        Array::AsHash->new( { array => [qw/ this that limit 30 offset 20 /] } )
+    );
+    is_deeply scalar $dispatch->args->get_array,
+      [qw/ this that limit 30 offset 20 /],
       '... not should it override an offset already supplied';
 
-    $dispatch->args( [qw/ this that offset 10 limit 30 /] );
-    is_deeply $dispatch->args, [qw/ this that offset 10 limit 30 /],
+    $dispatch->args(
+        Array::AsHash->new( { array => [qw/ this that offset 10 limit 30 /] } )
+    );
+    is_deeply scalar $dispatch->args->get_array,
+      [qw/ this that offset 10 limit 30 /],
       '... regardless of its position in the list';
 }
 
@@ -422,7 +449,7 @@ sub page_set : Test(17) {
     };
 
     my $result =
-      $dispatch->class_key('two')->method('search')->args( [] )
+      $dispatch->class_key('two')->method('search')->args( Array::AsHash->new )
       ->_pageset( $pageset_args->() );
     ok !$result,
       '... and it should return false on first page if $count < $limit';
@@ -451,7 +478,8 @@ sub page_set : Test(17) {
     is $result->total_entries, 100,
       '... and we should have the correct number of entries';
 
-    $dispatch->args( [ 'STRING', 'age => GT 43' ] );
+    $dispatch->args(
+        Array::AsHash->new( { array => [ 'STRING', 'age => GT 43' ] } ) );
     ok $result = $dispatch->_pageset( $pageset_args->() ),
       'Pagesets should accept search criteria';
 
@@ -525,7 +553,7 @@ $header
 
     my $foo_uuid = $foo->uuid;
     $dispatch->method('lookup');
-    $dispatch->args( [ 'uuid', $foo_uuid ] );
+    $dispatch->args( Array::AsHash->new( { array => [ 'uuid', $foo_uuid ] } ) );
     $dispatch->handle_rest_request;
     my $no_namespace_resources = $test->resource_list_xml(1);
     $expected = <<"    END_XML";
@@ -546,7 +574,8 @@ $header
       '... and $class_key/lookup/uuid/$uuid should return instance XML';
 
     $dispatch->method('search');
-    $dispatch->args( [ 'STRING', 'name => "foo"' ] );
+    $dispatch->args(
+        Array::AsHash->new( { array => [ 'STRING', 'name => "foo"' ] } ) );
     $dispatch->handle_rest_request;
 
     my $instance = $test->expected_instance_xml( [$foo] );
@@ -565,7 +594,11 @@ $header
       '$class_key/search/STRING/$search_string should return a list';
 
     my $search_string = 'name => "foo", OR(name => "bar")';
-    $dispatch->args( [ STRING => $search_string, order_by => 'name' ] );
+    $dispatch->args(
+        Array::AsHash->new(
+            { array => [ STRING => $search_string, order_by => 'name' ] }
+        )
+    );
 
     $expected_instances = $test->expected_instance_xml( [ $bar, $foo ] );
     $search =

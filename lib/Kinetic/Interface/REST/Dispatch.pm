@@ -23,6 +23,8 @@ use Data::Pageset;
 use HTML::Entities qw/encode_entities/;
 use Params::Validate qw/validate/;
 use XML::Genx::Simple;
+use Array::AsHash;
+use Scalar::Util qw/blessed/;
 
 use Kinetic::Meta;
 use Kinetic::XML;
@@ -39,8 +41,10 @@ Readonly my %DONT_DISPLAY        => ( uuid => 1 );
 Readonly my $MAX_ATTRIBUTE_INDEX => 4;
 Readonly my $PLACEHOLDER         => 'null';
 Readonly my $DEFAULT_LIMIT       => 20;
-Readonly my $DEFAULT_SEARCH_ARGS =>
-  [ 'STRING', '', 'limit', $DEFAULT_LIMIT, 'offset', 0 ];
+Readonly my $DEFAULT_SEARCH_ARGS => {
+  array => [ 'STRING', '', 'limit', $DEFAULT_LIMIT, 'offset', 0 ],
+  clone => 1,
+};
 
 =head1 Name
 
@@ -154,7 +158,7 @@ sub method {
 
 =head3 args
 
-  $dispatch->arg([\@args]);
+  $dispatch->arg(Array::AsHash->new({array=>\@args});
 
 Getter/setter for args to accompany C<method>.  If the supplied argument
 reference is emtpy, it will set a default of an empty string search, a
@@ -167,31 +171,38 @@ sub args {
 
     if (@_) {
         my $args = shift;
-        foreach my $curr_arg (@$args) {
-            $curr_arg = '' if $PLACEHOLDER eq $curr_arg;
+        unless (blessed $args && $args->isa('Array::AsHash')) {
+            throw_fatal [
+                'Argument "[_1]" is not a valid [_2] object',
+                1, 'Array::AsHash'
+            ];
+        }
+        $args->reset_each;
+        while ( my ( $k, $v ) = $args->each ) {
+            $args->put( $k, '' ) if $PLACEHOLDER eq $v;
         }
         if ( 'search' eq ( $self->method || '' ) ) {
-            if (@$args) {
-                if ( !grep { $_ eq 'limit' } @$args ) {
-                    push @$args, 'limit', $DEFAULT_LIMIT;
+            if ( $args ) {
+                if ( !$args->exists('limit') ) {
+                    $args->put( 'limit', $DEFAULT_LIMIT );
                 }
-                if ( !grep { $_ eq 'offset' } @$args ) {
-                    push @$args, 'offset', 0;
+                if ( !$args->exists('offset') ) {
+                    $args->put( 'offset', 0 );
                 }
             }
             else {
-                $args = [];
-                push @$args, $_ foreach @$DEFAULT_SEARCH_ARGS;
+                $args = Array::AsHash->new($DEFAULT_SEARCH_ARGS);
             }
         }
         $self->{args} = $args;
         return $self;
     }
     unless ( $self->{args} ) {
-        $self->{args} = [];
+        my $args = {};
         if ( 'search' eq $self->method ) {
-            push @{ $self->{args} }, $_ foreach @$DEFAULT_SEARCH_ARGS;
+            $args = $DEFAULT_SEARCH_ARGS;
         }
+        $self->{args} = Array::AsHash->new($args);
     }
     return $self->{args};
 }
@@ -210,8 +221,9 @@ Can take one or more arguments.  Returns a list of the arguments.
 
 sub get_args {
     my $self = shift;
-    return @{ $self->{args} } unless @_;
-    return @{ $self->{args} }[@_];
+    my @args = $self->args->get_array;
+    return @args unless @_;
+    return @args[@_];
 }
 
 sub _query_string {
@@ -261,7 +273,7 @@ sub handle_rest_request {
 
     return $ctor       ? $self->_handle_constructor($ctor)
       : $method_object ? $self->_handle_method($method_object)
-      : $self->_not_implemented;
+      :                  $self->_not_implemented;
 }
 
 sub _handle_constructor {
@@ -282,7 +294,8 @@ sub _handle_method {
     my ( $self, $method ) = @_;
 
     if ( $method->context == Class::Meta::CLASS ) {
-        my $response = $method->call( $self->class->package, @{ $self->args } );
+        my $response =
+          $method->call( $self->class->package, $self->args->get_array );
         if ( 'search' eq $method->name ) {
             $self->rest->xslt('search');
             return $self->_instance_list($response);
@@ -525,7 +538,7 @@ sub _add_search_data {
     my ( $self, $instance_count ) = @_;
     my $xml = $self->_xml;
 
-    my %arg_for = @{ $self->args };
+    my $args = $self->args;
 
     $self->_add_pageset($instance_count);
 
@@ -534,18 +547,18 @@ sub _add_search_data {
     $self->_xml_elem('parameters')->StartElement;
     $self->_xml_elem('parameter')->StartElement;
     $self->_xml_attr('type')->AddAttribute('search');
-    $xml->AddText( $arg_for{STRING} );
+    $xml->AddText( $args->get('STRING') );
     $xml->EndElement;
     $self->_xml_elem('parameter')->StartElement;
     $self->_xml_attr('type')->AddAttribute('limit');
-    $xml->AddText( $arg_for{limit} );
+    $xml->AddText( $args->get('limit') );
     $xml->EndElement;
 
     my @sort_options = ( ASC => 'Ascending', DESC => 'Descending' );
-    my $args = $self->args;
-    while ( defined( my $arg = shift @$args ) ) {
+    $args->reset_each;
+    while ( my ($arg, $value) = $args->each ) {
+        # XXX eventually change this to a hash lookup
         next unless 'order_by' eq $arg || 'sort_order' eq $arg;
-        my $value = shift @$args;
         if ( 'order_by' eq $arg && !$order_by ) {
             $order_by = 1;
             $self->_xml_elem('parameter')->StartElement;
@@ -678,21 +691,20 @@ page links to the various documents.
 sub _add_pageset {
     my ( $self, $instance_count ) = @_;
 
-    my %arg_for = @{ $self->args };
+    my $args = $self->args;
     my $pageset = $self->_pageset(
         {
             count  => $instance_count,
-            limit  => $arg_for{limit},
-            offset => $arg_for{offset},
+            limit  => $args->get('limit'),
+            offset => $args->get('offset'),
         }
     );
     return unless $pageset;
-    my @args = $self->get_args;
 
     my $base_url     = $self->_rest_base_url;
     my $query_string = $self->_query_string;
     my $url          = "$base_url@{ [ $self->class_key ] }/search/";
-    $url .= join '/', map { '' eq $_ ? $PLACEHOLDER : $_ } @args;
+    $url .= join '/', map { '' eq $_ ? $PLACEHOLDER : $_ } $args->get_array;
     $url =~ s{offset/\d+}{offset/\%d};
     $url .= $query_string;
 
@@ -710,7 +722,7 @@ sub _add_pageset {
             $self->_xml_attr('href')->AddAttribute(CURRENT_PAGE);
         }
         else {
-            my $current_offset = ( $set - 1 ) * $arg_for{limit};
+            my $current_offset = ( $set - 1 ) * $args->get('limit');
             my $link_url = sprintf $url, $current_offset;
             $self->_xml_attr('href')->AddAttribute($link_url);
         }

@@ -5,6 +5,9 @@ body, a, .title {
 body {
     font-size:        12px;
     color:            #202060;
+    background-color: #977;
+    padding:          2px;
+    border:           black thin solid;
 }
 
 a {
@@ -46,15 +49,12 @@ a.menuselect:hover {
 }
 
 .search, .listing, .pages {
-    border-right:     black thin solid;
-    border-top:       black thin solid;
-    border-left:      black thin solid;
-    border-bottom:    black thin solid;
     padding-right:    5px;
     padding-left:     5px;
     margin-bottom:    2px;
     margin-top:       2px;
     margin-left:      180px; /* see sidebar */
+    -moz-border-radius: 10px;
 }
 
 .search, .listing {
@@ -74,14 +74,11 @@ a.menuselect:hover {
 }
 
 #sidebar {
-    border-right:     black thin solid;
-    border-top:       black thin solid;
-    border-left:      black thin solid;
-    border-bottom:    black thin solid;
     margin-bottom:    2px;
     width:            176px;
     float:            left;
     background-color: #C0C0C0;
+    -moz-border-radius: 10px;
 }
 
 /*

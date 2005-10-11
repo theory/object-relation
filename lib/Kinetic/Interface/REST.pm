@@ -24,6 +24,7 @@ use Kinetic::Util::Exceptions qw/throw_required/;
 use aliased 'Kinetic::View::XSLT';
 use aliased 'Kinetic::Interface::REST::Dispatch';
 
+use aliased 'Array::AsHash';
 use URI::Escape qw/uri_unescape/;
 
 =head1 Name
@@ -151,7 +152,10 @@ sub handle_request {
             $dispatch->class_list;
         }
         else {
-            $dispatch->class_key($class_key)->method($method)->args( \@args )
+            $dispatch
+              ->class_key($class_key)
+              ->method($method)
+              ->args( AsHash->new({array => \@args}) )
               ->handle_rest_request;
         }
     };
