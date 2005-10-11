@@ -42,8 +42,8 @@ Readonly my $MAX_ATTRIBUTE_INDEX => 4;
 Readonly my $PLACEHOLDER         => 'null';
 Readonly my $DEFAULT_LIMIT       => 20;
 Readonly my $DEFAULT_SEARCH_ARGS => {
-  array => [ 'STRING', '', 'limit', $DEFAULT_LIMIT, 'offset', 0 ],
-  clone => 1,
+    array => [ 'STRING', '', 'limit', $DEFAULT_LIMIT, 'offset', 0 ],
+    clone => 1,
 };
 
 =head1 Name
@@ -171,10 +171,10 @@ sub args {
 
     if (@_) {
         my $args = shift;
-        unless (blessed $args && $args->isa('Array::AsHash')) {
+        unless ( blessed $args && $args->isa('Array::AsHash') ) {
             throw_fatal [
-                'Argument "[_1]" is not a valid [_2] object',
-                1, 'Array::AsHash'
+                'Argument "[_1]" is not a valid [_2] object', 1,
+                'Array::AsHash'
             ];
         }
         $args->reset_each;
@@ -182,7 +182,7 @@ sub args {
             $args->put( $k, '' ) if $PLACEHOLDER eq $v;
         }
         if ( 'search' eq ( $self->method || '' ) ) {
-            if ( $args ) {
+            if ($args) {
                 if ( !$args->exists('limit') ) {
                     $args->put( 'limit', $DEFAULT_LIMIT );
                 }
@@ -273,7 +273,7 @@ sub handle_rest_request {
 
     return $ctor       ? $self->_handle_constructor($ctor)
       : $method_object ? $self->_handle_method($method_object)
-      :                  $self->_not_implemented;
+      : $self->_not_implemented;
 }
 
 sub _handle_constructor {
@@ -542,7 +542,6 @@ sub _add_search_data {
 
     $self->_add_pageset($instance_count);
 
-    my ( $order_by, $sort_order ) = ( 0, 0 );
     $xml->Element( $self->_xml_elem('class_key'), $self->class_key );
     $self->_xml_elem('parameters')->StartElement;
     $self->_xml_elem('parameter')->StartElement;
@@ -554,49 +553,37 @@ sub _add_search_data {
     $xml->AddText( $args->get('limit') );
     $xml->EndElement;
 
-    my @sort_options = ( ASC => 'Ascending', DESC => 'Descending' );
-    $args->reset_each;
-    while ( my ($arg, $value) = $args->each ) {
-        # XXX eventually change this to a hash lookup
-        next unless 'order_by' eq $arg || 'sort_order' eq $arg;
-        if ( 'order_by' eq $arg && !$order_by ) {
-            $order_by = 1;
-            $self->_xml_elem('parameter')->StartElement;
-            $self->_xml_attr('type')->AddAttribute($arg);
-            $xml->AddText($value);
-            $xml->EndElement;
-        }
-        if ( 'sort_order' eq $arg && !$sort_order ) {
-            $sort_order = 1;
-            $self->_xml_elem('parameter')->StartElement;
-            $self->_xml_attr('type')->AddAttribute($arg);
-            $self->_xml_attr('widget')->AddAttribute('select');
-            for ( my $i = 0 ; $i < @sort_options ; $i += 2 ) {
-                my ( $option, $label ) = @sort_options[ $i, $i + 1 ];
-                $self->_xml_elem('option')->StartElement;
-                $self->_xml_attr('name')->AddAttribute($option);
-                if ( $option eq $value ) {
-                    $self->_xml_attr('selected')->AddAttribute('selected');
-                }
-                $xml->AddText($label);
-                $xml->EndElement;
-            }
-            $xml->EndElement;
-        }
-
-        # XXX We last out of this as we only want the first order_by for this
-        last if $order_by && $sort_order;
+    if ( $args->exists('order_by') ) {
+        $self->_xml_elem('parameter')->StartElement;
+        $self->_xml_attr('type')->AddAttribute('order_by');
+        $xml->AddText($args->get('order_by'));
+        $xml->EndElement;
     }
-
-    # must have default order_by
-    if ( !$order_by ) {
+    else {
         $self->_xml_elem('parameter')->StartElement;
         $self->_xml_attr('type')->AddAttribute('order_by');
         $xml->EndElement;
     }
 
-    # make Ascending sort order the default
-    if ( !$sort_order ) {
+    my @sort_options = ( ASC => 'Ascending', DESC => 'Descending' );
+    if ( $args->exists('sort_order') ) {
+        my $sort_order = $args->get('sort_order');
+        $self->_xml_elem('parameter')->StartElement;
+        $self->_xml_attr('type')->AddAttribute('sort_order');
+        $self->_xml_attr('widget')->AddAttribute('select');
+        for ( my $i = 0 ; $i < @sort_options ; $i += 2 ) {
+            my ( $option, $label ) = @sort_options[ $i, $i + 1 ];
+            $self->_xml_elem('option')->StartElement;
+            $self->_xml_attr('name')->AddAttribute($option);
+            if ( $option eq $sort_order ) {
+                $self->_xml_attr('selected')->AddAttribute('selected');
+            }
+            $xml->AddText($label);
+            $xml->EndElement;
+        }
+        $xml->EndElement;
+    }
+    else {
         $self->_xml_elem('parameter')->StartElement;
         $self->_xml_attr('type')->AddAttribute('sort_order');
         $self->_xml_attr('widget')->AddAttribute('select');
@@ -691,12 +678,12 @@ page links to the various documents.
 sub _add_pageset {
     my ( $self, $instance_count ) = @_;
 
-    my $args = $self->args;
+    my $args    = $self->args;
     my $pageset = $self->_pageset(
         {
             count  => $instance_count,
-            limit  => $args->get('limit'),
-            offset => $args->get('offset'),
+            limit  => ( $args->get('limit') || $DEFAULT_LIMIT ),
+            offset => ( $args->get('offset') || 0 ),
         }
     );
     return unless $pageset;
@@ -705,7 +692,6 @@ sub _add_pageset {
     my $query_string = $self->_query_string;
     my $url          = "$base_url@{ [ $self->class_key ] }/search/";
     $url .= join '/', map { '' eq $_ ? $PLACEHOLDER : $_ } $args->get_array;
-    $url =~ s{offset/\d+}{offset/\%d};
     $url .= $query_string;
 
     # page sets
@@ -723,8 +709,8 @@ sub _add_pageset {
         }
         else {
             my $current_offset = ( $set - 1 ) * $args->get('limit');
-            my $link_url = sprintf $url, $current_offset;
-            $self->_xml_attr('href')->AddAttribute($link_url);
+            $url =~ s{offset/\d+}{offset/$current_offset};
+            $self->_xml_attr('href')->AddAttribute($url);
         }
         $xml->EndElement;
     }

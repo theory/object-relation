@@ -10,7 +10,6 @@ use Test::More;
 use Test::Exception;
 use Test::XML;
 
-use aliased 'Test::MockModule';
 use TEST::Kinetic::Traits::Store qw/:all/;
 use TEST::Kinetic::Traits::XML qw/:all/;
 use TEST::Kinetic::Traits::HTML qw/:all/;
@@ -27,6 +26,7 @@ use aliased 'Test::MockModule';
 use aliased 'XML::XPath';
 use Array::AsHash;
 use XML::XPath::XMLParser;
+use HTML::Entities qw/encode_entities/;
 
 use aliased 'Kinetic::Store' => 'Store', ':all';
 use aliased 'Kinetic::Interface::REST';
@@ -119,7 +119,6 @@ sub add_pagesets : Test(no_plan) {
     );
     $test->_test_pageset( 'test_class', \@args,
         'Normal searches should create pagesets' );
-    return;                                  # xxx fix it later
     @args = (
         STRING         => '',
         limit          => 5,
@@ -154,19 +153,29 @@ sub add_pagesets : Test(no_plan) {
 
     $test->_test_pageset( 'some_class', \@args,
         'Leaving off order_by on pagesets should succeed' );
-    <STDIN>;
+    
+    @args = (
+        STRING     => "description LIKE '%object%'",
+        limit      => 5,
+        sort_order => 'ASC',
+    );
+
+    $test->_test_pageset( 'some_class', \@args,
+        'Search terms with percent signs should succeed' );
 }
 
 sub _test_pageset {
     my $test = shift;
     my ( $test_class, $args, $description ) = @_;
-    my $orig_args = Array::AsHash->new( { array => $args } );
-    ok my ( $xml, $arg_for ) = $test->_get_pageset_xml(@_), $description;
+    my $orig_args = Array::AsHash->new( { array => $args, clone => 1 } );
+    ok my ( $xml ) = $test->_get_pageset_xml(@_), $description;
 
-    my $num_pages =
-      $orig_args->get('_current_count')
-      ? $orig_args->get('_total_objects') / $orig_args->get('_current_count')
-      : 0;
+    my $current = $orig_args->delete('_current_count');
+    my $total   = $orig_args->delete('_total_objects');
+    $current = $orig_args->get('limit')     unless defined $current;
+    $total   = $orig_args->get('limit') * 2 unless defined $total;
+    my $num_pages = $current ? $total / $current : 0;
+
     $num_pages++ unless int($num_pages) == $num_pages;
     $num_pages = int($num_pages);
     my $xpath      = XPath->new( xml => $xml );
@@ -177,9 +186,9 @@ sub _test_pageset {
     like $node, qr/\Q[ Page $num_pages ]/,
       '... and we should have the correct number of pages';
     my ($url) = $node =~ /xlink:href="([^"]*)/;
-    diag $node;
-    diag $url;
-    diag $xml;
+    my $search = encode_entities($orig_args->get('STRING') || 'null');
+    like $url, qr{/STRING/\Q$search\E/},
+        '... and the search terms should be properly quoted';
 
     $node =
       $xpath->findnodes_as_string(
@@ -214,7 +223,7 @@ sub _get_pageset_xml {
     my $dispatch_mock = MockModule->new('Kinetic::Interface::REST::Dispatch');
     $dispatch_mock->mock( _count => $total );
     my $xml = $test->_get_xml( $dispatch, '_add_pageset', $current );
-    return ( $xml, $args );
+    return $xml;
 }
 
 sub _get_xml {
@@ -292,12 +301,12 @@ Performs 8 tests per run and uses C<$description> as the first test name.
 =cut
 
 sub _test_search_data {
-    my ( $test, $test_class, $args, $description ) = @_;
+    my ( $test, $test_class, $args_aref, $description ) = @_;
     $description ||= '';
 
-    $args = Array::AsHash->new(
+    my $args = Array::AsHash->new(
         {
-            array => $args,
+            array => $args_aref,
             clone => 1,
         }
     );
@@ -318,7 +327,7 @@ sub _test_search_data {
 
     my $dispatch = Dispatch->new;
     $dispatch->class_key($test_class);
-    $dispatch->args($args);
+    $dispatch->args( $args->clone );
     ok my $xml = $test->_get_xml( $dispatch, '_add_search_data', 1 ),
       $description;
 
@@ -330,6 +339,7 @@ sub _test_search_data {
 
     my $parameters =
       '/kinetic:resources/kinetic:search_parameters/kinetic:parameter';
+
     while ( my ( $arg, $value ) = $args->each ) {
         $arg = 'search' if 'STRING' eq $arg;
         if ( 'sort_order' eq $arg ) {
@@ -359,13 +369,19 @@ qq{<kinetic:option name="$order->[0]"$selected>$order->[1]</kinetic:option>},
         else {
             my $node =
               $xpath->findnodes_as_string(qq{$parameters\[\@type = "$arg"]});
-            my $expected =
-              ( defined $value && !$value && "0" ne $value )
+            my $expected = ( _path_info_segment_has_null_value($value) )
               ? qq{<kinetic:parameter type="$arg" />}
               : qq{<kinetic:parameter type="$arg">$value</kinetic:parameter>};
             is $node, $expected, "... and the $arg should be set correctly";
         }
     }
+}
+
+sub _path_info_segment_has_null_value {
+    my $segment = shift;
+    return
+      defined $segment
+      && ( 'null' eq $segment || ( !$segment && "0" ne $segment ) );
 }
 
 sub method_arg_handling : Test(12) {
