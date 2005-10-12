@@ -397,46 +397,20 @@ sub _xml_setup {
     );
     $self->_xml_ns( \%ns_for );
 
-    my %elem_for = (
-
-        # declare search metadata
-        desc =>
-          $xml->DeclareElement( $self->_xml_ns('kinetic') => 'description' ),
-        domain => $xml->DeclareElement( $self->_xml_ns('kinetic') => 'domain' ),
-        path   => $xml->DeclareElement( $self->_xml_ns('kinetic') => 'path' ),
-        type   => $xml->DeclareElement( $self->_xml_ns('kinetic') => 'type' ),
-
-        # instance list
-        resources =>
-          $xml->DeclareElement( $self->_xml_ns('kinetic') => 'resources' ),
-        resource =>
-          $xml->DeclareElement( $self->_xml_ns('kinetic') => 'resource' ),
-        instance =>
-          $xml->DeclareElement( $self->_xml_ns('kinetic') => 'instance' ),
-        attribute =>
-          $xml->DeclareElement( $self->_xml_ns('kinetic') => 'attribute' ),
-
-        # search parameters
-        class_key =>
-          $xml->DeclareElement( $self->_xml_ns('kinetic') => 'class_key' ),
-        parameters => $xml->DeclareElement(
-            $self->_xml_ns('kinetic') => 'search_parameters'
-        ),
-        parameter =>
-          $xml->DeclareElement( $self->_xml_ns('kinetic') => 'parameter' ),
-        option => $xml->DeclareElement( $self->_xml_ns('kinetic') => 'option' ),
-    );
+    my @search_metadata   = qw/description domain path type/;
+    my @instance_list     = qw/resources sort resource instance attribute/;
+    my @search_parameters = qw/search_parameters parameter option class_key/;
+    my %elem_for          =
+      map { $_ => $xml->DeclareElement( $self->_xml_ns('kinetic') => $_ ) }
+      @search_metadata, @instance_list, @search_parameters;
     $self->_xml_elem( \%elem_for );
 
     # attributes
-    my %attr_for = (
-        href     => $xml->DeclareAttribute( $self->_xml_ns('xlink') => 'href' ),
-        id       => $xml->DeclareAttribute('id'),
-        type     => $xml->DeclareAttribute('type'),
-        name     => $xml->DeclareAttribute('name'),
-        widget   => $xml->DeclareAttribute('widget'),
-        selected => $xml->DeclareAttribute('selected'),
-    );
+    my %attr_for =
+      map { $_ => $xml->DeclareAttribute($_) }
+      qw/ id type name widget selected /;
+    $attr_for{href} =
+      $xml->DeclareAttribute( $self->_xml_ns('xlink') => 'href' );
     $self->_xml_attr( \%attr_for );
     return $xml;
 }
@@ -457,10 +431,10 @@ sub _add_rest_metadata {
     my $rest        = $self->rest;
     my $xml         = $self->_xml;
     my $output_type = lc $rest->cgi->param(TYPE_PARAM) || '';
-    $xml->Element( $self->_xml_elem('desc')   => $title );
-    $xml->Element( $self->_xml_elem('domain') => $rest->domain );
-    $xml->Element( $self->_xml_elem('path')   => $rest->path );
-    $xml->Element( $self->_xml_elem('type')   => $output_type );
+    $xml->Element( $self->_xml_elem('description') => $title );
+    $xml->Element( $self->_xml_elem('domain')      => $rest->domain );
+    $xml->Element( $self->_xml_elem('path')        => $rest->path );
+    $xml->Element( $self->_xml_elem('type')        => $output_type );
     return $self;
 }
 
@@ -543,65 +517,66 @@ sub _add_search_data {
     $self->_add_pageset($instance_count);
 
     $xml->Element( $self->_xml_elem('class_key'), $self->class_key );
-    $self->_xml_elem('parameters')->StartElement;
+    $self->_xml_elem('search_parameters')->StartElement;
+
+    # Add search string arguments
     $self->_xml_elem('parameter')->StartElement;
     $self->_xml_attr('type')->AddAttribute('search');
     $xml->AddText( $args->get('STRING') );
     $xml->EndElement;
+
+    # add limit
     $self->_xml_elem('parameter')->StartElement;
     $self->_xml_attr('type')->AddAttribute('limit');
     $xml->AddText( $args->get('limit') );
     $xml->EndElement;
 
-    if ( $args->exists('order_by') ) {
-        $self->_xml_elem('parameter')->StartElement;
-        $self->_xml_attr('type')->AddAttribute('order_by');
-        $xml->AddText($args->get('order_by'));
-        $xml->EndElement;
-    }
-    else {
-        $self->_xml_elem('parameter')->StartElement;
-        $self->_xml_attr('type')->AddAttribute('order_by');
-        $xml->EndElement;
-    }
+    # add order_by
+    $self->_xml_elem('parameter')->StartElement;
+    $self->_xml_attr('type')->AddAttribute('order_by');
+    $xml->AddText( $args->get('order_by') ) if $args->exists('order_by');
+    $xml->EndElement;
 
+    # add sort_order
     my @sort_options = ( ASC => 'Ascending', DESC => 'Descending' );
-    if ( $args->exists('sort_order') ) {
-        my $sort_order = $args->get('sort_order');
-        $self->_xml_elem('parameter')->StartElement;
-        $self->_xml_attr('type')->AddAttribute('sort_order');
-        $self->_xml_attr('widget')->AddAttribute('select');
-        for ( my $i = 0 ; $i < @sort_options ; $i += 2 ) {
-            my ( $option, $label ) = @sort_options[ $i, $i + 1 ];
-            $self->_xml_elem('option')->StartElement;
-            $self->_xml_attr('name')->AddAttribute($option);
-            if ( $option eq $sort_order ) {
-                $self->_xml_attr('selected')->AddAttribute('selected');
-            }
-            $xml->AddText($label);
-            $xml->EndElement;
-        }
-        $xml->EndElement;
-    }
-    else {
-        $self->_xml_elem('parameter')->StartElement;
-        $self->_xml_attr('type')->AddAttribute('sort_order');
-        $self->_xml_attr('widget')->AddAttribute('select');
-        for ( my $i = 0 ; $i < @sort_options ; $i += 2 ) {
-            my ( $option, $label ) = @sort_options[ $i, $i + 1 ];
-            $self->_xml_elem('option')->StartElement;
-            $self->_xml_attr('name')->AddAttribute($option);
-            if ( $option eq 'ASC' ) {
-                $self->_xml_attr('selected')->AddAttribute('selected');
-            }
-            $xml->AddText($label);
-            $xml->EndElement;
-        }
-        $xml->EndElement;
-    }
+    my $sort_order = $args->get('sort_order') || 'ASC';
+    $self->_add_select_widget( 'sort_order', $sort_order, \@sort_options );
     $xml->EndElement;
 
     return $self;
+}
+
+##############################################################################
+
+=head3 _add_select_widget
+
+  $self->_add_select_widget($name, $selected, \@options);
+
+This method adds a select widget to the XML being built.  C<$name> is the name
+of the select widget.  C<$selected> is the name of the option currently
+selected, if any.  C<@options> should be an ordered list of key/value pairs
+where the the keys are the names of the options and the values are the labels
+which should be displayed.
+
+=cut
+
+sub _add_select_widget {
+    my ( $self, $name, $selected, $options ) = @_;
+    my $xml = $self->_xml;
+    $self->_xml_elem('parameter')->StartElement;
+    $self->_xml_attr('type')->AddAttribute($name);
+    $self->_xml_attr('widget')->AddAttribute('select');
+    for ( my $i = 0 ; $i < @$options ; $i += 2 ) {
+        my ( $option, $label ) = @$options[ $i, $i + 1 ];
+        $self->_xml_elem('option')->StartElement;
+        $self->_xml_attr('name')->AddAttribute($option);
+        if ( $option eq $selected ) {
+            $self->_xml_attr('selected')->AddAttribute('selected');
+        }
+        $xml->AddText($label);
+        $xml->EndElement;
+    }
+    $xml->EndElement;
 }
 
 ##############################################################################
@@ -618,11 +593,11 @@ instances are taken from an iterator returned by a Kinetic object search.
 sub _add_instances {
     my ( $self, $iterator ) = @_;
     my $instance_count = 0;
-    my @attributes;
-    my $base_url     = $self->_rest_base_url;
-    my $query_string = $self->_query_string;
-    my $xml          = $self->_xml;
+    my $base_url       = $self->_rest_base_url;
+    my $query_string   = $self->_query_string;
+    my $xml            = $self->_xml;
 
+    my @attributes;
     while ( my $instance = $iterator->next ) {
         unless (@attributes) {
             @attributes =
@@ -634,8 +609,31 @@ sub _add_instances {
               : $#attributes;
 
             # don't list all attributes
-            @attributes = @attributes[ 0 .. $i ];
+            @attributes = map { $_->name } @attributes[ 0 .. $i ];
+
+            my $args      = $self->args;
+            my $sort_args = $args->clone;
+            foreach my $attribute (@attributes) {
+                my $url = "$base_url@{ [ $self->class_key ] }/search/";
+                $sort_args->put( 'order_by', $attribute );
+                my $order = 'ASC';
+                if ( $attribute eq $args->get('order_by')
+                    && 'ASC' eq $args->get('sort_order') )
+                {
+                    $order = 'DESC';
+                }
+                $sort_args->put( 'sort_order', $order );
+                $url .= join '/',
+                  map { '' eq $_ ? $PLACEHOLDER : $_ } $sort_args->get_array;
+                $url .= $query_string;
+
+                $self->_xml_elem('sort')->StartElement;
+                $self->_xml_attr('name')->AddAttribute($attribute);
+                $xml->AddText($url);
+                $xml->EndElement;
+            }
         }
+
         $instance_count++;
         my $uuid = $instance->uuid;
         my $url  =
@@ -643,11 +641,10 @@ sub _add_instances {
         $self->_xml_elem('instance')->StartElement;
         $self->_xml_attr('id')->AddAttribute($uuid);
         $self->_xml_attr('href')->AddAttribute($url);
-        foreach my $instance_attribute (@attributes) {
-            my $method = $instance_attribute->name;
-            my $value = ( $instance->$method || '' );
+        foreach my $attribute (@attributes) {
+            my $value = ( $instance->$attribute || '' );
             $self->_xml_elem('attribute')->StartElement;
-            $self->_xml_attr('name')->AddAttribute($method);
+            $self->_xml_attr('name')->AddAttribute($attribute);
             $xml->AddText($value);
             $xml->EndElement;
         }

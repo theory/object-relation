@@ -73,7 +73,15 @@
 
                 <tr>
                   <xsl:for-each select="kinetic:instance[1]/kinetic:attribute">
-                  <th class="header"><xsl:value-of select="@name"/></th>
+                  <th class="header">
+                    <a>
+                      <xsl:attribute name="href">
+                        <xsl:variable name="attr" select="@name"/>
+                        <xsl:value-of select="/kinetic:resources/kinetic:sort[@name=$attr]"/>
+                      </xsl:attribute>
+                      <xsl:value-of select="@name"/>
+                    </a>
+                  </th>
                   </xsl:for-each>
                 </tr>
 
@@ -111,6 +119,11 @@
     </html>
   </xsl:template>
   
+<xsl:template name="get-sort-href">
+  <xsl:param name="attr"/>
+  <!--xsl:value-of select="kinetic:sort[ @name = $attr ]"/-->
+  <xsl:value-of select="/kinetic:resources/kinetic:sort[1]"/>
+</xsl:template>
   <!--                                                -->
   <!-- Find all parameters and create inputs for them -->
   <!--                                                -->
