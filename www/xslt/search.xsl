@@ -119,11 +119,6 @@
     </html>
   </xsl:template>
   
-<xsl:template name="get-sort-href">
-  <xsl:param name="attr"/>
-  <!--xsl:value-of select="kinetic:sort[ @name = $attr ]"/-->
-  <xsl:value-of select="/kinetic:resources/kinetic:sort[1]"/>
-</xsl:template>
   <!--                                                -->
   <!-- Find all parameters and create inputs for them -->
   <!--                                                -->
