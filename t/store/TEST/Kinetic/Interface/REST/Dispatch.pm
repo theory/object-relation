@@ -240,7 +240,7 @@ sub _get_xml {
     return $xml_builder->GetDocString;
 }
 
-sub add_search_data : Test(41) {
+sub add_search_data : Test(61) {
     my $test = shift;
 
     can_ok Dispatch, '_add_search_data';
@@ -250,8 +250,7 @@ sub add_search_data : Test(41) {
         order_by   => 'name',
         sort_order => 'ASC',
     );
-    $test->_test_search_data( 'test_class', \@args,
-        'Normal searches should succeed' );
+    $test->_test_search_data( 'one', \@args, 'Normal searches should succeed' );
 
     @args = (
         STRING     => '',
@@ -259,22 +258,21 @@ sub add_search_data : Test(41) {
         order_by   => 'age',
         sort_order => 'DESC',
     );
-    $test->_test_search_data( 'some_class', \@args,
-        'Empty searches should succeed' );
+    $test->_test_search_data( 'one', \@args, 'Empty searches should succeed' );
 
     @args = (
         STRING   => '',
         limit    => 5,
         order_by => 'age',
     );
-    $test->_test_search_data( 'some_class', \@args,
+    $test->_test_search_data( 'one', \@args,
         'Leaving off sort_order should succeed' );
 
     @args = (
         STRING => 'age gt 3',
         limit  => 30,
     );
-    $test->_test_search_data( 'some_class', \@args,
+    $test->_test_search_data( 'one', \@args,
         'Leaving off order_by and sort_order should succeed' );
 
     @args = (
@@ -282,7 +280,7 @@ sub add_search_data : Test(41) {
         limit      => 5,
         sort_order => 'ASC',
     );
-    $test->_test_search_data( 'some_class', \@args,
+    $test->_test_search_data( 'one', \@args,
         'Leaving off order_by should succeed' );
 }
 
@@ -342,28 +340,29 @@ sub _test_search_data {
 
     while ( my ( $arg, $value ) = $args->each ) {
         $arg = 'search' if 'STRING' eq $arg;
-        if ( 'sort_order' eq $arg ) {
+        if ( 'sort_order' eq $arg || 'order_by' eq $arg ) {
             my $node =
-              $xpath->findnodes_as_string(
-                qq{$parameters\[\@type = "sort_order"]});
-            like $node,
-              qr/<kinetic:parameter type="sort_order" widget="select">.*/,
-'... and the sort order should be identified as a "select" widget';
+              $xpath->findnodes_as_string(qq{$parameters\[\@type = "$arg"]});
+            like $node, qr/<kinetic:parameter type="$arg" widget="select">.*/,
+              qq'... and the $arg should be identified as a "select" widget';
 
-            foreach
-              my $order ( [ ASC => 'Ascending' ], [ DESC => 'Descending' ] )
-            {
+            my @options =
+              'sort_order' eq $arg
+              ? ( [ ASC => 'Ascending' ], [ DESC => 'Descending' ] )
+              : map { [ $_ => ucfirst $_ ] } $test->desired_attributes;
+
+            foreach my $order (@options) {
                 my ( $selected, $not ) =
                   $value eq $order->[0]
                   ? ( ' selected="selected"', '' )
                   : ( '', ' not ' );
                 $node =
                   $xpath->findnodes_as_string(
-qq{$parameters\[\@type = "sort_order"]/kinetic:option[\@name = "$order->[0]"]}
+qq{$parameters\[\@type = "$arg"]/kinetic:option[\@name = "$order->[0]"]}
                   );
                 is $node,
 qq{<kinetic:option name="$order->[0]"$selected>$order->[1]</kinetic:option>},
-                  qq[... and the ascending option should${not}be selected];
+                  qq[... and the correct option should${not}be selected];
             }
         }
         else {
@@ -409,7 +408,7 @@ sub method_arg_handling : Test(12) {
 
     is_deeply scalar $dispatch->args->get_array,
       [qw/ STRING null limit 20 offset 0 /],
-      '... but it should return default limit and offset and discard unknown args';
+'... but it should return default limit and offset and discard unknown args';
 
     $dispatch->args(
         Array::AsHash->new( { array => [qw/ this that limit 30 offset 0 /] } )
@@ -557,7 +556,7 @@ sub handle : Test(6) {
         \@instance_order );
     my $header     = $test->header_xml(AVAILABLE_INSTANCES);
     my $resources  = $test->resource_list_xml;
-    my $search_xml = $test->search_data_xml( { key => 'one' } );
+    my $search_xml = $test->search_data_xml;
 
     my $expected = <<"    END_XML";
 $header
@@ -568,7 +567,7 @@ $header
     </kinetic:resources>
     END_XML
 
-    is_xml( $response, $expected, '... and it should return the correct XML' );
+    is_xml $response, $expected, '... and it should return the correct XML';
 
     my $foo_uuid = $foo->uuid;
     $dispatch->method('lookup');
@@ -594,13 +593,12 @@ $header
 
     $dispatch->method('search');
     my $args = Array::AsHash->new( { array => [ 'STRING', 'name => "foo"' ] } );
-    $dispatch->args($args->clone);
+    $dispatch->args( $args->clone );
     $dispatch->handle_rest_request;
 
-    $sort_info_xml = $test->column_sort_xml( 'one', $args );
+    $sort_info_xml = $test->column_sort_xml( 'one', $args->clone );
     my $instance = $test->expected_instance_xml( [$foo] );
-    my $search =
-      $test->search_data_xml( { key => 'one', search => 'name => "foo"' } );
+    my $search = $test->search_data_xml( 'one', $args->clone );
 
     $expected = <<"    END_XML";
 $header
@@ -615,16 +613,14 @@ $header
       '$class_key/search/STRING/$search_string should return a list';
 
     my $search_string = 'name => "foo", OR(name => "bar")';
-    $args =  Array::AsHash->new(
-            { array => [ STRING => $search_string, order_by => 'name' ] }
-        );
-    $dispatch->args($args->clone);
+    $args =
+      Array::AsHash->new(
+        { array => [ STRING => $search_string, order_by => 'name' ] } );
+    $dispatch->args( $args->clone );
 
-    $sort_info_xml = $test->column_sort_xml( 'one', $args );
+    $sort_info_xml = $test->column_sort_xml( 'one', $args->clone );
     $expected_instances = $test->expected_instance_xml( [ $bar, $foo ] );
-    $search =
-      $test->search_data_xml(
-        { key => 'one', search => $search_string, order_by => 'name' } );
+    $search = $test->search_data_xml( 'one', $args->clone );
     $dispatch->handle_rest_request;
     $expected = <<"    END_XML";
 $header

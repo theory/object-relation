@@ -143,13 +143,11 @@ sub search_by_query_string : Test(8) {
     my $expected_instances =
       $test->expected_instance_xml( [ $foo, $bar, $baz ], \@instance_order );
     my $resources = $test->resource_list_xml;
-    my $search    =
-      $test->search_data_xml(
-        { key => 'one', limit => 2, order_by => 'name' } );
-    my $sort_info_xml =
-      $test->column_sort_xml( 'one',
-        Array::AsHash->new( { array => [ order_by => 'name', limit => 2 ] } ) );
-    my $expected = <<"    END_XML";
+    my $args      =
+      Array::AsHash->new( { array => [ order_by => 'name', limit => 2 ] } );
+    my $search        = $test->search_data_xml( 'one', $args->clone );
+    my $sort_info_xml = $test->column_sort_xml( 'one', $args->clone );
+    my $expected      = <<"    END_XML";
 $header
       $resources
       $sort_info_xml
@@ -178,14 +176,13 @@ $header
 
     my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
     my $html_resources = $test->resource_list_html;
-    my $search_form    =
-      $test->search_form( { key => 'one', limit => 2, order_by => 'name' } );
+    $args =
+      Array::AsHash->new( { array => [ limit => 2, order_by => 'name' ] } );
+    my $search_form = $test->search_form( 'one', $args->clone );
     my $instances = $test->instance_table(
         {
-            args => Array::AsHash->new(
-                { array => [ limit => 2, order_by => 'name' ] }
-            ),
-            objects => [ $bar, $foo ]
+            args    => $args->clone,
+            objects => [ $bar, $foo ],
         }
     );
     my $footer = $test->footer_html;
@@ -212,8 +209,9 @@ $html_header
     );
     $instances = $test->instance_table(
         {
-            args =>
-              Array::AsHash->new( { array => [ limit => 2, offset => 2, order_by => 'name' ] } ),
+            args => Array::AsHash->new(
+                { array => [ limit => 2, offset => 2, order_by => 'name' ] }
+            ),
             objects => [$baz]
         }
     );
@@ -255,16 +253,14 @@ sub web_test_paging : Test(15) {
     my $header         = $test->header_xml(AVAILABLE_INSTANCES);
     my $response       = $mech->content;
     my @instance_order = $test->instance_order($response);
-    my $sort_info_xml  =
-      $test->column_sort_xml( 'one',
-        Array::AsHash->new( { array => [ order_by => 'name', limit => 2 ] } ) );
+    my $args           =
+      Array::AsHash->new( { array => [ order_by => 'name', limit => 2 ] } );
+    my $sort_info_xml = $test->column_sort_xml( 'one', $args->clone );
     my $expected_instances =
       $test->expected_instance_xml( [ $foo, $bar, $baz ], \@instance_order );
     my $resources = $test->resource_list_xml;
-    my $search    =
-      $test->search_data_xml(
-        { key => 'one', limit => 2, order_by => 'name' } );
-    my $expected = <<"    END_XML";
+    my $search    = $test->search_data_xml( 'one', $args->clone );
+    my $expected  = <<"    END_XML";
 $header
       $resources
       $sort_info_xml
@@ -288,14 +284,13 @@ $header
 
     my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
     my $html_resources = $test->resource_list_html;
-    my $search_form    =
-      $test->search_form( { key => 'one', limit => 2, order_by => 'name' } );
+    $args =
+      Array::AsHash->new( { array => [ limit => 2, order_by => 'name' ] } );
+    my $search_form = $test->search_form( 'one', $args->clone );
     my $instances = $test->instance_table(
         {
-            args => Array::AsHash->new(
-                { array => [ limit => 2, order_by => 'name' ] }
-            ),
-            objects => [ $bar, $foo ]
+            args    => $args->clone,
+            objects => [ $bar, $foo ],
         }
     );
     my $footer = $test->footer_html;
@@ -428,12 +423,11 @@ sub web_test : Test(12) {
     $foo_uuid = $foo->uuid;
     my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
     my $html_resources = $test->resource_list_html;
-    my $search_form    =
-      $test->search_form( { key => 'one', search => 'name => "foo"' } );
-    my $instances = $test->instance_table(
+    my $args = Array::AsHash->new( { array => [ STRING => 'name => "foo"' ] } );
+    my $search_form = $test->search_form( 'one', $args->clone );
+    my $instances   = $test->instance_table(
         {
-            args =>
-              Array::AsHash->new( { array => [ STRING => 'name => "foo"' ] } ),
+            args    => $args->clone,
             objects => [$foo]
         }
     );
@@ -446,7 +440,7 @@ $html_header
     $instances
     $footer
     END_XHTML
-    use TEST::Kinetic::Traits::Debug;
+
     is_xml $mech->content, $expected,
 'REST strings searches with HTML type specified should return the correct HTML';
 }
@@ -528,18 +522,14 @@ sub rest_interface : Test(19) {
     ok $rest->response, '... and return an entity-body';
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
-    my $header        = $test->header_xml(AVAILABLE_INSTANCES);
-    my $sort_info_xml = $test->column_sort_xml(
-        'one',
-        Array::AsHash->new(
-            { array => [ STRING => 'name => "foo"', order_by => 'name' ] }
-        )
-    );
+    my $header = $test->header_xml(AVAILABLE_INSTANCES);
+    my $args   =
+      Array::AsHash->new(
+        { array => [ STRING => 'name => "foo"', order_by => 'name' ] } );
+    my $sort_info_xml = $test->column_sort_xml( 'one', $args->clone );
     my $instances = $test->expected_instance_xml( [$foo] );
     my $resources = $test->resource_list_xml;
-    my $search    =
-      $test->search_data_xml(
-        { key => 'one', search => 'name => "foo"', order_by => 'name' } );
+    my $search    = $test->search_data_xml( 'one', $args->clone );
 
     my $expected = <<"    END_XML";
 $header
@@ -611,7 +601,7 @@ $header
     my $instances     =
       $test->expected_instance_xml( scalar $test->test_objects, \@order );
     $header = $test->header_xml(AVAILABLE_INSTANCES);
-    my $search = $test->search_data_xml( { key => 'one' } );
+    my $search = $test->search_data_xml( 'one' );
     $expected = <<"    END_XML";
 $header
       $resources

@@ -30,7 +30,7 @@ use Kinetic::Meta;
 use Kinetic::XML;
 use Kinetic::Store;
 use Kinetic::Util::Constants qw/:http :xslt :labels :rest/;
-use Kinetic::Util::Exceptions qw/throw_fatal/;
+use Kinetic::Util::Exceptions qw/throw_fatal throw_invalid_class/;
 use Kinetic::View::XSLT;
 
 our $VERSION = version->new('0.0.1');
@@ -132,6 +132,12 @@ sub class {
     my $self = shift;
     unless (@_) {
         $self->{class} ||= Kinetic::Meta->for_key( $self->class_key );
+        unless ($self->{class}) {
+            throw_invalid_class [
+                'I could not find the class for key "[_1]"',
+                ($self->class_key || "No class key found"),
+            ];
+        }
         return $self->{class};
     }
     return $self;
@@ -548,10 +554,10 @@ sub _add_search_data {
     $xml->EndElement;
 
     # add order_by
-    $self->_xml_elem('parameter')->StartElement;
-    $self->_xml_attr('type')->AddAttribute('order_by');
-    $xml->AddText( $args->get('order_by') ) if $args->exists('order_by');
-    $xml->EndElement;
+    my @attributes = $self->_desired_attributes;
+    my @options    = map { $_ => ucfirst $_ } @attributes;
+    my $order_by   = $args->get('order_by') || '';
+    $self->_add_select_widget('order_by', $order_by, \@options);
 
     # add sort_order
     my @sort_options = ( ASC => 'Ascending', DESC => 'Descending' );

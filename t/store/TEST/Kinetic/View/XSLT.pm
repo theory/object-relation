@@ -85,7 +85,7 @@ sub build_search_form : Test(no_plan) {
     $test->domain('http://www.example.com/');
     $test->path('rest');
 
-    my $search = 'name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)';
+    my $search = 'name => "foo", OR(name => "bar")';
 
     my $header     = $test->header_xml(AVAILABLE_INSTANCES);
     my $resources  = $test->resource_list_xml;
@@ -94,9 +94,7 @@ sub build_search_form : Test(no_plan) {
       Array::AsHash->new(
         { array => [ STRING => $search, order_by => 'name' ] } );
     my $sort_info_xml = $test->column_sort_xml( 'one', $args->clone );
-    my $search_xml =
-      $test->search_data_xml(
-        { key => 'one', search => $search, order_by => 'name' } );
+    my $search_xml    = $test->search_data_xml( 'one', $args->clone );
 
     my $xml = <<"    END_XML";
 $header
@@ -111,9 +109,7 @@ $header
 
     my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
     my $html_resources = $test->resource_list_html('');
-    my $search_form    =
-      $test->search_form(
-        { key => 'one', search => $search, order_by => 'name' } );
+    my $search_form    = $test->search_form( 'one', $args->clone );
     my $instance_table = $test->instance_table(
         {
             args    => $args->clone,
@@ -194,7 +190,7 @@ sub transform : Test(9) {
     $test->domain('http://www.example.com/')->path('rest');
     my $header    = $test->header_xml(AVAILABLE_INSTANCES);
     my $resources = $test->resource_list_xml;
-    my $search = 'name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)';
+    my $search = 'name => "foo", OR(name => "bar")';
     my $args      =
       Array::AsHash->new(
         { array => [ STRING => $search, order_by => 'name' ] } );
@@ -202,9 +198,7 @@ sub transform : Test(9) {
     my $expected_instances =
       $test->expected_instance_xml( scalar $test->test_objects );
 
-    my $search_xml =
-      $test->search_data_xml(
-        { key => 'one', search => $search, order_by => 'name' } );
+    my $search_xml = $test->search_data_xml( 'one', $args->clone );
 
     my $xml = <<"    END_XML";
 $header
@@ -219,9 +213,7 @@ $header
 
     my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
     my $html_resources = $test->resource_list_html;
-    my $search_form    =
-      $test->search_form(
-        { key => 'one', search => $search, order_by => 'name' } );
+    my $search_form    = $test->search_form( 'one', $args->clone );
     my $instance_table = $test->instance_table(
         {
             args    => $args->clone,

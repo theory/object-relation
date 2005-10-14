@@ -261,43 +261,46 @@ sub get_sort_url {
 
 =head3 search_data_xml
 
-  my $search_xml = $test->search_data_xml({
-    key        => $class_key,
-    search     => $search_string, # optional.  Should be unencoded if supplied.
-    limit      => $limit,         # optional.  Defaults to 20
-    order_by   => $order_by,      # optional
-    sort_order => $sort_order     # optional.  Defaults to ASC
-  });
+  my $search_xml = $test->search_data_xml( $class_key, $args );
 
-This method returns the search parameters XML snippet that is built by the
-REST dispatch class.  C<$sort_order>, if present, should be I<ASC> or 
-I<DESC>.
+This method returns the search parameters XML snippet whichh is built by the
+REST dispatch class.  C<$args> is the normal C<Array::AsHash> object which is
+passed to the REST dispatch class.
 
 =cut
 
 sub search_data_xml {
-    my ( $test, $value_for ) = @_;
-    $value_for->{search}     = ''    unless exists $value_for->{search};
-    $value_for->{limit}      = 20    unless exists $value_for->{limit};
-    $value_for->{order_by}   = ''    unless exists $value_for->{order_by};
-    $value_for->{sort_order} = 'ASC' unless exists $value_for->{sort_order};
-
-    foreach my $key ( keys %$value_for ) {
-        $value_for->{$key} = encode_entities( $value_for->{$key} );
-    }
+    my ( $test, $key, $args ) = @_;
+    $key ||= 'one';
+    $args = $test->normalize_search_args($args);
 
     my $xml = <<"    END_XML";
-        <kinetic:class_key>$value_for->{key}</kinetic:class_key>
+        <kinetic:class_key>$key</kinetic:class_key>
         <kinetic:search_parameters>
     END_XML
-    foreach my $arg (qw/ search limit order_by /) {
-        $xml .=
-qq[<kinetic:parameter type="$arg">$value_for->{$arg}</kinetic:parameter>\n];
+    foreach my $arg (qw/ STRING limit /) {
+        my $type  = 'STRING' eq $arg ? 'search' : $arg;
+        my $value = $args->get($arg);
+        $xml .= qq[<kinetic:parameter type="$type">$value</kinetic:parameter>\n];
     }
+
+    $xml .= '<kinetic:parameter type="order_by" widget="select">';
+    my @attributes = map { [ $_ => ucfirst $_ ] } $test->desired_attributes;
+    my $order_by = $args->get('order_by') || '';
+    foreach my $order_by_opt (@attributes) {
+        my $selected = $order_by eq $order_by_opt->[0]
+          ? (' selected="selected"')
+          : ('');
+        $xml .=
+qq{<kinetic:option name="$order_by_opt->[0]"$selected>$order_by_opt->[1]</kinetic:option>};
+    }
+    $xml .= "</kinetic:parameter>\n";
+
     $xml .= '<kinetic:parameter type="sort_order" widget="select">';
+
+    $args->default(sort_order => 'ASC');
     foreach my $order ( [ ASC => 'Ascending' ], [ DESC => 'Descending' ] ) {
-        my $selected =
-          $value_for->{sort_order} eq $order->[0]
+        my $selected = $args->get('sort_order') eq $order->[0]
           ? (' selected="selected"')
           : ('');
         $xml .=
