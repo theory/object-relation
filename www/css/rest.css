@@ -21,25 +21,6 @@ a:hover {
     color:            #FF0000;
 }
 
-a.menu {
-    white-space:      nowrap;
-}
-
-a.menu:hover {
-    color:            #FF0000;
-}
-
-a.menuselect {
-    font-weight:      bold;
-    color:            #202060;
-    white-space:      nowrap;
-}
-
-a.menuselect:hover {
-    font-weight:      bold;
-    color:            #FF0000;
-}
-
 .title {
     font-size:        24px;
     line-height:      30px;

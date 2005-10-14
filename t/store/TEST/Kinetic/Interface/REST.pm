@@ -146,13 +146,17 @@ sub search_by_query_string : Test(8) {
     my $search    =
       $test->search_data_xml(
         { key => 'one', limit => 2, order_by => 'name' } );
+    my $sort_info_xml =
+      $test->column_sort_xml( 'one',
+        Array::AsHash->new( { array => [ order_by => 'name', limit => 2 ] } ) );
     my $expected = <<"    END_XML";
 $header
       $resources
+      $sort_info_xml
       $expected_instances
       <kinetic:pages>
         <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
-        <kinetic:page id="[ Page 2 ]" xlink:href="${url}one/search/STRING/null/order_by/name/limit/2/offset/2" />
+        <kinetic:page id="[ Page 2 ]" xlink:href="${url}one/search/STRING/null/limit/2/offset/2/order_by/name/sort_order/ASC" />
       </kinetic:pages>
       $search
     </kinetic:resources>
@@ -176,8 +180,15 @@ $header
     my $html_resources = $test->resource_list_html;
     my $search_form    =
       $test->search_form( { key => 'one', limit => 2, order_by => 'name' } );
-    my $instances = $test->instance_table( $bar, $foo );
-    my $footer    = $test->footer_html;
+    my $instances = $test->instance_table(
+        {
+            args => Array::AsHash->new(
+                { array => [ limit => 2, order_by => 'name' ] }
+            ),
+            objects => [ $bar, $foo ]
+        }
+    );
+    my $footer = $test->footer_html;
 
     $expected = <<"    END_XHTML";
 $html_header
@@ -187,7 +198,7 @@ $html_header
     <div class="pages">
       <p>
         [ Page 1 ]
-        <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/2?@{[TYPE_PARAM]}=html">[ Page 2 ]</a>
+        <a href="${url}one/search/STRING/null/limit/2/offset/2/order_by/name/sort_order/ASC?@{[TYPE_PARAM]}=html">[ Page 2 ]</a>
       </p>
     </div>
     $footer
@@ -199,7 +210,13 @@ $html_header
 "${url}?@{[CLASS_KEY_PARAM]}=one;search=;order_by=name;limit=2;sort_order=;offset=2;@{[TYPE_PARAM]}=html",
         '... as should paging through result sets'
     );
-    $instances      = $test->instance_table($baz);
+    $instances = $test->instance_table(
+        {
+            args =>
+              Array::AsHash->new( { array => [ limit => 2, offset => 2, order_by => 'name' ] } ),
+            objects => [$baz]
+        }
+    );
     $html_header    = $test->header_html(AVAILABLE_INSTANCES);
     $html_resources = $test->resource_list_html;
 
@@ -210,7 +227,7 @@ $html_header
     $instances
     <div class="pages">
       <p>
-        <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/0?@{[TYPE_PARAM]}=html">[ Page 1 ]</a>
+        <a href="${url}one/search/STRING/null/limit/2/offset/0/order_by/name/sort_order/ASC?@{[TYPE_PARAM]}=html">[ Page 1 ]</a>
         [ Page 2 ]
       </p>
     </div>
@@ -233,11 +250,14 @@ sub web_test_paging : Test(15) {
         'We should be able to fetch and limit the searches'
     );
 
-    my $foo_uuid           = $foo->uuid;
-    my $bar_uuid           = $bar->uuid;
-    my $header             = $test->header_xml(AVAILABLE_INSTANCES);
-    my $response           = $mech->content;
-    my @instance_order     = $test->instance_order($response);
+    my $foo_uuid       = $foo->uuid;
+    my $bar_uuid       = $bar->uuid;
+    my $header         = $test->header_xml(AVAILABLE_INSTANCES);
+    my $response       = $mech->content;
+    my @instance_order = $test->instance_order($response);
+    my $sort_info_xml  =
+      $test->column_sort_xml( 'one',
+        Array::AsHash->new( { array => [ order_by => 'name', limit => 2 ] } ) );
     my $expected_instances =
       $test->expected_instance_xml( [ $foo, $bar, $baz ], \@instance_order );
     my $resources = $test->resource_list_xml;
@@ -247,10 +267,11 @@ sub web_test_paging : Test(15) {
     my $expected = <<"    END_XML";
 $header
       $resources
+      $sort_info_xml
       $expected_instances
       <kinetic:pages>
         <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
-        <kinetic:page id="[ Page 2 ]" xlink:href="${url}one/search/STRING/null/order_by/name/limit/2/offset/2" />
+        <kinetic:page id="[ Page 2 ]" xlink:href="${url}one/search/STRING/null/limit/2/offset/2/order_by/name/sort_order/ASC" />
       </kinetic:pages>
       $search
     </kinetic:resources>
@@ -269,8 +290,15 @@ $header
     my $html_resources = $test->resource_list_html;
     my $search_form    =
       $test->search_form( { key => 'one', limit => 2, order_by => 'name' } );
-    my $instances = $test->instance_table( $bar, $foo );
-    my $footer    = $test->footer_html;
+    my $instances = $test->instance_table(
+        {
+            args => Array::AsHash->new(
+                { array => [ limit => 2, order_by => 'name' ] }
+            ),
+            objects => [ $bar, $foo ]
+        }
+    );
+    my $footer = $test->footer_html;
 
     $expected = <<"    END_XHTML";
 $html_header
@@ -280,7 +308,7 @@ $html_header
     <div class="pages">
       <p>
         [ Page 1 ]
-        <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/2?@{[TYPE_PARAM]}=html">[ Page 2 ]</a>
+        <a href="${url}one/search/STRING/null/limit/2/offset/2/order_by/name/sort_order/ASC?@{[TYPE_PARAM]}=html">[ Page 2 ]</a>
       </p>
     </div>
     $footer
@@ -292,7 +320,14 @@ $html_header
 "${url}one/search/STRING/null/order_by/name/limit/2/offset/2?@{[TYPE_PARAM]}=html",
         '... as should paging through result sets'
     );
-    $instances      = $test->instance_table($baz);
+    $instances = $test->instance_table(
+        {
+            args => Array::AsHash->new(
+                { array => [ offset => 2, limit => 2, order_by => 'name' ] }
+            ),
+            objects => [$baz]
+        }
+    );
     $html_header    = $test->header_html(AVAILABLE_INSTANCES);
     $html_resources = $test->resource_list_html;
 
@@ -303,7 +338,7 @@ $html_header
     $instances
     <div class="pages">
       <p>
-        <a href="${url}one/search/STRING/null/order_by/name/limit/2/offset/0?@{[TYPE_PARAM]}=html">[ Page 1 ]</a>
+        <a href="${url}one/search/STRING/null/limit/2/offset/0/order_by/name/sort_order/ASC?@{[TYPE_PARAM]}=html">[ Page 1 ]</a>
         [ Page 2 ]
       </p>
     </div>
@@ -332,24 +367,25 @@ $html_header
         '... as should paging through result sets'
     );
     my @links = $mech->links;
-    is @links, 84, 'We should receive 80 instance links and 1 page links';
+    is @links, 88,
+'We should receive 80 instance links, 1 page link, 3 resource links and 4 header links';
 
     $mech->get_ok( "${url}one/search/STRING/null/limit/30?@{[TYPE_PARAM]}=html",
         'Asking for more than the limit should work' );
     @links = $mech->links;
-    is @links, 107, '... and return only instance links';
+    is @links, 111, '... and return only instance links';
 
     $mech->get_ok( "${url}one/search/STRING/null/limit/10?@{[TYPE_PARAM]}=html",
         'Asking for fewer than the limit should work' );
     @links = $mech->links;
-    is @links, 45, '... and return the correct number of links';
+    is @links, 49, '... and return the correct number of links';
 
     $mech->get_ok(
         "${url}one/search/STRING/null/limit/26?@{[TYPE_PARAM]}=html",
         'Asking for exactly the number of links that exist should work'
     );
     @links = $mech->links;
-    is @links, 107, '... and return no page links';
+    is @links, 111, '... and return no page links';
 }
 
 sub web_test : Test(12) {
@@ -394,8 +430,14 @@ sub web_test : Test(12) {
     my $html_resources = $test->resource_list_html;
     my $search_form    =
       $test->search_form( { key => 'one', search => 'name => "foo"' } );
-    my $instances = $test->instance_table($foo);
-    my $footer    = $test->footer_html;
+    my $instances = $test->instance_table(
+        {
+            args =>
+              Array::AsHash->new( { array => [ STRING => 'name => "foo"' ] } ),
+            objects => [$foo]
+        }
+    );
+    my $footer = $test->footer_html;
 
     my $expected = <<"    END_XHTML";
 $html_header
@@ -486,7 +528,13 @@ sub rest_interface : Test(19) {
     ok $rest->response, '... and return an entity-body';
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
-    my $header    = $test->header_xml(AVAILABLE_INSTANCES);
+    my $header        = $test->header_xml(AVAILABLE_INSTANCES);
+    my $sort_info_xml = $test->column_sort_xml(
+        'one',
+        Array::AsHash->new(
+            { array => [ STRING => 'name => "foo"', order_by => 'name' ] }
+        )
+    );
     my $instances = $test->expected_instance_xml( [$foo] );
     my $resources = $test->resource_list_xml;
     my $search    =
@@ -496,6 +544,7 @@ sub rest_interface : Test(19) {
     my $expected = <<"    END_XML";
 $header
       $resources
+      $sort_info_xml
       $instances
       $search
     </kinetic:resources>
@@ -557,14 +606,16 @@ $header
     my $one_xml = $rest->url("$key/search")->get;
 
     # XXX Yuck.  Fix this later
-    my @order     = $test->instance_order($one_xml);
-    my $instances =
+    my @order         = $test->instance_order($one_xml);
+    my $sort_info_xml = $test->column_sort_xml('one');
+    my $instances     =
       $test->expected_instance_xml( scalar $test->test_objects, \@order );
     $header = $test->header_xml(AVAILABLE_INSTANCES);
     my $search = $test->search_data_xml( { key => 'one' } );
     $expected = <<"    END_XML";
 $header
       $resources
+      $sort_info_xml
       $instances
       $search
     </kinetic:resources>

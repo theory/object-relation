@@ -52,7 +52,7 @@ sub setup : Test(setup) {
     my $baz = One->new;
     $baz->name('snorfleglitz');
     $store->save($baz);
-    $test->test_objects([ $foo, $bar, $baz ]);
+    $test->test_objects( [ $foo, $bar, $baz ] );
     $test->{param} = sub {
         my $self         = shift;
         my @query_string = @{ $test->_query_string || [] };
@@ -90,11 +90,18 @@ sub build_search_form : Test(no_plan) {
     my $header     = $test->header_xml(AVAILABLE_INSTANCES);
     my $resources  = $test->resource_list_xml;
     my $instances  = $test->expected_instance_xml( scalar $test->test_objects );
-    my $search_xml = $test->search_data_xml({key => 'one', search => $search, order_by => 'name'});
+    my $args      =
+      Array::AsHash->new(
+        { array => [ STRING => $search, order_by => 'name' ] } );
+    my $sort_info_xml = $test->column_sort_xml( 'one', $args->clone );
+    my $search_xml =
+      $test->search_data_xml(
+        { key => 'one', search => $search, order_by => 'name' } );
 
     my $xml = <<"    END_XML";
 $header
       $resources
+      $sort_info_xml
       $instances
       $search_xml
     </kinetic:resources>
@@ -103,10 +110,16 @@ $header
       'Calling transform() with valid XML should succeed';
 
     my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
-    my $html_resources = $test->resource_list_html('');;
+    my $html_resources = $test->resource_list_html('');
     my $search_form    =
-      $test->search_form( { key => 'one', search => $search, order_by => 'name' } );
-    my $instance_table = $test->instance_table( $test->test_objects );
+      $test->search_form(
+        { key => 'one', search => $search, order_by => 'name' } );
+    my $instance_table = $test->instance_table(
+        {
+            args    => $args->clone,
+            objects => [ $test->test_objects ]
+        }
+    );
     my $footer         = $test->footer_html;
 
     my $expected = <<"    END_XHTML";
@@ -181,15 +194,22 @@ sub transform : Test(9) {
     $test->domain('http://www.example.com/')->path('rest');
     my $header    = $test->header_xml(AVAILABLE_INSTANCES);
     my $resources = $test->resource_list_xml;
+    my $search = 'name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)';
+    my $args      =
+      Array::AsHash->new(
+        { array => [ STRING => $search, order_by => 'name' ] } );
+    my $sort_info_xml = $test->column_sort_xml( 'one', $args->clone );
     my $expected_instances =
       $test->expected_instance_xml( scalar $test->test_objects );
 
-    my $search     = 'name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)';
-    my $search_xml = $test->search_data_xml({key => 'one', search => $search, order_by => 'name'});
+    my $search_xml =
+      $test->search_data_xml(
+        { key => 'one', search => $search, order_by => 'name' } );
 
     my $xml = <<"    END_XML";
 $header
       $resources
+      $sort_info_xml
       $expected_instances
       $search_xml
     </kinetic:resources>
@@ -200,11 +220,17 @@ $header
     my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
     my $html_resources = $test->resource_list_html;
     my $search_form    =
-      $test->search_form( { key => 'one', search => $search, order_by => 'name' } );
-    my $instance_table = $test->instance_table( $test->test_objects );
-    my $footer         = $test->footer_html;
+      $test->search_form(
+        { key => 'one', search => $search, order_by => 'name' } );
+    my $instance_table = $test->instance_table(
+        {
+            args    => $args->clone,
+            objects => [ $test->test_objects ]
+        }
+    );
+    my $footer = $test->footer_html;
 
-    my $expected       = <<"    END_XHTML";
+    my $expected = <<"    END_XHTML";
 $html_header
   $html_resources
   $search_form
@@ -214,7 +240,7 @@ $html_header
     is_xml $xhtml, $expected, '... and return the correct xhtml';
 
     $header = $test->header_xml(AVAILABLE_RESOURCES);
-    $xml = <<"    END_XML";
+    $xml    = <<"    END_XML";
 $header
       <kinetic:resource id="one" xlink:href="http://somehost.com/rest/one"/>
       <kinetic:resource id="simple" xlink:href="http://somehost.com/rest/simple"/>
@@ -240,18 +266,20 @@ $html_header
     END_XHTML
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
-    $xml = Kinetic::XML->new( { 
-        object        => $foo,
-        resources_url => $test->url,
-    } )->dump_xml;
+    $xml = Kinetic::XML->new(
+        {
+            object        => $foo,
+            resources_url => $test->url,
+        }
+    )->dump_xml;
 
     $xslt->type('instance');
     ok $xhtml = $xslt->transform($xml),
       'Calling transform() with valid XML should succeed';
 
-    $html_header  = $test->header_html('one');
-    $resources = $test->resource_list_html;
-    
+    $html_header = $test->header_html('one');
+    $resources   = $test->resource_list_html;
+
     is_xml $xhtml, <<"    END_XHTML", '... and return the correct xhtml';
 $html_header
     $resources
@@ -291,10 +319,12 @@ sub transform_pages : Test(3) {
     my $xslt = XSLT->new( type => 'search' );
 
     my $header = $test->header_xml(AVAILABLE_RESOURCES);
-    my $xml = <<"    END_XML";
+    my $xml    = <<"    END_XML";
 $header
       <kinetic:resource xlink:href="one/search" id="one"/>
       <kinetic:resource xlink:href="two/search" id="two"/>
+      <kinetic:sort name="name">name url</kinetic:sort>
+      <kinetic:sort name="rank">rank url</kinetic:sort>
       <kinetic:instance id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX">
         <kinetic:attribute name="name">foo</kinetic:attribute>
         <kinetic:attribute name="rank">General</kinetic:attribute>
@@ -326,8 +356,8 @@ $html_header
         <div class="listing">
           <table>
             <tr>
-              <th class="header">name</th>
-              <th class="header">rank</th>
+              <th class="header"><a href="name url">name</a></th>
+              <th class="header"><a href="rank url">rank</a></th>
             </tr>
             <tr class="row_1">
               <td><a href="http://domain/rest/one/lookup/uuid/XXX">foo</a></td>

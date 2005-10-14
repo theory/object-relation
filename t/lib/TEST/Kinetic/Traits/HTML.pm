@@ -5,8 +5,9 @@ package TEST::Kinetic::Traits::HTML;
 
 use strict;
 use warnings;
+use Array::AsHash;
 use HTML::Entities qw/encode_entities/;
-use Kinetic::Util::Constants qw/:rest/; # form params
+use Kinetic::Util::Constants qw/:rest/;    # form params
 
 # note that the following is a stop-gap measure until Class::Trait has
 # a couple of bugs fixed.  Bugs have been reported back to the author.
@@ -22,6 +23,7 @@ use Exporter::Tidy default => [
       footer_html
       header_html
       instance_table
+      normalize_search_args
       path
       query_string
       resource_list_html
@@ -203,6 +205,37 @@ sub footer_html {
 
 ##############################################################################
 
+=head3 normalize_search_args
+
+  $args = $test->normalize_search_args($args);
+
+This method, taking an C<Array::AsHash> object, will clone the object and set
+the args in the method expected by the REST dispatch class for searches.
+
+=cut
+
+sub normalize_search_args {
+    my ( $test, $args ) = @_;
+    $args = defined $args ? $args->clone : Array::AsHash->new;
+    $args->default(
+        STRING => 'null',
+        limit  => 20,
+        offset => 0,
+    );
+    if ( $args->exists('order_by') ) {
+        $args->default( sort_order => 'ASC' );
+    }
+    $args = Array::AsHash->new(
+        {
+            array =>
+              [ $args->get_pairs(qw/STRING limit offset order_by sort_order/) ],
+        }
+    );
+    return $args;
+}
+
+##############################################################################
+
 =head3 search_form
 
   my $form = $test->search_form({
@@ -290,27 +323,37 @@ sub search_form {
 
 =head3 instance_table
 
-  my $table = $test->instance_table(@objects);
+  my $table = $test->instance_table({
+    key     => $class_key,   # optional
+    args    => $args,        # Array::AsHash (optional)
+    objects => \@objects,    # required
+  });
 
-This method returns the instance table that the XSLT generates.
+This method returns the instance table identical to that which the XSLT
+generates.  The first argument should be an C<Array::AsHash> object and
+the subsequent arguments should be C<Kinetic> objects.
 
 Assumes C<query_string>, C<url> and C<desired_attributes> are set.
 
 =cut
 
 sub instance_table {
-    my ( $test, @objects ) = @_;
+    my ( $test, $arg_for ) = @_;
     my $url        = $test->url;
     my $query      = $test->query_string;
     my @attributes = $test->desired_attributes;
 
+    my $args      = $test->normalize_search_args( $arg_for->{args} );
+    my $class_key = $arg_for->{key} || 'one';
+
     my $table = '<div class="listing"><table><tr>';
     foreach my $attr (@attributes) {
-        $table .= qq{<th class="header">$attr</th>};
+        my $url = $test->get_sort_url( $class_key, $args, $attr );
+        $table .= qq{<th class="header"><a href="$url">$attr</a></th>};
     }
     $table .= '</tr>';
     my $odd_even = 0;
-    foreach my $object (@objects) {
+    foreach my $object ( @{ $arg_for->{objects} } ) {
         my $uuid = $object->uuid;
         $odd_even = !$odd_even || 0;    # creating alternating row colors
         $table .= qq{<tr class="row_$odd_even">};
@@ -318,7 +361,7 @@ sub instance_table {
             my $value = ( $object->$attr || '' );
             $table .= <<"            END_ATTR";
     <td>
-    <a href="${url}one/lookup/uuid/$uuid$query">$value</a>
+    <a href="$url$class_key/lookup/uuid/$uuid$query">$value</a>
     </td>
             END_ATTR
         }

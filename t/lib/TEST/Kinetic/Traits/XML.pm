@@ -21,7 +21,9 @@ use Kinetic::Util::Constants qw/:xslt/;
 use Exporter::Tidy default => [
     qw/
       instance_order
+      column_sort_xml
       expected_instance_xml
+      get_sort_url
       header_xml
       resource_list_xml
       search_data_xml
@@ -173,6 +175,86 @@ sub resource_list_xml {
           qq'<${kinetic}resource id="$key" ${xlink}href="$url$key/search"/>';
     }
     return $resources;
+}
+
+##############################################################################
+
+=head3 column_sort_xml
+
+  my $xml_snippet = $test->column_sort_xml($class_key, $args);
+  );
+
+This method will take the supplied C<$class_key> and C<$args> information and
+return an XML snippet which should match that created by the REST dispatch
+class.
+
+C<$args> is optional.  If it is not supplied, REST dispatch defaults will be
+used for each argument. 
+
+If it is supplied, C<$args> is expected to be a normal C<Array::AsHash> object
+with the following keys:
+
+=over 4
+
+=item STRING
+
+=item limit (optional)
+
+=item order_by (optional)
+
+=item sort_order (optional)
+
+=back
+
+Normal REST dispatch defaults will be used for optional keys.
+
+This trait requires C<url>, C<query_string> and C<desired_attributes> methods.
+
+=cut
+
+sub column_sort_xml {
+    my ( $test, $class_key, $args ) = @_;
+
+    unless ($args) {
+        $args = Array::AsHash->new( { array => [ STRING => '' ] } );
+    }
+    $args = $test->normalize_search_args($args);
+    my $base_url = $test->url;
+    my $query    = $test->query_string;
+
+    my @attributes = $test->desired_attributes;
+
+    my $order_by   = ( $args->get('order_by')   || '' );
+    my $sort_order = ( $args->get('sort_order') || 'ASC' );
+
+    my $xml = '';
+    foreach my $attribute (@attributes) {
+        my $url = $test->get_sort_url( $class_key, $args, $attribute );
+        $xml .= qq{<kinetic:sort name="$attribute">$url</kinetic:sort>\n};
+    }
+    return $xml;
+}
+
+sub get_sort_url {
+    my ( $test, $class_key, $args, $attribute ) = @_;
+    $args = $args->clone;
+
+    my $order_by   = ( $args->get('order_by')   || '' );
+    my $sort_order = ( $args->get('sort_order') || 'ASC' );
+
+    my $base_url = $test->url;
+    my $query    = $test->query_string;
+
+    my $url = "$base_url$class_key/search/";
+    $args->put( order_by => $attribute );
+    my $order = 'ASC';
+    if ( $attribute eq $order_by && 'ASC' eq $sort_order ) {
+        $order = 'DESC';
+    }
+    $args->put( 'sort_order', $order );
+    $url .= join '/', map { '' eq $_ ? 'null' : $_ } $args->get_array;
+    $url .= $query;
+    return encode_entities( $url, '"<>&' );
 }
 
 ##############################################################################

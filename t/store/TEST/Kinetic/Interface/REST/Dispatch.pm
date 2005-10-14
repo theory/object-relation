@@ -20,7 +20,7 @@ use TEST::Kinetic::Traits::HTML qw/:all/;
 #use Class::Trait 'TEST::Kinetic::Traits::REST';
 use Kinetic::Util::Constants qw/UUID_RE :xslt :labels/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
-BEGIN { sig_handlers(0) }
+BEGIN { sig_handlers(1) }
 
 use aliased 'Test::MockModule';
 use aliased 'XML::XPath';
@@ -153,7 +153,7 @@ sub add_pagesets : Test(no_plan) {
 
     $test->_test_pageset( 'some_class', \@args,
         'Leaving off order_by on pagesets should succeed' );
-    
+
     @args = (
         STRING     => "description LIKE '%object%'",
         limit      => 5,
@@ -168,7 +168,7 @@ sub _test_pageset {
     my $test = shift;
     my ( $test_class, $args, $description ) = @_;
     my $orig_args = Array::AsHash->new( { array => $args, clone => 1 } );
-    ok my ( $xml ) = $test->_get_pageset_xml(@_), $description;
+    ok my ($xml) = $test->_get_pageset_xml(@_), $description;
 
     my $current = $orig_args->delete('_current_count');
     my $total   = $orig_args->delete('_total_objects');
@@ -186,9 +186,9 @@ sub _test_pageset {
     like $node, qr/\Q[ Page $num_pages ]/,
       '... and we should have the correct number of pages';
     my ($url) = $node =~ /xlink:href="([^"]*)/;
-    my $search = encode_entities($orig_args->get('STRING') || 'null');
+    my $search = encode_entities( $orig_args->get('STRING') || 'null' );
     like $url, qr{/STRING/\Q$search\E/},
-        '... and the search terms should be properly quoted';
+      '... and the search terms should be properly quoted';
 
     $node =
       $xpath->findnodes_as_string(
@@ -369,7 +369,8 @@ qq{<kinetic:option name="$order->[0]"$selected>$order->[1]</kinetic:option>},
         else {
             my $node =
               $xpath->findnodes_as_string(qq{$parameters\[\@type = "$arg"]});
-            my $expected = ( _path_info_segment_has_null_value($value) )
+            my $expected =
+              ( _path_info_segment_has_null_value($value) )
               ? qq{<kinetic:parameter type="$arg" />}
               : qq{<kinetic:parameter type="$arg">$value</kinetic:parameter>};
             is $node, $expected, "... and the $arg should be set correctly";
@@ -379,8 +380,7 @@ qq{<kinetic:option name="$order->[0]"$selected>$order->[1]</kinetic:option>},
 
 sub _path_info_segment_has_null_value {
     my $segment = shift;
-    return
-      defined $segment
+    return defined $segment
       && ( 'null' eq $segment || ( !$segment && "0" ne $segment ) );
 }
 
@@ -406,36 +406,37 @@ sub method_arg_handling : Test(12) {
 
     ok $dispatch->args( Array::AsHash->new( { array => [qw/ foo bar /] } ) ),
       '... and setting the arguments should succeed';
+
     is_deeply scalar $dispatch->args->get_array,
-      [qw/ foo bar limit 20 offset 0 /],
-      '... but it should return default limit and offset';
+      [qw/ STRING null limit 20 offset 0 /],
+      '... but it should return default limit and offset and discard unknown args';
 
     $dispatch->args(
         Array::AsHash->new( { array => [qw/ this that limit 30 offset 0 /] } )
     );
     is_deeply scalar $dispatch->args->get_array,
-      [qw/ this that limit 30 offset 0 /],
+      [qw/ STRING null limit 30 offset 0 /],
       '... but it should not override a limit that is already supplied';
 
     $dispatch->args(
         Array::AsHash->new( { array => [qw/ limit 30 this that offset 0 /] } )
     );
     is_deeply scalar $dispatch->args->get_array,
-      [qw/ limit 30 this that offset 0 /],
+      [qw/ STRING null limit 30 offset 0 /],
       '... regardless of its position in the arg list';
 
     $dispatch->args(
         Array::AsHash->new( { array => [qw/ this that limit 30 offset 20 /] } )
     );
     is_deeply scalar $dispatch->args->get_array,
-      [qw/ this that limit 30 offset 20 /],
+      [qw/ STRING null limit 30 offset 20 /],
       '... not should it override an offset already supplied';
 
     $dispatch->args(
         Array::AsHash->new( { array => [qw/ this that offset 10 limit 30 /] } )
     );
     is_deeply scalar $dispatch->args->get_array,
-      [qw/ this that offset 10 limit 30 /],
+      [qw/ STRING null limit 30 offset 10 /],
       '... regardless of its position in the list';
 }
 
@@ -550,6 +551,7 @@ sub handle : Test(6) {
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my @instance_order     = $test->instance_order($response);
+    my $sort_info_xml      = $test->column_sort_xml('one');
     my $expected_instances =
       $test->expected_instance_xml( scalar $test->test_objects,
         \@instance_order );
@@ -560,6 +562,7 @@ sub handle : Test(6) {
     my $expected = <<"    END_XML";
 $header
         $resources
+        $sort_info_xml
         $expected_instances
         $search_xml
     </kinetic:resources>
@@ -590,10 +593,11 @@ $header
       '... and $class_key/lookup/uuid/$uuid should return instance XML';
 
     $dispatch->method('search');
-    $dispatch->args(
-        Array::AsHash->new( { array => [ 'STRING', 'name => "foo"' ] } ) );
+    my $args = Array::AsHash->new( { array => [ 'STRING', 'name => "foo"' ] } );
+    $dispatch->args($args->clone);
     $dispatch->handle_rest_request;
 
+    $sort_info_xml = $test->column_sort_xml( 'one', $args );
     my $instance = $test->expected_instance_xml( [$foo] );
     my $search =
       $test->search_data_xml( { key => 'one', search => 'name => "foo"' } );
@@ -601,6 +605,7 @@ $header
     $expected = <<"    END_XML";
 $header
       $resources
+      $sort_info_xml
       $instance
       $search
     </kinetic:resources>
@@ -610,12 +615,12 @@ $header
       '$class_key/search/STRING/$search_string should return a list';
 
     my $search_string = 'name => "foo", OR(name => "bar")';
-    $dispatch->args(
-        Array::AsHash->new(
+    $args =  Array::AsHash->new(
             { array => [ STRING => $search_string, order_by => 'name' ] }
-        )
-    );
+        );
+    $dispatch->args($args->clone);
 
+    $sort_info_xml = $test->column_sort_xml( 'one', $args );
     $expected_instances = $test->expected_instance_xml( [ $bar, $foo ] );
     $search =
       $test->search_data_xml(
@@ -624,6 +629,7 @@ $header
     $expected = <<"    END_XML";
 $header
       $resources
+      $sort_info_xml
       $expected_instances
       $search
     </kinetic:resources>

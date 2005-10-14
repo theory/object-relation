@@ -149,7 +149,7 @@ Getter/setter for method to be sent to class created from class key.
 
 sub method {
     my $self = shift;
-    return $self->{method} unless @_;
+    return ( $self->{method} || 0 ) unless @_;
     $self->{method} = shift;
     return $self;
 }
@@ -181,14 +181,24 @@ sub args {
         while ( my ( $k, $v ) = $args->each ) {
             $args->put( $k, '' ) if $PLACEHOLDER eq $v;
         }
-        if ( 'search' eq ( $self->method || '' ) ) {
+        if ( 'search' eq $self->method ) {
             if ($args) {
-                if ( !$args->exists('limit') ) {
-                    $args->put( 'limit', $DEFAULT_LIMIT );
+                $args->default(
+                    STRING => $PLACEHOLDER,
+                    limit  => $DEFAULT_LIMIT,
+                    offset => 0,
+                );
+                if ( $args->exists('order_by') ) {
+                    $args->default( sort_order => 'ASC' );
                 }
-                if ( !$args->exists('offset') ) {
-                    $args->put( 'offset', 0 );
-                }
+                $args = Array::AsHash->new(
+                    {
+                        array => [
+                            $args->get_pairs(
+                                qw/STRING limit offset order_by sort_order/)
+                        ],
+                    }
+                );
             }
             else {
                 $args = Array::AsHash->new($DEFAULT_SEARCH_ARGS);
@@ -221,9 +231,15 @@ Can take one or more arguments.  Returns a list of the arguments.
 
 sub get_args {
     my $self = shift;
-    my @args = $self->args->get_array;
-    return @args unless @_;
-    return @args[@_];
+    my $args = $self->args;
+    my @args;
+    while ( my ( $k, $v ) = $args->each ) {
+        if ( !$args->first ) {    # first method arg can always be false
+            next if '' eq $v;
+        }
+        push @args => $k, $v;
+    }
+    return @_ ? @args[@_] : @args;
 }
 
 sub _query_string {
@@ -597,43 +613,7 @@ sub _add_instances {
     my $query_string   = $self->_query_string;
     my $xml            = $self->_xml;
 
-    my @attributes;
     while ( my $instance = $iterator->next ) {
-        unless (@attributes) {
-            @attributes =
-              grep { !$_->references && !exists $DONT_DISPLAY{ $_->name } }
-              $instance->my_class->attributes;
-            my $i =
-              $MAX_ATTRIBUTE_INDEX < $#attributes
-              ? $MAX_ATTRIBUTE_INDEX
-              : $#attributes;
-
-            # don't list all attributes
-            @attributes = map { $_->name } @attributes[ 0 .. $i ];
-
-            my $args      = $self->args;
-            my $sort_args = $args->clone;
-            foreach my $attribute (@attributes) {
-                my $url = "$base_url@{ [ $self->class_key ] }/search/";
-                $sort_args->put( 'order_by', $attribute );
-                my $order = 'ASC';
-                if ( $attribute eq $args->get('order_by')
-                    && 'ASC' eq $args->get('sort_order') )
-                {
-                    $order = 'DESC';
-                }
-                $sort_args->put( 'sort_order', $order );
-                $url .= join '/',
-                  map { '' eq $_ ? $PLACEHOLDER : $_ } $sort_args->get_array;
-                $url .= $query_string;
-
-                $self->_xml_elem('sort')->StartElement;
-                $self->_xml_attr('name')->AddAttribute($attribute);
-                $xml->AddText($url);
-                $xml->EndElement;
-            }
-        }
-
         $instance_count++;
         my $uuid = $instance->uuid;
         my $url  =
@@ -641,7 +621,7 @@ sub _add_instances {
         $self->_xml_elem('instance')->StartElement;
         $self->_xml_attr('id')->AddAttribute($uuid);
         $self->_xml_attr('href')->AddAttribute($url);
-        foreach my $attribute (@attributes) {
+        foreach my $attribute ( $self->_desired_attributes ) {
             my $value = ( $instance->$attribute || '' );
             $self->_xml_elem('attribute')->StartElement;
             $self->_xml_attr('name')->AddAttribute($attribute);
@@ -658,6 +638,88 @@ sub _add_instances {
         $xml->EndElement;
     }
     return $instance_count;
+}
+
+##############################################################################
+
+=head3 _add_column_sort_info
+
+  $self->_add_column_sort_info
+
+This method adds a <kinetic:sort/> tag to the XML document for each desired
+attributes (see C<_desired_attributes>).  This tag will contain a URL which
+determines how that column should be sorted if the column header is clicked
+in XHTML.
+
+=cut
+
+sub _add_column_sort_info {
+    my $self         = shift;
+    my $base_url     = $self->_rest_base_url;
+    my $query_string = $self->_query_string;
+    my $xml          = $self->_xml;
+
+    # list "sort" urls to be used in XHTML column headers
+    my $args      = $self->args;
+    my $sort_args = $args->clone;
+    foreach my $attribute ( $self->_desired_attributes ) {
+        my $url = "$base_url@{ [ $self->class_key ] }/search/";
+        if ( $sort_args->exists('order_by') ) {
+            $sort_args->put( 'order_by', $attribute );
+        }
+        else {
+            $sort_args->insert_after( 'offset', order_by => $attribute );
+        }
+        my $order = 'ASC';
+        if ( $attribute eq ( $args->get('order_by') || '' )
+            && 'ASC' eq ( $args->get('sort_order') || '' ) )
+        {
+            $order = 'DESC';
+        }
+        if ( $sort_args->exists('sort_order') ) {
+            $sort_args->put( 'sort_order', $order );
+        }
+        else {
+            $sort_args->insert_after( 'order_by', sort_order => $order );
+        }
+        $url .= join '/',
+          map { '' eq $_ ? $PLACEHOLDER : $_ } $sort_args->get_array;
+        $url .= $query_string;
+
+        $self->_xml_elem('sort')->StartElement;
+        $self->_xml_attr('name')->AddAttribute($attribute);
+        $xml->AddText($url);
+        $xml->EndElement;
+    }
+}
+
+##############################################################################
+
+=head3 _desired_attributes
+
+  my @attributes = $self->_desired_attributes;
+
+Returns the attributes for the current search class which will be listed in the
+REST search interface.
+
+=cut
+
+sub _desired_attributes {
+    my $self = shift;
+    unless ( $self->{attributes} ) {
+        my @attributes =
+          grep { !$_->references && !exists $DONT_DISPLAY{ $_->name } }
+          $self->class->attributes;
+        my $i =
+          $MAX_ATTRIBUTE_INDEX < $#attributes
+          ? $MAX_ATTRIBUTE_INDEX
+          : $#attributes;
+
+        # don't list all attributes
+        @attributes = map { $_->name } @attributes[ 0 .. $i ];
+        $self->{attributes} = \@attributes;
+    }
+    return wantarray ? @{ $self->{attributes} } : $self->{attributes};
 }
 
 ##############################################################################
@@ -679,8 +741,8 @@ sub _add_pageset {
     my $pageset = $self->_pageset(
         {
             count  => $instance_count,
-            limit  => ( $args->get('limit') || $DEFAULT_LIMIT ),
-            offset => ( $args->get('offset') || 0 ),
+            limit  => ( $args->get('limit') || '' ),
+            offset => ( $args->get('offset') || '' ),
         }
     );
     return unless $pageset;
@@ -732,6 +794,7 @@ sub _instance_list {
     my $response = $XML_DECLARATION . "\n" . $self->_build_xml(
         AVAILABLE_INSTANCES,
         sub {
+            $self->_add_column_sort_info;
             my $instance_count = $self->_add_instances($iterator);
             $self->_add_search_data($instance_count);
         },
