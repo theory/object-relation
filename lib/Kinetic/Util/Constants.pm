@@ -69,6 +69,11 @@ use constant CLASS_KEY_PARAM => '_class_key';
 use constant DOMAIN_PARAM    => '_domain';
 use constant PATH_PARAM      => '_path';
 use constant TYPE_PARAM      => '_type';
+use constant LIMIT_PARAM     => '_limit';
+use constant OFFSET_PARAM    => '_offset';
+use constant ORDER_BY_PARAM  => '_order_by';
+use constant SORT_PARAM      => '_sort_order';
+use constant SEARCH_TYPE     => 'STRING';
 
 # Labels
 use constant AVAILABLE_INSTANCES => 'Available instances';
@@ -110,6 +115,11 @@ use Exporter::Tidy http => [
       DOMAIN_PARAM
       PATH_PARAM
       TYPE_PARAM
+      LIMIT_PARAM
+      OFFSET_PARAM
+      ORDER_BY_PARAM
+      SORT_PARAM
+      SEARCH_TYPE
       /
   ],
   labels => [
@@ -190,7 +200,30 @@ REST base path.
 
 =item * TYPE_PARAM
 
-Content type to return to client instead of XML.  Currently only supports 'html'.
+Content type to return to client instead of XML.  Currently only supports
+'html'.
+
+=item * LIMIT_PARAM
+
+Parameter specifying the maximum number of items to return from a search.
+
+=item * OFFSET_PARAM
+
+Parameter specifying how which item in a search to start limiting results
+from.
+
+=item * ORDER_BY_PARAM
+
+Parameter specifying which attributes to order search results by.
+
+=item * SORT_PARAM
+
+Parameter specifying which direction to sort an C<ORDER_BY_PARAM> on.  Allowed
+values are C<ASC> and C<DESC>.
+
+=item * SEARCH_TYPE
+
+The type of search requested via the REST interface.
 
 =back
 

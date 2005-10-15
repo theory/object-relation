@@ -17,7 +17,7 @@ use warnings;
 # directly into the required namespaces.
 
 use HTML::Entities qw/encode_entities/;
-use Kinetic::Util::Constants qw/:xslt/;
+use Kinetic::Util::Constants qw/:xslt :rest/;
 use Exporter::Tidy default => [
     qw/
       instance_order
@@ -198,11 +198,11 @@ with the following keys:
 
 =item STRING
 
-=item limit (optional)
+=item _limit (optional)
 
-=item order_by (optional)
+=item _order_by (optional)
 
-=item sort_order (optional)
+=item _sort_order (optional)
 
 =back
 
@@ -224,8 +224,8 @@ sub column_sort_xml {
 
     my @attributes = $test->desired_attributes;
 
-    my $order_by   = ( $args->get('order_by')   || '' );
-    my $sort_order = ( $args->get('sort_order') || 'ASC' );
+    my $order_by   = ( $args->get(ORDER_BY_PARAM)   || '' );
+    my $sort_order = ( $args->get(SORT_PARAM) || 'ASC' );
 
     my $xml = '';
     foreach my $attribute (@attributes) {
@@ -239,19 +239,19 @@ sub get_sort_url {
     my ( $test, $class_key, $args, $attribute ) = @_;
     $args = $args->clone;
 
-    my $order_by   = ( $args->get('order_by')   || '' );
-    my $sort_order = ( $args->get('sort_order') || 'ASC' );
+    my $order_by   = ( $args->get(ORDER_BY_PARAM)   || '' );
+    my $sort_order = ( $args->get(SORT_PARAM) || 'ASC' );
 
     my $base_url = $test->url;
     my $query    = $test->query_string;
 
     my $url = "$base_url$class_key/search/";
-    $args->put( order_by => $attribute );
+    $args->put( ORDER_BY_PARAM, $attribute );
     my $order = 'ASC';
     if ( $attribute eq $order_by && 'ASC' eq $sort_order ) {
         $order = 'DESC';
     }
-    $args->put( 'sort_order', $order );
+    $args->put( SORT_PARAM, $order );
     $url .= join '/', map { '' eq $_ ? 'null' : $_ } $args->get_array;
     $url .= $query;
     return encode_entities( $url, '"<>&' );
@@ -278,15 +278,15 @@ sub search_data_xml {
         <kinetic:class_key>$key</kinetic:class_key>
         <kinetic:search_parameters>
     END_XML
-    foreach my $arg (qw/ STRING limit /) {
-        my $type  = 'STRING' eq $arg ? 'search' : $arg;
-        my $value = $args->get($arg);
+    foreach my $arg (SEARCH_TYPE, LIMIT_PARAM) {
+        my $type  = SEARCH_TYPE eq $arg ? 'search' : $arg;
+        my $value = encode_entities($args->get($arg));
         $xml .= qq[<kinetic:parameter type="$type">$value</kinetic:parameter>\n];
     }
 
-    $xml .= '<kinetic:parameter type="order_by" widget="select">';
+    $xml .= qq{<kinetic:parameter type="@{[ORDER_BY_PARAM]}" widget="select">};
     my @attributes = map { [ $_ => ucfirst $_ ] } $test->desired_attributes;
-    my $order_by = $args->get('order_by') || '';
+    my $order_by = $args->get(ORDER_BY_PARAM) || '';
     foreach my $order_by_opt (@attributes) {
         my $selected = $order_by eq $order_by_opt->[0]
           ? (' selected="selected"')
@@ -296,11 +296,11 @@ qq{<kinetic:option name="$order_by_opt->[0]"$selected>$order_by_opt->[1]</kineti
     }
     $xml .= "</kinetic:parameter>\n";
 
-    $xml .= '<kinetic:parameter type="sort_order" widget="select">';
+    $xml .= qq{<kinetic:parameter type="@{[SORT_PARAM]}" widget="select">};
 
-    $args->default(sort_order => 'ASC');
+    $args->default(SORT_PARAM, 'ASC');
     foreach my $order ( [ ASC => 'Ascending' ], [ DESC => 'Descending' ] ) {
-        my $selected = $args->get('sort_order') eq $order->[0]
+        my $selected = $args->get(SORT_PARAM) eq $order->[0]
           ? (' selected="selected"')
           : ('');
         $xml .=

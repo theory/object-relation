@@ -131,7 +131,7 @@ sub search_by_query_string : Test(8) {
     $test->query_string('');
 
     $mech->get_ok(
-"${url}?@{[CLASS_KEY_PARAM]}=one;search=;order_by=name;limit=2;sort_order=",
+"${url}?@{[CLASS_KEY_PARAM]}=one;search=;_order_by=name;_limit=2;_sort_order=",
         'We should be able to search by query string'
     );
 
@@ -144,7 +144,7 @@ sub search_by_query_string : Test(8) {
       $test->expected_instance_xml( [ $foo, $bar, $baz ], \@instance_order );
     my $resources = $test->resource_list_xml;
     my $args      =
-      Array::AsHash->new( { array => [ order_by => 'name', limit => 2 ] } );
+      Array::AsHash->new( { array => [ ORDER_BY_PARAM, 'name', LIMIT_PARAM, 2 ] } );
     my $search        = $test->search_data_xml( 'one', $args->clone );
     my $sort_info_xml = $test->column_sort_xml( 'one', $args->clone );
     my $expected      = <<"    END_XML";
@@ -154,7 +154,7 @@ $header
       $expected_instances
       <kinetic:pages>
         <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
-        <kinetic:page id="[ Page 2 ]" xlink:href="${url}one/search/STRING/null/limit/2/offset/2/order_by/name/sort_order/ASC" />
+        <kinetic:page id="[ Page 2 ]" xlink:href="${url}one/search/STRING/null/_limit/2/_offset/2/_order_by/name/_sort_order/ASC" />
       </kinetic:pages>
       $search
     </kinetic:resources>
@@ -163,21 +163,21 @@ $header
     is_xml $response, $expected, '... and have the correct data returned';
 
     $mech->get_ok(
-"${url}one/search?@{[CLASS_KEY_PARAM]}=one;search=;order_by=name;limit=2;sort_order=",
+"${url}one/search?@{[CLASS_KEY_PARAM]}=one;search=;_order_by=name;_limit=2;_sort_order=",
         'We should be able to search with a query string and partial path info'
     );
     is_xml $response, $expected, '... and have the correct data returned';
 
     $test->query_string("@{[TYPE_PARAM]}=html");
     $mech->get_ok(
-"${url}?@{[CLASS_KEY_PARAM]}=one;search=;order_by=name;limit=2;sort_order=;@{[TYPE_PARAM]}=html",
+"${url}?@{[CLASS_KEY_PARAM]}=one;search=;_order_by=name;_limit=2;_sort_order=;@{[TYPE_PARAM]}=html",
         'We should be able to fetch and limit the searches'
     );
 
     my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
     my $html_resources = $test->resource_list_html;
     $args =
-      Array::AsHash->new( { array => [ limit => 2, order_by => 'name' ] } );
+      Array::AsHash->new( { array => [ LIMIT_PARAM, 2, ORDER_BY_PARAM, 'name' ] } );
     my $search_form = $test->search_form( 'one', $args->clone );
     my $instances = $test->instance_table(
         {
@@ -195,7 +195,7 @@ $html_header
     <div class="pages">
       <p>
         [ Page 1 ]
-        <a href="${url}one/search/STRING/null/limit/2/offset/2/order_by/name/sort_order/ASC?@{[TYPE_PARAM]}=html">[ Page 2 ]</a>
+        <a href="${url}one/search/STRING/null/_limit/2/_offset/2/_order_by/name/_sort_order/ASC?@{[TYPE_PARAM]}=html">[ Page 2 ]</a>
       </p>
     </div>
     $footer
@@ -204,13 +204,13 @@ $html_header
       '... ordering and limiting searches should work';
 
     $mech->get_ok(
-"${url}?@{[CLASS_KEY_PARAM]}=one;search=;order_by=name;limit=2;sort_order=;offset=2;@{[TYPE_PARAM]}=html",
+"${url}?@{[CLASS_KEY_PARAM]}=one;search=;_order_by=name;_limit=2;_sort_order=;_offset=2;@{[TYPE_PARAM]}=html",
         '... as should paging through result sets'
     );
     $instances = $test->instance_table(
         {
             args => Array::AsHash->new(
-                { array => [ limit => 2, offset => 2, order_by => 'name' ] }
+                { array => [ LIMIT_PARAM, 2, OFFSET_PARAM, 2, ORDER_BY_PARAM, 'name' ] }
             ),
             objects => [$baz]
         }
@@ -225,7 +225,7 @@ $html_header
     $instances
     <div class="pages">
       <p>
-        <a href="${url}one/search/STRING/null/limit/2/offset/0/order_by/name/sort_order/ASC?@{[TYPE_PARAM]}=html">[ Page 1 ]</a>
+        <a href="${url}one/search/STRING/null/_limit/2/_offset/0/_order_by/name/_sort_order/ASC?@{[TYPE_PARAM]}=html">[ Page 1 ]</a>
         [ Page 2 ]
       </p>
     </div>
@@ -244,7 +244,7 @@ sub web_test_paging : Test(15) {
     $test->query_string('');
 
     $mech->get_ok(
-        "${url}one/search/STRING/null/order_by/name/limit/2",
+        "${url}one/search/STRING/null/_order_by/name/_limit/2",
         'We should be able to fetch and limit the searches'
     );
 
@@ -254,7 +254,7 @@ sub web_test_paging : Test(15) {
     my $response       = $mech->content;
     my @instance_order = $test->instance_order($response);
     my $args           =
-      Array::AsHash->new( { array => [ order_by => 'name', limit => 2 ] } );
+      Array::AsHash->new( { array => [ ORDER_BY_PARAM, 'name', LIMIT_PARAM, 2 ] } );
     my $sort_info_xml = $test->column_sort_xml( 'one', $args->clone );
     my $expected_instances =
       $test->expected_instance_xml( [ $foo, $bar, $baz ], \@instance_order );
@@ -267,7 +267,7 @@ $header
       $expected_instances
       <kinetic:pages>
         <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
-        <kinetic:page id="[ Page 2 ]" xlink:href="${url}one/search/STRING/null/limit/2/offset/2/order_by/name/sort_order/ASC" />
+        <kinetic:page id="[ Page 2 ]" xlink:href="${url}one/search/STRING/null/_limit/2/_offset/2/_order_by/name/_sort_order/ASC" />
       </kinetic:pages>
       $search
     </kinetic:resources>
@@ -278,14 +278,14 @@ $header
 
     $test->query_string("@{[TYPE_PARAM]}=html");
     $mech->get_ok(
-"${url}one/search/STRING/null/order_by/name/limit/2?@{[TYPE_PARAM]}=html",
+"${url}one/search/STRING/null/_order_by/name/_limit/2?@{[TYPE_PARAM]}=html",
         'We should be able to fetch and limit the searches'
     );
 
     my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
     my $html_resources = $test->resource_list_html;
     $args =
-      Array::AsHash->new( { array => [ limit => 2, order_by => 'name' ] } );
+      Array::AsHash->new( { array => [ LIMIT_PARAM, 2, ORDER_BY_PARAM, 'name' ] } );
     my $search_form = $test->search_form( 'one', $args->clone );
     my $instances = $test->instance_table(
         {
@@ -303,7 +303,7 @@ $html_header
     <div class="pages">
       <p>
         [ Page 1 ]
-        <a href="${url}one/search/STRING/null/limit/2/offset/2/order_by/name/sort_order/ASC?@{[TYPE_PARAM]}=html">[ Page 2 ]</a>
+        <a href="${url}one/search/STRING/null/_limit/2/_offset/2/_order_by/name/_sort_order/ASC?@{[TYPE_PARAM]}=html">[ Page 2 ]</a>
       </p>
     </div>
     $footer
@@ -312,13 +312,13 @@ $html_header
       '... ordering and limiting searches should work';
 
     $mech->get_ok(
-"${url}one/search/STRING/null/order_by/name/limit/2/offset/2?@{[TYPE_PARAM]}=html",
+"${url}one/search/STRING/null/_order_by/name/_limit/2/_offset/2?@{[TYPE_PARAM]}=html",
         '... as should paging through result sets'
     );
     $instances = $test->instance_table(
         {
             args => Array::AsHash->new(
-                { array => [ offset => 2, limit => 2, order_by => 'name' ] }
+                { array => [ OFFSET_PARAM, 2, LIMIT_PARAM, 2, ORDER_BY_PARAM, 'name' ] }
             ),
             objects => [$baz]
         }
@@ -333,7 +333,7 @@ $html_header
     $instances
     <div class="pages">
       <p>
-        <a href="${url}one/search/STRING/null/limit/2/offset/0/order_by/name/sort_order/ASC?@{[TYPE_PARAM]}=html">[ Page 1 ]</a>
+        <a href="${url}one/search/STRING/null/_limit/2/_offset/0/_order_by/name/_sort_order/ASC?@{[TYPE_PARAM]}=html">[ Page 1 ]</a>
         [ Page 2 ]
       </p>
     </div>
@@ -343,7 +343,7 @@ $html_header
       '... ordering and limiting searches should work';
 
     $mech->get_ok(
-"${url}one/search/STRING/null/order_by/name/limit/2/offset/2?@{[TYPE_PARAM]}=html",
+"${url}one/search/STRING/null/_order_by/name/_limit/2/_offset/2?@{[TYPE_PARAM]}=html",
         '... as should paging through result sets'
     );
 
@@ -365,18 +365,18 @@ $html_header
     is @links, 88,
 'We should receive 80 instance links, 1 page link, 3 resource links and 4 header links';
 
-    $mech->get_ok( "${url}one/search/STRING/null/limit/30?@{[TYPE_PARAM]}=html",
+    $mech->get_ok( "${url}one/search/STRING/null/_limit/30?@{[TYPE_PARAM]}=html",
         'Asking for more than the limit should work' );
     @links = $mech->links;
     is @links, 111, '... and return only instance links';
 
-    $mech->get_ok( "${url}one/search/STRING/null/limit/10?@{[TYPE_PARAM]}=html",
+    $mech->get_ok( "${url}one/search/STRING/null/_limit/10?@{[TYPE_PARAM]}=html",
         'Asking for fewer than the limit should work' );
     @links = $mech->links;
     is @links, 49, '... and return the correct number of links';
 
     $mech->get_ok(
-        "${url}one/search/STRING/null/limit/26?@{[TYPE_PARAM]}=html",
+        "${url}one/search/STRING/null/_limit/26?@{[TYPE_PARAM]}=html",
         'Asking for exactly the number of links that exist should work'
     );
     @links = $mech->links;
@@ -513,7 +513,7 @@ sub rest_interface : Test(19) {
     # Note that because of the way we're mocking up path_info, URL encoding
     # of parameters is *not* necessary
     $cgi_mock->mock(
-        path_info => '/one/search/STRING/name => "foo"/order_by/name', );
+        path_info => '/one/search/STRING/name => "foo"/_order_by/name', );
 
     $test->query_string('');
     ok $rest->handle_request( CGI->new ),
@@ -525,7 +525,7 @@ sub rest_interface : Test(19) {
     my $header = $test->header_xml(AVAILABLE_INSTANCES);
     my $args   =
       Array::AsHash->new(
-        { array => [ STRING => 'name => "foo"', order_by => 'name' ] } );
+        { array => [ STRING => 'name => "foo"', ORDER_BY_PARAM, 'name' ] } );
     my $sort_info_xml = $test->column_sort_xml( 'one', $args->clone );
     my $instances = $test->expected_instance_xml( [$foo] );
     my $resources = $test->resource_list_xml;

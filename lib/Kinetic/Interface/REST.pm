@@ -208,9 +208,8 @@ sub _get_request_from_query_string {
     my $class_key = $cgi->param(CLASS_KEY_PARAM);
     my $method    = 'search';
 
-    my @params = grep { !/^_/ } $cgi->param;    # skip private parameters
     my @args;
-    foreach my $param (@params) {
+    foreach my $param ($cgi->param) {
         my $value = $cgi->param($param);
         if ( 'search' eq $param ) {
             $param = 'STRING';

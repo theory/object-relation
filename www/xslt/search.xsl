@@ -125,8 +125,8 @@
   
   <xsl:template match="kinetic:parameter">
     <tr>
-      <td>
-        <xsl:call-template name="proper-case-name">
+      <td class="header">
+        <xsl:call-template name="output-name">
           <xsl:with-param name="expr" select="@type"/>
         </xsl:call-template>:</td> <!-- closing td must be here due to whitespace issues -->
       <td>
@@ -200,17 +200,24 @@
     </xsl:choose>
   </xsl:template>
 
-  <xsl:template name="proper-case-name">
+  <xsl:template name="output-name">
     <xsl:param name="expr"/>
     <xsl:variable name="uc" 
       select="'ABCDEFGHIJKLMNOPQRSTUVWXYZ '"/>
     <xsl:variable name="lc" 
       select="'abcdefghijklmnopqrstuvwxyz_'"/>        
-    <xsl:value-of 
-      select="concat(
-          translate(substring($expr,1,1),$lc,$uc), 
-          translate(substring($expr, 2), '_', ' ')
-      )"/>
+    <xsl:choose>
+      <xsl:when test="substring($expr,1,1) = '_'">
+        <xsl:value-of select="translate(substring($expr, 2), '_', ' ')"/>
+      </xsl:when>
+      <xsl:otherwise>
+        <xsl:value-of 
+          select="concat(
+              substring($expr,1,1), 
+              translate(substring($expr, 2), '_', ' ')
+          )"/>
+      </xsl:otherwise>
+    </xsl:choose>
   </xsl:template> 
 
 </xsl:stylesheet>

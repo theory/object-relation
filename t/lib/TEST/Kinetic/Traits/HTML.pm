@@ -217,18 +217,18 @@ the args in the method expected by the REST dispatch class for searches.
 sub normalize_search_args {
     my ( $test, $args ) = @_;
     $args = defined $args ? $args->clone : Array::AsHash->new;
-    $args->default(
-        STRING => '',
-        limit  => 20,
-        offset => 0,
-    );
-    if ( $args->exists('order_by') ) {
-        $args->default( sort_order => 'ASC' );
+    $args->default( SEARCH_TYPE, '', LIMIT_PARAM, 20, OFFSET_PARAM, 0, );
+    if ( $args->exists(ORDER_BY_PARAM) ) {
+        $args->default( SORT_PARAM, 'ASC' );
     }
     $args = Array::AsHash->new(
         {
-            array =>
-              [ $args->get_pairs(qw/STRING limit offset order_by sort_order/) ],
+            array => [
+                $args->get_pairs( SEARCH_TYPE, LIMIT_PARAM,
+                    OFFSET_PARAM, ORDER_BY_PARAM,
+                    SORT_PARAM
+                )
+            ]
         }
     );
     return $args;
@@ -252,23 +252,23 @@ sub search_form {
 
     my $order_options = '';
     my @options = map { [ $_ => ucfirst $_ ] } $test->desired_attributes;
-    $args->default(order_by => '');
+    $args->default( ORDER_BY_PARAM, '' );
     foreach my $option (@options) {
         my $selected =
-          $args->get('order_by') eq $option->[0] ? ' selected="selected"' : '';
+          $args->get(ORDER_BY_PARAM) eq $option->[0] ? ' selected="selected"' : '';
         $order_options .=
           qq{<option value="$option->[0]"$selected>$option->[1]</option>};
     }
     my $sort_options = '';
-    $args->default(sort_order => 'ASC');
+    $args->default( SORT_PARAM, 'ASC' );
     foreach my $order ( [ ASC => 'Ascending' ], [ DESC => 'Descending' ] ) {
         my $selected =
-          $args->get('sort_order') eq $order->[0] ? ' selected="selected"' : '';
+          $args->get(SORT_PARAM) eq $order->[0] ? ' selected="selected"' : '';
         $sort_options .=
           qq{<option value="$order->[0]"$selected>$order->[1]</option>};
     }
-    my $search = encode_entities($args->get('STRING'));
-    my $limit  = $args->get('limit');
+    my $search = encode_entities( $args->get(SEARCH_TYPE) );
+    my $limit  = $args->get(LIMIT_PARAM);
     my $domain = $test->domain;
     my $path   = $test->path;
     my $query  = $test->query_string;
@@ -283,29 +283,29 @@ sub search_form {
         <input type="hidden" name="@{[TYPE_PARAM]}" value="$type" />
         <table>
           <tr>
-            <td>Search:</td>
+            <td class="header">search:</td>
             <td>
               <input type="text" name="search" value="$search" />
             </td>
           </tr>
           <tr>
-            <td>Limit:</td>
+            <td class="header">limit:</td>
             <td>
-              <input type="text" name="limit" value="$limit" />
+              <input type="text" name="_limit" value="$limit" />
             </td>
           </tr>
           <tr>
-            <td>Order by:</td>
+            <td class="header">order by:</td>
             <td>
-              <select name="order_by">
+              <select name="_order_by">
                 $order_options
               </select>
             </td>
           </tr>
           <tr>
-            <td>Sort order:</td>
+            <td class="header">sort order:</td>
             <td>
-              <select name="sort_order">
+              <select name="_sort_order">
                 $sort_options
               </select>
             </td>

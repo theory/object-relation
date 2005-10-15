@@ -42,7 +42,7 @@ Readonly my $MAX_ATTRIBUTE_INDEX => 4;
 Readonly my $PLACEHOLDER         => 'null';
 Readonly my $DEFAULT_LIMIT       => 20;
 Readonly my $DEFAULT_SEARCH_ARGS => {
-    array => [ 'STRING', '', 'limit', $DEFAULT_LIMIT, 'offset', 0 ],
+    array => [ SEARCH_TYPE, '', LIMIT_PARAM, $DEFAULT_LIMIT, OFFSET_PARAM, 0 ],
     clone => 1,
 };
 
@@ -132,10 +132,10 @@ sub class {
     my $self = shift;
     unless (@_) {
         $self->{class} ||= Kinetic::Meta->for_key( $self->class_key );
-        unless ($self->{class}) {
+        unless ( $self->{class} ) {
             throw_invalid_class [
                 'I could not find the class for key "[_1]"',
-                ($self->class_key || "No class key found"),
+                ( $self->class_key || "No class key found" ),
             ];
         }
         return $self->{class};
@@ -189,19 +189,19 @@ sub args {
         }
         if ( 'search' eq $self->method ) {
             if ($args) {
-                $args->default(
-                    STRING => $PLACEHOLDER,
-                    limit  => $DEFAULT_LIMIT,
-                    offset => 0,
-                );
-                if ( $args->exists('order_by') ) {
-                    $args->default( sort_order => 'ASC' );
+                $args->default( SEARCH_TYPE, $PLACEHOLDER, LIMIT_PARAM,
+                    $DEFAULT_LIMIT, OFFSET_PARAM, 0, );
+                if ( $args->exists(ORDER_BY_PARAM) ) {
+                    $args->default( SORT_PARAM, 'ASC' );
                 }
                 $args = Array::AsHash->new(
                     {
                         array => [
                             $args->get_pairs(
-                                qw/STRING limit offset order_by sort_order/)
+                                SEARCH_TYPE,  LIMIT_PARAM,
+                                OFFSET_PARAM, ORDER_BY_PARAM,
+                                SORT_PARAM
+                            ),
                         ],
                     }
                 );
@@ -298,9 +298,26 @@ sub handle_rest_request {
       : $self->_not_implemented;
 }
 
+# decouple REST param names from Kinetic::Store interface
+my @renames = (
+    [ LIMIT_PARAM,    'limit' ],
+    [ OFFSET_PARAM,   'offset' ],
+    [ ORDER_BY_PARAM, 'order_by' ],
+    [ SORT_PARAM,     'sort_order' ],
+);
+
+sub _args_for_store {
+    my $self = shift;
+    my $args = $self->args->clone;
+    foreach my $rename (@renames) {
+        $args->rename(@$rename) if $args->exists( $rename->[0] );
+    }
+    return $args->get_array;
+}
+
 sub _handle_constructor {
     my ( $self, $ctor ) = @_;
-    my $obj  = $ctor->call( $self->class->package, $self->get_args );
+    my $obj  = $ctor->call( $self->class->package, $self->_args_for_store );
     my $rest = $self->rest;
     my $xml  = Kinetic::XML->new(
         {
@@ -317,7 +334,7 @@ sub _handle_method {
 
     if ( $method->context == Class::Meta::CLASS ) {
         my $response =
-          $method->call( $self->class->package, $self->args->get_array );
+          $method->call( $self->class->package, $self->_args_for_store );
         if ( 'search' eq $method->name ) {
             $self->rest->xslt('search');
             return $self->_instance_list($response);
@@ -544,25 +561,25 @@ sub _add_search_data {
     # Add search string arguments
     $self->_xml_elem('parameter')->StartElement;
     $self->_xml_attr('type')->AddAttribute('search');
-    $xml->AddText( $args->get('STRING') );
+    $xml->AddText( $args->get(SEARCH_TYPE) );
     $xml->EndElement;
 
     # add limit
     $self->_xml_elem('parameter')->StartElement;
-    $self->_xml_attr('type')->AddAttribute('limit');
-    $xml->AddText( $args->get('limit') );
+    $self->_xml_attr('type')->AddAttribute(LIMIT_PARAM);
+    $xml->AddText( $args->get(LIMIT_PARAM) );
     $xml->EndElement;
 
     # add order_by
     my @attributes = $self->_desired_attributes;
     my @options    = map { $_ => ucfirst $_ } @attributes;
-    my $order_by   = $args->get('order_by') || '';
-    $self->_add_select_widget('order_by', $order_by, \@options);
+    my $order_by   = $args->get(ORDER_BY_PARAM) || '';
+    $self->_add_select_widget( ORDER_BY_PARAM, $order_by, \@options );
 
     # add sort_order
     my @sort_options = ( ASC => 'Ascending', DESC => 'Descending' );
-    my $sort_order = $args->get('sort_order') || 'ASC';
-    $self->_add_select_widget( 'sort_order', $sort_order, \@sort_options );
+    my $sort_order = $args->get(SORT_PARAM) || 'ASC';
+    $self->_add_select_widget( SORT_PARAM, $sort_order, \@sort_options );
     $xml->EndElement;
 
     return $self;
@@ -670,23 +687,24 @@ sub _add_column_sort_info {
     my $sort_args = $args->clone;
     foreach my $attribute ( $self->_desired_attributes ) {
         my $url = "$base_url@{ [ $self->class_key ] }/search/";
-        if ( $sort_args->exists('order_by') ) {
-            $sort_args->put( 'order_by', $attribute );
+        if ( $sort_args->exists(ORDER_BY_PARAM) ) {
+            $sort_args->put( ORDER_BY_PARAM, $attribute );
         }
         else {
-            $sort_args->insert_after( 'offset', order_by => $attribute );
+            $sort_args->insert_after( OFFSET_PARAM, ORDER_BY_PARAM,
+                $attribute );
         }
         my $order = 'ASC';
-        if ( $attribute eq ( $args->get('order_by') || '' )
-            && 'ASC' eq ( $args->get('sort_order') || '' ) )
+        if ( $attribute eq ( $args->get(ORDER_BY_PARAM) || '' )
+            && 'ASC' eq ( $args->get(SORT_PARAM) || '' ) )
         {
             $order = 'DESC';
         }
-        if ( $sort_args->exists('sort_order') ) {
-            $sort_args->put( 'sort_order', $order );
+        if ( $sort_args->exists(SORT_PARAM) ) {
+            $sort_args->put( SORT_PARAM, $order );
         }
         else {
-            $sort_args->insert_after( 'order_by', sort_order => $order );
+            $sort_args->insert_after( ORDER_BY_PARAM, SORT_PARAM, $order );
         }
         $url .= join '/',
           map { '' eq $_ ? $PLACEHOLDER : $_ } $sort_args->get_array;
@@ -708,21 +726,29 @@ sub _add_column_sort_info {
 Returns the attributes for the current search class which will be listed in the
 REST search interface.
 
+Passing a true value will result in all non-referenced attributes being
+returned.
+
 =cut
 
 sub _desired_attributes {
     my $self = shift;
+    my $all  = shift;
     unless ( $self->{attributes} ) {
         my @attributes =
-          grep { !$_->references && !exists $DONT_DISPLAY{ $_->name } }
-          $self->class->attributes;
+          grep {
+            !$_->references
+              && ( !$all && !exists $DONT_DISPLAY{ $_->name } )
+          } $self->class->attributes;
         my $i =
           $MAX_ATTRIBUTE_INDEX < $#attributes
           ? $MAX_ATTRIBUTE_INDEX
           : $#attributes;
 
         # don't list all attributes
-        @attributes = map { $_->name } @attributes[ 0 .. $i ];
+        unless ($all) {
+            @attributes = map { $_->name } @attributes[ 0 .. $i ];
+        }
         $self->{attributes} = \@attributes;
     }
     return wantarray ? @{ $self->{attributes} } : $self->{attributes};
@@ -747,8 +773,8 @@ sub _add_pageset {
     my $pageset = $self->_pageset(
         {
             count  => $instance_count,
-            limit  => ( $args->get('limit') || '' ),
-            offset => ( $args->get('offset') || '' ),
+            limit  => ( $args->get(LIMIT_PARAM) || '' ),
+            offset => ( $args->get(OFFSET_PARAM) || 0 ),
         }
     );
     return unless $pageset;
@@ -773,8 +799,9 @@ sub _add_pageset {
             $self->_xml_attr('href')->AddAttribute(CURRENT_PAGE);
         }
         else {
-            my $current_offset = ( $set - 1 ) * $args->get('limit');
-            $url =~ s{offset/\d+}{offset/$current_offset};
+            my $current_offset = ( $set - 1 ) * $args->get(LIMIT_PARAM);
+            my $offset_param   = OFFSET_PARAM;
+            $url =~ s{$offset_param/\d+}{$offset_param/$current_offset};
             $self->_xml_attr('href')->AddAttribute($url);
         }
         $xml->EndElement;
