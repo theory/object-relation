@@ -37,25 +37,25 @@
         ok(result, '... and calling it with a form should succeed');
         var expected = 'http://www.example.com/rest/one'
           + '/search/STRING/name%20%3D%3E%20%22foo%22%2C%20OR%28name%20%3D%3E%20%22bar%22%29'
-          + '/limit/20'
-          + '/order_by/name'
-          + '/sort_order/ASC?_type=html';
+          + '/_limit/20'
+          + '/_order_by/name'
+          + '/_sort_order/ASC?_type=html';
         is(result, expected, '... and it should return the correct url');
 
         search_form.search.value = '';
         result = search.buildURL(search_form);
         var expected = 'http://www.example.com/rest/one'
           + '/search/STRING/null'
-          + '/limit/20'
-          + '/order_by/name'
-          + '/sort_order/ASC?_type=html';
+          + '/_limit/20'
+          + '/_order_by/name'
+          + '/_sort_order/ASC?_type=html';
         is(result, expected, '... even if we have a null search');
 
         search_form.order_by.value = '';
         result = search.buildURL(search_form);
         var expected = 'http://www.example.com/rest/one'
           + '/search/STRING/null'
-          + '/limit/20?_type=html';
+          + '/_limit/20?_type=html';
         is(result, expected, '... and it should not have a sort order if the order_by is null');
 
         search_form.limit.value = '';

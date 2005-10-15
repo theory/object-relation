@@ -27,19 +27,19 @@ Kinetic.Search.prototype = {
         var path       = data._path.value;
         var type       = data._type.value;
         var search     = data.search.value;
-        var limit      = data.limit.value;
-        var order_by   = data.order_by.value;
-        var sort_order = data.sort_order.value;
+        var limit      = data._limit.value;
+        var order_by   = data._order_by.value;
+        var sort_order = data._sort_order.value;
 
         // base url 
         var url = domain + path + class_key;
 
         // build path info
         url = url + this._addSearchConstraint('search', search);
-        url = url + this._addSearchConstraint('limit', limit);
-        url = url + this._addSearchConstraint('order_by', order_by);
+        url = url + this._addSearchConstraint('_limit', limit);
+        url = url + this._addSearchConstraint('_order_by', order_by);
         if (order_by) {
-            url = url + this._addSearchConstraint('sort_order', sort_order);
+            url = url + this._addSearchConstraint('_sort_order', sort_order);
         }
         if (type) {
             url = url + '?_type=' + type;
