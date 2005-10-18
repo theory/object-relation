@@ -10,25 +10,25 @@
         JSAN.use('Test.More');
         JSAN.includePath = ['../../../www/js'];
         JSAN.use('Kinetic.Search');
-        plan({tests: 15});
-        //plan({noPlan: true});
+        //plan({tests: 15});
+        plan({noPlan: true});
         var search = new Kinetic.Search;
         isaOK(search, 'Kinetic.Search');
 
         diag('canOK(object, method) appears to be broken');
-        canOK('Kinetic.Search', '_addSearchConstraint')
-        var result = search._addSearchConstraint('foo','bar');
-        is(result, '/foo/bar', '_addSearchConstraint should return proper constraints');
-        result = search._addSearchConstraint('foo','bar baz');
+        canOK('Kinetic.Search', '_addToURL')
+        var result = search._addToURL('foo','bar');
+        is(result, '/foo/bar', '_addToURL should return proper constraints');
+        result = search._addToURL('foo','bar baz');
         is(result, '/foo/bar%20baz', '... and they should be URI escaped');
-        result = search._addSearchConstraint('foo','');
+        result = search._addToURL('foo','');
         is(result, '', '... but it should return an empty string if the value is empty');
 
-        result = search._addSearchConstraint('search', '');
+        result = search._addToURL('search', '');
         is(result, '/search/STRING/null', 'null searches should be handled appropriately');
-        result = search._addSearchConstraint('search', 'foo');
+        result = search._addToURL('search', 'foo');
         is(result, '/search/STRING/foo', '... as should searches with a value');
-        result = search._addSearchConstraint('search', 'foo => bar');
+        result = search._addToURL('search', 'foo => bar');
         is(result, '/search/STRING/foo%20%3D%3E%20bar', '... and they should be properly escaped');
 
         canOK('Kinetic.Search', 'buildURL');
@@ -51,14 +51,14 @@
           + '/_sort_order/ASC?_type=html';
         is(result, expected, '... even if we have a null search');
 
-        search_form.order_by.value = '';
+        search_form._order_by.value = '';
         result = search.buildURL(search_form);
         var expected = 'http://www.example.com/rest/one'
           + '/search/STRING/null'
           + '/_limit/20?_type=html';
         is(result, expected, '... and it should not have a sort order if the order_by is null');
 
-        search_form.limit.value = '';
+        search_form._limit.value = '';
         result = search.buildURL(search_form);
         var expected = 'http://www.example.com/rest/one'
           + '/search/STRING/null?_type=html';
@@ -69,10 +69,53 @@
         var expected = 'http://www.example.com/rest/one'
           + '/search/STRING/null';
         is(result, expected, '... and it should not have a query string if type is null');
+
+        canOK('Kinetic.Search', '_getSearchString');
+        var new_form = document.new_form;
+        is( search._getSearchString(new_form),
+            'age GT 3, wooble LIKE "%foo"',
+            '_getSearchString should return the correct search string'
+        );
+        diag("got to here");
+        diag("got to here");
       }
     </script>
   </head>
   <body>
+    <form method="get" name="new_form" onsubmit="javascript:do_search(this); return false" id="new_form">
+      <input type="hidden" name="_class_key" value="one" />
+      <input type="hidden" name="_domain"    value="http://www.example.com/" />
+      <input type="hidden" name="_path"      value="rest/" />
+      <input type="hidden" name="_type"      value="html" />
+      <table>
+        <tr>
+          <td>
+            <input type="text" name="name" value="" />
+            <input type="text" name="age" value="GT 3" />
+            <input type="text" name="wooble" value="LIKE &quot;%foo&quot;" />
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <input type="text" name="_limit" value="20" />
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <input type="text" name="_order_by" value="name" />
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <select name="_sort_order">
+              <option value="ASC">Ascending</option>
+              <option value="DESC">Descending</option>
+            </select>
+          </td>
+        </tr>
+        <!-- omitting the submit button -->
+      </table>
+    </form>
     <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
       <input type="hidden" name="_class_key" value="one" />
       <input type="hidden" name="_domain"    value="http://www.example.com/" />
@@ -82,6 +125,9 @@
         <tr>
           <td>
             <input type="text" name="search" value="name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)" />
+            <input type="text" name="name" value="" />
+            <input type="text" name="age" value="GT 3" />
+            <input type="text" name="wooble" value="LIKE &quot;%foo&quot;" />
           </td>
         </tr>
         <tr>

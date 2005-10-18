@@ -19,35 +19,75 @@ Kinetic.Search = function () {};                 // constructor
 
 // class definition
 
+var param_for = {
+    'class_key'   : '_class_key',
+    'domain'      : '_domain',
+    'path'        : '_path',
+    'output_type' : '_type',    
+    'limit'       : '_limit',
+    'order'       : '_order_by',
+    'sort'        : '_sort_order',
+    'search'      : 'search'
+};
+
 Kinetic.Search.prototype = {
     buildURL: function (data) {
         // data from form
-        var class_key  = data._class_key.value;
-        var domain     = data._domain.value;
-        var path       = data._path.value;
-        var type       = data._type.value;
-        var search     = data.search.value;
-        var limit      = data._limit.value;
-        var order_by   = data._order_by.value;
-        var sort_order = data._sort_order.value;
+        var class_key  = data[ param_for['class_key']   ].value;
+        var domain     = data[ param_for['domain']      ].value;
+        var path       = data[ param_for['path']        ].value;
+        var type       = data[ param_for['output_type'] ].value;
+        var limit      = data[ param_for['limit']       ].value;
+        var order_by   = data[ param_for['order']       ].value;
+        var sort_order = data[ param_for['sort']        ].value;
+        var search     = data[ param_for['search']      ].value;
 
         // base url 
         var url = domain + path + class_key;
 
         // build path info
-        url = url + this._addSearchConstraint('search', search);
-        url = url + this._addSearchConstraint('_limit', limit);
-        url = url + this._addSearchConstraint('_order_by', order_by);
+        url = url + this._addToURL( param_for['search'], search );
+        url = url + this._addToURL( param_for['limit'],  limit );
+        url = url + this._addToURL( param_for['order'],  order_by );
         if (order_by) {
-            url = url + this._addSearchConstraint('_sort_order', sort_order);
+            url = url + this._addToURL( param_for['sort'], sort_order );
         }
         if (type) {
-            url = url + '?_type=' + type;
+            url = url + '?' + param_for['output_type'] + '=' + type;
         }
         return url;
     },
 
-    _addSearchConstraint: function (name, value) {
+    _isEmpty: function (value) {
+        if (null == value || value.match(/^\s*$/)) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    },
+
+
+    _getSearchString: function (data) {
+        var search_string = '';
+        for ( var index in data.elements ) {
+            var name  = data.elements[index].name;
+            if ( this._isEmpty(name) ) continue;
+            if ( "_" == name.substring(0, 1) ) {
+                continue;
+            }
+            var value = data.elements[index].value;
+            if ( this._isEmpty(value) ) continue;
+            if ( search_string ) {
+                search_string = search_string + ", ";
+            }
+            search_string = search_string + name + " " + value;
+        }
+        alert('"'+search_string+'"');
+        return search_string;
+    },
+
+    _addToURL: function (name, value) {
         // 'search' is handled somewhat differently because there may be
         // different search types in the future
         if ('search' == name) {
