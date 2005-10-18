@@ -67,24 +67,52 @@ Kinetic.Search.prototype = {
         }
     },
 
-
     _getSearchString: function (data) {
-        var search_string = '';
+        var logical_for    = new Array();
+        var comparison_for = new Array();
+
+        var search_string  = '';
         for ( var index in data.elements ) {
-            var name  = data.elements[index].name;
+            var elem  = data.elements[index];
+            var name  = elem.name;
+
             if ( this._isEmpty(name) ) continue;
             if ( "_" == name.substring(0, 1) ) {
+                var compare = this._getComparison(elem, 'logical');
+                logical_for[ compare["name"] ] = compare[ "value" ];
+
+                compare = this._getComparison(elem, 'comp');
+                comparison_for[ compare["name"] ] = compare[ "value" ];
                 continue;
             }
-            var value = data.elements[index].value;
+            var value = elem.value;
             if ( this._isEmpty(value) ) continue;
             if ( search_string ) {
                 search_string = search_string + ", ";
             }
-            search_string = search_string + name + " " + value;
+            var logical    = logical_for[name]    ? " " + logical_for[name]    : "";
+            var comparison = comparison_for[name] ? " " + comparison_for[name] : "";
+            search_string = search_string + name + logical + comparison + ' "' + escape(value) + '"';
         }
-        alert('"'+search_string+'"');
+        //alert('"'+search_string+'"');
         return search_string;
+    },
+
+    _getComparison: function (elem, type) {
+        var name  = elem.name;
+        var regex = new RegExp("^_([^_]*)_" + type);
+        name      = name.replace(regex, "$1");
+
+        if (! name) return;
+        var value = "";
+        if (elem.options) { 
+            value = elem.options[elem.selectedIndex].value;
+            value = value ? value : "";
+        }
+        return {
+            "name"  : name,
+            "value" : value
+        };
     },
 
     _addToURL: function (name, value) {

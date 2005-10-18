@@ -73,11 +73,22 @@
         canOK('Kinetic.Search', '_getSearchString');
         var new_form = document.new_form;
         is( search._getSearchString(new_form),
-            'age GT 3, wooble LIKE "%foo"',
+            'age GT "3", note LIKE "%25foo"',
             '_getSearchString should return the correct search string'
         );
-        diag("got to here");
-        diag("got to here");
+
+        canOK('Kinetic.Search', '_getComparison');
+        var elem = document.new_form._age_comp;
+        var results = search._getComparison(elem, 'comp');
+        is(results["name"], "age", '... and it should return the name of the property it refers to');
+        is(results["value"], "GT", '... and the value of the comparison property');
+
+        elem = document.new_form._age_logical;
+        results = search._getComparison(elem, 'logical');
+        is(results["name"], "age", '... and a logical comparison should return the property name');
+        is(results["value"], "", '... but it should return an empty string if there is no value');
+
+        is(1,1,'force previous failure messages');
       }
     </script>
   </head>
@@ -90,23 +101,110 @@
       <table>
         <tr>
           <td>
+            Name:
+          </td>
+          <td>
+            <select name="_name_logical">
+              <option value="">is</option>
+              <option value="NOT">is not</option>
+            </select>
+          </td>
+          <td>
+            <select name="_name_comp">
+              <option value="EQ">equal to</option>
+              <option value="LIKE">like</option>
+              <option value="LT">less than</option>
+              <option value="GT">greater than</option>
+              <option value="LE">less than or equal</option>
+              <option value="GE">greater than or equal</option>
+              <option value="NE">not equal</option>
+              <option value="BETWEEN">between</option>
+              <option value="ANY">any of</option>
+            </select>
+          </td>
+          <td>
             <input type="text" name="name" value="" />
-            <input type="text" name="age" value="GT 3" />
-            <input type="text" name="wooble" value="LIKE &quot;%foo&quot;" />
           </td>
         </tr>
         <tr>
           <td>
+            Age:
+          </td>
+          <td>
+            <select name="_age_logical">
+              <option value="">is</option>
+              <option value="NOT">is not</option>
+            </select>
+          </td>
+          <td>
+            <select name="_age_comp">
+              <option value="EQ">equal to</option>
+              <option value="LIKE">like</option>
+              <option value="LT">less than</option>
+              <option value="GT" selected="selected">greater than</option>
+              <option value="LE">less than or equal</option>
+              <option value="GE">greater than or equal</option>
+              <option value="NE">not equal</option>
+              <option value="BETWEEN">between</option>
+              <option value="ANY">any of</option>
+            </select>
+          </td>
+          <td>
+            <input type="text" name="age" value="3" />
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Wooble:
+          </td>
+          <td>
+            <select name="_note_logical">
+              <option value="">is</option>
+              <option value="NOT">is not</option>
+            </select>
+          </td>
+          <td>
+            <select name="_note_comp">
+              <option value="EQ">equal to</option>
+              <option value="LIKE" selected="selected">like</option>
+              <option value="LT">less than</option>
+              <option value="GT">greater than</option>
+              <option value="LE">less than or equal</option>
+              <option value="GE">greater than or equal</option>
+              <option value="NE">not equal</option>
+              <option value="BETWEEN">between</option>
+              <option value="ANY">any of</option>
+            </select>
+          </td>
+          <td>
+            <input type="text" name="note" value="%foo" />
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Limit:
+          </td>
+          <td colspan="3">
             <input type="text" name="_limit" value="20" />
           </td>
         </tr>
         <tr>
           <td>
-            <input type="text" name="_order_by" value="name" />
+            Order by:
+          </td>
+          <td colspan="3">
+            <select name="_order_by">
+              <option value="name">Name</option>
+              <option value="age">Age</option>
+              <option value="note">Note</option>
+            </select>
           </td>
         </tr>
         <tr>
           <td>
+            Sort Order:
+          </td>
+          <td colspan="3">
             <select name="_sort_order">
               <option value="ASC">Ascending</option>
               <option value="DESC">Descending</option>
@@ -116,6 +214,7 @@
         <!-- omitting the submit button -->
       </table>
     </form>
+    <hr />
     <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
       <input type="hidden" name="_class_key" value="one" />
       <input type="hidden" name="_domain"    value="http://www.example.com/" />
@@ -125,9 +224,6 @@
         <tr>
           <td>
             <input type="text" name="search" value="name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)" />
-            <input type="text" name="name" value="" />
-            <input type="text" name="age" value="GT 3" />
-            <input type="text" name="wooble" value="LIKE &quot;%foo&quot;" />
           </td>
         </tr>
         <tr>
