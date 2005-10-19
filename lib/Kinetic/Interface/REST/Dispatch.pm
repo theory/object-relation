@@ -438,8 +438,9 @@ sub _xml_setup {
 
     my @search_metadata   = qw/description domain path type/;
     my @instance_list     = qw/resources sort resource instance attribute/;
-    my @search_parameters = qw/search_parameters parameter option class_key/;
-    my %elem_for          =
+    my @search_parameters =
+      qw/search_parameters parameter comparisons comparison option class_key/;
+    my %elem_for =
       map { $_ => $xml->DeclareElement( $self->_xml_ns('kinetic') => $_ ) }
       @search_metadata, @instance_list, @search_parameters;
     $self->_xml_elem( \%elem_for );
@@ -447,7 +448,7 @@ sub _xml_setup {
     # attributes
     my %attr_for =
       map { $_ => $xml->DeclareAttribute($_) }
-      qw/ id type name widget selected /;
+      qw/ id type name widget selected colspan value /;
     $attr_for{href} =
       $xml->DeclareAttribute( $self->_xml_ns('xlink') => 'href' );
     $self->_xml_attr( \%attr_for );
@@ -559,30 +560,58 @@ sub _add_search_data {
     $self->_xml_elem('search_parameters')->StartElement;
 
     # Add search string arguments
-    $self->_xml_elem('parameter')->StartElement;
-    $self->_xml_attr('type')->AddAttribute('search');
-    $xml->AddText( $args->get(SEARCH_TYPE) );
-    $xml->EndElement;
+    foreach my $attribute ( $self->_desired_attributes('all') ) {
+        $self->_xml_elem('parameter')->StartElement;
+        $self->_xml_attr('type')->AddAttribute($attribute);
+        # XXX we need to figure out a persistence strategy
+        $self->_xml_attr('value')->AddAttribute(""); 
+        $self->_add_comparison_information($attribute);
+        $xml->EndElement;
+    }
 
     # add limit
     $self->_xml_elem('parameter')->StartElement;
     $self->_xml_attr('type')->AddAttribute(LIMIT_PARAM);
+    $self->_xml_attr('colspan')->AddAttribute(3);
     $xml->AddText( $args->get(LIMIT_PARAM) );
     $xml->EndElement;
 
     # add order_by
-    my @attributes = $self->_desired_attributes;
-    my @options    = map { $_ => ucfirst $_ } @attributes;
-    my $order_by   = $args->get(ORDER_BY_PARAM) || '';
-    $self->_add_select_widget( ORDER_BY_PARAM, $order_by, \@options );
+    my @options = map { $_ => ucfirst $_ } $self->_desired_attributes;
+    my $order_by = $args->get(ORDER_BY_PARAM) || '';
+    $self->_add_select_widget( ORDER_BY_PARAM, $order_by, \@options, 3 );
 
     # add sort_order
     my @sort_options = ( ASC => 'Ascending', DESC => 'Descending' );
     my $sort_order = $args->get(SORT_PARAM) || 'ASC';
-    $self->_add_select_widget( SORT_PARAM, $sort_order, \@sort_options );
+    $self->_add_select_widget( SORT_PARAM, $sort_order, \@sort_options, 3 );
     $xml->EndElement;
 
     return $self;
+}
+
+{
+    my @logical_options = ( "" => 'is', "NOT" => 'is not' );
+    my @comparison_options = (
+        EQ      => 'equal to',
+        LIKE    => 'like',
+        LT      => 'less than',
+        GT      => 'greater than',
+        LE      => 'less than or equal',
+        GE      => 'greater than or equal',
+        NE      => 'not equal',
+        BETWEEN => 'between',
+        ANY     => 'any of',
+    );
+    sub _add_comparison_information {
+        my ($self, $attribute) = @_;
+        $self->_xml_elem('comparisons')->StartElement;
+        $self->_add_select_widget( "_${attribute}_logical", "",
+            \@logical_options );
+        $self->_add_select_widget( "_${attribute}_comp", "",
+            \@comparison_options );
+        $self->_xml->EndElement;
+    }
 }
 
 ##############################################################################
@@ -600,11 +629,22 @@ which should be displayed.
 =cut
 
 sub _add_select_widget {
-    my ( $self, $name, $selected, $options ) = @_;
+    my ( $self, $name, $selected, $options, $colspan ) = @_;
     my $xml = $self->_xml;
-    $self->_xml_elem('parameter')->StartElement;
+
+    # XXX yuck.  Basically, if we have a colspan, this is a full
+    # parameter in its own right.  Otherwise, we know this is a 
+    # comparison parameter being added to help generate a search
+    # string
+    if (defined $colspan) {
+        $self->_xml_elem('parameter')->StartElement;
+    }
+    else {
+        $self->_xml_elem('comparison')->StartElement;
+    }
     $self->_xml_attr('type')->AddAttribute($name);
     $self->_xml_attr('widget')->AddAttribute('select');
+    $self->_xml_attr('colspan')->AddAttribute($colspan) if defined $colspan;
     for ( my $i = 0 ; $i < @$options ; $i += 2 ) {
         my ( $option, $label ) = @$options[ $i, $i + 1 ];
         $self->_xml_elem('option')->StartElement;
@@ -732,8 +772,8 @@ returned.
 =cut
 
 sub _desired_attributes {
-    my $self = shift;
-    my $all  = shift;
+    my ( $self, $all ) = @_;
+
     unless ( $self->{attributes} ) {
         my @attributes =
           grep {

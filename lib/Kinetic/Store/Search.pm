@@ -53,9 +53,9 @@ my %COMPARE_DISPATCH = (
     BETWEEN => \&_BETWEEN_SEARCH,
     GT      => sub { shift->_GT_LT_SEARCH( '<=', '>' ) },
     LT      => sub { shift->_GT_LT_SEARCH( '>=', '<' ) },
-    GE      => sub { shift->_GT_LT_SEARCH( '<',  '>=' ) },
-    LE      => sub { shift->_GT_LT_SEARCH( '>',  '<=' ) },
-    NE      => sub {
+    GE      => sub { shift->_GT_LT_SEARCH( '<', '>=' ) },
+    LE      => sub { shift->_GT_LT_SEARCH( '>', '<=' ) },
+    NE => sub {
         my ($search) = @_;
         $search->negated('NOT');
         $search->operator('EQ');
@@ -271,23 +271,17 @@ sub _am_i_eq_or_not {
 
 =head2 Instance Methods
 
-##############################################################################
-
 =head3 column
 
   $search->column([$column]);
 
 Getter/Setter for the object column on which you wish to search.
 
-##############################################################################
-
 =head3 data
 
   $search->data([$data]);
 
 Getter/Setter for the data you wish to search for.
-
-##############################################################################
 
 =head3 negated
 
@@ -296,8 +290,6 @@ Getter/Setter for the data you wish to search for.
 Getter/Setter for the boolean attribute that determines whether or not the
 current search logic is negated.
 
-##############################################################################
-
 =head3 operator
 
   $search->operator([$operator]);t
@@ -305,15 +297,11 @@ current search logic is negated.
 Getter/Setter identifying which operator is being used for the current search.
 Examples are 'LE', 'EQ', 'LIKE', etc.
 
-##############################################################################
-
 =head3 place_holder
 
   $search->place_holder([$place_holder]);
 
 Getter/Setter for the place holder to use in Database store apps, such as '?'.
-
-##############################################################################
 
 =head3 search_class
 
@@ -325,8 +313,6 @@ Getter/Setter for the current search class.
 
 1;
 __END__
-
-##############################################################################
 
 =head1 Copyright and License
 

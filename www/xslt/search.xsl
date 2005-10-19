@@ -110,7 +110,7 @@
         <div class="pages">
           <p>
             <xsl:for-each select="kinetic:pages">
-              <xsl:apply-templates select="kinetic:page" />
+              <xsl:apply-templates select="kinetic:page"/>
             </xsl:for-each>
           </p>
         </div>
@@ -130,8 +130,23 @@
           <xsl:with-param name="expr" select="@type"/>
         </xsl:call-template>:</td> <!-- closing td must be here due to whitespace issues -->
       <td>
+        <xsl:if test="@colspan">
+          <xsl:attribute name="colspan">
+            <xsl:value-of select="@colspan"/>
+          </xsl:attribute>
+        </xsl:if>
+        
         <xsl:choose>
         
+          <xsl:when test="kinetic:comparisons">
+            <xsl:for-each select="kinetic:comparisons">
+              <xsl:apply-templates select="kinetic:comparison"/>
+            </xsl:for-each>
+            <td>
+              <input type="text" name="{@type}" value="{@value}"/>
+            </td>
+          </xsl:when>
+
           <!--                         -->
           <!-- build <select/> widgets -->
           <!--                         -->
@@ -160,6 +175,21 @@
         </xsl:choose>
       </td>
     </tr>
+  </xsl:template>
+
+  <xsl:template match="kinetic:comparisons/kinetic:comparison">
+    <td>
+      <select name="{@type}">
+        <xsl:for-each select="kinetic:option">
+          <option value="{@name}">
+            <xsl:if test="@selected = 'selected'">
+              <xsl:attribute name="selected">selected</xsl:attribute>
+            </xsl:if>
+            <xsl:apply-templates/>
+          </option>
+        </xsl:for-each>
+      </select>
+    </td>
   </xsl:template>
 
   <!--                                                  -->

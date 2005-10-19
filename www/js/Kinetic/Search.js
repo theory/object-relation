@@ -40,7 +40,8 @@ Kinetic.Search.prototype = {
         var limit      = data[ param_for['limit']       ].value;
         var order_by   = data[ param_for['order']       ].value;
         var sort_order = data[ param_for['sort']        ].value;
-        var search     = data[ param_for['search']      ].value;
+
+        var search     = this._getSearchString(data);
 
         // base url 
         var url = domain + path + class_key;
@@ -58,15 +59,6 @@ Kinetic.Search.prototype = {
         return url;
     },
 
-    _isEmpty: function (value) {
-        if (null == value || value.match(/^\s*$/)) {
-            return true;
-        }
-        else {
-            return false;
-        }
-    },
-
     _getSearchString: function (data) {
         var logical_for    = new Array();
         var comparison_for = new Array();
@@ -78,11 +70,13 @@ Kinetic.Search.prototype = {
 
             if ( this._isEmpty(name) ) continue;
             if ( "_" == name.substring(0, 1) ) {
-                var compare = this._getComparison(elem, 'logical');
-                logical_for[ compare["name"] ] = compare[ "value" ];
+                // cache comparison metadata.  Note that this currently is dependent on
+                // the order of these elements in the HTML.  This should be changed.
+                var result_for = this._getComparison(elem, 'logical');
+                logical_for[ result_for["name"] ] = result_for[ "value" ];
 
-                compare = this._getComparison(elem, 'comp');
-                comparison_for[ compare["name"] ] = compare[ "value" ];
+                result_for = this._getComparison(elem, 'comp');
+                comparison_for[ result_for["name"] ] = result_for[ "value" ];
                 continue;
             }
             var value = elem.value;
@@ -92,9 +86,12 @@ Kinetic.Search.prototype = {
             }
             var logical    = logical_for[name]    ? " " + logical_for[name]    : "";
             var comparison = comparison_for[name] ? " " + comparison_for[name] : "";
-            search_string = search_string + name + logical + comparison + ' "' + escape(value) + '"';
+            search_string = search_string 
+                          + name 
+                          + logical 
+                          + comparison 
+                          + ' "' + escape(value) + '"';
         }
-        //alert('"'+search_string+'"');
         return search_string;
     },
 
@@ -113,6 +110,15 @@ Kinetic.Search.prototype = {
             "name"  : name,
             "value" : value
         };
+    },
+
+    _isEmpty: function (value) {
+        if (null == value || value.match(/^\s*$/)) {
+            return true;
+        }
+        else {
+            return false;
+        }
     },
 
     _addToURL: function (name, value) {
