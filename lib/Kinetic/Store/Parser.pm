@@ -130,8 +130,8 @@ $statements =
     sub { [ _extract_statements(@_) ] } );
 
 #  statement      ::= statement_list
-#                   | 'and' '(' statement_list ')'
-#                   | 'or'  '(' statement_list ')'
+#                   | 'AND' '(' statement_list ')'
+#                   | 'OR'  '(' statement_list ')'
 
 my $and_or = alternate( match( KEYWORD => 'AND' ), match( KEYWORD => 'OR' ) );
 
@@ -181,19 +181,35 @@ $normal_value =
   T( alternate( concatenate( optional( match('COMPARE') ), $Value ), $Any ),
     sub { [ $_[0][0], $_[1] ] } );
 
+#  note that parenthese are allowed for "BETWEEN" searches.  This allows
+#  STRING searches to do this:
+#    age BETWEEN (21, 40)
+
 #  between_value  ::= 'BETWEEN' '[' value ','  value ']'
 #                   | 'BETWEEN' '[' value '=>' value ']'
 #                   |           '[' value ','  value ']'
 #                   |           '[' value '=>' value ']'
+#                   | 'BETWEEN' '(' value '=>' value ')'
+#                   | 'BETWEEN' '(' value ','  value ')' # BETWEEN is not optional when using parens
 
 $between_value = T(
-    concatenate(
-        absorb( optional( match( KEYWORD => 'BETWEEN' ) ) ),
-        absorb($lbracket),
-        $Value,
-        absorb($either_comma),
-        $Value,
-        absorb($rbracket),
+    alternate(
+        concatenate(
+            absorb( optional( match( KEYWORD => 'BETWEEN' ) ) ),
+            absorb($lbracket),
+            $Value,
+            absorb($either_comma),
+            $Value,
+            absorb($rbracket),
+        ),
+        concatenate(
+            absorb( match( KEYWORD => 'BETWEEN' ) ),
+            absorb($lparen),
+            $Value,
+            absorb($either_comma),
+            $Value,
+            absorb($rparen),
+        ),
     ),
     sub {
         [ 'BETWEEN', [ map { _normalize_value($_) } @_ ] ];

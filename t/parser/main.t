@@ -2,7 +2,7 @@
 use warnings;
 use strict;
 
-use Test::More tests => 82;
+use Test::More tests => 86;
 #use Test::More 'no_plan';
 use Test::Exception;
 
@@ -168,6 +168,24 @@ ok $result, '... even if negated BETWEEN is merely implied';
 is_deeply $result, [$between_search],
   '... and return a negated BETWEEN search object';
 
+############################
+$between_search->negated('');
+$result =
+  parse( string_lexer_stream("name => BETWEEN ('bar', 'foo')"), $store );
+ok $result, 'BETWEEN string searches should be parseable';
+is_deeply $result, [$between_search], '... and return a BETWEEN search object';
+
+$between_search->negated('NOT');
+$result =
+  parse( string_lexer_stream("name => NOT BETWEEN ('bar', 'foo')"), $store );
+ok $result, '... and NOT BETWEEN searches should parse';
+$between_search->negated('NOT');
+is_deeply $result, [$between_search],
+  '... and return a negated BETWEEN search object';
+
+
+##############################
+
 $between_search->negated('');
 $result =
   parse( code_lexer_stream( [ name => BETWEEN [ 'bar', 'foo' ] ] ), $store );
@@ -218,6 +236,7 @@ is_deeply $result, [ $age_search, $name_search, $between_search ],
   '... and return an appropriate list of search objects';
 
 $age_search->operator('GT');
+$age_search->original_operator('GT');
 $age_search->negated('');
 ok $result =
   parse( string_lexer_stream("OR(name => 'foo', age => GT 3)"), $store ),

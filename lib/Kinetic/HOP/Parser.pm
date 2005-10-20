@@ -221,9 +221,9 @@ This function takes a list of parsers and returns a new parser. The new parser
 succeeds if all parsers passed to C<concatenate> succeed sequentially.
 
 C<concatenate> will discard undefined values.  This allows us to do this and
-only return the desired value(s).
+only return the desired value(s):
 
-  concatenate(absorb($lparent), $value, absorb($rparent))
+  concatenate(absorb($lparen), $value, absorb($rparen))
 
 =cut
 

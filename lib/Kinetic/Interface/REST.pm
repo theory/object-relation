@@ -83,10 +83,10 @@ sub new {
 }
 
 sub _validate_args {
-    my %args = @_;
+    my %arg_for = @_;
     my @errors;
-    push @errors => 'domain' unless exists $args{domain};
-    push @errors => 'path'   unless exists $args{path};
+    push @errors => 'domain' unless exists $arg_for{domain};
+    push @errors => 'path'   unless exists $arg_for{path};
     if (@errors) {
         my $errors = join ' and ' => @errors;
         throw_required [
@@ -94,11 +94,11 @@ sub _validate_args {
             $errors, __PACKAGE__ . "::new"
         ];
     }
-    $args{domain} .= '/' unless $args{domain} =~ /\/$/;
-    $args{path} .= '/'   unless $args{path}   =~ /\/$/;
-    $args{path} =~ s/^\///;
+    $arg_for{domain} .= '/' unless $arg_for{domain} =~ /\/$/;
+    $arg_for{path} .= '/'   unless $arg_for{path}   =~ /\/$/;
+    $arg_for{path} =~ s/^\///;
 
-    return %args;
+    return %arg_for;
 }
 
 ##############################################################################
@@ -139,6 +139,7 @@ sub handle_request {
     }
 
     my ( $class_key, $method, @args ) = $self->_get_request;
+    $_ = uri_unescape($_) foreach @args;
 
     # the following variables should be case-insensitive
     $_ = lc foreach $class_key, $method;
@@ -152,11 +153,8 @@ sub handle_request {
             $dispatch->class_list;
         }
         else {
-            $dispatch
-              ->class_key($class_key)
-              ->method($method)
-              ->args( AsHash->new({array => \@args}) )
-              ->handle_rest_request;
+            $dispatch->class_key($class_key)->method($method)
+              ->args( AsHash->new( { array => \@args } ) )->handle_rest_request;
         }
     };
     if ( my $error = $@ ) {
@@ -175,7 +173,7 @@ sub _get_request {
 
     # naive.  We may have more than one "basic" parameters in
     # the future (currently it's TYPE_PARAM)
-    if ( !@request || ($self->cgi->param || 0) > 1 ) {
+    if ( !@request || ( $self->cgi->param || 0 ) > 1 ) {
         @request = $self->_get_request_from_query_string;
     }
     return @request;
@@ -209,7 +207,7 @@ sub _get_request_from_query_string {
     my $method    = 'search';
 
     my @args;
-    foreach my $param ($cgi->param) {
+    foreach my $param ( $cgi->param ) {
         my $value = $cgi->param($param);
         if ( 'search' eq $param ) {
             $param = 'STRING';

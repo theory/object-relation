@@ -88,7 +88,7 @@ Kinetic::Store::Search - Manage Kinetic search parameters
   );
   # later
   $search->column($new_attr);
-  my $method = $search->store_method;
+  my $method = $search->search_method;
   $store->$method($search);
 
 =head1 Description
@@ -142,6 +142,7 @@ sub new {
     while ( my ( $attribute, $value ) = each %attributes ) {
         $self->$attribute($value);
     }
+    $self->original_operator( $attributes{operator} );
     return $self;
 }
 
@@ -154,7 +155,7 @@ foreach my $attribute (@_ATTRIBUTES) {
             return $self;
         }
         return $self->{$attribute};
-      }
+    };
 }
 
 ##############################################################################
@@ -169,7 +170,12 @@ method the store L<Kinetic::Store|Kinetic::Store> class should dispatch to.
 =cut
 
 sub search_method {
-    my $self   = shift;
+    my $self = shift;
+
+    if ( my $method = $self->{search_method} ) {
+        return $method;
+    }
+
     my $column = $self->column;
     my $value  = $self->data;
     my $neg    = $self->negated;
@@ -191,6 +197,7 @@ sub search_method {
       or
       throw_search [ $error, $column, $neg, $op, $value, "unknown op ($op)." ];
     my $search_method = $op_sub->($self);
+    $self->{search_method} = $search_method;
     return $search_method;
 }
 
@@ -208,6 +215,30 @@ sub data {
         return $self;
     }
     return $self->{data};
+}
+
+# this is a temporary hack to work with the rest interface
+use Data::Dumper;
+
+sub formatted_data {
+    my $self = shift;
+    my $data = $self->data;
+    return $data unless ref $data;
+
+    local $Data::Dumper::Indent = 0;
+    local $Data::Dumper::Terse  = 1;
+
+    # data is guaranteed to be an array reference
+    return '(' . ( join ', ', map { Dumper($_) } @$data ) . ')';
+}
+
+sub original_operator {
+    my $self = shift;
+    if (@_) {
+        $self->{original_operator} = shift;
+        return $self;
+    }
+    return $self->{original_operator};
 }
 
 sub _ANY_SEARCH {
@@ -283,6 +314,16 @@ Getter/Setter for the object column on which you wish to search.
 
 Getter/Setter for the data you wish to search for.
 
+=head3 formatted_data
+
+  my $data = $search->formatted_data;
+
+This may go away in the future.
+
+Returns data formatted suitable for the REST request.  Individual values will
+be returned unquoted.  C<ANY> or C<BETWEEN> searches will be returned as a
+string wrapped in parentheses with string values quoted.
+
 =head3 negated
 
   $search->negated(['NOT']);
@@ -294,7 +335,19 @@ current search logic is negated.
 
   $search->operator([$operator]);t
 
-Getter/Setter identifying which operator is being used for the current search.
+Getter/Setter identifying which operator is actually being used for the current
+search.  Examples are '<=', '=', 'LIKE', etc.
+
+The C<orginal_operator> method will return the operator used in the search
+request.  This method returns the operator that will be used in the actual
+request, if different.  For example, if C<negated> returns true and
+C<original_operator> returns C<EQ>, C<operator> will return C<!=>.
+
+=head3 original_operator
+
+  $search->original_operator([$operator]);t
+
+Getter/Setter identifying which operator was being used for the current search.
 Examples are 'LE', 'EQ', 'LIKE', etc.
 
 =head3 place_holder

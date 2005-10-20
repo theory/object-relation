@@ -49,8 +49,8 @@ C<%RE> hash used in I<search_value> are from C<Regexp::Common>.
   statements     ::= statement | statement ',' statements
 
   statement      ::= statement_list
-                   | 'and' '(' statement_list ')'
-                   | 'or'  '(' statement_list ')'
+                   | 'AND' '(' statement_list ')'
+                   | 'OR'  '(' statement_list ')'
 
   statement_list ::= search
                    | search ','                      # allow trailing commmas
@@ -72,6 +72,8 @@ C<%RE> hash used in I<search_value> are from C<Regexp::Common>.
                    | 'BETWEEN' '[' value '=>' value ']'
                    |           '[' value ','  value ']'
                    |           '[' value '=>' value ']'
+                   | 'BETWEEN' '(' value '=>' value ')'
+                   | 'BETWEEN' '(' value ','  value ')' # BETWEEN is not optional when using parens
 
   any            ::= 'ANY' '(' any_list ')'
 
@@ -123,6 +125,7 @@ discarded.
   [ 'IDENTIFIER', 'name' ],
   [ 'OP',           '=>' ],
   [ 'COMPARE',    'LIKE' ],
+  [ 'OP',            ',' ],
   [ 'VALUE',       'foo' ],
   [ 'OP',            ',' ],
   [ 'IDENTIFIER',  'age' ],
@@ -146,16 +149,18 @@ C<Kinetic::Store::Lexer::String> both combine the tokenizing and lexing into a
 single step. See C<Kinetic::Store::Lexer::Overview> for details.
 
 This module has only one public function, C<parse>, which expects a stream as
-returned by a lexer:
+returned by a lexer ...
 
   my $stream = code_lexer_stream($search_request);
 
-…and the store object. It then will either throw a
-C<Kinetic::Util::Exception::Fatal::Search> exception or return an IR.
+... and a Kinetic store object:
 
   my $ir = parse($stream, $store);
 
-The store object is then in the final step of building the IR. The store
+It then will either throw a C<Kinetic::Util::Exception::Fatal::Search>
+exception or return an IR.
+
+The store object is then used in the final step of building the IR. The store
 determines the names of the columns on which the actual search will take
 place. Attempting to search on an attribute that the current "search class"
 does not have will throw an exception.

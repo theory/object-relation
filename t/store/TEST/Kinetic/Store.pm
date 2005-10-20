@@ -117,6 +117,47 @@ sub search : Test(19) {
         '... and it should be the correct results';
 }
 
+sub cache_intermediate_representation : Test(no_plan) {
+    my $test = shift;
+    return unless $test->_should_run;
+    my ($foo, $bar, $baz) = $test->test_objects;
+
+    foreach ($foo, $bar, $baz) {
+        $_->name($_->name.chr(0x100));
+        $_->save;
+    }
+    ok my $iterator = $foo->search,
+        'A search with only a class should succeed';
+    can_ok $iterator, 'request';
+    is_deeply $iterator->request, {},
+        '... and an empty search should return an empty iterator request';
+
+    ok $iterator = $foo->search(name => $foo->name),
+        'and an exact match should succeed';
+    isa_ok $iterator, Iterator, 'and the object it returns';
+    my $request = $iterator->request;
+    is_deeply [keys %$request], ['name'],
+        '... and a simple search on one term should return one request item';
+    my $search = $request->{name};
+    isa_ok $search, 'Kinetic::Store::Search', 'The value for the key';
+    is $search->column, 'name', '... and it should return the correct column';
+
+    $iterator = $foo->search(name => $foo->name, description => 'asdf');
+    $request = $iterator->request;
+    is_deeply [keys %$request], ['name', 'description'],
+        '... and a simple search on one term should return one request item';
+    $search = $request->{name};
+    isa_ok $search, 'Kinetic::Store::Search', 'The value for the key';
+    is $search->column, 'name', '... and it should return the correct column';
+
+    return;
+    $foo->description('asdf');
+    $foo->save;
+    $iterator = $foo->search(name => $foo->name, description => 'asdf');
+    is_deeply $test->force_inflation($iterator->next), $foo,
+        '... and it should be the correct results';
+}
+
 sub search_from_key : Test(10) {
     my $test = shift;
     return unless $test->_should_run;

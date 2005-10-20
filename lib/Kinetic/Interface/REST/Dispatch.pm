@@ -329,6 +329,23 @@ sub _handle_constructor {
     return $rest->set_response( $xml, 'instance' );
 }
 
+sub _search_request {
+    my $self = shift;
+    if (@_) {
+        my $request = shift;
+        if (ref $request) {
+            # they're setting the request
+            $self->{search_request} = $request;
+            return $self;
+        }
+        else {
+            # they're asking for the request object for a given attribute
+            return $self->{search_request}{$request};
+        }
+    }
+    return $self->{_search_request};
+}
+
 sub _handle_method {
     my ( $self, $method ) = @_;
 
@@ -337,7 +354,8 @@ sub _handle_method {
           $method->call( $self->class->package, $self->_args_for_store );
         if ( 'search' eq $method->name ) {
             $self->rest->xslt('search');
-            return $self->_instance_list($response);
+            return $self->_search_request( $response->request )
+              ->_instance_list($response);
         }
         else {
 
@@ -563,8 +581,11 @@ sub _add_search_data {
     foreach my $attribute ( $self->_desired_attributes('all') ) {
         $self->_xml_elem('parameter')->StartElement;
         $self->_xml_attr('type')->AddAttribute($attribute);
+
         # XXX we need to figure out a persistence strategy
-        $self->_xml_attr('value')->AddAttribute(""); 
+        my $request = $self->_search_request($attribute);
+        my $value = $request ? $request->formatted_data : '';
+        $self->_xml_attr('value')->AddAttribute($value);
         $self->_add_comparison_information($attribute);
         $xml->EndElement;
     }
@@ -603,12 +624,21 @@ sub _add_search_data {
         BETWEEN => 'between',
         ANY     => 'any of',
     );
+
     sub _add_comparison_information {
-        my ($self, $attribute) = @_;
+        my ( $self, $attribute ) = @_;
+        my $request = $self->_search_request($attribute);
         $self->_xml_elem('comparisons')->StartElement;
-        $self->_add_select_widget( "_${attribute}_logical", "",
+        my $selected;
+        if ($request) {
+            $selected = $request->negated || "";
+        }
+        $self->_add_select_widget( "_${attribute}_logical", $selected,
             \@logical_options );
-        $self->_add_select_widget( "_${attribute}_comp", "",
+        if ($request) {
+            $selected = $request->original_operator || "";
+        }
+        $self->_add_select_widget( "_${attribute}_comp", $selected,
             \@comparison_options );
         $self->_xml->EndElement;
     }
@@ -633,10 +663,10 @@ sub _add_select_widget {
     my $xml = $self->_xml;
 
     # XXX yuck.  Basically, if we have a colspan, this is a full
-    # parameter in its own right.  Otherwise, we know this is a 
+    # parameter in its own right.  Otherwise, we know this is a
     # comparison parameter being added to help generate a search
     # string
-    if (defined $colspan) {
+    if ( defined $colspan ) {
         $self->_xml_elem('parameter')->StartElement;
     }
     else {

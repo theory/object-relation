@@ -21,6 +21,7 @@ package Kinetic::Store::DB;
 use strict;
 use base qw(Kinetic::Store);
 use DBI;
+use Clone;
 
 use Kinetic::Util::Exceptions qw/
   panic
@@ -713,13 +714,15 @@ sub _get_sql_results {
 
     if ( $self->_should_create_iterator ) {
         my $search_class = $self->{search_class};
-        return Iterator->new(
+        my $iterator = Iterator->new(
             sub {
                 my $result = $self->_fetchrow_hashref($sth) or return;
                 local $self->{search_class} = $search_class;
                 return $self->_build_object_from_hashref($result);
             }
         );
+        $iterator->request($self->_intermediate_representation);
+        return $iterator;
     }
     else {
         my @results;
@@ -728,6 +731,15 @@ sub _get_sql_results {
         }
         return \@results;
     }
+}
+
+sub _intermediate_representation {
+    my $self = shift;
+    if (@_) {
+        $self->{ir} = shift;
+        return $self;
+    }
+    return $self->{ir};
 }
 
 ##############################################################################
@@ -970,6 +982,7 @@ sub _make_where_clause {
       ? code_lexer_stream($search_request)
       : string_lexer_stream( $search_request->[0] );
     my $ir = parse( $stream, $self );
+    $self->_intermediate_representation(Clone::clone($ir));
     my ( $where_clause, $bind_params ) =
       $self->_convert_ir_to_where_clause($ir);
     $where_clause = "" if '()' eq $where_clause;
