@@ -14,6 +14,35 @@ function doSearch(form) {
     location.href = search.buildURL(form);
 }
 
+function checkForMultiValues(selectList, name) {
+    var between     = document.getElementById(name + "_between");
+    var not_between = document.getElementById(name + "_not_between");
+
+    if ('BETWEEN' == selectList.options[selectList.selectedIndex].value) {
+        between.style.display = "block";
+        not_between.style.display = "none";
+    }
+    else {
+        between.style.display = "none";
+        not_between.style.display = "block";
+    }
+}
+
+function toggleDiv(divName) {
+    thisDiv = document.getElementById(divName);
+    if (thisDiv) {
+        if (thisDiv.style.display == "none") {
+            thisDiv.style.display = "block";
+        }
+        else {
+            thisDiv.style.display = "none";
+        }
+    }
+    else {
+        alert("Error: Could not locate div with id: " + divName);
+    }
+}
+
 if (typeof Kinetic == 'undefined') Kinetic = {}; // Make sure the base namespace exists
 Kinetic.Search = function () {};                 // constructor
 
@@ -86,11 +115,12 @@ Kinetic.Search.prototype = {
             }
             var logical    = logical_for[name]    ? " " + logical_for[name]    : "";
             var comparison = comparison_for[name] ? " " + comparison_for[name] : "";
+            // do not escape the value.  It's already been escaped
             search_string = search_string 
                           + name 
                           + logical 
                           + comparison 
-                          + ' "' + escape(value) + '"';
+                          + ' "' + value + '"';
         }
         return search_string;
     },
@@ -124,11 +154,16 @@ Kinetic.Search.prototype = {
     _addToURL: function (name, value) {
         // 'search' is handled somewhat differently because there may be
         // different search types in the future
-        if ('search' == name) {
+        if (param_for['search'] == name) {
             if ( ! value ) {
                 value = 'null';
             }
             return '/search/STRING/' + escape(value);
+        }
+        if (param_for['limit'] == name) {
+            if (0 == value) {
+                return '';
+            }
         }
         if (! value) {
             return '';

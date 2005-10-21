@@ -6,94 +6,197 @@
     <title>Available instances</title>
     <script type="text/javascript" src="../jsan/JSAN.js"></script>
     <script type="text/javascript">
-      function runTest () {
-        JSAN.use('Test.More');
-        JSAN.includePath = ['../../../www/js'];
-        JSAN.use('Kinetic.Search');
-        //plan({tests: 15});
-        plan({noPlan: true});
-        var search = new Kinetic.Search;
-        isaOK(search, 'Kinetic.Search');
+function runTest () {
+    JSAN.use('Test.More');
+    JSAN.includePath = ['../../../www/js'];
+    JSAN.use('Kinetic.Search');
+    //plan({tests: 15});
+    plan({noPlan: true});
+    var search = new Kinetic.Search;
+    isaOK(search, 'Kinetic.Search');
 
-        diag('canOK(object, method) appears to be broken');
-        canOK('Kinetic.Search', '_addToURL')
-        var result = search._addToURL('foo','bar');
-        is(result, '/foo/bar', '_addToURL should return proper constraints');
-        result = search._addToURL('foo','bar baz');
-        is(result, '/foo/bar%20baz', '... and they should be URI escaped');
-        result = search._addToURL('foo','');
-        is(result, '', '... but it should return an empty string if the value is empty');
+    /**
+     * Testing _addToURL
+     */
 
-        result = search._addToURL('search', '');
-        is(result, '/search/STRING/null', 'null searches should be handled appropriately');
-        result = search._addToURL('search', 'foo');
-        is(result, '/search/STRING/foo', '... as should searches with a value');
-        result = search._addToURL('search', 'foo => bar');
-        is(result, '/search/STRING/foo%20%3D%3E%20bar', '... and they should be properly escaped');
+    diag('canOK(object, method) appears to be broken');
+    canOK('Kinetic.Search', '_addToURL')
+    var result = search._addToURL('foo','bar');
+    is(result, '/foo/bar', '_addToURL should return proper constraints');
+    result = search._addToURL('foo','bar baz');
+    is(result, '/foo/bar%20baz', '... and they should be URI escaped');
+    result = search._addToURL('foo','');
+    is(result, '', '... but it should return an empty string if the value is empty');
 
-        canOK('Kinetic.Search', 'buildURL');
-        var search_form = document.search_form;
-        result = search.buildURL(search_form);
-        ok(result, '... and calling it with a form should succeed');
-        var expected = 'http://www.example.com/rest/one'
-          + '/search/STRING/name%20%3D%3E%20%22foo%22%2C%20OR%28name%20%3D%3E%20%22bar%22%29'
-          + '/_limit/20'
-          + '/_order_by/name'
-          + '/_sort_order/ASC?_type=html';
-        is(result, expected, '... and it should return the correct url');
+    result = search._addToURL('search', '');
+    is(result, '/search/STRING/null', 'null searches should be handled appropriately');
+    result = search._addToURL('search', 'foo');
+    is(result, '/search/STRING/foo', '... as should searches with a value');
+    result = search._addToURL('search', 'foo => bar');
+    is(result, escape('/search/STRING/foo => bar'), '... and they should be properly escaped');
+    result = search._addToURL('search', '"%25"');
+    is(result, escape('/search/STRING/"%25"'), '... and not double-escaped');
 
-        search_form.search.value = '';
-        result = search.buildURL(search_form);
-        var expected = 'http://www.example.com/rest/one'
-          + '/search/STRING/null'
-          + '/_limit/20'
-          + '/_order_by/name'
-          + '/_sort_order/ASC?_type=html';
-        is(result, expected, '... even if we have a null search');
+    /**
+     * Testing _getComparison
+     */
 
-        search_form._order_by.value = '';
-        result = search.buildURL(search_form);
-        var expected = 'http://www.example.com/rest/one'
-          + '/search/STRING/null'
-          + '/_limit/20?_type=html';
-        is(result, expected, '... and it should not have a sort order if the order_by is null');
+    canOK('Kinetic.Search', '_getComparison');
+    setOptions({'_age_comp' : 'GT'});
+    var elem = document.search_form._age_comp;
+    var results = search._getComparison(elem, 'comp');
+    is(results["name"], "age", '... and it should return the name of the property it refers to');
+    is(results["value"], "GT", '... and the value of the comparison property');
 
-        search_form._limit.value = '';
-        result = search.buildURL(search_form);
-        var expected = 'http://www.example.com/rest/one'
-          + '/search/STRING/null?_type=html';
-        is(result, expected, '... and it should not have a limit if it is null');
+    setOptions({'_age_logical' : ''});
+    elem = document.search_form._age_logical;
+    results = search._getComparison(elem, 'logical');
+    is(results["name"], "age", '... and a logical comparison should return the property name');
+    is(results["value"], "", '... but it should return an empty string if there is no value');
 
-        search_form._type.value = '';
-        result = search.buildURL(search_form);
-        var expected = 'http://www.example.com/rest/one'
-          + '/search/STRING/null';
-        is(result, expected, '... and it should not have a query string if type is null');
+    /**
+     * Testing _getSearchString
+     */
 
-        canOK('Kinetic.Search', '_getSearchString');
-        var new_form = document.new_form;
-        is( search._getSearchString(new_form),
-            'age GT "3", note LIKE "%25foo"',
-            '_getSearchString should return the correct search string'
-        );
+    canOK('Kinetic.Search', '_getSearchString');
+    var search_form = document.search_form;
+    is( search._getSearchString(search_form),
+        'age GT "3", note LIKE "%foo"',
+        '_getSearchString should return the correct search string'
+    );
 
-        canOK('Kinetic.Search', '_getComparison');
-        var elem = document.new_form._age_comp;
-        var results = search._getComparison(elem, 'comp');
-        is(results["name"], "age", '... and it should return the name of the property it refers to');
-        is(results["value"], "GT", '... and the value of the comparison property');
+    /**
+     * Testing buildURL
+     */
 
-        elem = document.new_form._age_logical;
-        results = search._getComparison(elem, 'logical');
-        is(results["name"], "age", '... and a logical comparison should return the property name');
-        is(results["value"], "", '... but it should return an empty string if there is no value');
+    resetForm(); // reset to default values
 
-        is(1,1,'force previous failure messages');
-      }
+    canOK('Kinetic.Search', 'buildURL');
+    var search_form = document.search_form;
+    result = search.buildURL(search_form);
+    ok(result, '... and calling it with a default form should succeed');
+    var expected = 'http://www.example.com/rest/one'
+        + '/search/STRING/null'
+        + '/_limit/20'
+        + '/_order_by/name'
+        + '/_sort_order/ASC?_type=html';
+    is(result, expected, '... and it should return the correct url');
+
+    setInputs ( { '_limit' : '0' } );
+
+    result = search.buildURL(search_form);
+    var expected = 'http://www.example.com/rest/one'
+        + '/search/STRING/null/_order_by/name/_sort_order/ASC?_type=html';
+    is(result, expected, '... and it should not have a limit if it is null');
+
+    setInputs ( { '_type' : '' } );
+
+    result = search.buildURL(search_form);
+    var expected = 'http://www.example.com/rest/one'
+        + '/search/STRING/null/_order_by/name/_sort_order/ASC';
+    is(result, expected, '... and it should not have a query string if type is null');
+
+    setInputs ( { 
+        'name'   : 'Ovid',
+        '_limit' : '20' 
+    } );
+
+    var expected = 'http://www.example.com/rest/one'
+        + escape('/search/STRING/name EQ "Ovid"')
+        + '/_limit/20'
+        + '/_order_by/name'
+        + '/_sort_order/ASC';
+    result = search.buildURL(search_form);
+    is(result, expected, 'Setting a search field should succeed');
+
+    setInputs ( { 'name' : '%' } );
+
+    var expected = 'http://www.example.com/rest/one'
+        + escape('/search/STRING/name EQ "%"')
+        + '/_limit/20'
+        + '/_order_by/name'
+        + '/_sort_order/ASC';
+    result = search.buildURL(search_form);
+    is(result, expected, '... and we should not be double-escaping characters');
+    //alert(search_form.name.value + "\n" + result);
+
+    setInputs ( { 'name' : 'Ovid' } );
+    setOptions({ '_name_logical' : 'NOT' });
+    var expected = 'http://www.example.com/rest/one'
+        + escape('/search/STRING/name NOT EQ "Ovid"')
+        + '/_limit/20'
+        + '/_order_by/name'
+        + '/_sort_order/ASC';
+    result = search.buildURL(search_form);
+    is(result, expected, '... and we should be able to negate the search field');
+
+    setInputs({ 'name' : '%vid' });
+    setOptions({ '_name_comp' : 'LIKE' });
+    var expected = 'http://www.example.com/rest/one'
+        + escape('/search/STRING/name NOT LIKE "%vid"')
+        + '/_limit/20'
+        + '/_order_by/name'
+        + '/_sort_order/ASC';
+    result = search.buildURL(search_form);
+    is(result, expected, '... and set a NOT LIKE value with proper escaping');
+    is(1,1,'force previous failure messages');
+}
+
+function setInputs (value_for) {
+    var search_form = document.search_form;
+    if (value_for) {
+        for (var key in value_for) {
+            var elem = search_form[key];
+            if (! elem) continue;
+            elem.value = value_for[key];
+        }
+    }
+}
+
+function setOptions(option_for) {
+    var search_form = document.search_form;
+
+    if (option_for) {
+        for (var key in option_for) {
+            var elem = search_form[key];
+            if (! elem || ! elem.options) continue;
+            var option = option_for[key];
+            if ('' == option) {
+                elem.selectedIndex = 0;
+            }
+            else {
+                for (var index in elem.options) {
+                    if (elem.options[index].value == option) {
+                        elem.options[index].selected = true;
+                    }
+                }
+            }
+        }
+    }
+}
+
+function resetForm () {
+    setInputs({ 
+        'name'   : '',
+        'age'    : '',
+        'note'   : '',
+        '_limit' : '20'
+    });
+    setOptions({ 
+        '_name_logical' : '',
+        '_name_comp'    : 'EQ',
+        '_age_logical'  : '',
+        '_age_comp'     : 'EQ',
+        '_note_logical' : '',
+        '_note_comp'    : 'EQ',
+        '_order_by'     : '',
+        '_sort_order'   : 'ASC'
+    });
+}
     </script>
   </head>
   <body>
-    <form method="get" name="new_form" onsubmit="javascript:do_search(this); return false" id="new_form">
+    <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
       <input type="hidden" name="_class_key" value="one" />
       <input type="hidden" name="_domain"    value="http://www.example.com/" />
       <input type="hidden" name="_path"      value="rest/" />
@@ -205,39 +308,6 @@
             Sort Order:
           </td>
           <td colspan="3">
-            <select name="_sort_order">
-              <option value="ASC">Ascending</option>
-              <option value="DESC">Descending</option>
-            </select>
-          </td>
-        </tr>
-        <!-- omitting the submit button -->
-      </table>
-    </form>
-    <hr />
-    <form method="get" name="search_form" onsubmit="javascript:do_search(this); return false" id="search_form">
-      <input type="hidden" name="_class_key" value="one" />
-      <input type="hidden" name="_domain"    value="http://www.example.com/" />
-      <input type="hidden" name="_path"      value="rest/" />
-      <input type="hidden" name="_type"      value="html" />
-      <table>
-        <tr>
-          <td>
-            <input type="text" name="search" value="name =&gt; &quot;foo&quot;, OR(name =&gt; &quot;bar&quot;)" />
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <input type="text" name="_limit" value="20" />
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <input type="text" name="_order_by" value="name" />
-          </td>
-        </tr>
-        <tr>
-          <td>
             <select name="_sort_order">
               <option value="ASC">Ascending</option>
               <option value="DESC">Descending</option>
