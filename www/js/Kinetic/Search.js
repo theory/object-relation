@@ -9,37 +9,38 @@
     just limitations with my understanding of JavaScript.
 */
 
+var TESTING = 0;
+
 function doSearch(form) {
     var search    = new Kinetic.Search;    
-    location.href = search.buildURL(form);
+    
+    var url = search.buildURL(form);
+    if (TESTING) {
+        alert(url);
+        return false;
+    }
+    else {
+        location.href = url;
+    }
 }
 
-function checkForMultiValues(selectList, name) {
-    var between     = document.getElementById(name + "_between");
-    var not_between = document.getElementById(name + "_not_between");
+function checkForMultiValues(selectList) {
+    var name = selectList.name.replace(/^_(.*)_comp$/, "$1");
+    if ( ! name ) {
+        // this should never happen.  This is coupled with the XSLT generation 
+        // for the comparison functions
+        return;
+    }
+    var between    = document.getElementById(name + "_between");
+    var notBetween = document.getElementById(name + "_not_between");
 
     if ('BETWEEN' == selectList.options[selectList.selectedIndex].value) {
         between.style.display = "block";
-        not_between.style.display = "none";
+        notBetween.style.display = "none";
     }
     else {
         between.style.display = "none";
-        not_between.style.display = "block";
-    }
-}
-
-function toggleDiv(divName) {
-    thisDiv = document.getElementById(divName);
-    if (thisDiv) {
-        if (thisDiv.style.display == "none") {
-            thisDiv.style.display = "block";
-        }
-        else {
-            thisDiv.style.display = "none";
-        }
-    }
-    else {
-        alert("Error: Could not locate div with id: " + divName);
+        notBetween.style.display = "block";
     }
 }
 
@@ -48,81 +49,103 @@ Kinetic.Search = function () {};                 // constructor
 
 // class definition
 
-var param_for = {
-    'class_key'   : '_class_key',
-    'domain'      : '_domain',
-    'path'        : '_path',
-    'output_type' : '_type',    
-    'limit'       : '_limit',
-    'order'       : '_order_by',
-    'sort'        : '_sort_order',
-    'search'      : 'search'
-};
-
 Kinetic.Search.prototype = {
+    paramFor: {
+        'classKey'    : '_class_key',
+        'domain'      : '_domain',
+        'path'        : '_path',
+        'outputType'  : '_type',    
+        'limit'       : '_limit',
+        'order'       : '_order_by',
+        'sort'        : '_sort_order',
+        'search'      : 'search'
+    },
+    logicalFor:    new Array(),
+    comparisonFor: new Array(),
+
     buildURL: function (data) {
         // data from form
-        var class_key  = data[ param_for['class_key']   ].value;
-        var domain     = data[ param_for['domain']      ].value;
-        var path       = data[ param_for['path']        ].value;
-        var type       = data[ param_for['output_type'] ].value;
-        var limit      = data[ param_for['limit']       ].value;
-        var order_by   = data[ param_for['order']       ].value;
-        var sort_order = data[ param_for['sort']        ].value;
+        var classKey   = data[ this.paramFor['classKey']    ].value;
+        var domain     = data[ this.paramFor['domain']      ].value;
+        var path       = data[ this.paramFor['path']        ].value;
+        var type       = data[ this.paramFor['outputType']  ].value;
+        var limit      = data[ this.paramFor['limit']       ].value;
+        var orderBy    = data[ this.paramFor['order']       ].value;
+        var sortOrder  = data[ this.paramFor['sort']        ].value;
 
         var search     = this._getSearchString(data);
 
         // base url 
-        var url = domain + path + class_key;
+        var url = domain + path + classKey;
 
         // build path info
-        url = url + this._addToURL( param_for['search'], search );
-        url = url + this._addToURL( param_for['limit'],  limit );
-        url = url + this._addToURL( param_for['order'],  order_by );
-        if (order_by) {
-            url = url + this._addToURL( param_for['sort'], sort_order );
+        url = url + this._addToURL( this.paramFor['search'], search );
+        url = url + this._addToURL( this.paramFor['limit'],  limit );
+        url = url + this._addToURL( this.paramFor['order'],  orderBy );
+        if (orderBy) {
+            url = url + this._addToURL( this.paramFor['sort'], sortOrder );
         }
         if (type) {
-            url = url + '?' + param_for['output_type'] + '=' + type;
+            url = url + '?' + this.paramFor['outputType'] + '=' + type;
         }
         return url;
     },
 
     _getSearchString: function (data) {
-        var logical_for    = new Array();
-        var comparison_for = new Array();
 
-        var search_string  = '';
-        for ( var index in data.elements ) {
-            var elem  = data.elements[index];
+        var searchString  = '';
+        var foundElem =  new Array();
+        
+        for ( var i = 0; i < data.elements.length; i++ ) {
+            var elem  = data.elements[i];
             var name  = elem.name;
 
             if ( this._isEmpty(name) ) continue;
             if ( "_" == name.substring(0, 1) ) {
                 // cache comparison metadata.  Note that this currently is dependent on
                 // the order of these elements in the HTML.  This should be changed.
-                var result_for = this._getComparison(elem, 'logical');
-                logical_for[ result_for["name"] ] = result_for[ "value" ];
+                var resultFor = this._getComparison(elem, 'logical');
+                this.logicalFor[ resultFor["name"] ] = resultFor[ "value" ];
 
-                result_for = this._getComparison(elem, 'comp');
-                comparison_for[ result_for["name"] ] = result_for[ "value" ];
+                resultFor = this._getComparison(elem, 'comp');
+                this.comparisonFor[ resultFor["name"] ] = resultFor[ "value" ];
                 continue;
             }
-            var value = elem.value;
-            if ( this._isEmpty(value) ) continue;
-            if ( search_string ) {
-                search_string = search_string + ", ";
+            if (foundElem[elem.name]) { // only process first array value
+                continue;
             }
-            var logical    = logical_for[name]    ? " " + logical_for[name]    : "";
-            var comparison = comparison_for[name] ? " " + comparison_for[name] : "";
+            foundElem[name] = 1;
+            var value = this._getElemValue(elem);
+
+            if ( this._isEmpty(value) ) continue;
+            if ( searchString ) {
+                searchString = searchString + ", ";
+            }
+            var logical    = this.logicalFor[name]    ? " " + this.logicalFor[name]    : "";
+            var comparison = this.comparisonFor[name] ? " " + this.comparisonFor[name] : "";
             // do not escape the value.  It's already been escaped
-            search_string = search_string 
+            searchString = searchString 
                           + name 
                           + logical 
                           + comparison 
                           + ' "' + value + '"';
         }
-        return search_string;
+        return searchString;
+    },
+
+    _getElemValue: function(elem) {
+        if (this._elemIsArray(elem)) {
+            if ('BETWEEN' == this.comparisonFor[elem[0].name]) {
+                // XXX does not yet handle quotes?
+                return '[ "' + elem[1].value + '", "' + elem[2].value + '" ]';
+            }
+            else {
+                return elem[0].value;
+            }
+        }
+        else {
+            return elem.value;
+        }
     },
 
     _getComparison: function (elem, type) {
@@ -151,16 +174,22 @@ Kinetic.Search.prototype = {
         }
     },
 
+    _elemIsArray: function(elem) {
+        var string = Object.prototype.toString.apply(elem);
+        var name = string.substring(8, string.length - 1);
+        return (name.match(/nodelist/i) != null);
+    },
+
     _addToURL: function (name, value) {
         // 'search' is handled somewhat differently because there may be
         // different search types in the future
-        if (param_for['search'] == name) {
+        if (this.paramFor['search'] == name) {
             if ( ! value ) {
                 value = 'null';
             }
             return '/search/STRING/' + escape(value);
         }
-        if (param_for['limit'] == name) {
+        if (this.paramFor['limit'] == name) {
             if (0 == value) {
                 return '';
             }

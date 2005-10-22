@@ -53,7 +53,7 @@
                 <xsl:apply-templates select="kinetic:parameter" />
               </xsl:for-each>
               <tr>
-                <td colspan="2"><input type="submit" value="Search"/></td>
+                <td colspan="4"><input type="submit" value="Search"/></td>
               </tr>
             </table>
           </form>
@@ -136,7 +136,13 @@
               <xsl:apply-templates select="kinetic:comparison"/>
             </xsl:for-each>
             <td>
-              <input type="text" name="{@type}" value="{@value}"/>
+              <div id="{@type}_not_between" style="display: block">
+                <input type="text" name="{@type}" value="{@value}"/>
+              </div>
+              <div id="{@type}_between" style="display: none">
+                <input type="text" name="{@type}" value="{@value}"/> and 
+                <input type="text" name="{@type}" value="" />
+              </div>
             </td>
           </xsl:when>
 
@@ -146,6 +152,11 @@
 
           <xsl:when test="@widget = 'select'">
           <td>
+            <xsl:if test="@colspan">
+              <xsl:attribute name="colspan">
+                <xsl:value-of select="@colspan"/>
+              </xsl:attribute>
+            </xsl:if>
             <select name="{@type}">
               <xsl:for-each select="kinetic:option">
                 <option value="{@name}">
@@ -179,7 +190,7 @@
 
   <xsl:template match="kinetic:comparisons/kinetic:comparison">
     <td>
-      <select name="{@type}">
+      <select name="{@type}" onchange="checkForMultiValues(this); return false">
         <xsl:for-each select="kinetic:option">
           <option value="{@name}">
             <xsl:if test="@selected = 'selected'">
