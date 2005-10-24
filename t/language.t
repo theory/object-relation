@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use diagnostics;
 #use Test::More qw(no_plan);
-use Test::More tests => 292;
+use Test::More tests => 398;
 use File::Spec;
 use File::Find;
 
@@ -20,7 +20,7 @@ sub file_to_class {
     join '::', @dirs;
 }
 
-my @langs;
+my (@langs, @libs);
 BEGIN {
     my @path = qw(lib Kinetic Util Language);
     # Move up if we're running in t/.
@@ -37,6 +37,18 @@ BEGIN {
     foreach my $lang (@langs) {
         use_ok $lang or die;
     }
+
+    # Find all libraries.
+    my $find_libs = sub {
+        return unless /\.pm$/;
+        return if /#/; # Ignore old backup files.
+        return if $File::Find::name =~ /Language[^.]/; # Ignore l10n libs.
+        push @libs, $File::Find::name;
+    };
+
+    # Find all of the language classes and make sure that they load.
+    find($find_libs, File::Spec->catdir('lib'));
+
 }
 
 ##############################################################################
@@ -76,6 +88,23 @@ for my $class (@langs) {
     }
 }
 
+# Make sure that all localizations are actually used.
+for my $key (keys %Kinetic::Util::Language::en::Lexicon) {
+    ok find_text($key), qq{"$key" should be used};
+}
+
+sub find_text {
+    my $text = shift;
+    my $rx = qr/\Q$text/;
+    for my $lib (@libs) {
+        open my $in, '<', $lib or die "Cannot open '$lib': $!\n";
+        while (<$in>) {
+            return 1 if /$rx/;
+        }
+        close $in;
+    }
+    return;
+}
 
 1;
 __END__

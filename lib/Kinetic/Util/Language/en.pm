@@ -57,164 +57,178 @@ our %Lexicon = (
 
   # Exceptions.
   'Value "[_1]" is not a valid [_2] object',
-  "Value “[_1]” is not a valid [_2] object",
+  'Value “[_1]” is not a valid [_2] object',
 
   'Value "[_1]" is not a UUID',
-  "Value “[_1]” is not a UUID",
+  'Value “[_1]” is not a UUID',
 
   'Attribute must be defined',
   'Attribute must be defined',
 
   'Localization for "[_1]" not found',
-  "Localization for “[_1]” not found",
+  'Localization for “[_1]” not found',
 
   'File "[_1]" not found',
-  "File “[_1]” not found",
+  'File “[_1]” not found',
 
   'Cannot assign to read-only attribute "[_1]"',
-  "Cannot assign to read-only attribute “[_1]”",
+  'Cannot assign to read-only attribute “[_1]”',
 
   'Argument "[_1]" is not a code reference',
-  "Argument “[_1]” is not a code reference",
+  'Argument “[_1]” is not a code reference',
 
   'Argument "[_1]" is not a valid [_2] object',
-  "Argument “[_1]” is not a valid [_2] object",
+  'Argument “[_1]” is not a valid [_2] object',
 
   'Argument "[_1]" is not a valid [_2] class',
-  "Argument “[_1]” is not a valid [_2] class",
+  'Argument “[_1]” is not a valid [_2] class',
+
+  'Value "[_1]" is not a string',
+  'Value “[_1]” is not a string',
+
+  'Value "[_1]" is not a whole number',
+  'Value “[_1]” is not a whole number',
 
   'Cannot assign permanent state',
   'Cannot assign permanent state',
 
   'Cannot open file "[_1]": [_2]',
-  "Cannot open file “[_1]”: [_2]",
+  'Cannot open file “[_1]”: [_2]',
 
   'Required argument "[_1]" to [_2] not found',
-  "Required argument “[_1]” to [_2] not found",
+  'Required argument “[_1]” to [_2] not found',
 
   'Required attribute "[_1]" not set',
-  "Required attribute “[_1]” not set",
+  'Required attribute “[_1]” not set',
 
   'XML must have a version number.',
   'XML must have a version number.',
 
   'I could not find the class for key "[_1]"',
-  "I could not find the class for key “[_1]”",
-  
-  "([_1]) cannot be a value.",
-  "([_1]) cannot be a value.",
+  'I could not find the class for key “[_1]”',
 
-  "Could not lex search request.  Found bad tokens ([_1])",
-  "Could not lex search request.  Found bad tokens ([_1])",
+  # XXX Should this be quoted?
+  '([_1]) cannot be a value.',
+  '([_1]) cannot be a value.',
+
+  # XXX What's with the parentheses?
+  'Could not lex search request.  Found bad tokens ([_1])',
+  'Could not lex search request. Found bad tokens ([_1])',
 
   'Could not parse search request',
   'Could not parse search request',
 
+  # XXX Why the newlines?
   "Could not parse search request:\n\n[_1]",
   "Could not parse search request:\n\n[_1]",
 
   'Failed to convert IR to where clause.  This should not happen.',
-  'Failed to convert IR to where clause.  This should not happen.',
+  'Failed to convert IR to where clause. This should not happen.',
 
-  'I don\'t know how to search for "[_1] [_2] [_3]"',
-  "I don't know how to search for “[_1] [_2] [_3]”",
+  q{I don't know how to search for "[_1] [_2] [_3]"},
+  'I don’t know how to search for “[_1] [_2] [_3]”',
 
   'Odd number of constraints in string search:  "[_1]"',
-  "Odd number of constraints in string search “[_1]”",
+  'Odd number of constraints in string search “[_1]”',
 
   'Search operators can never be more than two deep: "[_1] [_2] [_3] [_4]"',
-  "Search operators can never be more than two deep:  “[_1] [_2] [_3] [_4]”",
-            
+  'Search operators can never be more than two deep: “[_1] [_2] [_3] [_4]”',
+
   'NOT must always be first when used as a search operator: "[_1] [_2] [_3]"',
-  "NOT must always be first when used as a search operator: “[_1] [_2] [_3]”",
-  
+  'NOT must always be first when used as a search operator: “[_1] [_2] [_3]”',
+
   'Two search operators not allowed unless NOT is the first operator: "[_1] [_2] [_3]"',
-  "Two search operators not allowed unless NOT is the first operator: “[_1] [_2] [_3]”",
+  'Two search operators not allowed unless NOT is the first operator: “[_1] [_2] [_3]”',
 
   'BETWEEN searches may only take two values.  You have [_1]',
-  'BETWEEN searches may only take two values.  You have [_1]',
+  'BETWEEN searches may only take two values. You have [_1]',
 
-  "Writing XML failed: [_1]",
-  "Writing XML failed: [_1]",
+  'Writing XML failed: [_1]',
+  'Writing XML failed: [_1]',
 
   'No such attribute "[_1]" for [_2]',
-  "No such attribute “[_1]” for [_2]",
+  'No such attribute “[_1]” for [_2]',
 
   'Attribute "[_1]" is not unique',
-  "Attribute “[_1]” is not unique",
+  'Attribute “[_1]” is not unique',
 
   'I could not find uuid "[_1]" in data store for the [_2] class',
-  "I could not find uuid “[_1]” in the data store for the [_2] class",
+  'I could not find UUID “[_1]” in the data store for the [_2] class',
 
   'I could not load the class "[_1]": [_2]',
-  "I could not load the class “[_1]”: [_2]",
+  'I could not load the class “[_1]”: [_2]',
 
-  "[_1] does not support full-text searches",
-  "[_1] does not support full-text searches",
+  '[_1] does not support full-text searches',
+  '[_1] does not support full-text searches',
 
-  "MATCH:  [_1] does not support regular expressions",
-  "MATCH:  [_1] does not support regular expressions",
-    
-  "You cannot do GT or LT type searches with non-contiguous dates",
-  "You cannot do GT or LT type searches with non-contiguous dates",
+  'MATCH:  [_1] does not support regular expressions',
+  'MATCH: [_1] does not support regular expressions',
 
-  "BETWEEN search dates must have identical segments defined",
-  "BETWEEN search dates must have identical segments defined",
+  'You cannot do GT or LT type searches with non-contiguous dates',
+  'You cannot do GT or LT type searches with non-contiguous dates',
 
-  "You cannot do range searches with non-contiguous dates",
-  "You cannot do range searches with non-contiguous dates",
- 
-  "This must be overridden in a subclass",
-  "This must be overridden in a subclass",
+  'BETWEEN search dates must have identical segments defined',
+  'BETWEEN search dates must have identical segments defined',
+
+  'You cannot do range searches with non-contiguous dates',
+  'You cannot do range searches with non-contiguous dates',
+
+  'This must be overridden in a subclass',
+  'This must be overridden in a subclass',
 
   'Grouping operators must be AND or OR, not "[_1]"',
-  "Grouping operators must be AND or OR, not “[_1]”",
+  'Grouping operators must be AND or OR, not “[_1]”',
 
   'Object key "[_1]" must point to an object, not a scalar ([_2])',
   'Object key “[_1]” must point to an object, not a scalar ([_2])',
 
   'Unknown import symbol "[_1]"',
-  "Unknown import symbol “[_1]”",
+  'Unknown import symbol “[_1]”',
 
-  'I don\'t know how to lex a "[_1]"',
-  "I don't know how to lex a “[_1]”",
+  # "What if _1 starts with a vowel?
+  q{I don't know how to lex a "[_1]"},
+  'I don’t know how to lex a “[_1]”',
 
-  "Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]",
-  "Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]",
+  q{Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]},
+  'Don’t know how to search for ([_1] [_2] [_3] [_4]): [_5]',
 
-  "All types to an ANY search must match",
-  "All types to an ANY search must match",
+  'All types to an ANY search must match',
+  'All types to an ANY search must match',
 
-  "I don't know what to do with a [_1] for ([_2])",
-  "I don't know what to do with a [_1] for ([_2])",
-  
-  "Unknown attributes to [_1]: [_2]",
-  "Unknown attributes to [_1]: [_2]",
+  q{I don't know what to do with a [_1] for ([_2])},
+  'I don’t know what to do with a [_1] for ([_2])',
 
-  "Bad type for [_1].  Should be [_2].",
-  "Bad type for [_1].  Should be [_2].",
+  'Unknown attributes to [_1]: [_2]',
+  'Unknown attributes to [_1]: [_2]',
 
-  "Unknown stylesheet requested: [_1]",
-  "Unknown stylesheet requested: [_1]",
+  'Bad type for [_1].  Should be [_2].',
+  'Bad type for [_1]. Should be [_2].',
 
-  "BETWEEN searches must be between identical types. You have ([_1]) and ([_2])",
-  "BETWEEN searches must be between identical types. You have ([_1]) and ([_2])",
+  'Unknown stylesheet requested: [_1]',
+  'Unknown stylesheet requested: [_1]',
 
-  "BETWEEN searches should have two terms. You have [_1] term(s).",
-  "BETWEEN searches should have two terms. You have [_1] term(s).",
+  'BETWEEN searches must be between identical types. You have ([_1]) and ([_2])',
+  'BETWEEN searches must be between identical types. You have ([_1]) and ([_2])',
 
-  "PANIC: ANY search data is not an array ref. This should never happen.",
-  "PANIC: ANY search data is not an array ref. This should never happen.",
+  'BETWEEN searches should have two terms. You have [_1] term(s).',
+  'BETWEEN searches should have two terms. You have [_1] term(s).',
 
-  "PANIC: BETWEEN search data is not an array ref. This should never happen.",
-  "PANIC: BETWEEN search data is not an array ref. This should never happen.",
+  'PANIC: ANY search data is not an array ref. This should never happen.',
+  'PANIC: ANY search data is not an array ref. This should never happen.',
 
-  "PANIC: lookup([_1], [_2], [_3]) returned more than one result.",
-  "PANIC: lookup([_1], [_2], [_3]) returned more than one result.",
+  'PANIC: BETWEEN search data is not an array ref. This should never happen.',
+  'PANIC: BETWEEN search data is not an array ref. This should never happen.',
+
+  'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
+  'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
 
   'Invalid method "[_1]"',
-  "Invalid method “[_1]”",
-  
+  'Invalid method “[_1]”',
+
+  # Kinetic::Meta::Class error.
+  'No direct attribute "[_1]" to sort by',
+  'No direct attribute “[_1]” to sort by',
+
   # Kinetic Attribute labels and tips.
   'UUID' => 'UUID',
   'The globally unique identifier for this object',
@@ -234,43 +248,43 @@ our %Lexicon = (
 
   # Kinetic::Party::Person labels and tips.
   'Last Name' => 'Last Name',
-  "The person's last name",
-  "The person's last name",
+  q{The person's last name},
+  'The person’s last name',
 
   'First Name' => 'First Name',
-  "The person's first name",
-  "The person's first name",
+  q{The person's first name},
+  'The person’s first name',
 
   'Middle Name' => 'Middle Name',
-  "The person's middle name",
-  "The person's middle name",
+  q{The person's middle name},
+  'The person’s middle name',
 
   'Nickname' => 'Nickname',
-  "The person's nickname",
-  "The person's nickname",
+  q{The person's nickname},
+  'The person’s nickname',
 
   'Prefix' => 'Prefix',
-  "The prefix to the person's name",
-  "The prefix to the person's name, such as “Mr.”, “Ms.”, “Dr.”, etc.",
+  q{The prefix to the person's name},
+  'The prefix to the person’s name, such as “Mr.”, “Ms.”, “Dr.”, etc.',
 
   'Suffix' => 'Suffix',
-  "The suffix to the person's name",
-  "The suffix to the person's name, such as “JD”, “PhD”, “MD”, etc.",
+  q{The suffix to the person's name},
+  'The suffix to the person’s name, such as “JD”, “PhD”, “MD”, etc.',
 
   'Generation' => 'Generation',
-  "The generation of the person's name",
-  "The generation to the person's name, such as “Jr.”, “III”, etc.",
+  q{The generation of the person's name},
+  'The generation to the person’s name, such as “Jr.”, “III”, etc.',
 
-  'strfname_format' => "%p% f% M% l% g%, s",
+  'strfname_format' => '%p% f% M% l% g%, s',
 
   # Kinetic::Party::Person::User labels and tips.
   'Username' => 'Username',
-  "The user's username",
-  "The user's username",
+  q{The user's username},
+  'The user’s username',
 
   'Password' => 'Password',
-  "The user's password",
-  "The user's password",
+  q{The user's password},
+  'The user’s password',
 );
 
 1;

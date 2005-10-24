@@ -97,8 +97,8 @@ Kinetic::Meta::Type->add(
     key     => "string",
     name    => "String",
     check   => sub {
-        return unless defined $_[0] && ref $_[0];
-        $_[2]->class->handle_error("Value '$_[0]' is not a valid string");
+        return unless ref $_[0];
+        throw_invalid([ 'Value "[_1]" is not a string', $_[0] ]);
     }
 );
 
@@ -117,7 +117,7 @@ Kinetic::Meta::Type->add(
     check   => sub {
         return unless defined $_[0];
         Data::Types::is_whole($_[0])
-          or throw_invalid("Value '$_[0]' is not a whole number");
+          or throw_invalid([ 'Value "[_1]" is not a whole number', $_[0] ]);
     }
 );
 

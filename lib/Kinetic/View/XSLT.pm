@@ -55,7 +55,7 @@ Kinetic::View::XSLT - XSLT services provider
 
  my $xslt = Kinetic::View::XSLT->new;
  my $xslt = Kinetic::View::XSLT->new(type => $type);;
-    
+
 The C<new()> constructor returns a C<Kinetic::View::XSLT> instance.  This object
 can return XSLT stylesheets for presenting to a user agent or internally handle
 the transformation, if requested.
@@ -272,7 +272,7 @@ sub _stylesheet_resources {
     unless ($RESOURCES_XSLT) {
         my $file = WWW_DIR . RESOURCES_XSLT;
         open my $fh, "<", $file
-          or throw_not_found [ 'File [_1] not found', $file ];
+          or throw_not_found [ 'File "[_1]" not found', $file ];
         $RESOURCES_XSLT = do { local $/; <$fh> };
     }
     return $RESOURCES_XSLT;
@@ -284,7 +284,7 @@ sub _stylesheet_rest {
     unless ($SEARCH_XSLT) {
         my $file = WWW_DIR . SEARCH_XSLT;
         open my $fh, "<", $file
-          or throw_not_found [ 'File [_1] not found', $file ];
+          or throw_not_found [ 'File "[_1]" not found', $file ];
         $SEARCH_XSLT = do { local $/; <$fh> };
     }
     return $SEARCH_XSLT;
@@ -296,7 +296,7 @@ sub _stylesheet_instance {
     unless ($INSTANCE_XSLT) {
         my $file = WWW_DIR . INSTANCE_XSLT;
         open my $fh, "<", $file
-          or throw_not_found [ 'File [_1] not found', $file ];
+          or throw_not_found [ 'File "[_1]" not found', $file ];
         $INSTANCE_XSLT = do { local $/; <$fh> };
     }
     return $INSTANCE_XSLT;
