@@ -30,7 +30,6 @@ use aliased 'Kinetic::DateTime::Incomplete';
 my @_ATTRIBUTES = qw/
   column
   negated
-  operator
   place_holder
   search_class
   /;
@@ -158,6 +157,19 @@ foreach my $attribute (@_ATTRIBUTES) {
     };
 }
 
+sub operator {
+    my $self = shift;
+    if (@_) {
+        my $operator = shift || '';
+        if ( $operator ne ( $self->{operator} || '' ) ) {
+            $self->{operator}      = $operator;
+            $self->{search_method} = undef;       # clear search_method cache
+        }
+        return $self;
+    }
+    return $self->{operator};
+}
+
 ##############################################################################
 
 =head3 search_method
@@ -205,7 +217,8 @@ sub data {
     my $self = shift;
     if (@_) {
         my $data = shift;
-        $self->{data} = $data;
+        $self->{data}          = $data;
+        $self->{search_method} = undef;    # clear search_method cache
 
         # XXX Is this too early? If it is, we should push this test into
         # the operator() method. For now, it works and all tests pass.

@@ -1,0 +1,307 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link rel="stylesheet" href="css/rest.css" />
+    <title>Available instances</title>
+    <script language="JavaScript1.2" type="text/javascript" src="js/Kinetic/Search.js"></script>
+  </head>
+  <body onload="document.search_form.search.focus()">
+    <div id="sidebar">
+      <ul>
+      <li>
+      <a href="http://localhost:9000/one/search?_type=html">one</a>
+      </li>
+      <li>
+      <a href="http://localhost:9000/simple/search?_type=html">simple</a>
+      </li>
+      <li>
+      <a href="http://localhost:9000/two/search?_type=html">two</a>
+      </li>
+      </ul>
+    </div>
+    <div class="search">
+      <form action="/" method="get" name="search_form" onsubmit="doSearch(this); return false" id="search_form">
+        <input type="hidden" name="_class_key" value="two" />
+        <input type="hidden" name="_domain" value="http://localhost:9000/" />
+        <input type="hidden" name="_path" value="" />
+        <input type="hidden" name="_type" value="html" />
+        <table>
+          <tr>
+            <td class="header">state:</td>
+            <td>
+              <select name="_state_logical">
+                <option value="" selected="selected">is</option>
+                <option value="NOT">is not</option>
+              </select>
+            </td>
+            <td>
+              <select name="_state_comp" onchange="checkForMultiValues(this); return false">
+                <option value="EQ">equal to</option>
+                <option value="LIKE">like</option>
+                <option value="LT">less than</option>
+                <option value="GT">greater than</option>
+                <option value="LE">less than or equal</option>
+                <option value="GE">greater than or equal</option>
+                <option value="NE">not equal</option>
+                <option value="BETWEEN">between</option>
+                <option value="ANY">any of</option>
+              </select>
+            </td>
+            <td>
+              <div id="state_not_between" style="display: block">
+                <input type="text" name="state" value="" />
+              </div>
+              <div id="state_between" style="display: none">
+                <input type="text" name="state" value="" /> and 
+                <input type="text" name="state" value="" />
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="header">name:</td>
+            <td>
+              <select name="_name_logical">
+                <option value="">is</option>
+                <option value="NOT" selected="selected">is not</option>
+              </select>
+            </td>
+            <td>
+              <select name="_name_comp" onchange="checkForMultiValues(this); return false">
+                <option value="EQ" selected="selected">equal to</option>
+                <option value="LIKE">like</option>
+                <option value="LT">less than</option>
+                <option value="GT">greater than</option>
+                <option value="LE">less than or equal</option>
+                <option value="GE">greater than or equal</option>
+                <option value="NE">not equal</option>
+                <option value="BETWEEN">between</option>
+                <option value="ANY">any of</option>
+              </select>
+            </td>
+            <td>
+              <input type="text" name="name" value="Two" />
+            </td>
+          </tr>
+          <tr>
+            <td class="header">description:</td>
+            <td>
+              <select name="_description_logical">
+                <option value="" selected="selected">is</option>
+                <option value="NOT">is not</option>
+              </select>
+            </td>
+            <td>
+              <select name="_description_comp" onchange="checkForMultiValues(this); return false">
+                <option value="EQ">equal to</option>
+                <option value="LIKE" selected="selected">like</option>
+                <option value="LT">less than</option>
+                <option value="GT">greater than</option>
+                <option value="LE">less than or equal</option>
+                <option value="GE">greater than or equal</option>
+                <option value="NE">not equal</option>
+                <option value="BETWEEN">between</option>
+                <option value="ANY">any of</option>
+              </select>
+            </td>
+            <td>
+              <input type="text" name="description" value="%num%" />
+            </td>
+          </tr>
+          <tr>
+            <td class="header">age:</td>
+            <td>
+              <select name="_age_logical">
+                <option value="" selected="selected">is</option>
+                <option value="NOT">is not</option>
+              </select>
+            </td>
+            <td>
+              <select name="_age_comp" onchange="checkForMultiValues(this); return false">
+                <option value="EQ">equal to</option>
+                <option value="LIKE">like</option>
+                <option value="LT">less than</option>
+                <option value="GT" selected="selected">greater than</option>
+                <option value="LE">less than or equal</option>
+                <option value="GE">greater than or equal</option>
+                <option value="NE">not equal</option>
+                <option value="BETWEEN">between</option>
+                <option value="ANY">any of</option>
+              </select>
+            </td>
+            <td>
+              <input type="text" name="age" value="10" />
+            </td>
+          </tr>
+          <tr>
+            <td class="header">date:</td>
+            <td>
+              <select name="_date_logical">
+                <option value="" selected="selected">is</option>
+                <option value="NOT">is not</option>
+              </select>
+            </td>
+            <td>
+              <select name="_date_comp">
+                <option value="EQ">equal to</option>
+                <option value="LIKE">like</option>
+                <option value="LT">less than</option>
+                <option value="GT">greater than</option>
+                <option value="LE">less than or equal</option>
+                <option value="GE">greater than or equal</option>
+                <option value="NE">not equal</option>
+                <option value="BETWEEN">between</option>
+                <option value="ANY">any of</option>
+              </select>
+            </td>
+            <td>
+              <input type="text" name="date" value="" />
+            </td>
+          </tr>
+          <tr>
+          <td class="header">limit:</td>
+          <td colspan="3">
+          <input type="text" name="_limit" value="5" />
+          </td>
+          </tr>
+          <tr>
+          <td class="header">order by:</td>
+          <td colspan="3">
+          <select name="_order_by">
+          <option value="state">State</option>
+          <option value="name">Name</option>
+          <option value="description">Description</option>
+          <option value="age" selected="selected">Age</option>
+          <option value="date">Date</option>
+          </select>
+          </td>
+          </tr>
+          <tr>
+          <td class="header">sort order:</td>
+          <td colspan="3">
+          <select name="_sort_order">
+          <option value="ASC">Ascending</option>
+          <option value="DESC" selected="selected">Descending</option>
+          </select>
+          </td>
+          </tr>
+          <tr>
+          <td colspan="4">
+          <input type="submit" value="Search" />
+          </td>
+          </tr>
+        </table>
+      </form>
+    </div>
+    <div class="listing">
+    <table>
+    <tr>
+    <th class="header">
+    <a href="http://localhost:9000/two/search/STRING/name NOT EQ &quot;Two&quot;, description LIKE &quot;%num%&quot;, age GT &quot;10&quot;/_limit/5/_offset/0/_order_by/state/_sort_order/ASC?_type=html">state</a>
+    </th>
+    <th class="header">
+    <a href="http://localhost:9000/two/search/STRING/name NOT EQ &quot;Two&quot;, description LIKE &quot;%num%&quot;, age GT &quot;10&quot;/_limit/5/_offset/0/_order_by/name/_sort_order/ASC?_type=html">name</a>
+    </th>
+    <th class="header">
+    <a href="http://localhost:9000/two/search/STRING/name NOT EQ &quot;Two&quot;, description LIKE &quot;%num%&quot;, age GT &quot;10&quot;/_limit/5/_offset/0/_order_by/description/_sort_order/ASC?_type=html">description</a>
+    </th>
+    <th class="header">
+    <a href="http://localhost:9000/two/search/STRING/name NOT EQ &quot;Two&quot;, description LIKE &quot;%num%&quot;, age GT &quot;10&quot;/_limit/5/_offset/0/_order_by/age/_sort_order/ASC?_type=html">age</a>
+    </th>
+    <th class="header">
+    <a href="http://localhost:9000/two/search/STRING/name NOT EQ &quot;Two&quot;, description LIKE &quot;%num%&quot;, age GT &quot;10&quot;/_limit/5/_offset/0/_order_by/date/_sort_order/ASC?_type=html">date</a>
+    </th>
+    </tr>
+    <tr class="row_1">
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B57C32BA-41BE-11DA-9481-D6394B585510?_type=html">Active</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B57C32BA-41BE-11DA-9481-D6394B585510?_type=html">Two 20</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B57C32BA-41BE-11DA-9481-D6394B585510?_type=html">Object number 20</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B57C32BA-41BE-11DA-9481-D6394B585510?_type=html">22</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B57C32BA-41BE-11DA-9481-D6394B585510?_type=html">2005-10-20T23:10:30</a>
+    </td>
+    </tr>
+    <tr class="row_0">
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B54E5EE4-41BE-11DA-9481-D6394B585510?_type=html">Active</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B54E5EE4-41BE-11DA-9481-D6394B585510?_type=html">Two 19</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B54E5EE4-41BE-11DA-9481-D6394B585510?_type=html">Object number 19</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B54E5EE4-41BE-11DA-9481-D6394B585510?_type=html">21</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B54E5EE4-41BE-11DA-9481-D6394B585510?_type=html">2005-10-20T23:10:30</a>
+    </td>
+    </tr>
+    <tr class="row_1">
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B520A3DC-41BE-11DA-9481-D6394B585510?_type=html">Active</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B520A3DC-41BE-11DA-9481-D6394B585510?_type=html">Two 18</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B520A3DC-41BE-11DA-9481-D6394B585510?_type=html">Object number 18</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B520A3DC-41BE-11DA-9481-D6394B585510?_type=html">20</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B520A3DC-41BE-11DA-9481-D6394B585510?_type=html">2005-10-20T23:10:29</a>
+    </td>
+    </tr>
+    <tr class="row_0">
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B4F5257C-41BE-11DA-9481-D6394B585510?_type=html">Active</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B4F5257C-41BE-11DA-9481-D6394B585510?_type=html">Two 17</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B4F5257C-41BE-11DA-9481-D6394B585510?_type=html">Object number 17</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B4F5257C-41BE-11DA-9481-D6394B585510?_type=html">19</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B4F5257C-41BE-11DA-9481-D6394B585510?_type=html">2005-10-20T23:10:29</a>
+    </td>
+    </tr>
+    <tr class="row_1">
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B4C770E6-41BE-11DA-9481-D6394B585510?_type=html">Active</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B4C770E6-41BE-11DA-9481-D6394B585510?_type=html">Two 16</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B4C770E6-41BE-11DA-9481-D6394B585510?_type=html">Object number 16</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B4C770E6-41BE-11DA-9481-D6394B585510?_type=html">18</a>
+    </td>
+    <td>
+    <a href="http://localhost:9000/two/lookup/uuid/B4C770E6-41BE-11DA-9481-D6394B585510?_type=html">2005-10-20T23:10:29</a>
+    </td>
+    </tr>
+    </table>
+    </div>
+    <div class="pages">
+    <p>[ Page 1 ]<a href="http://localhost:9000/two/search/STRING/name NOT EQ &quot;Two&quot;, description LIKE &quot;%num%&quot;, age GT &quot;10&quot;/_limit/5/_offset/5/_order_by/age/_sort_order/DESC?_type=html">[ Page 2 ]</a><a href="http://localhost:9000/two/search/STRING/name NOT EQ &quot;Two&quot;, description LIKE &quot;%num%&quot;, age GT &quot;10&quot;/_limit/5/_offset/10/_order_by/age/_sort_order/DESC?_type=html">[ Page 3 ]</a></p>
+    </div>
+  </body>
+</html>

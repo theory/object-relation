@@ -107,10 +107,6 @@ our %Lexicon = (
   'I could not find the class for key "[_1]"',
   'I could not find the class for key “[_1]”',
 
-  # XXX Should this be quoted?
-  '([_1]) cannot be a value.',
-  '([_1]) cannot be a value.',
-
   # XXX What's with the parentheses?
   'Could not lex search request.  Found bad tokens ([_1])',
   'Could not lex search request. Found bad tokens ([_1])',
@@ -118,27 +114,11 @@ our %Lexicon = (
   'Could not parse search request',
   'Could not parse search request',
 
-  # XXX Why the newlines?
-  "Could not parse search request:\n\n[_1]",
-  "Could not parse search request:\n\n[_1]",
-
   'Failed to convert IR to where clause.  This should not happen.',
   'Failed to convert IR to where clause. This should not happen.',
 
-  q{I don't know how to search for "[_1] [_2] [_3]"},
-  'I don’t know how to search for “[_1] [_2] [_3]”',
-
   'Odd number of constraints in string search:  "[_1]"',
   'Odd number of constraints in string search “[_1]”',
-
-  'Search operators can never be more than two deep: "[_1] [_2] [_3] [_4]"',
-  'Search operators can never be more than two deep: “[_1] [_2] [_3] [_4]”',
-
-  'NOT must always be first when used as a search operator: "[_1] [_2] [_3]"',
-  'NOT must always be first when used as a search operator: “[_1] [_2] [_3]”',
-
-  'Two search operators not allowed unless NOT is the first operator: "[_1] [_2] [_3]"',
-  'Two search operators not allowed unless NOT is the first operator: “[_1] [_2] [_3]”',
 
   'BETWEEN searches may only take two values.  You have [_1]',
   'BETWEEN searches may only take two values. You have [_1]',
@@ -176,27 +156,14 @@ our %Lexicon = (
   'This must be overridden in a subclass',
   'This must be overridden in a subclass',
 
-  'Grouping operators must be AND or OR, not "[_1]"',
-  'Grouping operators must be AND or OR, not “[_1]”',
-
-  'Object key "[_1]" must point to an object, not a scalar ([_2])',
-  'Object key “[_1]” must point to an object, not a scalar ([_2])',
-
   'Unknown import symbol "[_1]"',
   'Unknown import symbol “[_1]”',
-
-  # "What if _1 starts with a vowel?
-  q{I don't know how to lex a "[_1]"},
-  'I don’t know how to lex a “[_1]”',
 
   q{Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]},
   'Don’t know how to search for ([_1] [_2] [_3] [_4]): [_5]',
 
   'All types to an ANY search must match',
   'All types to an ANY search must match',
-
-  q{I don't know what to do with a [_1] for ([_2])},
-  'I don’t know what to do with a [_1] for ([_2])',
 
   'Unknown attributes to [_1]: [_2]',
   'Unknown attributes to [_1]: [_2]',
@@ -239,8 +206,6 @@ our %Lexicon = (
   'The name of this object',
 
   'Description' => 'Description',
-  'The description of this object',
-  'The description of this object',
 
   'State' => 'State',
   'The state of this object',
