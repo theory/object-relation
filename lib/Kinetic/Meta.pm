@@ -89,6 +89,13 @@ Overrides the parent Class::Meta constructor in order to specify that the
 class class be Kinetic::Meta::Class and that the attribute class be
 Kinetic::Meta::Attribute.
 
+In addition to the parameters supported by C<< Class::Meta->new >>,
+C<< Kinetic::Meta->new >> supports on extra attribute: C<sort_by>. This
+attribute is the name of an attribute or array reference of names of the
+attributes to use when sorting a list of objects of the class. If
+C<sort_order> is not specified, it defaults to the first attribute declared
+after the C<uuid> and C<state> attributes.
+
 =cut
 
 __PACKAGE__->default_error_handler(\&throw_exlib);

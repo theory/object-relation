@@ -3,20 +3,20 @@
 # $Id$
 
 use strict;
-use Test::More tests => 52;
+use Test::More tests => 61;
 #use Test::More 'no_plan';
 
 package MyTestThingy;
 
 BEGIN {
     Test::More->import;
-    use_ok('Kinetic::Meta') or die;
-    use_ok('Kinetic::Util::Language') or die;
+    use_ok('Kinetic::Meta')                  or die;
+    use_ok('Kinetic::Util::Language')        or die;
     use_ok('Kinetic::Util::Language::en_us') or die;
-    use_ok('Kinetic::Meta::Class') or die;
-    use_ok('Kinetic::Meta::Attribute') or die;
+    use_ok('Kinetic::Meta::Class')           or die;
+    use_ok('Kinetic::Meta::Attribute')       or die;
     use_ok('Kinetic::Meta::AccessorBuilder') or die;
-    use_ok('Kinetic::Meta::Widget') or die;
+    use_ok('Kinetic::Meta::Widget')          or die;
 }
 
 BEGIN {
@@ -58,6 +58,7 @@ BEGIN {
         key         => 'fooey',
         name        => 'Fooey',
         plural_name => 'Fooies',
+        sort_by     => ['lname', 'fname'],
     ), "Create TestFooey class";
 
     ok $km->add_attribute(
@@ -72,9 +73,37 @@ BEGIN {
         type          => 'string',
         label         => 'First Name',
     ), "Add string attribute";
+
+    ok $km->add_attribute(
+        name          => 'lname',
+        type          => 'string',
+        label         => 'Last Name',
+    ), "Add string attribute";
+
     ok $km->build, "Build TestFooey class";
 }
 
+package MyTest::Meta::Excptions;
+
+BEGIN {
+    Test::More->import;
+}
+
+BEGIN {
+    ok my $km = Kinetic::Meta->new(
+        key         => 'owie',
+        name        => 'Owie',
+        plural_name => 'Owies',
+        sort_by     => 'not_here',
+    ), "Create Owie class";
+    eval { $km->build };
+    ok my $err = $@, 'Catch exception';
+    isa_ok $err, 'Kinetic::Util::Exception';
+    isa_ok $err, 'Kinetic::Util::Exception::Fatal';
+    is $err->message, "No direct attribute \x{201c}not_here\x{201d} to sort by",
+        'Check the error message';
+
+}
 # Add new strings to the lexicon.
 Kinetic::Util::Language::en_us->add_to_lexicon(
   'Thingy'   => 'Thingy',
@@ -97,6 +126,7 @@ is $class->key, 'thingy', 'Check key';
 is $class->package, 'MyTestThingy', 'Check package';
 is $class->name, 'Thingy', 'Check name';
 is $class->plural_name, 'Thingies', 'Check plural name';
+is $class->sort_by, 'foo', 'Check default sort_by attribute';
 can_ok $class, 'ref_attributes';
 can_ok $class, 'direct_attributes';
 is_deeply [$class->ref_attributes], [],
@@ -130,6 +160,9 @@ isa_ok $wm, 'Widget::Meta';
 is $wm->tip, 'Kinetic', "Check tip";
 
 ok my $fclass = MyTestFooey->my_class, "Get Fooey class object";
+is $fclass->sort_by, 'lname', 'Check specified sort_by';
+is_deeply [$fclass->sort_by], ['lname', 'fname'],
+    'Check sort_by in an array context';
 ok $attr = $fclass->attributes('thingy'), "Get thingy attribute";
 isa_ok $attr, 'Kinetic::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
@@ -140,6 +173,6 @@ is $attr->references, MyTestThingy->my_class,
 is $attr->relationship, 'has',
   'The Fooey should have a "has" relationship to the thingy';
 $attr = $fclass->attributes('fname');
-is_deeply [$fclass->direct_attributes], [$attr],
+is_deeply [$fclass->direct_attributes], [$attr, $fclass->attributes('lname')],
   "And direct_attributes should return the non-referenced attributes";
 is $attr->relationship, undef, "The fname attribute should have no relationship";

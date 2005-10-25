@@ -6,6 +6,7 @@ use strict;
 use base 'Class::Meta::Class';
 use Kinetic::Util::Context;
 use Kinetic::Util::Exceptions qw/throw_fatal/;
+use List::Util qw(first);
 
 =head1 Name
 
@@ -99,6 +100,24 @@ sub plural_name {
 
 ##############################################################################
 
+=head3 sort_by
+
+  my $sort_by  = $class->sort_by;
+  my @sort_bys = $class->sort_by;
+
+Returns the nam of the attribute to use when sorting a list of objects of this
+class. If more than one attribute has been specified for sorting, they can all
+be retreived by calling C<sort_by()> in an array context.
+
+=cut
+
+sub sort_by {
+    my $self = shift;
+    return wantarray ? @{ $self->{sort_by} } : $self->{sort_by}[0];
+}
+
+##############################################################################
+
 =head2 Instance Methods
 
 =head3 ref_attributes
@@ -146,6 +165,21 @@ sub build {
     my $self = shift->SUPER::build(@_);
     $self->{ref_attrs}    = [ grep { $_->references } $self->attributes ];
     $self->{direct_attrs} = [ grep { !$_->references } $self->attributes ];
+    if (my $sort_by = $self->{sort_by}) {
+        $sort_by = [$sort_by] unless ref $sort_by;
+        my %attrs = map { $_->name => undef } @{ $self->{direct_attrs} };
+        for my $attr ( @{ $sort_by } ) {
+            throw_fatal [ 'No direct attribute "[_1]" to sort by', $attr ]
+                unless exists $attrs{$attr};
+        }
+        $self->{sort_by} = $sort_by;
+    } else {
+        $self->{sort_by} = [
+            first { $_ ne 'uuid' && $_ ne 'state' }
+            map   { $_->name }
+            @{ $self->{direct_attrs} }
+        ];
+    }
     return $self;
 }
 

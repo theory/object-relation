@@ -27,6 +27,7 @@ my $build = Kinetic::Build->new(
         'Exception::Class::DBI'      => 0.92,
         'Exporter::Tidy'             => 0.06,
         'Lingua::Strfname'           => 0.10,
+        'List::Util'                 => 0,
         'Locale::Maketext'           => 1.09,
         'Params::Validate'           => 0.78,
         'Regexp::Common'             => 2.119,
