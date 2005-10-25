@@ -167,17 +167,17 @@ sub build {
     $self->{direct_attrs} = [ grep { !$_->references } $self->attributes ];
     if (my $sort_by = $self->{sort_by}) {
         $sort_by = [$sort_by] unless ref $sort_by;
-        my %attrs = map { $_->name => undef } @{ $self->{direct_attrs} };
+        my %attrs = map { $_->name => $_ } @{ $self->{direct_attrs} };
+        my @sort_attrs;
         for my $attr ( @{ $sort_by } ) {
             throw_fatal [ 'No direct attribute "[_1]" to sort by', $attr ]
                 unless exists $attrs{$attr};
+            push @sort_attrs, $attrs{$attr};
         }
-        $self->{sort_by} = $sort_by;
+        $self->{sort_by} = \@sort_attrs;
     } else {
         $self->{sort_by} = [
-            first { $_ ne 'uuid' && $_ ne 'state' }
-            map   { $_->name }
-            @{ $self->{direct_attrs} }
+            first { $_->package ne 'Kinetic' } @{ $self->{direct_attrs} }
         ];
     }
     return $self;

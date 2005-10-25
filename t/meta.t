@@ -126,7 +126,8 @@ is $class->key, 'thingy', 'Check key';
 is $class->package, 'MyTestThingy', 'Check package';
 is $class->name, 'Thingy', 'Check name';
 is $class->plural_name, 'Thingies', 'Check plural name';
-is $class->sort_by, 'foo', 'Check default sort_by attribute';
+is $class->sort_by, $class->attributes('foo'),
+    'Check default sort_by attribute';
 can_ok $class, 'ref_attributes';
 can_ok $class, 'direct_attributes';
 is_deeply [$class->ref_attributes], [],
@@ -160,8 +161,8 @@ isa_ok $wm, 'Widget::Meta';
 is $wm->tip, 'Kinetic', "Check tip";
 
 ok my $fclass = MyTestFooey->my_class, "Get Fooey class object";
-is $fclass->sort_by, 'lname', 'Check specified sort_by';
-is_deeply [$fclass->sort_by], ['lname', 'fname'],
+is $fclass->sort_by, $fclass->attributes('lname'), 'Check specified sort_by';
+is_deeply [$fclass->sort_by], [ $fclass->attributes('lname', 'fname') ],
     'Check sort_by in an array context';
 ok $attr = $fclass->attributes('thingy'), "Get thingy attribute";
 isa_ok $attr, 'Kinetic::Meta::Attribute';
