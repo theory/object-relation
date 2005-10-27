@@ -571,6 +571,7 @@ sub fetch_error {
     $error = '' if __PACKAGE__ ne caller;
     $depth ||= 0;
     my $I = "  " x $depth;
+    return unless 'ARRAY' eq ref $fail; # XXX ?
     my ( $type, $position, $data ) = @$fail;
     my $pos_desc = "";
 

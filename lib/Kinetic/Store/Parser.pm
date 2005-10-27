@@ -178,8 +178,16 @@ $search = T(
 #  normal_value   ::= value | compare value | any
 
 $normal_value =
-  T( alternate( concatenate( optional( match('COMPARE') ), $Value ), $Any ),
-    sub { [ $_[0][0], $_[1] ] } );
+    T( 
+        alternate( 
+            concatenate( 
+                optional( match('COMPARE') ),
+                $Value
+            ), 
+            $Any
+        ),
+        sub { [ $_[0][0], $_[1] ] } 
+    );
 
 #  note that parenthese are allowed for "BETWEEN" searches.  This allows
 #  STRING searches to do this:
@@ -431,7 +439,7 @@ sub parse {
         if ( 'ARRAY' eq ref $error ) {
             my $message = fetch_error( $error );
             throw_search [
-                "Could not parse search request:\n\n[_1]",
+                'Could not parse search request:  [_1]',
                 $message
             ];
         }

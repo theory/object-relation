@@ -37,7 +37,7 @@
               </select>
             </td>
             <td>
-              <select name="_state_comp" onchange="checkForMultiValues(this); return false">
+              <select name="_state_comp" id="_state_comp" onchange="checkForMultiValues(this); return false">
                 <option value="EQ">equal to</option>
                 <option value="LIKE">like</option>
                 <option value="LT">less than</option>
@@ -68,7 +68,7 @@
               </select>
             </td>
             <td>
-              <select name="_name_comp" onchange="checkForMultiValues(this); return false">
+              <select name="_name_comp" id="_name_comp" onchange="checkForMultiValues(this); return false">
                 <option value="EQ" selected="selected">equal to</option>
                 <option value="LIKE">like</option>
                 <option value="LT">less than</option>
@@ -81,9 +81,16 @@
               </select>
             </td>
             <td>
-              <input type="text" name="name" value="Two" />
+              <div id="name_not_between" style="display: block">
+                <input type="text" name="name" value="Two" />
+              </div>
+              <div id="name_between" style="display: none">
+                <input type="text" name="name" value="" /> and 
+                <input type="text" name="name" value="" />
+              </div>
             </td>
           </tr>
+<!--
           <tr>
             <td class="header">description:</td>
             <td>
@@ -159,6 +166,7 @@
               <input type="text" name="date" value="" />
             </td>
           </tr>
+-->
           <tr>
           <td class="header">limit:</td>
           <td colspan="3">

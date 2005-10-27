@@ -69,8 +69,18 @@ sub methods : Test(no_plan) {
 
     ok $search = Search->new(%search),
       'Creating a BETWEEN search should succeed';
+    diag $search->operator;
     is $search->formatted_data, '(21, 42)',
       '... and formatted_data should return data formatted for a REST request';
+
+    $search{data}     = [ 'alpha', 'omega' ];
+
+    ok $search = Search->new(%search),
+      'Creating a BETWEEN search should succeed';
+    is $search->formatted_data, "('alpha', 'omega')",
+      '... and formatted_data should return data formatted for a REST request';
+    use Data::Dumper;
+    diag Dumper($search->data);
 }
 
 1;

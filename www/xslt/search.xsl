@@ -136,13 +136,65 @@
               <xsl:apply-templates select="kinetic:comparison"/>
             </xsl:for-each>
             <td>
-              <div id="{@type}_not_between" style="display: block">
-                <input type="text" name="{@type}" value="{@value}"/>
+
+              <!--                                          -->
+              <!-- START:  set up normal and BETWEEN inputs -->
+              <!--                                          -->
+            
+              <div id="{@type}_not_between">
+                <xsl:attribute name="style">
+                  <xsl:choose>
+                    <xsl:when test="@value">display: block</xsl:when>
+                    <xsl:otherwise>display: none</xsl:otherwise>
+                  </xsl:choose>
+                </xsl:attribute>
+                <input type="text" name="{@type}">
+                  <xsl:attribute name="value">
+                    <xsl:choose>
+                      <xsl:when test="@value">
+                        <xsl:value-of select="@value"/>
+                      </xsl:when>
+                      <xsl:when test="@between_1">
+                        <xsl:value-of select="@between_1"/>
+                      </xsl:when>
+                    </xsl:choose>
+                  </xsl:attribute>
+                </input>
               </div>
-              <div id="{@type}_between" style="display: none">
-                <input type="text" name="{@type}" value="{@value}"/> and 
-                <input type="text" name="{@type}" value="" />
+              <div id="{@type}_between">
+                <xsl:attribute name="style">
+                  <xsl:choose>
+                    <xsl:when test="@value">display: none</xsl:when>
+                    <xsl:otherwise>display: block</xsl:otherwise>
+                  </xsl:choose>
+                </xsl:attribute>
+                <input type="text" name="{@type}"> 
+                  <xsl:attribute name="value">
+                    <xsl:choose>
+                      <xsl:when test="@value">
+                        <xsl:value-of select="@value"/>
+                      </xsl:when>
+                      <xsl:when test="@between_1">
+                        <xsl:value-of select="@between_1"/>
+                      </xsl:when>
+                    </xsl:choose>
+                  </xsl:attribute>
+                </input> and 
+                <input type="text" name="{@type}">
+                  <xsl:attribute name="value">
+                    <xsl:choose>
+                      <xsl:when test="@between_2">
+                        <xsl:value-of select="@between_2"/>
+                      </xsl:when>
+                    </xsl:choose>
+                  </xsl:attribute>
+                </input>
               </div>
+              
+              <!--                                        -->
+              <!-- END:  set up normal and BETWEEN inputs -->
+              <!--                                        -->
+              
             </td>
           </xsl:when>
 

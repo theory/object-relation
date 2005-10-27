@@ -466,7 +466,7 @@ sub _xml_setup {
     # attributes
     my %attr_for =
       map { $_ => $xml->DeclareAttribute($_) }
-      qw/ id type name widget selected colspan value /;
+      qw/ id type name widget selected colspan value between_1 between_2 /;
     $attr_for{href} =
       $xml->DeclareAttribute( $self->_xml_ns('xlink') => 'href' );
     $self->_xml_attr( \%attr_for );
@@ -583,9 +583,17 @@ sub _add_search_data {
         $self->_xml_attr('type')->AddAttribute($attribute);
 
         # XXX we need to figure out a persistence strategy
+        # for BETWEEN
         my $request = $self->_search_request($attribute);
-        my $value = $request ? $request->formatted_data : '';
-        $self->_xml_attr('value')->AddAttribute($value);
+        if ($request && 'BETWEEN' eq $request->operator) {
+            my $data = $request->data;
+            $self->_xml_attr('between_1')->AddAttribute($data->[0]);
+            $self->_xml_attr('between_2')->AddAttribute($data->[1]);
+        }
+        else {
+            my $value = $request ? $request->formatted_data : '';
+            $self->_xml_attr('value')->AddAttribute($value);
+        }
         $self->_add_comparison_information($attribute);
         $xml->EndElement;
     }

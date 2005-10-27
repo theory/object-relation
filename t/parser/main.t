@@ -476,10 +476,9 @@ my $search_like = Search->new(
     data     => '%vid',
     column   => 'name',
 );
-ok $result =
+k $result =
   parse(
-    string_lexer_stream(
-        <<'END_SEARCH'), $store ), 'String LT/GT searches should be parseable';
+    string_lexer_stream( <<'END_SEARCH'), $store ), 'String LT/GT searches should be parseable';
     date => LT '1968-xx-xxTxx:xx:xx',
     date => GT '1966-xx-xxTxx:xx:xx',
     name => LIKE '%vid',

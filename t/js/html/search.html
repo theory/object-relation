@@ -73,7 +73,7 @@ function runTest () {
     resetForm(search);
     canOK('Kinetic.Search', '_getElemValue');
     setInputs(search, {age: 17});
-    is(search._getElemValue(searchForm['age']), "17",
+    is(search._getElemValue(searchForm['age']), ' "17"',
        '... and we should be able to fetch element values');
 
     setOptions(search, {_age_comp: 'BETWEEN'});

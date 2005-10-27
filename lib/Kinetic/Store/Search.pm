@@ -24,12 +24,15 @@ use Scalar::Util qw(blessed);
 use Kinetic::Util::Exceptions qw(panic throw_search);
 use aliased 'Kinetic::DateTime::Incomplete';
 
+#use overload '""' => \&formatted_data, fallback => 1;
+
 # lots of private class data
 
 # generic getter/setters
 my @_ATTRIBUTES = qw/
   column
   negated
+  operator
   place_holder
   search_class
   /;
@@ -147,6 +150,7 @@ sub new {
 
 foreach my $attribute (@_ATTRIBUTES) {
     no strict 'refs';
+    next if defined &$attribute; # don't overwrite existing method
     *$attribute = sub {
         my $self = shift;
         if (@_) {
@@ -230,19 +234,19 @@ sub data {
     return $self->{data};
 }
 
-# this is a temporary hack to work with the rest interface
-use Data::Dumper;
 
 sub formatted_data {
     my $self = shift;
     my $data = $self->data;
     return $data unless ref $data;
+    require Data::Dumper;
 
     local $Data::Dumper::Indent = 0;
     local $Data::Dumper::Terse  = 1;
 
-    # data is guaranteed to be an array reference
-    return '(' . ( join ', ', map { Dumper($_) } @$data ) . ')';
+    # data is guaranteed to be an array reference (what's the crossed-fingers
+    # emoticon?)
+    return '(' . ( join ', ', map { Data::Dumper::Dumper($_) } @$data ) . ')';
 }
 
 sub original_operator {
