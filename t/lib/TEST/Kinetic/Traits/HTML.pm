@@ -311,7 +311,7 @@ sub search_form {
             </td>
           </tr>
           <tr>
-            <td colspan="2">
+            <td colspan="4">
               <input type="submit" value="Search"/>
             </td>
           </tr>

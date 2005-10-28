@@ -130,17 +130,18 @@ build a class object for using the current class key.
 
 sub class {
     my $self = shift;
-    unless (@_) {
-        $self->{class} ||= Kinetic::Meta->for_key( $self->class_key );
-        unless ( $self->{class} ) {
-            throw_invalid_class [
-                'I could not find the class for key "[_1]"',
-                ( $self->class_key || "No class key found" ),
-            ];
-        }
-        return $self->{class};
+    if (@_) {
+        $self->{class} = shift;
+        return $self;
     }
-    return $self;
+    $self->{class} ||= Kinetic::Meta->for_key( $self->class_key );
+    unless ( $self->{class} ) {
+        throw_invalid_class [
+            'I could not find the class for key "[_1]"',
+            ( $self->class_key || "No class key found" ),
+        ];
+    }
+    return $self->{class};
 }
 
 ##############################################################################
@@ -333,12 +334,14 @@ sub _search_request {
     my $self = shift;
     if (@_) {
         my $request = shift;
-        if (ref $request) {
+        if ( ref $request ) {
+
             # they're setting the request
             $self->{search_request} = $request;
             return $self;
         }
         else {
+
             # they're asking for the request object for a given attribute
             return $self->{search_request}{$request};
         }
@@ -578,17 +581,17 @@ sub _add_search_data {
     $self->_xml_elem('search_parameters')->StartElement;
 
     # Add search string arguments
-    foreach my $attribute ( $self->_desired_attributes('all') ) {
+    foreach my $attribute ( $self->_all_attributes ) {
         $self->_xml_elem('parameter')->StartElement;
         $self->_xml_attr('type')->AddAttribute($attribute);
 
         # XXX we need to figure out a persistence strategy
         # for BETWEEN
         my $request = $self->_search_request($attribute);
-        if ($request && 'BETWEEN' eq $request->operator) {
+        if ( $request && 'BETWEEN' eq $request->operator ) {
             my $data = $request->data;
-            $self->_xml_attr('between_1')->AddAttribute($data->[0]);
-            $self->_xml_attr('between_2')->AddAttribute($data->[1]);
+            $self->_xml_attr('between_1')->AddAttribute( $data->[0] );
+            $self->_xml_attr('between_2')->AddAttribute( $data->[1] );
         }
         else {
             my $value = $request ? $request->formatted_data : '';
@@ -687,7 +690,7 @@ sub _add_select_widget {
         my ( $option, $label ) = @$options[ $i, $i + 1 ];
         $self->_xml_elem('option')->StartElement;
         $self->_xml_attr('name')->AddAttribute($option);
-        if ( $option eq $selected ) {
+        if ( $option eq ( $selected || '' ) ) {
             $self->_xml_attr('selected')->AddAttribute('selected');
         }
         $xml->AddText($label);
@@ -809,27 +812,48 @@ returned.
 
 =cut
 
-sub _desired_attributes {
-    my ( $self, $all ) = @_;
+sub _max_attribute_index {
+    my $self = shift;
+    unless (@_) {
+        return $self->{max_attribute_index} || $MAX_ATTRIBUTE_INDEX;
+    }
+    $self->{max_attribute_index} = shift;
+    return $self;
+}
 
-    unless ( $self->{attributes} ) {
+sub _all_attributes {
+    my $self = shift;
+    if ( !$self->{all_attributes} ) {
         my @attributes =
-          grep {
-            !$_->references
-              && ( !$all && !exists $DONT_DISPLAY{ $_->name } )
-          } $self->class->attributes;
+          map { $_->name }
+          grep { !$_->references && ( !exists $DONT_DISPLAY{ $_->name } ) }
+          $self->class->attributes;
+        $self->{all_attributes} = \@attributes;
+    }
+    return wantarray ? @{ $self->{all_attributes} } : $self->{all_attributes};
+}
+
+sub _desired_attributes {
+    my $self = shift;
+
+    if ( !$self->{desired_attributes} ) {
+        my $index      = $self->_max_attribute_index;
+        my @attributes =
+          grep { !$_->references && ( !exists $DONT_DISPLAY{ $_->name } ) }
+          $self->class->attributes;
         my $i =
-          $MAX_ATTRIBUTE_INDEX < $#attributes
-          ? $MAX_ATTRIBUTE_INDEX
+          $index < $#attributes
+          ? $index
           : $#attributes;
 
         # don't list all attributes
-        unless ($all) {
-            @attributes = map { $_->name } @attributes[ 0 .. $i ];
-        }
-        $self->{attributes} = \@attributes;
+        @attributes = map { $_->name } @attributes[ 0 .. $i ];
+        $self->{desired_attributes} = \@attributes;
     }
-    return wantarray ? @{ $self->{attributes} } : $self->{attributes};
+    return
+      wantarray
+      ? @{ $self->{desired_attributes} }
+      : $self->{desired_attributes};
 }
 
 ##############################################################################

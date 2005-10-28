@@ -49,6 +49,14 @@ Two->new(
     age         => 22
 )->save;
 
+Two->new(
+    name        => 'Publius Ovidius Naso',
+    description => 'The poet "Ovid"',
+    date        => DateTime->now,
+    one         => $foo,
+    age         => 60
+)->save;
+
 print "Creating $instances 'Two' objects for paging tests ...\n\n";
 {
     local $| = 1;    # temporarily turn off buffering

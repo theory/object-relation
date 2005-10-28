@@ -111,6 +111,9 @@ our %Lexicon = (
   'Could not lex search request.  Found bad tokens ([_1])',
   'Could not lex search request. Found bad tokens ([_1])',
 
+  'I don\'t know how to lex a "[_1]"',
+  'I don\'t know how to lex a “[_1]”',
+
   'Could not parse search request:  [_1]',
   'Could not parse search request:  [_1]',
 

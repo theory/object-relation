@@ -24,6 +24,8 @@ function doSearch(form) {
     }
 }
 
+var lastSelectedOption;
+
 function checkForMultiValues(selectList) {
     var name = selectList.name.replace(/^_(.*)_comp$/, "$1");
     if ( ! name ) {
@@ -34,7 +36,8 @@ function checkForMultiValues(selectList) {
     var between    = document.getElementById(name + "_between");
     var notBetween = document.getElementById(name + "_not_between");
 
-    if ('BETWEEN' == selectList.options[selectList.selectedIndex].value) {
+    var option = selectList.options[ selectList.selectedIndex ].value;
+    if ( 'BETWEEN' == option ) {
         var betweenInput    = between.getElementsByTagName('input');
         var notBetweenInput = notBetween.getElementsByTagName('input');
         betweenInput[0].value = notBetweenInput[0].value; 
@@ -42,12 +45,15 @@ function checkForMultiValues(selectList) {
         notBetween.style.display = "none";
     }
     else {
-        var betweenInput    = between.getElementsByTagName('input');
-        var notBetweenInput = notBetween.getElementsByTagName('input');
-        notBetweenInput[0].value = betweenInput[0].value;
+        if ('BETWEEN' == lastSelectedOption) {
+            var betweenInput    = between.getElementsByTagName('input');
+            var notBetweenInput = notBetween.getElementsByTagName('input');
+            notBetweenInput[0].value = betweenInput[0].value;
+        }
         between.style.display    = "none";
         notBetween.style.display = "block";
     }
+    lastSelectedOption = option;
 }
 
 if (typeof Kinetic == 'undefined') Kinetic = {}; // Make sure the base namespace exists
@@ -142,13 +148,22 @@ Kinetic.Search.prototype = {
     _getElemValue: function(elem) {
         if ('BETWEEN' == this.comparisonFor[elem[0].name]) {
             // XXX does not yet handle quotes?
-            return '[ "' + elem[1].value + '", "' + elem[2].value + '" ]';
+            return '[ "' 
+                 + this._quote(elem[1].value)
+                 + '", "' 
+                 + this._quote(elem[2].value) 
+                 + '" ]';
         }
         else {
             return this._isEmpty(elem[0].value) 
                 ? '' 
-                : ' "' + elem[0].value + '"';
+                : ' "' + this._quote(elem[0].value) + '"';
         }
+    },
+
+    _quote: function(value) {
+        // Naive?  What if they've already tried to escape it?
+        return value.replace(/"/g, '\\"');
     },
 
     _getComparison: function (elem, type) {

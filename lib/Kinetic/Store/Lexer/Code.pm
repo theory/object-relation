@@ -113,7 +113,7 @@ sub _lex {
             push @tokens => $make_token->($term, $code);
         }
         else {
-            throw_search [ 'I don\'t know how to lex a "[_1]"', $type ];
+            throw_search [ q{I don't know how to lex a "[_1]"}, $type ];
         }
         push @tokens => ['OP', ','] if @$code;
     }
