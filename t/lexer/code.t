@@ -6,7 +6,7 @@ use Test::More tests => 36;
 #use Test::More 'no_plan';
 
 use lib 'lib';
-use Kinetic::HOP::Stream 'drop';
+use HOP::Stream 'drop';
 use aliased 'Kinetic::DateTime::Incomplete';
 BEGIN {
     use_ok 'Kinetic::Store', qw/:all/             or die;

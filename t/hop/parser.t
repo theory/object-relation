@@ -13,7 +13,7 @@ BEGIN {
     use_ok 'Kinetic::HOP::Parser', ':all' or die;
 }
 
-use Kinetic::HOP::Stream qw/node list_to_stream/;
+use HOP::Stream qw/node list_to_stream/;
 use Kinetic::Util::Exceptions;    # auto stacktrace
 
 sub run_parser {

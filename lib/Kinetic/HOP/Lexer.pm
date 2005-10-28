@@ -36,7 +36,7 @@ use base 'Exporter';
 our @EXPORT_OK   = qw/ make_lexer /;
 our %EXPORT_TAGS = ( all => \@EXPORT_OK );
 
-use Kinetic::HOP::Stream 'node';
+use HOP::Stream 'node';
 
 ##############################################################################
 

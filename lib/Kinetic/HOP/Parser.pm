@@ -28,7 +28,7 @@ use strict;
 use warnings;
 
 use base 'Exporter';
-use Kinetic::HOP::Stream qw/drop tail head/;
+use HOP::Stream qw/drop tail head/;
 
 our %N;
 

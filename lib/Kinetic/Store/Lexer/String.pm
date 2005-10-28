@@ -43,7 +43,7 @@ See L<Kinetic::Parser::DB|Kinetic::Parser::DB> for an example.
 use strict;
 use warnings;
 use Kinetic::Util::Exceptions qw/throw_search/;
-use Kinetic::HOP::Stream qw/node iterator_to_stream/;
+use HOP::Stream qw/node iterator_to_stream/;
 use Kinetic::HOP::Lexer qw/make_lexer/;
 use Carp qw/croak/;
 

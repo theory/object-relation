@@ -7,7 +7,7 @@ use Test::More tests => 42;
 use Test::Exception;
 
 use lib 'lib/', '../lib/';
-use Kinetic::HOP::Stream 'drop';
+use HOP::Stream 'drop';
 
 BEGIN {
     use_ok 'Kinetic::Store::Lexer::String', qw/string_lexer_stream/ or die;
