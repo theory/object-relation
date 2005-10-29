@@ -35,9 +35,9 @@ package Kinetic::Store::Parser;
 use strict;
 use Exporter::Tidy default => ['parse'];
 use HOP::Stream qw/drop list_to_stream/;
+use HOP::Parser qw/:all/;
 
 use Kinetic::DateTime::Incomplete qw/is_incomplete_iso8601/;
-use Kinetic::HOP::Parser qw/:all/;
 use Kinetic::Store::Search;
 use Kinetic::Util::Constants qw/:data_store/;
 use Kinetic::Util::Exceptions qw/panic throw_search/;

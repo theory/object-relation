@@ -148,8 +148,8 @@ Note that even though whitespace is identified (the lexer must successfully be
 able to identify everything in the text), it gets discarded as whitespace is
 not significant for the searches. However, because values are extracted prior
 to whitespace, whitespace in quoted strings will remain. See
-L<Kinetic::HOP::Lexer|Kinetic::HOP::Lexer> for details on how the actual
-lexing and discarding of whitespace happens.
+L<HOP::Lexer|HOP::Lexer> for details on how the actual lexing and discarding
+of whitespace happens.
 
 If the string lexer encounters text it cannot parse, it throws a
 L<Kinetic::Util::Exception::Fatal::Search|Kinetic::Util::Exception::Fatal::Search>

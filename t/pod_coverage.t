@@ -7,8 +7,6 @@ use Test::More;
 eval "use Test::Pod::Coverage 0.08";
 plan skip_all => "Test::Pod::Coverage required for testing POD coverage" if $@;
 
-# we don't have tests for these because they're pulled from
-# HOP (Higher Order Perl)
 my %TODO = map { $_ => 1 } qw//;
 
 diag "Don't forget to update the pod at some point"
@@ -27,7 +25,6 @@ my %exceptions = (
     'Kinetic::Util::Collection' => qr/^Iterator$/,
     'Kinetic::View::XSLT'       => qr/^LibXML|LibXSLT$/,
     'Kinetic::XML'              => qr/^XML$/,
-    'Kinetic::HOP::Parser'      => qr/^operator|error|action|test|debug|display_failures$/,
 );
 
 my @modules =

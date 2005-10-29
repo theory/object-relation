@@ -44,7 +44,7 @@ use strict;
 use warnings;
 use Kinetic::Util::Exceptions qw/throw_search/;
 use HOP::Stream qw/node iterator_to_stream/;
-use Kinetic::HOP::Lexer qw/make_lexer/;
+use HOP::Lexer qw/make_lexer/;
 use Carp qw/croak/;
 
 use Exporter::Tidy default => [qw/string_lexer_stream/];
