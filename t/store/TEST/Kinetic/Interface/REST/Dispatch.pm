@@ -594,48 +594,15 @@ sub handle : Test(6) {
     my $response = $rest->response;
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
-    my @instance_order     = $test->instance_order($response);
-    my $sort_info_xml      = $test->column_sort_xml('one');
-    my $expected_instances =
-      $test->expected_instance_xml( scalar $test->test_objects,
-        \@instance_order );
-    my $header     = $test->header_xml(AVAILABLE_INSTANCES);
-    my $resources  = $test->resource_list_xml;
-    my $search_xml = $test->search_data_xml;
 
-    my $expected = <<"    END_XML";
-$header
-        $resources
-        $sort_info_xml
-        $expected_instances
-        $search_xml
-    </kinetic:resources>
-    END_XML
-
-    is_xml $response, $expected, '... and it should return the correct XML';
-    return; # XXX
+    is_well_formed_xml $response, '... and it should return well-formed XML';
 
     my $foo_uuid = $foo->uuid;
     $dispatch->method('lookup');
     $dispatch->args( Array::AsHash->new( { array => [ 'uuid', $foo_uuid ] } ) );
     $dispatch->handle_rest_request;
-    my $no_namespace_resources = $test->resource_list_xml(1);
-    $expected = <<"    END_XML";
-<?xml version="1.0"?>
-    <?xml-stylesheet type="text/xsl" href="@{[INSTANCE_XSLT]}"?>
-    <kinetic version="0.01">
-      $no_namespace_resources
-      <instance key="one">
-        <attr name="bool">1</attr>
-        <attr name="description"></attr>
-        <attr name="name">foo</attr>
-        <attr name="state">1</attr>
-        <attr name="uuid">$foo_uuid</attr>
-      </instance>
-    </kinetic>
-    END_XML
-    is_xml $rest->response, $expected,
-      '... and $class_key/lookup/uuid/$uuid should return instance XML';
+    is_well_formed_xml $rest->response, 
+      '... and $class_key/lookup/uuid/$uuid should return well-formed XML';
 
     $dispatch->method('search');
     my $args =
@@ -643,21 +610,8 @@ $header
     $dispatch->args( $args->clone );
     $dispatch->handle_rest_request;
 
-    $sort_info_xml = $test->column_sort_xml( 'one', $args->clone );
-    my $instance = $test->expected_instance_xml( [$foo] );
-    my $search = $test->search_data_xml( 'one', $args->clone );
-
-    $expected = <<"    END_XML";
-$header
-      $resources
-      $sort_info_xml
-      $instance
-      $search
-    </kinetic:resources>
-    END_XML
-
-    is_xml $rest->response, $expected,
-      '$class_key/search/STRING/$search_string should return a list';
+    is_well_formed_xml $rest->response, 
+      '$class_key/search/STRING/$search_string should return well-formed xml';
 
     my $search_string = 'name => "foo", OR(name => "bar")';
     $args =
@@ -665,19 +619,8 @@ $header
         { array => [ SEARCH_TYPE, $search_string, ORDER_BY_PARAM, 'name' ] } );
     $dispatch->args( $args->clone );
 
-    $sort_info_xml = $test->column_sort_xml( 'one', $args->clone );
-    $expected_instances = $test->expected_instance_xml( [ $bar, $foo ] );
-    $search = $test->search_data_xml( 'one', $args->clone );
     $dispatch->handle_rest_request;
-    $expected = <<"    END_XML";
-$header
-      $resources
-      $sort_info_xml
-      $expected_instances
-      $search
-    </kinetic:resources>
-    END_XML
-    is_xml $rest->response, $expected,
+    is_well_formed_xml $rest->response, 
       '... and complex searches with constraints should also succeed';
 }
 

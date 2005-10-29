@@ -58,7 +58,7 @@ Creates and returns a new xml object.
 =cut
 
 sub new {
-    my ($class, $kinetic_class) = @_;
+    my ( $class, $kinetic_class ) = @_;
     my $self = bless {}, $class;
     return $self unless $kinetic_class;
     $self->class($kinetic_class);
@@ -94,12 +94,12 @@ B<Throws:>
 sub write_xml {
     my $self   = shift;
     my %params = @_;
-    my $fh = delete $params{handle} || do {
+    my $fh     = delete $params{handle} || do {
         my $file = delete $params{file};
-        IO::File->new($file, ">:utf8")
-          or throw_io ['Cannot open file "[_1]": [_2]', $file, $!];
+        IO::File->new( $file, ">:utf8" )
+          or throw_io [ 'Cannot open file "[_1]": [_2]', $file, $! ];
     };
-    $fh->print($self->dump_xml(%params));
+    $fh->print( $self->dump_xml(%params) );
     $fh->close;
     return $self;
 }
@@ -134,96 +134,105 @@ then contained objects will merely be referenced by UUID and name.
 =cut
 
 my @CLASSES;
+
 sub dump_xml {
     my $self   = shift;
     my %params = @_;
-    my $class = $self->class;
+    my $class  = $self->class;
     push @CLASSES => $class;
     local $self->{params} = \%params;
-    my $xml    = XML::Genx::Simple->new;
+    my $xml = XML::Genx::Simple->new;
     eval {
         $xml->StartDocString;
         $xml->StartElementLiteral('kinetic');
-        $xml->AddAttributeLiteral(version => XML_VERSION);
-        while (my $class = shift @CLASSES) {
-            $self->_add_class_to_xml($xml, $class);
+        $xml->AddAttributeLiteral( version => XML_VERSION );
+        while ( my $class = shift @CLASSES ) {
+            $self->_add_class_to_xml( $xml, $class );
         }
         $xml->EndElement;
         $xml->EndDocument;
     };
-    throw_xml ["Writing XML failed: [_1]", $@] if $@;
+    throw_xml [ "Writing XML failed: [_1]", $@ ] if $@;
     return $xml->GetDocString;
 }
 
-my %attributes = (
-    class    => [qw/
-        package
-        name
-        plural_name
-        desc
-        abstract
-        is_a
-    /],
+my %attribute_for = (
+    class => [
+        qw/
+          package
+          name
+          plural_name
+          desc
+          abstract
+          is_a
+          /
+    ],
     multiple => {
-        order  => [qw/
-            constructors
-            attributes
-        /],
+        order => [
+            qw/
+              constructors
+              attributes
+              /
+        ],
         lookup => {
             constructors => {
-                label => 'constructor',
+                label      => 'constructor',
                 attributes => [qw/name/],
             },
             attributes => {
-                label  => 'attribute',
-                attributes => [qw/
-                    name
-                    label
-                    type
-                    required
-                    unique
-                    once
-                    default
-                    relationship
-                    authz
-                    widget_meta
-                /],
+                label      => 'attribute',
+                attributes => [
+                    qw/
+                      name
+                      label
+                      type
+                      required
+                      unique
+                      once
+                      default
+                      relationship
+                      authz
+                      widget_meta
+                      /
+                ],
             },
         },
     },
-    contained => {
-        widget_meta => [qw/type tip/],
-    },
+    contained => { widget_meta => [qw/type tip/], },
 );
 
 sub _add_class_to_xml {
-    my ($self, $xml, $class) = @_;
-    $xml->StartElementLiteral('', 'class');
-    $xml->AddAttributeLiteral(key => $class->key);
+    my ( $self, $xml, $class ) = @_;
+    $xml->StartElementLiteral( '', 'class' );
+    $xml->AddAttributeLiteral( key => $class->key );
+
     # XXX this is temporary (?)
     local $^W;
-    foreach my $attribute (@{$attributes{class}}) {
-        $xml->Element( $attribute => ($class->$attribute || '') );
+    foreach my $attribute ( @{ $attribute_for{class} } ) {
+        $xml->Element( $attribute => ( $class->$attribute || '' ) );
     }
-    foreach my $multiple (@{$attributes{multiple}{order}}) {
+    foreach my $multiple ( @{ $attribute_for{multiple}{order} } ) {
         $xml->StartElementLiteral($multiple);
-        my ($label, $attributes) 
-            = @{$attributes{multiple}{lookup}{$multiple}}{qw/label attributes/};
-        foreach my $thing ($class->$multiple) {
+        my ( $label, $attributes ) =
+          @{ $attribute_for{multiple}{lookup}{$multiple} }
+          {qw/label attributes/};
+        foreach my $thing ( $class->$multiple ) {
             $xml->StartElementLiteral($label);
-            my $attr_object = $class->attributes($thing->name);
+            my $attr_object = $class->attributes( $thing->name );
             foreach my $attribute (@$attributes) {
-                if (my $contained_attrs = $attributes{contained}{$attribute}) {
-                    if (my $contained = $attr_object->$attribute) {
+                if ( my $contained_attrs =
+                    $attribute_for{contained}{$attribute} )
+                {
+                    if ( my $contained = $attr_object->$attribute ) {
                         $xml->StartElementLiteral($attribute);
                         foreach my $c_attr (@$contained_attrs) {
-                            $xml->Element($c_attr => $contained->$c_attr);
+                            $xml->Element( $c_attr => $contained->$c_attr );
                         }
                         $xml->EndElement;
                     }
                 }
                 else {
-                    $xml->Element($attribute => ($thing->$attribute || '')); 
+                    $xml->Element( $attribute => ( $thing->$attribute || '' ) );
                 }
             }
             $xml->EndElement;
@@ -250,12 +259,9 @@ sub class {
     my $self = shift;
     if (@_) {
         my $class = shift;
-        unless (UNIVERSAL::isa($class, 'Kinetic::Meta::Class')) {
-            throw_invalid_class [
-                'Argument "[_1]" is not a valid [_2] class',
-                1,
-                'Kinetic'
-            ];
+        unless ( UNIVERSAL::isa( $class, 'Kinetic::Meta::Class' ) ) {
+            throw_invalid_class [ 'Argument "[_1]" is not a valid [_2] class',
+                1, 'Kinetic' ];
         }
         $self->{class} = $class;
         return $self;

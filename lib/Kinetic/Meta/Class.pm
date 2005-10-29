@@ -157,7 +157,7 @@ sub direct_attributes { @{ shift->{direct_attrs} } }
 =head3 build
 
 This private method overrides the parent C<build()> method in order to cache
-the a list of thereferenced attributes for use by C<ref_attributes()>.
+the a list of the referenced attributes for use by C<ref_attributes()>.
 
 =cut
 

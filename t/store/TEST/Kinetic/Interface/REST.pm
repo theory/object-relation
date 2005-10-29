@@ -122,7 +122,7 @@ sub _clear_database {
 
 sub REST { shift->{REST} }
 
-sub search_by_query_string : Test(8) {
+sub search_by_query_string : Test(6) {
     my $test = shift;
     my $mech = Test::WWW::Mechanize->new;
     my $url  = $test->url;
@@ -135,38 +135,9 @@ sub search_by_query_string : Test(8) {
         'We should be able to search by query string'
     );
 
-    my $foo_uuid           = $foo->uuid;
-    my $bar_uuid           = $bar->uuid;
-    my $header             = $test->header_xml(AVAILABLE_INSTANCES);
     my $response           = $mech->content;
-    my @instance_order     = $test->instance_order($response);
-    my $expected_instances =
-      $test->expected_instance_xml( [ $foo, $bar, $baz ], \@instance_order );
-    my $resources = $test->resource_list_xml;
-    my $args      =
-      Array::AsHash->new( { array => [ ORDER_BY_PARAM, 'name', LIMIT_PARAM, 2 ] } );
-    my $search        = $test->search_data_xml( 'one', $args->clone );
-    my $sort_info_xml = $test->column_sort_xml( 'one', $args->clone );
-    my $expected      = <<"    END_XML";
-$header
-      $resources
-      $sort_info_xml
-      $expected_instances
-      <kinetic:pages>
-        <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
-        <kinetic:page id="[ Page 2 ]" xlink:href="${url}one/search/STRING/null/_limit/2/_offset/2/_order_by/name/_sort_order/ASC" />
-      </kinetic:pages>
-      $search
-    </kinetic:resources>
-    END_XML
 
-    is_xml $response, $expected, '... and have the correct data returned';
-
-    $mech->get_ok(
-"${url}one/search?@{[CLASS_KEY_PARAM]}=one;search=;_order_by=name;_limit=2;_sort_order=",
-        'We should be able to search with a query string and partial path info'
-    );
-    is_xml $response, $expected, '... and have the correct data returned';
+    is_well_formed_xml $response, '... and should return well-formed XML';
 
     $test->query_string("@{[TYPE_PARAM]}=html");
     $mech->get_ok(
@@ -174,65 +145,16 @@ $header
         'We should be able to fetch and limit the searches'
     );
 
-    my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
-    my $html_resources = $test->resource_list_html;
-    $args =
-      Array::AsHash->new( { array => [ LIMIT_PARAM, 2, ORDER_BY_PARAM, 'name' ] } );
-    my $search_form = $test->search_form( 'one', $args->clone );
-    my $instances = $test->instance_table(
-        {
-            args    => $args->clone,
-            objects => [ $bar, $foo ],
-        }
-    );
-    my $footer = $test->footer_html;
-
-    $expected = <<"    END_XHTML";
-$html_header
-    $html_resources
-    $search_form
-    $instances
-    <div class="pages">
-      <p>
-        [ Page 1 ]
-        <a href="${url}one/search/STRING/null/_limit/2/_offset/2/_order_by/name/_sort_order/ASC?@{[TYPE_PARAM]}=html">[ Page 2 ]</a>
-      </p>
-    </div>
-    $footer
-    END_XHTML
-    is_xml $mech->content, $expected,
-      '... ordering and limiting searches should work';
+    is_well_formed_xml $mech->content,
+      '... ordering and limiting searches should return well-formed xml';
 
     $mech->get_ok(
 "${url}?@{[CLASS_KEY_PARAM]}=one;search=;_order_by=name;_limit=2;_sort_order=;_offset=2;@{[TYPE_PARAM]}=html",
         '... as should paging through result sets'
     );
-    $instances = $test->instance_table(
-        {
-            args => Array::AsHash->new(
-                { array => [ LIMIT_PARAM, 2, OFFSET_PARAM, 2, ORDER_BY_PARAM, 'name' ] }
-            ),
-            objects => [$baz]
-        }
-    );
-    $html_header    = $test->header_html(AVAILABLE_INSTANCES);
-    $html_resources = $test->resource_list_html;
 
-    $expected = <<"    END_XHTML";
-$html_header
-    $html_resources
-    $search_form
-    $instances
-    <div class="pages">
-      <p>
-        <a href="${url}one/search/STRING/null/_limit/2/_offset/0/_order_by/name/_sort_order/ASC?@{[TYPE_PARAM]}=html">[ Page 1 ]</a>
-        [ Page 2 ]
-      </p>
-    </div>
-    $footer
-    END_XHTML
-    is_xml $mech->content, $expected,
-      '... ordering and limiting searches should work';
+    is_well_formed_xml $mech->content, 
+      '... ordering and limiting searches should return well-formed xml';
 }
 
 sub web_test_paging : Test(15) {
@@ -248,33 +170,10 @@ sub web_test_paging : Test(15) {
         'We should be able to fetch and limit the searches'
     );
 
-    my $foo_uuid       = $foo->uuid;
-    my $bar_uuid       = $bar->uuid;
-    my $header         = $test->header_xml(AVAILABLE_INSTANCES);
     my $response       = $mech->content;
-    my @instance_order = $test->instance_order($response);
-    my $args           =
-      Array::AsHash->new( { array => [ ORDER_BY_PARAM, 'name', LIMIT_PARAM, 2 ] } );
-    my $sort_info_xml = $test->column_sort_xml( 'one', $args->clone );
-    my $expected_instances =
-      $test->expected_instance_xml( [ $foo, $bar, $baz ], \@instance_order );
-    my $resources = $test->resource_list_xml;
-    my $search    = $test->search_data_xml( 'one', $args->clone );
-    my $expected  = <<"    END_XML";
-$header
-      $resources
-      $sort_info_xml
-      $expected_instances
-      <kinetic:pages>
-        <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
-        <kinetic:page id="[ Page 2 ]" xlink:href="${url}one/search/STRING/null/_limit/2/_offset/2/_order_by/name/_sort_order/ASC" />
-      </kinetic:pages>
-      $search
-    </kinetic:resources>
-    END_XML
 
-    is_xml $response, $expected,
-      '... and have appropriate pages added, if available';
+    is_well_formed_xml $response, 
+      '... and the response should be well-formed XML';
 
     $test->query_string("@{[TYPE_PARAM]}=html");
     $mech->get_ok(
@@ -282,64 +181,14 @@ $header
         'We should be able to fetch and limit the searches'
     );
 
-    my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
-    my $html_resources = $test->resource_list_html;
-    $args =
-      Array::AsHash->new( { array => [ LIMIT_PARAM, 2, ORDER_BY_PARAM, 'name' ] } );
-    my $search_form = $test->search_form( 'one', $args->clone );
-    my $instances = $test->instance_table(
-        {
-            args    => $args->clone,
-            objects => [ $bar, $foo ],
-        }
-    );
-    my $footer = $test->footer_html;
-
-    $expected = <<"    END_XHTML";
-$html_header
-    $html_resources
-    $search_form
-    $instances
-    <div class="pages">
-      <p>
-        [ Page 1 ]
-        <a href="${url}one/search/STRING/null/_limit/2/_offset/2/_order_by/name/_sort_order/ASC?@{[TYPE_PARAM]}=html">[ Page 2 ]</a>
-      </p>
-    </div>
-    $footer
-    END_XHTML
-    is_xml $mech->content, $expected,
+    is_well_formed_xml $mech->content,
       '... ordering and limiting searches should work';
 
     $mech->get_ok(
 "${url}one/search/STRING/null/_order_by/name/_limit/2/_offset/2?@{[TYPE_PARAM]}=html",
         '... as should paging through result sets'
     );
-    $instances = $test->instance_table(
-        {
-            args => Array::AsHash->new(
-                { array => [ OFFSET_PARAM, 2, LIMIT_PARAM, 2, ORDER_BY_PARAM, 'name' ] }
-            ),
-            objects => [$baz]
-        }
-    );
-    $html_header    = $test->header_html(AVAILABLE_INSTANCES);
-    $html_resources = $test->resource_list_html;
-
-    $expected = <<"    END_XHTML";
-$html_header
-    $html_resources
-    $search_form
-    $instances
-    <div class="pages">
-      <p>
-        <a href="${url}one/search/STRING/null/_limit/2/_offset/0/_order_by/name/_sort_order/ASC?@{[TYPE_PARAM]}=html">[ Page 1 ]</a>
-        [ Page 2 ]
-      </p>
-    </div>
-    $footer
-    END_XHTML
-    is_xml $mech->content, $expected,
+    is_well_formed_xml $mech->content,
       '... ordering and limiting searches should work';
 
     $mech->get_ok(
@@ -420,29 +269,8 @@ sub web_test : Test(12) {
         qq'${url}one/search/STRING/name => "foo"?@{[TYPE_PARAM]}=html',
         'We should be able to fetch via a search' );
 
-    $foo_uuid = $foo->uuid;
-    my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
-    my $html_resources = $test->resource_list_html;
-    my $args = Array::AsHash->new( { array => [ STRING => 'name => "foo"' ] } );
-    my $search_form = $test->search_form( 'one', $args->clone );
-    my $instances   = $test->instance_table(
-        {
-            args    => $args->clone,
-            objects => [$foo]
-        }
-    );
-    my $footer = $test->footer_html;
-
-    my $expected = <<"    END_XHTML";
-$html_header
-    $html_resources
-    $search_form
-    $instances
-    $footer
-    END_XHTML
-
-    is_xml $mech->content, $expected,
-'REST strings searches with HTML type specified should return the correct HTML';
+    is_well_formed_xml $mech->content,
+'REST strings searches with HTML type specified should return valid XHTML';
 }
 
 sub constructor : Test(14) {
@@ -521,27 +349,8 @@ sub rest_interface : Test(19) {
     is $rest->status, '200 OK', '... with an appropriate status code';
     ok $rest->response, '... and return an entity-body';
 
-    my ( $foo, $bar, $baz ) = $test->test_objects;
-    my $header = $test->header_xml(AVAILABLE_INSTANCES);
-    my $args   =
-      Array::AsHash->new(
-        { array => [ STRING => 'name => "foo"', ORDER_BY_PARAM, 'name' ] } );
-    my $sort_info_xml = $test->column_sort_xml( 'one', $args->clone );
-    my $instances = $test->expected_instance_xml( [$foo] );
-    my $resources = $test->resource_list_xml;
-    my $search    = $test->search_data_xml( 'one', $args->clone );
-
-    my $expected = <<"    END_XML";
-$header
-      $resources
-      $sort_info_xml
-      $instances
-      $search
-    </kinetic:resources>
-    END_XML
-
-    is_xml $rest->response, $expected,
-      '$class_key/search/STRING/$search_string should return a list';
+    is_well_formed_xml $rest->response,
+      '... which should be well-formed XML';
 }
 
 sub rest_faults : Test(7) {
@@ -595,23 +404,8 @@ $header
     my $key     = One->my_class->key;
     my $one_xml = $rest->url("$key/search")->get;
 
-    # XXX Yuck.  Fix this later
-    my @order         = $test->instance_order($one_xml);
-    my $sort_info_xml = $test->column_sort_xml('one');
-    my $instances     =
-      $test->expected_instance_xml( scalar $test->test_objects, \@order );
-    $header = $test->header_xml(AVAILABLE_INSTANCES);
-    my $search = $test->search_data_xml( 'one' );
-    $expected = <<"    END_XML";
-$header
-      $resources
-      $sort_info_xml
-      $instances
-      $search
-    </kinetic:resources>
-    END_XML
-    is_xml $one_xml, $expected,
-      'Calling it with a resource/search should return a list of instances';
+    is_well_formed_xml $one_xml,
+      'Calling it with a resource/search should return well-formed_xml';
 
     $key = Two->my_class->key;
     my $two_xml = $rest->url("$key/search")->get;

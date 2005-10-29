@@ -7,7 +7,7 @@ use warnings;
 use diagnostics;
 
 #use Test::More qw(no_plan);
-use Test::More tests => 362;
+use Test::More tests => 366;
 use File::Spec;
 use File::Find;
 
@@ -42,8 +42,12 @@ BEGIN {
     }
 
     # Find all libraries.
+    # XXX Ovid: not sure if this is the best fix, but some localizations are
+    # "computed" and only show up in tests.  For example, 
+    # "The description of this object" only shows up in the tests for
+    # Kinetic::Meta::XML
     my $find_libs = sub {
-        return unless /\.pm$/;
+        return unless /\.(?:pm|t)$/;
         return if /#/;    # Ignore old backup files.
         return if $File::Find::name =~ /Language[^.]/;    # Ignore l10n libs.
         push @libs, $File::Find::name;
@@ -51,7 +55,7 @@ BEGIN {
 
     # Find all of the language classes and make sure that they load.
     find( $find_libs, File::Spec->catdir('lib') );
-
+    find( $find_libs, File::Spec->catdir('t') ); # the might be in test libs, too
 }
 
 ##############################################################################
@@ -94,15 +98,7 @@ for my $class (@langs) {
 
 # Make sure that all localizations are actually used.
 for my $key ( keys %Kinetic::Util::Language::en::Lexicon ) {
-    if ( 'No direct attribute "[_1]" to sort by' eq $key ) {
-      TODO: {
-            local $TODO = 'Waiting for David to add this behavior';
-            ok find_text($key), qq{"$key" should be used};
-        }
-    }
-    else {
-        ok find_text($key), qq{"$key" should be used};
-    }
+    ok find_text($key), qq{"$key" should be used};
 }
 
 sub find_text {

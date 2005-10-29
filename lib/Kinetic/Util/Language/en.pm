@@ -212,6 +212,8 @@ our %Lexicon = (
   'The name of this object',
 
   'Description' => 'Description',
+  'The description of this object',
+  'The description of this object',
 
   'State' => 'State',
   'The state of this object',
