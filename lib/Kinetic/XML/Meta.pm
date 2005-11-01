@@ -1,4 +1,4 @@
-package Kinetic::Meta::XML;
+package Kinetic::XML::Meta;
 
 # $Id: XML.pm 1407 2005-03-23 02:55:28Z curtis $
 
@@ -29,11 +29,11 @@ use constant XML_VERSION => '0.01';
 
 =head1 Name
 
-Kinetic::Meta::XML - The Kinetic::Meta::Class XML serialization class
+Kinetic::XML::Meta - The Kinetic::Meta::Class XML serialization class
 
 =head1 Synopsis
 
-  use Kinetic::Meta::XML;
+  use Kinetic::XML::Meta;
 
 =head1 Description
 
@@ -51,7 +51,7 @@ may be updated using this class.
 
 =head3 new
 
-  my $xml = Kinetic::Meta::XML->new;
+  my $xml = Kinetic::XML::Meta->new;
 
 Creates and returns a new xml object.
 

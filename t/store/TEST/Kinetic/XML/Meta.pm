@@ -1,4 +1,4 @@
-package TEST::Kinetic::Meta::XML;
+package TEST::Kinetic::XML::Meta;
 
 # $Id: XML.pm 1094 2005-01-11 19:09:08Z curtis $
 
@@ -22,7 +22,7 @@ use aliased 'TestApp::Simple';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
 
-use aliased 'Kinetic::Meta::XML';
+use aliased 'Kinetic::XML::Meta', 'XML';
 
 __PACKAGE__->runtests unless caller;
 

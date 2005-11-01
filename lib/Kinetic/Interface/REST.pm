@@ -144,8 +144,7 @@ sub handle_request {
     # the following variables should be case-insensitive
     $_ = lc foreach $class_key, $method;
 
-    my $dispatch = Kinetic::Interface::REST::Dispatch->new;
-    $dispatch->rest($self);
+    my $dispatch = Kinetic::Interface::REST::Dispatch->new( { rest => $self } );
     eval {
         if ( !$class_key )
         {
@@ -164,6 +163,55 @@ sub handle_request {
     }
     $self->status(HTTP_OK) unless $self->status;
     return $self;
+}
+
+##############################################################################
+
+=head3 output_type
+
+  my $output_type = $rest->output_type;
+
+Returns the output type the client has requested.  The client requests a given
+output type in the query string via the the "_type=$type" parameter.
+
+=cut
+
+sub output_type {
+    my $self = shift;
+    my $output_type = lc $self->cgi->param(TYPE_PARAM) || '';
+}
+
+##############################################################################
+
+=head3 base_url
+
+  my $base_url = $rest->base_url;
+
+Returns the base url for the REST server.
+
+=cut
+
+sub base_url {
+    my $self = shift;
+    return join '' => map $self->$_ => qw/domain path/;
+}
+
+##############################################################################
+
+=head3 query_string
+
+  my $query_string = $rest->query_string;
+
+At thhe present type, only returns the portion of the REST query string
+specifiying the content type.
+
+=cut
+
+sub query_string {
+    my $self = shift;
+    my $type = lc $self->output_type || return '';
+    return '' if 'xml' eq $type;    # because this is the default
+    return "?" . TYPE_PARAM . "=$type";
 }
 
 sub _get_request {

@@ -45,7 +45,7 @@ BEGIN {
     # XXX Ovid: not sure if this is the best fix, but some localizations are
     # "computed" and only show up in tests.  For example, 
     # "The description of this object" only shows up in the tests for
-    # Kinetic::Meta::XML
+    # Kinetic::XML::Meta
     my $find_libs = sub {
         return unless /\.(?:pm|t)$/;
         return if /#/;    # Ignore old backup files.

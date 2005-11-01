@@ -106,8 +106,8 @@ sub _path_info {
 }
 
 sub get_desired_attributes : Test(no_plan) {
-    my $test     = shift;
-    my $dispatch = Dispatch->new;
+    my $test = shift;
+    my $dispatch = Dispatch->new( { rest => $test->{rest} } );
     $dispatch->class_key('two');
     can_ok $dispatch, '_desired_attributes';
     $dispatch->_max_attribute_index(3);
@@ -221,7 +221,7 @@ sub _get_pageset_xml {
     $current = $args->get(LIMIT_PARAM)     unless defined $current;
     $total   = $args->get(LIMIT_PARAM) * 2 unless defined $total;
 
-    my $dispatch = Dispatch->new;
+    my $dispatch = Dispatch->new({rest => $test->{rest}});
     $dispatch->rest( $test->{rest} );
     $dispatch->class_key($test_class);
     $dispatch->args($args);
@@ -233,16 +233,16 @@ sub _get_pageset_xml {
 
 sub _get_xml {
     my ( $test, $object, $method, @args ) = @_;
-    my $xml_builder = $object->_xml_setup;
-    $xml_builder->StartDocString;
-    $object->_xml_elem('resources')->StartElement;
-    $object->_xml_ns('xlink')->AddNamespace;
+    my $xml = $object->_xml;
+    $xml->StartDocString;
+    $xml->elem('resources')->StartElement;
+    $xml->ns('xlink')->AddNamespace;
 
     my $count = 1;
     $object->$method(@args);
-    $xml_builder->EndElement;
-    $xml_builder->EndDocument;
-    return $xml_builder->GetDocString;
+    $xml->EndElement;
+    $xml->EndDocument;
+    return $xml->GetDocString;
 }
 
 sub add_search_data : Test(no_plan) {
@@ -317,7 +317,7 @@ sub _test_search_data {
     my $dispatch_mock = MockModule->new('Kinetic::Interface::REST::Dispatch');
     $dispatch_mock->mock( _count => sub { 10 } );
 
-    my $dispatch = Dispatch->new;
+    my $dispatch = Dispatch->new({rest => $test->{rest}});
 
     # we need to set this up because the rest class uses search request
     # IR to figure out how the search was performed and build the correct
@@ -370,7 +370,7 @@ qq{$parameters\[\@type = "$arg"]/kinetic:option[\@name = "$order->[0]"]}
                   );
                 is $node,
 qq{<kinetic:option name="$order->[0]"$selected>$order->[1]</kinetic:option>},
-                  qq[... and the "$arg $order->[0]" option should${not}be selected];
+qq[... and the "$arg $order->[0]" option should${not}be selected];
             }
         }
         elsif ( $arg =~ /^_/ ) {
@@ -399,16 +399,16 @@ qq{<kinetic:option name="$order->[0]"$selected>$order->[1]</kinetic:option>},
                 my $option = 'kinetic:option[@selected = "selected"]';
                 $node =
                   $xpath->findnodes_as_string(
-                    qq($comparison\[\@type = "_${field}_logical"]/$option) );
+                    qq($comparison\[\@type = "_${field}_logical"]/$option));
                 my $name = $search->negated ? 'name="NOT"' : 'name=""';
                 like $node, qr/$name/,
-                    '... and whether or not the field is negated should be selected';
+'... and whether or not the field is negated should be selected';
                 $node =
                   $xpath->findnodes_as_string(
-                    qq($comparison\[\@type = "_${field}_comp"]/$option) );
-                $name = 'name="'.$search->operator.'"';
+                    qq($comparison\[\@type = "_${field}_comp"]/$option));
+                $name = 'name="' . $search->operator . '"';
                 like $node, qr/$name/,
-                    '... and the correct search operator should be selected';
+                  '... and the correct search operator should be selected';
             }
         }
     }
@@ -421,9 +421,10 @@ sub _path_info_segment_has_null_value {
 }
 
 sub method_arg_handling : Test(12) {
+    my $test = shift;
 
     # also test for lookup
-    my $dispatch = Dispatch->new;
+    my $dispatch = Dispatch->new({rest => $test->{rest}});
     can_ok $dispatch, 'args';
     $dispatch->method('lookup');
     ok $dispatch->args->isa('Array::AsHash'),
@@ -487,7 +488,7 @@ sub method_arg_handling : Test(12) {
 sub page_set : Test(17) {
     my $test = shift;
 
-    my $dispatch = Dispatch->new;
+    my $dispatch = Dispatch->new({rest => $test->{rest}});
 
     for my $age ( 1 .. 100 ) {
         my $object = Two->new;
@@ -555,9 +556,9 @@ sub class_list : Test(2) {
     my $test = shift;
     my $url  = $test->url;
 
-    my $dispatch = Dispatch->new;
-    can_ok $dispatch, 'class_list';
     my $rest = $test->{rest};
+    my $dispatch = Dispatch->new( { rest => $rest } );
+    can_ok $dispatch, 'class_list';
     $rest->xslt('resources');
     $dispatch->rest($rest);
     $dispatch->class_list;
@@ -575,12 +576,12 @@ $header
 
 sub handle : Test(6) {
     my $test     = shift;
-    my $dispatch = Dispatch->new;
+    my $rest     = $test->{rest};
+    my $dispatch = Dispatch->new( { rest => $rest } );
     my $url      = $test->url;
 
     can_ok $dispatch, 'handle_rest_request';
-    my $rest = $test->{rest};
-    my $key  = One->my_class->key;
+    my $key = One->my_class->key;
     $dispatch->rest($rest)->class_key($key);
 
     # The error message used path info
@@ -601,7 +602,7 @@ sub handle : Test(6) {
     $dispatch->method('lookup');
     $dispatch->args( Array::AsHash->new( { array => [ 'uuid', $foo_uuid ] } ) );
     $dispatch->handle_rest_request;
-    is_well_formed_xml $rest->response, 
+    is_well_formed_xml $rest->response,
       '... and $class_key/lookup/uuid/$uuid should return well-formed XML';
 
     $dispatch->method('search');
@@ -610,7 +611,7 @@ sub handle : Test(6) {
     $dispatch->args( $args->clone );
     $dispatch->handle_rest_request;
 
-    is_well_formed_xml $rest->response, 
+    is_well_formed_xml $rest->response,
       '$class_key/search/STRING/$search_string should return well-formed xml';
 
     my $search_string = 'name => "foo", OR(name => "bar")';
@@ -620,7 +621,7 @@ sub handle : Test(6) {
     $dispatch->args( $args->clone );
 
     $dispatch->handle_rest_request;
-    is_well_formed_xml $rest->response, 
+    is_well_formed_xml $rest->response,
       '... and complex searches with constraints should also succeed';
 }
 

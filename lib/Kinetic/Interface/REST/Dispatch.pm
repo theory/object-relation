@@ -22,7 +22,6 @@ use strict;
 use Data::Pageset;
 use HTML::Entities qw/encode_entities/;
 use Params::Validate qw/validate/;
-use XML::Genx::Simple;
 use Array::AsHash;
 use Scalar::Util qw/blessed/;
 
@@ -36,8 +35,7 @@ use Kinetic::View::XSLT;
 our $VERSION = version->new('0.0.1');
 
 use Readonly;
-Readonly my $XML_DECLARATION     => '<?xml version="1.0"?>';
-Readonly my %DONT_DISPLAY        => ( uuid => 1 );
+Readonly my %DONT_DISPLAY => ( uuid => 1 );
 Readonly my $MAX_ATTRIBUTE_INDEX => 4;
 Readonly my $PLACEHOLDER         => 'null';
 Readonly my $DEFAULT_LIMIT       => 20;
@@ -45,6 +43,8 @@ Readonly my $DEFAULT_SEARCH_ARGS => {
     array => [ SEARCH_TYPE, '', LIMIT_PARAM, $DEFAULT_LIMIT, OFFSET_PARAM, 0 ],
     clone => 1,
 };
+
+Readonly my $XML_DECLARATION => '<?xml version="1.0"?>';
 
 =head1 Name
 
@@ -71,15 +71,19 @@ methods directly.
 
 =head3 new
 
-  my $dispatch = Kinetic::Interface::REST::Dispatch->new;
+  my $dispatch = Kinetic::Interface::REST::Dispatch->new( { rest => $rest } );
 
-The constructor.  Currently takes no arguments;
+The constructor.  The C<rest> argument should be an object conforming to the
+C<Kinetic::Interface::Rest> object.
 
 =cut
 
 sub new {
-    my ($class) = @_;
-    bless {}, $class;
+    my ( $class, $arg_for ) = @_;
+    my $self = bless {}, $class;
+    $self->rest( $arg_for->{rest} );
+    $self->_xml( Kinetic::XML::REST->new( { rest => $arg_for->{rest} } ) );
+    return $self;
 }
 
 ##############################################################################
@@ -249,33 +253,6 @@ sub get_args {
     return @_ ? @args[@_] : @args;
 }
 
-sub _query_string {
-    my $self = shift;
-    my $type = lc $self->rest->cgi->param(TYPE_PARAM) || return '';
-    return '' if 'xml' eq $type;    # because this is the default
-    return "?" . TYPE_PARAM . "=$type";
-}
-
-##############################################################################
-
-=head3 class_list
-
-  $dispatch->class_list($rest);
-
-This function takes a L<Kinetic::Interface::REST|Kinetic::Interface::REST>
-instance and sets its content-type to C<text/xml> and its response to an XML
-list of all classes registered with L<Kinetic::Meta|Kinetic::Meta>.
-
-=cut
-
-sub class_list {
-    my ($self) = @_;
-
-    my $response =
-      $XML_DECLARATION . "\n" . $self->_build_xml(AVAILABLE_RESOURCES);
-    return $self->rest->set_response($response);
-}
-
 =head3 handle_rest_request
 
  $dispatch->handle_rest_request
@@ -324,7 +301,7 @@ sub _handle_constructor {
         {
             object         => $obj,
             stylesheet_url => INSTANCE_XSLT,
-            resources_url  => $self->_rest_base_url,
+            resources_url  => $rest->base_url,
         }
     )->dump_xml;
     return $rest->set_response( $xml, 'instance' );
@@ -382,422 +359,6 @@ sub _not_implemented {
       ->response("No resource available to handle ($info)");
 }
 
-sub _xml {
-    my $self = shift;
-    return $self->{xml}{generator} unless @_;
-    $self->{xml}{generator} = shift;
-    return $self;
-}
-
-sub _xml_ns {
-    my $self = shift;
-    $self->_xml_prop_handler( 'ns', 'XML namespace', @_ );
-}
-
-sub _xml_attr {
-    my $self = shift;
-    $self->_xml_prop_handler( 'attr', 'XML attribute', @_ );
-}
-
-sub _xml_elem {
-    my $self = shift;
-    $self->_xml_prop_handler( 'elem', 'XML element', @_ );
-}
-
-sub _xml_prop_handler {
-    my $self       = shift;
-    my $prop       = shift;
-    my $identifier = shift;
-    return $self->{xml}{$prop} unless @_;
-    my $name = shift;
-    if ( !defined $name ) {
-        delete $self->{xml}{$prop};
-    }
-    if ( 'HASH' eq ref $name ) {
-        while ( my ( $curr_prop, $value ) = each %$name ) {
-            $self->{xml}{$prop}{$curr_prop} = $value;
-        }
-        return $self;
-    }
-    unless (@_) {
-        unless ( exists $self->{xml}{$prop}{$name} ) {
-            throw_fatal [ 'No such attribute "[_1]" for [_2]', $name,
-                $identifier ];
-        }
-        return $self->{xml}{$prop}{$name};
-    }
-    $self->{xml}{ns}{$name} = shift;
-}
-
-##############################################################################
-
-=head3 _xml_setup
-
-  my $xml = $self->_xml_setup;
-
-This method sets up all available namespaces, tag elements and attributes for 
-Kinetic REST XML.  Returns an L<XML::Genx> object.
-
-It caches the XML object but also returns it as a convenience.
-
-=cut
-
-sub _xml_setup {
-    my $self = shift;
-
-    my $xml = XML::Genx::Simple->new;
-    $self->_xml($xml);
-
-    my %ns_for = (
-        kinetic => $xml->DeclareNamespace(
-            'http://www.kineticode.com/rest' => 'kinetic'
-        ),
-        xlink =>
-          $xml->DeclareNamespace( 'http://www.w3.org/1999/xlink' => 'xlink' ),
-    );
-    $self->_xml_ns( \%ns_for );
-
-    my @search_metadata   = qw/description domain path type/;
-    my @instance_list     = qw/resources sort resource instance attribute/;
-    my @search_parameters =
-      qw/search_parameters parameter comparisons comparison option class_key/;
-    my %elem_for =
-      map { $_ => $xml->DeclareElement( $self->_xml_ns('kinetic') => $_ ) }
-      @search_metadata, @instance_list, @search_parameters;
-    $self->_xml_elem( \%elem_for );
-
-    # attributes
-    my %attr_for =
-      map { $_ => $xml->DeclareAttribute($_) }
-      qw/ id type name widget selected colspan value between_1 between_2 /;
-    $attr_for{href} =
-      $xml->DeclareAttribute( $self->_xml_ns('xlink') => 'href' );
-    $self->_xml_attr( \%attr_for );
-    return $xml;
-}
-
-##############################################################################
-
-=head3 _add_rest_metadata
-
-  $self->_add_rest_metadata($title);
-
-Adds the REST metadata to the XML document.  The REST metadata is used by
-XSLT to understand how to build URLs for the REST resources.
-
-=cut
-
-sub _add_rest_metadata {
-    my ( $self, $title ) = @_;
-    my $rest        = $self->rest;
-    my $xml         = $self->_xml;
-    my $output_type = lc $rest->cgi->param(TYPE_PARAM) || '';
-    $xml->Element( $self->_xml_elem('description') => $title );
-    $xml->Element( $self->_xml_elem('domain')      => $rest->domain );
-    $xml->Element( $self->_xml_elem('path')        => $rest->path );
-    $xml->Element( $self->_xml_elem('type')        => $output_type );
-    return $self;
-}
-
-##############################################################################
-
-=head3 _build_xml
-
-  my $xml = $self->_build_xml( $title, [$callback] );
-
-This method builds most XML pages.  It accepts a "title" for the document and
-an optional callback.  If the callback is a coderef, it assumes that it's an
-XML building snippet which will add new XML after the resource list.
-
-If callback is not present or not a CODEREF, it's ignored.
-
-=cut
-
-sub _build_xml {
-    my ( $self, $title, $callback ) = @_;
-    my $xml = $self->_xml_setup;
-    $xml->StartDocString;
-
-    my $stylesheet = Kinetic::View::XSLT->location( $self->rest->xslt );
-    $xml->PI( 'xml-stylesheet', qq{type="text/xsl" href="$stylesheet"} );
-    $self->_xml_elem('resources')->StartElement;
-    $self->_xml_ns('xlink')->AddNamespace;
-
-    $self->_add_rest_metadata($title);
-    $self->_add_resource_list;
-
-    $callback->() if $callback && 'CODE' eq ref $callback;
-
-    $xml->EndElement;
-    $xml->EndDocument;
-    return $xml->GetDocString;
-}
-
-##############################################################################
-
-=head3 _add_resource_list
-
-  $self->_add_resource_list;
-
-Adds the list of resources (Kinetic classes) to the current XML document.
-
-=cut
-
-sub _add_resource_list {
-    my $self         = shift;
-    my $base_url     = $self->_rest_base_url;
-    my $query_string = $self->_query_string;
-    foreach my $key ( sort Kinetic::Meta->keys ) {
-        next if Kinetic::Meta->for_key($key)->abstract;
-        $self->_xml_elem('resource')->StartElement;
-        $self->_xml_attr('id')->AddAttribute($key);
-        $self->_xml_attr('href')
-          ->AddAttribute("${base_url}$key/search$query_string");
-        $self->_xml->EndElement;
-    }
-    return $self;
-}
-
-##############################################################################
-
-=head3 _add_search_data
-
-  $xml->_add_search_data($instance_count);
-
-This method adds the search data to the XML document.  This is used by XSLT
-to create the search form.
-
-=cut
-
-sub _add_search_data {
-    my ( $self, $instance_count ) = @_;
-    my $xml = $self->_xml;
-
-    my $args = $self->args;
-
-    $self->_add_pageset($instance_count);
-
-    $xml->Element( $self->_xml_elem('class_key'), $self->class_key );
-    $self->_xml_elem('search_parameters')->StartElement;
-
-    # Add search string arguments
-    foreach my $attribute ( $self->_all_attributes ) {
-        $self->_xml_elem('parameter')->StartElement;
-        $self->_xml_attr('type')->AddAttribute($attribute);
-
-        # XXX we need to figure out a persistence strategy
-        # for BETWEEN
-        my $request = $self->_search_request($attribute);
-        if ( $request && 'BETWEEN' eq $request->operator ) {
-            my $data = $request->data;
-            $self->_xml_attr('between_1')->AddAttribute( $data->[0] );
-            $self->_xml_attr('between_2')->AddAttribute( $data->[1] );
-        }
-        else {
-            my $value = $request ? $request->formatted_data : '';
-            $self->_xml_attr('value')->AddAttribute($value);
-        }
-        $self->_add_comparison_information($attribute);
-        $xml->EndElement;
-    }
-
-    # add limit
-    $self->_xml_elem('parameter')->StartElement;
-    $self->_xml_attr('type')->AddAttribute(LIMIT_PARAM);
-    $self->_xml_attr('colspan')->AddAttribute(3);
-    $xml->AddText( $args->get(LIMIT_PARAM) );
-    $xml->EndElement;
-
-    # add order_by
-    my @options = map { $_ => ucfirst $_ } $self->_desired_attributes;
-    my $order_by = $args->get(ORDER_BY_PARAM) || '';
-    $self->_add_select_widget( ORDER_BY_PARAM, $order_by, \@options, 3 );
-
-    # add sort_order
-    my @sort_options = ( ASC => 'Ascending', DESC => 'Descending' );
-    my $sort_order = $args->get(SORT_PARAM) || 'ASC';
-    $self->_add_select_widget( SORT_PARAM, $sort_order, \@sort_options, 3 );
-    $xml->EndElement;
-
-    return $self;
-}
-
-{
-    my @logical_options = ( "" => 'is', "NOT" => 'is not' );
-    my @comparison_options = (
-        EQ      => 'equal to',
-        LIKE    => 'like',
-        LT      => 'less than',
-        GT      => 'greater than',
-        LE      => 'less than or equal',
-        GE      => 'greater than or equal',
-        NE      => 'not equal',
-        BETWEEN => 'between',
-        ANY     => 'any of',
-    );
-
-    sub _add_comparison_information {
-        my ( $self, $attribute ) = @_;
-        my $request = $self->_search_request($attribute);
-        $self->_xml_elem('comparisons')->StartElement;
-        my $selected;
-        if ($request) {
-            $selected = $request->negated || "";
-        }
-        $self->_add_select_widget( "_${attribute}_logical", $selected,
-            \@logical_options );
-        if ($request) {
-            $selected = $request->original_operator || "";
-        }
-        $self->_add_select_widget( "_${attribute}_comp", $selected,
-            \@comparison_options );
-        $self->_xml->EndElement;
-    }
-}
-
-##############################################################################
-
-=head3 _add_select_widget
-
-  $self->_add_select_widget($name, $selected, \@options);
-
-This method adds a select widget to the XML being built.  C<$name> is the name
-of the select widget.  C<$selected> is the name of the option currently
-selected, if any.  C<@options> should be an ordered list of key/value pairs
-where the the keys are the names of the options and the values are the labels
-which should be displayed.
-
-=cut
-
-sub _add_select_widget {
-    my ( $self, $name, $selected, $options, $colspan ) = @_;
-    my $xml = $self->_xml;
-
-    # XXX yuck.  Basically, if we have a colspan, this is a full
-    # parameter in its own right.  Otherwise, we know this is a
-    # comparison parameter being added to help generate a search
-    # string
-    if ( defined $colspan ) {
-        $self->_xml_elem('parameter')->StartElement;
-    }
-    else {
-        $self->_xml_elem('comparison')->StartElement;
-    }
-    $self->_xml_attr('type')->AddAttribute($name);
-    $self->_xml_attr('widget')->AddAttribute('select');
-    $self->_xml_attr('colspan')->AddAttribute($colspan) if defined $colspan;
-    for ( my $i = 0 ; $i < @$options ; $i += 2 ) {
-        my ( $option, $label ) = @$options[ $i, $i + 1 ];
-        $self->_xml_elem('option')->StartElement;
-        $self->_xml_attr('name')->AddAttribute($option);
-        if ( $option eq ( $selected || '' ) ) {
-            $self->_xml_attr('selected')->AddAttribute('selected');
-        }
-        $xml->AddText($label);
-        $xml->EndElement;
-    }
-    $xml->EndElement;
-}
-
-##############################################################################
-
-=head3 _add_instances
-
-  $self->_add_instances($iterator);
-
-This method adds a list of instances to the current XML document.  The
-instances are taken from an iterator returned by a Kinetic object search.
-
-=cut
-
-sub _add_instances {
-    my ( $self, $iterator ) = @_;
-    my $instance_count = 0;
-    my $base_url       = $self->_rest_base_url;
-    my $query_string   = $self->_query_string;
-    my $xml            = $self->_xml;
-
-    while ( my $instance = $iterator->next ) {
-        $instance_count++;
-        my $uuid = $instance->uuid;
-        my $url  =
-          "$base_url" . $self->class_key . "/lookup/uuid/$uuid$query_string";
-        $self->_xml_elem('instance')->StartElement;
-        $self->_xml_attr('id')->AddAttribute($uuid);
-        $self->_xml_attr('href')->AddAttribute($url);
-        foreach my $attribute ( $self->_desired_attributes ) {
-            my $value = ( $instance->$attribute || '' );
-            $self->_xml_elem('attribute')->StartElement;
-            $self->_xml_attr('name')->AddAttribute($attribute);
-            $xml->AddText($value);
-            $xml->EndElement;
-        }
-        $xml->EndElement;
-    }
-
-    unless ($instance_count) {
-        $self->_xml_elem('instance')->StartElement;
-        $self->_xml_attr('id')->AddAttribute('No resources found');
-        $self->_xml_attr('href')->AddAttribute(CURRENT_PAGE);
-        $xml->EndElement;
-    }
-    return $instance_count;
-}
-
-##############################################################################
-
-=head3 _add_column_sort_info
-
-  $self->_add_column_sort_info
-
-This method adds a <kinetic:sort/> tag to the XML document for each desired
-attributes (see C<_desired_attributes>).  This tag will contain a URL which
-determines how that column should be sorted if the column header is clicked
-in XHTML.
-
-=cut
-
-sub _add_column_sort_info {
-    my $self         = shift;
-    my $base_url     = $self->_rest_base_url;
-    my $query_string = $self->_query_string;
-    my $xml          = $self->_xml;
-
-    # list "sort" urls to be used in XHTML column headers
-    my $args      = $self->args;
-    my $sort_args = $args->clone;
-    foreach my $attribute ( $self->_desired_attributes ) {
-        my $url = "$base_url@{ [ $self->class_key ] }/search/";
-        if ( $sort_args->exists(ORDER_BY_PARAM) ) {
-            $sort_args->put( ORDER_BY_PARAM, $attribute );
-        }
-        else {
-            $sort_args->insert_after( OFFSET_PARAM, ORDER_BY_PARAM,
-                $attribute );
-        }
-        my $order = 'ASC';
-        if ( $attribute eq ( $args->get(ORDER_BY_PARAM) || '' )
-            && 'ASC' eq ( $args->get(SORT_PARAM) || '' ) )
-        {
-            $order = 'DESC';
-        }
-        if ( $sort_args->exists(SORT_PARAM) ) {
-            $sort_args->put( SORT_PARAM, $order );
-        }
-        else {
-            $sort_args->insert_after( ORDER_BY_PARAM, SORT_PARAM, $order );
-        }
-        $url .= join '/',
-          map { '' eq $_ ? $PLACEHOLDER : $_ } $sort_args->get_array;
-        $url .= $query_string;
-
-        $self->_xml_elem('sort')->StartElement;
-        $self->_xml_attr('name')->AddAttribute($attribute);
-        $xml->AddText($url);
-        $xml->EndElement;
-    }
-}
-
 ##############################################################################
 
 =head3 _desired_attributes
@@ -850,91 +411,9 @@ sub _desired_attributes {
         @attributes = map { $_->name } @attributes[ 0 .. $i ];
         $self->{desired_attributes} = \@attributes;
     }
-    return
-      wantarray
+    return wantarray
       ? @{ $self->{desired_attributes} }
       : $self->{desired_attributes};
-}
-
-##############################################################################
-
-=head3 _add_pageset
-
-  $self->_add_pageset($instance_count);
-
-Given a count of how many instances were found in the last search, this method
-will add "paging" information to the XML.  This is used by the XSLT to create
-page links to the various documents.
-
-=cut
-
-sub _add_pageset {
-    my ( $self, $instance_count ) = @_;
-
-    my $args    = $self->args;
-    my $pageset = $self->_pageset(
-        {
-            count  => $instance_count,
-            limit  => ( $args->get(LIMIT_PARAM) || '' ),
-            offset => ( $args->get(OFFSET_PARAM) || 0 ),
-        }
-    );
-    return unless $pageset;
-
-    my $base_url     = $self->_rest_base_url;
-    my $query_string = $self->_query_string;
-    my $url          = "$base_url@{ [ $self->class_key ] }/search/";
-    $url .= join '/', map { '' eq $_ ? $PLACEHOLDER : $_ } $args->get_array;
-    $url .= $query_string;
-
-    # page sets
-    my $xml   = $self->_xml;
-    my $pages = $xml->DeclareElement( $self->_xml_ns('kinetic') => 'pages' );
-    my $page  = $xml->DeclareElement( $self->_xml_ns('kinetic') => 'page' );
-
-    $pages->StartElement;
-    foreach my $set ( $pageset->first_page .. $pageset->last_page ) {
-
-        $page->StartElement;
-        $self->_xml_attr('id')->AddAttribute("[ Page $set ]");
-        if ( $set == $pageset->current_page ) {
-            $self->_xml_attr('href')->AddAttribute(CURRENT_PAGE);
-        }
-        else {
-            my $current_offset = ( $set - 1 ) * $args->get(LIMIT_PARAM);
-            my $offset_param   = OFFSET_PARAM;
-            $url =~ s{$offset_param/\d+}{$offset_param/$current_offset};
-            $self->_xml_attr('href')->AddAttribute($url);
-        }
-        $xml->EndElement;
-    }
-    $xml->EndElement;
-}
-
-##############################################################################
-
-=head3 _instance_list
-
-  $dispatch->_instance_list($iterator);
-
-This function takes an iterator.  It sets the rest instance's content-type to
-C<text/xml> and its response to an XML list of all resources in the iterator,
-keyed by uuid.
-
-=cut
-
-sub _instance_list {
-    my ( $self, $iterator ) = @_;
-
-    my $response = $XML_DECLARATION . "\n" . $self->_build_xml(
-        AVAILABLE_INSTANCES,
-        sub {
-            $self->_add_column_sort_info;
-            my $instance_count = $self->_add_instances($iterator);
-            $self->_add_search_data($instance_count);
-        },
-    );
-    return $self->rest->set_response($response);
 }
 
 ##############################################################################
@@ -985,11 +464,6 @@ sub _pageset {
     my $current_page =
       $page->{limit} ? 1 + int( $page->{offset} / $page->{limit} ) : 1;
 
-    #{
-    #    use Data::Dumper::Names;
-    #    my $count = $self->_count;
-    #    warn Dumper( $current_page, $page, $count );
-    #}
     return if $current_page == 1 && $page->{count} < $page->{limit};
 
     my $total_entries = $self->_count;
@@ -1021,27 +495,310 @@ sub _count {
     return $count;
 }
 
+sub _xml {
+    my $self = shift;
+    return $self->{xml}{generator} unless @_;
+    $self->{xml}{generator} = shift;
+    return $self;
+}
+
 ##############################################################################
 
-=head3 _rest_base_url
+=head3 _add_search_data
 
-  my $rest_url_format = $self->_rest_base_url;
+  $xml->_add_search_data($instance_count);
 
-Returns a URL suitable for embedding in XML or XHTML hrefs.  Format is the in
-the form of C<$url%s$query_string>.  This allows setting additional REST path
-info items.
+This method adds the search data to the XML document.  This is used by XSLT
+to create the search form.
 
 =cut
 
-sub _rest_base_url {
-    my $self = shift;
-    my $rest = $self->rest;
-    return join '' => map $rest->$_ => qw/domain path/;
+sub _add_search_data {
+    my ( $self, $instance_count ) = @_;
+    my $xml = $self->_xml;
+
+    my $args = $self->args;
+
+    $self->_add_pageset($instance_count);
+
+    $xml->Element( $xml->elem('class_key'), $self->class_key );
+    $xml->elem('search_parameters')->StartElement;
+
+    # Add search string arguments
+    foreach my $attribute ( $self->_all_attributes ) {
+        $xml->elem('parameter')->StartElement;
+        $xml->attr('type')->AddAttribute($attribute);
+
+        # XXX we need to figure out a persistence strategy
+        # for BETWEEN
+        my $request = $self->_search_request($attribute);
+        if ( $request && 'BETWEEN' eq $request->operator ) {
+            my $data = $request->data;
+            $xml->attr('between_1')->AddAttribute( $data->[0] );
+            $xml->attr('between_2')->AddAttribute( $data->[1] );
+        }
+        else {
+            my $value = $request ? $request->formatted_data : '';
+            $xml->attr('value')->AddAttribute($value);
+        }
+        $self->_add_comparison_information($attribute);
+        $xml->EndElement;
+    }
+
+    # add limit
+    $xml->elem('parameter')->StartElement;
+    $xml->attr('type')->AddAttribute(LIMIT_PARAM);
+    $xml->attr('colspan')->AddAttribute(3);
+    $xml->AddText( $args->get(LIMIT_PARAM) );
+    $xml->EndElement;
+
+    # add order_by
+    my @options = map { $_ => ucfirst $_ } $self->_desired_attributes;
+    my $order_by = $args->get(ORDER_BY_PARAM) || '';
+    $xml->add_select_widget( ORDER_BY_PARAM, $order_by, \@options, 3 );
+
+    # add sort_order
+    my @sort_options = ( ASC => 'Ascending', DESC => 'Descending' );
+    my $sort_order = $args->get(SORT_PARAM) || 'ASC';
+    $xml->add_select_widget( SORT_PARAM, $sort_order, \@sort_options, 3 );
+    $xml->EndElement;
+
+    return $self;
 }
 
-1;
+{
+    my @logical_options = ( "" => 'is', "NOT" => 'is not' );
+    my @comparison_options = (
+        EQ      => 'equal to',
+        LIKE    => 'like',
+        LT      => 'less than',
+        GT      => 'greater than',
+        LE      => 'less than or equal',
+        GE      => 'greater than or equal',
+        NE      => 'not equal',
+        BETWEEN => 'between',
+        ANY     => 'any of',
+    );
 
-__END__
+    sub _add_comparison_information {
+        my ( $self, $attribute ) = @_;
+        my $xml     = $self->_xml;
+        my $request = $self->_search_request($attribute);
+        $xml->elem('comparisons')->StartElement;
+        my $selected;
+        if ($request) {
+            $selected = $request->negated || "";
+        }
+        $xml->add_select_widget( "_${attribute}_logical", $selected,
+            \@logical_options );
+        if ($request) {
+            $selected = $request->original_operator || "";
+        }
+        $xml->add_select_widget( "_${attribute}_comp", $selected,
+            \@comparison_options );
+        $xml->EndElement;
+    }
+
+##############################################################################
+
+=head3 add_pageset
+
+  $self->add_pageset($instance_count);
+
+Given a count of how many instances were found in the last search, this method
+will add "paging" information to the XML.  This is used by the XSLT to create
+page links to the various documents.
+
+=cut
+
+sub _add_pageset {
+    my ( $self, $instance_count ) = @_;
+
+    my $args    = $self->args;
+    my $pageset = $self->_pageset(
+        {
+            count  => $instance_count,
+            limit  => ( $args->get(LIMIT_PARAM) || '' ),
+            offset => ( $args->get(OFFSET_PARAM) || 0 ),
+        }
+    );
+    return unless $pageset;
+
+    my $base_url     = $self->rest->base_url;
+    my $query_string = $self->rest->query_string;
+    my $url          = "$base_url@{ [ $self->class_key ] }/search/";
+    $url .= join '/', map { '' eq $_ ? $PLACEHOLDER : $_ } $args->get_array;
+    $url .= $query_string;
+
+    # page sets
+    my $xml   = $self->_xml;
+    my $pages = $xml->DeclareElement( $xml->ns('kinetic') => 'pages' );
+    my $page  = $xml->DeclareElement( $xml->ns('kinetic') => 'page' );
+
+    $pages->StartElement;
+    foreach my $set ( $pageset->first_page .. $pageset->last_page ) {
+
+        $page->StartElement;
+        $xml->attr('id')->AddAttribute("[ Page $set ]");
+        if ( $set == $pageset->current_page ) {
+            $xml->attr('href')->AddAttribute(CURRENT_PAGE);
+        }
+        else {
+            my $current_offset = ( $set - 1 ) * $args->get(LIMIT_PARAM);
+            my $offset_param   = OFFSET_PARAM;
+            $url =~ s{$offset_param/\d+}{$offset_param/$current_offset};
+            $xml->attr('href')->AddAttribute($url);
+        }
+        $xml->EndElement;
+    }
+    $xml->EndElement;
+}
+
+}
+
+##############################################################################
+
+=head3 _add_instances
+
+  $self->_add_instances($iterator);
+
+This method adds a list of instances to the current XML document.  The
+instances are taken from an iterator returned by a Kinetic object search.
+
+=cut
+
+sub _add_instances {
+    my ( $self, $iterator ) = @_;
+    my $instance_count = 0;
+    my $base_url       = $self->rest->base_url;
+    my $query_string   = $self->rest->query_string;
+    my $xml            = $self->_xml;
+
+    while ( my $instance = $iterator->next ) {
+        $instance_count++;
+        my $uuid = $instance->uuid;
+        my $url  =
+          "$base_url" . $self->class_key . "/lookup/uuid/$uuid$query_string";
+        $xml->elem('instance')->StartElement;
+        $xml->attr('id')->AddAttribute($uuid);
+        $xml->attr('href')->AddAttribute($url);
+        foreach my $attribute ( $self->_desired_attributes ) {
+            my $value = ( $instance->$attribute || '' );
+            $xml->elem('attribute')->StartElement;
+            $xml->attr('name')->AddAttribute($attribute);
+            $xml->AddText($value);
+            $xml->EndElement;
+        }
+        $xml->EndElement;
+    }
+
+    unless ($instance_count) {
+        $xml->elem('instance')->StartElement;
+        $xml->attr('id')->AddAttribute('No resources found');
+        $xml->attr('href')->AddAttribute(CURRENT_PAGE);
+        $xml->EndElement;
+    }
+    return $instance_count;
+}
+
+##############################################################################
+
+=head3 _add_column_sort_info
+
+  $self->_add_column_sort_info
+
+This method adds a <kinetic:sort/> tag to the XML document for each desired
+attributes (see C<_desired_attributes>).  This tag will contain a URL which
+determines how that column should be sorted if the column header is clicked
+in XHTML.
+
+=cut
+
+sub _add_column_sort_info {
+    my $self         = shift;
+    my $base_url     = $self->rest->base_url;
+    my $query_string = $self->rest->query_string;
+    my $xml          = $self->_xml;
+
+    # list "sort" urls to be used in XHTML column headers
+    my $args      = $self->args;
+    my $sort_args = $args->clone;
+    foreach my $attribute ( $self->_desired_attributes ) {
+        my $url = "$base_url@{ [ $self->class_key ] }/search/";
+        if ( $sort_args->exists(ORDER_BY_PARAM) ) {
+            $sort_args->put( ORDER_BY_PARAM, $attribute );
+        }
+        else {
+            $sort_args->insert_after( OFFSET_PARAM, ORDER_BY_PARAM,
+                $attribute );
+        }
+        my $order = 'ASC';
+        if ( $attribute eq ( $args->get(ORDER_BY_PARAM) || '' )
+            && 'ASC' eq ( $args->get(SORT_PARAM) || '' ) )
+        {
+            $order = 'DESC';
+        }
+        if ( $sort_args->exists(SORT_PARAM) ) {
+            $sort_args->put( SORT_PARAM, $order );
+        }
+        else {
+            $sort_args->insert_after( ORDER_BY_PARAM, SORT_PARAM, $order );
+        }
+        $url .= join '/',
+          map { '' eq $_ ? $PLACEHOLDER : $_ } $sort_args->get_array;
+        $url .= $query_string;
+
+        $xml->elem('sort')->StartElement;
+        $xml->attr('name')->AddAttribute($attribute);
+        $xml->AddText($url);
+        $xml->EndElement;
+    }
+}
+
+##############################################################################
+
+=head3 class_list
+
+  $dispatch->class_list($rest);
+
+This function takes a L<Kinetic::Interface::REST|Kinetic::Interface::REST>
+instance and sets its content-type to C<text/xml> and its response to an XML
+list of all classes registered with L<Kinetic::Meta|Kinetic::Meta>.
+
+=cut
+
+sub class_list {
+    my ($self) = @_;
+
+    my $response = $self->_xml->build_xml(AVAILABLE_RESOURCES);
+    return $self->rest->set_response($response);
+}
+
+##############################################################################
+
+=head3 _instance_list
+
+  $dispatch->_instance_list($iterator);
+
+This function takes an iterator.  It sets the rest instance's content-type to
+C<text/xml> and its response to an XML list of all resources in the iterator,
+keyed by uuid.
+
+=cut
+
+sub _instance_list {
+    my ( $self, $iterator ) = @_;
+
+    my $response = $self->_xml->build_xml(
+        AVAILABLE_INSTANCES,
+        sub {
+            $self->_add_column_sort_info;
+            my $instance_count = $self->_add_instances($iterator);
+            $self->_add_search_data($instance_count);
+        },
+    );
+    return $self->rest->set_response($response);
+}
 
 ##############################################################################
 
@@ -1061,3 +818,239 @@ A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
 details.
 
 =cut
+
+    # XXX we're going to eventually pull this out into its own class
+
+package Kinetic::XML::REST;
+use XML::Genx::Simple;
+use Kinetic::Util::Exceptions qw/throw_fatal/;
+use Class::Delegator send => [
+    qw/
+        AddAttribute
+        AddNamespace
+        AddText
+        DeclareNamespace
+        DeclareElement
+        Element
+        EndDocument
+        EndElement
+        GetDocString
+        PI
+        StartDocString
+        StartElement
+        /
+    ],
+    to => '_xml';
+
+sub _xml { shift->{xml}{generator} }
+
+sub new {
+    my ( $class, $arg_for ) = @_;
+    my $xml   = XML::Genx::Simple->new;
+    my $self  = bless {
+        xml  => { generator      => $xml },
+        rest => $arg_for->{rest},
+    }, $class;
+
+    my %ns_for = (
+        kinetic => $xml->DeclareNamespace(
+            'http://www.kineticode.com/rest' => 'kinetic'
+        ),
+        xlink => $xml->DeclareNamespace(
+            'http://www.w3.org/1999/xlink' => 'xlink'
+        ),
+    );
+    $self->ns( \%ns_for );
+
+    my @search_metadata   = qw/description domain path type/;
+    my @instance_list     = qw/resources sort resource instance attribute/;
+    my @search_parameters =
+        qw/search_parameters parameter comparisons comparison option class_key/;
+    my %elem_for =
+        map { $_ => $xml->DeclareElement( $self->ns('kinetic') => $_ ) }
+        @search_metadata, @instance_list, @search_parameters;
+    $self->elem( \%elem_for );
+
+    # attributes
+    my %attr_for =
+        map { $_ => $xml->DeclareAttribute($_) }
+        qw/ id type name widget selected colspan value between_1 between_2 /;
+    $attr_for{href} =
+        $xml->DeclareAttribute( $self->ns('xlink') => 'href' );
+    $self->attr( \%attr_for );
+    return $self;
+}
+
+sub ns {
+    my $self = shift;
+    $self->_xml_prop_handler( 'ns', 'XML namespace', @_ );
+}
+
+sub attr {
+    my $self = shift;
+    $self->_xml_prop_handler( 'attr', 'XML attribute', @_ );
+}
+
+sub elem {
+    my $self = shift;
+    $self->_xml_prop_handler( 'elem', 'XML element', @_ );
+}
+
+sub _xml_prop_handler {
+    my $self       = shift;
+    my $prop       = shift;
+    my $identifier = shift;
+    return $self->{xml}{$prop} unless @_;
+    my $name = shift;
+    if ( !defined $name ) {
+        delete $self->{xml}{$prop};
+    }
+    if ( 'HASH' eq ref $name ) {
+        while ( my ( $curr_prop, $value ) = each %$name ) {
+            $self->{xml}{$prop}{$curr_prop} = $value;
+        }
+        return $self;
+    }
+    unless (@_) {
+        unless ( exists $self->{xml}{$prop}{$name} ) {
+            throw_fatal [ 'No such attribute "[_1]" for [_2]', $name,
+                $identifier ];
+        }
+        return $self->{xml}{$prop}{$name};
+    }
+    $self->{xml}{ns}{$name} = shift;
+}
+
+sub rest {
+    my $self = shift;
+    return $self->{rest} unless @_;
+    $self->{rest} = shift;
+    return $self;
+}
+
+##############################################################################
+
+=head3 add_rest_metadata
+
+  $xml->add_rest_metadata($title);
+
+Adds the REST metadata to the XML document.  The REST metadata is used by
+XSLT to understand how to build URLs for the REST resources.
+
+=cut
+
+sub add_rest_metadata {
+    my ( $self, $title ) = @_;
+    my $rest = $self->rest;
+    $self->Element( $self->elem('description') => $title );
+    $self->Element( $self->elem('domain')      => $rest->domain );
+    $self->Element( $self->elem('path')        => $rest->path );
+    $self->Element( $self->elem('type')        => $rest->output_type );
+    return $self;
+}
+
+##############################################################################
+
+=head3 add_resource_list
+
+  $self->add_resource_list;
+
+Adds the list of resources (Kinetic classes) to the current XML document.
+
+=cut
+
+sub add_resource_list {
+    my ($self) = @_;
+    my $rest         = $self->rest;
+    my $base_url     = $rest->base_url;
+    my $query_string = $rest->query_string;
+    foreach my $key ( sort Kinetic::Meta->keys ) {
+        next if Kinetic::Meta->for_key($key)->abstract;
+        $self->elem('resource')->StartElement;
+        $self->attr('id')->AddAttribute($key);
+        $self->attr('href')
+            ->AddAttribute("${base_url}$key/search$query_string");
+        $self->EndElement;
+    }
+    return $self;
+}
+
+##############################################################################
+
+=head3 add_select_widget
+
+  $xml->add_select_widget($name, $selected, \@options);
+
+This method adds a select widget to the XML being built.  C<$name> is the name
+of the select widget.  C<$selected> is the name of the option currently
+selected, if any.  C<@options> should be an ordered list of key/value pairs
+where the the keys are the names of the options and the values are the labels
+which should be displayed.
+
+=cut
+
+sub add_select_widget {
+    my ( $self, $name, $selected, $options, $colspan ) = @_;
+
+    # XXX yuck.  Basically, if we have a colspan, this is a full
+    # parameter in its own right.  Otherwise, we know this is a
+    # comparison parameter being added to help generate a search
+    # string
+    if ( defined $colspan ) {
+        $self->elem('parameter')->StartElement;
+    }
+    else {
+        $self->elem('comparison')->StartElement;
+    }
+    $self->attr('type')->AddAttribute($name);
+    $self->attr('widget')->AddAttribute('select');
+    $self->attr('colspan')->AddAttribute($colspan) if defined $colspan;
+    for ( my $i = 0 ; $i < @$options ; $i += 2 ) {
+        my ( $option, $label ) = @$options[ $i, $i + 1 ];
+        $self->elem('option')->StartElement;
+        $self->attr('name')->AddAttribute($option);
+        if ( $option eq ( $selected || '' ) ) {
+            $self->attr('selected')->AddAttribute('selected');
+        }
+        $self->AddText($label);
+        $self->EndElement;
+    }
+    $self->EndElement;
+}
+
+##############################################################################
+
+=head3 build_xml
+
+  my $xml = $xml->build_xml( $title, [$callback] );
+
+This method builds most XML pages.  It accepts a "title" for the document and
+an optional callback.  If the callback is a coderef, it assumes that it's an
+XML building snippet which will add new XML after the resource list.
+
+If callback is not present or not a CODEREF, it's ignored.
+
+=cut
+
+sub build_xml {
+    my ( $self, $title, $callback ) = @_;
+    my $rest = $self->rest;
+    $self->StartDocString;
+
+    my $stylesheet = Kinetic::View::XSLT->location( $rest->xslt );
+    $self->PI( 'xml-stylesheet', qq{type="text/xsl" href="$stylesheet"} );
+    $self->elem('resources')->StartElement;
+    $self->ns('xlink')->AddNamespace;
+
+    $self->add_rest_metadata($title);
+    $self->add_resource_list;
+
+    $callback->() if $callback && 'CODE' eq ref $callback;
+
+    $self->EndElement;
+    $self->EndDocument;
+    return $XML_DECLARATION . "\n" . $self->GetDocString;
+}
+
+1;
+
