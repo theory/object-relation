@@ -34,13 +34,13 @@ package Kinetic::Store::Parser;
 
 use strict;
 use Exporter::Tidy default => ['parse'];
-use HOP::Stream qw/drop list_to_stream/;
-use HOP::Parser qw/:all/;
+use HOP::Stream    qw/drop list_to_stream/;
+use HOP::Parser    qw/:all/;
 
 use Kinetic::DateTime::Incomplete qw/is_incomplete_iso8601/;
 use Kinetic::Store::Search;
-use Kinetic::Util::Constants qw/:data_store/;
-use Kinetic::Util::Exceptions qw/panic throw_search/;
+use Kinetic::Util::Constants      qw/:data_store/;
+use Kinetic::Util::Exceptions     qw/panic throw_search/;
 
 =head1 Name
 
@@ -48,14 +48,14 @@ Kinetic::Store::Parser - The Kinetic parser for search requests
 
 =head1 Synopsis
 
-  use Kinetic::Store::Parser qw/parse/;
+  use Kinetic::Store::Parser      qw/parse/;
   use Kinetic::Store::Lexer::Code qw/lexer_stream/;
 
   sub _create_ir {
-    my ($self, $search_request) = @_;
-    my $stream = lexer_stream($search_request);
-    my ($intermediate_representation) = parse($stream, $ir);
-    return $intermediate_representation;
+      my ($self, $search_request) = @_;
+      my $stream                      = lexer_stream($search_request);
+      my $intermediate_representation = parse($stream, $store);
+      return $intermediate_representation;
   }
 
 =head1 Description
@@ -67,12 +67,12 @@ for a given store.
 =cut
 
 # predefine a few things
-my $lparen    = match( OP => '(' );
-my $rparen    = match( OP => ')' );
-my $lbracket  = match( OP => '[' );
-my $rbracket  = match( OP => ']' );
-my $fat_comma = match( OP => '=>' );
-my $comma     = match( OP => ',' );
+my $lparen       = match( OP => '(' );
+my $rparen       = match( OP => ')' );
+my $lbracket     = match( OP => '[' );
+my $rbracket     = match( OP => ']' );
+my $fat_comma    = match( OP => '=>' );
+my $comma        = match( OP => ',' );
 my $either_comma = alternate( $fat_comma, $comma );
 my $search_value = match('VALUE');
 
@@ -81,7 +81,7 @@ my $search_value = match('VALUE');
 #
 
 my ( $search, $value, $normal_value, $between_value, $any, $statement,
-    $statement_list, $statements );
+     $statement_list, $statements );
 
 #
 # Eta-conversion
@@ -236,7 +236,7 @@ $between_value = T(
 $any = T(
     concatenate(
         absorb(match( KEYWORD => 'ANY' )),
-        absorb($lparen), 
+        absorb($lparen),
         $Value,
         rlist_values_of($search_value, $either_comma),
         absorb( optional($comma) ),           # allow a trailing comma
@@ -244,7 +244,7 @@ $any = T(
     ),
     sub {
 
-        # any is in an arrayref because $normal_value has 
+        # any is in an arrayref because $normal_value has
         # optional(match('COMPARE'))
         # and that returns the keyword in an arrayref
         [
@@ -294,13 +294,13 @@ sub _extract_statements {
 
   my $ir = parse($stream, $store);
 
-This function takes a lexer stream produced by a Kinetic lexer a the store
-object to be searched.  It returns an intermediate representation suitable
-for parsing into a where clause.
+This function takes a lexer stream produced by a Kinetic lexer and the store
+object to be searched. It returns an intermediate representation suitable for
+converting into a data store search (such as a SQL C<WHERE> clause).
 
-This function returns an array reference of 
+This function returns an array reference of
 L<Kinetic::Store::Search|Kinetic::Store::Search> objects and groups of these
-Search objects.  Groups may be simple groups, "AND" groups or "OR" groups.  
+Search objects. Groups may be simple groups, "AND" groups or "OR" groups.
 
 =over 4
 
@@ -348,10 +348,10 @@ And of the above groups may be nested.
         name   => 'foo',
         l_name => 'something',
     ),
-    OR( age => GT 3),
+    OR( age => GT 3 ),
     OR(
-      one__type   => LIKE 'email',
-      fav_number => GE 42
+        one__type  => LIKE 'email',
+        fav_number => GE 42
     )
 
 The above search, whether it is a code search or a string search, should
@@ -401,6 +401,7 @@ sub _make_search {
         # special case for searching on a contained object id ...
         my $id_column = $column . OBJECT_DELIMITER . 'id';
         unless ( $STORE->_search_data_has_column($id_column) ) {
+            # XXX Remind me why we're not throwing exception objects.
             die "Don't know how to search for ($column $negated $operator $value): unknown column ($column)";
         }
         $column = $id_column;
