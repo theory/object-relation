@@ -428,6 +428,20 @@ sub ACTION_help {
     return $self;
 }
 
+##############################################################################
+
+=head3 versions
+
+=begin comment
+
+=head3 ACTION_versions
+
+=end comment
+
+This action examines all prerequisites and outputs their installed versions.
+
+=cut
+
 sub ACTION_versions {
     my $self = shift;
     my @types = @{ $self->prereq_action_types };
@@ -437,15 +451,23 @@ sub ACTION_versions {
         my $prereqs = $info->{$type};
         next unless %$prereqs;
         $self->log_info("$type:\n");
+        my $mod_len = 2;
+        my %mods;
         while ( my ($modname, $spec) = each %$prereqs ) {
+            my $len = length $modname;
+            $mod_len = $len if $len > $mod_len;
             if (my $pm_info = Module::Build::ModuleInfo->new_from_module(
                 $modname
             )) {
-                $self->log_info("    $modname: ", $pm_info->version, $/);
+                $mods{lc $modname} = [$modname => $pm_info->version ]
             }
             else {
-                $self->log_info("    $modname: [Not Installed]\n");
+                $mods{lc $modname} = [$modname => undef ]
             }
+        }
+        for my $k (sort keys %mods) {
+            my $space = q{ } x ($mod_len - length $k);
+            $self->log_info("    $mods{$k}->[0]$space => $mods{$k}[1]\n");
         }
     }
 }
