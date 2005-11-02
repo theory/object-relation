@@ -25,7 +25,7 @@ Kinetic::Store::Lexer::Code - Lexer for Kinetic search code
 =head1 Synopsis
 
   use Kinetic::Store::Lexer::Code qw/code_lexer_stream/;
-  my $stream = code_lexer_stream([ 
+  my $stream = code_lexer_stream([
     name => NOT LIKE 'foo%',
     OR (age => GE 21)
   ]);
@@ -55,8 +55,8 @@ use Exporter::Tidy default => ['code_lexer_stream'];
 
   my $stream = code_lexer_stream(\@search_parameters);
 
-This function, exported on demand, is the only function publicly useful in this
-module.  It takes search parameters as described in the
+This function, exported on demand, is the only function publicly useful in
+this module. It takes search parameters as described in the
 L<Kinetic::Store|Kinetic::Store> documents and returns a token stream that
 Kinetic parsers should be able to turn into an intermediate representation.
 
@@ -82,8 +82,8 @@ my %term_types = (
         my @tokens = (['IDENTIFIER', $column], ['OP', '=>']);
         unless (ref $value) {
             push @tokens => defined $value
-                ? ['VALUE',  $value] 
-                : ['UNDEF', 'undef']; 
+                ? ['VALUE',  $value]
+                : ['UNDEF', 'undef'];
         }
         else {
             my $ref = ref $value;
@@ -100,7 +100,7 @@ my %term_types = (
         my $op_token = [ KEYWORD => $op ];
         my $lparen   = [ 'OP',     '('  ];
         my $rparen   = [ 'OP',     ')'  ];
-        return ($op_token, $lparen, @{_lex($code)}, $rparen);  # AND 
+        return ($op_token, $lparen, @{_lex($code)}, $rparen);  # AND
     },
 );
 
@@ -136,7 +136,7 @@ sub _normalize_value {
         $term = BETWEEN(\@body);
     }
     unless ('CODE' eq ref $term) {
-        # we have to test if it's a CODE ref because they might 
+        # we have to test if it's a CODE ref because they might
         # have a stringified object here.
         $term = EQ $term;
     }
