@@ -120,13 +120,15 @@ such as data store information.
 =cut
 
 sub new {
-    local $SIG{__WARN__};
-    my $self = shift->SUPER::new(
-        # Set up new default values for parent class properties.
-        install_base => File::Spec->catdir(
-            $Config::Config{installprefix}, 'kinetic'
-        ), @_ # User-set properties.
-    );
+    my $self = do {
+        local $SIG{__WARN__};
+        shift->SUPER::new(
+            # Set up new default values for parent class properties.
+            install_base => File::Spec->catdir(
+                $Config::Config{installprefix}, 'kinetic'
+            ), @_ # User-set properties.
+        );
+    };
 
     # Add elements we need here.
     $self->add_build_element('conf');
@@ -418,7 +420,7 @@ options.
 
 sub ACTION_help {
     my $self = shift;
-    # XXX To be done. The way Module::Build implements this method rathe
+    # XXX To be done. The way Module::Build implements this method rather
     # sucks (it expects its own specific POD format), so we'll likely have to
     # hack our own. :-( We'll also want to add something to pull in options
     # specified by the classes referenced in %STORES.
