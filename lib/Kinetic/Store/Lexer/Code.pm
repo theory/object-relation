@@ -32,7 +32,7 @@ Kinetic::Store::Lexer::Code - Lexer for Kinetic search code
 
 =head1 Description
 
-This package will lex the data structure built by
+This package lexes the data structure built by
 L<Kinetic::Store|Kinetic::Store> search operators and return a token stream
 that a Kinetic parser can parse.
 
@@ -43,11 +43,11 @@ See L<Kinetic::Parser::DB|Kinetic::Parser::DB> for an example.
 use strict;
 use warnings;
 use overload;
-use Kinetic::Store qw/AND BETWEEN/;
+use Kinetic::Store            qw/AND BETWEEN/;
 use Kinetic::Util::Exceptions 'throw_search';
-use HOP::Stream 'node';
+use HOP::Stream               'node';
 
-use Exporter::Tidy default => ['code_lexer_stream'];
+use Exporter::Tidy            default => ['code_lexer_stream'];
 
 ##############################################################################
 
