@@ -17,6 +17,8 @@ use TEST::Kinetic::Traits::HTML qw/:all/;
 # we're not using the following until some bugs are fixed.  See the
 # 'trait' for more notes
 
+# XXX You'd have to commit it for us to see it. ;-)
+
 #use Class::Trait 'TEST::Kinetic::Traits::REST';
 use Kinetic::Util::Constants qw/UUID_RE :xslt :labels :rest/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
