@@ -428,6 +428,28 @@ sub ACTION_help {
     return $self;
 }
 
+sub ACTION_versions {
+    my $self = shift;
+    my @types = @{ $self->prereq_action_types };
+    my $info = { map { $_ => $self->$_() } @types };
+
+    foreach my $type (@types) {
+        my $prereqs = $info->{$type};
+        next unless %$prereqs;
+        $self->log_info("$type:\n");
+        while ( my ($modname, $spec) = each %$prereqs ) {
+            if (my $pm_info = Module::Build::ModuleInfo->new_from_module(
+                $modname
+            )) {
+                $self->log_info("    $modname: ", $pm_info->version, $/);
+            }
+            else {
+                $self->log_info("    $modname: [Not Installed]\n");
+            }
+        }
+    }
+}
+
 ##############################################################################
 
 =head2 Methods
