@@ -117,7 +117,7 @@ sub search : Test(19) {
         '... and it should be the correct results';
 }
 
-sub cache_intermediate_representation : Test(no_plan) {
+sub cache_intermediate_representation : Test(11) {
     my $test = shift;
     return unless $test->_should_run;
     my ($foo, $bar, $baz) = $test->test_objects;
@@ -149,13 +149,6 @@ sub cache_intermediate_representation : Test(no_plan) {
     $search = $request->{name};
     isa_ok $search, 'Kinetic::Store::Search', 'The value for the key';
     is $search->column, 'name', '... and it should return the correct column';
-
-    return;
-    $foo->description('asdf');
-    $foo->save;
-    $iterator = $foo->search(name => $foo->name, description => 'asdf');
-    is_deeply $test->force_inflation($iterator->next), $foo,
-        '... and it should be the correct results';
 }
 
 sub search_from_key : Test(10) {

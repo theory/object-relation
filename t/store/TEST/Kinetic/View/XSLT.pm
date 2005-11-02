@@ -78,7 +78,7 @@ sub teardown : Test(teardown) {
     delete( $test->{db_mock} )->unmock_all;
 }
 
-sub build_search_form : Test(no_plan) {
+sub build_search_form : Test(2) {
     my $test = shift;
     my $xslt = XSLT->new( type => 'search' );
 

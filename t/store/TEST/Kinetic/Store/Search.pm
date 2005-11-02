@@ -32,7 +32,7 @@ sub constructor : Test(3) {
     isa_ok $search, Search, '... and the object it returns';
 }
 
-sub methods : Test(no_plan) {
+sub methods : Test(16) {
     my $test = shift;
 
     my %search = (

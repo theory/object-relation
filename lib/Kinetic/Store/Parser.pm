@@ -446,7 +446,7 @@ sub parse {
         }
         else {
             throw_search 'Could not parse search request' if $remainder or !$results;
-            # can't get rid of hte former until we nail that down in the tests
+            # can't get rid of the former until we nail that down in the tests
             #panic "Unknown error ($error)";
         }
     }

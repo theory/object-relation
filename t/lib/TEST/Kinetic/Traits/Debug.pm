@@ -4,7 +4,7 @@ package TEST::Kinetic::Traits::Debug;
 
 use strict;
 use warnings;
-use Test::More qw/no_plan/;
+use Test::More;
 
 # note that the following is a stop-gap measure until Class::Trait has
 # a couple of bugs fixed.  Bugs have been reported back to the author.

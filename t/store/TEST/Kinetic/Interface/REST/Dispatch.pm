@@ -105,7 +105,7 @@ sub _path_info {
     return $test;
 }
 
-sub get_desired_attributes : Test(no_plan) {
+sub get_desired_attributes : Test(4) {
     my $test = shift;
     my $dispatch = Dispatch->new( { rest => $test->{rest} } );
     $dispatch->class_key('two');
@@ -247,9 +247,7 @@ sub _get_xml {
     return $xml->GetDocString;
 }
 
-sub add_search_data : Test(no_plan) {
-
-    #sub add_search_data : Test(61) {
+sub add_search_data : Test(61) {
     my $test = shift;
 
     my @args = (
