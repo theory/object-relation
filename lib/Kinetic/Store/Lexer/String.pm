@@ -25,14 +25,14 @@ Kinetic::Store::Lexer::String - Lexer for Kinetic search strings
 =head1 Synopsis
 
   use Kinetic::Store::Lexer::String qw/string_lexer_stream/;
-  my $stream = string_lexer_stream(<<'END_QUERY'); 
+  my $stream = string_lexer_stream(<<'END_QUERY');
     name => NOT LIKE 'foo%',
     OR (age => GE 21)
   END_QUERY
 
 =head1 Description
 
-This package will lex the data structure built by
+This package will lex the a string that uses the
 L<Kinetic::Store|Kinetic::Store> search operators and return a data structure
 that a Kinetic parser can parse.
 
@@ -43,11 +43,11 @@ See L<Kinetic::Parser::DB|Kinetic::Parser::DB> for an example.
 use strict;
 use warnings;
 use Kinetic::Util::Exceptions qw/throw_search/;
-use HOP::Stream qw/node iterator_to_stream/;
-use HOP::Lexer qw/make_lexer/;
-use Carp qw/croak/;
+use HOP::Stream               qw/node iterator_to_stream/;
+use HOP::Lexer                qw/make_lexer/;
+use Carp                      qw/croak/;
 
-use Exporter::Tidy default => [qw/string_lexer_stream/];
+use Exporter::Tidy            default => [qw/string_lexer_stream/];
 use Regexp::Common;
 use Text::ParseWords;
 
@@ -92,7 +92,9 @@ sub _lex {
 
 sub _strip_quotes {    # naive
     my $string = shift;
+    # Must have the same character at the beginning and end of the string.
     $string =~ s/^(['"`])(.*)\1$/$2/;
+    # Strip out escapes.
     $string =~ s/\\\\/\\/g;
     $string =~ s/\\([^\/])/$1/g;
     return $string;
@@ -102,10 +104,11 @@ sub _strip_quotes {    # naive
 
   my $stream = string_lexer_stream(\@search_parameters);
 
-This function, exported on demand, is the only function publicly useful in this
-module.  It takes search parameters as described in the
-L<Kinetic::Store|Kinetic::Store> documents and returns a token stream that
-Kinetic parsers should be able to turn into an intermediate representation.
+This function, exported on demand, is the only function publicly useful in
+this module. It takes search parameters as described in the
+L<Kinetic::Store|Kinetic::Store> documentation, formatted as a string, and
+returns a token stream that Kinetic parsers should be able to turn into an
+intermediate representation.
 
 =cut
 
