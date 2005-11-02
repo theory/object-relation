@@ -120,6 +120,7 @@ such as data store information.
 =cut
 
 sub new {
+    local $SIG{__WARN__};
     my $self = shift->SUPER::new(
         # Set up new default values for parent class properties.
         install_base => File::Spec->catdir(
