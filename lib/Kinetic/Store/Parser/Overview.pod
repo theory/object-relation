@@ -30,19 +30,20 @@ This document explains how the parsing system turns search requests into an
 I<Intermediate Representation> (IR) suitable for searching a datastore.
 
 This discussion will be a high-level overview of how the
-C<Kinetic::Store::Parser> class operates.
+L<Kinetic::Store::Parser|Kinetic::Store::Parser> class operates.
 
 =head1 Grammar
 
-The C<Kinetic::Store::Parser> uses the Parser module described in "Higher
-Order Perl" by Mark Jason Dominus to transform a series of tokens into an
-intermediate representation the C<Kinetic::Store> subclasses can use to
-initiate searches against a datastore.
+L<Kinetic::Store::Parser|Kinetic::Store::Parser> uses the Parser module
+described in "Higher Order Perl," by Mark Jason Dominus, to transform a series
+of tokens into an intermediate representation that the
+L<Kinetic::Store|Kinetic::Store> subclasses can use to initiate searches
+against a datastore.
 
 The following non-standard BNF grammar describes the legal grammar allowed for
 searches. I say "non-standard" because of the existence of regular expressions
 to explain some of the complicated terminals. The regular expressions in the
-C<%RE> hash used in I<search_value> are from C<Regexp::Common>.
+C<%RE> hash used in I<search_value> are from L<Regexp::Common|Regexp::Common>.
 
   entire_input   ::= statements 'End_Of_Input'
 
@@ -94,9 +95,9 @@ C<%RE> hash used in I<search_value> are from C<Regexp::Common>.
 
 =head1 How it works
 
-Traditionally, parsing code involves three steps.
+Traditionally, parsing code involves three steps:
 
-=over 4
+=over
 
 =item * Tokenizing
 
@@ -122,52 +123,51 @@ Breaking code into a series of discrete tokens. Whitespace is often discarded.
 Then meaning is assigned to the tokens. Some tokens may be combined and others
 discarded.
 
-  [ 'IDENTIFIER', 'name' ],
-  [ 'OP',           '=>' ],
-  [ 'COMPARE',    'LIKE' ],
-  [ 'OP',            ',' ],
-  [ 'VALUE',       'foo' ],
-  [ 'OP',            ',' ],
-  [ 'IDENTIFIER',  'age' ],
-  [ 'OP',           '=>' ],
-  [ 'COMPARE',      'GT' ],
-  [ 'VALUE',           3 ],
+  [ IDENTIFIER => 'name' ],
+  [ OP         => '=>'   ],
+  [ COMPARE    => 'LIKE' ],
+  [ OP         => ','    ],
+  [ VALUE      => 'foo'  ],
+  [ OP         => ','    ],
+  [ IDENTIFIER => 'age'  ],
+  [ OP         => '=>'   ],
+  [ COMPARE    => 'GT'   ],
+  [ VALUE      => 3      ],
 
 =item * Parsing
 
 Parsing is the act of converting the lexed tokens into a data structure that
 suits a given task. This structure is often referred to as an I<intermediate
 representation>, or I<IR>. This document will briefly discuss the IR created
-by C<Kinetic::Store::Parser> and how it's created.
+by L<Kinetic::Store::Parser|Kinetic::Store::Parser> and how it's created.
 
 =back
 
 =head1 Lexing
 
 The Kinetic lexers C<Kinetic:Store::Lexer::Code> and
-C<Kinetic::Store::Lexer::String> both combine the tokenizing and lexing into a
-single step. See C<Kinetic::Store::Lexer::Overview> for details.
+L<Kinetic::Store::Lexer::String|Kinetic::Store::Lexer::String> both combine
+the tokenizing and lexing into a single step. See
+L<Kinetic::Store::Lexer::Overview|Kinetic::Store::Lexer::Overview> for
+details.
 
 This module has only one public function, C<parse>, which expects a stream as
-returned by a lexer ...
+returned by a lexer and a Kinetic store object:
 
   my $stream = code_lexer_stream($search_request);
+  my $ir     = parse($stream, $store);
 
-... and a Kinetic store object:
+The C<parse()> function will then either throw a
+C<Kinetic::Util::Exception::Fatal::Search> exception or return an IR.
 
-  my $ir = parse($stream, $store);
-
-It then will either throw a C<Kinetic::Util::Exception::Fatal::Search>
-exception or return an IR.
-
-The store object is then used in the final step of building the IR. The store
-determines the names of the columns on which the actual search will take
-place. Attempting to search on an attribute that the current "search class"
-does not have will throw an exception.
+The store object is used in the final step of building the IR to determine the
+names of the attributes on which the actual search will take place. Attempting
+to search on an attribute that the current "search class" does not have will
+throw an exception.
 
 In the grammar above, the LHS symbols usually represent small "sub-parsers",
 each capable of handling the parsing of the RHS. Thus, the first step in
-C<parse> is to pass the input stream to the C<$entire_input> parser:
+C<parse()> is to pass the input stream to the C<$entire_input> parser:
 
   my $entire_input = T(
     concatenate(
@@ -220,17 +220,19 @@ Here's how the subparser looks:
 What this says is "concatenate this stuff". The C<star> function tells us that
 the "BETWEEN" keyword is optional. Then we match an C<$lbracket> ("["), a
 value ("foo"), either a regular comma (",") or a fat comma ("=>"), another
-value ("bar"), and an C<$rbracket>, ("]"). The transformation is returning a
-new token with the string "BETWEEN" and two normalized values.
+value ("bar"), and an C<$rbracket>, ("]"). The transformation returns a new
+token with the string "BETWEEN" and two normalized values.
 
 As of this writing, the normalized value function merely examines the values
-to see if they match a C<Kinetic::DateTime::Incomplete> string and, if they
-do, return an object representing them.
+to see if they match a
+L<Kinetic::DateTime::Incomplete|Kinetic::DateTime::Incomplete> string and, if
+they do, return an object representing them.
 
 =head1 Building search objects
 
 It's not until the parser reaches the "search" LHS bit of the grammar that it
-has enough information to create a C<Kinetic::Store::Search> object.
+has enough information to create a
+L<Kinetic::Store::Search|Kinetic::Store::Search> object.
 
   search         ::= identifier '=>'       normal_value
                    | identifier '=>' 'NOT' normal_value
@@ -239,17 +241,17 @@ has enough information to create a C<Kinetic::Store::Search> object.
 
 At this point, it calls the C<_make_search> function with the data it has
 matched to build and return a search object. This is when it uses the
-C<Kinetic::Store> object that was passed in to validate that the search can
-actually be performed on the Kinetic class on which we are currently
-searching.
+L<Kinetic::Store|Kinetic::Store> object that was passed in to validate that
+the search can actually be performed on the Kinetic class on which we are
+currently searching.
 
-=head1 The Intermediate representation.
+=head1 The Intermediate representation
 
 The IR is merely an array reference of
 L<Kinetic::Store::Search|Kinetic::Store::Search> objects and groups of these
 Search objects. Groups may be simple groups, "AND" groups, or "OR" groups.
 
-=over 4
+=over
 
 =item Simple groups
 
@@ -295,10 +297,10 @@ Any of the above groups may be nested.
         name   => 'foo',
         l_name => 'something',
     ),
-    OR( age => GT 3),
+    OR(  age => GT 3 ),
     OR(
-      one__type   => LIKE 'email',
-      fav_number => GE 42
+        one__type  => LIKE 'email',
+        fav_number => GE 42
     )
 
 The above search, whether it is a code search or a string search, should
