@@ -19,7 +19,7 @@ package Kinetic::Store;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use Kinetic::Util::Config qw(:store);
+use Kinetic::Util::Config     qw(:store);
 use Kinetic::Util::Exceptions qw/throw_invalid_class throw_search/;
 
 =head1 Name
@@ -62,10 +62,10 @@ BEGIN {
     no strict 'refs';
     foreach my $token (@{ $tokens{comparison} }) {
         *$token = sub($) {
-            my $value = shift; 
+            my $value = shift;
             sub {
-                shift || (), ['COMPARE', $token], ['VALUE', $value] 
-            } 
+                shift || (), ['COMPARE', $token], ['VALUE', $value]
+            };
         };
     }
     foreach my $token (@{ $tokens{logical} }) {
@@ -90,7 +90,7 @@ sub NOT($) {
         return ('CODE' eq ref $value)
             ? $value->($negated)
             : ($negated, _value_token($value));
-    }
+    };
 }
 
 sub EQ($) {
@@ -98,14 +98,14 @@ sub EQ($) {
     sub {
         if ('ARRAY' eq ref $value) {
             return (
-                shift || (), 
-                [ 'KEYWORD', 'BETWEEN' ], 
+                shift || (),
+                [ 'KEYWORD', 'BETWEEN' ],
                 _value_token($value),
             );
         }
         else {
             return (
-                shift || (), 
+                shift || (),
                 ['COMPARE', 'EQ'],
                 _value_token($value)
             );
@@ -115,7 +115,7 @@ sub EQ($) {
 
 sub _value_token {
     my $value = shift;
-    return 
+    return
           ! defined $value      ?  [ 'UNDEF',     'undef' ]
         : 'ARRAY' ne ref $value ?  [ 'VALUE',      $value ]
         : 2 == @$value          ? ([ 'OP',            '[' ],
@@ -130,25 +130,25 @@ sub _value_token {
 }
 
 sub BETWEEN($) {
-    my $value = shift; 
-    sub { shift || (), ['KEYWORD', 'BETWEEN'], _value_token($value) }
+    my $value = shift;
+    sub { shift || (), ['KEYWORD', 'BETWEEN'], _value_token($value) };
 }
 
 sub ANY { 
-    my @args = @_; 
+    my @args = @_;
     my @values;
     while (@args) {
         my $value = shift @args;
         push @values => [ 'VALUE', $value ];
         push @values => [ 'OP',       ',' ] if @args;
     }
-    sub { 
-        shift || (), 
+    sub {
+        shift || (),
         [ 'KEYWORD', 'ANY' ],
         [ 'OP',        '(' ],
         @values,
         [ 'OP',        ')' ]
-    } 
+    };
 }
 
 ##############################################################################
