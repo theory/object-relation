@@ -107,6 +107,9 @@ our %Lexicon = (
   'I could not find the class for key "[_1]"',
   'I could not find the class for key “[_1]”',
 
+  'You must supply a name for the "[_1]"',
+  'You must supply a name for the “[_1]”',
+
   # XXX What's with the parentheses?
   'Could not lex search request.  Found bad tokens ([_1])',
   'Could not lex search request. Found bad tokens ([_1])',

@@ -121,10 +121,8 @@ sub get_desired_attributes : Test(no_plan) {
       '... and _all_attributes should return the all attributes';
 }
 
-sub add_pagesets : Test(25) {
+sub add_pagesets : Test(24) {
     my $test = shift;
-
-    can_ok Dispatch, '_add_pageset';
 
     my @args = (
         SEARCH_TYPE,    'name EQ "foo"',
@@ -217,23 +215,27 @@ sub _get_pageset_xml {
     $args->put( SORT_PARAM,     'ASC' )  unless $args->exists(SORT_PARAM);
 
     my $current = $args->delete('_current_count');
-    my $total   = $args->delete('_total_objects');
-    $current = $args->get(LIMIT_PARAM)     unless defined $current;
-    $total   = $args->get(LIMIT_PARAM) * 2 unless defined $total;
+    $current = $args->get(LIMIT_PARAM) unless defined $current;
 
-    my $dispatch = Dispatch->new({rest => $test->{rest}});
+    my $dispatch = Dispatch->new( { rest => $test->{rest} } );
     $dispatch->rest( $test->{rest} );
-    $dispatch->class_key($test_class);
     $dispatch->args($args);
-    my $dispatch_mock = MockModule->new('Kinetic::Interface::REST::Dispatch');
-    $dispatch_mock->mock( _count => $total );
-    my $xml = $test->_get_xml( $dispatch, '_add_pageset', $current );
+    my $xml = $test->_get_xml(
+        $dispatch->_xml,
+        'add_pageset',
+        {
+            args      => $args,
+            class_key => $test_class,
+            instances => $current,
+            total     => 100,
+        }
+    );
     return $xml;
 }
 
 sub _get_xml {
     my ( $test, $object, $method, @args ) = @_;
-    my $xml = $object->_xml;
+    my $xml = $object->can('StartDocString') ? $object : $object->_xml;
     $xml->StartDocString;
     $xml->elem('resources')->StartElement;
     $xml->ns('xlink')->AddNamespace;
@@ -250,7 +252,6 @@ sub add_search_data : Test(no_plan) {
     #sub add_search_data : Test(61) {
     my $test = shift;
 
-    can_ok Dispatch, '_add_search_data';
     my @args = (
         SEARCH_TYPE, 'name EQ "foo"',
         LIMIT_PARAM, 20, ORDER_BY_PARAM, 'name', SORT_PARAM, 'ASC',
@@ -314,10 +315,7 @@ sub _test_search_data {
     $total   = $args->get(LIMIT_PARAM) * 2 unless defined $total;
 
     # XXX pull this out when done debugging page sets
-    my $dispatch_mock = MockModule->new('Kinetic::Interface::REST::Dispatch');
-    $dispatch_mock->mock( _count => sub { 10 } );
-
-    my $dispatch = Dispatch->new({rest => $test->{rest}});
+    my $dispatch = Dispatch->new( { rest => $test->{rest} } );
 
     # we need to set this up because the rest class uses search request
     # IR to figure out how the search was performed and build the correct
@@ -334,7 +332,7 @@ sub _test_search_data {
         $dispatch->args( $args->clone );
     }
 
-    ok my $xml = $test->_get_xml( $dispatch, '_add_search_data', 1 ),
+    ok my $xml = $test->_get_xml( $dispatch, '_add_search_data', 1, 10 ),
       $description;
 
     my $xpath = XPath->new( xml => $xml );
@@ -424,7 +422,7 @@ sub method_arg_handling : Test(12) {
     my $test = shift;
 
     # also test for lookup
-    my $dispatch = Dispatch->new({rest => $test->{rest}});
+    my $dispatch = Dispatch->new( { rest => $test->{rest} } );
     can_ok $dispatch, 'args';
     $dispatch->method('lookup');
     ok $dispatch->args->isa('Array::AsHash'),
@@ -488,7 +486,7 @@ sub method_arg_handling : Test(12) {
 sub page_set : Test(17) {
     my $test = shift;
 
-    my $dispatch = Dispatch->new({rest => $test->{rest}});
+    my $dispatch = Dispatch->new( { rest => $test->{rest} } );
 
     for my $age ( 1 .. 100 ) {
         my $object = Two->new;
@@ -497,28 +495,30 @@ sub page_set : Test(17) {
         $object->age($age);
         $object->save;
     }
-    my ( $num_items, $limit, $offset ) = ( 19, 20, 0 );
+    my ( $num_items, $limit, $offset, $total ) = ( 19, 20, 0, 100 );
 
     # here we are deferring evaluation of the variables so we can
     # later just change their values and have the dispatch method
     # pick 'em up.
+
     my $pageset_args = sub {
         {
-            count    => $num_items,    # number of items
-              limit  => $limit,        # items per page
-              offset => $offset,       # item we're starting with
+            count           => $num_items,
+              limit         => $limit,
+              offset        => $offset,
+              total_entries => $total,
         }
     };
 
     my $result =
       $dispatch->class_key('two')->method('search')->args( Array::AsHash->new )
-      ->_pageset( $pageset_args->() );
+      ->_xml->_get_pageset( $pageset_args->() );
     ok !$result,
       '... and it should return false on first page if $count < $limit';
 
     $num_items = $limit;
-    ok $result = $dispatch->_pageset( $pageset_args->() ),
-      'On the first page, &_pageset should return true if $count == $limit';
+    ok $result = $dispatch->_xml->_get_pageset( $pageset_args->() ),
+      'On the first page, &_get_pageset should return true if $count == $limit';
 
     isa_ok $result, 'Data::Pageset',
       '... and the result should be a pageset object';
@@ -531,7 +531,7 @@ sub page_set : Test(17) {
 
     $num_items = $limit - 1;
     $offset    = $limit + 1;    # force it to page 2
-    ok $result = $dispatch->_pageset( $pageset_args->() ),
+    ok $result = $dispatch->_xml->_get_pageset( $pageset_args->() ),
       'We should get a pageset if we are not on the first page';
 
     is $result->current_page,  2, '... telling us we are on the second page';
@@ -540,9 +540,10 @@ sub page_set : Test(17) {
     is $result->total_entries, 100,
       '... and we should have the correct number of entries';
 
+    $total = 57;
     $dispatch->args(
         Array::AsHash->new( { array => [ SEARCH_TYPE, 'age => GT 43' ] } ) );
-    ok $result = $dispatch->_pageset( $pageset_args->() ),
+    ok $result = $dispatch->_xml->_get_pageset( $pageset_args->() ),
       'Pagesets should accept search criteria';
 
     is $result->current_page,  2, '... telling us we are on the second page';
