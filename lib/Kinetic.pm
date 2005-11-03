@@ -169,7 +169,7 @@ more information.
 
 =cut
 
-    sub search { 
+    sub search {
         my $class = shift;
         Kinetic::Store->search($class->my_class, @_);
     }

@@ -476,11 +476,10 @@ sub isa_exception {
 
   sig_handlers(0);
 
-This function accepts a boolean value.  If true, it turns on stack traces
-via the WARN and DIE signal handlers.  If false, it disables them.  This
-
-If called without arguments, it merely returns a boolean value indicating
-whether or not the signal handlers are enabled.
+This function accepts a boolean value. If true, it turns on stack traces via
+the WARN and DIE signal handlers. If false, it disables them. If called
+without arguments, it merely returns a boolean value indicating whether or not
+the signal handlers are enabled.
 
 =cut
 
