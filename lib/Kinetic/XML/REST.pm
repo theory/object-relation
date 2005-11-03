@@ -21,15 +21,17 @@ package Kinetic::XML::REST;
 use strict;
 use warnings;
 
+use Kinetic::Meta;
+use Kinetic::View::XSLT;
+use Kinetic::Util::Exceptions qw/throw_fatal/;
+use Kinetic::Util::Constants qw/:xslt :rest/;
+
 use Readonly;
 Readonly my $PLACEHOLDER     => 'null';
 Readonly my $XML_DECLARATION => '<?xml version="1.0"?>';
 
 use XML::Genx::Simple;
-use Kinetic::Meta;
-use Kinetic::View::XSLT;
-use Kinetic::Util::Exceptions qw/throw_fatal/;
-use Kinetic::Util::Constants qw/:xslt :rest/;
+use Data::Pageset;
 use Params::Validate qw/validate validate_pos/;
 use Class::Delegator send => [
     qw/

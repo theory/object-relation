@@ -191,7 +191,8 @@ sub _test_pageset {
     like $node, qr/\Q[ Page $num_pages ]/,
       '... and we should have the correct number of pages';
     my ($url) = $node =~ /xlink:href="([^"]*)/;
-    my $search = encode_entities( $orig_args->get(SEARCH_TYPE) || 'null' );
+    my $search = encode_entities( $orig_args->get(SEARCH_TYPE), '&"<>' )
+      || 'null';
     like $url, qr{/$SEARCH_TYPE/\Q$search\E/},
       '... and the search terms should be properly quoted';
 

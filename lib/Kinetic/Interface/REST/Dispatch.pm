@@ -10,17 +10,15 @@ package Kinetic::Interface::REST::Dispatch;
 # contribute your changes and enhancements to the community by submitting them
 # to Kineticode, Inc.)
 #
-# By intentionally submitting any modifications, corrections or
-# derivatives to this work, or any other work intended for use with the
-# Kinetic framework, to Kineticode, Inc., you confirm that you are the
-# copyright holder for those contributions and you grant Kineticode, Inc.
-# a nonexclusive, worldwide, irrevocable, royalty-free, perpetual license to
-# use, copy, create derivative works based on those contributions, and
-# sublicense and distribute those contributions and any derivatives thereof.
+# By intentionally submitting any modifications, corrections or derivatives to
+# this work, or any other work intended for use with the Kinetic framework, to
+# Kineticode, Inc., you confirm that you are the copyright holder for those
+# contributions and you grant Kineticode, Inc.  a nonexclusive, worldwide,
+# irrevocable, royalty-free, perpetual license to use, copy, create derivative
+# works based on those contributions, and sublicense and distribute those
+# contributions and any derivatives thereof.
 
 use strict;
-use Data::Pageset;
-use HTML::Entities qw/encode_entities/;
 use Array::AsHash;
 use Scalar::Util qw/blessed/;
 
@@ -30,7 +28,6 @@ use Kinetic::XML::REST;
 use Kinetic::Store;
 use Kinetic::Util::Constants qw/:http :xslt :labels :rest/;
 use Kinetic::Util::Exceptions qw/throw_fatal throw_invalid_class/;
-use Kinetic::View::XSLT;
 
 our $VERSION = version->new('0.0.1');
 
