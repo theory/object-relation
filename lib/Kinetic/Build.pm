@@ -455,12 +455,13 @@ sub ACTION_versions {
         my $ver_len = 4;
         my %mods;
         while ( my ($modname, $spec) = each %$prereqs ) {
-            my $len = length $modname;
+            my $len  = length $modname;
             $mod_len = $len if $len > $mod_len;
-            $len = length $spec;
+            $spec    ||= '0';
+            $len     = length $spec;
             $ver_len = $len if $len > $ver_len;
+            my $data = [ $modname => $spec ];
 
-            my $data = [ $modname => ($spec || '0') ];
             my $info = Module::Build::ModuleInfo->new_from_module($modname);
             push @$data, $info ? $info->version : '[NONE]';
             $mods{lc $modname} = $data;
