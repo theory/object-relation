@@ -460,13 +460,9 @@ sub ACTION_versions {
             $len = length $spec;
             $ver_len = $len if $len > $ver_len;
 
-            my $data = [ $modname, $spec ];
-            if (my $pm_info = Module::Build::ModuleInfo->new_from_module(
-                $modname
-            )) {
-                push @$data, $pm_info->version;
-            }
-
+            my $data = [ $modname => ($spec || '0') ];
+            my $info = Module::Build::ModuleInfo->new_from_module($modname);
+            push @$data, $info ? $info->version : '[NONE]';
             $mods{lc $modname} = $data;
         }
 
