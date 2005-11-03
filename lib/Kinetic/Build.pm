@@ -450,24 +450,42 @@ sub ACTION_versions {
     foreach my $type (@types) {
         my $prereqs = $info->{$type};
         next unless %$prereqs;
-        $self->log_info("$type:\n");
+        $self->log_info("\n$type:\n");
         my $mod_len = 2;
+        my $ver_len = 4;
         my %mods;
         while ( my ($modname, $spec) = each %$prereqs ) {
             my $len = length $modname;
             $mod_len = $len if $len > $mod_len;
+            $len = length $spec;
+            $ver_len = $len if $len > $ver_len;
+
+            my $data = [ $modname, $spec ];
             if (my $pm_info = Module::Build::ModuleInfo->new_from_module(
                 $modname
             )) {
-                $mods{lc $modname} = [$modname => $pm_info->version ]
+                push @$data, $pm_info->version;
             }
-            else {
-                $mods{lc $modname} = [$modname => undef ]
-            }
+
+            $mods{lc $modname} = $data;
         }
+
+        my $space  = q{ } x ($mod_len - 3);
+        my $vspace = q{ } x ($ver_len - 3);
+        my $sline  = q{-} x ($mod_len - 3);
+        my $vline  = q{-} x ($ver_len - 3);
+        $self->log_info(
+            "    Module $space  Need $vspace  Have\n",
+            "    ------$sline+------$vline-+----------\n",
+        );
+
         for my $k (sort keys %mods) {
-            my $space = q{ } x ($mod_len - length $k);
-            $self->log_info("    $mods{$k}->[0]$space => $mods{$k}[1]\n");
+            my $data = $mods{$k};
+            my $space  = q{ } x ($mod_len - length $k);
+            my $vspace = q{ } x ($ver_len - length $data->[1]);
+            $self->log_info(
+                "    $data->[0] $space     $data->[1]  $vspace   $data->[2]\n"
+            );
         }
     }
 }
