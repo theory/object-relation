@@ -34,6 +34,7 @@ my $build = Kinetic::Build->new(
         'List::Util'                 => 0,
         'Locale::Maketext'           => 1.09,
         'Params::Validate'           => 0.78,
+        'Readonly'                   => 0,
         'Regexp::Common'             => 2.119,
         'version'                    => 0.420,
         'Widget::Meta'               => 0.03,

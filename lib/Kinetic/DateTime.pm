@@ -25,8 +25,8 @@ use DateTime::Format::Strptime;
 
 use Exporter::Tidy other => ['is_iso8601'];
 
-use Kinetic;
-sub VERSION { Kinetic->VERSION }
+use version;
+our $VERSION = version->new('0.0.1');
 
 =head1 Name
 

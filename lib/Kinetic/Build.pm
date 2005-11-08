@@ -28,8 +28,8 @@ use File::Copy ();
 # Be sure to load exceptions early.
 use Kinetic::Util::Exceptions;
 
-use Kinetic;
-our $VERSION = Kinetic->VERSION;
+use version;
+our $VERSION = version->new('0.0.1');
 
 my %STORES = (
     pg     => 'Kinetic::Build::Store::DB::Pg',
