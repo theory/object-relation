@@ -42,6 +42,10 @@ See L<Kinetic::Parser::DB|Kinetic::Parser::DB> for an example.
 
 use strict;
 use warnings;
+
+use version;
+our $VERSION = version->new('0.0.1');
+
 use overload;
 use Kinetic::Store            qw/AND BETWEEN/;
 use Kinetic::Util::Exceptions 'throw_search';

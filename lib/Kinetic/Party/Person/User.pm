@@ -1,8 +1,12 @@
-package Kinetic::::Party::Person::User;
+package Kinetic::Party::Person::User;
 
 # $Id$
 
 use strict;
+
+use version;
+our $VERSION = version->new('0.0.1');
+
 use base qw(Kinetic::Party::Person);
 use Kinetic::Util::Config qw(:user);
 use Kinetic::Util::Exceptions qw(throw_password);
@@ -10,7 +14,7 @@ use Digest::MD5;
 
 =head1 Name
 
-Kinetic::::Party::Person::User - Kinetic user objects
+Kinetic::Party::Person::User - Kinetic user objects
 
 =head1 Description
 
@@ -33,9 +37,9 @@ BEGIN {
 =head1 Instance Interface
 
 In addition to the interface inherited from
-L<Kinetic::::|Kinetic::>,
-L<Kinetic::::Party|Kinetic::::Party>, and
-L<Kinetic::::Party::Person|Kinetic::::Party::Person>, this class
+L<Kinetic::|Kinetic::>,
+L<Kinetic::Party|Kinetic::Party>, and
+L<Kinetic::Party::Person|Kinetic::Party::Person>, this class
 offers a number of its own attributes.
 
 =head2 Accessors

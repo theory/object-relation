@@ -21,6 +21,9 @@ package Kinetic::XML::REST;
 use strict;
 use warnings;
 
+use version;
+our $VERSION = version->new('0.0.1');
+
 use Kinetic::Meta;
 use Kinetic::View::XSLT;
 use Kinetic::Util::Exceptions qw/throw_fatal/;
@@ -125,7 +128,7 @@ sub _init_elements {
     my @search_metadata   = qw/description domain path type/;
     my @instance_list     = qw/resources sort resource instance attribute/;
     my @search_parameters =
-      qw/search_parameters parameter comparisons comparison option class_key/;
+      qw/search_parameters parameter comparisons comparison option class_key value/;
     my %elem_for =
       map { $_ => $xml->DeclareElement( $self->ns('kinetic') => $_ ) }
       @search_metadata, @instance_list, @search_parameters;
@@ -209,6 +212,8 @@ Returns an element object.  Currently supported elements are:
 =item * sort
 
 =item * type
+
+=item * value
 
 =back
 
@@ -352,39 +357,32 @@ sub add_resource_list {
 
 This method adds a select widget to the XML being built.  C<$name> is the name
 of the select widget.  C<$selected> is the name of the option currently
-selected, if any.  C<@options> should be an ordered list of key/value pairs
-where the the keys are the names of the options and the values are the labels
-which should be displayed.
+selected, if any.  C<@options> should be an ordered list of key/value pair
+array references where the the keys are the names of the options and the
+values are the labels which should be displayed.
 
 =cut
 
 sub add_select_widget {
-    my ( $self, $name, $selected, $options, $colspan ) = @_;
+    my ( $self, $arg_for ) = @_;
 
-    # XXX yuck.  Basically, if we have a colspan, this is a full
-    # parameter in its own right.  Otherwise, we know this is a
-    # comparison parameter being added to help generate a search
-    # string
-    if ( defined $colspan ) {
-        $self->elem('parameter')->StartElement;
-    }
-    else {
-        $self->elem('comparison')->StartElement;
-    }
-    $self->attr('type')->AddAttribute($name);
+    $self->elem( $arg_for->{element} )->StartElement;
+    $self->attr('type')->AddAttribute( $arg_for->{name} );
     $self->attr('widget')->AddAttribute('select');
-    $self->attr('colspan')->AddAttribute($colspan) if defined $colspan;
-    for ( my $i = 0 ; $i < @$options ; $i += 2 ) {
-        my ( $option, $label ) = @$options[ $i, $i + 1 ];
+    $self->attr('colspan')->AddAttribute( $arg_for->{colspan} )
+      if defined $arg_for->{colspan};
+    foreach my $option ( @{ $arg_for->{options} } ) {
+        my ( $value, $label ) = @$option;
         $self->elem('option')->StartElement;
-        $self->attr('name')->AddAttribute($option);
-        if ( $option eq ( $selected || '' ) ) {
+        $self->attr('name')->AddAttribute($value);
+        if ( $value eq ( $arg_for->{selected} || '' ) ) {
             $self->attr('selected')->AddAttribute('selected');
         }
         $self->AddText($label);
         $self->EndElement;
     }
     $self->EndElement;
+    return $self;
 }
 
 ##############################################################################

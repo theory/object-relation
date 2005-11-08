@@ -3,6 +3,10 @@ package Kinetic::Meta::AccessorBuilder;
 # $Id$
 
 use strict;
+
+use version;
+our $VERSION = version->new('0.0.1');
+
 use Kinetic::Util::Exceptions qw(throw_invalid throw_read_only);
 use Class::Meta;
 

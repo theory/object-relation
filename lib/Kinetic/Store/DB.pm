@@ -20,6 +20,8 @@ package Kinetic::Store::DB;
 
 use strict;
 use base qw(Kinetic::Store);
+use version;
+our $VERSION = version->new('0.0.1');
 use DBI;
 use Clone;
 

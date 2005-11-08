@@ -19,6 +19,10 @@ package Kinetic::XML;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
+
+use version;
+our $VERSION = version->new('0.0.1');
+
 use IO::File;
 use XML::Genx::Simple;
 use XML::Simple;

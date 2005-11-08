@@ -3,6 +3,10 @@ package Kinetic::Meta;
 # $Id$
 
 use strict;
+
+use version;
+our $VERSION = version->new('0.0.1');
+
 use base 'Class::Meta';
 use Kinetic::Meta::DataTypes;
 use Kinetic::Meta::Attribute;

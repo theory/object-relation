@@ -33,6 +33,10 @@ package Kinetic::Store::Parser;
 #
 
 use strict;
+
+use version;
+our $VERSION = version->new('0.0.1');
+
 use Exporter::Tidy default => ['parse'];
 use HOP::Stream    qw/drop list_to_stream/;
 use HOP::Parser    qw/:all/;

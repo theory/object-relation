@@ -19,6 +19,10 @@ package Kinetic::Meta::Type;
 # contributions and any derivatives thereof.
 
 use strict;
+
+use version;
+our $VERSION = version->new('0.0.1');
+
 use base 'Class::Meta::Type';
 use Kinetic::Meta::AccessorBuilder;
 __PACKAGE__->default_builder('Kinetic::Meta::AccessorBuilder');

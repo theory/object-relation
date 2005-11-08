@@ -28,6 +28,9 @@ use File::Copy ();
 # Be sure to load exceptions early.
 use Kinetic::Util::Exceptions;
 
+use Kinetic;
+our $VERSION = Kinetic->VERSION;
+
 my %STORES = (
     pg     => 'Kinetic::Build::Store::DB::Pg',
     sqlite => 'Kinetic::Build::Store::DB::SQLite',

@@ -19,6 +19,10 @@ package Kinetic::Meta::Widget;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
+
+use version;
+our $VERSION = version->new('0.0.1');
+
 use base 'Widget::Meta';
 use Kinetic::Util::Context;
 
@@ -33,9 +37,9 @@ Kinetic::Meta::Wiget - Kinetic object attribute widget specifications
 
   for my $attr ($class->attributes) {
       my $wm = $attr->widget_meta;
-      if ($wm->kind eq 'text') {
+      if ($wm->type eq 'text') {
           output_text_field($wm);
-      } elsif ($wm->kind eq 'select') {
+      } elsif ($wm->type eq 'select') {
           output_select_list($wm);
       } else {
           die "Huh, wha?";

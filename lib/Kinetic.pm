@@ -330,7 +330,7 @@ Those methods are:
                 [ ACTIVE->value   => ACTIVE->name   ],
                 [ INACTIVE->value => INACTIVE->name ],
                 [ DELETED->value  => DELETED->name  ],
-                [ PURGED->value   => PUGRGE->name   ],
+                [ PURGED->value   => PURGED->name   ],
             ]}
         )
     );

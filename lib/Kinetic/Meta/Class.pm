@@ -3,6 +3,10 @@ package Kinetic::Meta::Class;
 # $Id$
 
 use strict;
+
+use version;
+our $VERSION = version->new('0.0.1');
+
 use base 'Class::Meta::Class';
 use Kinetic::Util::Context;
 use Kinetic::Util::Exceptions qw/throw_fatal/;

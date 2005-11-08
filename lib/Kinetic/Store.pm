@@ -22,6 +22,9 @@ use strict;
 use Kinetic::Util::Config     qw(:store);
 use Kinetic::Util::Exceptions qw/throw_invalid_class throw_search/;
 
+use Kinetic;
+sub VERSION { Kinetic->VERSION }
+
 =head1 Name
 
 Kinetic::Store - The Kinetic data storage class

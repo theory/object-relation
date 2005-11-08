@@ -20,6 +20,8 @@ package Kinetic::Store::DB::SQLite;
 
 use strict;
 use base qw(Kinetic::Store::DB);
+use version;
+our $VERSION = version->new('0.0.1');
 use Encode qw(_utf8_on);
 
 use Kinetic::Store            qw(:logical);

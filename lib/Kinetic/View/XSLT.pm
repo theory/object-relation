@@ -139,7 +139,7 @@ This stylesheet is used by
 L<Kinetic::Interface::REST|Kinetic::Interface::REST> objects for transforming
 the resources XML into a list of resources.
 
-=item * REST
+=item * search
 
 This stylesheet is used by
 L<Kinetic::Interface::REST|Kinetic::Interface::REST> objects for transforming

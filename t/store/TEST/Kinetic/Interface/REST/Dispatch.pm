@@ -118,7 +118,7 @@ sub get_desired_attributes : Test(4) {
       '... and _desired_attributes should return the correct attributes';
 
     can_ok $dispatch, '_all_attributes';
-    is_deeply scalar $dispatch->_all_attributes,
+    is_deeply [map { $_->name } $dispatch->_all_attributes],
       [qw/state name description age date/],
       '... and _all_attributes should return the all attributes';
 }

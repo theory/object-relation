@@ -19,6 +19,10 @@ package Kinetic::Interface::REST::Dispatch;
 # contributions and any derivatives thereof.
 
 use strict;
+
+use version;
+our $VERSION = version->new('0.0.1');
+
 use Array::AsHash;
 use Scalar::Util qw/blessed/;
 
@@ -28,8 +32,6 @@ use Kinetic::XML::REST;
 use Kinetic::Store;
 use Kinetic::Util::Constants qw/:http :xslt :labels :rest/;
 use Kinetic::Util::Exceptions qw/throw_fatal throw_invalid_class/;
-
-our $VERSION = version->new('0.0.1');
 
 use Readonly;
 Readonly my %DONT_DISPLAY => ( uuid => 1 );
@@ -388,7 +390,6 @@ sub _all_attributes {
     my $self = shift;
     if ( !$self->{all_attributes} ) {
         my @attributes =
-          map { $_->name }
           grep { !$_->references && ( !exists $DONT_DISPLAY{ $_->name } ) }
           $self->class->attributes;
         $self->{all_attributes} = \@attributes;
@@ -452,22 +453,34 @@ sub _add_search_data {
 
     # Add search string arguments
     foreach my $attribute ( $self->_all_attributes ) {
+        my $name = $attribute->name;
         $xml->elem('parameter')->StartElement;
-        $xml->attr('type')->AddAttribute($attribute);
+        $xml->attr('type')->AddAttribute($name);
 
-        # XXX we need to figure out a persistence strategy
-        # for BETWEEN
-        my $request = $self->_search_request($attribute);
+        my $request = $self->_search_request($name);
         if ( $request && 'BETWEEN' eq $request->operator ) {
             my $data = $request->data;
             $xml->attr('between_1')->AddAttribute( $data->[0] );
             $xml->attr('between_2')->AddAttribute( $data->[1] );
         }
         else {
-            my $value = $request ? $request->formatted_data : '';
-            $xml->attr('value')->AddAttribute($value);
+            my $widget = $attribute->widget_meta;
+            if ( 'dropdown' eq $widget->type ) {
+                $xml->add_select_widget(
+                    {
+                        element  => 'value',
+                        name     => $name,
+                        selected => '',
+                        options  => $widget->options
+                    }
+                );
+            }
+            else {
+                my $value = $request ? $request->formatted_data : '';
+                $xml->attr('value')->AddAttribute($value);
+            }
         }
-        $self->_add_comparison_information($attribute);
+        $self->_add_comparison_information($name);
         $xml->EndElement;
     }
 
@@ -479,31 +492,49 @@ sub _add_search_data {
     $xml->EndElement;
 
     # add order_by
-    my @options = map { $_ => ucfirst $_ } $self->_desired_attributes;
+    my @options = map { [ $_ => ucfirst $_ ] } $self->_desired_attributes;
     my $order_by = $args->get(ORDER_BY_PARAM) || '';
-    $xml->add_select_widget( ORDER_BY_PARAM, $order_by, \@options, 3 );
+
+    $xml->add_select_widget(
+        {
+            element  => 'parameter',
+            name     => ORDER_BY_PARAM,
+            selected => $order_by,
+            options  => \@options,
+            colspan  => 3
+        }
+    );
 
     # add sort_order
-    my @sort_options = ( ASC => 'Ascending', DESC => 'Descending' );
+    my @sort_options = ( [ ASC => 'Ascending' ], [ DESC => 'Descending' ] );
     my $sort_order = $args->get(SORT_PARAM) || 'ASC';
-    $xml->add_select_widget( SORT_PARAM, $sort_order, \@sort_options, 3 );
+
+    $xml->add_select_widget(
+        {
+            element  => 'parameter',
+            name     => SORT_PARAM,
+            selected => $sort_order,
+            options  => \@sort_options,
+            colspan  => 3
+        }
+    );
     $xml->EndElement;
 
     return $self;
 }
 
 {
-    my @logical_options = ( "" => 'is', "NOT" => 'is not' );
+    my @logical_options = ( [ "" => 'is' ], [ "NOT" => 'is not' ] );
     my @comparison_options = (
-        EQ      => 'equal to',
-        LIKE    => 'like',
-        LT      => 'less than',
-        GT      => 'greater than',
-        LE      => 'less than or equal',
-        GE      => 'greater than or equal',
-        NE      => 'not equal',
-        BETWEEN => 'between',
-        ANY     => 'any of',
+        [ EQ      => 'equal to' ],
+        [ LIKE    => 'like' ],
+        [ LT      => 'less than' ],
+        [ GT      => 'greater than' ],
+        [ LE      => 'less than or equal' ],
+        [ GE      => 'greater than or equal' ],
+        [ NE      => 'not equal' ],
+        [ BETWEEN => 'between' ],
+        [ ANY     => 'any of' ],
     );
 
     sub _add_comparison_information {
@@ -515,16 +546,27 @@ sub _add_search_data {
         if ($request) {
             $selected = $request->negated || "";
         }
-        $xml->add_select_widget( "_${attribute}_logical", $selected,
-            \@logical_options );
+        $xml->add_select_widget(
+            {
+                element  => 'comparison',
+                name     => "_${attribute}_logical",
+                selected => $selected,
+                options  => \@logical_options
+            }
+        );
         if ($request) {
             $selected = $request->original_operator || "";
         }
-        $xml->add_select_widget( "_${attribute}_comp", $selected,
-            \@comparison_options );
+        $xml->add_select_widget(
+            {
+                element  => 'comparison',
+                name     => "_${attribute}_comp",
+                selected => $selected,
+                options  => \@comparison_options
+            }
+        );
         $xml->EndElement;
     }
-
 
 }
 

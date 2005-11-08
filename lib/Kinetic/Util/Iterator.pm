@@ -19,6 +19,10 @@ package Kinetic::Util::Iterator;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
+
+use version;
+our $VERSION = version->new('0.0.1');
+
 use Kinetic::Util::Exceptions qw(throw_invalid);
 use Scalar::Util qw/blessed/;
 

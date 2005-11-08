@@ -19,6 +19,10 @@ package Kinetic::Store::Search;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
+
+use version;
+our $VERSION = version->new('0.0.1');
+
 use Scalar::Util qw(blessed);
 
 use Kinetic::Util::Exceptions qw(panic throw_search);

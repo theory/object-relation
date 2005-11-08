@@ -25,6 +25,9 @@ use DateTime::Format::Strptime;
 
 use Exporter::Tidy other => ['is_iso8601'];
 
+use Kinetic;
+sub VERSION { Kinetic->VERSION }
+
 =head1 Name
 
 Kinetic::DateTime - Kinetic DateTime objects

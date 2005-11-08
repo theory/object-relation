@@ -1,4 +1,4 @@
-package Kinetic::Util::Context;
+package Kinetic::Util::Cache;
 
 # $Id$
 
@@ -19,6 +19,10 @@ package Kinetic::Util::Context;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
+
+use version;
+our $VERSION = version->new('0.0.1');
+
 
 =head1 Name
 

@@ -3,6 +3,10 @@ package Kinetic::Party::Person;
 # $Id$
 
 use strict;
+
+use version;
+our $VERSION = version->new('0.0.1');
+
 use base qw(Kinetic::Party);
 use Kinetic::Util::Context;
 use Lingua::Strfname ();

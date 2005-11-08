@@ -315,7 +315,7 @@ sub constructor : Test(14) {
 '... and paths should have leading slashes removed and trailing slashes added';
 }
 
-sub rest_interface : Test(20) {
+sub rest_interface : Test(19) {
     my $test  = shift;
     my $class = 'Kinetic::Interface::REST';
     my $rest  = $class->new( domain => 'http://foo/', path => 'rest/server/' );
@@ -351,17 +351,6 @@ sub rest_interface : Test(20) {
 
     is_well_formed_xml $rest->response,
       '... which should be well-formed XML';
-
-my $expected = <<END_XML;
-<?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="/xslt/search.xsl"?>
-<kinetic:resources xmlns:kinetic="http://www.kineticode.com/rest" xmlns:xlink="http://www.w3.org/1999/xlink"><kinetic:description>Available instances</kinetic:description><kinetic:domain>http://foo/</kinetic:domain><kinetic:path>rest/server/</kinetic:path><kinetic:type></kinetic:type><kinetic:resource id="one" xlink:href="http://foo/rest/server/one/search"></kinetic:resource><kinetic:resource id="simple" xlink:href="http://foo/rest/server/simple/search"></kinetic:resource><kinetic:resource id="two" xlink:href="http://foo/rest/server/two/search"></kinetic:resource><kinetic:sort name="state">http://foo/rest/server/one/search/STRING/name =&gt; "foo"/_limit/20/_offset/0/_order_by/state/_sort_order/ASC</kinetic:sort><kinetic:sort name="name">http://foo/rest/server/one/search/STRING/name =&gt; "foo"/_limit/20/_offset/0/_order_by/name/_sort_order/DESC</kinetic:sort><kinetic:sort name="description">http://foo/rest/server/one/search/STRING/name =&gt; "foo"/_limit/20/_offset/0/_order_by/description/_sort_order/ASC</kinetic:sort><kinetic:sort name="bool">http://foo/rest/server/one/search/STRING/name =&gt; "foo"/_limit/20/_offset/0/_order_by/bool/_sort_order/ASC</kinetic:sort><kinetic:instance id="71279F16-4A36-11DA-9481-D6394B585510" xlink:href="http://foo/rest/server/one/lookup/uuid/71279F16-4A36-11DA-9481-D6394B585510"><kinetic:attribute name="state">Active</kinetic:attribute><kinetic:attribute name="name">foo</kinetic:attribute><kinetic:attribute name="description"></kinetic:attribute><kinetic:attribute name="bool">1</kinetic:attribute></kinetic:instance><kinetic:class_key>one</kinetic:class_key><kinetic:search_parameters><kinetic:parameter type="state" value=""><kinetic:comparisons><kinetic:comparison type="_state_logical" widget="select"><kinetic:option name="" selected="selected">is</kinetic:option><kinetic:option name="NOT">is not</kinetic:option></kinetic:comparison><kinetic:comparison type="_state_comp" widget="select"><kinetic:option name="EQ">equal to</kinetic:option><kinetic:option name="LIKE">like</kinetic:option><kinetic:option name="LT">less than</kinetic:option><kinetic:option name="GT">greater than</kinetic:option><kinetic:option name="LE">less than or equal</kinetic:option><kinetic:option name="GE">greater than or equal</kinetic:option><kinetic:option name="NE">not equal</kinetic:option><kinetic:option name="BETWEEN">between</kinetic:option><kinetic:option name="ANY">any of</kinetic:option></kinetic:comparison></kinetic:comparisons></kinetic:parameter><kinetic:parameter type="name" value="foo"><kinetic:comparisons><kinetic:comparison type="_name_logical" widget="select"><kinetic:option name="" selected="selected">is</kinetic:option><kinetic:option name="NOT">is not</kinetic:option></kinetic:comparison><kinetic:comparison type="_name_comp" widget="select"><kinetic:option name="EQ" selected="selected">equal to</kinetic:option><kinetic:option name="LIKE">like</kinetic:option><kinetic:option name="LT">less than</kinetic:option><kinetic:option name="GT">greater than</kinetic:option><kinetic:option name="LE">less than or equal</kinetic:option><kinetic:option name="GE">greater than or equal</kinetic:option><kinetic:option name="NE">not equal</kinetic:option><kinetic:option name="BETWEEN">between</kinetic:option><kinetic:option name="ANY">any of</kinetic:option></kinetic:comparison></kinetic:comparisons></kinetic:parameter><kinetic:parameter type="description" value=""><kinetic:comparisons><kinetic:comparison type="_description_logical" widget="select"><kinetic:option name="" selected="selected">is</kinetic:option><kinetic:option name="NOT">is not</kinetic:option></kinetic:comparison><kinetic:comparison type="_description_comp" widget="select"><kinetic:option name="EQ">equal to</kinetic:option><kinetic:option name="LIKE">like</kinetic:option><kinetic:option name="LT">less than</kinetic:option><kinetic:option name="GT">greater than</kinetic:option><kinetic:option name="LE">less than or equal</kinetic:option><kinetic:option name="GE">greater than or equal</kinetic:option><kinetic:option name="NE">not equal</kinetic:option><kinetic:option name="BETWEEN">between</kinetic:option><kinetic:option name="ANY">any of</kinetic:option></kinetic:comparison></kinetic:comparisons></kinetic:parameter><kinetic:parameter type="bool" value=""><kinetic:comparisons><kinetic:comparison type="_bool_logical" widget="select"><kinetic:option name="" selected="selected">is</kinetic:option><kinetic:option name="NOT">is not</kinetic:option></kinetic:comparison><kinetic:comparison type="_bool_comp" widget="select"><kinetic:option name="EQ">equal to</kinetic:option><kinetic:option name="LIKE">like</kinetic:option><kinetic:option name="LT">less than</kinetic:option><kinetic:option name="GT">greater than</kinetic:option><kinetic:option name="LE">less than or equal</kinetic:option><kinetic:option name="GE">greater than or equal</kinetic:option><kinetic:option name="NE">not equal</kinetic:option><kinetic:option name="BETWEEN">between</kinetic:option><kinetic:option name="ANY">any of</kinetic:option></kinetic:comparison></kinetic:comparisons></kinetic:parameter><kinetic:parameter colspan="3" type="_limit">20</kinetic:parameter><kinetic:parameter colspan="3" type="_order_by" widget="select"><kinetic:option name="state">State</kinetic:option><kinetic:option name="name" selected="selected">Name</kinetic:option><kinetic:option name="description">Description</kinetic:option><kinetic:option name="bool">Bool</kinetic:option></kinetic:parameter><kinetic:parameter colspan="3" type="_sort_order" widget="select"><kinetic:option name="ASC" selected="selected">Ascending</kinetic:option><kinetic:option name="DESC">Descending</kinetic:option></kinetic:parameter></kinetic:search_parameters></kinetic:resources>
-END_XML
-    $expected =~ s/@{[UUID_RE]}/XXX/g;
-    my $response = $rest->response;
-    $response =~ s/@{[UUID_RE]}/XXX/g;
-    
-    is_xml $response, $expected, 'REMOVE AFTER REFACTORING';
 }
 
 sub rest_faults : Test(7) {
@@ -417,10 +406,6 @@ $header
 
     is_well_formed_xml $one_xml,
       'Calling it with a resource/search should return well-formed_xml';
-
-    $key = Two->my_class->key;
-    my $two_xml = $rest->url("$key/search")->get;
-    $two_xml =~ s/@{[UUID_RE]}/XXX/g;
 }
 
 sub xslt : Test(3) {

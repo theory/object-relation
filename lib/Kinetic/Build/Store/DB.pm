@@ -19,6 +19,10 @@ package Kinetic::Build::Store::DB;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
+
+use version;
+our $VERSION = version->new('0.0.1');
+
 use base 'Kinetic::Build::Store';
 use DBI;
 my %private;
