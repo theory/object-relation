@@ -68,10 +68,10 @@ methods directly.
 
 =head3 new
 
-  my $dispatch = Kinetic::Interface::REST::Dispatch->new( { rest => $rest } );
+  my $dispatch = Kinetic::Interface::REST::Dispatch->new({ rest => $rest });
 
-The constructor.  The C<rest> argument should be an object conforming to the
-C<Kinetic::Interface::Rest> object.
+The constructor. The C<rest> paramter should be an object conforming to the
+C<Kinetic::Interface::Rest> interface.
 
 =cut
 
@@ -79,7 +79,7 @@ sub new {
     my ( $class, $arg_for ) = @_;
     my $self = bless {}, $class;
     $self->rest( $arg_for->{rest} );
-    $self->_xml( Kinetic::XML::REST->new( { rest => $arg_for->{rest} } ) );
+    $self->_xml( Kinetic::XML::REST->new({ rest => $arg_for->{rest} }) );
     return $self;
 }
 
@@ -87,7 +87,8 @@ sub new {
 
 =head3 rest
 
- $dispatch->rest([$rest]);
+  my $rest = $dispatch->rest;
+  $dispatch->rest($rest);
 
 Getter/setter for REST object.
 
@@ -111,7 +112,8 @@ sub _xml {
 
 =head3 class_key
 
-  $dispatch->class_key([$class_key]);
+  my $class_key = $dispatch->class_key;
+  $dispatch->class_key($class_key);
 
 Getter/setter for class key we're working with.
 
@@ -128,9 +130,10 @@ sub class_key {
 
 =head3 class
 
-  my $class = $self->class([$class]);
+  my $class = $dispatch->class;
+  $dispatch->class($class);
 
-This method will return the current class object we're searching on.  If the 
+This method will return the current class object we're searching on. If the
 class object has not been explicitly set with this method, it will attempt to
 build a class object for using the current class key.
 
@@ -156,7 +159,8 @@ sub class {
 
 =head3 method
 
- $dispatch->method([$method]); 
+  my $method = $dispatch->method;
+  $dispatch->method($method);
 
 Getter/setter for method to be sent to class created from class key.
 
@@ -173,11 +177,20 @@ sub method {
 
 =head3 args
 
-  $dispatch->arg(Array::AsHash->new({array=>\@args});
+  $dispatch->args(Array::AsHash->new({ array=>\@args });
+  my $args = $dispatch->args;
 
-Getter/setter for args to accompany C<method>.  If the supplied argument
-reference is emtpy, it will set a default of an empty string search, a
-default limit and a default offset to 0.
+Getter/setter for args to accompany C<method>. If the supplied argument
+reference is emtpy, it will set a default of an empty string search, a default
+limit and a default offset to 0.
+
+=begin comment
+
+XXX This seems very specific to the search() method. Surely it doesn't apply
+to other methods! IOW, it shouldn't devfault to an empty string, methinks. Or
+am I missing something?
+
+=end comment
 
 =cut
 
@@ -194,26 +207,27 @@ sub args {
         }
         $args->reset_each;
         while ( my ( $k, $v ) = $args->each ) {
+            # XXX Why is this necessary?
             $args->put( $k, '' ) if $PLACEHOLDER eq $v;
         }
+        # XXX Perhaps we should dispatch to anothe method or a hash that lists
+        # defaults for all methods?
         if ( 'search' eq $self->method ) {
-            if ($args) {
+            if ($args) { # XXX Seems pretty clear above that it exists.
                 $args->default( SEARCH_TYPE, $PLACEHOLDER, LIMIT_PARAM,
                     $DEFAULT_LIMIT, OFFSET_PARAM, 0, );
                 if ( $args->exists(ORDER_BY_PARAM) ) {
                     $args->default( SORT_PARAM, 'ASC' );
                 }
-                $args = Array::AsHash->new(
-                    {
-                        array => [
-                            $args->get_pairs(
-                                SEARCH_TYPE,  LIMIT_PARAM,
-                                OFFSET_PARAM, ORDER_BY_PARAM,
-                                SORT_PARAM
-                            ),
-                        ],
-                    }
-                );
+                $args = Array::AsHash->new({
+                    array => [
+                        $args->get_pairs(
+                            SEARCH_TYPE,  LIMIT_PARAM,
+                            OFFSET_PARAM, ORDER_BY_PARAM,
+                            SORT_PARAM
+                        ),
+                    ],
+                });
             }
             else {
                 $args = Array::AsHash->new($DEFAULT_SEARCH_ARGS);
@@ -222,6 +236,7 @@ sub args {
         $self->{args} = $args;
         return $self;
     }
+
     unless ( $self->{args} ) {
         my $args = {};
         if ( 'search' eq $self->method ) {
@@ -238,9 +253,9 @@ sub args {
 
   my @args = $dispatch->get_args( 0, 1 );
 
-This method will return method arguments by index, starting with zero.  If no
-arguments are supplied to this method, all method arguments will be returned.
-Can take one or more arguments.  Returns a list of the arguments.
+This method returns method arguments by index, starting with zero. If no index
+arguments are supplied to this method, I<all> method arguments will be
+returned. Can take one or more arguments. Returns a list of the arguments.
 
 =cut
 
@@ -301,28 +316,28 @@ sub _handle_constructor {
     my ( $self, $ctor ) = @_;
     my $obj  = $ctor->call( $self->class->package, $self->_args_for_store );
     my $rest = $self->rest;
-    my $xml  = Kinetic::XML->new(
-        {
-            object         => $obj,
-            stylesheet_url => INSTANCE_XSLT,
-            resources_url  => $rest->base_url,
-        }
-    )->dump_xml;
+    # XXX We really should pass a file handle to print to here.
+    my $xml  = Kinetic::XML->new({
+        object         => $obj,
+        stylesheet_url => INSTANCE_XSLT,
+        resources_url  => $rest->base_url,
+    })->dump_xml;
     return $rest->set_response( $xml, 'instance' );
 }
 
+# XXX Why is there so much special casing for search? Is it really necessary?
+# Would other interfaces (SOAP, JSON) need to do the same?
 sub _search_request {
     my $self = shift;
     if (@_) {
         my $request = shift;
         if ( ref $request ) {
-
             # they're setting the request
             $self->{search_request} = $request;
             return $self;
         }
-        else {
 
+        else {
             # they're asking for the request object for a given attribute
             return $self->{search_request}{$request};
         }
@@ -334,20 +349,20 @@ sub _handle_method {
     my ( $self, $method ) = @_;
 
     if ( $method->context == Class::Meta::CLASS ) {
-        my $response =
-          $method->call( $self->class->package, $self->_args_for_store );
+        my $response = $method->call(
+            $self->class->package,
+            $self->_args_for_store,
+        );
         if ( 'search' eq $method->name ) {
             $self->rest->xslt('search');
             return $self->_search_request( $response->request )
               ->_instance_list($response);
         }
         else {
-
-            # XXX
+            # XXX ???
         }
     }
     else {
-
         # XXX we're not actually doing anything with this yet.
         #my $obj = $self->class->contructors('lookup')->call(@$args)
         #  or die;
@@ -369,8 +384,8 @@ sub _not_implemented {
 
   my @attributes = $self->_desired_attributes;
 
-Returns the attributes for the current search class which will be listed in the
-REST search interface.
+Returns the attributes for the current search class that will be listed in
+the REST search interface.
 
 Passing a true value will result in all non-referenced attributes being
 returned.
@@ -388,10 +403,10 @@ sub _max_attribute_index {
 
 sub _all_attributes {
     my $self = shift;
-    if ( !$self->{all_attributes} ) {
-        my @attributes =
-          grep { !$_->references && ( !exists $DONT_DISPLAY{ $_->name } ) }
-          $self->class->attributes;
+    unless ( $self->{all_attributes} ) {
+        my @attributes = grep {
+            !$_->references && ( !exists $DONT_DISPLAY{ $_->name } )
+        } $self->class->attributes;
         $self->{all_attributes} = \@attributes;
     }
     return wantarray ? @{ $self->{all_attributes} } : $self->{all_attributes};
@@ -402,21 +417,21 @@ sub _desired_attributes {
 
     if ( !$self->{desired_attributes} ) {
         my $index      = $self->_max_attribute_index;
-        my @attributes =
-          grep { !$_->references && ( !exists $DONT_DISPLAY{ $_->name } ) }
-          $self->class->attributes;
+        my @attributes = grep {
+            !$_->references && ( !exists $DONT_DISPLAY{ $_->name } )
+        } $self->class->attributes;
         my $i =
-          $index < $#attributes
-          ? $index
-          : $#attributes;
+            $index < $#attributes
+            ? $index
+            : $#attributes;
 
         # don't list all attributes
         @attributes = map { $_->name } @attributes[ 0 .. $i ];
         $self->{desired_attributes} = \@attributes;
     }
     return wantarray
-      ? @{ $self->{desired_attributes} }
-      : $self->{desired_attributes};
+        ? @{ $self->{desired_attributes} }
+        : $self->{desired_attributes};
 }
 
 ##############################################################################
@@ -425,13 +440,15 @@ sub _desired_attributes {
 
   $xml->_add_search_data($instance_count, $total);
 
-This method adds the search data to the XML document.  This is used by XSLT
-to create the search form.
+This method adds the search data to the XML document. This is used by XSLT to
+create the search form.
 
-C<$instance_count> is how many instances were found.  C<$total> is how many
+C<$instance_count> is how many instances were found. C<$total> is how many
 instances meet the search criteria regardless of "limit" parameters.
 
 =cut
+
+# XXX Why is there XSLT-specific code here?
 
 sub _add_search_data {
     my ( $self, $instance_count, $total ) = @_;
@@ -439,14 +456,12 @@ sub _add_search_data {
 
     my $args = $self->args;
 
-    $self->_xml->add_pageset(
-        {
-            args      => $args,
-            class_key => $self->class_key,
-            instances => $instance_count,
-            total     => $total,
-        }
-    );
+    $self->_xml->add_pageset({
+        args      => $args,
+        class_key => $self->class_key,
+        instances => $instance_count,
+        total     => $total,
+    });
 
     $xml->Element( $xml->elem('class_key'), $self->class_key );
     $xml->elem('search_parameters')->StartElement;
@@ -524,7 +539,8 @@ sub _add_search_data {
 }
 
 {
-    my @logical_options = ( [ "" => 'is' ], [ "NOT" => 'is not' ] );
+    my @logical_options = ( [ '' => 'is' ], [ 'NOT' => 'is not' ] );
+    # XXX These really need to be localized...and defined elsewhere.
     my @comparison_options = (
         [ EQ      => 'equal to' ],
         [ LIKE    => 'like' ],
@@ -546,25 +562,21 @@ sub _add_search_data {
         if ($request) {
             $selected = $request->negated || "";
         }
-        $xml->add_select_widget(
-            {
-                element  => 'comparison',
-                name     => "_${attribute}_logical",
-                selected => $selected,
-                options  => \@logical_options
-            }
-        );
+        $xml->add_select_widget({
+            element  => 'comparison',
+            name     => "_${attribute}_logical",
+            selected => $selected,
+            options  => \@logical_options
+        });
         if ($request) {
             $selected = $request->original_operator || "";
         }
-        $xml->add_select_widget(
-            {
-                element  => 'comparison',
-                name     => "_${attribute}_comp",
-                selected => $selected,
-                options  => \@comparison_options
-            }
-        );
+        $xml->add_select_widget({
+            element  => 'comparison',
+            name     => "_${attribute}_comp",
+            selected => $selected,
+            options  => \@comparison_options
+        });
         $xml->EndElement;
     }
 
@@ -576,7 +588,7 @@ sub _add_search_data {
 
   $self->_add_instances($iterator);
 
-This method adds a list of instances to the current XML document.  The
+This method adds a list of instances to the current XML document. The
 instances are taken from an iterator returned by a Kinetic object search.
 
 =cut
@@ -591,8 +603,8 @@ sub _add_instances {
     while ( my $instance = $iterator->next ) {
         $instance_count++;
         my $uuid = $instance->uuid;
-        my $url  =
-          "$base_url" . $self->class_key . "/lookup/uuid/$uuid$query_string";
+        my $url  = "$base_url" . $self->class_key
+                 . "/lookup/uuid/$uuid$query_string";
         $xml->elem('instance')->StartElement;
         $xml->attr('id')->AddAttribute($uuid);
         $xml->attr('href')->AddAttribute($url);
@@ -622,9 +634,9 @@ sub _add_instances {
   $self->_add_column_sort_info
 
 This method adds a <kinetic:sort/> tag to the XML document for each desired
-attributes (see C<_desired_attributes>).  This tag will contain a URL which
-determines how that column should be sorted if the column header is clicked
-in XHTML.
+attributes (see C<_desired_attributes>). This tag will contain a URL which
+determines how that column should be sorted if the column header is clicked in
+XHTML.
 
 =cut
 
@@ -676,10 +688,12 @@ sub _add_column_sort_info {
   $dispatch->class_list($rest);
 
 This function takes a L<Kinetic::Interface::REST|Kinetic::Interface::REST>
-instance and sets its content-type to C<text/xml> and its response to an XML
+object and sets its content-type to C<text/xml> and its response to an XML
 list of all classes registered with L<Kinetic::Meta|Kinetic::Meta>.
 
 =cut
+
+# XXX Again, this seems like something that should be defined elsewhere.
 
 sub class_list {
     my ($self) = @_;
@@ -694,9 +708,9 @@ sub class_list {
 
   $dispatch->_instance_list($iterator);
 
-This function takes an iterator.  It sets the rest instance's content-type to
+This function takes an iterator. It sets the rest instance's content-type to
 C<text/xml> and its response to an XML list of all resources in the iterator,
-keyed by uuid.
+keyed by UUID.
 
 =cut
 

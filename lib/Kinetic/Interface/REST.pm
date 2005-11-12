@@ -19,7 +19,6 @@ package Kinetic::Interface::REST;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-
 use version;
 our $VERSION = version->new('0.0.1');
 
@@ -39,7 +38,7 @@ Kinetic::Interface::REST - REST services provider
 
  use Kinetic::Interface::REST;
 
- sub handle_request 
+ sub handle_request
     # pre-processing code
     my $response = Kinetic::Interface::REST->handle_request($cgi_object);
     # post-processing code
@@ -99,7 +98,7 @@ sub _validate_args {
         ];
     }
     $arg_for{domain} .= '/' unless $arg_for{domain} =~ /\/$/;
-    $arg_for{path} .= '/'   unless $arg_for{path}   =~ /\/$/;
+    $arg_for{path}   .= '/' unless $arg_for{path}   =~ /\/$/;
     $arg_for{path} =~ s/^\///;
 
     return %arg_for;
@@ -136,7 +135,7 @@ sub handle_request {
     $self->desired_content_type(XML_CT);
     if ( my $type = $cgi->param(TYPE_PARAM) ) {
         my $desired_content_type =
-          'html'   eq lc $type ? HTML_CT
+            'html' eq lc $type ? HTML_CT
           : 'text' eq lc $type ? TEXT_CT
           : XML_CT;
         $self->desired_content_type($desired_content_type);
@@ -148,16 +147,18 @@ sub handle_request {
     # the following variables should be case-insensitive
     $_ = lc foreach $class_key, $method;
 
-    my $dispatch = Kinetic::Interface::REST::Dispatch->new( { rest => $self } );
+    my $dispatch = Kinetic::Interface::REST::Dispatch->new({
+        rest => $self
+    });
     eval {
-        if ( !$class_key )
-        {
-            $self->xslt('resources');
-            $dispatch->class_list;
+        if ($class_key) {
+            $dispatch->class_key($class_key)->method($method)
+              ->args( AsHash->new({ array => \@args }) )
+              ->handle_rest_request;
         }
         else {
-            $dispatch->class_key($class_key)->method($method)
-              ->args( AsHash->new( { array => \@args } ) )->handle_rest_request;
+            $self->xslt('resources');
+            $dispatch->class_list;
         }
     };
     if ( my $error = $@ ) {
@@ -175,8 +176,8 @@ sub handle_request {
 
   my $output_type = $rest->output_type;
 
-Returns the output type the client has requested.  The client requests a given
-output type in the query string via the the "_type=$type" parameter.
+Returns the output type the client has requested. The client requests a given
+output type in the query string via the "_type=$type" parameter.
 
 =cut
 
@@ -197,7 +198,7 @@ Returns the base url for the REST server.
 
 sub base_url {
     my $self = shift;
-    return join '' => map $self->$_ => qw/domain path/;
+    return join '' => $self->domain, $self->path;
 }
 
 ##############################################################################
@@ -206,7 +207,7 @@ sub base_url {
 
   my $query_string = $rest->query_string;
 
-At thhe present type, only returns the portion of the REST query string
+At the present time, only returns the portion of the REST query string
 specifiying the content type.
 
 =cut
@@ -279,8 +280,8 @@ sub _get_request_from_query_string {
 
   my $status = $rest->status;
 
-If the call to C<handle_request> succeeded, this method should return a 
-status suitable for use in an http header.
+If the call to C<handle_request> succeeded, this method should return a status
+suitable for use in an HTTP header.
 
 =cut
 
@@ -297,11 +298,10 @@ sub status {
 
   my $xslt = $rest->xslt;
 
-If the call to C<handle_request> succeeded, this method should return the
-type of xslt suitable for transforming the XML to HTML.
+If the call to C<handle_request()> succeeded, this method should return the
+type of XSLT suitable for transforming the XML.
 
-Available XSLT types are listing in
-L<Kinetic::View::XSLT|Kinetic::View::XSLT>.
+Available XSLT types are listed in L<Kinetic::View::XSLT|Kinetic::View::XSLT>.
 
 =cut
 
@@ -318,18 +318,16 @@ sub xslt {
 
   my $response = $rest->response;
 
-If the call to C<handle_request> succeeded, this method will return the 
+If the call to C<handle_request()> succeeded, this method will return the
 response.
 
 =cut
 
 sub response {
     my $self = shift;
-    if (@_) {
-        $self->{response} = shift;
-        return $self;
-    }
-    $self->{response};
+    return $self->{response} unless @_;
+    $self->{response} = shift;
+    return $self;
 }
 
 ##############################################################################
@@ -338,18 +336,16 @@ sub response {
 
   my $desired_content_type = $rest->desired_content_type;
 
-If the call to C<handle_request> succeeded, this method will return the 
+If the call to C<handle_request()> succeeded, this method will return the
 content-type expected by the client.
 
 =cut
 
 sub desired_content_type {
     my $self = shift;
-    if (@_) {
-        $self->{desired_content_type} = shift;
-        return $self;
-    }
-    $self->{desired_content_type};
+    return $self->{desired_content_type} unless @_;
+    $self->{desired_content_type} = shift;
+    return $self;
 }
 
 ##############################################################################
@@ -358,18 +354,16 @@ sub desired_content_type {
 
   my $content_type = $rest->content_type;
 
-If the call to C<handle_request> succeeded, this method should return a 
-content-type suitable for use in an http header.
+If the call to C<handle_request> succeeded, this method should return a
+content-type suitable for use in an HTTP header.
 
 =cut
 
 sub content_type {
     my $self = shift;
-    if (@_) {
-        $self->{content_type} = shift;
-        return $self;
-    }
-    $self->{content_type};
+    return $self->{content_type} unless @_;
+    $self->{content_type} = shift;
+    return $self;
 }
 
 ##############################################################################
@@ -378,8 +372,8 @@ sub content_type {
 
   my $cgi = $rest->cgi;
 
-If the call to C<handle_request> succeeded, this method will return the 
-cgi object.
+If the call to C<handle_request()> succeeded, this method will return the CGI
+object.
 
 In general, we wish to limit access to this as much as possible, so use
 sparingly.
@@ -388,11 +382,9 @@ sparingly.
 
 sub cgi {
     my $self = shift;
-    if (@_) {
-        $self->{cgi} = shift;
-        return $self;
-    }
-    $self->{cgi};
+    return $self->{cgi} unless @_;
+    $self->{cgi} = shift;
+    return $self;
 }
 
 ##############################################################################
@@ -401,14 +393,15 @@ sub cgi {
 
   my $domain = $rest->domain;
 
-Read only.  This method returns the domain that was set when the REST server
-was instantiated.  A trailing slash will be added, if necessary.
+Read only. This method returns the domain that was set when the REST server
+was instantiated. A trailing slash will be added, if necessary.
 
  my $rest = Kinetic::Interface::REST->new(
     domain => 'http://someserver',
     path   => 'rest/'
  );
  print $rest->domain; # http://someserver/
+
 =cut
 
 sub domain { shift->{domain} }
@@ -419,9 +412,9 @@ sub domain { shift->{domain} }
 
   my $path = $rest->path;
 
-Read only.  This method returns the path that was set when the REST server was
-instantiated.  Path must be relative to the url set in the constructor.
-Leading forward slashes will be stripped and a trailing slash will be added, if
+Read only. This method returns the path that was set when the REST server was
+instantiated. Path must be relative to the url set in the constructor. Leading
+forward slashes will be stripped and a trailing slash will be added, if
 necessary.
 
  my $rest = Kinetic::Interface::REST->new(
@@ -440,8 +433,8 @@ sub path { shift->{path} }
 
   my $path_info = $rest->path_info;
 
-Read only.  This method returns the path_info used when C<&handle_request>
-was called.
+Read only. This method returns the path info used when C<handle_request()> was
+called.
 
 =cut
 
@@ -457,8 +450,8 @@ sub path_info {
 
   my $resource_path = $rest->resource_path;
 
-Read only.  This method returns the path info starting at the resource (assumes
-that $rest->path should be removed from path_info).
+Read only. This method returns the path info starting at the resource (assumes
+that C<< $rest->path >> should be removed from the path info).
 
 Returns the empty string if no resource path is found.
 
@@ -466,12 +459,13 @@ Returns the empty string if no resource path is found.
 
 sub resource_path {
     my $self          = shift;
-    my $resource_path = $self->path_info;
-    return '' unless $resource_path;
-    my $path = $self->path;
+    my $resource_path = $self->path_info or return '';
+    my $path          = $self->path;
+
     $resource_path =~ s/^$path//;
     $resource_path =~ s/^\///;
     $resource_path .= '/' unless $resource_path =~ /\/$/;
+
     return '/' eq $resource_path ? '' : $resource_path;
 }
 
@@ -480,7 +474,7 @@ sub resource_path {
 =head3 set_response
 
   $rest->set_response($xml, [$type]);
- 
+
 This method, when passed $xml and an optional response type (defaults to
 'search'), will set the content-type and entity-body of the REST response.
 
@@ -491,24 +485,12 @@ sub set_response {
     my $content_type = $self->desired_content_type || XML_CT;
     my $content = $xml;
     if ( HTML_CT eq $content_type ) {
-        $type ||= $self->xslt;
+        $type  ||= $self->xslt;
         my $xslt = XSLT->new( type => $type );
         $content = $xslt->transform($xml);
     }
     $self->content_type($content_type)->response($content);
 }
-
-##############################################################################
-
-=begin private
-
-=head2 Private Instance Methods
-
-=cut
-
-=end private
-
-=cut
 
 1;
 __END__
