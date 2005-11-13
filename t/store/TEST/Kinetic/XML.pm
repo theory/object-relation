@@ -170,6 +170,7 @@ sub update_from_xml : Test(4) {
       ;    # note that one does not have an id
     my $xml_string = $xml->dump_xml;
     my $object = $test->force_inflation( XML->update_from_xml($xml_string) );
+    diag $xml_string;
     ok exists $object->{id},
       '... and an existing uuid should provide its ID for the update';
     is_deeply $object, $updated_object,
