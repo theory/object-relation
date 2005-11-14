@@ -81,7 +81,7 @@ sub import {
             return if /^\.(?:svn|cvs)/;
             return unless /\.pm$/;
             return if /[#~]/; # Ignore backup files.
-                my $class = __PACKAGE__->file_to_class($file);
+            my $class = __PACKAGE__->file_to_class($file);
             push @CLASSES, $class if $class->isa(__PACKAGE__);
         };
 
