@@ -147,7 +147,7 @@ sub lookup {
     my ( $proto, $search_class, $attr_key, $value ) = @_;
     my $self = $proto->_from_proto;
     unless ( ref $search_class ) {
-        $search_class = $self->_get_class_from_key($search_class);
+        $search_class = Kinetic::Meta->for_key($search_class);
     }
     my $attr = $search_class->attributes($attr_key);
     throw_attribute [ 'No such attribute "[_1]" for [_2]', $attr_key,
@@ -197,7 +197,7 @@ sub search {
     $self->_prepare_method(PREPARE);
     $self->_should_create_iterator(1);
     unless ( ref $search_class ) {
-        $search_class = $self->_get_class_from_key($search_class);
+        $search_class = Kinetic::Meta->for_key($search_class);
     }
     local $self->{search_class} = $search_class;
     $self->_search(@search_params);
@@ -219,7 +219,7 @@ scalar context it returns an array reference.
 sub search_uuids {
     my ( $proto, $search_class, @search_params ) = @_;
     unless ( ref $search_class ) {
-        $search_class = $proto->_get_class_from_key($search_class);
+        $search_class = Kinetic::Meta->for_key($search_class);
     }
     my $self = $proto->_from_proto;
     $self->_set_search_type( \@search_params );
@@ -249,7 +249,7 @@ Any final constraints (such as "LIMIT" or "ORDER BY") will be discarded.
 sub count {
     my ( $proto, $search_class, @search_params ) = @_;
     unless ( ref $search_class ) {
-        $search_class = $proto->_get_class_from_key($search_class);
+        $search_class = Kinetic::Meta->for_key($search_class);
     }
     pop @search_params if 'HASH' eq ref $search_params[-1];
     my $self = $proto->_from_proto;
@@ -362,26 +362,6 @@ sub _get_select_sql_and_bind_params {
     my $sql = "SELECT $columns FROM $view $where_clause";
     $sql .= $self->_constraints($constraints) if $constraints;
     return ( $sql, $bind_params );
-}
-
-##############################################################################
-
-=head3 _get_class_from_key
-
-  my $kinetic_class = $store->_get_class_from_key($key);
-
-Given a valid Kinetic key, this method returns the Kinetic Class object for
-that key.
-
-Throws an invalid class exception if it cannot determine the class.
-
-=cut
-
-sub _get_class_from_key {
-    my ( $self, $key ) = @_;
-    return Kinetic::Meta->for_key($key)
-      or
-      throw_invalid_class [ 'I could not find the class for key "[_1]"', $key ];
 }
 
 ##############################################################################
@@ -1076,7 +1056,7 @@ sub _handle_case_sensitivity {
     my $search_class = $self->{search_class};
     if ( $column =~ /@{[OBJECT_DELIMITER]}/ ) {
         my ( $key, $column2 ) = split /@{[OBJECT_DELIMITER]}/ => $column;
-        $search_class = $self->_get_class_from_key($key);
+        $search_class = Kinetic::Meta->for_key($key);
         $column       = $column2;
     }
     if ($search_class) {
