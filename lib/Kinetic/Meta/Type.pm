@@ -98,9 +98,11 @@ sub import {
         no strict 'refs';
         *{__PACKAGE__ . '::new'} = sub {
             my $self = shift->SUPER::new(@_);
-            # Set the raw method to return the object ID.
+            # Set the raw method to return the object ID. Use
+            # Class::Meta->for_key to avoid Kinetic::Meta->for_key's
+            # exception.
             $self->{raw} ||= sub { shift->id }
-              if Kinetic::Meta->for_key($self->key);
+                if Class::Meta->for_key($self->key);
             return $self;
         };
     }

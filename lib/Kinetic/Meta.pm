@@ -11,7 +11,7 @@ use base 'Class::Meta';
 use Kinetic::Meta::DataTypes;
 use Kinetic::Meta::Attribute;
 use Kinetic::Meta::Class;
-use Kinetic::Util::Exceptions qw(throw_exlib);
+use Kinetic::Util::Exceptions qw(throw_exlib throw_invalid_class);
 use Class::Meta::Types::String; # Move to DataTypes.
 
 =head1 Name
@@ -159,6 +159,25 @@ sub attribute_class {
     shift;
     return $attribute_class unless @_;
     $attribute_class = shift;
+}
+
+##############################################################################
+
+=head2 Class Methods
+
+=head3 for_key
+
+=cut
+
+sub for_key {
+    my ($pkg, $key) = @_;
+    if (my $class = $pkg->SUPER::for_key($key)) {
+        return $class;
+    }
+    throw_invalid_class [
+        'I could not find the class for key "[_1]"',
+        $key
+    ];
 }
 
 1;

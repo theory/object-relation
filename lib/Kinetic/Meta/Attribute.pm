@@ -449,8 +449,9 @@ sub build {
     my $self = shift;
 
     # Figure out if the attribute is a reference to another object in a
-    # Kinetic::Meta class.
-    if ($self->{references} = Kinetic::Meta->for_key($self->type)) {
+    # Kinetic::Meta class. Use Class::Meta->for_key to avoid
+    # Kinetic::Meta->for_key's exception.
+    if ($self->{references} = Class::Meta->for_key($self->type)) {
         $self->{relationship} ||= 'has';
         $self->{once} = 1
           if $self->{relationship} eq 'extends'

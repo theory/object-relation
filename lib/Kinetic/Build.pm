@@ -97,9 +97,11 @@ my @prompts;
 sub add_property {
     my $class = shift;
     if (@_ > 2) {
-        # This is something we may want to prompt for.
+        # This is a property that we may want to prompt for.
         my %params = @_;
-        $class->SUPER::add_property( $params{name} => delete $params{default} );
+        $class->SUPER::add_property(
+            $params{name} => delete $params{default}
+        );
         push @prompts, \%params if keys %params > 1;
     } else {
         # This is just a standard Module::Build property.

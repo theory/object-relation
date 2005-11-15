@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 61;
+use Test::More tests => 69;
 #use Test::More 'no_plan';
 
 package MyTestThingy;
@@ -121,6 +121,20 @@ package main;
 ok my $class = MyTestThingy->my_class, "Get meta class object";
 isa_ok $class, 'Kinetic::Meta::Class';
 isa_ok $class, 'Class::Meta::Class';
+ok $class = Kinetic::Meta->for_key('thingy'),
+    'Get meta class object via for_key()';
+isa_ok $class, 'Kinetic::Meta::Class';
+isa_ok $class, 'Class::Meta::Class';
+
+eval { Kinetic::Meta->for_key('_no_such_thing') };
+
+ok my $err = $@, 'Caught for_key() exception';
+isa_ok $err, 'Kinetic::Util::Exception';
+isa_ok $err, 'Kinetic::Util::Exception::Fatal';
+isa_ok $err, 'Kinetic::Util::Exception::Fatal::InvalidClass';
+is $err->error,
+    "I could not find the class for key \x{201c}_no_such_thing\x{201d}",
+    'We should have received the proper error message';
 
 is $class->key, 'thingy', 'Check key';
 is $class->package, 'MyTestThingy', 'Check package';
@@ -144,7 +158,7 @@ is $attr->label, 'Foo', "Check attr label";
 is $attr->indexed, 1, "Indexed should be true";
 
 eval { $attr->_column };
-ok my $err = $@, "Should get error trying to call _column()";
+ok $err = $@, "Should get error trying to call _column()";
 like $err,
   qr/Can't locate object method "_column" via package "Kinetic::Meta::Attribute"/,
   '...Because the _column() method should not exist';
