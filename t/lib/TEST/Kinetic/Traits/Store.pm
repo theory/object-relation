@@ -30,19 +30,42 @@ use aliased 'TestApp::Simple::Two';
 
 my $debugging = 0;
 
+##############################################################################
+
+=head3 mock_dbh
+
+  $test->mock_dbh;
+
+This method sets C<< $test->{dbh} >> and also mocks up its C<begin_work> and
+C<commit> methods so we don't accidentally commit anything to the test
+database.
+
+=cut
+
 sub mock_dbh {
-    my $test = shift;
+    my $test  = shift;
     my $store = Kinetic::Store->new;
     $test->{dbh} = $store->_dbh;
-    unless ($debugging) { # give us an easy debugging hook
+    unless ($debugging) {    # give us an easy debugging hook
         $test->{dbh}->begin_work;
-        $test->{dbi_mock} = MockModule->new('DBI::db', no_auto => 1);
-        $test->{dbi_mock}->mock(begin_work => 1);
-        $test->{dbi_mock}->mock(commit => 1);
+        $test->{dbi_mock} = MockModule->new( 'DBI::db', no_auto => 1 );
+        $test->{dbi_mock}->mock( begin_work => 1 );
+        $test->{dbi_mock}->mock( commit     => 1 );
         $test->{db_mock} = MockModule->new('Kinetic::Store::DB');
-        $test->{db_mock}->mock(_dbh => $test->{dbh});
+        $test->{db_mock}->mock( _dbh => $test->{dbh} );
     }
 }
+
+##############################################################################
+
+=head3 unmock_dbh
+
+  $test->unmock_dbh;
+
+Unmocks previously mocked database handle.  Carps if the database handle was
+not previously mocked.
+
+=cut
 
 sub unmock_dbh {
     my $test = shift;
@@ -50,15 +73,33 @@ sub unmock_dbh {
         $test->{dbh}->commit;
     }
     else {
-        delete( $test->{dbi_mock} )->unmock_all;
-        $test->{dbh}->rollback unless $test->{dbh}->{AutoCommit};
-        delete( $test->{db_mock} )->unmock_all;
+        if ( exists $test->{dbi_mock} ) {
+            delete( $test->{dbi_mock} )->unmock_all;
+            $test->{dbh}->rollback unless $test->{dbh}->{AutoCommit};
+            delete( $test->{db_mock} )->unmock_all;
+        }
+        else {
+            require Carp;
+            Carp::carp("Could not unmock database handle.");
+        }
     }
 }
 
+##############################################################################
+
+=head3 create_test_objects
+
+  $test->create_test_objects;
+
+Creates three test objects of the C<TestApp::Simple::One> class and saves them
+to the data store.  Sets their names to 'foo', 'bar' and 'snorfleglitz'.  Not
+other attributes are set.
+
+=cut
+
 sub create_test_objects {
     my $test = shift;
-    my $foo = One->new;
+    my $foo  = One->new;
     $foo->name('foo');
     $foo->save;
     my $bar = One->new;
@@ -67,7 +108,7 @@ sub create_test_objects {
     my $baz = One->new;
     $baz->name('snorfleglitz');
     $baz->save;
-    $test->test_objects([$foo, $bar, $baz]);
+    $test->test_objects( [ $foo, $bar, $baz ] );
 }
 
 ##############################################################################
