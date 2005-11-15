@@ -167,6 +167,13 @@ sub attribute_class {
 
 =head3 for_key
 
+  my $class = Kinetic::Meta->for_key($key);
+
+This method overrides the implementation inherited from
+L<Class::Meta|Class::Meta> to throw an exception no class object exists for
+the key passed as its sole argument. To use C<for_key()> without getting an
+exception, call C<< Class::Meta->for_key() >>, instead.
+
 =cut
 
 sub for_key {
