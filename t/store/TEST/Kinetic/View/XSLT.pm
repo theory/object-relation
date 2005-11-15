@@ -35,24 +35,8 @@ __PACKAGE__->runtests unless caller;
 
 sub setup : Test(setup) {
     my $test  = shift;
-    my $store = Store->new;
-    $test->{dbh} = $store->_dbh;
-    $test->{dbh}->begin_work;
-    $test->{dbi_mock} = MockModule->new( 'DBI::db', no_auto => 1 );
-    $test->{dbi_mock}->mock( begin_work => 1 );
-    $test->{dbi_mock}->mock( commit     => 1 );
-    $test->{db_mock} = MockModule->new('Kinetic::Store::DB');
-    $test->{db_mock}->mock( _dbh => $test->{dbh} );
-    my $foo = One->new;
-    $foo->name('foo');
-    $store->save($foo);
-    my $bar = One->new;
-    $bar->name('bar');
-    $store->save($bar);
-    my $baz = One->new;
-    $baz->name('snorfleglitz');
-    $store->save($baz);
-    $test->test_objects( [ $foo, $bar, $baz ] );
+    $test->mock_dbh;
+    $test->create_test_objects;
     $test->{param} = sub {
         my $self         = shift;
         my @query_string = @{ $test->_query_string || [] };
@@ -73,9 +57,7 @@ sub setup : Test(setup) {
 
 sub teardown : Test(teardown) {
     my $test = shift;
-    delete( $test->{dbi_mock} )->unmock_all;
-    $test->{dbh}->rollback unless $test->{dbh}->{AutoCommit};
-    delete( $test->{db_mock} )->unmock_all;
+    $test->unmock_dbh;
 }
 
 sub build_search_form : Test(2) {

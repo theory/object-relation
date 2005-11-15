@@ -92,16 +92,7 @@ sub setup : Test(setup) {
     $test->{dbh} = $store->_dbh;
     $test->_clear_database;
     $test->{dbh}->begin_work;
-    my $foo = One->new;
-    $foo->name('foo');
-    $foo->save;
-    my $bar = One->new;
-    $bar->name('bar');
-    $bar->save;
-    my $baz = One->new;
-    $baz->name('snorfleglitz');
-    $baz->save;
-    $test->test_objects( [ $foo, $bar, $baz ] );
+    $test->create_test_objects;
     $test->desired_attributes( [qw/ state name description bool /] );
     $test->domain('http://localhost:9000')->path('rest')
       ->query_string("@{[TYPE_PARAM]}=html");

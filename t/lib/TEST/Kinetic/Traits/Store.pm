@@ -13,13 +13,62 @@ use warnings;
 # but since inheritance is not an option, I will be importing these methods
 # directly into the required namespaces.
 
+use aliased 'Test::MockModule';
 use Exporter::Tidy default => [
     qw/
+      create_test_objects
       desired_attributes
       force_inflation
+      mock_dbh
       test_objects
+      unmock_dbh
       /
 ];
+
+use aliased 'TestApp::Simple::One';
+use aliased 'TestApp::Simple::Two';
+
+my $debugging = 0;
+
+sub mock_dbh {
+    my $test = shift;
+    my $store = Kinetic::Store->new;
+    $test->{dbh} = $store->_dbh;
+    unless ($debugging) { # give us an easy debugging hook
+        $test->{dbh}->begin_work;
+        $test->{dbi_mock} = MockModule->new('DBI::db', no_auto => 1);
+        $test->{dbi_mock}->mock(begin_work => 1);
+        $test->{dbi_mock}->mock(commit => 1);
+        $test->{db_mock} = MockModule->new('Kinetic::Store::DB');
+        $test->{db_mock}->mock(_dbh => $test->{dbh});
+    }
+}
+
+sub unmock_dbh {
+    my $test = shift;
+    if ($debugging) {
+        $test->{dbh}->commit;
+    }
+    else {
+        delete( $test->{dbi_mock} )->unmock_all;
+        $test->{dbh}->rollback unless $test->{dbh}->{AutoCommit};
+        delete( $test->{db_mock} )->unmock_all;
+    }
+}
+
+sub create_test_objects {
+    my $test = shift;
+    my $foo = One->new;
+    $foo->name('foo');
+    $foo->save;
+    my $bar = One->new;
+    $bar->name('bar');
+    $bar->save;
+    my $baz = One->new;
+    $baz->name('snorfleglitz');
+    $baz->save;
+    $test->test_objects([$foo, $bar, $baz]);
+}
 
 ##############################################################################
 

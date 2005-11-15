@@ -52,24 +52,8 @@ __PACKAGE__->runtests unless caller;
 
 sub setup : Test(setup) {
     my $test  = shift;
-    my $store = Store->new;
-    $test->{dbh} = $store->_dbh;
-    $test->{dbh}->begin_work;
-    $test->{dbi_mock} = MockModule->new( 'DBI::db', no_auto => 1 );
-    $test->{dbi_mock}->mock( begin_work => 1 );
-    $test->{dbi_mock}->mock( commit     => 1 );
-    $test->{db_mock} = MockModule->new('Kinetic::Store::DB');
-    $test->{db_mock}->mock( _dbh => $test->{dbh} );
-    my $foo = One->new;
-    $foo->name('foo');
-    $store->save($foo);
-    my $bar = One->new;
-    $bar->name('bar');
-    $store->save($bar);
-    my $baz = One->new;
-    $baz->name('baz');
-    $store->save($baz);
-    $test->test_objects( [ $foo, $bar, $baz ] );
+    $test->mock_dbh;
+    $test->create_test_objects;
 
     # set up mock cgi and path methods
     my $cgi_mock = MockModule->new('CGI');
@@ -93,9 +77,7 @@ sub setup : Test(setup) {
 
 sub teardown : Test(teardown) {
     my $test = shift;
-    delete( $test->{dbi_mock} )->unmock_all;
-    $test->{dbh}->rollback unless $test->{dbh}->{AutoCommit};
-    delete( $test->{db_mock} )->unmock_all;
+    $test->unmock_dbh;
     delete( $test->{cgi_mock} )->unmock_all;
     delete( $test->{rest_mock} )->unmock_all;
 }
