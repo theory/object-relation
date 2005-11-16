@@ -220,7 +220,7 @@ sub new_from_xml : Test(7) {
     END_XML
 
     throws_ok { XML->new_from_xml($no_such_class) }
-      'Kinetic::Util::Exception::Fatal::UnknownClass',
+      'Kinetic::Util::Exception::Fatal::InvalidClass',
       '... and calling it with an unknown class should fail';
 
     my $one = One->new;

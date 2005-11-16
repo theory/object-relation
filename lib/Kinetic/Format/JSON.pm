@@ -1,18 +1,5 @@
 package Kinetic::Format::JSON;
 
-use strict;
-use warnings;
-use JSON ();
-use Hash::Merge;
-use Class::Delegator
-  send => [qw/objToJson jsonToObj/],
-  to   => '{json}';
-
-use version;
-our $VERSION = version->new('0.0.1');
-
-use aliased 'Kinetic::Meta';
-
 # $Id: JSON.pm 2190 2005-11-08 02:05:10Z curtis $
 
 # CONTRIBUTION SUBMISSION POLICY:
@@ -31,6 +18,20 @@ use aliased 'Kinetic::Meta';
 # use, copy, create derivative works based on those contributions, and
 # sublicense and distribute those contributions and any derivatives thereof.
 
+use strict;
+use warnings;
+use JSON ();
+use Hash::Merge;
+use Class::Delegator
+  send => [qw/objToJson jsonToObj/],
+  to   => '{json}';
+
+use version;
+our $VERSION = version->new('0.0.1');
+
+use base 'Kinetic::Format';
+use aliased 'Kinetic::Meta';
+
 =head1 Name
 
 Kinetic::Format::JSON - The Kinetic JSON serialization class
@@ -39,8 +40,8 @@ Kinetic::Format::JSON - The Kinetic JSON serialization class
 
   use Kinetic::Format::JSON;
   my $formatter = Kinetic::Format::JSON->new;
-  my $json      = $formatter->render($kinetic_object);
-  my $object    = $formatter->restore($json);
+  my $json      = $formatter->serialize($kinetic_object);
+  my $object    = $formatter->deserialize($json);
 
 =head1 Description
 
@@ -87,11 +88,6 @@ ensures a more compact JSON representation, thus saving bandwidth.
 
 =cut
 
-sub new {
-    my $class = shift;
-    return bless $class->_init(shift) => $class;
-}
-
 sub _init {
     my ( $class, $arg_for ) = @_;
     $arg_for ||= {};
@@ -104,19 +100,25 @@ sub _init {
 
 ##############################################################################
 
-=head3 render
+=head3 serialize
 
-  my $json = $formatter->render($object);
+  my $json = $formatter->serialize($object);
 
 Render the L<Kinetic|Kinetic> object as JSON.
 
 =cut
 
-sub render {
+sub serialize {
     my ( $self, $object ) = @_;
     my %value_for;
     foreach my $attr ( $object->my_class->attributes ) {
-        $value_for{ $attr->name } = $attr->raw($object);
+        if ( $attr->references ) {
+            my $contained = $attr->get($object);
+            $value_for{ $attr->name } = $self->serialize($contained);
+        }
+        else {
+            $value_for{ $attr->name } = $attr->raw($object);
+        }
     }
     $value_for{_key} = $object->my_class->key;
     return $self->objToJson( \%value_for );
@@ -124,15 +126,15 @@ sub render {
 
 ##############################################################################
 
-=head3 restore
+=head3 deserialize
 
-   my $object = $formatter->restore($json);
+   my $object = $formatter->deserialize($json);
 
 Restore the object from JSON.
 
 =cut
 
-sub restore {
+sub deserialize {
     my ( $self, $json ) = @_;
     my $value_for = $self->jsonToObj($json);
     my $class     = Meta->for_key( delete $value_for->{_key} );
@@ -140,41 +142,16 @@ sub restore {
     while ( my ( $attr, $value ) = each %$value_for ) {
         next unless defined $value;
         if ( my $attribute = $class->attributes($attr) ) {
-            $attribute->bake( $object, $value );
+            if ($attribute->references) {
+                my $contained = $self->deserialize($value);
+                $object->$attr($contained);
+            }
+            else {
+                $attribute->bake( $object, $value );
+            }
         }
     }
     return $object;
-}
-
-##############################################################################
-
-=head3 save
-
-  $formatter->save($json);
-
-Given JSON, this method finds the appropriate object in the datastore and
-updates it.  Will create a new object if the UUID cannot be found.
-
-Returns the created from the JSON, not the C<$formatter> object.
-
-=cut
-
-sub save {
-    my ( $self, $json ) = @_;
-    my $object = $self->restore($json);
-    my $stored = $object->my_class->package->lookup( uuid => $object->uuid );
-    if ($stored) {
-        foreach my $attr ( $object->my_class->attributes ) {
-            my $attr_name = $attr->name;
-            $stored->$attr_name( $object->$attr_name );
-        }
-        $stored->save;
-        return $stored;
-    }
-    else {
-        $object->save;
-        return $object;
-    }
 }
 
 1;

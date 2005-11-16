@@ -27,7 +27,6 @@ my $build = Kinetic::Build->new(
         'Exception::Class'           => 1.12,
         'Exception::Class::DBI'      => 0.92,
         'Exporter::Tidy'             => 0.06,
-        'Hash::Merge'                => 0.07,
         'HOP::Lexer'                 => 0.01,
         'HOP::Parser'                => 0.01,
         'HOP::Stream'                => 0.01,
