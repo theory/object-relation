@@ -1,4 +1,4 @@
-package Kinetic::Interface::REST::Dispatch;
+package Kinetic::UI::REST::XML;
 
 # $Id: REST.pm 1544 2005-04-16 01:13:51Z theory $
 
@@ -49,16 +49,16 @@ Kinetic::REST - REST services provider
 
 =head1 Synopsis
 
- use Kinetic::Interface::REST::Dispatch;
+ use Kinetic::UI::REST::XML;
 
- if (my $sub = Kinetic::Interface::REST::Dispatch->can($method)) {
+ if (my $sub = Kinetic::UI::REST::XML->can($method)) {
    $sub->($rest);
  }
 
 =head1 Description
 
 This is the dispatch class to which
-L<Kinetic::Interface::REST|Kinetic::Interface::REST> will dispatch methods.
+L<Kinetic::UI::REST|Kinetic::UI::REST> will dispatch methods.
 This is kept in a separate class to ensure that REST servers do not call these
 methods directly.
 
@@ -68,10 +68,10 @@ methods directly.
 
 =head3 new
 
-  my $dispatch = Kinetic::Interface::REST::Dispatch->new({ rest => $rest });
+  my $dispatch = Kinetic::UI::REST::XML->new({ rest => $rest });
 
-The constructor. The C<rest> paramter should be an object conforming to the
-C<Kinetic::Interface::Rest> interface.
+The constructor. The C<rest> parameter should be an object conforming to the
+C<Kinetic::UI::Rest> interface.
 
 =cut
 
@@ -687,7 +687,7 @@ sub _add_column_sort_info {
 
   $dispatch->class_list($rest);
 
-This function takes a L<Kinetic::Interface::REST|Kinetic::Interface::REST>
+This function takes a L<Kinetic::UI::REST|Kinetic::UI::REST>
 object and sets its content-type to C<text/xml> and its response to an XML
 list of all classes registered with L<Kinetic::Meta|Kinetic::Meta>.
 

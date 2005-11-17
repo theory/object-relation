@@ -80,7 +80,7 @@ knowledge about the namespaces, elements and attributes used.
   my $xml = Kinetic::XML::REST->new( { rest => $rest } );
 
 The constructor.  The C<rest> argument should be an object conforming to the
-C<Kinetic::Interface::Rest> interface.
+C<Kinetic::UI::Rest> interface.
 
 =cut
 

@@ -1,4 +1,4 @@
-package Kinetic::Interface::REST;
+package Kinetic::UI::REST;
 
 # $Id: REST.pm 1544 2005-04-16 01:13:51Z theory $
 
@@ -25,22 +25,22 @@ our $VERSION = version->new('0.0.1');
 use Kinetic::Util::Constants qw/:http :rest/;
 use Kinetic::Util::Exceptions qw/throw_required/;
 use aliased 'Kinetic::View::XSLT';
-use aliased 'Kinetic::Interface::REST::Dispatch';
+use aliased 'Kinetic::UI::REST::XML';
 
 use aliased 'Array::AsHash';
 use URI::Escape qw/uri_unescape/;
 
 =head1 Name
 
-Kinetic::Interface::REST - REST services provider
+Kinetic::UI::REST - REST services provider
 
 =head1 Synopsis
 
- use Kinetic::Interface::REST;
+ use Kinetic::UI::REST;
 
  sub handle_request
     # pre-processing code
-    my $response = Kinetic::Interface::REST->handle_request($cgi_object);
+    my $response = Kinetic::UI::REST->handle_request($cgi_object);
     # post-processing code
   }
 
@@ -58,14 +58,14 @@ Kinetic::Interface::REST - REST services provider
 
 =head3 new
 
-  my $rest = Kinetic::Interface::REST->new(
+  my $rest = Kinetic::UI::REST->new(
     domain => $domain,
     path   => $path,
   );
 
-The C<new()> constructor returns a C<Kinetic::Interface::REST> instance.  Note
-that this is an object that can interpret REST (REpresentational State
-Transfer).  It is B<not> a server.
+The C<new()> constructor returns a C<Kinetic::UI::REST> instance.  Note that
+this is an object that can interpret REST (REpresentational State Transfer).
+It is B<not> a server.
 
 The C<domain> and C<path> arguments are required.  They are used internally
 when building XML and examining path info.
@@ -98,7 +98,7 @@ sub _validate_args {
         ];
     }
     $arg_for{domain} .= '/' unless $arg_for{domain} =~ /\/$/;
-    $arg_for{path}   .= '/' unless $arg_for{path}   =~ /\/$/;
+    $arg_for{path} .= '/'   unless $arg_for{path}   =~ /\/$/;
     $arg_for{path} =~ s/^\///;
 
     return %arg_for;
@@ -135,7 +135,7 @@ sub handle_request {
     $self->desired_content_type(XML_CT);
     if ( my $type = $cgi->param(TYPE_PARAM) ) {
         my $desired_content_type =
-            'html' eq lc $type ? HTML_CT
+          'html'   eq lc $type ? HTML_CT
           : 'text' eq lc $type ? TEXT_CT
           : XML_CT;
         $self->desired_content_type($desired_content_type);
@@ -147,14 +147,12 @@ sub handle_request {
     # the following variables should be case-insensitive
     $_ = lc foreach $class_key, $method;
 
-    my $dispatch = Kinetic::Interface::REST::Dispatch->new({
-        rest => $self
-    });
+    my $dispatch = XML->new( { rest => $self } );
     eval {
-        if ($class_key) {
+        if ($class_key)
+        {
             $dispatch->class_key($class_key)->method($method)
-              ->args( AsHash->new({ array => \@args }) )
-              ->handle_rest_request;
+              ->args( AsHash->new( { array => \@args } ) )->handle_rest_request;
         }
         else {
             $self->xslt('resources');
@@ -396,7 +394,7 @@ sub cgi {
 Read only. This method returns the domain that was set when the REST server
 was instantiated. A trailing slash will be added, if necessary.
 
- my $rest = Kinetic::Interface::REST->new(
+ my $rest = Kinetic::UI::REST->new(
     domain => 'http://someserver',
     path   => 'rest/'
  );
@@ -417,7 +415,7 @@ instantiated. Path must be relative to the url set in the constructor. Leading
 forward slashes will be stripped and a trailing slash will be added, if
 necessary.
 
- my $rest = Kinetic::Interface::REST->new(
+ my $rest = Kinetic::UI::REST->new(
     domain => 'http://someserver/',
     path   => '/rest'
  );
@@ -485,7 +483,7 @@ sub set_response {
     my $content_type = $self->desired_content_type || XML_CT;
     my $content = $xml;
     if ( HTML_CT eq $content_type ) {
-        $type  ||= $self->xslt;
+        $type ||= $self->xslt;
         my $xslt = XSLT->new( type => $type );
         $content = $xslt->transform($xml);
     }

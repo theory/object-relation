@@ -1,4 +1,4 @@
-package TEST::Kinetic::Interface::REST::Dispatch;
+package TEST::Kinetic::UI::REST::XML;
 
 # $Id: REST.pm 1094 2005-01-11 19:09:08Z curtis $
 
@@ -25,8 +25,8 @@ use XML::XPath::XMLParser;
 use HTML::Entities qw/encode_entities/;
 
 use aliased 'Kinetic::Store' => 'Store', ':all';
-use aliased 'Kinetic::Interface::REST';
-use aliased 'Kinetic::Interface::REST::Dispatch';
+use aliased 'Kinetic::UI::REST';
+use aliased 'Kinetic::UI::REST::XML', 'Dispatch';
 
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
@@ -45,14 +45,14 @@ __PACKAGE__->SKIP_CLASS(
 __PACKAGE__->runtests unless caller;
 
 sub setup : Test(setup) {
-    my $test  = shift;
+    my $test = shift;
     $test->mock_dbh;
     $test->create_test_objects;
 
     # set up mock cgi and path methods
     my $cgi_mock = MockModule->new('CGI');
     $cgi_mock->mock( path_info => sub { $test->_path_info } );
-    my $rest_mock = MockModule->new('Kinetic::Interface::REST');
+    my $rest_mock = MockModule->new(REST);
     {
         local $^W;    # because CGI.pm is throwing uninitialized errors :(
         $rest_mock->mock( cgi => CGI->new );
@@ -94,7 +94,7 @@ sub get_desired_attributes : Test(4) {
       '... and _desired_attributes should return the correct attributes';
 
     can_ok $dispatch, '_all_attributes';
-    is_deeply [map { $_->name } $dispatch->_all_attributes],
+    is_deeply [ map { $_->name } $dispatch->_all_attributes ],
       [qw/state name description age date/],
       '... and _all_attributes should return the all attributes';
 }

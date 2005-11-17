@@ -1,8 +1,9 @@
 package TEST::REST::Server;
 use base qw(HTTP::Server::Simple::CGI);
-use Kinetic::Interface::REST;
+
 use Kinetic::Util::Constants qw/:http/;
-use Kinetic::View::XSLT;
+use aliased 'Kinetic::UI::REST';
+use aliased 'Kinetic::View::XSLT';
 
 my $REST_SERVER;
 
@@ -13,11 +14,11 @@ sub new {
     if ( $value_for->{no_cache} ) {
         $CACHING = 0;
     }
-    $REST_SERVER = Kinetic::Interface::REST->new(
+    $REST_SERVER = REST->new(
         domain => $value_for->{domain},
         path   => $value_for->{path}
     );
-    Kinetic::View::XSLT->cache_xslt($CACHING);
+    XSLT->cache_xslt($CACHING);
     $class->SUPER::new( @{ $value_for->{args} } );
 }
 

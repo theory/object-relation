@@ -1,4 +1,4 @@
-package TEST::Kinetic::Interface::REST;
+package TEST::Kinetic::UI::REST;
 
 # $Id: REST.pm 1094 2005-01-11 19:09:08Z curtis $
 
@@ -265,7 +265,7 @@ sub web_test : Test(12) {
 }
 
 sub constructor : Test(14) {
-    my $class = 'Kinetic::Interface::REST';
+    my $class = 'Kinetic::UI::REST';
     can_ok $class, 'new';
     throws_ok { $class->new }
       'Kinetic::Util::Exception::Fatal::RequiredArguments',
@@ -308,7 +308,7 @@ sub constructor : Test(14) {
 
 sub rest_interface : Test(19) {
     my $test  = shift;
-    my $class = 'Kinetic::Interface::REST';
+    my $class = 'Kinetic::UI::REST';
     my $rest  = $class->new( domain => 'http://foo/', path => 'rest/server/' );
     $test->domain('http://foo/');
     $test->path('rest/server/');
@@ -346,7 +346,7 @@ sub rest_interface : Test(19) {
 
 sub rest_faults : Test(7) {
     my $test  = shift;
-    my $class = 'Kinetic::Interface::REST';
+    my $class = 'Kinetic::UI::REST';
     my $rest  = $class->new( domain => 'http://foo/', path => 'rest/server/' );
     $test->domain('http://foo/');
     $test->path('rest/server/');
@@ -363,7 +363,7 @@ sub rest_faults : Test(7) {
     is $rest->response, 'No resource available to handle (/foo/bar)',
       '... and a human readable response';
 
-    my $dispatch_mock = MockModule->new('Kinetic::Interface::REST::Dispatch');
+    my $dispatch_mock = MockModule->new('Kinetic::UI::REST::XML');
     $dispatch_mock->mock( _handle_rest_request => sub { die "woobly" } );
     ok $rest->handle_request( CGI->new ),
       'Handling a fatal resource should succeed';
