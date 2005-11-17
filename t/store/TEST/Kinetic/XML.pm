@@ -14,7 +14,7 @@ use Test::File::Contents;
 
 use Encode qw(is_utf8);
 
-use TEST::Kinetic::Traits::Store qw/test_objects force_inflation/;
+use Class::Trait qw(TEST::Kinetic::Traits::Store);
 use Kinetic::Meta;
 use Kinetic::Util::Language::en;
 use aliased 'Kinetic::DateTime';
@@ -170,6 +170,7 @@ sub update_from_xml : Test(4) {
       ;    # note that one does not have an id
     my $xml_string = $xml->dump_xml;
     my $object = $test->force_inflation( XML->update_from_xml($xml_string) );
+
     #diag $xml_string;
     ok exists $object->{id},
       '... and an existing uuid should provide its ID for the update';
@@ -435,7 +436,7 @@ sub dump_xml_with_resources : Test(9) {
             resources_url  => $resources,
         }
     );
-    
+
     # we have more resources than are defined in this test class as the test
     # suite generates some other resources.  This does not affect the validity
     # of the test so long as we're aware of these other classes.

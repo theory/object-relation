@@ -1,6 +1,6 @@
 package TEST::Kinetic::Traits::Store;
 
-#use Class::Trait 'base';
+use Class::Trait 'base';
 
 use strict;
 use warnings;
@@ -14,17 +14,6 @@ use warnings;
 # directly into the required namespaces.
 
 use aliased 'Test::MockModule';
-use Exporter::Tidy default => [
-    qw/
-      create_test_objects
-      desired_attributes
-      force_inflation
-      mock_dbh
-      test_objects
-      unmock_dbh
-      /
-];
-
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';
 

@@ -12,7 +12,7 @@ use Encode qw(is_utf8);
 
 use aliased 'Test::MockModule';
 
-use TEST::Kinetic::Traits::Store qw/test_objects force_inflation/;
+use Class::Trait qw(TEST::Kinetic::Traits::Store);
 use Kinetic::Store qw/:all/;
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Util::State';

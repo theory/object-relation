@@ -9,7 +9,7 @@ use base 'TEST::Kinetic::Store::DB';
 use Test::More;
 use Test::Exception;
 
-use TEST::Kinetic::Traits::Store qw/test_objects/;
+use Class::Trait qw(TEST::Kinetic::Traits::Store);
 use Kinetic::Store qw/:all/;
 
 use aliased 'TestApp::Simple::One';

@@ -11,7 +11,7 @@ use Test::JSON;
 use Test::More;
 use Test::Exception;
 
-use TEST::Kinetic::Traits::Store qw/:all/;
+use Class::Trait qw( TEST::Kinetic::Traits::Store );
 
 use Kinetic::Util::Constants qw/UUID_RE/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;

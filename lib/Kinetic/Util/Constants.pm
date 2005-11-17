@@ -23,7 +23,6 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-
 =head1 Name
 
 Kinetic::Util::Constants - The Kinetic constants class

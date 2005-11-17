@@ -11,17 +11,18 @@ use Test::Exception;
 use Test::XML;
 
 use Kinetic::XML;
-use TEST::Kinetic::Traits::Store qw/:all/;
-use TEST::Kinetic::Traits::HTML qw/:all/;
-use TEST::Kinetic::Traits::XML qw/:all/;
+use Class::Trait qw( TEST::Kinetic::Traits::Store );
+use Class::Trait qw( TEST::Kinetic::Traits::HTML );
+use Class::Trait qw( TEST::Kinetic::Traits::XML );
+
 use Kinetic::Util::Constants qw/UUID_RE CURRENT_PAGE :labels/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(0) }
 
 use aliased 'Kinetic::View::XSLT';
-use aliased 'Test::MockModule';
 use aliased 'Kinetic::Store' => 'Store', ':all';
 
+use aliased 'Test::MockModule';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
 

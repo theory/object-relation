@@ -6,9 +6,9 @@ use strict;
 use warnings;
 
 use base 'TEST::Class::Kinetic';
-use TEST::Kinetic::Traits::Store qw/:all/;
-use TEST::Kinetic::Traits::XML qw/:all/;
-use TEST::Kinetic::Traits::HTML qw/:all/;
+use Class::Trait qw( TEST::Kinetic::Traits::Store );
+use Class::Trait qw( TEST::Kinetic::Traits::XML );
+use Class::Trait qw( TEST::Kinetic::Traits::HTML );
 use Test::More;
 use Test::Exception;
 use Test::WWW::Mechanize;

@@ -1,45 +1,41 @@
 package TEST::Kinetic::Traits::HTML;
 
-#use Class::Trait 'base';
-# requires desired_attributes()
+use Class::Trait 'base';
+
+our @REQUIRES = qw(desired_attributes);
 
 use strict;
 use warnings;
 use Array::AsHash;
-use HTML::Entities qw/encode_entities/;
-use Kinetic::Util::Constants qw/:rest/;    # form params
+use HTML::Entities           ();
+use Kinetic::Util::Constants ();    # form params
 
-# note that the following is a stop-gap measure until Class::Trait has
-# a couple of bugs fixed.  Bugs have been reported back to the author.
-#
-# Traits would be useful here as the REST and REST::Dispatch classes are
-# coupled, but not by inheritance.  The tests need to share functionality
-# but since inheritance is not an option, I will be importing these methods
-# directly into the required namespaces.
-
-use Exporter::Tidy default => [
-    qw/
-      domain
-      footer_html
-      header_html
-      instance_table
-      normalize_search_args
-      path
-      query_string
-      resource_list_html
-      search_form
-      url
-      /
-];
+my $ORDER_BY_PARAM  = Kinetic::Util::Constants::ORDER_BY_PARAM();
+my $SORT_PARAM      = Kinetic::Util::Constants::SORT_PARAM();
+my $SEARCH_TYPE     = Kinetic::Util::Constants::SEARCH_TYPE();
+my $LIMIT_PARAM     = Kinetic::Util::Constants::LIMIT_PARAM();
+my $CLASS_KEY_PARAM = Kinetic::Util::Constants::CLASS_KEY_PARAM();
+my $DOMAIN_PARAM    = Kinetic::Util::Constants::DOMAIN_PARAM();
+my $PATH_PARAM      = Kinetic::Util::Constants::PATH_PARAM();
+my $TYPE_PARAM      = Kinetic::Util::Constants::TYPE_PARAM();
+my $OFFSET_PARAM    = Kinetic::Util::Constants::OFFSET_PARAM();
 
 ##############################################################################
 
-=head1 Available methods
+=head1 Provided methods
 
 =head2 Instance methods
 
 The following methods are are methods related to the production of HTML
 documents.
+
+Requires:
+
+=over 4
+
+=item * desired_attributes
+
+=back
 
 =cut
 
@@ -217,16 +213,16 @@ the args in the method expected by the REST dispatch class for searches.
 sub normalize_search_args {
     my ( $test, $args ) = @_;
     $args = defined $args ? $args->clone : Array::AsHash->new;
-    $args->default( SEARCH_TYPE, '', LIMIT_PARAM, 20, OFFSET_PARAM, 0, );
-    if ( $args->exists(ORDER_BY_PARAM) ) {
-        $args->default( SORT_PARAM, 'ASC' );
+    $args->default( $SEARCH_TYPE, '', $LIMIT_PARAM, 20, $OFFSET_PARAM, 0, );
+    if ( $args->exists($ORDER_BY_PARAM) ) {
+        $args->default( $SORT_PARAM, 'ASC' );
     }
     $args = Array::AsHash->new(
         {
             array => [
-                $args->get_pairs( SEARCH_TYPE, LIMIT_PARAM,
-                    OFFSET_PARAM, ORDER_BY_PARAM,
-                    SORT_PARAM
+                $args->get_pairs(
+                    $SEARCH_TYPE,    $LIMIT_PARAM, $OFFSET_PARAM,
+                    $ORDER_BY_PARAM, $SORT_PARAM
                 )
             ]
         }
@@ -252,35 +248,37 @@ sub search_form {
 
     my $order_options = '';
     my @options = map { [ $_ => ucfirst $_ ] } $test->desired_attributes;
-    $args->default( ORDER_BY_PARAM, '' );
+    $args->default( $ORDER_BY_PARAM, '' );
     foreach my $option (@options) {
         my $selected =
-          $args->get(ORDER_BY_PARAM) eq $option->[0] ? ' selected="selected"' : '';
+          $args->get($ORDER_BY_PARAM) eq $option->[0]
+          ? ' selected="selected"'
+          : '';
         $order_options .=
           qq{<option value="$option->[0]"$selected>$option->[1]</option>};
     }
     my $sort_options = '';
-    $args->default( SORT_PARAM, 'ASC' );
+    $args->default( $SORT_PARAM, 'ASC' );
     foreach my $order ( [ ASC => 'Ascending' ], [ DESC => 'Descending' ] ) {
         my $selected =
-          $args->get(SORT_PARAM) eq $order->[0] ? ' selected="selected"' : '';
+          $args->get($SORT_PARAM) eq $order->[0] ? ' selected="selected"' : '';
         $sort_options .=
           qq{<option value="$order->[0]"$selected>$order->[1]</option>};
     }
-    my $search = encode_entities( $args->get(SEARCH_TYPE) );
-    my $limit  = $args->get(LIMIT_PARAM);
+    my $search = HTML::Entities::encode_entities( $args->get($SEARCH_TYPE) );
+    my $limit  = $args->get($LIMIT_PARAM);
     my $domain = $test->domain;
     my $path   = $test->path;
     my $query  = $test->query_string;
-    my ($type) = $query =~ /@{[TYPE_PARAM]}=([[:word:]]+)/;
+    my ($type) = $query =~ /$TYPE_PARAM=([[:word:]]+)/;
     $type ||= '';
     return <<"    END_FORM";
     <div class="search">
       <form action="/$path" method="get" name="search_form" onsubmit="doSearch(this); return false" id="search_form">
-        <input type="hidden" name="@{[CLASS_KEY_PARAM]}" value="$key" />
-        <input type="hidden" name="@{[DOMAIN_PARAM]}" value="$domain" />
-        <input type="hidden" name="@{[PATH_PARAM]}" value="$path" />
-        <input type="hidden" name="@{[TYPE_PARAM]}" value="$type" />
+        <input type="hidden" name="$CLASS_KEY_PARAM" value="$key" />
+        <input type="hidden" name="$DOMAIN_PARAM" value="$domain" />
+        <input type="hidden" name="$PATH_PARAM" value="$path" />
+        <input type="hidden" name="$TYPE_PARAM" value="$type" />
         <table>
           <tr>
             <td class="header">search:</td>
@@ -398,4 +396,5 @@ sub resource_list_html {
     $resources .= '</ul></div>';
     return $resources;
 }
+
 1;

@@ -9,13 +9,8 @@ use Test::More;
 use Test::Exception;
 use base 'TEST::Kinetic::Store';
 
-#use base 'TEST::Class::Kinetic';
-use TEST::Kinetic::Traits::Store qw/
-  create_test_objects
-  mock_dbh
-  test_objects
-  unmock_dbh
-  /;
+use Class::Trait qw(TEST::Kinetic::Traits::Store);
+
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Meta::Attribute';

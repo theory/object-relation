@@ -1,38 +1,49 @@
 package TEST::Kinetic::Traits::XML;
 
-#use Class::Trait 'base';
-# required url() from Traits::HTML
-# required domain() from Traits::HTML
-# required path() from Traits::HTML
+use Class::Trait 'base';
+our @REQUIRES = qw(
+  desired_attributes
+  domain
+  normalize_search_args
+  path
+  query_string
+  url
+);
 
 use strict;
 use warnings;
 
-# note that the following is a stop-gap measure until Class::Trait has
-# a couple of bugs fixed.  Bugs have been reported back to the author.
-#
-# Traits would be useful here as the REST and REST::Dispatch classes are
-# coupled, but not by inheritance.  The tests need to share functionality
-# but since inheritance is not an option, I will be importing these methods
-# directly into the required namespaces.
+use HTML::Entities           ();
+use Kinetic::Util::Constants ();
 
-use HTML::Entities qw/encode_entities/;
-use Kinetic::Util::Constants qw/:xslt :rest/;
-use Exporter::Tidy default => [
-    qw/
-      instance_order
-      column_sort_xml
-      expected_instance_xml
-      get_sort_url
-      header_xml
-      resource_list_xml
-      search_data_xml
-      /
-];
+my $RESOURCES_XSLT = Kinetic::Util::Constants::RESOURCES_XSLT();
+my $SEARCH_XSLT    = Kinetic::Util::Constants::SEARCH_XSLT();
+my $ORDER_BY_PARAM = Kinetic::Util::Constants::ORDER_BY_PARAM();
+my $SORT_PARAM     = Kinetic::Util::Constants::SORT_PARAM();
+my $SEARCH_TYPE    = Kinetic::Util::Constants::SEARCH_TYPE();
+my $LIMIT_PARAM    = Kinetic::Util::Constants::LIMIT_PARAM();
 
 ##############################################################################
 
-=head1 Available methods
+=head1 Provided methods
+
+Requires: 
+
+=over 4
+
+=item * desired_attributes
+
+=item * domain
+
+=item * normalize_search_args
+
+=item * path
+
+=item * query_string
+
+=item * url
+
+=back
 
 =head2 Instance methods
 
@@ -129,7 +140,7 @@ that matches the XML returned by C<Kinetic::REST::Dispatch>.
 
 sub header_xml {
     my ( $test, $title ) = @_;
-    my $xslt   = $title =~ /resources/ ? RESOURCES_XSLT: SEARCH_XSLT;
+    my $xslt   = $title =~ /resources/ ? $RESOURCES_XSLT : $SEARCH_XSLT;
     my $server = $test->url;
     my $domain = $test->domain;
     my $path   = $test->path;
@@ -224,8 +235,8 @@ sub column_sort_xml {
 
     my @attributes = $test->desired_attributes;
 
-    my $order_by   = ( $args->get(ORDER_BY_PARAM)   || '' );
-    my $sort_order = ( $args->get(SORT_PARAM) || 'ASC' );
+    my $order_by   = ( $args->get($ORDER_BY_PARAM) || '' );
+    my $sort_order = ( $args->get($SORT_PARAM)     || 'ASC' );
 
     my $xml = '';
     foreach my $attribute (@attributes) {
@@ -239,22 +250,22 @@ sub get_sort_url {
     my ( $test, $class_key, $args, $attribute ) = @_;
     $args = $args->clone;
 
-    my $order_by   = ( $args->get(ORDER_BY_PARAM)   || '' );
-    my $sort_order = ( $args->get(SORT_PARAM) || 'ASC' );
+    my $order_by   = ( $args->get($ORDER_BY_PARAM) || '' );
+    my $sort_order = ( $args->get($SORT_PARAM)     || 'ASC' );
 
     my $base_url = $test->url;
     my $query    = $test->query_string;
 
     my $url = "$base_url$class_key/search/";
-    $args->put( ORDER_BY_PARAM, $attribute );
+    $args->put( $ORDER_BY_PARAM, $attribute );
     my $order = 'ASC';
     if ( $attribute eq $order_by && 'ASC' eq $sort_order ) {
         $order = 'DESC';
     }
-    $args->put( SORT_PARAM, $order );
+    $args->put( $SORT_PARAM, $order );
     $url .= join '/', map { '' eq $_ ? 'null' : $_ } $args->get_array;
     $url .= $query;
-    return encode_entities( $url, '"<>&' );
+    return HTML::Entities::encode_entities( $url, '"<>&' );
 }
 
 ##############################################################################
@@ -278,17 +289,19 @@ sub search_data_xml {
         <kinetic:class_key>$key</kinetic:class_key>
         <kinetic:search_parameters>
     END_XML
-    foreach my $arg (SEARCH_TYPE, LIMIT_PARAM) {
-        my $type  = SEARCH_TYPE eq $arg ? 'search' : $arg;
-        my $value = encode_entities($args->get($arg));
-        $xml .= qq[<kinetic:parameter type="$type">$value</kinetic:parameter>\n];
+    foreach my $arg ( $SEARCH_TYPE, $LIMIT_PARAM ) {
+        my $type = $SEARCH_TYPE eq $arg ? 'search' : $arg;
+        my $value = HTML::Entities::encode_entities( $args->get($arg) );
+        $xml .=
+          qq[<kinetic:parameter type="$type">$value</kinetic:parameter>\n];
     }
 
-    $xml .= qq{<kinetic:parameter type="@{[ORDER_BY_PARAM]}" widget="select">};
+    $xml .= qq{<kinetic:parameter type="$ORDER_BY_PARAM" widget="select">};
     my @attributes = map { [ $_ => ucfirst $_ ] } $test->desired_attributes;
-    my $order_by = $args->get(ORDER_BY_PARAM) || '';
+    my $order_by = $args->get($ORDER_BY_PARAM) || '';
     foreach my $order_by_opt (@attributes) {
-        my $selected = $order_by eq $order_by_opt->[0]
+        my $selected =
+          $order_by eq $order_by_opt->[0]
           ? (' selected="selected"')
           : ('');
         $xml .=
@@ -296,11 +309,12 @@ qq{<kinetic:option name="$order_by_opt->[0]"$selected>$order_by_opt->[1]</kineti
     }
     $xml .= "</kinetic:parameter>\n";
 
-    $xml .= qq{<kinetic:parameter type="@{[SORT_PARAM]}" widget="select">};
+    $xml .= qq{<kinetic:parameter type="$SORT_PARAM" widget="select">};
 
-    $args->default(SORT_PARAM, 'ASC');
+    $args->default( $SORT_PARAM, 'ASC' );
     foreach my $order ( [ ASC => 'Ascending' ], [ DESC => 'Descending' ] ) {
-        my $selected = $args->get(SORT_PARAM) eq $order->[0]
+        my $selected =
+          $args->get($SORT_PARAM) eq $order->[0]
           ? (' selected="selected"')
           : ('');
         $xml .=

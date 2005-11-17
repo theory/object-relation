@@ -11,11 +11,14 @@ use Test::JSON;
 use Test::More;
 use Test::Exception;
 
-use TEST::Kinetic::Traits::Store qw/:all/;
+{
+    no warnings;
+    use Kinetic::Util::Exceptions qw/sig_handlers/;
+    BEGIN { sig_handlers(0) }
+    use Class::Trait qw(TEST::Kinetic::Traits::Store);
+}
 
 use Kinetic::Util::Constants qw/UUID_RE/;
-use Kinetic::Util::Exceptions qw/sig_handlers/;
-BEGIN { sig_handlers(1) }
 
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Store' => 'Store', ':all';

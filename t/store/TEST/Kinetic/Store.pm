@@ -10,7 +10,7 @@ use Test::More;
 use Test::Exception;
 use Encode qw(is_utf8);
 
-use TEST::Kinetic::Traits::Store qw/test_objects force_inflation/;
+use Class::Trait qw(TEST::Kinetic::Traits::Store);
 
 use aliased 'Kinetic::Store' => 'Store', ':all';
 
