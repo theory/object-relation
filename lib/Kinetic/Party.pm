@@ -31,11 +31,10 @@ Kinetic::Party - Kinetic parties (people, organizations)
 
 =head1 Description
 
-This class serves as the abstract base class for parties in Kinetic. By
-"party", we do not, unfortunately, mean that this class will serve drinks and
-hors d'oevres or get people dancing to the music. Rather, a "party" is a
-person or an organization. See the
-L<Kinetic::Party::Person|Kinetic::Party::Person> and
+This class serves as the abstract base class for parties in TKP. By "party",
+we do not, unfortunately, mean that this class will serve drinks and hors
+d'oevres or get people dancing to the music. Rather, a "party" is a person or
+an organization. See the L<Kinetic::Party::Person|Kinetic::Party::Person> and
 L<Kinetic::Party::Org|Kinetic::Party::Org> subclasses for full
 implementations.
 
@@ -69,6 +68,8 @@ with the party. Use the collection API to add contacts to or remove contacts
 from the party.
 
 =cut
+
+# XXX Add one-to-many attributes here.
 
 ##############################################################################
 

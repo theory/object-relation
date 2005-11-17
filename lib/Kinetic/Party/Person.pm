@@ -2,6 +2,22 @@ package Kinetic::Party::Person;
 
 # $Id$
 
+# CONTRIBUTION SUBMISSION POLICY:
+#
+# (The following paragraph is not intended to limit the rights granted to you
+# to modify and distribute this software under the terms of the GNU General
+# Public License Version 2, and is only of importance to you if you choose to
+# contribute your changes and enhancements to the community by submitting them
+# to Kineticode, Inc.)
+#
+# By intentionally submitting any modifications, corrections or
+# derivatives to this work, or any other work intended for use with the
+# Kinetic framework, to Kineticode, Inc., you confirm that you are the
+# copyright holder for those contributions and you grant Kineticode, Inc.
+# a nonexclusive, worldwide, irrevocable, royalty-free, perpetual license to
+# use, copy, create derivative works based on those contributions, and
+# sublicense and distribute those contributions and any derivatives thereof.
+
 use strict;
 
 use version;
@@ -18,7 +34,7 @@ Kinetic::::Party::Person - Kinetic person objects
 
 =head1 Description
 
-This class serves as the abstract base class for people in Kinetic.
+This class serves as the abstract base class for people in TKP.
 
 =cut
 
@@ -36,9 +52,9 @@ BEGIN {
 
 =head1 Instance Interface
 
-In addition to the interface inherited from L<Kinetic::::|Kinetic::>
-and L<Kinetic::::Party|Kinetic::::Party>, this class offers a number
-of its own attributes.
+In addition to the interface inherited from L<Kinetic::::|Kinetic> and
+L<Kinetic::::Party|Kinetic::::Party>, this class offers a number of its own
+attributes.
 
 =head2 Accessors
 
@@ -47,7 +63,7 @@ of its own attributes.
   my $last_name = $person->last_name;
   $person->last_name($last_name);
 
-The person's last name.
+The person's last name. Also known as a "family name" or a "surname".
 
 =cut
 
@@ -68,7 +84,7 @@ The person's last name.
   my $first_name = $person->first_name;
   $person->first_name($first_name);
 
-The person's first name.
+The person's first name. Also known as a "given name".
 
 =cut
 
@@ -89,7 +105,7 @@ The person's first name.
   my $middle_name = $person->middle_name;
   $person->middle_name($middle_name);
 
-The person's middle name.
+The person's middle name. Also known as a "second name".
 
 =cut
 
@@ -196,11 +212,9 @@ The generation to the person's name, such as "Jr.", "III", etc.
   my $name = $person->name;
   $name = $person->name($format);
 
-Return the person object's name as formatted according to a
-L<Linguage::Strfname|Linguage::Strfname> format. Although the C<name>
-attribute is defind by Kinetic::, Kinetic::::Party::Person uses this
-method to override its behavior so that it looks more like a read-only
-attribute.
+Returns the person object's name as formatted according to a
+L<Linguage::Strfname|Linguage::Strfname> format. Kinetic::::Party::Person uses
+defines this method as a read-only attribute.
 
 The default format is specified by the locale returned by the currently
 selected langauge. See the L<Linguage::Strfname|Linguage::Strfname>
@@ -223,8 +237,7 @@ documentation for details on its formats to pass in custom formats.
         );
     }
 
-    # We want to override the name attribute to make it READ-only, and so that
-    # this method for all practical purposes becomes its replacement.
+    # We want the name method to actually be a read-only attribute.
     $cm->add_attribute(
         name        => 'name',
         label       => 'Name',
@@ -248,8 +261,17 @@ __END__
 
 =head1 Copyright and License
 
-Copyright (c) 2004-2005 Kineticode, Inc. See
-L<Kinetic::License|Kinetic::License> for complete license terms and
-conditions.
+Copyright (c) 2004-2005 Kineticode, Inc. <info@kineticode.com>
+
+This work is made available under the terms of Version 2 of the GNU General
+Public License. You should have received a copy of the GNU General Public
+License along with this program; if not, download it from
+L<http://www.gnu.org/licenses/gpl.txt> or write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+This work is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
+details.
 
 =cut
