@@ -163,22 +163,22 @@ C<lookup> method in L<Kinetic::Store|Kinetic::Store> for more information.
 
 ##############################################################################
 
-=head3 search
+=head3 query
 
-  my $iterator = Some::Kinetic::Object->search(name => LIKE '%vid');
+  my $iterator = Some::Kinetic::Object->query(name => LIKE '%vid');
 
-Calling this method searches the data store for objects meeting the search
-criteria.  See the C<search> method in L<Kinetic::Store|Kinetic::Store> for
+Calling this method searches the data store for objects meeting the query
+criteria.  See the C<query> method in L<Kinetic::Store|Kinetic::Store> for
 more information.
 
 =cut
 
-    sub search {
+    sub query {
         my $class = shift;
-        Kinetic::Store->search($class->my_class, @_);
+        Kinetic::Store->query($class->my_class, @_);
     }
     $cm->add_method(
-        name    => 'search',
+        name    => 'query',
         context => Class::Meta::CLASS,
     );
 

@@ -123,32 +123,32 @@ sub search : Test(19) {
         ok is_utf8($result->name), '... and the data should be unicode strings';
     }
 
-    ok $iterator = One->search(name => $foo->name),
+    ok $iterator = One->query(name => $foo->name),
         'and an exact match should succeed';
     isa_ok $iterator, Iterator, 'and the object it returns';
     is_deeply $test->force_inflation($iterator->next), $foo,
         'and the first item should match the correct object';
     ok ! $test->force_inflation($iterator->next), 'and there should be the correct number of objects';
 
-    ok $iterator = One->search(name => $foo->name),
+    ok $iterator = One->query(name => $foo->name),
         'We should also be able to call search as a class method';
     isa_ok $iterator, Iterator, 'and the object it returns';
     is_deeply $test->force_inflation($iterator->next), $foo,
         'and it should return the same results as an instance method';
     ok ! $test->force_inflation($iterator->next), 'and there should be the correct number of objects';
 
-    ok $iterator = One->search(name => ucfirst $foo->name),
+    ok $iterator = One->query(name => ucfirst $foo->name),
         'Case-insensitive searches should work';
     isa_ok $iterator, Iterator, 'and the object it returns';
     is_deeply $test->force_inflation($iterator->next), $foo,
          'and they should return data even if the case does not match';
 
-    $iterator = One->search(name => $foo->name, description => 'asdf');
+    $iterator = One->query(name => $foo->name, description => 'asdf');
     ok ! $test->force_inflation($iterator->next),
         'but searching for non-existent values will return no results';
     $foo->description('asdf');
     $foo->save;
-    $iterator = One->search(name => $foo->name, description => 'asdf');
+    $iterator = One->query(name => $foo->name, description => 'asdf');
     is_deeply $test->force_inflation($iterator->next), $foo,
         '... and it should be the correct results';
 }
@@ -162,7 +162,7 @@ sub string_search : Test(19) {
         $_->name($_->name.chr(0x100));
         $_->save;
     }
-    ok my $iterator = One->search(STRING => ''),
+    ok my $iterator = One->query(STRING => ''),
         'A search with only a class should succeed';
     my @results = $test->_all_items($iterator);
     is @results, 3, 'returning all instances in the class';
@@ -171,34 +171,34 @@ sub string_search : Test(19) {
         ok is_utf8($result->name), '... and the data should be unicode strings';
     }
 
-    ok $iterator = One->search(STRING => "name => '@{[$foo->name]}'"),
+    ok $iterator = One->query(STRING => "name => '@{[$foo->name]}'"),
         'and an exact match should succeed';
     isa_ok $iterator, Iterator, 'and the object it returns';
     is_deeply $test->force_inflation($iterator->next), $foo,
         'and the first item should match the correct object';
     ok ! $test->force_inflation($iterator->next), 'and there should be the correct number of objects';
 
-    ok $iterator = One->search(STRING => "name => '@{[$foo->name]}'"),
+    ok $iterator = One->query(STRING => "name => '@{[$foo->name]}'"),
         'We should also be able to call search as a class method';
     isa_ok $iterator, Iterator, 'and the object it returns';
     is_deeply $test->force_inflation($iterator->next), $foo,
         'and it should return the same results as an instance method';
     ok ! $test->force_inflation($iterator->next), 'and there should be the correct number of objects';
 
-    ok $iterator = One->search(
+    ok $iterator = One->query(
         STRING => "name => '@{[ucfirst $foo->name]}'"
     ), 'Case-insensitive searches should work';
     isa_ok $iterator, Iterator, 'and the object it returns';
     is_deeply $test->force_inflation($iterator->next), $foo,
          'and they should return data even if the case does not match';
 
-    $iterator = One->search(
+    $iterator = One->query(
         STRING => "name => '@{[$foo->name]}', description => 'asdf'");
     ok ! $test->force_inflation($iterator->next),
         'but searching for non-existent values will return no results';
     $foo->description('asdf');
     $foo->save;
-    $iterator = One->search(
+    $iterator = One->query(
         STRING => "name => '@{[$foo->name]}', description => 'asdf'"
     );
     is_deeply $test->force_inflation($iterator->next), $foo,

@@ -255,12 +255,12 @@ sub _get_request_from_query_string {
     my $cgi  = $self->cgi;
 
     my $class_key = $cgi->param(CLASS_KEY_PARAM);
-    my $method    = 'search';
+    my $method    = 'query';
 
     my @args;
     foreach my $param ( $cgi->param ) {
         my $value = $cgi->param($param);
-        if ( 'search' eq $param ) {
+        if ( 'query' eq $param ) {
             $param = 'STRING';
             if ( !defined $value || '' eq $value ) {
                 $value = 'null';

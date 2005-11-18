@@ -91,7 +91,7 @@ BEGIN {
 
     BEGIN {
         $one = TestApp::Simple::One->new;
-        $one->_save_prep; # Force UUID generation.
+        $one->_save_prep;    # Force UUID generation.
     }
 
     sub new {
@@ -226,7 +226,7 @@ sub new_from_xml : Test(7) {
       '... and calling it with an unknown class should fail';
 
     my $one = One->new;
-    $one->_save_prep; # Force UUID generation.
+    $one->_save_prep;    # Force UUID generation.
     $one->name('some name');
     $one->description('some description');
     my $xml        = XML->new( { object => $one } );
@@ -235,7 +235,7 @@ sub new_from_xml : Test(7) {
     is_deeply $object, $one, '... and it should return a valid object';
 
     my $two = Two->new;
-    $two->_save_prep; # Force UUID generation.
+    $two->_save_prep;    # Force UUID generation.
     $two->name('june17');
     $two->date(
         DateTime->new(
@@ -309,6 +309,7 @@ sub dump_xml : Test(7) {
     my $one = One->new;
     $one->name('some name');
     $one->description('some description');
+    $one->_save_prep;    # Force UUID generation.
     my $xml      = XML->new($one);
     my $one_uuid = $one->uuid;
     can_ok $xml, 'dump_xml';
@@ -334,6 +335,7 @@ sub dump_xml : Test(7) {
         )
     );
     $not_referenced->one($one);
+    $not_referenced->_save_prep;    # Force UUID generation.
     $xml->object($not_referenced);
     my $not_referenced_uuid = $not_referenced->uuid;
     is_xml $xml->dump_xml( with_referenced => 1 ),
@@ -379,7 +381,9 @@ sub dump_xml : Test(7) {
 
     my $partof = MyTestPartof->new;
     my $thingy = MyTestThingy->new( foo => 'bar' );
+    $thingy->_save_prep;    # Force UUID generation.
     $partof->thingy($thingy);
+    $partof->_save_prep;    # Force UUID generation.
     $xml->object($partof);
     my ( $partof_uuid, $thingy_uuid ) = ( $partof->uuid, $thingy->uuid );
     is_xml $xml->dump_xml,
@@ -410,6 +414,7 @@ sub dump_xml : Test(7) {
 
     my $foo = One->new;
     $foo->name('foo');
+    $foo->_save_prep;    # Force UUID generation.
     $xml->object($foo);
     my $uuid = $foo->uuid;
     is_xml $xml->dump_xml,
@@ -430,6 +435,7 @@ sub dump_xml_with_resources : Test(9) {
     my $one = One->new;
     $one->name('some name');
     $one->description('some description');
+    $one->_save_prep;    # Force UUID generation.
     my $stylesheet = 'http://foobar/xslt_stylesheet';
     my $resources  = 'http://foobar/';
     my $xml        = XML->new(
@@ -448,11 +454,11 @@ sub dump_xml_with_resources : Test(9) {
     # them correctly :(
 
     my $resource_xml = <<'    END_RESOURCES';
-    <resource href="http://foobar/one/search"    id="one"/>
-    <resource href="http://foobar/partof/search" id="partof"/>
-    <resource href="http://foobar/simple/search" id="simple"/>
-    <resource href="http://foobar/thingy/search" id="thingy"/>
-    <resource href="http://foobar/two/search"    id="two"/>
+    <resource href="http://foobar/one/query"    id="one"/>
+    <resource href="http://foobar/partof/query" id="partof"/>
+    <resource href="http://foobar/simple/query" id="simple"/>
+    <resource href="http://foobar/thingy/query" id="thingy"/>
+    <resource href="http://foobar/two/query"    id="two"/>
     END_RESOURCES
 
     my $one_uuid = $one->uuid;
@@ -518,6 +524,7 @@ sub dump_xml_with_stylesheet : Test(9) {
     my $one = One->new;
     $one->name('some name');
     $one->description('some description');
+    $one->_save_prep;    # Force UUID generation.
     my $stylesheet = 'http://foobar/xslt_stylesheet';
     my $xml        = XML->new(
         {
@@ -585,6 +592,7 @@ sub specify_desired_attributes : Test(13) {
     my $one = One->new;
     $one->name('some name');
     $one->description('some description');
+    $one->_save_prep;    # Force UUID generation.
 
     throws_ok { XML->new( { attributes => { bool => 1 } } ) }
       'Kinetic::Util::Exception::Fatal::Invalid',
@@ -661,6 +669,7 @@ sub specify_desired_attributes : Test(13) {
         )
     );
     $two->one($one);
+    $two->_save_prep;    # Force UUID generation.
     $xml->object($two);
     my $two_uuid = $two->uuid;
     $xml->attributes(undef);

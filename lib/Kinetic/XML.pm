@@ -326,7 +326,7 @@ sub dump_xml {
                 next if Kinetic::Meta->for_key($key)->abstract;
                 $xml->StartElementLiteral('resource');
                 $xml->AddAttributeLiteral( id   => $key );
-                $xml->AddAttributeLiteral( href => "$url$key/search" );
+                $xml->AddAttributeLiteral( href => "$url$key/query" );
                 $xml->EndElement;
             }
         }

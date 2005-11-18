@@ -112,14 +112,14 @@ sub save {
 
 This is an accessor method for the Kinetic::Meta::Class object representing
 the class being searched in the current search.  This is usually the first
-argument to the C<search> method.
+argument to the C<query> method.
 
 Generally, the programmer will know which search class she is working with,
 but if not, this method is avaible. Note that it is only available externally
 if the programmer first creates an instances of store prior to doing a search.
 
  my $store = Kinetic::Store->new;
- my $iter  = $store->search($some_class, name => 'foo');
+ my $iter  = $store->query($some_class, name => 'foo');
  my $class = $store->search_class; # returns $some_class
 
 =cut
@@ -171,9 +171,9 @@ sub lookup {
 
 ##############################################################################
 
-=head3 search
+=head3 query
 
-  my $iter = Store->search($class_object, @search_params);
+  my $iter = Store->query($class_object, @search_params);
 
 Returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> object containing
 all objects that match the search params. See L<Kinetic::Store|Kinetic::Store>
@@ -191,7 +191,7 @@ multiple SQL calls to assemble the data.
 
 =cut
 
-sub search {
+sub query {
     my ( $proto, $search_class, @search_params ) = @_;
     my $self = $proto->_from_proto;
     $self->_prepare_method(PREPARE);
@@ -211,7 +211,7 @@ sub search {
   my $uuids = Store->search_uuids($search_class, \@attributes, \%constraints);
 
 This method will return a list of uuids matching the listed criteria.  It
-takes the same arguments as C<search>.  In list context it returns a list.  In
+takes the same arguments as C<query>.  In list context it returns a list.  In
 scalar context it returns an array reference.
 
 =cut
@@ -239,8 +239,8 @@ sub search_uuids {
 
   my $count = Store->count($class_object, @search_params);
 
-This method takes the same arguments as C<search>.  Returns a count of how
-many rows a similar C<search> will return.
+This method takes the same arguments as C<query>.  Returns a count of how
+many rows a similar C<query> will return.
 
 Any final constraints (such as "LIMIT" or "ORDER BY") will be discarded.
 
@@ -310,26 +310,26 @@ The various date handlers are:
 
 This method is called when an exact date match is requested:
 
- $store->search($class, date => $date);
+ $store->query($class, date => $date);
 
 =item * C<_between_date_handler>
 
 This method is called when a date search between two dates is requested.
 
- $store->search($class, date => [$date => $date2]);
+ $store->query($class, date => [$date => $date2]);
 
 =item * C<_any_date_handler>
 
 This method is called when the user requests and "ANY" date search.
 
- $store->search($class, date => ANY(@dates));
+ $store->query($class, date => ANY(@dates));
 
 =item * C<_gt_lt_date_handler>
 
 This method is called when a user makes a C<GT>, C<LT>, C<GE>, or C<LE> date
 search.
 
- $store->search($class, date => GE $date);
+ $store->query($class, date => GE $date);
 
 =back
 
@@ -404,7 +404,7 @@ sub _save {
 
   my @results = $self->_search(@search_params);
 
-This method is called internally by both C<search> and C<lookup>.  Each method
+This method is called internally by both C<query> and C<lookup>.  Each method
 sets whether or n
 
 =cut
@@ -433,7 +433,7 @@ sub _search {
 
   $self->_set_search_type(\@search_params);
 
-This method is called internally by both C<search> C<count> and C<lookup>.  It
+This method is called internally by both C<query> C<count> and C<lookup>.  It
 determines whether or not the search is a CODE or STRING search and sets the 
 search type property accordingly.  It will I<remove> the search type from the
 front of the search params, if it's there.
@@ -443,20 +443,20 @@ assumed to be a list of name/value pairs for the constraints.  These are
 also removed from the search params and replaced with a hashref containing
 them.  This allows us to do this:
 
-  $store->search($class,
+  $store->query($class,
     STRING   => 'name => "foo"',
     order_by => 'name'
   );
 
   # or
-  $store->search($class,
+  $store->query($class,
     STRING     => 'name => "foo"',
     order_by   => 'name'
     sort_order => 'DESC',
   );
 
   # or
-  $store->search($class,
+  $store->query($class,
     STRING     => 'name => "foo"',
     order_by   => 'name'
     sort_order => 'DESC',
@@ -469,7 +469,7 @@ and one C<sort_order> parameter is present, the C<sort_order> parameters
 merely have to be in the same order as the C<order_by> parameters.  They are
 not required to immediately follow them.
 
-  $store->search($class,
+  $store->query($class,
     STRING     => 'name => "foo"',
     order_by   => 'name'
     order_by   => 'age'
@@ -686,7 +686,7 @@ sub _should_create_iterator {
   my $iter = $store->_get_sql_results($sql, \@bind_params);
 
 Returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> representing the
-results of a given C<search>.
+results of a given C<query>.
 
 =cut
 

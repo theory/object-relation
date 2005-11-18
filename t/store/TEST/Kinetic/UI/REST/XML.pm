@@ -16,7 +16,7 @@ use Class::Trait qw( TEST::Kinetic::Traits::HTML );
 
 use Kinetic::Util::Constants qw/UUID_RE :xslt :labels :rest/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
-BEGIN { sig_handlers(1) }
+BEGIN { sig_handlers(0) }
 
 use aliased 'Test::MockModule';
 use aliased 'XML::XPath';
@@ -303,7 +303,7 @@ sub _test_search_data {
         my $class = $dispatch->class;
         my @search = ( STRING => $args->get(SEARCH_TYPE) );
         @search = () if $search[1] eq 'null';
-        my $iterator = Store->new->search( $class, @search );
+        my $iterator = Store->new->query( $class, @search );
         $search_request = $iterator->request;
         $dispatch->_search_request($search_request);
         $dispatch->args( $args->clone );
@@ -409,7 +409,7 @@ sub method_arg_handling : Test(12) {
     is_deeply scalar $dispatch->args->get_array, [qw/ foo bar /],
       '... and we should be able to reset the args';
 
-    $dispatch->method('search');
+    $dispatch->method('query');
     ok $dispatch->args( Array::AsHash->new ),
       'Setting search args should succceed';
     is_deeply scalar $dispatch->args->get_array,
@@ -488,7 +488,7 @@ sub page_set : Test(17) {
     };
 
     my $result =
-      $dispatch->class_key('two')->method('search')->args( Array::AsHash->new )
+      $dispatch->class_key('two')->method('query')->args( Array::AsHash->new )
       ->_xml->_get_pageset( $pageset_args->() );
     ok !$result,
       '... and it should return false on first page if $count < $limit';
@@ -543,9 +543,9 @@ sub class_list : Test(2) {
     my $header   = $test->header_xml(AVAILABLE_RESOURCES);
     my $expected = <<"    END_XML";
 $header
-        <kinetic:resource id="one"    xlink:href="${url}one/search"/>
-        <kinetic:resource id="simple" xlink:href="${url}simple/search"/>
-        <kinetic:resource id="two"    xlink:href="${url}two/search"/>
+        <kinetic:resource id="one"    xlink:href="${url}one/query"/>
+        <kinetic:resource id="simple" xlink:href="${url}simple/query"/>
+        <kinetic:resource id="two"    xlink:href="${url}two/query"/>
     </kinetic:resources>
     END_XML
     is_xml $rest->response, $expected,
@@ -568,7 +568,7 @@ sub handle : Test(6) {
     is $rest->response, "No resource available to handle (/$key/)",
       'Calling _handle_rest_request() with no method should fail';
 
-    $dispatch->method('search');
+    $dispatch->method('query');
     $dispatch->handle_rest_request;
     my $response = $rest->response;
 
@@ -583,14 +583,14 @@ sub handle : Test(6) {
     is_well_formed_xml $rest->response,
       '... and $class_key/lookup/uuid/$uuid should return well-formed XML';
 
-    $dispatch->method('search');
+    $dispatch->method('query');
     my $args =
       Array::AsHash->new( { array => [ SEARCH_TYPE, 'name => "foo"' ] } );
     $dispatch->args( $args->clone );
     $dispatch->handle_rest_request;
 
     is_well_formed_xml $rest->response,
-      '$class_key/search/STRING/$search_string should return well-formed xml';
+      '$class_key/query/STRING/$search_string should return well-formed xml';
 
     my $search_string = 'name => "foo", OR(name => "bar")';
     $args =

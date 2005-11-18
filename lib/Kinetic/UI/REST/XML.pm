@@ -45,7 +45,7 @@ Readonly my $DEFAULT_SEARCH_ARGS => {
 
 =head1 Name
 
-Kinetic::REST - REST services provider
+Kinetic::UI::REST::XML - XML REST services provider
 
 =head1 Synopsis
 
@@ -146,12 +146,6 @@ sub class {
         return $self;
     }
     $self->{class} ||= Kinetic::Meta->for_key( $self->class_key );
-    unless ( $self->{class} ) {
-        throw_invalid_class [
-            'I could not find the class for key "[_1]"',
-            ( $self->class_key || "No class key found" ),
-        ];
-    }
     return $self->{class};
 }
 
@@ -186,7 +180,7 @@ limit and a default offset to 0.
 
 =begin comment
 
-XXX This seems very specific to the search() method. Surely it doesn't apply
+XXX This seems very specific to the query() method. Surely it doesn't apply
 to other methods! IOW, it shouldn't devfault to an empty string, methinks. Or
 am I missing something?
 
@@ -212,7 +206,7 @@ sub args {
         }
         # XXX Perhaps we should dispatch to anothe method or a hash that lists
         # defaults for all methods?
-        if ( 'search' eq $self->method ) {
+        if ( 'query' eq $self->method ) {
             if ($args) { # XXX Seems pretty clear above that it exists.
                 $args->default( SEARCH_TYPE, $PLACEHOLDER, LIMIT_PARAM,
                     $DEFAULT_LIMIT, OFFSET_PARAM, 0, );
@@ -239,7 +233,7 @@ sub args {
 
     unless ( $self->{args} ) {
         my $args = {};
-        if ( 'search' eq $self->method ) {
+        if ( 'query' eq $self->method ) {
             $args = $DEFAULT_SEARCH_ARGS;
         }
         $self->{args} = Array::AsHash->new($args);
@@ -325,7 +319,7 @@ sub _handle_constructor {
     return $rest->set_response( $xml, 'instance' );
 }
 
-# XXX Why is there so much special casing for search? Is it really necessary?
+# XXX Why is there so much special casing for query? Is it really necessary?
 # Would other interfaces (SOAP, JSON) need to do the same?
 sub _search_request {
     my $self = shift;
@@ -353,7 +347,7 @@ sub _handle_method {
             $self->class->package,
             $self->_args_for_store,
         );
-        if ( 'search' eq $method->name ) {
+        if ( 'query' eq $method->name ) {
             $self->rest->xslt('search');
             return $self->_search_request( $response->request )
               ->_instance_list($response);
@@ -650,7 +644,7 @@ sub _add_column_sort_info {
     my $args      = $self->args;
     my $sort_args = $args->clone;
     foreach my $attribute ( $self->_desired_attributes ) {
-        my $url = "$base_url@{ [ $self->class_key ] }/search/";
+        my $url = "$base_url@{ [ $self->class_key ] }/query/";
         if ( $sort_args->exists(ORDER_BY_PARAM) ) {
             $sort_args->put( ORDER_BY_PARAM, $attribute );
         }

@@ -391,7 +391,7 @@ sub resource_list_html {
     foreach my $key ( sort Kinetic::Meta->keys ) {
         next if Kinetic::Meta->for_key($key)->abstract;
         $resources .=
-          qq'<li><a href="${base_url}$key/search$query">$key</a></li>\n';
+          qq'<li><a href="${base_url}$key/query$query">$key</a></li>\n';
     }
     $resources .= '</ul></div>';
     return $resources;

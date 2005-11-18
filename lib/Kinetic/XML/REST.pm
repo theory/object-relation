@@ -343,7 +343,7 @@ sub add_resource_list {
         $self->elem('resource')->StartElement;
         $self->attr('id')->AddAttribute($key);
         $self->attr('href')
-          ->AddAttribute("${base_url}$key/search$query_string");
+          ->AddAttribute("${base_url}$key/query$query_string");
         $self->EndElement;
     }
     return $self;
@@ -425,7 +425,7 @@ sub add_pageset {
 
     my $base_url     = $self->rest->base_url;
     my $query_string = $self->rest->query_string;
-    my $url          = "$base_url$arg_for->{class_key}/search/";
+    my $url          = "$base_url$arg_for->{class_key}/query/";
     $url .= join '/', map { '' eq $_ ? $PLACEHOLDER : $_ } $args->get_array;
     $url .= $query_string;
 

@@ -28,16 +28,16 @@ sub full_text_search : Test(1) {
     my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Kinetic::Store->new;
-    throws_ok {$store->search($class => 'full text search string')}
+    throws_ok {$store->query($class => 'full text search string')}
         'Kinetic::Util::Exception::Fatal::Unsupported',
         'SQLite should die if a full text search is attempted';
 }
 
-sub search_match : Test(1) {
+sub query_match : Test(1) {
     my $test = shift;
     my ($foo, $bar, $baz) = $test->test_objects;
     my $store = Kinetic::Store->new;
-    throws_ok {$store->search( $foo->my_class, name => MATCH '(a|b)%' ) }
+    throws_ok {$store->query( $foo->my_class, name => MATCH '(a|b)%' ) }
         'Kinetic::Util::Exception::Fatal::Unsupported',
         'SQLite should croak() if a MATCH search is attempted';
 }

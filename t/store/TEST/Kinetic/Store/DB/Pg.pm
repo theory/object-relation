@@ -30,7 +30,7 @@ sub full_text_search : Test(1) {
     my $store = Kinetic::Store->new;
     TODO: {
         local $TODO  = 'Full text search is not yet implemented.';
-        my $iterator = $store->search($class => 'oo');
+        my $iterator = $store->query($class => 'oo');
         my @results;
         eval {@results = $test->_all_items($iterator)};
         is @results, 1, '... and we should have the correct number of results';
@@ -38,11 +38,11 @@ sub full_text_search : Test(1) {
     }
 }
 
-sub search_match : Test(6) {
+sub query_match : Test(6) {
     my $test = shift;
     my ($foo, $bar, $baz) = $test->test_objects;
     my $store = Kinetic::Store->new;
-    my $iterator = $store->search( $foo->my_class, 
+    my $iterator = $store->query( $foo->my_class, 
         name => MATCH '^(f|ba)',
         { order_by => 'name' }
     );
@@ -50,7 +50,7 @@ sub search_match : Test(6) {
     is @items, 2, 'Searches should accept regular expressions';
     is_deeply \@items, [$bar, $foo], 'and should include the correct items';
 
-    $iterator = $store->search( $foo->my_class, 
+    $iterator = $store->query( $foo->my_class, 
         name => NOT MATCH '^(f|ba)',
         { order_by => 'name' }
     );
@@ -58,7 +58,7 @@ sub search_match : Test(6) {
     is @items, 1, 'and regexes should return the correct number of items';
     is_deeply \@items, [$baz], 'and should include the correct items';
 
-    $iterator = $store->search($foo->my_class, name => MATCH 'z$');
+    $iterator = $store->query($foo->my_class, name => MATCH 'z$');
     @items = $test->_all_items($iterator);
     is @items, 1, 'and regexes should return the correct number of items';
     is_deeply \@items, [$baz], 'and should include the correct items';

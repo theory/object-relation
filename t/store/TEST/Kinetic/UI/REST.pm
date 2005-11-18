@@ -122,7 +122,7 @@ sub search_by_query_string : Test(6) {
     $test->query_string('');
 
     $mech->get_ok(
-"${url}?@{[CLASS_KEY_PARAM]}=one;search=;_order_by=name;_limit=2;_sort_order=",
+"${url}?@{[CLASS_KEY_PARAM]}=one;query=;_order_by=name;_limit=2;_sort_order=",
         'We should be able to search by query string'
     );
 
@@ -132,7 +132,7 @@ sub search_by_query_string : Test(6) {
 
     $test->query_string("@{[TYPE_PARAM]}=html");
     $mech->get_ok(
-"${url}?@{[CLASS_KEY_PARAM]}=one;search=;_order_by=name;_limit=2;_sort_order=;@{[TYPE_PARAM]}=html",
+"${url}?@{[CLASS_KEY_PARAM]}=one;query=;_order_by=name;_limit=2;_sort_order=;@{[TYPE_PARAM]}=html",
         'We should be able to fetch and limit the searches'
     );
 
@@ -140,7 +140,7 @@ sub search_by_query_string : Test(6) {
       '... ordering and limiting searches should return well-formed xml';
 
     $mech->get_ok(
-"${url}?@{[CLASS_KEY_PARAM]}=one;search=;_order_by=name;_limit=2;_sort_order=;_offset=2;@{[TYPE_PARAM]}=html",
+"${url}?@{[CLASS_KEY_PARAM]}=one;query=;_order_by=name;_limit=2;_sort_order=;_offset=2;@{[TYPE_PARAM]}=html",
         '... as should paging through result sets'
     );
 
@@ -157,7 +157,7 @@ sub web_test_paging : Test(15) {
     $test->query_string('');
 
     $mech->get_ok(
-        "${url}one/search/STRING/null/_order_by/name/_limit/2",
+        "${url}one/query/STRING/null/_order_by/name/_limit/2",
         'We should be able to fetch and limit the searches'
     );
 
@@ -168,7 +168,7 @@ sub web_test_paging : Test(15) {
 
     $test->query_string("@{[TYPE_PARAM]}=html");
     $mech->get_ok(
-"${url}one/search/STRING/null/_order_by/name/_limit/2?@{[TYPE_PARAM]}=html",
+"${url}one/query/STRING/null/_order_by/name/_limit/2?@{[TYPE_PARAM]}=html",
         'We should be able to fetch and limit the searches'
     );
 
@@ -176,14 +176,14 @@ sub web_test_paging : Test(15) {
       '... ordering and limiting searches should work';
 
     $mech->get_ok(
-"${url}one/search/STRING/null/_order_by/name/_limit/2/_offset/2?@{[TYPE_PARAM]}=html",
+"${url}one/query/STRING/null/_order_by/name/_limit/2/_offset/2?@{[TYPE_PARAM]}=html",
         '... as should paging through result sets'
     );
     is_well_formed_xml $mech->content,
       '... ordering and limiting searches should work';
 
     $mech->get_ok(
-"${url}one/search/STRING/null/_order_by/name/_limit/2/_offset/2?@{[TYPE_PARAM]}=html",
+"${url}one/query/STRING/null/_order_by/name/_limit/2/_offset/2?@{[TYPE_PARAM]}=html",
         '... as should paging through result sets'
     );
 
@@ -198,25 +198,25 @@ sub web_test_paging : Test(15) {
     # that the default max list is 20
     # We should also get two pages listed, but the current page is not linked
     $mech->get_ok(
-        "${url}one/search?@{[TYPE_PARAM]}=html",
+        "${url}one/query?@{[TYPE_PARAM]}=html",
         '... as should paging through result sets'
     );
     my @links = $mech->links;
     is @links, 88,
 'We should receive 80 instance links, 1 page link, 3 resource links and 4 header links';
 
-    $mech->get_ok( "${url}one/search/STRING/null/_limit/30?@{[TYPE_PARAM]}=html",
+    $mech->get_ok( "${url}one/query/STRING/null/_limit/30?@{[TYPE_PARAM]}=html",
         'Asking for more than the limit should work' );
     @links = $mech->links;
     is @links, 111, '... and return only instance links';
 
-    $mech->get_ok( "${url}one/search/STRING/null/_limit/10?@{[TYPE_PARAM]}=html",
+    $mech->get_ok( "${url}one/query/STRING/null/_limit/10?@{[TYPE_PARAM]}=html",
         'Asking for fewer than the limit should work' );
     @links = $mech->links;
     is @links, 49, '... and return the correct number of links';
 
     $mech->get_ok(
-        "${url}one/search/STRING/null/_limit/26?@{[TYPE_PARAM]}=html",
+        "${url}one/query/STRING/null/_limit/26?@{[TYPE_PARAM]}=html",
         'Asking for exactly the number of links that exist should work'
     );
     @links = $mech->links;
@@ -257,7 +257,7 @@ sub web_test : Test(12) {
         '... and it should be able to identify the object' );
 
     $mech->get_ok(
-        qq'${url}one/search/STRING/name => "foo"?@{[TYPE_PARAM]}=html',
+        qq'${url}one/query/STRING/name => "foo"?@{[TYPE_PARAM]}=html',
         'We should be able to fetch via a search' );
 
     is_well_formed_xml $mech->content,
@@ -322,7 +322,7 @@ sub rest_interface : Test(19) {
     }
 
     my $cgi_mock = MockModule->new('CGI');
-    $cgi_mock->mock( path_info => '/one/search' );
+    $cgi_mock->mock( path_info => '/one/query' );
 
     ok $rest->handle_request( CGI->new ),
       'Handling a good resource should succeed';
@@ -332,7 +332,7 @@ sub rest_interface : Test(19) {
     # Note that because of the way we're mocking up path_info, URL encoding
     # of parameters is *not* necessary
     $cgi_mock->mock(
-        path_info => '/one/search/STRING/name => "foo"/_order_by/name', );
+        path_info => '/one/query/STRING/name => "foo"/_order_by/name', );
 
     $test->query_string('');
     ok $rest->handle_request( CGI->new ),
@@ -393,10 +393,10 @@ $header
       'Calling it without a resource should return a list of resources';
 
     my $key     = One->my_class->key;
-    my $one_xml = $rest->url("$key/search")->get;
+    my $one_xml = $rest->url("$key/query")->get;
 
     is_well_formed_xml $one_xml,
-      'Calling it with a resource/search should return well-formed_xml';
+      'Calling it with a resource/query should return well-formed_xml';
 }
 
 sub xslt : Test(3) {
