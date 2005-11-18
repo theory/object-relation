@@ -3,6 +3,7 @@ use 5.008003;
 use lib 'lib';
 use Kinetic::Build;
 
+my $skipper = qr/^lib.Kinetic.(?:Build|DateTime|Format|Meta|Store|View|UI|Util)/;
 my $build = Kinetic::Build->new(
     module_name          => 'Kinetic',
     license              => 'gpl',
@@ -10,6 +11,7 @@ my $build = Kinetic::Build->new(
     build_class          => 'Kinetic::Build',
     dist_author          => 'Kineticode, Inc. <info@kineticode.com>',
     recursive_test_files => 1,
+    schema_skipper       => $skipper,
     requires             => {
         'aliased'                    => 0.11,
         'Array::AsHash'              => 0.12,

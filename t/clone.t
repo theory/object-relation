@@ -33,6 +33,7 @@ package main;
 
 # Create a simple object to clone.
 ok my $kinetic = MyApp::Simple->new, "Create new Simple object";
+$kinetic->_save_prep; # Force UUID generation.
 
 # Simple clone.
 ok my $k2 = $kinetic->clone, "Clone object";

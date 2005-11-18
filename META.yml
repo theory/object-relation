@@ -1,12 +1,185 @@
---- #YAML:1.0
-name: App-Kinetic
-version: 0.0.1
+---
+name: Kinetic
+version: v0.0.1
 author:
-  - Kineticode, Inc. <info@kineticode.com>
+  - 'Kineticode, Inc. <info@kineticode.com>'
 abstract: The Kinetic enterprise application framework
-license: perl
+license: gpl
+resources:
+  license: http://www.opensource.org/licenses/gpl-license.php
+requires:
+  Array::AsHash: 0.12
+  Class::Delegator: 0.04
+  Class::Meta: 0.49
+  Clone: 0.15
+  DBD::Pg: 1.32
+  DBD::SQLite: 1.09
+  DBI: 1.43
+  Data::Pageset: 1.01
+  Data::UUID: 0.11
+  DateTime: 0.24
+  DateTime::Format::Strptime: 1.0601
+  DateTime::Incomplete: 0.02
+  Exception::Class: 1.12
+  Exception::Class::DBI: 0.92
+  Exporter::Tidy: 0.06
+  HOP::Lexer: 0.01
+  HOP::Parser: 0.01
+  HOP::Stream: 0.01
+  JSON: 1
+  Lingua::Strfname: 0.1
+  List::Util: 0
+  Locale::Maketext: 1.09
+  Params::Validate: 0.78
+  Readonly: 0
+  Regexp::Common: 2.119
+  WWW::REST: 0.01
+  Widget::Meta: 0.03
+  XML::Genx::Simple: 0.14
+  XML::LibXML: 1.58
+  XML::LibXSLT: 1.57
+  XML::Simple: 2.13
+  aliased: 0.11
+  version: 0.42
+build_requires:
+  App::Info: 0.42
+  FSA::Rules: 0.21
+  HTTP::Server::Simple: 0.13
+  Module::Build: 0.26
+  Test::Class: 0.1
+  Test::Differences: 0.47
+  Test::Exception: 0.21
+  Test::File: 1.08
+  Test::File::Contents: 0.02
+  Test::JSON: 0.01
+  Test::MockModule: 0.04
+  Test::More: 0.17
+  Test::Output: 0.07
+  Test::Pod: 1.06
+  Test::Pod::Coverage: 0.08
+  Test::WWW::Mechanize: 1.06
+  Test::XML: 0.07
+  WWW::Mechanize: 1.16
+  XML::XPath: 1.13
 provides:
   Kinetic:
-    file: lib/App/Kinetic.pm
-    version: 0.0.1
-generated_by: Module::Build version 0.26
+    file: lib/Kinetic.pm
+    version: v0.0.1
+  Kinetic::Build:
+    file: lib/Kinetic/Build.pm
+    version: v0.0.1
+  Kinetic::Build::AppInfoHandler:
+    file: lib/Kinetic/Build.pm
+  Kinetic::Build::CroakHandler:
+    file: lib/Kinetic/Build.pm
+  Kinetic::Build::PrintHandler:
+    file: lib/Kinetic/Build.pm
+  Kinetic::Build::PromptHandler:
+    file: lib/Kinetic/Build.pm
+  Kinetic::Build::Schema:
+    file: lib/Kinetic/Build/Schema.pm
+    version: v0.0.1
+  Kinetic::Build::Schema::DB:
+    file: lib/Kinetic/Build/Schema/DB.pm
+    version: v0.0.1
+  Kinetic::Build::Schema::DB::Pg:
+    file: lib/Kinetic/Build/Schema/DB/Pg.pm
+    version: v0.0.1
+  Kinetic::Build::Schema::DB::SQLite:
+    file: lib/Kinetic/Build/Schema/DB/SQLite.pm
+    version: v0.0.1
+  Kinetic::Build::Store:
+    file: lib/Kinetic/Build/Store.pm
+    version: v0.0.1
+  Kinetic::Build::Store::DB:
+    file: lib/Kinetic/Build/Store/DB.pm
+    version: v0.0.1
+  Kinetic::Build::Store::DB::Pg:
+    file: lib/Kinetic/Build/Store/DB/Pg.pm
+    version: v0.0.1
+  Kinetic::Build::Test:
+    file: lib/Kinetic/Build/Test.pm
+    version: v0.0.1
+  Kinetic::DateTime:
+    file: lib/Kinetic/DateTime.pm
+    version: v0.0.1
+  Kinetic::Meta:
+    file: lib/Kinetic/Meta.pm
+    version: v0.0.1
+  Kinetic::Meta::AccessorBuilder:
+    file: lib/Kinetic/Meta/AccessorBuilder.pm
+    version: v0.0.1
+  Kinetic::Meta::Attribute:
+    file: lib/Kinetic/Meta/Attribute.pm
+    version: v0.0.1
+  Kinetic::Meta::Attribute::Schema:
+    file: lib/Kinetic/Meta/Attribute/Schema.pm
+    version: v0.0.1
+  Kinetic::Meta::Class:
+    file: lib/Kinetic/Meta/Class.pm
+    version: v0.0.1
+  Kinetic::Meta::Class::Schema:
+    file: lib/Kinetic/Meta/Class/Schema.pm
+    version: v0.0.1
+  Kinetic::Meta::DataTypes:
+    file: lib/Kinetic/Meta/DataTypes.pm
+    version: v0.0.1
+  Kinetic::Meta::Widget:
+    file: lib/Kinetic/Meta/Widget.pm
+    version: v0.0.1
+  Kinetic::Party::Person:
+    file: lib/Kinetic/Party/Person.pm
+    version: v0.0.1
+  Kinetic::Party::Person::User:
+    file: lib/Kinetic/Party/Person/User.pm
+    version: v0.0.1
+  Kinetic::Store::DB:
+    file: lib/Kinetic/Store/DB.pm
+    version: v0.0.1
+  Kinetic::Store::DB::Pg:
+    file: lib/Kinetic/Store/DB/Pg.pm
+    version: v0.0.1
+  Kinetic::Store::DB::mysql:
+    file: lib/Kinetic/Store/DB/mysql.pm
+    version: v0.0.1
+  Kinetic::Util::Cache:
+    file: lib/Kinetic/Util/Cache.pm
+    version: v0.0.1
+  Kinetic::Util::Collection:
+    file: lib/Kinetic/Util/Collection.pm
+    version: v0.0.1
+  Kinetic::Util::Config:
+    file: lib/Kinetic/Util/Config.pm
+    version: v0.0.1
+  Kinetic::Util::Context:
+    file: lib/Kinetic/Util/Context.pm
+    version: v0.0.1
+  Kinetic::Util::Exception:
+    file: lib/Kinetic/Util/Exceptions.pm
+  Kinetic::Util::Exception::DBI:
+    file: lib/Kinetic/Util/Exceptions.pm
+  Kinetic::Util::Exceptions:
+    file: lib/Kinetic/Util/Exceptions.pm
+    version: v0.0.1
+  Kinetic::Util::Iterator:
+    file: lib/Kinetic/Util/Iterator.pm
+    version: v0.0.1
+  Kinetic::Util::Language:
+    file: lib/Kinetic/Util/Language.pm
+    version: v0.0.1
+  Kinetic::Util::Language::en:
+    file: lib/Kinetic/Util/Language/en.pm
+    version: v0.0.1
+  Kinetic::Util::Language::en_uk:
+    file: lib/Kinetic/Util/Language/en_uk.pm
+    version: v0.0.1
+  Kinetic::Util::Language::en_us:
+    file: lib/Kinetic/Util/Language/en_us.pm
+    version: v0.0.1
+  Kinetic::Util::State:
+    file: lib/Kinetic/Util/State.pm
+    version: v0.0.1
+generated_by: Module::Build version 0.2703
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.2.html
+  version: 1.2

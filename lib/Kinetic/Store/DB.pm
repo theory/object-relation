@@ -381,16 +381,18 @@ sub _save {
 
     # XXX So this is something we need to get implemented.
     #return $class unless $object->changed;
+    $object->_save_prep;
     local $self->{search_class} = $object->my_class;
     local $self->{view}         = $self->{search_class}->key;
     local @{$self}{qw/columns values/};
     $self->_save( $_->get($object) )
-      foreach $self->{search_class}->ref_attributes;
+        for $self->{search_class}->ref_attributes;
 
     foreach my $attr ( $self->{search_class}->attributes ) {
         push @{ $self->{columns} } => $attr->_view_column;
-        push @{ $self->{values} }  => $attr->raw($object);
+        push @{ $self->{values}  } => $attr->raw($object);
     }
+
     return $object->id
       ? $self->_update($object)
       : $self->_insert($object);
@@ -413,7 +415,7 @@ sub _search {
     if ( $self->{search_type} eq 'CODE' ) {
 
        # XXX we're going to temporarily disable full text searches unless it's
-       # a code search.  We need to figure out the exact semantics of the 
+       # a code search. We need to figure out the exact semantics of the
        # others
         return $self->_full_text_search(@search_params)
           if 1 == @search_params && !ref $search_params[0];
@@ -636,7 +638,7 @@ sub _do_sql {
 
   $store->_prepare_method($prepare_method_name);
 
-This getter/setter tells L<DBI|DBI> which method to use when preparing a 
+This getter/setter tells L<DBI|DBI> which method to use when preparing a
 statement.
 
 =cut

@@ -83,7 +83,7 @@ sub atest_process_conf_files : Test(14) {
     file_not_exists_ok 'blib', 'Build lib should be gone';
 }
 
-sub test_props : Test(10) {
+sub test_props : Test(11) {
     my $self = shift;
     my $class = $self->test_class;
     my $mb = MockModule->new($class);
@@ -99,6 +99,8 @@ sub test_props : Test(10) {
     is $builder->accept_defaults, 1, 'Accept Defaults should be enabled';
     is $builder->store, 'sqlite', 'Default store should be "SQLite"';
     is $builder->source_dir, 'lib', 'Default source dir should be "lib"';
+    is_deeply $builder->schema_skipper, [],
+        'Default schema skippers should be an empty arrayref';
     is $builder->conf_file, 'kinetic.conf',
       'Default conf file should be "kinetic.conf"';
     is $builder->dev_tests, 0, 'Run dev tests should be disabled';
@@ -204,6 +206,7 @@ sub test_get_reply : Test(49) {
 
     my $kb = MockModule->new($class);
     $kb->mock(check_manifest => sub { return });
+    $kb->mock(check_prereq   => sub { return });
     my $store = MockModule->new('Kinetic::Build::Store');
     $store->mock(validate => 1);
     local @ARGV = qw'--store pg foo=bar';

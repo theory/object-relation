@@ -31,6 +31,7 @@ use File::Find;
 use File::Spec;
 use File::Path;
 use Carp;
+use List::Util qw(first);
 
 Kinetic::Meta->class_class('Kinetic::Meta::Class::Schema');
 Kinetic::Meta->attribute_class('Kinetic::Meta::Attribute::Schema');
@@ -119,19 +120,23 @@ sub classes {
 =head3 load_classes
 
   $sg->load_classes($dir);
+  $sg->load_classes($dir, $regex);
+  $sg->load_classes($dir, @regexen);
 
 Loads all of the Kinetic::Meta classes found in the specified directory and
-its subdirectories. Use Unix-style directory naming; C<load_classes()> will
-automatically convert the directory path to the appropriate format for the
-current operating system. All Perl modules found in the directory will be
-loaded, but C<load_classes()> will only store a the C<Kineti::Meta::Class>
-object for those modules that inherit from C<Kinetic>.
+its subdirectories. Use Unix-style directory naming for the $dir argument;
+C<load_classes()> will automatically convert the directory path to the
+appropriate format for the current operating system. All Perl module files
+found in the directory or its subdirectories will be loaded, excepting those
+that match one of the regular expressions passed in the $schema_skippers array
+reference argument. C<load_classes()> will only store a the
+L<Kinetic::Meta::Class|Kinetic::Meta::Class> object for those modules that
+inherit from C<Kinetic>.
 
 =cut
 
 sub load_classes {
-    my $self    = shift;
-    my $lib_dir = shift;
+    my ($self, $lib_dir, @skippers) = @_;
     my $dir = File::Spec->catdir(split m{/}, $lib_dir);
     unshift @INC, $dir;
     my @classes;
@@ -140,9 +145,11 @@ sub load_classes {
         return if /\.svn/;
         return unless /\.pm$/;
         return if /#/; # Ignore old backup files.
+        return if first { $File::Find::name =~ m/$_/ } @skippers;
         my $class = $self->file_to_mod($lib_dir, $File::Find::name);
         eval "require $class" or die $@;
-        unshift @classes, $class->my_class if UNIVERSAL::isa($class, 'Kinetic');
+        unshift @classes, $class->my_class
+            if UNIVERSAL::isa($class, 'Kinetic');
     };
 
     find({ wanted => $find_classes, no_chdir => 1 }, $dir);

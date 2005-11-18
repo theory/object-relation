@@ -91,6 +91,7 @@ BEGIN {
 
     BEGIN {
         $one = TestApp::Simple::One->new;
+        $one->_save_prep; # Force UUID generation.
     }
 
     sub new {
@@ -225,6 +226,7 @@ sub new_from_xml : Test(7) {
       '... and calling it with an unknown class should fail';
 
     my $one = One->new;
+    $one->_save_prep; # Force UUID generation.
     $one->name('some name');
     $one->description('some description');
     my $xml        = XML->new( { object => $one } );
@@ -233,6 +235,7 @@ sub new_from_xml : Test(7) {
     is_deeply $object, $one, '... and it should return a valid object';
 
     my $two = Two->new;
+    $two->_save_prep; # Force UUID generation.
     $two->name('june17');
     $two->date(
         DateTime->new(

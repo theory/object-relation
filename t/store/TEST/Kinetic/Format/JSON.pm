@@ -59,6 +59,7 @@ sub serialize : Test(7) {
     my $test = shift;
     my $formatter = $JSON->new( { pretty => 1, indent => 2 } );
     my ( $foo, $bar, $baz ) = $test->test_objects;
+    $foo->_save_prep; # Force UUID generation.
     can_ok $formatter, 'serialize';
     ok my $json = $formatter->serialize($foo),
       '... and serializing an object should succeed';
@@ -79,6 +80,7 @@ sub serialize : Test(7) {
     # test contained object serialization
 
     my $two = Two->new;
+    $two->_save_prep; # Force UUID generation.
     $two->name('june17');
     $two->date(
         DateTime->new(

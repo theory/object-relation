@@ -167,8 +167,8 @@ sub foreign_key {
 
 Returns the
 L<Kinetic::Meta::Attribute::Schema|Kinetic::Meta::Attribute::Schema> objects
-for the attributes the correspond to columns in the table used for the
-class. Thus, it excludes attributes from concrete parent classe, since they're
+for the attributes that correspond to columns in the table used for the class.
+Thus, it excludes attributes from concrete parent classe, since they're
 implemented in their own tables. See C<parent_attributes()> to get a list of
 the attributes of concrete parent classes.
 

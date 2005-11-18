@@ -46,6 +46,8 @@ sub _should_run {
 sub lookup : Test(8) {
     my $test  = shift;
     return unless $test->_should_run;
+    # XXX This method seems to be defined in a subclass. How can it be okay
+    # to use it here?
     $test->_clear_database;
     my $one = One->new;
     $one->name('divO');

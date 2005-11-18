@@ -4,16 +4,25 @@ use strict;
 use warnings;
 use diagnostics;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
-use Test::More tests => 152;
+use Test::More tests => 146;
+
+{
+    # Fake out loading of Pg store.
+    package Kinetic::Store::DB::Pg;
+    use File::Spec::Functions 'catfile';
+    $INC{catfile qw(Kinetic Store DB Pg.pm)} = __FILE__;
+    sub _add_store_meta { 1 }
+}
 
 BEGIN { use_ok 'Kinetic::Build::Schema' };
 
 ok my $sg = Kinetic::Build::Schema->new, 'Get new Schema';
 isa_ok $sg, 'Kinetic::Build::Schema';
 
-ok $sg->load_classes('t/lib'), "Load classes";
+ok $sg->load_classes('t/sample/lib', qr/Relation\.pm/),
+    'Load all sample classes except Relation.pm';
 for my $class ($sg->classes) {
-    ok $class->is_a('Kinetic'), "Class is a Kinetic";
+    ok $class->is_a('Kinetic'), $class->package . ' is a Kinetic';
     isa_ok($class, 'Class::Meta::Class');
     isa_ok($class, 'Kinetic::Meta::Class');
     isa_ok($class, 'Kinetic::Meta::Class::Schema');
@@ -36,11 +45,11 @@ my $one_class = test_class('one', 'simple_one', 1, $simple_class);
 test_attr($one_class, 'bool', 'bool');
 
 # Test the schema attributes of the two class attributes.
-my $two_class = test_class('two', 'simple_two', 1, $simple_class);
+my $two_class = test_class('two', 'simple_two', 3, $simple_class);
 test_attr($two_class, 'one', 'one_id', 'idx_two_one_id', $one_class);
 
 # Test the schema attributes of the composed class attributes.
-my $composed_class = test_class('composed', '_composed', 5);
+my $composed_class = test_class('composed', '_composed', 3);
 test_attr($composed_class, 'one', 'one_id', 'idx_composed_one_id', $one_class);
 
 sub test_class {

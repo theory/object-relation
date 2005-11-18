@@ -137,7 +137,7 @@ sub test_objects {
 Simple getter/setter for attributes desired from objects.  If called in scalar
 context, returns an array ref of attribute names.  Otherwise, returns a list of
 them.
-  
+
 This method is called by several other trait methods which need to know which
 attributes from which to pull data from objects.
 

@@ -101,7 +101,7 @@ B<Throws:>
         name        => 'password',
         label       => 'Password',
         type        => 'string',
-        authz       => Class::Meta::SET,
+        authz       => Class::Meta::READ,
         create      => Class::Meta::NONE,
         widget_meta => Kinetic::Meta::Widget->new(
             type => 'password',
@@ -112,7 +112,13 @@ B<Throws:>
     # So we define the accessor ourselves.
     sub password {
         my $self = shift;
-        return unless @_;
+        unless (@_) {
+            # XXX This isn't the cleanest way to handle things, but it works
+            # for now. Need to have a way for Kinetic::Store to get at the
+            # password value for, erm, storing.
+            return unless caller->isa('Kinetic::Store');
+            return $self->{password};
+        }
 
         my $password = shift;
         throw_password [

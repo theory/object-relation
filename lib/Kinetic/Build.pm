@@ -260,6 +260,34 @@ __PACKAGE__->add_property(source_dir => 'lib');
 
 ##############################################################################
 
+=head3 schema_skipper
+
+  my $regex = $build->schema_skipper;
+  $build->schema_skipper($regex);
+
+Optional property that may be specified as a single regular expression or as
+an array reference of regular expressions.
+L<Kinetic::Build::Schema|Kinetic::Build::Schema> will match the skipper regex
+or regexen against the file name of every Perl module file it finds in the
+C<source_dir>. Any file that matches will be not be loaded and will not result
+in the buildling of a schema for the module it represents.
+
+Use of this property should not generally be needed unless loading a module
+non-schema module causes an error during C<./Build>. Such is true of some of
+the modules that come with Kinetic itself, for example.
+
+B<Note:> Remember that this regular expression I<will> be used to look at
+names on non-Unix file sysems. Design them carefully to anticipate variations
+in directory separators and other file system shennanigans. All file names
+will be relative to the root of your Kinetic application, e.g.,
+F<lib/Foo/Bar.pm> on Unix or F<lib\Foo\Bar.pm> on Windows.
+
+=cut
+
+__PACKAGE__->add_property( schema_skipper => [] );
+
+##############################################################################
+
 =head3 conf_file
 
   my $conf_file = $build->conf_file;

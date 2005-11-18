@@ -138,7 +138,10 @@ sub build_db {
     require Carp && Carp::croak $@ if $@;
 
     my $sg = $schema_class->new;
-    $sg->load_classes($self->builder->source_dir);
+    my $builder = $self->builder;
+    my $regexen = $builder->schema_skipper;
+    $regexen = [$regexen] unless ref $regexen eq 'ARRAY';
+    $sg->load_classes($builder->source_dir, @$regexen);
 
     my $dbh = $self->_dbh;
     $dbh->begin_work;

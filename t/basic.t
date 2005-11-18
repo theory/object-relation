@@ -56,6 +56,7 @@ isa_ok $kinetic, 'MyApp::TestThingy';
 isa_ok $kinetic, 'Kinetic';
 
 # Check UUID.
+$kinetic->_save_prep; # Force UUID generation.
 my $ug = Data::UUID->new;
 ok my $uuid = $kinetic->uuid, "Get UUID";
 ok $ug->from_string($uuid), "It's a valid UUID";

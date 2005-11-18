@@ -39,7 +39,7 @@ This class serves as the abstract base class for people in TKP.
 =cut
 
 BEGIN {
-    my $cm = Kinetic::Meta->new(
+    my $km = Kinetic::Meta->new(
         key         => 'person',
         name        => 'Person',
         plural_name => 'Persons',
@@ -67,7 +67,7 @@ The person's last name. Also known as a "family name" or a "surname".
 
 =cut
 
-    $cm->add_attribute(
+    $km->add_attribute(
         name        => 'last_name',
         label       => 'Last Name',
         type        => 'string',
@@ -88,7 +88,7 @@ The person's first name. Also known as a "given name".
 
 =cut
 
-    $cm->add_attribute(
+    $km->add_attribute(
         name        => 'first_name',
         label       => 'First Name',
         type        => 'string',
@@ -109,7 +109,7 @@ The person's middle name. Also known as a "second name".
 
 =cut
 
-    $cm->add_attribute(
+    $km->add_attribute(
         name        => 'middle_name',
         label       => 'Middle Name',
         type        => 'string',
@@ -130,7 +130,7 @@ The person's nickname.
 
 =cut
 
-    $cm->add_attribute(
+    $km->add_attribute(
         name        => 'nickname',
         label       => 'Nickname',
         type        => 'string',
@@ -151,7 +151,7 @@ The prefix to the person's name, such as "Mr.", "Ms.", "Dr.", etc.
 
 =cut
 
-    $cm->add_attribute(
+    $km->add_attribute(
         name        => 'prefix',
         label       => 'Prefix',
         type        => 'string',
@@ -172,7 +172,7 @@ The suffix to the person's name, such as "JD", "PhD", "MD", etc.
 
 =cut
 
-    $cm->add_attribute(
+    $km->add_attribute(
         name        => 'suffix',
         label       => 'Suffix',
         type        => 'string',
@@ -193,7 +193,7 @@ The generation to the person's name, such as "Jr.", "III", etc.
 
 =cut
 
-    $cm->add_attribute(
+    $km->add_attribute(
         name        => 'generation',
         label       => 'Generation',
         type        => 'string',
@@ -209,8 +209,8 @@ The generation to the person's name, such as "Jr.", "III", etc.
 
 =head3 name
 
-  my $name = $person->name;
-  $name = $person->name($format);
+  my $name = $person->strfname;
+  $name = $person->strfname($format);
 
 Returns the person object's name as formatted according to a
 L<Linguage::Strfname|Linguage::Strfname> format. Kinetic::::Party::Person uses
@@ -238,20 +238,13 @@ documentation for details on its formats to pass in custom formats.
     }
 
     # We want the name method to actually be a read-only attribute.
-    $cm->add_attribute(
-        name        => 'name',
-        label       => 'Name',
-        type        => 'string',
-        authz       => Class::Meta::READ,
-        create      => Class::Meta::NONE,
-        override    => 1,
-        widget_meta => Kinetic::Meta::Widget->new(
-            type => 'text',
-            tip  => 'The name of this object',
-        )
+    $km->add_method(
+        name    => 'name',
+        label   => 'Name',
+        returns => 'string',
     );
 
-    $cm->build;
+    $km->build;
 } # BEGIN
 
 1;

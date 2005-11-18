@@ -137,7 +137,7 @@ sub BETWEEN($) {
     sub { shift || (), ['KEYWORD', 'BETWEEN'], _value_token($value) };
 }
 
-sub ANY { 
+sub ANY {
     my @args = @_;
     my @values;
     while (@args) {
@@ -175,8 +175,11 @@ sub new {
     unless ($class ne __PACKAGE__) {
         $class = shift || STORE_CLASS;
         eval "require $class" ;
-        throw_invalid_class ['I could not load the class "[_1]": [_2]', $class, $@]
-            if $@;
+        throw_invalid_class [
+            'I could not load the class "[_1]": [_2]',
+            $class,
+            $@,
+        ] if $@;
     }
     bless {}, $class;
 }
@@ -438,6 +441,20 @@ sub save {
 =head1 Private Methods
 
 =head2 Private Class Methods
+
+=head3 _save
+
+  $store->_save($object);
+
+This is the base implementation for saving Kinetic objects. All it does is cal
+the C<_save_prep()> method on the object to be saved.
+
+=cut
+
+sub _save {
+    my ($self, $obj) = @_;
+    $obj->_save_prep;
+}
 
 =head3 _add_store_meta
 
