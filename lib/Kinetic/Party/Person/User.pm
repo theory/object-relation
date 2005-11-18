@@ -40,7 +40,7 @@ This class provides the basic interface for Kinetic user objects.
 
 BEGIN {
     my $cm = Kinetic::Meta->new(
-        key         => 'user',
+        key         => 'usr',
         name        => 'User',
         plural_name => 'Users',
     );
