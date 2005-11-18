@@ -80,7 +80,6 @@ t/build/TEST/Kinetic/Build/Store/DB/Pg.pm
 t/build/TEST/Kinetic/Build/Store/DB/SQLite.pm
 t/clone.t
 t/collection.t
-t/conf/kinetic.conf
 t/config.t
 t/context.t
 t/datatypes.t
