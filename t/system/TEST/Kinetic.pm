@@ -31,8 +31,8 @@ sub test_new : Test(6) {
     ok my $pkg = $class->package, "Get $key package";
     ok my $obj = $pkg->new,       "Construct new $pkg object";
 
-    isa_ok $obj, $pkg,      "...It should be a $pkg object";
-    isa_ok $obj, 'Kinetic', '...It should be a Kinetic object';
+    isa_ok $obj, $pkg;
+    isa_ok $obj, 'Kinetic';
     is $obj->uuid, undef,   '...Its UUID should be undef';
 
     # Test attributes.

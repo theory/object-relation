@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 69;
+use Test::More tests => 74;
 #use Test::More 'no_plan';
 
 package MyTestThingy;
@@ -72,13 +72,14 @@ BEGIN {
         name          => 'fname',
         type          => 'string',
         label         => 'First Name',
-    ), "Add string attribute";
+    ), "Add fname attribute";
 
     ok $km->add_attribute(
         name          => 'lname',
         type          => 'string',
         label         => 'Last Name',
-    ), "Add string attribute";
+        persistent    => 0,
+    ), "Add lname attribute";
 
     ok $km->build, "Build TestFooey class";
 }
@@ -142,12 +143,17 @@ is $class->name, 'Thingy', 'Check name';
 is $class->plural_name, 'Thingies', 'Check plural name';
 is $class->sort_by, $class->attributes('foo'),
     'Check default sort_by attribute';
+
 can_ok $class, 'ref_attributes';
 can_ok $class, 'direct_attributes';
+can_ok $class, 'persistent_attributes';
+
 is_deeply [$class->ref_attributes], [],
-  "There should be no referenced attributes";
-is_deeply [$class->attributes],[$class->direct_attributes],
-  "With no ref_attributes, direct_attributes should return all attributes";
+    'There should be no referenced attributes';
+is_deeply [$class->direct_attributes],[$class->attributes],
+    'With no ref_attributes, direct_attributes should return all attributes';
+is_deeply [$class->persistent_attributes],[$class->attributes],
+    'By default, persistent_attributes should return all attributes';
 
 ok my $attr = $class->attributes('foo'), "Get foo attribute";
 isa_ok $attr, 'Kinetic::Meta::Attribute';
@@ -181,8 +187,19 @@ is_deeply [$fclass->sort_by], [ $fclass->attributes('lname', 'fname') ],
 ok $attr = $fclass->attributes('thingy'), "Get thingy attribute";
 isa_ok $attr, 'Kinetic::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
+
 is_deeply [$fclass->ref_attributes], [$attr],
-  "We should be able to get the one referenced attribute";
+    'We should be able to get the one referenced attribute';
+is_deeply [$fclass->direct_attributes],
+          [ grep { $_->name ne 'thingy' } $fclass->attributes ],
+    'Direct attributes should have all but the referenced attribute';
+is_deeply [$fclass->persistent_attributes],
+          [ grep { $_->name ne 'lname' } $fclass->attributes ],
+    'Persistent attributes should have all but the non-persistent attribute';
+
+is_deeply [$class->persistent_attributes],[$class->attributes],
+    'By default, persistent_attributes should return all attributes';
+
 is $attr->references, MyTestThingy->my_class,
   "The thingy object should reference the thingy class";
 is $attr->relationship, 'has',

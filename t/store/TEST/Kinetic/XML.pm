@@ -55,6 +55,12 @@ BEGIN {
             tip  => 'Kinetic',
         )
     );
+    # Be sure to test non-persistent attribute, which should nevertheless show
+    # up in the XML.
+    $km->add_attribute(
+        name => 'tmp',
+        type => 'string',
+    );
     $km->build;
 
     package MyTestPartof;
@@ -396,6 +402,7 @@ sub dump_xml : Test(7) {
       </instance>
     </kinetic>
     END_XML
+
     is_xml $xml->dump_xml( with_referenced => 1 ),
       <<"    END_XML", '... but they should append the referenced object if you ask nicely';
     <kinetic version="0.01">
@@ -407,6 +414,7 @@ sub dump_xml : Test(7) {
       <instance key="thingy">
         <attr name="foo">bar</attr>
         <attr name="state">1</attr>
+        <attr name="tmp"></attr>
         <attr name="uuid">$thingy_uuid</attr>
       </instance>
     </kinetic>

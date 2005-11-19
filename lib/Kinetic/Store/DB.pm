@@ -388,7 +388,7 @@ sub _save {
     $self->_save( $_->get($object) )
         for $self->{search_class}->ref_attributes;
 
-    foreach my $attr ( $self->{search_class}->attributes ) {
+    foreach my $attr ( $self->{search_class}->persistent_attributes ) {
         push @{ $self->{columns} } => $attr->_view_column;
         push @{ $self->{values}  } => $attr->raw($object);
     }

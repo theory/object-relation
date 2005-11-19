@@ -87,10 +87,26 @@ sub import {
 =head3 new
 
 This constructor overrides the parent class constructor from
-L<Class::Meta::Attribute|Class::Meta::Attribute> to make sure that unique
-attributes are always indexed, and to ensure that the C<relationship>
-parameter is either undefined or one of a valid list of values. See
-L<relationship|"relationship"> for a list of valid relationships.
+L<Class::Meta::Attribute|Class::Meta::Attribute> and adds the following
+behaviors:
+
+=over
+
+=item *
+
+Makes sure that unique attributes are always indexed, and to ensure that the
+C<relationship> parameter is either undefined or one of a valid list of
+values. See L<relationship|"relationship"> for a list of valid relationships.
+
+=item *
+
+Sets the C<index> attribute to a true value if the C<unique> attribute is set.
+
+=item *
+
+Sets the C<persistent> attribute to true if it has not been specified.
+
+=back
 
 =cut
 
@@ -109,7 +125,8 @@ my %RELATIONSHIPS = (
 
 sub new {
     my $self = shift->SUPER::new(@_);
-    $self->{indexed} ||= $self->{unique};
+    $self->{indexed}  ||= $self->{unique};
+    $self->{persistent} = 1 unless defined $self->{persistent};
     if (exists $self->{relationship}) {
         $self->class->handle_error(
            qq{I don't know what a "$self->{relationship}" relationship is}
@@ -178,6 +195,20 @@ attribute is set to a true value.
 =cut
 
 sub indexed { shift->{indexed} }
+
+##############################################################################
+
+=head3 persistent
+
+  my $persistent = $attr->persistent;
+
+Returns true if an attribute is persistent--that is, stored by the data store.
+This attribute is true by default, and can only be set to false in the call to
+the constructor.
+
+=cut
+
+sub persistent { shift->{persistent} }
 
 ##############################################################################
 

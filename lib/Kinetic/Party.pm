@@ -41,7 +41,7 @@ implementations.
 =cut
 
 BEGIN {
-    my $cm = Kinetic::Meta->new(
+    my $km = Kinetic::Meta->new(
         key         => 'party',
         name        => 'Party',
         plural_name => 'Parties',
@@ -58,6 +58,25 @@ In addition to the interface inherited from L<Kinetic|Kinetic>, this class
 offers a number of its own attributes.
 
 =head2 Accessors
+
+=head3 name
+
+  my $name = $party->name;
+  $party->name($name);
+
+The party's name.
+
+=cut
+
+    $km->add_attribute(
+        name        => 'name',
+        label       => 'Name',
+        type        => 'string',
+        persistent  => 1,
+        widget_meta => Kinetic::Meta::Widget->new(
+            type => 'text',
+        )
+    );
 
 =head3 contacts
 
@@ -83,7 +102,7 @@ the party.
 
 =cut
 
-    $cm->build;
+    $km->build;
 } # BEGIN
 
 1;

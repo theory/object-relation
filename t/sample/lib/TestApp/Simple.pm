@@ -28,6 +28,7 @@ BEGIN {
             tip  => 'The description of this object',
         )
     );
+
     $km->build;
 }
 

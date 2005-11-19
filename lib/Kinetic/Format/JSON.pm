@@ -142,6 +142,7 @@ sub deserialize {
     while ( my ( $attr, $value ) = each %$value_for ) {
         next unless defined $value;
         if ( my $attribute = $class->attributes($attr) ) {
+            next unless $attribute->persistent;
             if ($attribute->references) {
                 my $contained = $self->deserialize($value);
                 $object->$attr($contained);

@@ -37,6 +37,17 @@ BEGIN {
         )
     );
 
+    # Add non-persistent attribute.
+    $km->add_attribute(
+        name        => 'tmp',
+        label       => 'Temporary storage',
+        type        => 'string',
+        persistent  => 0,
+        widget_meta => Kinetic::Meta::Widget->new(
+            type => 'text',
+            tip  => 'Non-persistent temporary object storage',
+        )
+    );
     $km->build;
 }
 

@@ -560,7 +560,7 @@ sub _map_ref_columns {
     my ($self, $class, $key, @keys) = @_;
     my @cols;
     my $ckey = @keys ? join ('__', @keys, '') : ('');
-    for my $attr ($class->attributes) {
+    for my $attr ($class->persistent_attributes) {
         my $col = $attr->view_column;
         push @cols, "$key.$ckey$col AS $key\__$ckey$col";
         if (my $ref = $attr->references) {

@@ -237,11 +237,21 @@ documentation for details on its formats to pass in custom formats.
         );
     }
 
-    # We want the name method to actually be a read-only attribute.
-    $km->add_method(
-        name    => 'name',
-        label   => 'Name',
-        returns => 'string',
+    # We want to override the name attribute to make it READ-only and
+    # non-persistent, so that this method for all practical purposes becomes
+    # its replacement.
+    $km->add_attribute(
+        name        => 'name',
+        label       => 'Name',
+        type        => 'string',
+        authz       => Class::Meta::READ,
+        create      => Class::Meta::NONE,
+        override    => 1,
+        persistent  => 0,
+        widget_meta => Kinetic::Meta::Widget->new(
+            type => 'text',
+            tip  => q{The person's full name},
+        )
     );
 
     $km->build;

@@ -97,7 +97,7 @@ sub new {
     $args = 'HASH' eq ref $args ? $args : { object => $args };
     my $self = bless {}, $class;
     $self->object( $args->{object}                 || () );
-    $self->attributes( $args->{attributes}         || () );
+    $self->attributes( $args->{attributes}         || () ); # XXX BUG!
     $self->stylesheet_url( $args->{stylesheet_url} || () );
     $self->resources_url( $args->{resources_url}   || () );
     $self;
@@ -218,7 +218,7 @@ sub _fetch_object {
     }
     while ( my ( $attr_name, $value ) = each %$data ) {
         if ( my $attr = $class->attributes($attr_name) ) {
-            $attr->bake( $object, $value );
+            $attr->bake( $object, $value ) if $attr->persistent;
         }
     }
     return $object;
@@ -493,7 +493,7 @@ sub stylesheet_url {
   my $same_attributes = $xml->attributes;
 
 This getter/setter allows you to specify which attributes should be retrieved
-in the XML.  Expects an array ref of a scalar.
+in the XML. Expects an array ref or a scalar.
 
 Setting C<attributes> to I<undef> will "unset" requested attributes and cause
 all of them to be returned in the XML.

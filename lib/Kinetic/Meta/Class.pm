@@ -145,8 +145,8 @@ sub ref_attributes { @{ shift->{ref_attrs} } }
 
   my @direct_attrs = $class->direct_attributes;
 
-Returns a list of attributes that do not reference other Kinetic::Meta objects.
-Equivalent to
+Returns a list of attributes that do not reference other Kinetic::Meta
+objects. Equivalent to
 
   my @direct_attrs = grep { ! $_->references } $self->attributes;
 
@@ -155,6 +155,24 @@ only more efficient, thanks to build-time caching.
 =cut
 
 sub direct_attributes { @{ shift->{direct_attrs} } }
+
+##############################################################################
+
+=head3 persistent_attributes
+
+  my @persistent_attrs = $class->persistent_attributes;
+
+Returns a list of persistent attributes -- that is, those that should be
+stored in a data store, as opposed to used arbitrarily in the class.
+Equivalent to
+
+  my @persistent_attrs = grep { $_->persistent } $self->attributes;
+
+only more efficient, thanks to build-time caching.
+
+=cut
+
+sub persistent_attributes { @{ shift->{persistent_attrs} } }
 
 ##############################################################################
 
@@ -167,8 +185,24 @@ the a list of the referenced attributes for use by C<ref_attributes()>.
 
 sub build {
     my $self = shift->SUPER::build(@_);
-    $self->{ref_attrs}    = [ grep { $_->references } $self->attributes ];
-    $self->{direct_attrs} = [ grep { !$_->references } $self->attributes ];
+
+    # Organize attrs into categories.
+    my @attrs = $self->attributes;
+    my (@ref, @direct, @persist);
+    for my $attr ($self->attributes) {
+        push @persist, $attr if $attr->persistent;
+        if ($attr->references) {
+            push @ref, $attr;
+        } else {
+            push @direct, $attr;
+        }
+    }
+
+    # Cache categories for fast method calls.
+    $self->{ref_attrs}        = \@ref;
+    $self->{direct_attrs}     = \@direct;
+    $self->{persistent_attrs} = @persist == @attrs ? \@attrs : \@persist;
+
     if (my $sort_by = $self->{sort_by}) {
         $sort_by = [$sort_by] unless ref $sort_by;
         my %attrs = map { $_->name => $_ } @{ $self->{direct_attrs} };

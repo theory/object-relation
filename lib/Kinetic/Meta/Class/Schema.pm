@@ -220,13 +220,15 @@ sub build {
         # There are concrete parent classes from which we need to inherit.
         my $table = $root->key;
         $self->{parent} = $root;
-        $parent_attrs{$table} = [$root->attributes];
+        $parent_attrs{$table} = [$root->persistent_attributes];
 
         for my $impl (@parents, $self) {
-            my $impl_key = $impl->key;
+            my $impl_key    = $impl->key;
             $self->{parent} = $impl unless $impl_key eq $key;
-            $table .= "_$impl_key";
-            @cols = grep { $_->class->key eq $impl_key } $impl->attributes;
+            $table         .= "_$impl_key";
+            @cols = grep { $_->class->key eq $impl_key }
+                $impl->persistent_attributes;
+            # Copy @cols to prevent spillover into subclasses.
             $parent_attrs{$impl_key} = [@cols];
         }
 
@@ -235,12 +237,12 @@ sub build {
     } else {
         # It has no parent class, so its column attributes are all of its
         # attributes.
-        @cols = $self->attributes;
+        @cols = $self->persistent_attributes;
     }
 
-    $self->{cols} = \@cols;
+    $self->{cols}         = \@cols;
     $self->{parent_attrs} = \%parent_attrs;
-    $self->{parents} = \@parents;
+    $self->{parents}      = \@parents;
     return $self;
 }
 
