@@ -49,6 +49,7 @@ my $build = Kinetic::Build->new(
     },
     build_requires       => {
         'App::Info'                  => 0.42,
+        'Class::Trait'               => 0.11,
         'FSA::Rules'                 => 0.21,
         'HTTP::Server::Simple'       => 0.13,
         'Module::Build'              => 0.26,

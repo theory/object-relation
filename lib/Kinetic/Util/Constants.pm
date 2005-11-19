@@ -30,7 +30,7 @@ Kinetic::Util::Constants - The Kinetic constants class
 =head1 Synopsis
 
   use Kinetic::Util::Contants qw/:data_store/;
-  if ($name =~ /GROUP_OP/) {
+  if ($name =~ /$GROUP_OP/) {
     ...
   }
 
@@ -41,102 +41,104 @@ configuration specific.
 
 =cut
 
+use Readonly;
+
 # data_store
-use constant GROUP_OP         => qr/^(?:AND|OR)$/;
-use constant OBJECT_DELIMITER => '__';
-use constant ATTR_DELIMITER   => '.';
-use constant PREPARE          => 'prepare';
-use constant CACHED           => 'prepare_cached';
-use constant UUID_RE          =>
+Readonly our $GROUP_OP         => qr/^(?:AND|OR)$/;
+Readonly our $OBJECT_DELIMITER => '__';
+Readonly our $ATTR_DELIMITER   => '.';
+Readonly our $PREPARE          => 'prepare';
+Readonly our $CACHED           => 'prepare_cached';
+Readonly our $UUID_RE          =>
   qr/[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}/;
 
 # HTTP content types
-use constant TEXT_CT => 'text/plain';
-use constant XML_CT  => 'text/xml';
-use constant HTML_CT => 'text/html';
+Readonly our $TEXT_CT => 'text/plain';
+Readonly our $XML_CT  => 'text/xml';
+Readonly our $HTML_CT => 'text/html';
 
 # HTTP status codes
-use constant HTTP_OK                    => '200 OK';
-use constant HTTP_INTERNAL_SERVER_ERROR => '500 Internal Server Error';
-use constant HTTP_NOT_IMPLEMENTED       => '501 Not Implemented';
-use constant HTTP_NOT_FOUND             => '404 Not Found';
+Readonly our $HTTP_OK                    => '200 OK';
+Readonly our $HTTP_INTERNAL_SERVER_ERROR => '500 Internal Server Error';
+Readonly our $HTTP_NOT_IMPLEMENTED       => '501 Not Implemented';
+Readonly our $HTTP_NOT_FOUND             => '404 Not Found';
 
 # XSLT
-use constant CURRENT_PAGE   => '#';
-use constant RESOURCES_XSLT => '/xslt/resources.xsl';
-use constant SEARCH_XSLT    => '/xslt/search.xsl';
-use constant INSTANCE_XSLT  => '/xslt/instance.xsl';
+Readonly our $CURRENT_PAGE   => '#';
+Readonly our $RESOURCES_XSLT => '/xslt/resources.xsl';
+Readonly our $SEARCH_XSLT    => '/xslt/search.xsl';
+Readonly our $INSTANCE_XSLT  => '/xslt/instance.xsl';
 
 # REST
-use constant CLASS_KEY_PARAM => '_class_key';
-use constant DOMAIN_PARAM    => '_domain';
-use constant PATH_PARAM      => '_path';
-use constant TYPE_PARAM      => '_type';
-use constant LIMIT_PARAM     => '_limit';
-use constant OFFSET_PARAM    => '_offset';
-use constant ORDER_BY_PARAM  => '_order_by';
-use constant SORT_PARAM      => '_sort_order';
-use constant SEARCH_TYPE     => 'STRING';
+Readonly our $CLASS_KEY_PARAM => '_class_key';
+Readonly our $DOMAIN_PARAM    => '_domain';
+Readonly our $PATH_PARAM      => '_path';
+Readonly our $TYPE_PARAM      => '_type';
+Readonly our $LIMIT_PARAM     => '_limit';
+Readonly our $OFFSET_PARAM    => '_offset';
+Readonly our $ORDER_BY_PARAM  => '_order_by';
+Readonly our $SORT_PARAM      => '_sort_order';
+Readonly our $SEARCH_TYPE     => 'STRING';
 
 # Labels
-use constant AVAILABLE_INSTANCES => 'Available instances';
-use constant AVAILABLE_RESOURCES => 'Available resources';
+Readonly our $AVAILABLE_INSTANCES => 'Available instances';
+Readonly our $AVAILABLE_RESOURCES => 'Available resources';
 
 # Directories
-use constant WWW_DIR => './www';
+Readonly our $WWW_DIR => './www';
 
 use Exporter::Tidy http => [
     qw/
-      HTML_CT
-      TEXT_CT
-      XML_CT
+      $HTML_CT
+      $TEXT_CT
+      $XML_CT
 
-      HTTP_OK
-      HTTP_INTERNAL_SERVER_ERROR
-      HTTP_NOT_IMPLEMENTED
-      HTTP_NOT_FOUND
+      $HTTP_OK
+      $HTTP_INTERNAL_SERVER_ERROR
+      $HTTP_NOT_IMPLEMENTED
+      $HTTP_NOT_FOUND
       /
   ],
   data => [
     qw/
-      WWW_DIR
+      $WWW_DIR
       /
   ],
   data_store => [
     qw/
-      ATTR_DELIMITER
-      CACHED
-      GROUP_OP
-      UUID_RE
-      OBJECT_DELIMITER
-      PREPARE
+      $ATTR_DELIMITER
+      $CACHED
+      $GROUP_OP
+      $UUID_RE
+      $OBJECT_DELIMITER
+      $PREPARE
       /
   ],
   rest => [
     qw/
-      CLASS_KEY_PARAM
-      DOMAIN_PARAM
-      PATH_PARAM
-      TYPE_PARAM
-      LIMIT_PARAM
-      OFFSET_PARAM
-      ORDER_BY_PARAM
-      SORT_PARAM
-      SEARCH_TYPE
+      $CLASS_KEY_PARAM
+      $DOMAIN_PARAM
+      $PATH_PARAM
+      $TYPE_PARAM
+      $LIMIT_PARAM
+      $OFFSET_PARAM
+      $ORDER_BY_PARAM
+      $SORT_PARAM
+      $SEARCH_TYPE
       /
   ],
   labels => [
     qw/
-      AVAILABLE_INSTANCES
-      AVAILABLE_RESOURCES
+      $AVAILABLE_INSTANCES
+      $AVAILABLE_RESOURCES
       /
   ],
   xslt => [
     qw/
-      CURRENT_PAGE
-      RESOURCES_XSLT
-      SEARCH_XSLT
-      INSTANCE_XSLT
+      $CURRENT_PAGE
+      $RESOURCES_XSLT
+      $SEARCH_XSLT
+      $INSTANCE_XSLT
       /
   ];
 
@@ -147,28 +149,28 @@ modules need to manipulate it.
 
 =over 4
 
-=item * ATTR_DELIMITER
+=item * $ATTR_DELIMITER
 
 In the Kinetic objects, contained object attributes are frequently referred
 to by C<$key . $delimiter . $attribute_name>.  Thus, an object with a key of
 I<customer> and an attribute named "last_name" might be referred to as
-I<customer.last_name>.  The C<ATTR_DELIMITER> should be the C<$delimeter>.
+I<customer.last_name>.  The C<$ATTR_DELIMITER> should be the C<$delimeter>.
 
-=item * CACHED
+=item * $CACHED
 
 This resolves to C<prepare_cached>:  the name of the L<DBI|DBI> method used to
 prepare and cache an SQL statement.
 
-=item * GROUP_OP
+=item * $GROUP_OP
 
 A regular expression matching search grouping operators 'AND' and 'OR'.
 
-=item * UUID_RE
+=item * $UUID_RE
 
 All objects in a data store have a UUID.  This regular expression matches
 UUIDs.  Assumes all letters are upper case.
 
-=item * OBJECT_DELIMITER
+=item * $OBJECT_DELIMITER
 
 In the data store, contained object fields are usually the
 L<Kinetic::Meta|Kinetic::Meta> key, followed by the object delimeter and the
@@ -176,7 +178,7 @@ name of the actual field.  Thus, if asking for a C<first_name> field in an
 object in a K:M class with the key C<customer> and the object delimeter is
 C<__>, the resulting field would be C<customer__first_name>.
 
-=item * PREPARE
+=item * $PREPARE
 
 This resolves to C<prepare>:  the name of the L<DBI|DBI> method used to prepare
 an SQL statement.
@@ -189,42 +191,42 @@ These constants are related to the REST interface.
 
 =over 4
 
-=item * CLASS_KEY_PARAM
+=item * $CLASS_KEY_PARAM
 
 C<class_key> for current search.
 
-=item * DOMAIN_PARAM
+=item * $DOMAIN_PARAM
 
 Domain of server.
 
-=item * PATH_PARAM
+=item * $PATH_PARAM
 
 REST base path.
 
-=item * TYPE_PARAM
+=item * $TYPE_PARAM
 
 Content type to return to client instead of XML.  Currently only supports
 'html'.
 
-=item * LIMIT_PARAM
+=item * $LIMIT_PARAM
 
 Parameter specifying the maximum number of items to return from a search.
 
-=item * OFFSET_PARAM
+=item * $OFFSET_PARAM
 
 Parameter specifying how which item in a search to start limiting results
 from.
 
-=item * ORDER_BY_PARAM
+=item * $ORDER_BY_PARAM
 
 Parameter specifying which attributes to order search results by.
 
-=item * SORT_PARAM
+=item * $SORT_PARAM
 
-Parameter specifying which direction to sort an C<ORDER_BY_PARAM> on.  Allowed
+Parameter specifying which direction to sort an C<$ORDER_BY_PARAM> on.  Allowed
 values are C<ASC> and C<DESC>.
 
-=item * SEARCH_TYPE
+=item * $SEARCH_TYPE
 
 The type of search requested via the REST interface.
 
@@ -240,15 +242,15 @@ Used with HTTP C<Content-type:> header.
 
 =over 4
 
-=item * HTML_CT
+=item * $HTML_CT
 
 C<text/html>
 
-=item * TEXT_CT
+=item * $TEXT_CT
 
 C<text/plain>
 
-=item * XML_CT
+=item * $XML_CT
 
 C<text/xml>
 
@@ -260,19 +262,19 @@ Use with HTTP C<Status:> header.
 
 =over 4
 
-=item * HTTP_INTERNAL_SERVER_ERROR
+=item * $HTTP_INTERNAL_SERVER_ERROR
 
 C<500 Internal Server Error>
 
-=item * HTTP_NOT_IMPLEMENTED
+=item * $HTTP_NOT_IMPLEMENTED
 
 C<501 Not Implemented>
 
-=item * HTTP_NOT_FOUND
+=item * $HTTP_NOT_FOUND
 
 C<404 Not Found>
 
-=item * HTTP_OK
+=item * $HTTP_OK
 
 C<200 OK>
 
@@ -282,11 +284,11 @@ C<200 OK>
 
 =over 4 
 
-=item * AVAILABLE_INSTANCES
+=item * $AVAILABLE_INSTANCES
 
 Title for "Available instances" returned in REST services.
 
-=item * AVAILABLE_RESOURCES
+=item * $AVAILABLE_RESOURCES
 
 Title for "Available resources" returned in REST services.
 
@@ -296,7 +298,7 @@ Title for "Available resources" returned in REST services.
 
 =over 4
 
-=item * WWW_DIR
+=item * $WWW_DIR
 
 The location of the WWW directory.
 
@@ -306,22 +308,22 @@ The location of the WWW directory.
 
 =over 4
 
-=item * CURRENT_PAGE
+=item * $CURRENT_PAGE
 
 This is a marker used in XML documents to indicate a link to the current page.
 Usually such a link is not desired and XSLT should not make a link if it finds
-a C<CURRENT_PAGE> marker.
+a C<$CURRENT_PAGE> marker.
 
-=item * RESOURCES_XSLT
+=item * $RESOURCES_XSLT
 
 Location of XSLT for listing available resources (Kinetic classes in the data
 store).
 
-=item * SEARCH_XSLT
+=item * $SEARCH_XSLT
 
 Location of XSLT for managing searches.
 
-=item * INSTANCE_XSLT
+=item * $INSTANCE_XSLT
 
 Location of XSLT for displaying Kinetic instances.
 

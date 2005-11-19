@@ -417,8 +417,8 @@ sub add_pageset {
         {
             count         => $arg_for->{instances},
             total_entries => $arg_for->{total},
-            limit         => ( $args->get(LIMIT_PARAM) || '' ),
-            offset        => ( $args->get(OFFSET_PARAM) || 0 ),
+            limit         => ( $args->get($LIMIT_PARAM) || '' ),
+            offset        => ( $args->get($OFFSET_PARAM) || 0 ),
         }
     );
     return unless $pageset;
@@ -439,11 +439,11 @@ sub add_pageset {
         $page->StartElement;
         $self->attr('id')->AddAttribute("[ Page $set ]");
         if ( $set == $pageset->current_page ) {
-            $self->attr('href')->AddAttribute(CURRENT_PAGE);
+            $self->attr('href')->AddAttribute($CURRENT_PAGE);
         }
         else {
-            my $current_offset = ( $set - 1 ) * $args->get(LIMIT_PARAM);
-            my $offset_param   = OFFSET_PARAM;
+            my $current_offset = ( $set - 1 ) * $args->get($LIMIT_PARAM);
+            my $offset_param   = $OFFSET_PARAM;
             $url =~ s{$offset_param/\d+}{$offset_param/$current_offset};
             $self->attr('href')->AddAttribute($url);
         }

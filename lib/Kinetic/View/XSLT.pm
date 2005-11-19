@@ -24,7 +24,7 @@ use version;
 our $VERSION = version->new('0.0.1');
 use Kinetic::Util::Exceptions
   qw/panic throw_exlib throw_not_found throw_required throw_unsupported/;
-use Kinetic::Util::Constants qw/:xslt WWW_DIR/;
+use Kinetic::Util::Constants qw/:xslt $WWW_DIR/;
 use aliased 'XML::LibXML';
 use aliased 'XML::LibXSLT';
 
@@ -103,6 +103,7 @@ value will re-enable caching.  This method is mostly for debugging.
 =cut
 
 my $CACHE_XSLT = 1;
+
 sub cache_xslt {
     my $class = shift;
     return $CACHE_XSLT unless @_;
@@ -158,15 +159,15 @@ requested is not found.
 my %STYLESHEET_FOR = (
     resources => {
         handler => \&_stylesheet_resources,
-        name    => RESOURCES_XSLT,
+        name    => $RESOURCES_XSLT,
     },
     instance => {
         handler => \&_stylesheet_instance,
-        name    => INSTANCE_XSLT,
+        name    => $INSTANCE_XSLT,
     },
     search => {
         handler => \&_stylesheet_rest,
-        name    => SEARCH_XSLT,
+        name    => $SEARCH_XSLT,
     },
 );
 
@@ -264,40 +265,40 @@ sub transform {
 
 =cut
 
-my $RESOURCES_XSLT;
+my $RESOURCES_XSLT_DOC;
 
 sub _stylesheet_resources {
-    unless ($RESOURCES_XSLT) {
-        my $file = WWW_DIR . RESOURCES_XSLT;
+    unless ($RESOURCES_XSLT_DOC) {
+        my $file = $WWW_DIR . $RESOURCES_XSLT;
         open my $fh, "<", $file
           or throw_not_found [ 'File "[_1]" not found', $file ];
-        $RESOURCES_XSLT = do { local $/; <$fh> };
+        $RESOURCES_XSLT_DOC = do { local $/; <$fh> };
     }
-    return $RESOURCES_XSLT;
+    return $RESOURCES_XSLT_DOC;
 }
 
-my $SEARCH_XSLT;
+my $SEARCH_XSLT_DOC;
 
 sub _stylesheet_rest {
-    unless ($SEARCH_XSLT) {
-        my $file = WWW_DIR . SEARCH_XSLT;
+    unless ($SEARCH_XSLT_DOC) {
+        my $file = $WWW_DIR . $SEARCH_XSLT;
         open my $fh, "<", $file
           or throw_not_found [ 'File "[_1]" not found', $file ];
-        $SEARCH_XSLT = do { local $/; <$fh> };
+        $SEARCH_XSLT_DOC = do { local $/; <$fh> };
     }
-    return $SEARCH_XSLT;
+    return $SEARCH_XSLT_DOC;
 }
 
-my $INSTANCE_XSLT;
+my $INSTANCE_XSLT_DOC;
 
 sub _stylesheet_instance {
-    unless ($INSTANCE_XSLT) {
-        my $file = WWW_DIR . INSTANCE_XSLT;
+    unless ($INSTANCE_XSLT_DOC) {
+        my $file = $WWW_DIR . $INSTANCE_XSLT;
         open my $fh, "<", $file
           or throw_not_found [ 'File "[_1]" not found', $file ];
-        $INSTANCE_XSLT = do { local $/; <$fh> };
+        $INSTANCE_XSLT_DOC = do { local $/; <$fh> };
     }
-    return $INSTANCE_XSLT;
+    return $INSTANCE_XSLT_DOC;
 }
 
 =end private

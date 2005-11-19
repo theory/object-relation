@@ -132,12 +132,12 @@ L<CGI|CGI> interface.
 sub handle_request {
     my ( $self, $cgi ) = @_;
     $self->cgi($cgi)->status('')->response('')->content_type('');
-    $self->desired_content_type(XML_CT);
-    if ( my $type = $cgi->param(TYPE_PARAM) ) {
+    $self->desired_content_type($XML_CT);
+    if ( my $type = $cgi->param($TYPE_PARAM) ) {
         my $desired_content_type =
-          'html'   eq lc $type ? HTML_CT
-          : 'text' eq lc $type ? TEXT_CT
-          : XML_CT;
+          'html'   eq lc $type ? $HTML_CT
+          : 'text' eq lc $type ? $TEXT_CT
+          : $XML_CT;
         $self->desired_content_type($desired_content_type);
     }
 
@@ -161,10 +161,10 @@ sub handle_request {
     };
     if ( my $error = $@ ) {
         my $info = $cgi->path_info;
-        $self->status(HTTP_INTERNAL_SERVER_ERROR)
+        $self->status($HTTP_INTERNAL_SERVER_ERROR)
           ->response("Fatal error handling $info: $error");
     }
-    $self->status(HTTP_OK) unless $self->status;
+    $self->status($HTTP_OK) unless $self->status;
     return $self;
 }
 
@@ -181,7 +181,7 @@ output type in the query string via the "_type=$type" parameter.
 
 sub output_type {
     my $self = shift;
-    my $output_type = lc $self->cgi->param(TYPE_PARAM) || '';
+    my $output_type = lc $self->cgi->param($TYPE_PARAM) || '';
 }
 
 ##############################################################################
@@ -214,7 +214,7 @@ sub query_string {
     my $self = shift;
     my $type = lc $self->output_type || return '';
     return '' if 'xml' eq $type;    # because this is the default
-    return "?" . TYPE_PARAM . "=$type";
+    return "?" . $TYPE_PARAM . "=$type";
 }
 
 sub _get_request {
@@ -223,7 +223,7 @@ sub _get_request {
     my @request = $self->_get_request_from_path_info;
 
     # naive.  We may have more than one "basic" parameters in
-    # the future (currently it's TYPE_PARAM)
+    # the future (currently it's $TYPE_PARAM)
     if ( !@request || ( $self->cgi->param || 0 ) > 1 ) {
         @request = $self->_get_request_from_query_string;
     }
@@ -254,7 +254,7 @@ sub _get_request_from_query_string {
     my $self = shift;
     my $cgi  = $self->cgi;
 
-    my $class_key = $cgi->param(CLASS_KEY_PARAM);
+    my $class_key = $cgi->param($CLASS_KEY_PARAM);
     my $method    = 'query';
 
     my @args;
@@ -480,9 +480,9 @@ This method, when passed $xml and an optional response type (defaults to
 
 sub set_response {
     my ( $self, $xml, $type ) = @_;
-    my $content_type = $self->desired_content_type || XML_CT;
+    my $content_type = $self->desired_content_type || $XML_CT;
     my $content = $xml;
-    if ( HTML_CT eq $content_type ) {
+    if ( $HTML_CT eq $content_type ) {
         $type ||= $self->xslt;
         my $xslt = XSLT->new( type => $type );
         $content = $xslt->transform($xml);

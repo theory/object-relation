@@ -18,7 +18,7 @@ use Test::Exception;
     use Class::Trait qw(TEST::Kinetic::Traits::Store);
 }
 
-use Kinetic::Util::Constants qw/UUID_RE/;
+use Kinetic::Util::Constants qw/$UUID_RE/;
 
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Store' => 'Store', ':all';
@@ -64,7 +64,7 @@ sub serialize : Test(7) {
     ok my $json = $formatter->serialize($foo),
       '... and serializing an object should succeed';
     is_valid_json $json, '... and it should return valid JSON';
-    $json =~ s/@{[UUID_RE]}/XXX/g;
+    $json =~ s/$UUID_RE/XXX/g;
     my $expected = <<'    END_EXPECTED';
         {
             "_key"        : "one",
@@ -93,7 +93,7 @@ sub serialize : Test(7) {
     ok $json = $formatter->serialize($two),
       'Serializing an object with a contained object should succeed';
     is_valid_json $json, '... and it should return valid JSON';
-    $json =~ s/@{[UUID_RE]}/XXX/g;
+    $json =~ s/$UUID_RE/XXX/g;
 
     # XXX Because of the way JSON serializes strings, the data in "one" must
     # maintain its format and spacing

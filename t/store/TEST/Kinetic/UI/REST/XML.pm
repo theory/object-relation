@@ -14,7 +14,7 @@ use Class::Trait qw( TEST::Kinetic::Traits::Store );
 use Class::Trait qw( TEST::Kinetic::Traits::XML );
 use Class::Trait qw( TEST::Kinetic::Traits::HTML );
 
-use Kinetic::Util::Constants qw/UUID_RE :xslt :labels :rest/;
+use Kinetic::Util::Constants qw/:xslt :labels :rest/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(0) }
 
@@ -34,7 +34,6 @@ use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
 use Readonly;
 Readonly my $DOMAIN      => 'http://somehost.com/';
 Readonly my $PATH        => 'rest/';
-Readonly my $SEARCH_TYPE => SEARCH_TYPE;
 
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->any_supported(qw/pg sqlite/)
@@ -103,42 +102,42 @@ sub add_pagesets : Test(24) {
     my $test = shift;
 
     my @args = (
-        SEARCH_TYPE,    'name EQ "foo"',
-        LIMIT_PARAM,    10,
-        ORDER_BY_PARAM, 'name',
-        SORT_PARAM,     'ASC',
+        $SEARCH_TYPE,    'name EQ "foo"',
+        $LIMIT_PARAM,    10,
+        $ORDER_BY_PARAM, 'name',
+        $SORT_PARAM,     'ASC',
         _current_count => 10,    # number of items on current pages
         _total_objects => 55,    # total which meet search criteria
     );
     $test->_test_pageset( 'test_class', \@args,
         'Normal searches should create pagesets' );
     @args = (
-        SEARCH_TYPE,    '',
-        LIMIT_PARAM,    5,
-        ORDER_BY_PARAM, 'age',
-        SORT_PARAM,     'DESC',
+        $SEARCH_TYPE,    '',
+        $LIMIT_PARAM,    5,
+        $ORDER_BY_PARAM, 'age',
+        $SORT_PARAM,     'DESC',
         _current_count => 10,    # number of items on current pages
         _total_objects => 55,    # total which meet search criteria
     );
     $test->_test_pageset( 'some_class', \@args,
         'Empty searches should succeed' );
 
-    @args = ( SEARCH_TYPE, '', LIMIT_PARAM, 5, ORDER_BY_PARAM, 'age', );
+    @args = ( $SEARCH_TYPE, '', $LIMIT_PARAM, 5, $ORDER_BY_PARAM, 'age', );
     $test->_test_pageset( 'some_class', \@args,
         'Leaving off sort_order should succeed' );
 
-    @args = ( SEARCH_TYPE, 'age GT 3', LIMIT_PARAM, 30, );
+    @args = ( $SEARCH_TYPE, 'age GT 3', $LIMIT_PARAM, 30, );
     $test->_test_pageset( 'some_class', \@args,
         'Leaving off order_by and sort_order should succeed' );
 
-    @args = ( SEARCH_TYPE, '', LIMIT_PARAM, 5, SORT_PARAM, 'ASC', );
+    @args = ( $SEARCH_TYPE, '', $LIMIT_PARAM, 5, $SORT_PARAM, 'ASC', );
 
     $test->_test_pageset( 'some_class', \@args,
         'Leaving off order_by on pagesets should succeed' );
 
     @args = (
-        SEARCH_TYPE, "description LIKE '%object%'",
-        LIMIT_PARAM, 5, SORT_PARAM, 'ASC',
+        $SEARCH_TYPE, "description LIKE '%object%'",
+        $LIMIT_PARAM, 5, $SORT_PARAM, 'ASC',
     );
 
     $test->_test_pageset( 'some_class', \@args,
@@ -153,8 +152,8 @@ sub _test_pageset {
 
     my $current = $orig_args->delete('_current_count');
     my $total   = $orig_args->delete('_total_objects');
-    $current = $orig_args->get(LIMIT_PARAM)     unless defined $current;
-    $total   = $orig_args->get(LIMIT_PARAM) * 2 unless defined $total;
+    $current = $orig_args->get($LIMIT_PARAM)     unless defined $current;
+    $total   = $orig_args->get($LIMIT_PARAM) * 2 unless defined $total;
     my $num_pages = $current ? $total / $current : 0;
 
     $num_pages++ unless int($num_pages) == $num_pages;
@@ -167,7 +166,7 @@ sub _test_pageset {
     like $node, qr/\Q[ Page $num_pages ]/,
       '... and we should have the correct number of pages';
     my ($url) = $node =~ /xlink:href="([^"]*)/;
-    my $search = encode_entities( $orig_args->get(SEARCH_TYPE), '&"<>' )
+    my $search = encode_entities( $orig_args->get($SEARCH_TYPE), '&"<>' )
       || 'null';
     like $url, qr{/$SEARCH_TYPE/\Q$search\E/},
       '... and the search terms should be properly quoted';
@@ -188,13 +187,13 @@ sub _get_pageset_xml {
         }
     );
 
-    $args->put( SEARCH_TYPE,    'null' ) unless $args->exists(SEARCH_TYPE);
-    $args->put( ORDER_BY_PARAM, 'null' ) unless $args->exists(ORDER_BY_PARAM);
-    $args->put( LIMIT_PARAM,    20 )     unless $args->exists(LIMIT_PARAM);
-    $args->put( SORT_PARAM,     'ASC' )  unless $args->exists(SORT_PARAM);
+    $args->put( $SEARCH_TYPE,    'null' ) unless $args->exists($SEARCH_TYPE);
+    $args->put( $ORDER_BY_PARAM, 'null' ) unless $args->exists($ORDER_BY_PARAM);
+    $args->put( $LIMIT_PARAM,    20 )     unless $args->exists($LIMIT_PARAM);
+    $args->put( $SORT_PARAM,     'ASC' )  unless $args->exists($SORT_PARAM);
 
     my $current = $args->delete('_current_count');
-    $current = $args->get(LIMIT_PARAM) unless defined $current;
+    $current = $args->get($LIMIT_PARAM) unless defined $current;
 
     my $dispatch = Dispatch->new( { rest => $test->{rest} } );
     $dispatch->rest( $test->{rest} );
@@ -230,27 +229,27 @@ sub add_search_data : Test(61) {
     my $test = shift;
 
     my @args = (
-        SEARCH_TYPE, 'name EQ "foo"',
-        LIMIT_PARAM, 20, ORDER_BY_PARAM, 'name', SORT_PARAM, 'ASC',
+        $SEARCH_TYPE, 'name EQ "foo"',
+        $LIMIT_PARAM, 20, $ORDER_BY_PARAM, 'name', $SORT_PARAM, 'ASC',
     );
     $test->_test_search_data( 'one', \@args, 'Normal searches should succeed',
         1 );
 
     @args = (
-        SEARCH_TYPE, '', LIMIT_PARAM, 5, ORDER_BY_PARAM, 'age', SORT_PARAM,
+        $SEARCH_TYPE, '', $LIMIT_PARAM, 5, $ORDER_BY_PARAM, 'age', $SORT_PARAM,
         'DESC',
     );
     $test->_test_search_data( 'one', \@args, 'Empty searches should succeed' );
 
-    @args = ( SEARCH_TYPE, '', LIMIT_PARAM, 5, ORDER_BY_PARAM, 'age', );
+    @args = ( $SEARCH_TYPE, '', $LIMIT_PARAM, 5, $ORDER_BY_PARAM, 'age', );
     $test->_test_search_data( 'one', \@args,
         'Leaving off sort_order should succeed' );
 
-    @args = ( SEARCH_TYPE, 'name GT 3', LIMIT_PARAM, 30, );
+    @args = ( $SEARCH_TYPE, 'name GT 3', $LIMIT_PARAM, 30, );
     $test->_test_search_data( 'one', \@args,
         'Leaving off order_by and sort_order should succeed', 1 );
 
-    @args = ( SEARCH_TYPE, '', LIMIT_PARAM, 5, SORT_PARAM, 'ASC', );
+    @args = ( $SEARCH_TYPE, '', $LIMIT_PARAM, 5, $SORT_PARAM, 'ASC', );
     $test->_test_search_data( 'one', \@args,
         'Leaving off order_by should succeed' );
 }
@@ -281,15 +280,15 @@ sub _test_search_data {
         }
     );
 
-    $args->put( SEARCH_TYPE,    'null' ) unless $args->exists(SEARCH_TYPE);
-    $args->put( ORDER_BY_PARAM, 'null' ) unless $args->exists(ORDER_BY_PARAM);
-    $args->put( LIMIT_PARAM,    20 )     unless $args->exists(LIMIT_PARAM);
-    $args->put( SORT_PARAM,     'ASC' )  unless $args->exists(SORT_PARAM);
+    $args->put( $SEARCH_TYPE,    'null' ) unless $args->exists($SEARCH_TYPE);
+    $args->put( $ORDER_BY_PARAM, 'null' ) unless $args->exists($ORDER_BY_PARAM);
+    $args->put( $LIMIT_PARAM,    20 )     unless $args->exists($LIMIT_PARAM);
+    $args->put( $SORT_PARAM,     'ASC' )  unless $args->exists($SORT_PARAM);
 
     my $current = $args->delete('_current_count');
     my $total   = $args->delete('_total_objects');
-    $current = $args->get(LIMIT_PARAM)     unless defined $current;
-    $total   = $args->get(LIMIT_PARAM) * 2 unless defined $total;
+    $current = $args->get($LIMIT_PARAM)     unless defined $current;
+    $total   = $args->get($LIMIT_PARAM) * 2 unless defined $total;
 
     # XXX pull this out when done debugging page sets
     my $dispatch = Dispatch->new( { rest => $test->{rest} } );
@@ -301,7 +300,7 @@ sub _test_search_data {
     {
         $dispatch->class_key($test_class);
         my $class = $dispatch->class;
-        my @search = ( STRING => $args->get(SEARCH_TYPE) );
+        my @search = ( STRING => $args->get($SEARCH_TYPE) );
         @search = () if $search[1] eq 'null';
         my $iterator = Store->new->query( $class, @search );
         $search_request = $iterator->request;
@@ -322,7 +321,7 @@ sub _test_search_data {
       '/kinetic:resources/kinetic:search_parameters/kinetic:parameter';
 
     while ( my ( $arg, $value ) = $args->each ) {
-        if ( SORT_PARAM eq $arg || ORDER_BY_PARAM eq $arg ) {
+        if ( $SORT_PARAM eq $arg || $ORDER_BY_PARAM eq $arg ) {
             my $node =
               $xpath->findnodes_as_string(qq{$parameters\[\@type = "$arg"]});
             like $node,
@@ -330,7 +329,7 @@ sub _test_search_data {
               qq'... and the $arg should be identified as a "select" widget';
 
             my @options =
-              SORT_PARAM eq $arg
+              $SORT_PARAM eq $arg
               ? ( [ ASC => 'Ascending' ], [ DESC => 'Descending' ] )
               : map { [ $_ => ucfirst $_ ] } $test->desired_attributes;
 
@@ -413,50 +412,50 @@ sub method_arg_handling : Test(12) {
     ok $dispatch->args( Array::AsHash->new ),
       'Setting search args should succceed';
     is_deeply scalar $dispatch->args->get_array,
-      [ SEARCH_TYPE, '', LIMIT_PARAM, 20, OFFSET_PARAM, 0 ],
+      [ $SEARCH_TYPE, '', $LIMIT_PARAM, 20, $OFFSET_PARAM, 0 ],
       '... and setting them with no args set should return a default search';
 
     ok $dispatch->args( Array::AsHash->new( { array => [qw/ foo bar /] } ) ),
       '... and setting the arguments should succeed';
 
     is_deeply scalar $dispatch->args->get_array,
-      [ SEARCH_TYPE, 'null', LIMIT_PARAM, 20, OFFSET_PARAM, 0 ],
+      [ $SEARCH_TYPE, 'null', $LIMIT_PARAM, 20, $OFFSET_PARAM, 0 ],
 '... but it should return default limit and offset and discard unknown args';
 
     $dispatch->args(
         Array::AsHash->new(
-            { array => [ 'this', 'that', LIMIT_PARAM, 30, OFFSET_PARAM, 0 ] }
+            { array => [ 'this', 'that', $LIMIT_PARAM, 30, $OFFSET_PARAM, 0 ] }
         )
     );
     is_deeply scalar $dispatch->args->get_array,
-      [ SEARCH_TYPE, 'null', LIMIT_PARAM, 30, OFFSET_PARAM, 0 ],
+      [ $SEARCH_TYPE, 'null', $LIMIT_PARAM, 30, $OFFSET_PARAM, 0 ],
       '... but it should not override a limit that is already supplied';
 
     $dispatch->args(
         Array::AsHash->new(
-            { array => [ LIMIT_PARAM, 30, 'this', 'that', OFFSET_PARAM, 0 ] }
+            { array => [ $LIMIT_PARAM, 30, 'this', 'that', $OFFSET_PARAM, 0 ] }
         )
     );
     is_deeply scalar $dispatch->args->get_array,
-      [ SEARCH_TYPE, 'null', LIMIT_PARAM, 30, OFFSET_PARAM, 0 ],
+      [ $SEARCH_TYPE, 'null', $LIMIT_PARAM, 30, $OFFSET_PARAM, 0 ],
       '... regardless of its position in the arg list';
 
     $dispatch->args(
         Array::AsHash->new(
-            { array => [ 'this', 'that', LIMIT_PARAM, 30, OFFSET_PARAM, 20 ] }
+            { array => [ 'this', 'that', $LIMIT_PARAM, 30, $OFFSET_PARAM, 20 ] }
         )
     );
     is_deeply scalar $dispatch->args->get_array,
-      [ SEARCH_TYPE, 'null', LIMIT_PARAM, 30, OFFSET_PARAM, 20 ],
+      [ $SEARCH_TYPE, 'null', $LIMIT_PARAM, 30, $OFFSET_PARAM, 20 ],
       '... not should it override an offset already supplied';
 
     $dispatch->args(
         Array::AsHash->new(
-            { array => [ 'this', 'that', OFFSET_PARAM, 10, LIMIT_PARAM, 30 ] }
+            { array => [ 'this', 'that', $OFFSET_PARAM, 10, $LIMIT_PARAM, 30 ] }
         )
     );
     is_deeply scalar $dispatch->args->get_array,
-      [ SEARCH_TYPE, 'null', LIMIT_PARAM, 30, OFFSET_PARAM, 10 ],
+      [ $SEARCH_TYPE, 'null', $LIMIT_PARAM, 30, $OFFSET_PARAM, 10 ],
       '... regardless of its position in the list';
 }
 
@@ -519,7 +518,7 @@ sub page_set : Test(17) {
 
     $total = 57;
     $dispatch->args(
-        Array::AsHash->new( { array => [ SEARCH_TYPE, 'age => GT 43' ] } ) );
+        Array::AsHash->new( { array => [ $SEARCH_TYPE, 'age => GT 43' ] } ) );
     ok $result = $dispatch->_xml->_get_pageset( $pageset_args->() ),
       'Pagesets should accept search criteria';
 
@@ -540,7 +539,7 @@ sub class_list : Test(2) {
     $rest->xslt('resources');
     $dispatch->rest($rest);
     $dispatch->class_list;
-    my $header   = $test->header_xml(AVAILABLE_RESOURCES);
+    my $header   = $test->header_xml($AVAILABLE_RESOURCES);
     my $expected = <<"    END_XML";
 $header
         <kinetic:resource id="one"    xlink:href="${url}one/query"/>
@@ -585,7 +584,7 @@ sub handle : Test(6) {
 
     $dispatch->method('query');
     my $args =
-      Array::AsHash->new( { array => [ SEARCH_TYPE, 'name => "foo"' ] } );
+      Array::AsHash->new( { array => [ $SEARCH_TYPE, 'name => "foo"' ] } );
     $dispatch->args( $args->clone );
     $dispatch->handle_rest_request;
 
@@ -595,7 +594,7 @@ sub handle : Test(6) {
     my $search_string = 'name => "foo", OR(name => "bar")';
     $args =
       Array::AsHash->new(
-        { array => [ SEARCH_TYPE, $search_string, ORDER_BY_PARAM, 'name' ] } );
+        { array => [ $SEARCH_TYPE, $search_string, $ORDER_BY_PARAM, 'name' ] } );
     $dispatch->args( $args->clone );
 
     $dispatch->handle_rest_request;

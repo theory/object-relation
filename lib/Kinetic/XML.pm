@@ -26,7 +26,7 @@ our $VERSION = version->new('0.0.1');
 use IO::File;
 use XML::Genx::Simple;
 use XML::Simple;
-use Kinetic::Util::Constants qw/ATTR_DELIMITER/;
+use Kinetic::Util::Constants qw/$ATTR_DELIMITER/;
 use Kinetic::Util::Exceptions qw/
   throw_invalid
   throw_invalid_class
@@ -502,7 +502,7 @@ all of them to be returned in the XML.
 
 sub attributes {
     my $self      = shift;
-    my $delimiter = qr/\Q@{[ATTR_DELIMITER]}\E/;
+    my $delimiter = qr/\Q$ATTR_DELIMITER\E/;
     if (@_) {
         my $attributes = shift;
         if ( ref $attributes && 'ARRAY' ne ref $attributes ) {

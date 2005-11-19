@@ -23,7 +23,7 @@ use XML::Parser;
     require WWW::REST;
 }
 
-use Kinetic::Util::Constants qw/:rest UUID_RE :xslt :labels/;
+use Kinetic::Util::Constants qw/:rest :xslt :labels/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(1) }
 use TEST::REST::Server;
@@ -95,7 +95,7 @@ sub setup : Test(setup) {
     $test->create_test_objects;
     $test->desired_attributes( [qw/ state name description bool /] );
     $test->domain('http://localhost:9000')->path('rest')
-      ->query_string("@{[TYPE_PARAM]}=html");
+      ->query_string("$TYPE_PARAM=html");
 }
 
 sub teardown : Test(teardown) {
@@ -122,7 +122,7 @@ sub search_by_query_string : Test(6) {
     $test->query_string('');
 
     $mech->get_ok(
-"${url}?@{[CLASS_KEY_PARAM]}=one;query=;_order_by=name;_limit=2;_sort_order=",
+"${url}?$CLASS_KEY_PARAM=one;query=;_order_by=name;_limit=2;_sort_order=",
         'We should be able to search by query string'
     );
 
@@ -130,9 +130,9 @@ sub search_by_query_string : Test(6) {
 
     is_well_formed_xml $response, '... and should return well-formed XML';
 
-    $test->query_string("@{[TYPE_PARAM]}=html");
+    $test->query_string("$TYPE_PARAM=html");
     $mech->get_ok(
-"${url}?@{[CLASS_KEY_PARAM]}=one;query=;_order_by=name;_limit=2;_sort_order=;@{[TYPE_PARAM]}=html",
+"${url}?$CLASS_KEY_PARAM=one;query=;_order_by=name;_limit=2;_sort_order=;$TYPE_PARAM=html",
         'We should be able to fetch and limit the searches'
     );
 
@@ -140,7 +140,7 @@ sub search_by_query_string : Test(6) {
       '... ordering and limiting searches should return well-formed xml';
 
     $mech->get_ok(
-"${url}?@{[CLASS_KEY_PARAM]}=one;query=;_order_by=name;_limit=2;_sort_order=;_offset=2;@{[TYPE_PARAM]}=html",
+"${url}?$CLASS_KEY_PARAM=one;query=;_order_by=name;_limit=2;_sort_order=;_offset=2;$TYPE_PARAM=html",
         '... as should paging through result sets'
     );
 
@@ -166,9 +166,9 @@ sub web_test_paging : Test(15) {
     is_well_formed_xml $response, 
       '... and the response should be well-formed XML';
 
-    $test->query_string("@{[TYPE_PARAM]}=html");
+    $test->query_string("$TYPE_PARAM=html");
     $mech->get_ok(
-"${url}one/query/STRING/null/_order_by/name/_limit/2?@{[TYPE_PARAM]}=html",
+"${url}one/query/STRING/null/_order_by/name/_limit/2?$TYPE_PARAM=html",
         'We should be able to fetch and limit the searches'
     );
 
@@ -176,14 +176,14 @@ sub web_test_paging : Test(15) {
       '... ordering and limiting searches should work';
 
     $mech->get_ok(
-"${url}one/query/STRING/null/_order_by/name/_limit/2/_offset/2?@{[TYPE_PARAM]}=html",
+"${url}one/query/STRING/null/_order_by/name/_limit/2/_offset/2?$TYPE_PARAM=html",
         '... as should paging through result sets'
     );
     is_well_formed_xml $mech->content,
       '... ordering and limiting searches should work';
 
     $mech->get_ok(
-"${url}one/query/STRING/null/_order_by/name/_limit/2/_offset/2?@{[TYPE_PARAM]}=html",
+"${url}one/query/STRING/null/_order_by/name/_limit/2/_offset/2?$TYPE_PARAM=html",
         '... as should paging through result sets'
     );
 
@@ -198,25 +198,25 @@ sub web_test_paging : Test(15) {
     # that the default max list is 20
     # We should also get two pages listed, but the current page is not linked
     $mech->get_ok(
-        "${url}one/query?@{[TYPE_PARAM]}=html",
+        "${url}one/query?$TYPE_PARAM=html",
         '... as should paging through result sets'
     );
     my @links = $mech->links;
     is @links, 88,
 'We should receive 80 instance links, 1 page link, 3 resource links and 4 header links';
 
-    $mech->get_ok( "${url}one/query/STRING/null/_limit/30?@{[TYPE_PARAM]}=html",
+    $mech->get_ok( "${url}one/query/STRING/null/_limit/30?$TYPE_PARAM=html",
         'Asking for more than the limit should work' );
     @links = $mech->links;
     is @links, 111, '... and return only instance links';
 
-    $mech->get_ok( "${url}one/query/STRING/null/_limit/10?@{[TYPE_PARAM]}=html",
+    $mech->get_ok( "${url}one/query/STRING/null/_limit/10?$TYPE_PARAM=html",
         'Asking for fewer than the limit should work' );
     @links = $mech->links;
     is @links, 49, '... and return the correct number of links';
 
     $mech->get_ok(
-        "${url}one/query/STRING/null/_limit/26?@{[TYPE_PARAM]}=html",
+        "${url}one/query/STRING/null/_limit/26?$TYPE_PARAM=html",
         'Asking for exactly the number of links that exist should work'
     );
     @links = $mech->links;
@@ -230,17 +230,17 @@ sub web_test : Test(12) {
 
     $mech->get_ok( $url, 'Gettting the main page should succeed' );
     ok !$mech->is_html, '... but it should not return HTML';
-    $mech->get_ok( "$url?@{[TYPE_PARAM]}=html",
+    $mech->get_ok( "$url?$TYPE_PARAM=html",
         'We should be able to fetch the main page and ask for HTML' );
     ok $mech->is_html, '... and get HTML back';
-    $mech->title_is( AVAILABLE_RESOURCES,
+    $mech->title_is( $AVAILABLE_RESOURCES,
         '... and fetching the root should return a list of resources' );
 
     $mech->follow_link_ok(
         { url_regex => qr/simple/ },
         '... and fetching a class link should succeed',
     );
-    $mech->title_is( AVAILABLE_INSTANCES,
+    $mech->title_is( $AVAILABLE_INSTANCES,
         '... and fetching the a class should return a list of instances' );
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
@@ -257,7 +257,7 @@ sub web_test : Test(12) {
         '... and it should be able to identify the object' );
 
     $mech->get_ok(
-        qq'${url}one/query/STRING/name => "foo"?@{[TYPE_PARAM]}=html',
+        qq'${url}one/query/STRING/name => "foo"?$TYPE_PARAM=html',
         'We should be able to fetch via a search' );
 
     is_well_formed_xml $mech->content,
@@ -382,7 +382,7 @@ sub basic_services : Test(3) {
       '... as should calling it with a non-existent resource';
 
     $test->query_string('');
-    my $header    = $test->header_xml(AVAILABLE_RESOURCES);
+    my $header    = $test->header_xml($AVAILABLE_RESOURCES);
     my $resources = $test->resource_list_xml;
     my $expected  = <<"    END_XML";
 $header

@@ -13,7 +13,6 @@ use Test::Exception;
 
 use Class::Trait qw( TEST::Kinetic::Traits::Store );
 
-use Kinetic::Util::Constants qw/UUID_RE/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(1) }
 

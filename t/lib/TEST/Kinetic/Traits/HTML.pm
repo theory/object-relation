@@ -7,18 +7,8 @@ our @REQUIRES = qw(desired_attributes);
 use strict;
 use warnings;
 use Array::AsHash;
-use HTML::Entities           ();
-use Kinetic::Util::Constants ();    # form params
-
-my $ORDER_BY_PARAM  = Kinetic::Util::Constants::ORDER_BY_PARAM();
-my $SORT_PARAM      = Kinetic::Util::Constants::SORT_PARAM();
-my $SEARCH_TYPE     = Kinetic::Util::Constants::SEARCH_TYPE();
-my $LIMIT_PARAM     = Kinetic::Util::Constants::LIMIT_PARAM();
-my $CLASS_KEY_PARAM = Kinetic::Util::Constants::CLASS_KEY_PARAM();
-my $DOMAIN_PARAM    = Kinetic::Util::Constants::DOMAIN_PARAM();
-my $PATH_PARAM      = Kinetic::Util::Constants::PATH_PARAM();
-my $TYPE_PARAM      = Kinetic::Util::Constants::TYPE_PARAM();
-my $OFFSET_PARAM    = Kinetic::Util::Constants::OFFSET_PARAM();
+use HTML::Entities qw(encode_entities);
+use Kinetic::Util::Constants qw(:rest);    # form params
 
 ##############################################################################
 
@@ -265,7 +255,7 @@ sub search_form {
         $sort_options .=
           qq{<option value="$order->[0]"$selected>$order->[1]</option>};
     }
-    my $search = HTML::Entities::encode_entities( $args->get($SEARCH_TYPE) );
+    my $search = encode_entities( $args->get($SEARCH_TYPE) );
     my $limit  = $args->get($LIMIT_PARAM);
     my $domain = $test->domain;
     my $path   = $test->path;

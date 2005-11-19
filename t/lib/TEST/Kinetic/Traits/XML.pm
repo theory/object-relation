@@ -13,15 +13,8 @@ our @REQUIRES = qw(
 use strict;
 use warnings;
 
-use HTML::Entities           ();
-use Kinetic::Util::Constants ();
-
-my $RESOURCES_XSLT = Kinetic::Util::Constants::RESOURCES_XSLT();
-my $SEARCH_XSLT    = Kinetic::Util::Constants::SEARCH_XSLT();
-my $ORDER_BY_PARAM = Kinetic::Util::Constants::ORDER_BY_PARAM();
-my $SORT_PARAM     = Kinetic::Util::Constants::SORT_PARAM();
-my $SEARCH_TYPE    = Kinetic::Util::Constants::SEARCH_TYPE();
-my $LIMIT_PARAM    = Kinetic::Util::Constants::LIMIT_PARAM();
+use HTML::Entities qw(encode_entities);
+use Kinetic::Util::Constants qw(:xslt :rest);
 
 ##############################################################################
 
@@ -265,7 +258,7 @@ sub get_sort_url {
     $args->put( $SORT_PARAM, $order );
     $url .= join '/', map { '' eq $_ ? 'null' : $_ } $args->get_array;
     $url .= $query;
-    return HTML::Entities::encode_entities( $url, '"<>&' );
+    return encode_entities( $url, '"<>&' );
 }
 
 ##############################################################################
@@ -290,8 +283,15 @@ sub search_data_xml {
         <kinetic:search_parameters>
     END_XML
     foreach my $arg ( $SEARCH_TYPE, $LIMIT_PARAM ) {
-        my $type = $SEARCH_TYPE eq $arg ? 'search' : $arg; # XXX should 'search' be 'query'?
-        my $value = HTML::Entities::encode_entities( $args->get($arg) );
+
+        # XXX we have to lc() the variables first to get around a bug in
+        # Readonly.  The author has been contacted and hopefully we'll have a
+        # fix soon.
+        my $type =
+          lc $SEARCH_TYPE eq lc $arg
+          ? 'search'
+          : $arg;    # XXX should 'search' be 'query'?
+        my $value = encode_entities( $args->get($arg) );
         $xml .=
           qq[<kinetic:parameter type="$type">$value</kinetic:parameter>\n];
     }

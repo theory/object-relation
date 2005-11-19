@@ -155,7 +155,7 @@ sub lookup {
       unless $attr;
     throw_attribute [ 'Attribute "[_1]" is not unique', $attr_key ]
       unless $attr->unique;
-    $self->_prepare_method(CACHED);
+    $self->_prepare_method($CACHED);
     $self->_should_create_iterator(0);
     local $self->{search_class} = $search_class;
     my $results = $self->_search( $attr_key, $value );
@@ -194,7 +194,7 @@ multiple SQL calls to assemble the data.
 sub query {
     my ( $proto, $search_class, @search_params ) = @_;
     my $self = $proto->_from_proto;
-    $self->_prepare_method(PREPARE);
+    $self->_prepare_method($PREPARE);
     $self->_should_create_iterator(1);
     unless ( ref $search_class ) {
         $search_class = Kinetic::Meta->for_key($search_class);
@@ -223,7 +223,7 @@ sub search_uuids {
     }
     my $self = $proto->_from_proto;
     $self->_set_search_type( \@search_params );
-    $self->_prepare_method(PREPARE);
+    $self->_prepare_method($PREPARE);
     $self->_should_create_iterator(0);
     local $self->{search_class} = $search_class;
     $self->_set_search_data;
@@ -254,7 +254,7 @@ sub count {
     pop @search_params if 'HASH' eq ref $search_params[-1];
     my $self = $proto->_from_proto;
     $self->_set_search_type( \@search_params );
-    $self->_prepare_method(PREPARE);
+    $self->_prepare_method($PREPARE);
     local $self->{search_class} = $search_class;
     $self->_set_search_data;
     my ( $sql, $bind_params ) =
@@ -562,7 +562,7 @@ sub _insert {
     my $columns = join ', ' => @{ $self->{columns} };
     my $placeholders = join ', ' => ( ('?') x @{ $self->{columns} } );
     my $sql = "INSERT INTO $self->{view} ($columns) VALUES ($placeholders)";
-    $self->_prepare_method(CACHED);
+    $self->_prepare_method($CACHED);
     $self->_do_sql( $sql, $self->{values} );
     $self->_set_id($object);
     return $self;
@@ -605,7 +605,7 @@ sub _update {
     my $columns = join ', ' => map { "$_ = ?" } @{ $self->{columns} };
     push @{ $self->{values} } => $object->id;
     my $sql = "UPDATE $self->{view} SET $columns WHERE id = ?";
-    $self->_prepare_method(CACHED);
+    $self->_prepare_method($CACHED);
     return $self->_do_sql( $sql, $self->{values} );
 }
 
@@ -647,7 +647,7 @@ sub _prepare_method {
     my $self = shift;
     if (@_) {
         my $method = shift;
-        unless ( PREPARE eq $method || CACHED eq $method ) {
+        unless ( $PREPARE eq $method || $CACHED eq $method ) {
             throw_invalid [ 'Invalid method "[_1]"', $method ];
         }
         $self->{prepare_method} = $method;
@@ -845,7 +845,7 @@ sub _set_search_data {
                     if ( my $class = $attr->references ) {
                         push @classes_to_process => {
                             class  => $class,
-                            prefix => $class->key . OBJECT_DELIMITER,
+                            prefix => $class->key . $OBJECT_DELIMITER,
                         };
                         $packages{$package}{contains}{$column} = $class;
                     }
@@ -1006,7 +1006,7 @@ sub _convert_ir_to_where_clause {
             panic
               'Failed to convert IR to where clause.  This should not happen.',;
         }
-        unless ( $where[-1] =~ GROUP_OP ) {
+        unless ( $where[-1] =~ $GROUP_OP ) {
             push @where => 'AND';
         }
     }
@@ -1015,7 +1015,7 @@ sub _convert_ir_to_where_clause {
     # a group op on the end of the @where array.  We don't want that.
     pop @where
       if defined $where[-1]
-      && $where[-1] =~ GROUP_OP;
+      && $where[-1] =~ $GROUP_OP;
     return '(' . join ( ' ' => @where ) . ')', \@bind;
 }
 
@@ -1056,8 +1056,8 @@ sub _handle_case_sensitivity {
     # if 'type eq string' for attr (only relevent for postgres)
     my $orig_column  = $column;
     my $search_class = $self->{search_class};
-    if ( $column =~ /@{[OBJECT_DELIMITER]}/ ) {
-        my ( $key, $column2 ) = split /@{[OBJECT_DELIMITER]}/ => $column;
+    if ( $column =~ /$OBJECT_DELIMITER/ ) {
+        my ( $key, $column2 ) = split /$OBJECT_DELIMITER/ => $column;
         $search_class = Kinetic::Meta->for_key($key);
         $column       = $column2;
     }
@@ -1210,7 +1210,7 @@ sub _constraint_order_by {
     $sort_order = [$sort_order] unless 'ARRAY' eq ref $sort_order;
 
     # normalize . to __
-    s/\Q@{[ATTR_DELIMITER]}\E/OBJECT_DELIMITER/eg
+    s/\Q$ATTR_DELIMITER\E/$OBJECT_DELIMITER/eg
       foreach @$value;    # one.name -> one__name
     my @sorts;
 

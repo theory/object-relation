@@ -39,7 +39,7 @@ Readonly my $MAX_ATTRIBUTE_INDEX => 4;
 Readonly my $PLACEHOLDER         => 'null';
 Readonly my $DEFAULT_LIMIT       => 20;
 Readonly my $DEFAULT_SEARCH_ARGS => {
-    array => [ SEARCH_TYPE, '', LIMIT_PARAM, $DEFAULT_LIMIT, OFFSET_PARAM, 0 ],
+    array => [ $SEARCH_TYPE, '', $LIMIT_PARAM, $DEFAULT_LIMIT, $OFFSET_PARAM, 0 ],
     clone => 1,
 };
 
@@ -208,17 +208,17 @@ sub args {
         # defaults for all methods?
         if ( 'query' eq $self->method ) {
             if ($args) { # XXX Seems pretty clear above that it exists.
-                $args->default( SEARCH_TYPE, $PLACEHOLDER, LIMIT_PARAM,
-                    $DEFAULT_LIMIT, OFFSET_PARAM, 0, );
-                if ( $args->exists(ORDER_BY_PARAM) ) {
-                    $args->default( SORT_PARAM, 'ASC' );
+                $args->default( $SEARCH_TYPE, $PLACEHOLDER, $LIMIT_PARAM,
+                    $DEFAULT_LIMIT, $OFFSET_PARAM, 0, );
+                if ( $args->exists($ORDER_BY_PARAM) ) {
+                    $args->default( $SORT_PARAM, 'ASC' );
                 }
                 $args = Array::AsHash->new({
                     array => [
                         $args->get_pairs(
-                            SEARCH_TYPE,  LIMIT_PARAM,
-                            OFFSET_PARAM, ORDER_BY_PARAM,
-                            SORT_PARAM
+                            $SEARCH_TYPE,  $LIMIT_PARAM,
+                            $OFFSET_PARAM, $ORDER_BY_PARAM,
+                            $SORT_PARAM
                         ),
                     ],
                 });
@@ -291,10 +291,10 @@ sub handle_rest_request {
 
 # decouple REST param names from Kinetic::Store interface
 my @renames = (
-    [ LIMIT_PARAM,    'limit' ],
-    [ OFFSET_PARAM,   'offset' ],
-    [ ORDER_BY_PARAM, 'order_by' ],
-    [ SORT_PARAM,     'sort_order' ],
+    [ $LIMIT_PARAM,    'limit' ],
+    [ $OFFSET_PARAM,   'offset' ],
+    [ $ORDER_BY_PARAM, 'order_by' ],
+    [ $SORT_PARAM,     'sort_order' ],
 );
 
 sub _args_for_store {
@@ -313,7 +313,7 @@ sub _handle_constructor {
     # XXX We really should pass a file handle to print to here.
     my $xml  = Kinetic::XML->new({
         object         => $obj,
-        stylesheet_url => INSTANCE_XSLT,
+        stylesheet_url => $INSTANCE_XSLT,
         resources_url  => $rest->base_url,
     })->dump_xml;
     return $rest->set_response( $xml, 'instance' );
@@ -368,7 +368,7 @@ sub _not_implemented {
     my $self = shift;
     my $rest = $self->rest;
     my $info = $rest->path_info;
-    $rest->status(HTTP_NOT_IMPLEMENTED)
+    $rest->status($HTTP_NOT_IMPLEMENTED)
       ->response("No resource available to handle ($info)");
 }
 
@@ -495,19 +495,19 @@ sub _add_search_data {
 
     # add limit
     $xml->elem('parameter')->StartElement;
-    $xml->attr('type')->AddAttribute(LIMIT_PARAM);
+    $xml->attr('type')->AddAttribute($LIMIT_PARAM);
     $xml->attr('colspan')->AddAttribute(3);
-    $xml->AddText( $args->get(LIMIT_PARAM) );
+    $xml->AddText( $args->get($LIMIT_PARAM) );
     $xml->EndElement;
 
     # add order_by
     my @options = map { [ $_ => ucfirst $_ ] } $self->_desired_attributes;
-    my $order_by = $args->get(ORDER_BY_PARAM) || '';
+    my $order_by = $args->get($ORDER_BY_PARAM) || '';
 
     $xml->add_select_widget(
         {
             element  => 'parameter',
-            name     => ORDER_BY_PARAM,
+            name     => $ORDER_BY_PARAM,
             selected => $order_by,
             options  => \@options,
             colspan  => 3
@@ -516,12 +516,12 @@ sub _add_search_data {
 
     # add sort_order
     my @sort_options = ( [ ASC => 'Ascending' ], [ DESC => 'Descending' ] );
-    my $sort_order = $args->get(SORT_PARAM) || 'ASC';
+    my $sort_order = $args->get($SORT_PARAM) || 'ASC';
 
     $xml->add_select_widget(
         {
             element  => 'parameter',
-            name     => SORT_PARAM,
+            name     => $SORT_PARAM,
             selected => $sort_order,
             options  => \@sort_options,
             colspan  => 3
@@ -615,7 +615,7 @@ sub _add_instances {
     unless ($instance_count) {
         $xml->elem('instance')->StartElement;
         $xml->attr('id')->AddAttribute('No resources found');
-        $xml->attr('href')->AddAttribute(CURRENT_PAGE);
+        $xml->attr('href')->AddAttribute($CURRENT_PAGE);
         $xml->EndElement;
     }
     return $instance_count;
@@ -645,24 +645,24 @@ sub _add_column_sort_info {
     my $sort_args = $args->clone;
     foreach my $attribute ( $self->_desired_attributes ) {
         my $url = "$base_url@{ [ $self->class_key ] }/query/";
-        if ( $sort_args->exists(ORDER_BY_PARAM) ) {
-            $sort_args->put( ORDER_BY_PARAM, $attribute );
+        if ( $sort_args->exists($ORDER_BY_PARAM) ) {
+            $sort_args->put( $ORDER_BY_PARAM, $attribute );
         }
         else {
-            $sort_args->insert_after( OFFSET_PARAM, ORDER_BY_PARAM,
+            $sort_args->insert_after( $OFFSET_PARAM, $ORDER_BY_PARAM,
                 $attribute );
         }
         my $order = 'ASC';
-        if ( $attribute eq ( $args->get(ORDER_BY_PARAM) || '' )
-            && 'ASC' eq ( $args->get(SORT_PARAM) || '' ) )
+        if ( $attribute eq ( $args->get($ORDER_BY_PARAM) || '' )
+            && 'ASC' eq ( $args->get($SORT_PARAM) || '' ) )
         {
             $order = 'DESC';
         }
-        if ( $sort_args->exists(SORT_PARAM) ) {
-            $sort_args->put( SORT_PARAM, $order );
+        if ( $sort_args->exists($SORT_PARAM) ) {
+            $sort_args->put( $SORT_PARAM, $order );
         }
         else {
-            $sort_args->insert_after( ORDER_BY_PARAM, SORT_PARAM, $order );
+            $sort_args->insert_after( $ORDER_BY_PARAM, $SORT_PARAM, $order );
         }
         $url .= join '/',
           map { '' eq $_ ? $PLACEHOLDER : $_ } $sort_args->get_array;
@@ -692,7 +692,7 @@ list of all classes registered with L<Kinetic::Meta|Kinetic::Meta>.
 sub class_list {
     my ($self) = @_;
 
-    my $response = $self->_xml->build(AVAILABLE_RESOURCES);
+    my $response = $self->_xml->build($AVAILABLE_RESOURCES);
     return $self->rest->set_response($response);
 }
 
@@ -712,7 +712,7 @@ sub _instance_list {
     my ( $self, $iterator ) = @_;
 
     my $response = $self->_xml->build(
-        AVAILABLE_INSTANCES,
+        $AVAILABLE_INSTANCES,
         sub {
             $self->_add_column_sort_info;
             my $instance_count = $self->_add_instances($iterator);

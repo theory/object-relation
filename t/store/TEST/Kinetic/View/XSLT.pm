@@ -15,7 +15,7 @@ use Class::Trait qw( TEST::Kinetic::Traits::Store );
 use Class::Trait qw( TEST::Kinetic::Traits::HTML );
 use Class::Trait qw( TEST::Kinetic::Traits::XML );
 
-use Kinetic::Util::Constants qw/UUID_RE CURRENT_PAGE :labels/;
+use Kinetic::Util::Constants qw/$CURRENT_PAGE :labels/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(0) }
 
@@ -70,7 +70,7 @@ sub build_search_form : Test(2) {
 
     my $search = 'name => "foo", OR(name => "bar")';
 
-    my $header     = $test->header_xml(AVAILABLE_INSTANCES);
+    my $header     = $test->header_xml($AVAILABLE_INSTANCES);
     my $resources  = $test->resource_list_xml;
     my $instances  = $test->expected_instance_xml( scalar $test->test_objects );
     my $args      =
@@ -90,7 +90,7 @@ $header
     ok my $xhtml = $xslt->transform($xml),
       'Calling transform() with valid XML should succeed';
 
-    my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
+    my $html_header    = $test->header_html($AVAILABLE_INSTANCES);
     my $html_resources = $test->resource_list_html('');
     my $search_form    = $test->search_form( 'one', $args->clone );
     my $instance_table = $test->instance_table(
@@ -171,7 +171,7 @@ sub transform : Test(9) {
       '... as should calling it with an argument that is not valid XML';
 
     $test->domain('http://www.example.com/')->path('rest');
-    my $header    = $test->header_xml(AVAILABLE_INSTANCES);
+    my $header    = $test->header_xml($AVAILABLE_INSTANCES);
     my $resources = $test->resource_list_xml;
     my $search = 'name => "foo", OR(name => "bar")';
     my $args      =
@@ -194,7 +194,7 @@ $header
     ok my $xhtml = $xslt->transform($xml),
       'Calling transform() with valid XML should succeed';
 
-    my $html_header    = $test->header_html(AVAILABLE_INSTANCES);
+    my $html_header    = $test->header_html($AVAILABLE_INSTANCES);
     my $html_resources = $test->resource_list_html;
     my $search_form    = $test->search_form( 'one', $args->clone );
     my $instance_table = $test->instance_table(
@@ -214,7 +214,7 @@ $html_header
     END_XHTML
     is_xml $xhtml, $expected, '... and return the correct xhtml';
 
-    $header = $test->header_xml(AVAILABLE_RESOURCES);
+    $header = $test->header_xml($AVAILABLE_RESOURCES);
     $xml    = <<"    END_XML";
 $header
       <kinetic:resource id="one" xlink:href="http://somehost.com/rest/one"/>
@@ -227,7 +227,7 @@ $header
     ok $xhtml = $xslt->transform($xml),
       'Calling transform() with valid XML should succeed';
 
-    $html_header = $test->header_html(AVAILABLE_RESOURCES);
+    $html_header = $test->header_html($AVAILABLE_RESOURCES);
     is_xml $xhtml, <<"    END_XHTML", '... and return the correct xhtml';
 $html_header
     <div id="sidebar">
@@ -293,7 +293,7 @@ sub transform_pages : Test(3) {
     my $test = shift;
     my $xslt = XSLT->new( type => 'search' );
 
-    my $header = $test->header_xml(AVAILABLE_RESOURCES);
+    my $header = $test->header_xml($AVAILABLE_RESOURCES);
     my $xml    = <<"    END_XML";
 $header
       <kinetic:resource xlink:href="one/query" id="one"/>
@@ -317,7 +317,7 @@ $header
     ok my $xhtml = $xslt->transform($xml),
       'Calling transform() with XML that has pages should succeed';
 
-    my $html_header = $test->header_html(AVAILABLE_RESOURCES);
+    my $html_header = $test->header_html($AVAILABLE_RESOURCES);
     my $footer      = $test->footer_html;
 
     is_xml $xhtml, <<"    END_XHTML", '... and return xml with pages';
@@ -358,7 +358,7 @@ $header
       <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX"/>
       <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX"/>
       <kinetic:pages>
-        <kinetic:page id="[ Page 1 ]" xlink:href="@{[CURRENT_PAGE]}" />
+        <kinetic:page id="[ Page 1 ]" xlink:href="$CURRENT_PAGE" />
         <kinetic:page id="[ Page 2 ]" xlink:href="http://domain/rest/one/query/STRING/NULL/order_by/name/limit/2/offset/2" />
       </kinetic:pages>
     </kinetic:resources>
