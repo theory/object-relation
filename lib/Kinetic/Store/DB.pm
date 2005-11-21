@@ -205,10 +205,10 @@ sub query {
 
 ##############################################################################
 
-=head3 search_uuids
+=head3 query_uuids
 
-  my @uuids = Store->search_uuids($search_class, \@attributes, \%constraints);
-  my $uuids = Store->search_uuids($search_class, \@attributes, \%constraints);
+  my @uuids = Store->query_uuids($search_class, \@attributes, \%constraints);
+  my $uuids = Store->query_uuids($search_class, \@attributes, \%constraints);
 
 This method will return a list of uuids matching the listed criteria.  It
 takes the same arguments as C<query>.  In list context it returns a list.  In
@@ -216,7 +216,7 @@ scalar context it returns an array reference.
 
 =cut
 
-sub search_uuids {
+sub query_uuids {
     my ( $proto, $search_class, @search_params ) = @_;
     unless ( ref $search_class ) {
         $search_class = Kinetic::Meta->for_key($search_class);

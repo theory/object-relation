@@ -205,22 +205,22 @@ for more information.
 
 ##############################################################################
 
-=head3 search_uuids
+=head3 query_uuids
 
-  my $uuids = Some::Kinetic::Object->search_uuids(name => LIKE '%vid');
+  my $uuids = Some::Kinetic::Object->query_uuids(name => LIKE '%vid');
 
 This method returns an array ref of uuids of the objects in the data store
-which meet the search criteria.  See the C<search_uuids> method in
+which meet the search criteria.  See the C<query_uuids> method in
 L<Kinetic::Store|Kinetic::Store> for more information.
 
 =cut
 
-    sub search_uuids {
+    sub query_uuids {
         my $class = shift;
-        Kinetic::Store->search_uuids($class->my_class, @_);
+        Kinetic::Store->query_uuids($class->my_class, @_);
     }
     $cm->add_method(
-        name    => 'search_uuids',
+        name    => 'query_uuids',
         context => Class::Meta::CLASS,
     );
 

@@ -226,32 +226,32 @@ sub count : Test(8) {
         'and it should return a false count if nothing matches';
 }
 
-sub search_uuids : Test(10) {
+sub query_uuids : Test(10) {
     my $test = shift;
     return unless $test->_should_run;
-    can_ok One, 'search_uuids';
+    can_ok One, 'query_uuids';
     my ($foo, $bar, $baz) = $test->test_objects;
-    ok my $uuids = One->search_uuids,
+    ok my $uuids = One->query_uuids,
         'A search for uuids with only a class should succeed';
     @$uuids = sort @$uuids;
     my @expected = sort map {$_->uuid} $foo, $bar, $baz;
     is_deeply $uuids, \@expected,
         'and it should return the correct list of uuids';
 
-    ok $uuids = One->search_uuids(name => 'foo'),
+    ok $uuids = One->query_uuids(name => 'foo'),
         'We should be able to search uuids with a simple search';
     is_deeply $uuids, [$foo->uuid], 'and return the correct uuids';
 
-    ok $uuids = One->search_uuids(name => GT 'c', {order_by => 'name'}),
+    ok $uuids = One->query_uuids(name => GT 'c', {order_by => 'name'}),
         'We should be able to search uuids with any search operators';
     is_deeply $uuids, [$foo->uuid, $baz->uuid], 'and return the correct uuids';
 
-    $uuids = One->search_uuids(name => 'no such name');
+    $uuids = One->query_uuids(name => 'no such name');
     is_deeply $uuids, [],
         'and it should return nothing if nothing matches';
 
-    ok my @uuids = One->search_uuids(name => GT 'c', {order_by => 'name'}),
-        'search_uuids should behave correctly in list context';
+    ok my @uuids = One->query_uuids(name => GT 'c', {order_by => 'name'}),
+        'query_uuids should behave correctly in list context';
     is_deeply \@uuids, [$foo->uuid, $baz->uuid], 'and return the correct uuids';
 }
 

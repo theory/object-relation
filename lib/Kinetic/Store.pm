@@ -318,10 +318,10 @@ B<Throws:>
 
 ##############################################################################
 
-=head3 search_uuids
+=head3 query_uuids
 
-  my @uuids = $store->search_uuids( $class => @search_params );
-  my $uuids_aref = $store->search_uuids( $class => @search_params );
+  my @uuids = $store->query_uuids( $class => @search_params );
+  my $uuids_aref = $store->query_uuids( $class => @search_params );
 
 Returns a list or array reference of UUIDs for the the class C<$class> based
 on the search parameters. See L<Search Parameters Explained|"SEARCH PARAMETERS
@@ -339,12 +339,12 @@ B<Throws:>
 
 =cut
 
-sub search_uuids {
+sub query_uuids {
     my $self = shift;
     unless (ref $self) { # they called it as a class method
         $self = $self->new;
     }
-    $self->search_uuids(@_);
+    $self->query_uuids(@_);
 }
 
 ##############################################################################
@@ -354,7 +354,7 @@ sub search_uuids {
   my $count = $store->count( $class => @search_params );
 
 Returns a count of the number of objects that would be found by C<query>
-(or the number of UUIDs that would be returned by C<search_uuids()>) for the
+(or the number of UUIDs that would be returned by C<query_uuids()>) for the
 class C<$class> based on the search parameters. See L<Search Parameters
 Explained|"SEARCH PARAMETERS EXPLAINED"> for details on specifying search
 parameters. Returns "0" when no results would be found in the search.
@@ -485,7 +485,7 @@ sub _add_store_meta {
 =head1 Search Parameters Explained
 
 The specification for search parameters to be passed to the C<query>,
-C<search_uuids()>, and C<count()> methods has been designed to maximize
+C<query_uuids()>, and C<count()> methods has been designed to maximize
 flexibility and ease of use by making it as Perlish as possible. This means
 that you can search on multiple object attributes of different types,
 attributes on contained or related objects, and values that are equivalent to
@@ -1254,7 +1254,7 @@ You're better off using explicit parentheses:
                             AND ( first_name  => 'Larry'  );
 
 Note that this caveat especially applies to the C<query> method (as opposed to
-the C<search_uuids()> and C<count()> methods) when used with its optional
+the C<query_uuids()> and C<count()> methods) when used with its optional
 final hash reference argument. This search, for example, will likely trigger
 an exception:
 
