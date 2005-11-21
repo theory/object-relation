@@ -113,6 +113,51 @@ sub _clear_database {
 
 sub REST { shift->{REST} }
 
+sub constructor : Test(14) {
+    my $class = 'Kinetic::UI::REST';
+    can_ok $class, 'new';
+    throws_ok { $class->new }
+      'Kinetic::Util::Exception::Fatal::RequiredArguments',
+      '... and it should fail if domain and path are not present';
+
+    throws_ok { $class->new( domain => 'http://foo/' ) }
+      'Kinetic::Util::Exception::Fatal::RequiredArguments',
+      '... or if just domain is present';
+
+    throws_ok { $class->new( path => 'rest/' ) }
+      'Kinetic::Util::Exception::Fatal::RequiredArguments',
+      '... or if just path is present';
+
+    ok my $rest =
+      $class->new( domain => 'http://foo/', path => 'rest/server/' ),
+      'We should be able to create a basic REST object';
+    isa_ok $rest, $class, '... and the object';
+
+    can_ok $rest, 'domain';
+    is $rest->domain, 'http://foo/',
+      '... and it should return the domain we set in the constructor';
+    $rest->domain('xxx');
+    is $rest->domain, 'http://foo/',
+      '... but we should not be able to change it';
+
+    can_ok $rest, 'path';
+    is $rest->path, 'rest/server/',
+      '... and it should return the path we set in the constructor';
+    $rest->path('xxx');
+    is $rest->path, 'rest/server/',
+      '... but we should not be able to change it';
+
+    $rest = $class->new( domain => 'http://foo', path => '/rest/server' ),
+      is $rest->domain, 'http://foo/',
+      'Domains without a trailing slash should have it appended';
+
+    is $rest->path, 'rest/server/',
+'... and paths should have leading slashes removed and trailing slashes added';
+}
+
+1;
+__END__
+
 sub search_by_query_string : Test(6) {
     my $test = shift;
     my $mech = Test::WWW::Mechanize->new;
@@ -157,7 +202,7 @@ sub web_test_paging : Test(15) {
     $test->query_string('');
 
     $mech->get_ok(
-        "${url}one/query/STRING/null/_order_by/name/_limit/2",
+        "${url}one/squery/STRING/null/_order_by/name/_limit/2",
         'We should be able to fetch and limit the searches'
     );
 
@@ -168,7 +213,7 @@ sub web_test_paging : Test(15) {
 
     $test->query_string("$TYPE_PARAM=html");
     $mech->get_ok(
-"${url}one/query/STRING/null/_order_by/name/_limit/2?$TYPE_PARAM=html",
+"${url}one/squery/STRING/null/_order_by/name/_limit/2?$TYPE_PARAM=html",
         'We should be able to fetch and limit the searches'
     );
 
@@ -176,14 +221,14 @@ sub web_test_paging : Test(15) {
       '... ordering and limiting searches should work';
 
     $mech->get_ok(
-"${url}one/query/STRING/null/_order_by/name/_limit/2/_offset/2?$TYPE_PARAM=html",
+"${url}one/squery/STRING/null/_order_by/name/_limit/2/_offset/2?$TYPE_PARAM=html",
         '... as should paging through result sets'
     );
     is_well_formed_xml $mech->content,
       '... ordering and limiting searches should work';
 
     $mech->get_ok(
-"${url}one/query/STRING/null/_order_by/name/_limit/2/_offset/2?$TYPE_PARAM=html",
+"${url}one/squery/STRING/null/_order_by/name/_limit/2/_offset/2?$TYPE_PARAM=html",
         '... as should paging through result sets'
     );
 
@@ -198,25 +243,25 @@ sub web_test_paging : Test(15) {
     # that the default max list is 20
     # We should also get two pages listed, but the current page is not linked
     $mech->get_ok(
-        "${url}one/query?$TYPE_PARAM=html",
+        "${url}one/squery?$TYPE_PARAM=html",
         '... as should paging through result sets'
     );
     my @links = $mech->links;
     is @links, 88,
 'We should receive 80 instance links, 1 page link, 3 resource links and 4 header links';
 
-    $mech->get_ok( "${url}one/query/STRING/null/_limit/30?$TYPE_PARAM=html",
+    $mech->get_ok( "${url}one/squery/STRING/null/_limit/30?$TYPE_PARAM=html",
         'Asking for more than the limit should work' );
     @links = $mech->links;
     is @links, 111, '... and return only instance links';
 
-    $mech->get_ok( "${url}one/query/STRING/null/_limit/10?$TYPE_PARAM=html",
+    $mech->get_ok( "${url}one/squery/STRING/null/_limit/10?$TYPE_PARAM=html",
         'Asking for fewer than the limit should work' );
     @links = $mech->links;
     is @links, 49, '... and return the correct number of links';
 
     $mech->get_ok(
-        "${url}one/query/STRING/null/_limit/26?$TYPE_PARAM=html",
+        "${url}one/squery/STRING/null/_limit/26?$TYPE_PARAM=html",
         'Asking for exactly the number of links that exist should work'
     );
     @links = $mech->links;
@@ -257,54 +302,13 @@ sub web_test : Test(12) {
         '... and it should be able to identify the object' );
 
     $mech->get_ok(
-        qq'${url}one/query/STRING/name => "foo"?$TYPE_PARAM=html',
+        qq'${url}one/squery/STRING/name => "foo"?$TYPE_PARAM=html',
         'We should be able to fetch via a search' );
 
     is_well_formed_xml $mech->content,
 'REST strings searches with HTML type specified should return valid XHTML';
 }
 
-sub constructor : Test(14) {
-    my $class = 'Kinetic::UI::REST';
-    can_ok $class, 'new';
-    throws_ok { $class->new }
-      'Kinetic::Util::Exception::Fatal::RequiredArguments',
-      '... and it should fail if domain and path are not present';
-
-    throws_ok { $class->new( domain => 'http://foo/' ) }
-      'Kinetic::Util::Exception::Fatal::RequiredArguments',
-      '... or if just domain is present';
-
-    throws_ok { $class->new( path => 'rest/' ) }
-      'Kinetic::Util::Exception::Fatal::RequiredArguments',
-      '... or if just path is present';
-
-    ok my $rest =
-      $class->new( domain => 'http://foo/', path => 'rest/server/' ),
-      'We should be able to create a basic REST object';
-    isa_ok $rest, $class, '... and the object';
-
-    can_ok $rest, 'domain';
-    is $rest->domain, 'http://foo/',
-      '... and it should return the domain we set in the constructor';
-    $rest->domain('xxx');
-    is $rest->domain, 'http://foo/',
-      '... but we should not be able to change it';
-
-    can_ok $rest, 'path';
-    is $rest->path, 'rest/server/',
-      '... and it should return the path we set in the constructor';
-    $rest->path('xxx');
-    is $rest->path, 'rest/server/',
-      '... but we should not be able to change it';
-
-    $rest = $class->new( domain => 'http://foo', path => '/rest/server' ),
-      is $rest->domain, 'http://foo/',
-      'Domains without a trailing slash should have it appended';
-
-    is $rest->path, 'rest/server/',
-'... and paths should have leading slashes removed and trailing slashes added';
-}
 
 sub rest_interface : Test(19) {
     my $test  = shift;
@@ -322,7 +326,7 @@ sub rest_interface : Test(19) {
     }
 
     my $cgi_mock = MockModule->new('CGI');
-    $cgi_mock->mock( path_info => '/one/query' );
+    $cgi_mock->mock( path_info => '/one/squery' );
 
     ok $rest->handle_request( CGI->new ),
       'Handling a good resource should succeed';
@@ -332,7 +336,7 @@ sub rest_interface : Test(19) {
     # Note that because of the way we're mocking up path_info, URL encoding
     # of parameters is *not* necessary
     $cgi_mock->mock(
-        path_info => '/one/query/STRING/name => "foo"/_order_by/name', );
+        path_info => '/one/squery/STRING/name => "foo"/_order_by/name', );
 
     $test->query_string('');
     ok $rest->handle_request( CGI->new ),
@@ -393,10 +397,10 @@ $header
       'Calling it without a resource should return a list of resources';
 
     my $key     = One->my_class->key;
-    my $one_xml = $rest->url("$key/query")->get;
+    my $one_xml = $rest->url("$key/squery")->get;
 
     is_well_formed_xml $one_xml,
-      'Calling it with a resource/query should return well-formed_xml';
+      'Calling it with a resource/squery should return well-formed_xml';
 }
 
 sub xslt : Test(3) {

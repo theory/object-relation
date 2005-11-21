@@ -462,11 +462,11 @@ sub dump_xml_with_resources : Test(9) {
     # them correctly :(
 
     my $resource_xml = <<'    END_RESOURCES';
-    <resource href="http://foobar/one/query"    id="one"/>
-    <resource href="http://foobar/partof/query" id="partof"/>
-    <resource href="http://foobar/simple/query" id="simple"/>
-    <resource href="http://foobar/thingy/query" id="thingy"/>
-    <resource href="http://foobar/two/query"    id="two"/>
+    <resource href="http://foobar/one/squery"    id="one"/>
+    <resource href="http://foobar/partof/squery" id="partof"/>
+    <resource href="http://foobar/simple/squery" id="simple"/>
+    <resource href="http://foobar/thingy/squery" id="thingy"/>
+    <resource href="http://foobar/two/squery"    id="two"/>
     END_RESOURCES
 
     my $one_uuid = $one->uuid;

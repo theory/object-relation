@@ -296,8 +296,8 @@ sub transform_pages : Test(3) {
     my $header = $test->header_xml($AVAILABLE_RESOURCES);
     my $xml    = <<"    END_XML";
 $header
-      <kinetic:resource xlink:href="one/query" id="one"/>
-      <kinetic:resource xlink:href="two/query" id="two"/>
+      <kinetic:resource xlink:href="one/squery" id="one"/>
+      <kinetic:resource xlink:href="two/squery" id="two"/>
       <kinetic:sort name="name">name url</kinetic:sort>
       <kinetic:sort name="rank">rank url</kinetic:sort>
       <kinetic:instance id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX">
@@ -309,8 +309,8 @@ $header
         <kinetic:attribute name="rank">Private</kinetic:attribute>
       </kinetic:instance>
       <kinetic:pages>
-        <kinetic:page id="[ Page 1 ]" xlink:href="http://domain/rest/one/query/STRING/NULL/order_by/name/limit/2/offset/0" />
-        <kinetic:page id="[ Page 2 ]" xlink:href="http://domain/rest/one/query/STRING/NULL/order_by/name/limit/2/offset/2" />
+        <kinetic:page id="[ Page 1 ]" xlink:href="http://domain/rest/one/squery/NULL/order_by/name/limit/2/offset/0" />
+        <kinetic:page id="[ Page 2 ]" xlink:href="http://domain/rest/one/squery/NULL/order_by/name/limit/2/offset/2" />
       </kinetic:pages>
     </kinetic:resources>
     END_XML
@@ -324,8 +324,8 @@ $header
 $html_header
         <div id="sidebar">
           <ul>
-            <li><a href="one/query">one</a></li>
-            <li><a href="two/query">two</a></li>
+            <li><a href="one/squery">one</a></li>
+            <li><a href="two/squery">two</a></li>
           </ul>
         </div>
         <div class="listing">
@@ -346,8 +346,8 @@ $html_header
         </div>
         <div class="pages">
           <p>
-            <a href="http://domain/rest/one/query/STRING/NULL/order_by/name/limit/2/offset/0">[ Page 1 ]</a>
-            <a href="http://domain/rest/one/query/STRING/NULL/order_by/name/limit/2/offset/2">[ Page 2 ]</a>
+            <a href="http://domain/rest/one/squery/NULL/order_by/name/limit/2/offset/0">[ Page 1 ]</a>
+            <a href="http://domain/rest/one/squery/NULL/order_by/name/limit/2/offset/2">[ Page 2 ]</a>
           </p>
         </div>
         $footer
@@ -359,7 +359,7 @@ $header
       <kinetic:resource id="XXX" xlink:href="http://domain/rest/one/lookup/uuid/XXX"/>
       <kinetic:pages>
         <kinetic:page id="[ Page 1 ]" xlink:href="$CURRENT_PAGE" />
-        <kinetic:page id="[ Page 2 ]" xlink:href="http://domain/rest/one/query/STRING/NULL/order_by/name/limit/2/offset/2" />
+        <kinetic:page id="[ Page 2 ]" xlink:href="http://domain/rest/one/squery/NULL/order_by/name/limit/2/offset/2" />
       </kinetic:pages>
     </kinetic:resources>
     END_XML

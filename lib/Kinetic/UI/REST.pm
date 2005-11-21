@@ -25,7 +25,7 @@ our $VERSION = version->new('0.0.1');
 use Kinetic::Util::Constants qw/:http :rest/;
 use Kinetic::Util::Exceptions qw/throw_required/;
 use aliased 'Kinetic::View::XSLT';
-use aliased 'Kinetic::UI::REST::XML';
+#use aliased 'Kinetic::UI::REST::XML';
 
 use aliased 'Array::AsHash';
 use URI::Escape qw/uri_unescape/;
@@ -255,13 +255,12 @@ sub _get_request_from_query_string {
     my $cgi  = $self->cgi;
 
     my $class_key = $cgi->param($CLASS_KEY_PARAM);
-    my $method    = 'query';
+    my $method    = 'squery';
 
     my @args;
     foreach my $param ( $cgi->param ) {
         my $value = $cgi->param($param);
-        if ( 'query' eq $param ) {
-            $param = 'STRING';
+        if ( 'squery' eq $param ) {
             if ( !defined $value || '' eq $value ) {
                 $value = 'null';
             }

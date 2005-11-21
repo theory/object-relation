@@ -176,7 +176,7 @@ sub resource_list_xml {
     foreach my $key ( sort Kinetic::Meta->keys ) {
         next if Kinetic::Meta->for_key($key)->abstract;
         $resources .=
-          qq'<${kinetic}resource id="$key" ${xlink}href="$url$key/query"/>';
+          qq'<${kinetic}resource id="$key" ${xlink}href="$url$key/squery"/>';
     }
     return $resources;
 }
@@ -249,7 +249,7 @@ sub get_sort_url {
     my $base_url = $test->url;
     my $query    = $test->query_string;
 
-    my $url = "$base_url$class_key/query/";
+    my $url = "$base_url$class_key/squery/";
     $args->put( $ORDER_BY_PARAM, $attribute );
     my $order = 'ASC';
     if ( $attribute eq $order_by && 'ASC' eq $sort_order ) {
@@ -290,7 +290,7 @@ sub search_data_xml {
         my $type =
           lc $SEARCH_TYPE eq lc $arg
           ? 'search'
-          : $arg;    # XXX should 'search' be 'query'?
+          : $arg;    # XXX should 'search' be 'squery'?
         my $value = encode_entities( $args->get($arg) );
         $xml .=
           qq[<kinetic:parameter type="$type">$value</kinetic:parameter>\n];
