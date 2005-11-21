@@ -237,6 +237,63 @@ sub string_search : Test(19) {
         '... and it should be the correct results';
 }
 
+sub squery_string_search : Test(19) {
+    my $test = shift;
+    return unless $test->_should_run;
+    my $store = Store->new;
+    can_ok $store, 'squery';
+    my ($foo, $bar, $baz) = $test->test_objects;
+    foreach ($foo, $bar, $baz) {
+        $_->name($_->name.chr(0x100));
+        $_->save;
+    }
+    my $class = $foo->my_class;
+    ok my $iterator = $store->squery($class),
+        'A search with only a class should succeed';
+    my @results = $test->_all_items($iterator);
+    is @results, 3, 'returning all instances in the class';
+
+    foreach my $result (@results) {
+        ok is_utf8($result->name), '... and the data should be unicode strings';
+    }
+
+    ok $iterator = $store->squery($class, "name => '@{[$foo->name]}'"),
+        'and an exact match should succeed';
+    isa_ok $iterator, Iterator, 'and the object it returns';
+    is_deeply $test->force_inflation($iterator->next), $foo,
+        'and the first item should match the correct object';
+    ok ! $test->force_inflation($iterator->next), 'and there should be the correct number of objects';
+
+    ok $iterator = $store->squery($class, "name => '@{[$foo->name]}'"),
+        'We should also be able to call search as a class method';
+    isa_ok $iterator, Iterator, 'and the object it returns';
+    is_deeply $test->force_inflation($iterator->next), $foo,
+        'and it should return the same results as an instance method';
+    ok ! $test->force_inflation($iterator->next), 'and there should be the correct number of objects';
+
+    ok $iterator = $store->squery(
+        $class, 
+        "name => '@{[ucfirst $foo->name]}'"
+    ), 'Case-insensitive searches should work';
+    isa_ok $iterator, Iterator, 'and the object it returns';
+    is_deeply $test->force_inflation($iterator->next), $foo,
+         'and they should return data even if the case does not match';
+
+    $iterator = $store->squery(
+        $class, 
+        "name => '@{[$foo->name]}', description => 'asdf'");
+    ok ! $test->force_inflation($iterator->next),
+        'but searching for non-existent values will return no results';
+    $foo->description('asdf');
+    $foo->save;
+    $iterator = $store->squery(
+        $class, 
+        "name => '@{[$foo->name]}', description => 'asdf'"
+    );
+    is_deeply $test->force_inflation($iterator->next), $foo,
+        '... and it should be the correct results';
+}
+
 sub unit_constructor : Test(6) {
     my $test = shift;
     (my $class = ref $test) =~ s/^TEST:://;

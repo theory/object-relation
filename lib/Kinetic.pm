@@ -184,6 +184,27 @@ more information.
 
 ##############################################################################
 
+=head3 squery
+
+  my $iterator = Some::Kinetic::Object->squery("name => LIKE '%vid'");
+
+Calling this method searches the data store for objects meeting the query
+criteria.  This method uses a string search instead of a code search.  See the
+C<squery> method in L<Kinetic::Store|Kinetic::Store> for more information.
+
+=cut
+
+    sub squery {
+        my $class = shift;
+        Kinetic::Store->squery($class->my_class, @_);
+    }
+    $cm->add_method(
+        name    => 'squery',
+        context => Class::Meta::CLASS,
+    );
+
+##############################################################################
+
 =head3 count
 
   my $count = Some::Kinetic::Object->count(name => LIKE '%vid');

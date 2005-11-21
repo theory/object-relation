@@ -158,7 +158,7 @@ sub lookup {
     $self->_prepare_method($CACHED);
     $self->_should_create_iterator(0);
     local $self->{search_class} = $search_class;
-    my $results = $self->_search( $attr_key, $value );
+    my $results = $self->_query( $attr_key, $value );
 
     if ( @$results > 1 ) {
         my $package = $search_class->package;
@@ -173,7 +173,7 @@ sub lookup {
 
 =head3 query
 
-  my $iter = Store->query($class_object, @search_params);
+  my $iter = $kinetic_object->query(@search_params);
 
 Returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> object containing
 all objects that match the search params. See L<Kinetic::Store|Kinetic::Store>
@@ -200,7 +200,25 @@ sub query {
         $search_class = Kinetic::Meta->for_key($search_class);
     }
     local $self->{search_class} = $search_class;
-    $self->_search(@search_params);
+    $self->_query(@search_params);
+}
+
+##############################################################################
+
+=head3 squery
+
+  my $iter = $kinetic_object->squery(@search_params);
+
+Identical to C<query>, but uses string search syntax.  This method does B<not>
+expect the value 'STRING' at the front of a query.
+
+=cut
+
+sub squery {
+    my $proto        = shift;
+    my $search_class = shift;
+    unshift @_, $proto, $search_class, 'STRING';
+    goto &query;
 }
 
 ##############################################################################
@@ -385,12 +403,11 @@ sub _save {
     local $self->{search_class} = $object->my_class;
     local $self->{view}         = $self->{search_class}->key;
     local @{$self}{qw/columns values/};
-    $self->_save( $_->get($object) )
-        for $self->{search_class}->ref_attributes;
+    $self->_save( $_->get($object) ) for $self->{search_class}->ref_attributes;
 
     foreach my $attr ( $self->{search_class}->persistent_attributes ) {
         push @{ $self->{columns} } => $attr->_view_column;
-        push @{ $self->{values}  } => $attr->raw($object);
+        push @{ $self->{values} }  => $attr->raw($object);
     }
 
     return $object->id
@@ -400,23 +417,25 @@ sub _save {
 
 ##############################################################################
 
-=head3 _search
+=head3 _query
 
-  my @results = $self->_search(@search_params);
+  my @results = $self->_query(@search_params);
 
 This method is called internally by both C<query> and C<lookup>.  Each method
-sets whether or n
+sets whether or not the search is a CODE or STRING search and sets the search
+type property accordingly.  It will I<remove> the search type from the front
+of the search params, if it's there.
 
 =cut
 
-sub _search {
+sub _query {
     my ( $self, @search_params ) = @_;
     $self->_set_search_type( \@search_params );
     if ( $self->{search_type} eq 'CODE' ) {
 
-       # XXX we're going to temporarily disable full text searches unless it's
-       # a code search. We need to figure out the exact semantics of the
-       # others
+        # XXX we're going to temporarily disable full text searches unless it's
+        # a code search. We need to figure out the exact semantics of the
+        # others
         return $self->_full_text_search(@search_params)
           if 1 == @search_params && !ref $search_params[0];
     }
@@ -698,14 +717,14 @@ sub _get_sql_results {
 
     if ( $self->_should_create_iterator ) {
         my $search_class = $self->{search_class};
-        my $iterator = Iterator->new(
+        my $iterator     = Iterator->new(
             sub {
                 my $result = $self->_fetchrow_hashref($sth) or return;
                 local $self->{search_class} = $search_class;
                 return $self->_build_object_from_hashref($result);
             }
         );
-        $iterator->request($self->_intermediate_representation);
+        $iterator->request( $self->_intermediate_representation );
         return $iterator;
     }
     else {
@@ -966,7 +985,7 @@ sub _make_where_clause {
       ? code_lexer_stream($search_request)
       : string_lexer_stream( $search_request->[0] );
     my $ir = parse( $stream, $self );
-    $self->_intermediate_representation(Clone::clone($ir));
+    $self->_intermediate_representation( Clone::clone($ir) );
     my ( $where_clause, $bind_params ) =
       $self->_convert_ir_to_where_clause($ir);
     $where_clause = "" if '()' eq $where_clause;

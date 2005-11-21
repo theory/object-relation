@@ -638,6 +638,30 @@ sub query {
     $self->query(@_);
 }
 
+##############################################################################
+
+=head3 squery
+
+  my $iter = $store->squery('Kinetic::Phony::Person' => <<'END_QUERY');
+      last_name     => 'Wall',
+      contact.type  => 'email',
+      contact.value => 'larry@wall.org'
+  END_QUERY
+
+This method is the same as C<query>, but uses a string search instead of a
+code search.  Note that a string search is identical to a code search but the
+code is wrapped in quotes (thus being a string).
+
+=cut
+
+sub squery {
+    my $self = shift;
+    unless (ref $self) { # they called it as a class method
+        $self = $self->new;
+    }
+    $self->squery(@_);
+}
+
 =head3 Attribute Types
 
 Kinetic supports three basic types of attributes: strings (such as the
