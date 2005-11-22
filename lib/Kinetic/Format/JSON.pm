@@ -30,7 +30,6 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use base 'Kinetic::Format';
-use aliased 'Kinetic::Meta';
 
 =head1 Name
 
@@ -100,60 +99,27 @@ sub _init {
 
 ##############################################################################
 
-=head3 serialize
+=head3 ref_to_format
 
-  my $json = $formatter->serialize($object);
+  my $json = $formatter->ref_to_format;
 
-Render the L<Kinetic|Kinetic> object as JSON.
+Converts an arbitrary reference to its JSON equivalent.
 
 =cut
 
-sub serialize {
-    my ( $self, $object ) = @_;
-    my %value_for;
-    foreach my $attr ( $object->my_class->attributes ) {
-        if ( $attr->references ) {
-            my $contained = $attr->get($object);
-            $value_for{ $attr->name } = $self->serialize($contained);
-        }
-        else {
-            $value_for{ $attr->name } = $attr->raw($object);
-        }
-    }
-    $value_for{_key} = $object->my_class->key;
-    return $self->objToJson( \%value_for );
-}
+sub ref_to_format { shift->objToJson(@_) }
 
 ##############################################################################
 
-=head3 deserialize
+=head3 format_to_ref
 
-   my $object = $formatter->deserialize($json);
+  my $reference = $formatter->format_to_ref;
 
-Restore the object from JSON.
+Converts JSON to its equivalent Perl reference.
 
 =cut
 
-sub deserialize {
-    my ( $self, $json ) = @_;
-    my $value_for = $self->jsonToObj($json);
-    my $class     = Meta->for_key( delete $value_for->{_key} );
-    my $object    = $class->package->new;
-    while ( my ( $attr, $value ) = each %$value_for ) {
-        next unless defined $value;
-        if ( my $attribute = $class->attributes($attr) ) {
-            next unless $attribute->persistent;
-            if ($attribute->references) {
-                my $contained = $self->deserialize($value);
-                $object->$attr($contained);
-            }
-            else {
-                $attribute->bake( $object, $value );
-            }
-        }
-    }
-    return $object;
-}
+sub format_to_ref { shift->jsonToObj(@_) }
 
 1;
 

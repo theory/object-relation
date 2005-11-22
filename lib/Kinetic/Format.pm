@@ -24,6 +24,7 @@ use warnings;
 use version;
 our $VERSION = version->new('0.0.1');
 
+use aliased 'Kinetic::Meta';
 use Kinetic::Util::Exceptions qw/
   throw_fatal
   throw_invalid_class
@@ -120,30 +121,138 @@ sub format { shift->{format} }
 
 =head3 serialize
 
-  my $data = $formatter->serialize($object);
+  my $format = $formatter->serialize($object);
 
-Render the L<Kinetic|Kinetic> object in the desired format.  Must be
-overridden in a subclass.
+Render the L<Kinetic|Kinetic> object in the desired format.
 
 =cut
 
 sub serialize {
-    throw_unimplemented "This must be overridden in a subclass";
+    my ( $self, $object ) = @_;
+    $self->_verify_usage;
+    return $self->ref_to_format( $self->_obj_to_hashref($object) );
 }
 
 ##############################################################################
 
 =head3 deserialize
 
-   my $object = $formatter->deserialize($data);
+   my $object = $formatter->deserialize($format);
 
-Restore the L<Kinetic|Kinetic> from the desired format.  Must be overridden in
-a subclass.
+Restore the object from the desired format.
 
 =cut
 
 sub deserialize {
+    my ( $self, $json ) = @_;
+    $self->_verify_usage;
+    return $self->_hashref_to_obj( $self->format_to_ref($json) );
+}
+
+##############################################################################
+
+=head3 ref_to_format
+
+  my $format = $formatter->ref_to_format($reference);
+
+This method must be overridden in a subclass.
+
+Given an array or hash reference, this method must render it in the correct
+format.
+
+=cut
+
+sub ref_to_format {
     throw_unimplemented "This must be overridden in a subclass";
+}
+
+##############################################################################
+
+=head3 format_to_ref
+
+  my $ref = $formatter->format_to_ref($format);
+
+This method must be overridden in a subclass.
+
+Given a format, this method must render it in the correct array or hash
+format.
+
+=cut
+
+sub format_to_ref {
+    throw_unimplemented "This must be overridden in a subclass";
+}
+
+##############################################################################
+
+=head3 _obj_to_hashref
+
+  my $hashref = $formatter->_obj_to_hashref($object);
+
+Protected method to be used by subclasses, this method should take a
+L<Kinetic|Kinetic> object and render it as a hashref.  Only publicly exposed
+data will be returned in the hash ref.  Each key will be an attribute name and
+the value should be the value of the key, if any.
+
+One special key, C<_key>, will be the class key for the L<Kinetic|Kinetic>
+object.
+
+=cut
+
+sub _obj_to_hashref {
+    my ( $self, $object ) = @_;
+    my %value_for;
+    foreach my $attr ( $object->my_class->attributes ) {
+        if ( $attr->references ) {
+            my $contained = $attr->get($object);
+            $value_for{ $attr->name } = $self->serialize($contained);
+        }
+        else {
+            $value_for{ $attr->name } = $attr->raw($object);
+        }
+    }
+    $value_for{_key} = $object->my_class->key;
+    return \%value_for;
+}
+
+##############################################################################
+
+=head3 _hashref_to_obj
+
+  my $object = $formatter->_hashref_to_obj($hashref);
+
+Protected method to be used by subclasses.  Given an hashreference in the
+format returned by C<_obj_to_hashref>, this method will return a
+L<Kinetic|Kinetic> object for it.
+
+=cut
+
+sub _hashref_to_obj {
+    my ( $self, $value_for ) = @_;
+    my $class  = Meta->for_key( delete $value_for->{_key} );
+    my $object = $class->package->new;
+    while ( my ( $attr, $value ) = each %$value_for ) {
+        next unless defined $value;
+        if ( my $attribute = $class->attributes($attr) ) {
+            next unless $attribute->persistent;
+            if ( $attribute->references ) {
+                my $contained = $self->deserialize($value);
+                $object->$attr($contained);
+            }
+            else {
+                $attribute->bake( $object, $value );
+            }
+        }
+    }
+    return $object;
+}
+
+sub _verify_usage {
+    my $self = shift;
+    if ( __PACKAGE__ eq ref $self ) {
+        throw_fatal [ 'Abstract class "[_1]" must not be used directly',
+            __PACKAGE__ ];
+    }
 }
 
 1;
@@ -178,14 +287,12 @@ It should have an C<_init> method which sets up special properties, if any, of
 the class.  If an init method is present, it should accept an optional hash
 reference of properties necessary for the class and return a single argument.
 
-=item * Implement C<serialize> and C<deserialize> methods.
+=item * Implement C<format_to_ref> and C<ref_to_format> methods.
 
 The input and output is described in this document.  Implementation behavior
 is up to the implementor.
 
 =back
-
-##############################################################################
 
 =head1 Copyright and License
 

@@ -60,19 +60,54 @@ sub constructor : Test(5) {
     isa_ok $formatter, $JSON, '... and the object it returns';
 }
 
-sub interface : Test(4) {
+sub interface : Test(8) {
     my $test      = shift;
     my $formatter = bless {}, $FORMAT;
 
-    can_ok $formatter, 'serialize';
-    throws_ok { $formatter->serialize }
+    can_ok $formatter, 'ref_to_format';
+    throws_ok { $formatter->ref_to_format }
       'Kinetic::Util::Exception::Fatal::Unimplemented',
       '... and calling it should fail';
 
-    can_ok $formatter, 'deserialize';
-    throws_ok { $formatter->deserialize }
+    can_ok $formatter, 'ref_to_format';
+    throws_ok { $formatter->ref_to_format }
       'Kinetic::Util::Exception::Fatal::Unimplemented',
       '... and calling it should fail';
+
+    can_ok $formatter, 'serialize';
+    throws_ok { $formatter->serialize } 'Kinetic::Util::Exception::Fatal',
+      '... and calling it should fail';
+
+    can_ok $formatter, 'deserialize';
+    throws_ok { $formatter->deserialize } 'Kinetic::Util::Exception::Fatal',
+      '... and calling it should fail';
+}
+
+sub to_and_from_hashref : Test(7) {
+    my $test      = shift;
+    my $formatter = bless {}, $FORMAT;
+
+    my ( $foo, $bar, $baz ) = $test->test_objects;
+    can_ok $formatter, '_obj_to_hashref';
+    ok my $hashref = $formatter->_obj_to_hashref($foo),
+      '... and calling it with a valid Kinetic object should succeed';
+    my %expected = (
+        bool        => 1,
+        _key        => 'one',
+        name        => 'foo',
+        description => undef,
+        uuid        => $foo->uuid,
+        state       => 1
+    );
+    is_deeply $hashref, \%expected,
+      '... and it should return the correct hashref';
+
+    can_ok $formatter, '_hashref_to_obj';
+    ok my $object = $formatter->_hashref_to_obj($hashref),
+      '... and calling it should succeed';
+    isa_ok $object, ref $foo, '... and the object it returns';
+    $object->{id} = $foo->{id};
+    is_deeply $object, $foo, '... and it should be the correct object';
 }
 
 1;

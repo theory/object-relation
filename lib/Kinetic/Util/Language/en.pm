@@ -35,236 +35,240 @@ Kinetic::Util::Language::en - Kinetic English localization
 =head1 Description
 
 This class handles Kinetic English localization. See
-L<Kinetic::Util::Language|Kinetic::Util::Language> for a complete description of the
-Kinetic localization interface.
+L<Kinetic::Util::Language|Kinetic::Util::Language> for a complete description
+of the Kinetic localization interface.
 
 =cut
 
 our %Lexicon = (
-  # Classes.
-  'Kinetic' => 'Kinetic',
-  'Class'   => 'Class',
-  'Classes' => 'Classes',
-  'Party'   => 'Party',
-  'Parties' => 'Parties',
-  'Person'  => 'Person',
-  'Persons' => 'Persons',
-  'User'    => 'User',
-  'Users'   => 'Users',
 
-  # States.
-  'Permanent' => 'Permanent',
-  'Active'    => 'Active',
-  'Inactive'  => 'Inactive',
-  'Deleted'   => 'Deleted',
-  'Purged'    => 'Purged',
+    # Classes.
+    'Kinetic' => 'Kinetic',
+    'Class'   => 'Class',
+    'Classes' => 'Classes',
+    'Party'   => 'Party',
+    'Parties' => 'Parties',
+    'Person'  => 'Person',
+    'Persons' => 'Persons',
+    'User'    => 'User',
+    'Users'   => 'Users',
 
-  # Exceptions.
-  'Value "[_1]" is not a valid [_2] object',
-  'Value “[_1]” is not a valid [_2] object',
+    # States.
+    'Permanent' => 'Permanent',
+    'Active'    => 'Active',
+    'Inactive'  => 'Inactive',
+    'Deleted'   => 'Deleted',
+    'Purged'    => 'Purged',
 
-  'Value "[_1]" is not a UUID',
-  'Value “[_1]” is not a UUID',
+    # Exceptions.
+    'Value "[_1]" is not a valid [_2] object',
+    'Value “[_1]” is not a valid [_2] object',
 
-  'Attribute must be defined',
-  'Attribute must be defined',
+    'Value "[_1]" is not a UUID',
+    'Value “[_1]” is not a UUID',
 
-  'Localization for "[_1]" not found',
-  'Localization for “[_1]” not found',
+    'Attribute must be defined',
+    'Attribute must be defined',
 
-  'File "[_1]" not found',
-  'File “[_1]” not found',
+    'Localization for "[_1]" not found',
+    'Localization for “[_1]” not found',
 
-  'Cannot assign to read-only attribute "[_1]"',
-  'Cannot assign to read-only attribute “[_1]”',
+    'File "[_1]" not found',
+    'File “[_1]” not found',
 
-  'Argument "[_1]" is not a code reference',
-  'Argument “[_1]” is not a code reference',
+    'Cannot assign to read-only attribute "[_1]"',
+    'Cannot assign to read-only attribute “[_1]”',
 
-  'Argument "[_1]" is not a valid [_2] object',
-  'Argument “[_1]” is not a valid [_2] object',
+    'Argument "[_1]" is not a code reference',
+    'Argument “[_1]” is not a code reference',
 
-  'Argument "[_1]" is not a valid [_2] class',
-  'Argument “[_1]” is not a valid [_2] class',
+    'Argument "[_1]" is not a valid [_2] object',
+    'Argument “[_1]” is not a valid [_2] object',
 
-  'Value "[_1]" is not a string',
-  'Value “[_1]” is not a string',
+    'Argument "[_1]" is not a valid [_2] class',
+    'Argument “[_1]” is not a valid [_2] class',
 
-  'Value "[_1]" is not a whole number',
-  'Value “[_1]” is not a whole number',
+    'Value "[_1]" is not a string',
+    'Value “[_1]” is not a string',
 
-  'Cannot assign permanent state',
-  'Cannot assign permanent state',
+    'Value "[_1]" is not a whole number',
+    'Value “[_1]” is not a whole number',
 
-  'Cannot open file "[_1]": [_2]',
-  'Cannot open file “[_1]”: [_2]',
+    'Cannot assign permanent state',
+    'Cannot assign permanent state',
 
-  'Required argument "[_1]" to [_2] not found',
-  'Required argument “[_1]” to [_2] not found',
+    'Cannot open file "[_1]": [_2]',
+    'Cannot open file “[_1]”: [_2]',
 
-  'Required attribute "[_1]" not set',
-  'Required attribute “[_1]” not set',
+    'Required argument "[_1]" to [_2] not found',
+    'Required argument “[_1]” to [_2] not found',
 
-  'XML must have a version number.',
-  'XML must have a version number.',
+    'Required attribute "[_1]" not set',
+    'Required attribute “[_1]” not set',
 
-  'I could not find the class for key "[_1]"',
-  'I could not find the class for key “[_1]”',
+    'XML must have a version number.',
+    'XML must have a version number.',
 
-  'You must supply a name for the "[_1]"',
-  'You must supply a name for the “[_1]”',
+    'I could not find the class for key "[_1]"',
+    'I could not find the class for key “[_1]”',
 
-  # XXX What's with the parentheses?
-  'Could not lex search request.  Found bad tokens ([_1])',
-  'Could not lex search request. Found bad tokens ([_1])',
+    'You must supply a name for the "[_1]"',
+    'You must supply a name for the “[_1]”',
 
-  'I don\'t know how to lex a "[_1]"',
-  'I don\'t know how to lex a “[_1]”',
+    # XXX What's with the parentheses?
+    'Could not lex search request.  Found bad tokens ([_1])',
+    'Could not lex search request. Found bad tokens ([_1])',
 
-  'Could not parse search request:  [_1]',
-  'Could not parse search request:  [_1]',
+    'I don\'t know how to lex a "[_1]"',
+    'I don\'t know how to lex a “[_1]”',
 
-  'Could not parse search request',
-  'Could not parse search request',
+    'Could not parse search request:  [_1]',
+    'Could not parse search request:  [_1]',
 
-  'Failed to convert IR to where clause.  This should not happen.',
-  'Failed to convert IR to where clause. This should not happen.',
+    'Could not parse search request',
+    'Could not parse search request',
 
-  'Odd number of constraints in string search:  "[_1]"',
-  'Odd number of constraints in string search “[_1]”',
+    'Failed to convert IR to where clause.  This should not happen.',
+    'Failed to convert IR to where clause. This should not happen.',
 
-  'BETWEEN searches may only take two values.  You have [_1]',
-  'BETWEEN searches may only take two values. You have [_1]',
+    'Odd number of constraints in string search:  "[_1]"',
+    'Odd number of constraints in string search “[_1]”',
 
-  'Writing XML failed: [_1]',
-  'Writing XML failed: [_1]',
+    'BETWEEN searches may only take two values.  You have [_1]',
+    'BETWEEN searches may only take two values. You have [_1]',
 
-  'No such attribute "[_1]" for [_2]',
-  'No such attribute “[_1]” for [_2]',
+    'Writing XML failed: [_1]',
+    'Writing XML failed: [_1]',
 
-  'Attribute "[_1]" is not unique',
-  'Attribute “[_1]” is not unique',
+    'No such attribute "[_1]" for [_2]',
+    'No such attribute “[_1]” for [_2]',
 
-  'I could not find uuid "[_1]" in data store for the [_2] class',
-  'I could not find UUID “[_1]” in the data store for the [_2] class',
+    'Attribute "[_1]" is not unique',
+    'Attribute “[_1]” is not unique',
 
-  'I could not load the class "[_1]": [_2]',
-  'I could not load the class “[_1]”: [_2]',
+    'I could not find uuid "[_1]" in data store for the [_2] class',
+    'I could not find UUID “[_1]” in the data store for the [_2] class',
 
-  '[_1] does not support full-text searches',
-  '[_1] does not support full-text searches',
+    'I could not load the class "[_1]": [_2]',
+    'I could not load the class “[_1]”: [_2]',
 
-  'MATCH:  [_1] does not support regular expressions',
-  'MATCH: [_1] does not support regular expressions',
+    '[_1] does not support full-text searches',
+    '[_1] does not support full-text searches',
 
-  'You cannot do GT or LT type searches with non-contiguous dates',
-  'You cannot do GT or LT type searches with non-contiguous dates',
+    'MATCH:  [_1] does not support regular expressions',
+    'MATCH: [_1] does not support regular expressions',
 
-  'BETWEEN search dates must have identical segments defined',
-  'BETWEEN search dates must have identical segments defined',
+    'You cannot do GT or LT type searches with non-contiguous dates',
+    'You cannot do GT or LT type searches with non-contiguous dates',
 
-  'You cannot do range searches with non-contiguous dates',
-  'You cannot do range searches with non-contiguous dates',
+    'BETWEEN search dates must have identical segments defined',
+    'BETWEEN search dates must have identical segments defined',
 
-  'This must be overridden in a subclass',
-  'This must be overridden in a subclass',
+    'You cannot do range searches with non-contiguous dates',
+    'You cannot do range searches with non-contiguous dates',
 
-  'Unknown import symbol "[_1]"',
-  'Unknown import symbol “[_1]”',
+    'Abstract class "[_1]" must not be used directly',
+    'Abstract class “[_1]” must not be used directly',
 
-  q{Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]},
-  'Don’t know how to search for ([_1] [_2] [_3] [_4]): [_5]',
+    'This must be overridden in a subclass',
+    'This must be overridden in a subclass',
 
-  'All types to an ANY search must match',
-  'All types to an ANY search must match',
+    'Unknown import symbol "[_1]"',
+    'Unknown import symbol “[_1]”',
 
-  'Unknown attributes to [_1]: [_2]',
-  'Unknown attributes to [_1]: [_2]',
+    q{Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]},
+    'Don’t know how to search for ([_1] [_2] [_3] [_4]): [_5]',
 
-  'Bad type for [_1].  Should be [_2].',
-  'Bad type for [_1]. Should be [_2].',
+    'All types to an ANY search must match',
+    'All types to an ANY search must match',
 
-  'Unknown stylesheet requested: [_1]',
-  'Unknown stylesheet requested: [_1]',
+    'Unknown attributes to [_1]: [_2]',
+    'Unknown attributes to [_1]: [_2]',
 
-  'BETWEEN searches must be between identical types. You have ([_1]) and ([_2])',
-  'BETWEEN searches must be between identical types. You have ([_1]) and ([_2])',
+    'Bad type for [_1].  Should be [_2].',
+    'Bad type for [_1]. Should be [_2].',
 
-  'BETWEEN searches should have two terms. You have [_1] term(s).',
-  'BETWEEN searches should have two terms. You have [_1] term(s).',
+    'Unknown stylesheet requested: [_1]',
+    'Unknown stylesheet requested: [_1]',
 
-  'PANIC: ANY search data is not an array ref. This should never happen.',
-  'PANIC: ANY search data is not an array ref. This should never happen.',
+'BETWEEN searches must be between identical types. You have ([_1]) and ([_2])',
+'BETWEEN searches must be between identical types. You have ([_1]) and ([_2])',
 
-  'PANIC: BETWEEN search data is not an array ref. This should never happen.',
-  'PANIC: BETWEEN search data is not an array ref. This should never happen.',
+    'BETWEEN searches should have two terms. You have [_1] term(s).',
+    'BETWEEN searches should have two terms. You have [_1] term(s).',
 
-  'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
-  'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
+    'PANIC: ANY search data is not an array ref. This should never happen.',
+    'PANIC: ANY search data is not an array ref. This should never happen.',
 
-  'Invalid method "[_1]"',
-  'Invalid method “[_1]”',
+    'PANIC: BETWEEN search data is not an array ref. This should never happen.',
+    'PANIC: BETWEEN search data is not an array ref. This should never happen.',
 
-  # Kinetic::Meta::Class error.
-  'No direct attribute "[_1]" to sort by',
-  'No direct attribute “[_1]” to sort by',
+    'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
+    'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
 
-  # Kinetic Attribute labels and tips.
-  'UUID' => 'UUID',
-  'The globally unique identifier for this object',
-  'The globally unique identifier for this object',
+    'Invalid method "[_1]"',
+    'Invalid method “[_1]”',
 
-  'Name' => 'Name',
-  'The name of this object',
-  'The name of this object',
+    # Kinetic::Meta::Class error.
+    'No direct attribute "[_1]" to sort by',
+    'No direct attribute “[_1]” to sort by',
 
-  'Description' => 'Description',
-  'The description of this object',
-  'The description of this object',
+    # Kinetic Attribute labels and tips.
+    'UUID' => 'UUID',
+    'The globally unique identifier for this object',
+    'The globally unique identifier for this object',
 
-  'State' => 'State',
-  'The state of this object',
-  'The state of this object',
+    'Name' => 'Name',
+    'The name of this object',
+    'The name of this object',
 
-  # Kinetic::Party::Person labels and tips.
-  'Last Name' => 'Last Name',
-  q{The person's last name},
-  'The person’s last name',
+    'Description' => 'Description',
+    'The description of this object',
+    'The description of this object',
 
-  'First Name' => 'First Name',
-  q{The person's first name},
-  'The person’s first name',
+    'State' => 'State',
+    'The state of this object',
+    'The state of this object',
 
-  'Middle Name' => 'Middle Name',
-  q{The person's middle name},
-  'The person’s middle name',
+    # Kinetic::Party::Person labels and tips.
+    'Last Name' => 'Last Name',
+    q{The person's last name},
+    'The person’s last name',
 
-  'Nickname' => 'Nickname',
-  q{The person's nickname},
-  'The person’s nickname',
+    'First Name' => 'First Name',
+    q{The person's first name},
+    'The person’s first name',
 
-  'Prefix' => 'Prefix',
-  q{The prefix to the person's name},
-  'The prefix to the person’s name, such as “Mr.”, “Ms.”, “Dr.”, etc.',
+    'Middle Name' => 'Middle Name',
+    q{The person's middle name},
+    'The person’s middle name',
 
-  'Suffix' => 'Suffix',
-  q{The suffix to the person's name},
-  'The suffix to the person’s name, such as “JD”, “PhD”, “MD”, etc.',
+    'Nickname' => 'Nickname',
+    q{The person's nickname},
+    'The person’s nickname',
 
-  'Generation' => 'Generation',
-  q{The generation of the person's name},
-  'The generation to the person’s name, such as “Jr.”, “III”, etc.',
+    'Prefix' => 'Prefix',
+    q{The prefix to the person's name},
+'The prefix to the person’s name, such as “Mr.”, “Ms.”, “Dr.”, etc.',
 
-  'strfname_format' => '%p% f% M% l% g%, s',
+    'Suffix' => 'Suffix',
+    q{The suffix to the person's name},
+'The suffix to the person’s name, such as “JD”, “PhD”, “MD”, etc.',
 
-  # Kinetic::Party::Person::User labels and tips.
-  'Username' => 'Username',
-  q{The user's username},
-  'The user’s username',
+    'Generation' => 'Generation',
+    q{The generation of the person's name},
+    'The generation to the person’s name, such as “Jr.”, “III”, etc.',
 
-  'Password' => 'Password',
-  q{The user's password},
-  'The user’s password',
+    'strfname_format' => '%p% f% M% l% g%, s',
+
+    # Kinetic::Party::Person::User labels and tips.
+    'Username' => 'Username',
+    q{The user's username},
+    'The user’s username',
+
+    'Password' => 'Password',
+    q{The user's password},
+    'The user’s password',
 );
 
 1;
