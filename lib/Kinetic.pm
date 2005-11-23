@@ -173,15 +173,6 @@ more information.
 
 =cut
 
-    sub query {
-        my $class = shift;
-        Kinetic::Store->query($class->my_class, @_);
-    }
-    $cm->add_method(
-        name    => 'query',
-        context => Class::Meta::CLASS,
-    );
-
 ##############################################################################
 
 =head3 squery
@@ -194,14 +185,27 @@ C<squery> method in L<Kinetic::Store|Kinetic::Store> for more information.
 
 =cut
 
-    sub squery {
-        my $class = shift;
-        Kinetic::Store->squery($class->my_class, @_);
-    }
-    $cm->add_method(
-        name    => 'squery',
-        context => Class::Meta::CLASS,
+    my @redispatch = qw(
+        query
+        squery
+        count
+        query_uuids
+        squery_uuids
     );
+
+    foreach my $method (@redispatch) {
+        {
+            no strict 'refs';
+            *$method = sub {
+                my $class = shift;
+                Kinetic::Store->$method($class->my_class, @_);
+            };
+        }
+        $cm->add_method(
+            name    => $method,
+            context => Class::Meta::CLASS,
+        );
+    }
 
 ##############################################################################
 
@@ -215,15 +219,6 @@ for more information.
 
 =cut
 
-    sub count {
-        my $class = shift;
-        Kinetic::Store->count($class->my_class, @_);
-    }
-    $cm->add_method(
-        name    => 'count',
-        context => Class::Meta::CLASS,
-    );
-
 ##############################################################################
 
 =head3 query_uuids
@@ -236,14 +231,16 @@ L<Kinetic::Store|Kinetic::Store> for more information.
 
 =cut
 
-    sub query_uuids {
-        my $class = shift;
-        Kinetic::Store->query_uuids($class->my_class, @_);
-    }
-    $cm->add_method(
-        name    => 'query_uuids',
-        context => Class::Meta::CLASS,
-    );
+
+##############################################################################
+
+=head3 squery_uuids
+
+  my $uuids = Some::Kinetic::Object->squery_uuids("name => LIKE '%vid'");
+
+Same as query_ids, but uses a string search.
+
+=cut
 
 ##############################################################################
 # Instance Methods.

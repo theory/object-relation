@@ -19,7 +19,7 @@ package Kinetic::Store;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use Kinetic::Util::Config     qw(:store);
+use Kinetic::Util::Config qw(:store);
 use Kinetic::Util::Exceptions qw/throw_invalid_class throw_search/;
 
 use version;
@@ -57,84 +57,85 @@ later, and L<Kinetic::Store::LDAP|Kinetic::Store::LDAP>.
 # are used for the DBI storage classes only.
 
 my %tokens;
+
 BEGIN {
     $tokens{comparison} = [qw/LIKE GT LT GE LE NE MATCH/];
     $tokens{logical}    = [qw/AND OR/];
     $tokens{sorting}    = [qw/ASC DESC/];
 
     no strict 'refs';
-    foreach my $token (@{ $tokens{comparison} }) {
+    foreach my $token ( @{ $tokens{comparison} } ) {
         *$token = sub($) {
             my $value = shift;
             sub {
-                shift || (), ['COMPARE', $token], ['VALUE', $value]
+                shift || (), [ 'COMPARE', $token ], [ 'VALUE', $value ];
             };
         };
     }
-    foreach my $token (@{ $tokens{logical} }) {
-        *$token = sub { my @values = @_; sub { $token, \@values } };
+    foreach my $token ( @{ $tokens{logical} } ) {
+        *$token = sub {
+            my @values = @_;
+            sub { $token, \@values }
+        };
     }
-    foreach my $token (@{ $tokens{sorting} }) {
-        *$token = sub()  { sub { $token } }
+    foreach my $token ( @{ $tokens{sorting} } ) {
+        *$token = sub() {
+            sub { $token }
+          }
     }
-    push @{$tokens{comparison}} => qw/NOT EQ BETWEEN ANY/;
+    push @{ $tokens{comparison} } => qw/NOT EQ BETWEEN ANY/;
 }
 
 use Exporter::Tidy
-    comparison => $tokens{comparison},
-    logical    => $tokens{logical},
-    sorting    => $tokens{sorting};
+  comparison => $tokens{comparison},
+  logical    => $tokens{logical},
+  sorting    => $tokens{sorting};
 
 sub NOT($) {
     my $value = shift;
+
     #$value    = BETWEEN($value) if 'ARRAY' eq ref $value;
-    my $negated = ['KEYWORD', 'NOT'];
+    my $negated = [ 'KEYWORD', 'NOT' ];
     sub {
-        return ('CODE' eq ref $value)
-            ? $value->($negated)
-            : ($negated, _value_token($value));
+        return ( 'CODE' eq ref $value )
+          ? $value->($negated)
+          : ( $negated, _value_token($value) );
     };
 }
 
 sub EQ($) {
     my $value = shift;
     sub {
-        if ('ARRAY' eq ref $value) {
-            return (
-                shift || (),
-                [ 'KEYWORD', 'BETWEEN' ],
-                _value_token($value),
-            );
+        if ( 'ARRAY' eq ref $value ) {
+            return ( shift || (), [ 'KEYWORD', 'BETWEEN' ],
+                _value_token($value), );
         }
         else {
-            return (
-                shift || (),
-                ['COMPARE', 'EQ'],
-                _value_token($value)
-            );
+            return ( shift || (), [ 'COMPARE', 'EQ' ], _value_token($value) );
         }
-    }
+      }
 }
 
 sub _value_token {
     my $value = shift;
-    return
-          ! defined $value      ?  [ 'UNDEF',     'undef' ]
-        : 'ARRAY' ne ref $value ?  [ 'VALUE',      $value ]
-        : 2 == @$value          ? ([ 'OP',            '[' ],
-                                   [ 'VALUE', $value->[0] ],
-                                   [ 'OP',            ',' ],
-                                   [ 'VALUE', $value->[1] ],
-                                   [ 'OP',            ']' ])
-        : throw_search [
-             'BETWEEN searches may only take two values.  You have [_1]',
-             scalar @$value
-        ];
+    return !defined $value ? [ 'UNDEF', 'undef' ]
+      : 'ARRAY' ne ref $value ? [ 'VALUE', $value ]
+      : 2 == @$value ? (
+        [ 'OP',    '[' ],
+        [ 'VALUE', $value->[0] ],
+        [ 'OP',    ',' ],
+        [ 'VALUE', $value->[1] ],
+        [ 'OP',    ']' ]
+      )
+      : throw_search [
+        'BETWEEN searches may only take two values.  You have [_1]',
+        scalar @$value
+      ];
 }
 
 sub BETWEEN($) {
     my $value = shift;
-    sub { shift || (), ['KEYWORD', 'BETWEEN'], _value_token($value) };
+    sub { shift || (), [ 'KEYWORD', 'BETWEEN' ], _value_token($value) };
 }
 
 sub ANY {
@@ -143,15 +144,33 @@ sub ANY {
     while (@args) {
         my $value = shift @args;
         push @values => [ 'VALUE', $value ];
-        push @values => [ 'OP',       ',' ] if @args;
+        push @values => [ 'OP', ',' ] if @args;
     }
     sub {
-        shift || (),
-        [ 'KEYWORD', 'ANY' ],
-        [ 'OP',        '(' ],
-        @values,
-        [ 'OP',        ')' ]
+        shift || (), [ 'KEYWORD', 'ANY' ], [ 'OP', '(' ], @values,
+          [ 'OP', ')' ];
     };
+}
+
+my @redispatch = qw(
+  lookup
+  query_uuids
+  squery_uuids
+  query
+  squery
+  count
+  save
+);
+
+foreach my $method (@redispatch) {
+    no strict 'refs';
+    *$method = sub {
+        my $self = shift;
+        unless ( ref $self ) {    # they called it as a class method
+            $self = $self->new;
+        }
+        $self->$method(@_);
+      }
 }
 
 ##############################################################################
@@ -172,14 +191,12 @@ configured in the configuration file.
 
 sub new {
     my $class = shift;
-    unless ($class ne __PACKAGE__) {
+    unless ( $class ne __PACKAGE__ ) {
         $class = shift || STORE_CLASS;
-        eval "require $class" ;
-        throw_invalid_class [
-            'I could not load the class "[_1]": [_2]',
-            $class,
-            $@,
-        ] if $@;
+        eval "require $class";
+        throw_invalid_class [ 'I could not load the class "[_1]": [_2]', $class,
+            $@, ]
+          if $@;
     }
     bless {}, $class;
 }
@@ -213,18 +230,6 @@ B<Throws:>
 =item Exception::DA
 
 =back
-
-=cut
-
-sub lookup {
-    my $self = shift;
-    unless (ref $self) { # they called it as a class method
-        $self = $self->new;
-    }
-    $self->lookup(@_);
-}
-
-##############################################################################
 
 =head3 query
 
@@ -314,10 +319,6 @@ B<Throws:>
 
 =back
 
-=cut
-
-##############################################################################
-
 =head3 query_uuids
 
   my @uuids = $store->query_uuids( $class => @search_params );
@@ -337,17 +338,12 @@ B<Throws:>
 
 =back
 
-=cut
+=head3 squery_uuids
 
-sub query_uuids {
-    my $self = shift;
-    unless (ref $self) { # they called it as a class method
-        $self = $self->new;
-    }
-    $self->query_uuids(@_);
-}
-
-##############################################################################
+  my @uuids = $store->squery_uuids( $class => "@search_params" );
+  my $uuids_aref = $store->squery_uuids( $class => "@search_params" );
+  
+Same as C<query_uuids> but uses a string search.
 
 =head3 count
 
@@ -373,18 +369,6 @@ B<Throws:>
 =item Exception::DA
 
 =back
-
-=cut
-
-sub count {
-    my $self = shift;
-    unless (ref $self) { # they called it as a class method
-        $self = $self->new;
-    }
-    $self->count(@_);
-}
-
-##############################################################################
 
 =head3 save
 
@@ -424,18 +408,6 @@ B<Throws:>
 
 =back
 
-=cut
-
-sub save {
-    my $self = shift;
-    unless (ref $self) { # they called it as a class method
-        $self = $self->new;
-    }
-    $self->save(@_);
-}
-
-##############################################################################
-
 =begin private
 
 =head1 Private Methods
@@ -452,7 +424,7 @@ the C<_save_prep()> method on the object to be saved.
 =cut
 
 sub _save {
-    my ($self, $obj) = @_;
+    my ( $self, $obj ) = @_;
     $obj->_save_prep;
 }
 
@@ -630,14 +602,6 @@ its C<uuid> attribute. The equivalent would be:
 
 =cut
 
-sub query {
-    my $self = shift;
-    unless (ref $self) { # they called it as a class method
-        $self = $self->new;
-    }
-    $self->query(@_);
-}
-
 ##############################################################################
 
 =head3 squery
@@ -651,16 +615,6 @@ sub query {
 This method is the same as C<query>, but uses a string search instead of a
 code search.  Note that a string search is identical to a code search but the
 code is wrapped in quotes (thus being a string).
-
-=cut
-
-sub squery {
-    my $self = shift;
-    unless (ref $self) { # they called it as a class method
-        $self = $self->new;
-    }
-    $self->squery(@_);
-}
 
 =head3 Attribute Types
 
@@ -1227,8 +1181,6 @@ keyword may be used to make the search more explicit.
 
   my $iter = $store->query('Kinetic::Phony::Person' =>
                             'birthday' => BETWEEN [$date2 => $date1]);
-
-=cut
 
 =head3 Compound Function Greediness
 

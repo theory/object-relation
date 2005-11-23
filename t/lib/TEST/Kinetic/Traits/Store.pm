@@ -34,14 +34,14 @@ database.
 sub mock_dbh {
     my $test  = shift;
     my $store = Kinetic::Store->new;
-    $test->{dbh} = $store->_dbh;
+    $test->dbh( $store->_dbh );
     unless ($debugging) {    # give us an easy debugging hook
-        $test->{dbh}->begin_work;
+        $test->dbh->begin_work;
         $test->{dbi_mock} = MockModule->new( 'DBI::db', no_auto => 1 );
         $test->{dbi_mock}->mock( begin_work => 1 );
         $test->{dbi_mock}->mock( commit     => 1 );
         $test->{db_mock} = MockModule->new('Kinetic::Store::DB');
-        $test->{db_mock}->mock( _dbh => $test->{dbh} );
+        $test->{db_mock}->mock( _dbh => $test->dbh );
     }
 }
 
@@ -59,12 +59,12 @@ not previously mocked.
 sub unmock_dbh {
     my $test = shift;
     if ($debugging) {
-        $test->{dbh}->commit;
+        $test->dbh->commit;
     }
     else {
         if ( exists $test->{dbi_mock} ) {
             delete( $test->{dbi_mock} )->unmock_all;
-            $test->{dbh}->rollback unless $test->{dbh}->{AutoCommit};
+            $test->dbh->rollback unless $test->dbh->{AutoCommit};
             delete( $test->{db_mock} )->unmock_all;
         }
         else {
@@ -177,6 +177,57 @@ sub force_inflation {
         }
     }
     return $object;
+}
+
+##############################################################################
+
+=head3 clear_database
+
+  $test->clear_database;
+
+Clears the data store.
+
+=cut
+
+sub clear_database {
+
+    # Call this method if you have a test which needs an empty database.
+    my $test = shift;
+    if ( $test->{dbi_mock} ) {
+        $test->{dbi_mock}->unmock_all;
+        $test->dbh->rollback;
+        $test->dbh->begin_work;
+        $test->{dbi_mock}->mock( begin_work => 1 );
+        $test->{dbi_mock}->mock( commit     => 1 );
+    }
+    else {
+        foreach my $key ( Kinetic::Meta->keys ) {
+            next if Kinetic::Meta->for_key($key)->abstract;
+            eval { $test->{dbh}->do("DELETE FROM $key") };
+            require Carp;
+            Carp::carp("Could not delete records from $key: $@") if $@;
+        }
+    }
+}
+
+##############################################################################
+
+=head3 dbh
+
+  my $dbh = $test->dbh;
+  $test->dbh($dbh);
+
+Getter/setter for database handle.
+
+=cut
+
+sub dbh {
+    my $test = shift;
+    if (@_) {
+        $test->{dbh} = shift;
+        return $test;
+    }
+    return $test->{dbh};
 }
 
 1;

@@ -101,19 +101,23 @@ sub _init {
 
 =head3 ref_to_format
 
-  my $json = $formatter->ref_to_format;
+  my $json = $formatter->ref_to_format($reference);
 
 Converts an arbitrary reference to its JSON equivalent.
 
 =cut
 
-sub ref_to_format { shift->objToJson(@_) }
+sub ref_to_format {
+    my ( $self, $ref ) = @_;
+    $ref = $self->expand_ref($ref);
+    return $self->objToJson($ref);
+}
 
 ##############################################################################
 
 =head3 format_to_ref
 
-  my $reference = $formatter->format_to_ref;
+  my $reference = $formatter->format_to_ref($json);
 
 Converts JSON to its equivalent Perl reference.
 

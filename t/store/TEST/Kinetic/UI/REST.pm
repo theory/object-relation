@@ -12,7 +12,7 @@ use Class::Trait qw( TEST::Kinetic::Traits::HTML );
 use Test::More;
 use Test::Exception;
 use Test::WWW::Mechanize;
-use Test::XML;
+use Test::JSON;
 use XML::Parser;
 {
     local $^W;
@@ -31,6 +31,7 @@ use TEST::REST::Server;
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Store' => 'Store', ':all';
 
+use aliased 'Kinetic::UI::REST';
 use aliased 'Kinetic::DateTime';
 use aliased 'Kinetic::DateTime::Incomplete';
 use aliased 'Kinetic::Util::Iterator';
@@ -89,9 +90,9 @@ sub setup : Test(setup) {
     # when these tests end.
     my $test  = shift;
     my $store = Store->new;
-    $test->{dbh} = $store->_dbh;
-    $test->_clear_database;
-    $test->{dbh}->begin_work;
+    $test->dbh($store->_dbh);
+    $test->clear_database;
+    $test->dbh->begin_work;
     $test->create_test_objects;
     $test->desired_attributes( [qw/ state name description bool /] );
     $test->domain('http://localhost:9000')->path('rest')
@@ -99,39 +100,30 @@ sub setup : Test(setup) {
 }
 
 sub teardown : Test(teardown) {
-    shift->_clear_database;
+    shift->clear_database;
 }
 
-sub _clear_database {
-    my $test = shift;
-    foreach my $key ( Kinetic::Meta->keys ) {
-        next if Kinetic::Meta->for_key($key)->abstract;
-        eval { $test->{dbh}->do("DELETE FROM $key") };
-        diag "Could not delete records from $key: $@" if $@;
-    }
-}
-
-sub REST { shift->{REST} }
+sub server { shift->{REST} }
 
 sub constructor : Test(14) {
-    my $class = 'Kinetic::UI::REST';
-    can_ok $class, 'new';
-    throws_ok { $class->new }
+    my $test = shift;
+    can_ok REST, 'new';
+    throws_ok { REST->new }
       'Kinetic::Util::Exception::Fatal::RequiredArguments',
       '... and it should fail if domain and path are not present';
 
-    throws_ok { $class->new( domain => 'http://foo/' ) }
+    throws_ok { REST->new( domain => 'http://foo/' ) }
       'Kinetic::Util::Exception::Fatal::RequiredArguments',
       '... or if just domain is present';
 
-    throws_ok { $class->new( path => 'rest/' ) }
+    throws_ok { REST->new( path => 'rest/' ) }
       'Kinetic::Util::Exception::Fatal::RequiredArguments',
       '... or if just path is present';
 
     ok my $rest =
-      $class->new( domain => 'http://foo/', path => 'rest/server/' ),
+      REST->new( domain => 'http://foo/', path => 'rest/server/' ),
       'We should be able to create a basic REST object';
-    isa_ok $rest, $class, '... and the object';
+    isa_ok $rest, REST, '... and the object';
 
     can_ok $rest, 'domain';
     is $rest->domain, 'http://foo/',
@@ -147,12 +139,81 @@ sub constructor : Test(14) {
     is $rest->path, 'rest/server/',
       '... but we should not be able to change it';
 
-    $rest = $class->new( domain => 'http://foo', path => '/rest/server' ),
+    $rest = REST->new( domain => 'http://foo', path => '/rest/server' ),
       is $rest->domain, 'http://foo/',
       'Domains without a trailing slash should have it appended';
 
     is $rest->path, 'rest/server/',
 '... and paths should have leading slashes removed and trailing slashes added';
+}
+
+sub rest_interface : Test(no_plan) {
+    my $test  = shift;
+
+    my %object_for;
+    @object_for{qw/foo bar baz/} = $test->test_objects;
+    $_->description( $_->name . " description" )->save foreach
+      values %object_for;
+
+    my $rest  = REST->new( domain => 'http://foo/', path => 'rest/server/' );
+    $test->domain('http://foo/');
+    $test->path('rest/server/');
+
+    foreach my $method (qw/cgi status response content_type/) {
+        can_ok $rest, $method;
+        ok !$rest->$method, '... and it should be false with a new REST object';
+        $rest->$method('xxx');
+        is $rest->$method, 'xxx',
+          '... but we should be able to set it to a new value';
+    }
+
+    my $cgi_mock = MockModule->new('CGI');
+    $cgi_mock->mock( path_info => '/one/squery' );
+
+    ok $rest->handle_request( CGI->new ),
+      'Handling a good resource should succeed';
+    is $rest->status, '200 OK', '... with an appropriate status code';
+    ok $rest->response, '... and return an entity-body';
+    my $expected = <<"    END_JSON";
+    [
+      {
+        "bool" : 1,
+        "name" : "foo",
+        "_key" : "one",
+        "uuid" : "@{[$object_for{foo}->uuid]}",
+        "description" : "foo description",
+        "state" : 1
+      },
+      {
+        "bool" : 1,
+        "name" : "bar",
+        "_key" : "one",
+        "uuid" : "@{[$object_for{bar}->uuid]}",
+        "description" : "bar description",
+        "state" : 1
+      },
+      {
+        "bool" : 1,
+        "name" : "snorfleglitz",
+        "_key" : "one",
+        "uuid" : "@{[$object_for{baz}->uuid]}",
+        "description" : "snorfleglitz description",
+        "state" : 1
+      }
+    ]
+    END_JSON
+    is_json $rest->response, $expected, '... and it should be the correct JSON';
+    # Note that because of the way we're mocking up path_info, URL encoding
+    # of parameters is *not* necessary
+    return; # XXX
+    $cgi_mock->mock(
+        path_info => '/one/squery/STRING/name => "foo"/_order_by/name', );
+
+    $test->query_string('');
+    ok $rest->handle_request( CGI->new ),
+      'Searching for resources should succeed';
+    is $rest->status, '200 OK', '... with an appropriate status code';
+    ok $rest->response, '... and return an entity-body';
 }
 
 1;
@@ -232,7 +293,7 @@ sub web_test_paging : Test(15) {
         '... as should paging through result sets'
     );
 
-    $test->_clear_database;
+    $test->clear_database;
     for ( 'A' .. 'Z' ) {
         my $object = One->new;
         $object->name($_);
@@ -309,44 +370,6 @@ sub web_test : Test(12) {
 'REST strings searches with HTML type specified should return valid XHTML';
 }
 
-
-sub rest_interface : Test(19) {
-    my $test  = shift;
-    my $class = 'Kinetic::UI::REST';
-    my $rest  = $class->new( domain => 'http://foo/', path => 'rest/server/' );
-    $test->domain('http://foo/');
-    $test->path('rest/server/');
-
-    foreach my $method (qw/cgi status response content_type/) {
-        can_ok $rest, $method;
-        ok !$rest->$method, '... and it should be false with a new REST object';
-        $rest->$method('xxx');
-        is $rest->$method, 'xxx',
-          '... but we should be able to set it to a new value';
-    }
-
-    my $cgi_mock = MockModule->new('CGI');
-    $cgi_mock->mock( path_info => '/one/squery' );
-
-    ok $rest->handle_request( CGI->new ),
-      'Handling a good resource should succeed';
-    is $rest->status, '200 OK', '... with an appropriate status code';
-    ok $rest->response, '... and return an entity-body';
-
-    # Note that because of the way we're mocking up path_info, URL encoding
-    # of parameters is *not* necessary
-    $cgi_mock->mock(
-        path_info => '/one/squery/STRING/name => "foo"/_order_by/name', );
-
-    $test->query_string('');
-    ok $rest->handle_request( CGI->new ),
-      'Searching for resources should succeed';
-    is $rest->status, '200 OK', '... with an appropriate status code';
-    ok $rest->response, '... and return an entity-body';
-
-    is_well_formed_xml $rest->response,
-      '... which should be well-formed XML';
-}
 
 sub rest_faults : Test(7) {
     my $test  = shift;

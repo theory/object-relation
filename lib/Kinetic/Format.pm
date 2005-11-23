@@ -24,6 +24,7 @@ use warnings;
 use version;
 our $VERSION = version->new('0.0.1');
 
+use Scalar::Util 'blessed';
 use aliased 'Kinetic::Meta';
 use Kinetic::Util::Exceptions qw/
   throw_fatal
@@ -253,6 +254,31 @@ sub _verify_usage {
         throw_fatal [ 'Abstract class "[_1]" must not be used directly',
             __PACKAGE__ ];
     }
+}
+
+##############################################################################
+
+=head3 expand_ref
+
+  my $ref = $formatter->expand_ref($reference);
+
+Given an arbitrary data structure, this method will walk the structure and
+expand the Kinetic object founds in to hash references.
+
+=cut
+
+sub expand_ref {
+    my ($self, $ref) = @_;
+    if (blessed $ref && $ref->isa('Kinetic')) {
+        return $self->_obj_to_hashref($ref);
+    }
+    elsif ('ARRAY' eq ref $ref) {
+        $_ = $self->expand_ref($_) foreach @$ref;
+    }
+    elsif ('HASH' eq ref $ref) {
+        $_ = $self->expand_ref($_) foreach values %$ref;
+    }
+    return $ref;
 }
 
 1;

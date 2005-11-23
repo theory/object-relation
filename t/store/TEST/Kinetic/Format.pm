@@ -110,4 +110,92 @@ sub to_and_from_hashref : Test(7) {
     is_deeply $object, $foo, '... and it should be the correct object';
 }
 
+sub expand_ref : Test(no_plan) {
+    my $test = shift;
+
+    my $formatter = bless {}, $FORMAT;
+
+    my ( $foo, $bar, $baz ) = $test->test_objects;
+    can_ok $formatter, 'expand_ref';
+
+    ok my $result = $formatter->expand_ref('Ovid'),
+      '... and calling it without a reference should succeed';
+    is $result, 'Ovid', '... and return whatever we passed in';
+
+    ok my $ref = $formatter->expand_ref($foo),
+      '... and calling it with a valid Kinetic object should succeed';
+    my %expected = (
+        bool        => 1,
+        _key        => 'one',
+        name        => 'foo',
+        description => undef,
+        uuid        => $foo->uuid,
+        state       => 1
+    );
+    is_deeply $ref, \%expected, '... and it should return the correct ref';
+
+    my @array = ( $foo, $bar, $baz );
+    ok $ref = $formatter->expand_ref( \@array ),
+      '... and it should be able to properly expand array refs';
+    my @expected = (
+        {
+            'bool'        => 1,
+            '_key'        => 'one',
+            'name'        => 'foo',
+            'description' => undef,
+            'uuid'        => $foo->uuid,
+            'state'       => 1
+        },
+        {
+            'bool'        => 1,
+            '_key'        => 'one',
+            'name'        => 'bar',
+            'description' => undef,
+            'uuid'        => $bar->uuid,
+            'state'       => 1
+        },
+        {
+            'bool'        => 1,
+            '_key'        => 'one',
+            'name'        => 'snorfleglitz',
+            'description' => undef,
+            'uuid'        => $baz->uuid,
+            'state'       => 1
+        }
+    );
+    is_deeply \@array, \@expected, '... and we should get the correct values';
+
+    my %hash = ( foo => $foo, bar => $bar, baz => $baz );
+    ok $ref = $formatter->expand_ref( \%hash ),
+      '... and it should be able to properly expand hash refs';
+
+    %expected = (
+        foo => {
+            'bool'        => 1,
+            '_key'        => 'one',
+            'name'        => 'foo',
+            'description' => undef,
+            'uuid'        => $foo->uuid,
+            'state'       => 1
+        },
+        bar => {
+            'bool'        => 1,
+            '_key'        => 'one',
+            'name'        => 'bar',
+            'description' => undef,
+            'uuid'        => $bar->uuid,
+            'state'       => 1
+        },
+        baz => {
+            'bool'        => 1,
+            '_key'        => 'one',
+            'name'        => 'snorfleglitz',
+            'description' => undef,
+            'uuid'        => $baz->uuid,
+            'state'       => 1
+        }
+    );
+    is_deeply $ref, \%expected, '... and we should get the correct values';
+}
+
 1;

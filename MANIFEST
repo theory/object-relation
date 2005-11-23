@@ -48,7 +48,6 @@ lib/Kinetic/Store/Parser.pm
 lib/Kinetic/Store/Parser/Overview.pod
 lib/Kinetic/Store/Search.pm
 lib/Kinetic/UI/REST.pm
-lib/Kinetic/UI/REST/XML.pm
 lib/Kinetic/Util/Cache.pm
 lib/Kinetic/Util/Collection.pm
 lib/Kinetic/Util/Config.pm
@@ -142,7 +141,6 @@ t/store/TEST/Kinetic/Store/DB/Pg.pm
 t/store/TEST/Kinetic/Store/DB/SQLite.pm
 t/store/TEST/Kinetic/Store/Search.pm
 t/store/TEST/Kinetic/UI/REST.pm
-t/store/TEST/Kinetic/UI/REST/XML.pm
 t/store/TEST/Kinetic/View/XSLT.pm
 t/store/TEST/Kinetic/XML.pm
 t/store/TEST/Kinetic/XML/Meta.pm

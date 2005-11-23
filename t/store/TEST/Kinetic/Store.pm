@@ -32,14 +32,14 @@ __PACKAGE__->runtests unless caller;
 sub save : Test(10) {
     my $test  = shift;
     return unless $test->_should_run;
-    $test->_clear_database;
+    $test->clear_database;
     my $one = One->new;
     $one->name('Ovid');
     $one->description('test class');
 
     my $store = Store->new;
     can_ok $store, 'save';
-    my $dbh = $test->{dbh};
+    my $dbh = $test->dbh;
     my $result = $dbh->selectrow_hashref('SELECT id, uuid, name, description, state, bool FROM one');
     ok ! $result, 'We should start with a fresh database';
     ok $one->save, 'and saving an object should be successful';
@@ -453,7 +453,7 @@ sub search_subs_lex_correctly : Test(47) {
 sub search_incomplete_date_boundaries : Test(6) {
     my $test = shift;
     return unless $test->_should_run;
-    $test->_clear_database;
+    $test->clear_database;
 
     my $june17 = Two->new;
     $june17->name('june17');
@@ -512,7 +512,7 @@ sub search_incomplete_date_boundaries : Test(6) {
 sub search_incomplete_dates : Test(25) {
     my $test = shift;
     return unless $test->_should_run;
-    $test->_clear_database;
+    $test->clear_database;
     my $theory = Two->new;
     $theory->name('David');
     $theory->one->name('david_one_name');
@@ -649,7 +649,7 @@ sub search_incomplete_dates : Test(25) {
 sub string_search_incomplete_dates : Test(25) {
     my $test = shift;
     return unless $test->_should_run;
-    $test->_clear_database;
+    $test->clear_database;
     my $theory = Two->new;
     $theory->name('David');
     $theory->one->name('david_one_name');
@@ -806,7 +806,7 @@ sub string_search_incomplete_dates : Test(25) {
 sub search_dates : Test(8) {
     my $test = shift;
     return unless $test->_should_run;
-    $test->_clear_database;
+    $test->clear_database;
     my $theory = Two->new;
     $theory->name('David');
     $theory->one->name('david_one_name');
@@ -857,7 +857,7 @@ sub search_dates : Test(8) {
 sub string_search_dates : Test(8) {
     my $test = shift;
     return unless $test->_should_run;
-    $test->_clear_database;
+    $test->clear_database;
     my $theory = Two->new;
     $theory->name('David');
     $theory->one->name('david_one_name');
@@ -912,7 +912,7 @@ sub string_search_dates : Test(8) {
 sub search_compound : Test(9) {
     my $test = shift;
     return unless $test->_should_run;
-    $test->_clear_database;
+    $test->clear_database;
     my $store = Store->new;
     can_ok $store, 'query';
     my $foo = Two->new;
@@ -962,7 +962,7 @@ sub search_compound : Test(9) {
 sub string_search_compound : Test(9) {
     my $test = shift;
     return unless $test->_should_run;
-    $test->_clear_database;
+    $test->clear_database;
     my $store = Store->new;
     can_ok $store, 'query';
     my $foo = Two->new;
@@ -1495,7 +1495,7 @@ sub search_overloaded : Test(11) {
 sub lookup : Test(8) {
     my $test  = shift;
     return unless $test->_should_run;
-    $test->_clear_database;
+    $test->clear_database;
     my $one = One->new;
     $one->name('Ovid');
     $one->description('test class');
@@ -1523,7 +1523,7 @@ sub lookup : Test(8) {
 sub lookup_by_key : Test(8) {
     my $test  = shift;
     return unless $test->_should_run;
-    $test->_clear_database;
+    $test->clear_database;
     my $one = One->new;
     $one->name('Ovid');
     $one->description('test class');

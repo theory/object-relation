@@ -48,7 +48,7 @@ sub lookup : Test(8) {
     return unless $test->_should_run;
     # XXX This method seems to be defined in a subclass. How can it be okay
     # to use it here?
-    $test->_clear_database;
+    $test->clear_database;
     my $one = One->new;
     $one->name('divO');
     $one->description('ssalc tset');
@@ -70,13 +70,13 @@ sub lookup : Test(8) {
 sub save : Test(10) {
     my $test  = shift;
     return unless $test->_should_run;
-    $test->_clear_database;
+    $test->clear_database;
     my $one = One->new;
     $one->name('Ovid');
     $one->description('test class');
 
     can_ok One, 'save';
-    my $dbh = $test->{dbh};
+    my $dbh = $test->dbh;
     my $result = $dbh->selectrow_hashref('SELECT id, uuid, name, description, state, bool FROM one');
     ok ! $result, 'We should start with a fresh database';
     ok $one->save, 'and saving an object should be successful';

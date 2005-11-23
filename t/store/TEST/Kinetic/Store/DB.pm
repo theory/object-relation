@@ -32,7 +32,7 @@ __PACKAGE__->runtests unless caller;
 sub _num_recs {
     my ( $test, $table ) = @_;
     my $result =
-      $test->{dbh}->selectrow_arrayref("SELECT count(*) FROM $table");
+      $test->dbh->selectrow_arrayref("SELECT count(*) FROM $table");
     return $result->[0];
 }
 
@@ -51,18 +51,7 @@ sub teardown : Test(teardown) {
 
 sub shutdown : Test(shutdown) {
     my $test = shift;
-    $test->{dbh}->disconnect;
-}
-
-sub _clear_database {
-
-    # Call this method if you have a test which needs an empty database.
-    my $test = shift;
-    $test->{dbi_mock}->unmock_all;
-    $test->{dbh}->rollback;
-    $test->{dbh}->begin_work;
-    $test->{dbi_mock}->mock( begin_work => 1 );
-    $test->{dbi_mock}->mock( commit     => 1 );
+    $test->dbh->disconnect;
 }
 
 sub test_id : Test(5) {
@@ -94,7 +83,7 @@ sub test_dbh : Test(2) {
         throws_ok { $class->_dbh }
           'Kinetic::Util::Exception::Fatal::Unimplemented',
           "_dbh should throw an exception";
-        $test->{db_mock}->mock( _dbh => $test->{dbh} );
+        $test->{db_mock}->mock( _dbh => $test->dbh );
     }
     else {
         ok @{ [ $class->new->_connect_args ] },

@@ -24,8 +24,10 @@ our $VERSION = version->new('0.0.1');
 
 use Kinetic::Util::Constants qw/:http :rest/;
 use Kinetic::Util::Exceptions qw/throw_required/;
-use aliased 'Kinetic::View::XSLT';
+
 #use aliased 'Kinetic::UI::REST::XML';
+use aliased 'Kinetic::Format::JSON';
+use aliased 'Kinetic::UI::REST::JSON', 'Dispatch';
 
 use aliased 'Array::AsHash';
 use URI::Escape qw/uri_unescape/;
@@ -132,31 +134,27 @@ L<CGI|CGI> interface.
 sub handle_request {
     my ( $self, $cgi ) = @_;
     $self->cgi($cgi)->status('')->response('')->content_type('');
-    $self->desired_content_type($XML_CT);
-    if ( my $type = $cgi->param($TYPE_PARAM) ) {
-        my $desired_content_type =
-          'html'   eq lc $type ? $HTML_CT
-          : 'text' eq lc $type ? $TEXT_CT
-          : $XML_CT;
-        $self->desired_content_type($desired_content_type);
-    }
+    $self->desired_content_type($TEXT_CT);
 
     my ( $class_key, $method, @args ) = $self->_get_request;
     $_ = uri_unescape($_) foreach @args;
 
-    # the following variables should be case-insensitive
+    ## the following variables should be case-insensitive
     $_ = lc foreach $class_key, $method;
 
-    my $dispatch = XML->new( { rest => $self } );
+    my $dispatch = Dispatch->new( { rest => $self } );
+    # later we'll want to handle other format types
+    $dispatch->formatter(JSON->new);
     eval {
         if ($class_key)
         {
-            $dispatch->class_key($class_key)->method($method)
-              ->args( AsHash->new( { array => \@args } ) )->handle_rest_request;
+            $dispatch->class_key($class_key)
+              ->handle_rest_request( $method, @args );
         }
         else {
-            $self->xslt('resources');
-            $dispatch->class_list;
+
+            # XXX set this up later
+            #$dispatch->class_list;
         }
     };
     if ( my $error = $@ ) {
@@ -227,6 +225,16 @@ sub _get_request {
     if ( !@request || ( $self->cgi->param || 0 ) > 1 ) {
         @request = $self->_get_request_from_query_string;
     }
+    if ( lc $request[0] =~ /^squery/ ) {
+        if ( !@request % 2 ) {
+
+            # XXX we have constraints.  Add a null search after the method
+            # name.  we got to here because constraints are always an even
+            # sized list and the constraint plus the method name makes an odd
+            # sized list (hence the !@request % 2)
+            splice @request, 1, 0, '';
+        }
+    }
     return @request;
 }
 
@@ -286,26 +294,6 @@ sub status {
     my $self = shift;
     return $self->{status} unless @_;
     $self->{status} = shift;
-    return $self;
-}
-
-##############################################################################
-
-=head3 xslt
-
-  my $xslt = $rest->xslt;
-
-If the call to C<handle_request()> succeeded, this method should return the
-type of XSLT suitable for transforming the XML.
-
-Available XSLT types are listed in L<Kinetic::View::XSLT|Kinetic::View::XSLT>.
-
-=cut
-
-sub xslt {
-    my $self = shift;
-    return $self->{xslt} unless @_;
-    $self->{xslt} = shift;
     return $self;
 }
 
@@ -464,29 +452,6 @@ sub resource_path {
     $resource_path .= '/' unless $resource_path =~ /\/$/;
 
     return '/' eq $resource_path ? '' : $resource_path;
-}
-
-##############################################################################
-
-=head3 set_response
-
-  $rest->set_response($xml, [$type]);
-
-This method, when passed $xml and an optional response type (defaults to
-'search'), will set the content-type and entity-body of the REST response.
-
-=cut
-
-sub set_response {
-    my ( $self, $xml, $type ) = @_;
-    my $content_type = $self->desired_content_type || $XML_CT;
-    my $content = $xml;
-    if ( $HTML_CT eq $content_type ) {
-        $type ||= $self->xslt;
-        my $xslt = XSLT->new( type => $type );
-        $content = $xslt->transform($xml);
-    }
-    $self->content_type($content_type)->response($content);
 }
 
 1;

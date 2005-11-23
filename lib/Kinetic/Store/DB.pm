@@ -46,6 +46,21 @@ use aliased 'Kinetic::Store::Search';
 
 my %SEARCH_TYPE_FOR = map { $_ => 1 } qw/CODE STRING XML/;
 
+my @setup_string_methods = qw(
+  query
+  query_uuids
+);
+foreach my $method (@setup_string_methods) {
+    my $string_method = "s$method";
+    no strict 'refs';
+    *$string_method = sub {
+        my $proto        = shift;
+        my $search_class = shift;
+        unshift @_, $proto, $search_class, 'STRING';
+        goto &$method;
+    };
+}
+
 =head1 Name
 
 Kinetic::Store::DB - The Kinetic database store base class
@@ -189,6 +204,13 @@ multiple SQL calls to assemble the data.
 
 =end comment
 
+=head3 squery
+
+  my $iter = $kinetic_object->squery(@search_params);
+
+Identical to C<query>, but uses string search syntax.  This method does B<not>
+expect the value 'STRING' at the front of a query.
+
 =cut
 
 sub query {
@@ -205,24 +227,6 @@ sub query {
 
 ##############################################################################
 
-=head3 squery
-
-  my $iter = $kinetic_object->squery(@search_params);
-
-Identical to C<query>, but uses string search syntax.  This method does B<not>
-expect the value 'STRING' at the front of a query.
-
-=cut
-
-sub squery {
-    my $proto        = shift;
-    my $search_class = shift;
-    unshift @_, $proto, $search_class, 'STRING';
-    goto &query;
-}
-
-##############################################################################
-
 =head3 query_uuids
 
   my @uuids = Store->query_uuids($search_class, \@attributes, \%constraints);
@@ -231,6 +235,13 @@ sub squery {
 This method will return a list of uuids matching the listed criteria.  It
 takes the same arguments as C<query>.  In list context it returns a list.  In
 scalar context it returns an array reference.
+
+=head3 squery_uuids
+
+  my @uuids = Store->squery_uuids($search_class, "@attributes", @constraints);
+  my $uuids = Store->squery_uuids($search_class, "@attributes", @constraints);
+
+Identical to C<query_uuids>, but uses string search syntax.
 
 =cut
 
