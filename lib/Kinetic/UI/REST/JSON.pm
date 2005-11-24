@@ -186,6 +186,7 @@ sub _handle_method {
             }
             $response = \@response;
         }
+        # XXX Why not make ref_to_format() handle iterators and collections?
         $response = $self->formatter->ref_to_format($response);
         return $self->rest->response($response);
     }

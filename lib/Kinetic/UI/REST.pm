@@ -114,20 +114,12 @@ sub _validate_args {
 }
 
 ##############################################################################
-# Class Methods
-##############################################################################
-
-=head2 Class Methods
-
-##############################################################################
 # Instance Methods.
 ##############################################################################
 
 =head1 Instance Interface
 
 =head2 Public methods
-
-##############################################################################
 
 =head3 handle_request
 
@@ -154,14 +146,14 @@ sub handle_request {
     # later we'll want to handle other format types
     $dispatch->formatter( JSON->new );
     eval {
-        if ($class_key)
-        {
+        if ($class_key) {
             $dispatch->class_key($class_key)
               ->handle_rest_request( $method, @args );
         }
         else {
 
             # XXX set this up later
+            # XXX What would it be?
             #$dispatch->class_list;
         }
     };
