@@ -29,8 +29,15 @@ use Kinetic::Util::Exceptions qw/throw_required/;
 use aliased 'Kinetic::Format::JSON';
 use aliased 'Kinetic::UI::REST::JSON', 'Dispatch';
 
-use aliased 'Array::AsHash';
 use URI::Escape qw/uri_unescape/;
+
+use Class::BuildMethods qw(
+  cgi
+  response
+  status
+  desired_content_type
+  content_type
+);
 
 =head1 Name
 
@@ -143,8 +150,9 @@ sub handle_request {
     $_ = lc foreach $class_key, $method;
 
     my $dispatch = Dispatch->new( { rest => $self } );
+
     # later we'll want to handle other format types
-    $dispatch->formatter(JSON->new);
+    $dispatch->formatter( JSON->new );
     eval {
         if ($class_key)
         {
@@ -225,15 +233,15 @@ sub _get_request {
     if ( !@request || ( $self->cgi->param || 0 ) > 1 ) {
         @request = $self->_get_request_from_query_string;
     }
-    if ( lc $request[0] =~ /^squery/ ) {
-        if ( !@request % 2 ) {
+    if ( $request[1] =~ /^squery/ ) {
 
-            # XXX we have constraints.  Add a null search after the method
-            # name.  we got to here because constraints are always an even
-            # sized list and the constraint plus the method name makes an odd
-            # sized list (hence the !@request % 2)
-            splice @request, 1, 0, '';
+        # XXX we're a little verbose here to make this self-documenting.
+        my $class_key = shift @request;
+        my $method    = shift @request;
+        if ( !( @request % 2 ) ) {
+            unshift @request => '';
         }
+        unshift @request => $class_key, $method;
     }
     return @request;
 }
@@ -288,32 +296,12 @@ sub _get_request_from_query_string {
 If the call to C<handle_request> succeeded, this method should return a status
 suitable for use in an HTTP header.
 
-=cut
-
-sub status {
-    my $self = shift;
-    return $self->{status} unless @_;
-    $self->{status} = shift;
-    return $self;
-}
-
-##############################################################################
-
 =head3 response
 
   my $response = $rest->response;
 
 If the call to C<handle_request()> succeeded, this method will return the
 response.
-
-=cut
-
-sub response {
-    my $self = shift;
-    return $self->{response} unless @_;
-    $self->{response} = shift;
-    return $self;
-}
 
 ##############################################################################
 
@@ -324,34 +312,12 @@ sub response {
 If the call to C<handle_request()> succeeded, this method will return the
 content-type expected by the client.
 
-=cut
-
-sub desired_content_type {
-    my $self = shift;
-    return $self->{desired_content_type} unless @_;
-    $self->{desired_content_type} = shift;
-    return $self;
-}
-
-##############################################################################
-
 =head3 content_type
 
   my $content_type = $rest->content_type;
 
 If the call to C<handle_request> succeeded, this method should return a
 content-type suitable for use in an HTTP header.
-
-=cut
-
-sub content_type {
-    my $self = shift;
-    return $self->{content_type} unless @_;
-    $self->{content_type} = shift;
-    return $self;
-}
-
-##############################################################################
 
 =head3 cgi
 
@@ -362,17 +328,6 @@ object.
 
 In general, we wish to limit access to this as much as possible, so use
 sparingly.
-
-=cut
-
-sub cgi {
-    my $self = shift;
-    return $self->{cgi} unless @_;
-    $self->{cgi} = shift;
-    return $self;
-}
-
-##############################################################################
 
 =head3 domain
 

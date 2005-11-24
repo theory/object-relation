@@ -6,14 +6,13 @@ use strict;
 use warnings;
 
 use base 'TEST::Class::Kinetic';
-use Class::Trait qw( TEST::Kinetic::Traits::Store );
-use Class::Trait qw( TEST::Kinetic::Traits::XML );
-use Class::Trait qw( TEST::Kinetic::Traits::HTML );
+use Class::Trait qw(
+  TEST::Kinetic::Traits::Store
+  TEST::Kinetic::Traits::HTML
+);
 use Test::More;
 use Test::Exception;
-use Test::WWW::Mechanize;
 use Test::JSON;
-use XML::Parser;
 {
     local $^W;
 
@@ -23,9 +22,9 @@ use XML::Parser;
     require WWW::REST;
 }
 
-use Kinetic::Util::Constants qw/:rest :xslt :labels/;
+use Kinetic::Util::Constants qw/:http :rest/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
-BEGIN { sig_handlers(1) }
+BEGIN { sig_handlers(0) }
 use TEST::REST::Server;
 
 use aliased 'Test::MockModule';
@@ -90,7 +89,7 @@ sub setup : Test(setup) {
     # when these tests end.
     my $test  = shift;
     my $store = Store->new;
-    $test->dbh($store->_dbh);
+    $test->dbh( $store->_dbh );
     $test->clear_database;
     $test->dbh->begin_work;
     $test->create_test_objects;
@@ -120,8 +119,7 @@ sub constructor : Test(14) {
       'Kinetic::Util::Exception::Fatal::RequiredArguments',
       '... or if just path is present';
 
-    ok my $rest =
-      REST->new( domain => 'http://foo/', path => 'rest/server/' ),
+    ok my $rest = REST->new( domain => 'http://foo/', path => 'rest/server/' ),
       'We should be able to create a basic REST object';
     isa_ok $rest, REST, '... and the object';
 
@@ -147,15 +145,15 @@ sub constructor : Test(14) {
 '... and paths should have leading slashes removed and trailing slashes added';
 }
 
-sub rest_interface : Test(no_plan) {
-    my $test  = shift;
+sub rest_interface : Test(32) {
+    my $test = shift;
 
     my %object_for;
     @object_for{qw/foo bar baz/} = $test->test_objects;
     $_->description( $_->name . " description" )->save foreach
       values %object_for;
 
-    my $rest  = REST->new( domain => 'http://foo/', path => 'rest/server/' );
+    my $rest = REST->new( domain => 'http://foo/', path => 'rest/server/' );
     $test->domain('http://foo/');
     $test->path('rest/server/');
 
@@ -170,9 +168,8 @@ sub rest_interface : Test(no_plan) {
     my $cgi_mock = MockModule->new('CGI');
     $cgi_mock->mock( path_info => '/one/squery' );
 
-    ok $rest->handle_request( CGI->new ),
-      'Handling a good resource should succeed';
-    is $rest->status, '200 OK', '... with an appropriate status code';
+    ok $rest->handle_request( CGI->new ), 'An empty squery should succeed';
+    is $rest->status, $HTTP_OK, '... with an appropriate status code';
     ok $rest->response, '... and return an entity-body';
     my $expected = <<"    END_JSON";
     [
@@ -203,241 +200,145 @@ sub rest_interface : Test(no_plan) {
     ]
     END_JSON
     is_json $rest->response, $expected, '... and it should be the correct JSON';
+
     # Note that because of the way we're mocking up path_info, URL encoding
     # of parameters is *not* necessary
-    return; # XXX
-    $cgi_mock->mock(
-        path_info => '/one/squery/STRING/name => "foo"/_order_by/name', );
 
-    $test->query_string('');
+    $cgi_mock->mock( path_info => '/one/squery/name => "foo"/order_by/name', );
+
     ok $rest->handle_request( CGI->new ),
-      'Searching for resources should succeed';
-    is $rest->status, '200 OK', '... with an appropriate status code';
+      'An squery with a query and constraints should succeed';
+    is $rest->status, $HTTP_OK, '... with an appropriate status code';
     ok $rest->response, '... and return an entity-body';
+    $expected = <<"    END_JSON";
+    [
+      {
+        "bool" : 1,
+        "name" : "foo",
+        "_key" : "one",
+        "uuid" : "@{[$object_for{foo}->uuid]}",
+        "description" : "foo description",
+        "state" : 1
+      }
+    ]
+    END_JSON
+    is_json $rest->response, $expected, '... and it should be the correct JSON';
+
+    $cgi_mock->mock( path_info => '/one/squery/order_by/name', );
+
+    ok $rest->handle_request( CGI->new ),
+      'An squery with constraints but no query should succeed';
+    is $rest->status, $HTTP_OK, '... with an appropriate status code';
+    ok $rest->response, '... and return an entity-body';
+
+    $expected = <<"    END_JSON";
+    [
+      {
+        "bool" : 1,
+        "name" : "bar",
+        "_key" : "one",
+        "uuid" : "@{[$object_for{bar}->uuid]}",
+        "description" : "bar description",
+        "state" : 1
+      },
+      {
+        "bool" : 1,
+        "name" : "foo",
+        "_key" : "one",
+        "uuid" : "@{[$object_for{foo}->uuid]}",
+        "description" : "foo description",
+        "state" : 1
+      },
+      {
+        "bool" : 1,
+        "name" : "snorfleglitz",
+        "_key" : "one",
+        "uuid" : "@{[$object_for{baz}->uuid]}",
+        "description" : "snorfleglitz description",
+        "state" : 1
+      }
+    ]
+    END_JSON
+    is_json $rest->response, $expected, '... and it should be the correct JSON';
+
+    $cgi_mock->mock( path_info => '/one/squery_uuids/order_by/name/' );
+    ok $rest->handle_request( CGI->new ),
+      'squery_uuids with constraints but no query should succeed';
+    is $rest->status, $HTTP_OK, '... with an appropriate status code';
+    ok $rest->response, '... and we should have a response';
+    $expected = <<"    END_JSON";
+    [
+        "@{[$object_for{bar}->uuid]}",
+        "@{[$object_for{foo}->uuid]}",
+        "@{[$object_for{baz}->uuid]}"
+    ]
+    END_JSON
+    is_json $rest->response, $expected, '... and it should be the correct JSON';
+
+    $cgi_mock->mock(
+        path_info => '/one/lookup/uuid/' . $object_for{bar}->uuid );
+    ok $rest->handle_request( CGI->new ),
+      '$class_key/lookup/uuid/$uuid should succeed';
+    is $rest->status, $HTTP_OK, '... with an appropriate status code';
+    ok $rest->response, '... and we should have a response';
+
+    $expected = <<"    END_JSON";
+      {
+        "bool" : 1,
+        "name" : "bar",
+        "_key" : "one",
+        "uuid" : "@{[$object_for{bar}->uuid]}",
+        "description" : "bar description",
+        "state" : 1
+      }
+    END_JSON
+    is_json $rest->response, $expected,
+      '... and it should be the correct response';
 }
 
-1;
-__END__
-
-sub search_by_query_string : Test(6) {
+sub rest_faults : Test(11) {
     my $test = shift;
-    my $mech = Test::WWW::Mechanize->new;
-    my $url  = $test->url;
 
-    my ( $foo, $bar, $baz ) = $test->test_objects;
-    $test->query_string('');
+    my %object_for;
+    @object_for{qw/foo bar baz/} = $test->test_objects;
+    $_->description( $_->name . " description" )->save foreach
+      values %object_for;
 
-    $mech->get_ok(
-"${url}?$CLASS_KEY_PARAM=one;query=;_order_by=name;_limit=2;_sort_order=",
-        'We should be able to search by query string'
-    );
-
-    my $response           = $mech->content;
-
-    is_well_formed_xml $response, '... and should return well-formed XML';
-
-    $test->query_string("$TYPE_PARAM=html");
-    $mech->get_ok(
-"${url}?$CLASS_KEY_PARAM=one;query=;_order_by=name;_limit=2;_sort_order=;$TYPE_PARAM=html",
-        'We should be able to fetch and limit the searches'
-    );
-
-    is_well_formed_xml $mech->content,
-      '... ordering and limiting searches should return well-formed xml';
-
-    $mech->get_ok(
-"${url}?$CLASS_KEY_PARAM=one;query=;_order_by=name;_limit=2;_sort_order=;_offset=2;$TYPE_PARAM=html",
-        '... as should paging through result sets'
-    );
-
-    is_well_formed_xml $mech->content, 
-      '... ordering and limiting searches should return well-formed xml';
-}
-
-sub web_test_paging : Test(15) {
-    my $test = shift;
-    my $mech = Test::WWW::Mechanize->new;
-    my $url  = $test->url;
-
-    my ( $foo, $bar, $baz ) = $test->test_objects;
-    $test->query_string('');
-
-    $mech->get_ok(
-        "${url}one/squery/STRING/null/_order_by/name/_limit/2",
-        'We should be able to fetch and limit the searches'
-    );
-
-    my $response       = $mech->content;
-
-    is_well_formed_xml $response, 
-      '... and the response should be well-formed XML';
-
-    $test->query_string("$TYPE_PARAM=html");
-    $mech->get_ok(
-"${url}one/squery/STRING/null/_order_by/name/_limit/2?$TYPE_PARAM=html",
-        'We should be able to fetch and limit the searches'
-    );
-
-    is_well_formed_xml $mech->content,
-      '... ordering and limiting searches should work';
-
-    $mech->get_ok(
-"${url}one/squery/STRING/null/_order_by/name/_limit/2/_offset/2?$TYPE_PARAM=html",
-        '... as should paging through result sets'
-    );
-    is_well_formed_xml $mech->content,
-      '... ordering and limiting searches should work';
-
-    $mech->get_ok(
-"${url}one/squery/STRING/null/_order_by/name/_limit/2/_offset/2?$TYPE_PARAM=html",
-        '... as should paging through result sets'
-    );
-
-    $test->clear_database;
-    for ( 'A' .. 'Z' ) {
-        my $object = One->new;
-        $object->name($_);
-        $object->save;
-    }
-
-    # now that we have 26 "One" objects in the database, let's make sure
-    # that the default max list is 20
-    # We should also get two pages listed, but the current page is not linked
-    $mech->get_ok(
-        "${url}one/squery?$TYPE_PARAM=html",
-        '... as should paging through result sets'
-    );
-    my @links = $mech->links;
-    is @links, 88,
-'We should receive 80 instance links, 1 page link, 3 resource links and 4 header links';
-
-    $mech->get_ok( "${url}one/squery/STRING/null/_limit/30?$TYPE_PARAM=html",
-        'Asking for more than the limit should work' );
-    @links = $mech->links;
-    is @links, 111, '... and return only instance links';
-
-    $mech->get_ok( "${url}one/squery/STRING/null/_limit/10?$TYPE_PARAM=html",
-        'Asking for fewer than the limit should work' );
-    @links = $mech->links;
-    is @links, 49, '... and return the correct number of links';
-
-    $mech->get_ok(
-        "${url}one/squery/STRING/null/_limit/26?$TYPE_PARAM=html",
-        'Asking for exactly the number of links that exist should work'
-    );
-    @links = $mech->links;
-    is @links, 111, '... and return no page links';
-}
-
-sub web_test : Test(12) {
-    my $test = shift;
-    my $mech = Test::WWW::Mechanize->new;
-    my $url  = $test->url;
-
-    $mech->get_ok( $url, 'Gettting the main page should succeed' );
-    ok !$mech->is_html, '... but it should not return HTML';
-    $mech->get_ok( "$url?$TYPE_PARAM=html",
-        'We should be able to fetch the main page and ask for HTML' );
-    ok $mech->is_html, '... and get HTML back';
-    $mech->title_is( $AVAILABLE_RESOURCES,
-        '... and fetching the root should return a list of resources' );
-
-    $mech->follow_link_ok(
-        { url_regex => qr/simple/ },
-        '... and fetching a class link should succeed',
-    );
-    $mech->title_is( $AVAILABLE_INSTANCES,
-        '... and fetching the a class should return a list of instances' );
-
-    my ( $foo, $bar, $baz ) = $test->test_objects;
-    my $foo_uuid = $foo->uuid;
-
-    $mech->follow_link_ok(
-        { url_regex => qr/$foo_uuid/ },
-        '... and fetching an instance link should succeed',
-    );
-    $mech->title_is( 'simple',
-        '... and fetching an instance of a class should return the html for it'
-    );
-    $mech->content_like( qr/$foo_uuid/,
-        '... and it should be able to identify the object' );
-
-    $mech->get_ok(
-        qq'${url}one/squery/STRING/name => "foo"?$TYPE_PARAM=html',
-        'We should be able to fetch via a search' );
-
-    is_well_formed_xml $mech->content,
-'REST strings searches with HTML type specified should return valid XHTML';
-}
-
-
-sub rest_faults : Test(7) {
-    my $test  = shift;
-    my $class = 'Kinetic::UI::REST';
-    my $rest  = $class->new( domain => 'http://foo/', path => 'rest/server/' );
+    my $rest = REST->new( domain => 'http://foo/', path => 'rest/server/' );
     $test->domain('http://foo/');
     $test->path('rest/server/');
 
-    # set up necessary mocked packages for handle_request() tests
-    can_ok $rest, 'handle_request';
     my $cgi_mock = MockModule->new('CGI');
-    $cgi_mock->mock( path_info => '/foo/bar' );
+    $cgi_mock->mock( path_info => '/one/query' );
 
     ok $rest->handle_request( CGI->new ),
-      '... and handling a bad resource should succeed';
-    is $rest->status, '501 Not Implemented',
-      '... with an appropriate status code';
-    is $rest->response, 'No resource available to handle (/foo/bar)',
-      '... and a human readable response';
+      'An unavailable method should succeed';
+  TODO: {
+        local $TODO = 'Not sure of the best way to restrict these methods';
+        is $rest->status, $HTTP_NOT_IMPLEMENTED,
+          '... with an appropriate status code';
+    }
+    ok $rest->response, '... and return an entity-body';
 
-    my $dispatch_mock = MockModule->new('Kinetic::UI::REST::XML');
-    $dispatch_mock->mock( _handle_rest_request => sub { die "woobly" } );
+    $cgi_mock->mock( path_info => '/one/no_such_method/' );
+
     ok $rest->handle_request( CGI->new ),
-      'Handling a fatal resource should succeed';
-    is $rest->status, '501 Not Implemented',
+      'An unavailable method should succeed';
+    is $rest->status, $HTTP_NOT_IMPLEMENTED,
       '... with an appropriate status code';
-    is $rest->response, 'No resource available to handle (/foo/bar)',
-      '... and a human readable response';
-}
+    ok $rest->response, '... and return an entity-body';
+    like $rest->response,
+qr{\QNo resource available to handle (/one/no_such_method/no_such_method)},
+      '... with a reasonable error message';
 
-sub basic_services : Test(3) {
-    my $test = shift;
-    my $rest = $test->REST;
-    my $url  = $test->url;
-
-    throws_ok { $rest->url('no_such_resource/')->get } qr/501 Not Implemented/,
-      '... as should calling it with a non-existent resource';
-
-    $test->query_string('');
-    my $header    = $test->header_xml($AVAILABLE_RESOURCES);
-    my $resources = $test->resource_list_xml;
-    my $expected  = <<"    END_XML";
-$header
-    $resources
-    </kinetic:resources>
-    END_XML
-    is_xml $rest->get, $expected,
-      'Calling it without a resource should return a list of resources';
-
-    my $key     = One->my_class->key;
-    my $one_xml = $rest->url("$key/squery")->get;
-
-    is_well_formed_xml $one_xml,
-      'Calling it with a resource/squery should return well-formed_xml';
-}
-
-sub xslt : Test(3) {
-    my $test = shift;
-    my $rest = $test->REST;
-
-    is_well_formed_xml $rest->get( stylesheet => 'instance' ),
-      'Requesting an "instance" stylesheet should return valid xml';
-
-    is_well_formed_xml $rest->get( stylesheet => 'search' ),
-      'Requesting a "search" stylesheet should return valid xml';
-
-    is_well_formed_xml $rest->get( stylesheet => 'resources' ),
-      'Requesting a "resources" stylesheet should return valid xml';
+    $cgi_mock->mock( path_info => '/one/squery/name' );
+    ok $rest->handle_request( CGI->new ), 'An malformed squery should succeed';
+    is $rest->status, $HTTP_INTERNAL_SERVER_ERROR,
+      '... with an appropriate status code';
+    ok $rest->response, '... and return an entity-body';
+    like $rest->response,
+qr{\QFatal error handling /one/squery/name: Could not parse search request},
+      '... with a reasonable error message';
 }
 
 1;

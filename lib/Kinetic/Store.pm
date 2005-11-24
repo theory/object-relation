@@ -170,8 +170,9 @@ foreach my $method (@redispatch) {
             $self = $self->new;
         }
         $self->$method(@_);
-      }
+    };
 }
+
 
 ##############################################################################
 # Constructors

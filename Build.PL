@@ -15,6 +15,7 @@ my $build = Kinetic::Build->new(
     requires             => {
         'aliased'                    => 0.11,
         'Array::AsHash'              => 0.12,
+        'Class::BuildMethods'        => 0.10,
         'Class::Delegator'           => 0.04,
         'Class::Meta'                => 0.49,
         'Clone'                      => 0.15,

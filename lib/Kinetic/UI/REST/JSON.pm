@@ -23,7 +23,6 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use Array::AsHash;
 use Scalar::Util qw/blessed/;
 
 use aliased 'Kinetic::Util::Iterator';
