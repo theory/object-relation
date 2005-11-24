@@ -94,9 +94,17 @@ behaviors:
 
 =item *
 
-Makes sure that unique attributes are always indexed, and to ensure that the
-C<relationship> parameter is either undefined or one of a valid list of
-values. See L<relationship|"relationship"> for a list of valid relationships.
+Makes sure that distrinct attributes are also unique.
+
+=item *
+
+Makes sure that unique attributes are always indexed.
+
+=item
+
+Ensures that the C<relationship> parameter is either undefined or one of a
+valid list of values. See L<relationship|"relationship"> for a list of valid
+relationships.
 
 =item *
 
@@ -125,8 +133,10 @@ my %RELATIONSHIPS = (
 
 sub new {
     my $self = shift->SUPER::new(@_);
+    $self->{unique}   ||= $self->{distinct};
     $self->{indexed}  ||= $self->{unique};
     $self->{persistent} = 1 unless defined $self->{persistent};
+
     if (exists $self->{relationship}) {
         $self->class->handle_error(
            qq{I don't know what a "$self->{relationship}" relationship is}
@@ -175,11 +185,30 @@ sub widget_meta { shift->{widget_meta} }
 
   my $unique = $attr->unique;
 
-Returns true if an attribute is unique across all objects of a class.
+Returns true if an attribute is unique across all objects of a class, as long
+as its state is greater than DELETED--that is, INACTIVE, ACTIVE, or PERMANENT.
+In other words, An object with a unique attribute may have an value for that
+attribute that is the same as the value of the same attribute in one or more
+deleted objects.
 
 =cut
 
 sub unique { shift->{unique} }
+
+##############################################################################
+
+=head3 distinct
+
+  my $distinct = $attr->distinct;
+
+Returns true if an attribute is distinct across all objects of a class. This
+differs from the C<unique> attribute in ensuring that, regardless of an
+object's state, only one instance of a value for the attribute can exist in
+the data store.
+
+=cut
+
+sub distinct { shift->{distinct} }
 
 ##############################################################################
 

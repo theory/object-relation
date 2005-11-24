@@ -33,6 +33,21 @@ for my $class ($sg->classes) {
     ok $class->is_a('Kinetic'), "Class is a Kinetic";
 }
 
+# XXX Hanky-panky. You didn't see this. Necessary for testing C<unique>
+# attributes without unduly affecting other tests. I plan to change this soon
+# by adding new attributes.
+{
+    for my $spec (
+        [ simple => 'name'],
+        [ two    => 'date'],
+    ) {
+        my $class = Kinetic::Meta->for_key($spec->[0]);
+        my $attr  = $class->attributes($spec->[1]);
+        $attr->{unique}  = 1;
+        $attr->{indexed} = 1;
+    }
+}
+
 ##############################################################################
 # Check Setup SQL.
 is $sg->setup_code, undef, "SQLite setup SQL is undefined";
@@ -89,6 +104,33 @@ FOR EACH ROW BEGIN
     WHEN OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
     THEN RAISE(ABORT, 'value of "uuid" cannot be changed')
   END;
+END;
+
+CREATE TRIGGER cki_simple_name_unique
+BEFORE INSERT ON _simple
+FOR EACH ROW BEGIN
+    SELECT RAISE (ABORT, 'column name is not unique')
+    WHERE  (
+               SELECT 1
+               FROM   _simple
+               WHERE  state > -1 AND name = NEW.name
+               LIMIT  1
+           );
+END;
+
+CREATE TRIGGER cku_simple_name_unique
+BEFORE UPDATE ON _simple
+FOR EACH ROW BEGIN
+    SELECT RAISE (ABORT, 'column name is not unique')
+    WHERE  (NEW.name <> OLD.name OR (
+                NEW.state > -1 AND OLD.state < 0
+            )) AND (
+               SELECT 1 from _simple
+               WHERE  id <> NEW.id
+                      AND name = NEW.name
+                      AND state > -1
+               LIMIT 1
+           );
 END;
 };
 
@@ -159,7 +201,7 @@ eq_or_diff $sg->table_for_class($one), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
-is $sg->indexes_for_class($one), undef,
+is $sg->indexes_for_class($one), '',
   "... Schema class generates CREATE INDEX statements";
 
 # Check that the boolean and foreign key triggers are in place.
@@ -281,13 +323,60 @@ eq_or_diff $sg->table_for_class($two), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
-$indexes = qq{CREATE INDEX idx_two_one_id ON simple_two (one_id);\n};
+$indexes = q{CREATE INDEX idx_two_one_id ON simple_two (one_id);
+CREATE INDEX idx_two_date ON simple_two (date);
+};
 
 eq_or_diff $sg->indexes_for_class($two), $indexes,
   "... Schema class generates CREATE INDEX statements";
 
 # Check that the constraint and foreign key triggers are correct.
-$constraints = q{CREATE TRIGGER pfki_simple_two_id
+$constraints = q{CREATE TRIGGER cki_two_date_unique
+BEFORE INSERT ON simple_two
+FOR EACH ROW BEGIN
+    SELECT RAISE (ABORT, 'column date is not unique')
+    WHERE  (
+               SELECT 1
+               FROM   _simple, simple_two
+               WHERE  _simple.id = simple_two.id
+                      AND _simple.state > -1
+                      AND simple_two.date = NEW.date
+               LIMIT  1
+           );
+END;
+
+CREATE TRIGGER cku_two_date_unique
+BEFORE UPDATE ON simple_two
+FOR EACH ROW BEGIN
+    SELECT RAISE (ABORT, 'column date is not unique')
+    WHERE  NEW.date <> OLD.date AND (
+               SELECT 1
+               FROM   _simple, simple_two
+               WHERE  _simple.id = simple_two.id
+                      AND _simple.id <> NEW.id
+                      AND _simple.state > -1
+                      AND simple_two.date = NEW.date
+               LIMIT  1
+           );
+END;
+
+CREATE TRIGGER ckp_two_date_unique
+BEFORE UPDATE ON _simple
+FOR EACH ROW BEGIN
+    SELECT RAISE (ABORT, 'column date is not unique')
+    WHERE  NEW.state > -1 AND OLD.state < 0
+           AND (SELECT 1 FROM simple_two WHERE id = NEW.id)
+           AND (
+               SELECT COUNT(date)
+               FROM   simple_two
+               WHERE  date = (
+                   SELECT date FROM simple_two
+                   WHERE id = NEW.id
+               )
+           ) > 1;
+END;
+
+CREATE TRIGGER pfki_simple_two_id
 BEFORE INSERT ON simple_two
 FOR EACH ROW BEGIN
   SELECT CASE

@@ -353,21 +353,37 @@ sub pk_column {
 Returns the SQL statements to create all of the indexes for the class
 described by the Kinetic::Meta::Class::Schema object passed as the sole
 argument. All of the index declaration statements will be returned in a single
-string, each separated by a double "\n\n".
+string, each separated by a "\n".
 
 =cut
 
 sub indexes_for_class {
     my ($self, $class) = @_;
-    my $table = $class->table;
-    my $sql;
-    for my $attr (grep { $_->index } $class->table_attributes) {
-        my $unique = $attr->unique ? ' UNIQUE' : '';
-        my $name = $attr->index($class);
-        my $on = $self->index_on($attr);
-        $sql .= "CREATE$unique INDEX $name ON $table ($on);\n";
-    }
-    return $sql;
+    return join '',
+        map  { $self->index_for_attr($class => $_) }
+        grep { $_->index } $class->table_attributes
+}
+
+##############################################################################
+
+=head3 index_for_attr
+
+  my $index = $kbs->index_for_attr($class, $attr);
+
+Returns the SQL that declares an SQL index. The default implementation here
+uses the SQL standard index declaration, adding the C<UNIQUE> key word if the
+attribute is a unique attribute, and using the C<index_on()> method to specify
+the column to index.
+
+=cut
+
+sub index_for_attr {
+    my ($self, $class, $attr) = @_;
+    my $table  = $class->table;
+    my $unique = $attr->unique ? ' UNIQUE' : '';
+    my $name   = $attr->index($class);
+    my $on     = $self->index_on($attr);
+    return "CREATE$unique INDEX $name ON $table ($on);\n";
 }
 
 ##############################################################################

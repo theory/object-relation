@@ -963,8 +963,10 @@ sub grant_permissions {
 #   r => 'table'
 #   v => 'view'
 #   i => 'index'
+#   c => 'composite type'
 #   S => 'sequence'
 #   s => 'special'
+#   t => 'TOAST table'
 
     my $objects = $dbh->selectcol_arrayref(qq{
         SELECT n.nspname || '."' || c.relname || '"'

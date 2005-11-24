@@ -24,6 +24,7 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use base 'Kinetic::Build::Schema::DB';
+use List::Util qw(first);
 use Carp;
 
 =head1 Name
@@ -145,6 +146,45 @@ sub column_reference { return }
 
 ##############################################################################
 
+=head3 index_for_attr
+
+  my $index = $kbs->index_for_attr($class, $attr);
+
+Returns the SQL that declares an SQL index. This implementation overrides that
+in L<Kinetic::Build::Schema::DB|Kinetic::Build::Schema::DB> to change it to a
+partial unique index or to removce the C<UNIQUE> keyword if the attribute is
+unique but not distinct. The difference is that a unique attribute is unique
+only relative to the C<state> attribute. A unique attribute can have more than
+one instance of a given value as long as no more than one of them also has a
+state greater than -1. In PostgreSQL, this is handled by a partial unique
+index if the attribute and the state attribute are in the same table, or by
+triggers if they are in different tables (due to inheritance).
+
+=cut
+
+sub index_for_attr {
+    my ($self, $class, $attr) = @_;
+    my $sql = $self->SUPER::index_for_attr($class => $attr);
+    return $sql unless $attr->unique && !$attr->distinct;
+
+    my $state_class = first {
+        grep { $_->name eq 'state'} $_->table_attributes
+    } $class, reverse( $class->parents );
+
+    if ($state_class eq $class) {
+        # Create a partial unique index.
+        $sql =~ s/;\n$/ WHERE state > -1;\n/;
+    }
+
+    # If state in a parent class, we'll have to use a constraint, instead.
+    else {
+        $sql =~ s/UNIQUE\s+//;
+    }
+    return $sql;
+}
+
+##############################################################################
+
 =head3 index_on
 
   my $column = $kbs->index_on($attr);
@@ -203,9 +243,9 @@ the first time it has been set to a non-C<NULL> value.
 
 sub constraints_for_class {
     my ($self, $class) = @_;
-    my $key = $class->key;
+    my $key   = $class->key;
     my $table = $class->table;
-    my $pk = $class->primary_key;
+    my $pk    = $class->primary_key;
 
     # We always need a primary key.
     my @cons = (
@@ -224,8 +264,8 @@ sub constraints_for_class {
 
     # Add foreign keys for any attributes that reference other objects.
     for my $attr ($class->table_attributes) {
-        my $ref = $attr->references or next;
-        my $fk_table = $ref->table;
+        my $ref        = $attr->references or next;
+        my $fk_table   = $ref->table;
         my $del_action = uc $attr->on_delete;
         my $col = $attr->column;
         push @cons, "ALTER TABLE $table\n"
@@ -233,8 +273,11 @@ sub constraints_for_class {
           . "  REFERENCES $fk_table(id) ON DELETE $del_action;\n";
     }
 
-    # Add any once triggers.
-    push @cons, $self->once_triggers($class);
+    # Add any once triggers and unique constraints.
+    push @cons, (
+        $self->once_triggers(   $class ),
+        $self->unique_triggers( $class ),
+    );
 
     return join "\n", @cons;
 }
@@ -281,6 +324,111 @@ CREATE TRIGGER $key\_$col\_once BEFORE UPDATE ON $table
 };
     }
     return @trigs;
+}
+
+##############################################################################
+
+=head3 unique_triggers
+
+  my $unique_trigger_sql = $kbs->unique_triggers($class);
+
+Returns the PostgreSQL triggers to validate the values of any "unique"
+attributes, wherein the attribute is in a different class than the C<state>
+attribute. Unique attributes in the same class as the C<state> attribute are
+handled by a partial unique index. If the class has no unique attributes
+C<unique_triggers()> will return C<undef> (or an empty list).
+
+Called by C<constraints_for_class()>.
+
+=cut
+
+sub unique_triggers {
+    my ($self, $class) = @_;
+    my @uniques = grep { $_->unique && !$_->distinct } $class->table_attributes
+        or return;
+    my $table        = $class->table;
+    my $key          = $class->key;
+    my $state_class = first { grep { $_->name eq 'state'} $_->table_attributes }
+        reverse( $class->parents )
+        or return;
+    my $parent_table = $state_class->table;
+    my @trigs;
+    for my $attr (@uniques) {
+        my $col = $attr->column;
+        my ($comp_col, $new_col, $old_col) = $attr->type eq 'string'
+            ? ("LOWER($col)", "LOWER(NEW.$col)", "LOWER(OLD.$col")
+            : ($col,          "NEW.$col",        "OLD.$col"      );
+        push @trigs, qq{CREATE FUNCTION cki_$key\_$col\_unique() RETURNS trigger AS '
+  BEGIN
+    /* Lock the relevant records in the parent and child tables. */
+    PERFORM true
+    FROM    $table, $parent_table
+    WHERE   $table.id = $parent_table.id AND $comp_col = $new_col FOR UPDATE;
+    IF (SELECT true
+        FROM   $key
+        WHERE  id <> NEW.id AND $comp_col = $new_col AND state > -1
+        LIMIT 1
+    ) THEN
+        RAISE EXCEPTION ''duplicate key violates unique constraint "ck_$table\_$col\_unique"'';
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER cki_$key\_$col\_unique BEFORE INSERT ON $table
+    FOR EACH ROW EXECUTE PROCEDURE cki_$key\_$col\_unique();
+
+CREATE FUNCTION cku_$key\_$col\_unique() RETURNS trigger AS '
+  BEGIN
+    IF ($new_col <> $old_col) THEN
+        /* Lock the relevant records in the parent and child tables. */
+        PERFORM true
+        FROM    $table, $parent_table
+        WHERE   $table.id = $parent_table.id AND $comp_col = $new_col FOR UPDATE;
+        IF (SELECT true
+            FROM   $key
+            WHERE  id <> NEW.id AND $comp_col = $new_col AND state > -1
+            LIMIT 1
+        ) THEN
+            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_$table\_$col\_unique"'';
+        END IF;
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER cku_$key\_$col\_unique BEFORE UPDATE ON $table
+    FOR EACH ROW EXECUTE PROCEDURE cku_$key\_$col\_unique();
+
+CREATE FUNCTION ckp_$key\_$col\_unique() RETURNS trigger AS '
+  BEGIN
+    IF (NEW.state > -1 AND OLD.state < 0
+        AND (SELECT true FROM $table WHERE id = NEW.id)
+       ) THEN
+        /* Lock the relevant records in the parent and child tables. */
+        PERFORM true
+        FROM    $table, $parent_table
+        WHERE   $table.id = $parent_table.id
+                AND $comp_col = (SELECT $comp_col FROM $table WHERE id = NEW.id)
+        FOR UPDATE;
+
+        IF (SELECT COUNT($comp_col)
+            FROM   $table
+            WHERE $comp_col = (SELECT $comp_col FROM $table WHERE id = NEW.id)
+        ) > 1 THEN
+            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_$table\_$col\_unique"'';
+        END IF;
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER ckp_$key\_$col\_unique BEFORE UPDATE ON $parent_table
+    FOR EACH ROW EXECUTE PROCEDURE ckp_$key\_$col\_unique();
+};
+    }
+
+    return join "\n", @trigs;
 }
 
 ##############################################################################

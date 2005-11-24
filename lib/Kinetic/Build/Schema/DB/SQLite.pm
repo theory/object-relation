@@ -25,6 +25,7 @@ our $VERSION = version->new('0.0.1');
 
 use base 'Kinetic::Build::Schema::DB';
 use Kinetic::Meta;
+use List::Util qw(first);
 use Carp;
 
 =head1 Name
@@ -87,6 +88,32 @@ sub column_type {
 
 ##############################################################################
 
+=head3 index_for_attr
+
+  my $index = $kbs->index_for_attr($class, $attr);
+
+Returns the SQL that declares an SQL index. This implementation overrides that
+in L<Kinetic::Build::Schema::DB|Kinetic::Build::Schema::DB> to remove the
+C<UNIQUE> keyword from the declaration if the attribute in question is unique
+but not distinct. The difference is that a unique attribute is unique only
+relative to the C<state> attribute. A unique attribute can have more than one
+instance of a given value as long as no more than one of them also has a state
+greater than -1. For SQLite, this is handled by triggers.
+
+=cut
+
+sub index_for_attr {
+    my ($self, $class, $attr) = @_;
+    my $sql = $self->SUPER::index_for_attr($class => $attr);
+    return $sql if $attr->distinct || !$attr->unique;
+    # UNIQUE is handled by a constraint.
+    $sql =~ s/UNIQUE\s+//;
+    return $sql;
+}
+
+
+##############################################################################
+
 =head3 constraints_for_class
 
   my $constraint_sql = $kbs->constraints_for_class($class);
@@ -132,14 +159,15 @@ sub constraints_for_class {
     my $key = $class->key;
     my $table = $class->table;
 
-    # Start with a state trigger, if there is a state column, and a boolean
-    # trigger, if there is a boolean column.
-    my @cons = ($self->state_trigger($class),
-                $self->boolean_triggers($class),
-                $self->once_triggers($class));
+    # Start with any state, boolean, once, and unique triggers.
+    my @cons = (
+        $self->state_trigger(    $class ),
+        $self->boolean_triggers( $class ),
+        $self->once_triggers(    $class ),
+        $self->unique_triggers(  $class ),
+   );
 
-    # Add a foreign key from the id column to the parent table if this
-    # class has a parent table class.
+    # Add FK constraint for subclases from id column to the parent table.
     if (my $parent = $class->parent) {
         push @cons, $self->_generate_fk($class, 'id', $parent)
     }
@@ -287,6 +315,116 @@ sub once_triggers {
         . qq{    THEN RAISE(ABORT, 'value of "$col" cannot be changed')\n}
           . "  END;\n"
           . "END;\n";
+    }
+    return join "\n", @trigs;
+}
+
+##############################################################################
+
+=head3 unique_triggers
+
+  my $unique_trigger_sql = $kbs->unique_triggers($class);
+
+Returns the SQLite triggers to validate the values of any "unique" attributes
+in the table representing the contents of the class represented by the
+Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
+has no unique attributes C<unique_triggers()> will return C<undef> (or an
+empty list).
+
+Called by C<constraints_for_class()>.
+
+=cut
+
+sub unique_triggers {
+    my ($self, $class) = @_;
+    my @uniques = grep { $_->unique && !$_->distinct } $class->table_attributes
+        or return;
+    my $table       = $class->table;
+    my $key         = $class->key;
+    my $state_class = first { grep { $_->name eq 'state'} $_->table_attributes }
+        reverse( $class->parents );
+    my @trigs;
+    if (!$state_class || $state_class eq $class) {
+        # The unique cols are in the same table as state. Simple triggers.
+        for my $attr (@uniques) {
+            my $col = $attr->column;
+            push @trigs,
+                "CREATE TRIGGER cki_$key\_$col\_unique\n"
+              . "BEFORE INSERT ON $table\n"
+              . "FOR EACH ROW BEGIN\n"
+              . "    SELECT RAISE (ABORT, 'column $col is not unique')\n"
+              . "    WHERE  (\n"
+              . "               SELECT 1\n"
+              . "               FROM   $table\n"
+              . "               WHERE  state > -1 AND $col = NEW.$col\n"
+              . "               LIMIT  1\n"
+              . "           );\n"
+              . "END;\n",
+
+                "CREATE TRIGGER cku_$key\_$col\_unique\n"
+              . "BEFORE UPDATE ON $table\n"
+              . "FOR EACH ROW BEGIN\n"
+              . "    SELECT RAISE (ABORT, 'column $col is not unique')\n"
+              . "    WHERE  (NEW.name <> OLD.name OR (\n"
+              . "                NEW.state > -1 AND OLD.state < 0\n"
+              . "            )) AND (\n"
+              . "               SELECT 1 from $table\n"
+              . "               WHERE  id <> NEW.id\n"
+              . "                      AND $col = NEW.$col\n"
+              . "                      AND state > -1\n"
+              . "               LIMIT 1\n"
+              . "           );\n"
+              . "END;\n";
+        }
+    } else {
+        # The state attribute is in a different table. Complex triggers.
+        my $parent_table = $state_class->table;
+        for my $attr (@uniques) {
+            my $col = $attr->column;
+            push @trigs,
+                "CREATE TRIGGER cki_$key\_$col\_unique\n"
+              . "BEFORE INSERT ON $table\n"
+              . "FOR EACH ROW BEGIN\n"
+              . "    SELECT RAISE (ABORT, 'column $col is not unique')\n"
+              . "    WHERE  (\n"
+              . "               SELECT 1\n"
+              . "               FROM   $parent_table, $table\n"
+              . "               WHERE  $parent_table.id = $table.id\n"
+              . "                      AND $parent_table.state > -1\n"
+              . "                      AND $table.$col = NEW.$col\n"
+              . "               LIMIT  1\n"
+              . "           );\n"
+              . "END;\n",
+                "CREATE TRIGGER cku_$key\_$col\_unique\n"
+              . "BEFORE UPDATE ON $table\n"
+              . "FOR EACH ROW BEGIN\n"
+              . "    SELECT RAISE (ABORT, 'column $col is not unique')\n"
+              . "    WHERE  NEW.$col <> OLD.$col AND (\n"
+              . "               SELECT 1\n"
+              . "               FROM   $parent_table, $table\n"
+              . "               WHERE  $parent_table.id = $table.id\n"
+              . "                      AND $parent_table.id <> NEW.id\n"
+              . "                      AND $parent_table.state > -1\n"
+              . "                      AND $table.$col = NEW.$col\n"
+              . "               LIMIT  1\n"
+              . "           );\n"
+              . "END;\n",
+                "CREATE TRIGGER ckp_$key\_$col\_unique\n"
+              . "BEFORE UPDATE ON $parent_table\n"
+              . "FOR EACH ROW BEGIN\n"
+              . "    SELECT RAISE (ABORT, 'column $col is not unique')\n"
+              . "    WHERE  NEW.state > -1 AND OLD.state < 0\n"
+              . "           AND (SELECT 1 FROM $table WHERE id = NEW.id)\n"
+              . "           AND (\n"
+              . "               SELECT COUNT($col)\n"
+              . "               FROM   $table\n"
+              . "               WHERE  $col = (\n"
+              . "                   SELECT $col FROM $table\n"
+              . "                   WHERE id = NEW.id\n"
+              . "               )\n"
+              . "           ) > 1;\n"
+              . "END;\n";
+        }
     }
     return join "\n", @trigs;
 }

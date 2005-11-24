@@ -33,6 +33,21 @@ for my $class ($sg->classes) {
     ok $class->is_a('Kinetic'), "Class is a Kinetic";
 }
 
+# XXX Hanky-panky. You didn't see this. Necessary for testing C<unique>
+# attributes without unduly affecting other tests. I plan to change this soon
+# by adding new attributes.
+{
+    for my $spec (
+        [ simple => 'name'],
+        [ two    => 'date'],
+    ) {
+        my $class = Kinetic::Meta->for_key($spec->[0]);
+        my $attr  = $class->attributes($spec->[1]);
+        $attr->{unique}  = 1;
+        $attr->{indexed} = 1;
+    }
+}
+
 ##############################################################################
 # Check Setup SQL.
 is $sg->setup_code, 'CREATE SEQUENCE seq_kinetic;
@@ -64,7 +79,7 @@ eq_or_diff $sg->table_for_class($simple), $table,
 # Check that the CREATE INDEX statements are correct.
 my $indexes = q{CREATE UNIQUE INDEX idx_simple_uuid ON _simple (uuid);
 CREATE INDEX idx_simple_state ON _simple (state);
-CREATE INDEX idx_simple_name ON _simple (LOWER(name));
+CREATE UNIQUE INDEX idx_simple_name ON _simple (LOWER(name)) WHERE state > -1;
 };
 eq_or_diff $sg->indexes_for_class($simple), $indexes,
   "... Schema class generates CREATE INDEX statements";
@@ -148,7 +163,7 @@ eq_or_diff $sg->table_for_class($one), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
-is $sg->indexes_for_class($one), undef,
+is $sg->indexes_for_class($one), '',
   "... Schema class generates CREATE INDEX statements";
 
 # Check that the ALTER TABLE ADD CONSTRAINT statements are correct.
@@ -232,7 +247,9 @@ eq_or_diff $sg->table_for_class($two), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
-$indexes = qq{CREATE INDEX idx_two_one_id ON simple_two (one_id);\n};
+$indexes = qq{CREATE INDEX idx_two_one_id ON simple_two (one_id);
+CREATE INDEX idx_two_date ON simple_two (date);
+};
 
 eq_or_diff $sg->indexes_for_class($two), $indexes,
   "... Schema class generates CREATE INDEX statements";
@@ -248,7 +265,76 @@ ALTER TABLE simple_two
 ALTER TABLE simple_two
   ADD CONSTRAINT fk_one_id FOREIGN KEY (one_id)
   REFERENCES simple_one(id) ON DELETE RESTRICT;
+
+CREATE FUNCTION cki_two_date_unique() RETURNS trigger AS '
+  BEGIN
+    /* Lock the relevant records in the parent and child tables. */
+    PERFORM true
+    FROM    simple_two, _simple
+    WHERE   simple_two.id = _simple.id AND date = NEW.date FOR UPDATE;
+    IF (SELECT true
+        FROM   two
+        WHERE  id <> NEW.id AND date = NEW.date AND state > -1
+        LIMIT 1
+    ) THEN
+        RAISE EXCEPTION ''duplicate key violates unique constraint "ck_simple_two_date_unique"'';
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER cki_two_date_unique BEFORE INSERT ON simple_two
+    FOR EACH ROW EXECUTE PROCEDURE cki_two_date_unique();
+
+CREATE FUNCTION cku_two_date_unique() RETURNS trigger AS '
+  BEGIN
+    IF (NEW.date <> OLD.date) THEN
+        /* Lock the relevant records in the parent and child tables. */
+        PERFORM true
+        FROM    simple_two, _simple
+        WHERE   simple_two.id = _simple.id AND date = NEW.date FOR UPDATE;
+        IF (SELECT true
+            FROM   two
+            WHERE  id <> NEW.id AND date = NEW.date AND state > -1
+            LIMIT 1
+        ) THEN
+            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_simple_two_date_unique"'';
+        END IF;
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER cku_two_date_unique BEFORE UPDATE ON simple_two
+    FOR EACH ROW EXECUTE PROCEDURE cku_two_date_unique();
+
+CREATE FUNCTION ckp_two_date_unique() RETURNS trigger AS '
+  BEGIN
+    IF (NEW.state > -1 AND OLD.state < 0
+        AND (SELECT true FROM simple_two WHERE id = NEW.id)
+       ) THEN
+        /* Lock the relevant records in the parent and child tables. */
+        PERFORM true
+        FROM    simple_two, _simple
+        WHERE   simple_two.id = _simple.id
+                AND date = (SELECT date FROM simple_two WHERE id = NEW.id)
+        FOR UPDATE;
+
+        IF (SELECT COUNT(date)
+            FROM   simple_two
+            WHERE date = (SELECT date FROM simple_two WHERE id = NEW.id)
+        ) > 1 THEN
+            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_simple_two_date_unique"'';
+        END IF;
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER ckp_two_date_unique BEFORE UPDATE ON _simple
+    FOR EACH ROW EXECUTE PROCEDURE ckp_two_date_unique();
 };
+
 eq_or_diff $sg->constraints_for_class($two), $constraints,
   "... Schema class generates CONSTRAINT statement";
 
