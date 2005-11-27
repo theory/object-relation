@@ -310,19 +310,19 @@ class that references it. At an abstract level, there are fundamentally two
 different types of relationships: A relationship to a single object and a
 releationship to a collection of objects. However, these two broad categories
 break down into subcategories that might affect the API of a class. For
-example, A simple "has" or "refrences" relationship is just that: simple. The
+example, a simple "has" or "refrences" relationship is just that, simple: the
 contained object can be fetched using the accessor, and then the attributes of
 that object can be accessed directly. An "extends" or "type_of" relationship
-is more complex. In these cases, the containining class will have extra
+is more complex. In these cases, the containing class will have extra
 accessors that delegate to the contained object, thereby making the containing
 class essentially an extension of the contained class.
 
 In all cases, the permissions that a user has to access a contained object or
 collection of contained objects will be evaluated independent of the
-permissions she has to the containing object. Delegated accessors may be
-provided to provide independent implicit access to the contained object, but
-access to the contained object itself (fetched via its attribute accessor)
-will be evaluated on their own.
+permissions she has to the containing object. Delegated accessors may provide
+independent implicit access to the contained object, but access to the
+contained object itself (fetched via its attribute accessor) will be evaluated
+on its own.
 
 For attributes that reference other attributes, the default relationship will
 be "has". Returns C<undef> for attributes that do not reference other Kinetic
@@ -336,20 +336,18 @@ The supported relationships are:
 
 Defines a simple "has a" relationship. The contained object and its attributes
 will only be available via the attribute accessor method. No other accessors
-will be generated. For all practical purposes "has" objects should be considered
-to be a part of the whole object that contains them.
+will be generated. For all practical purposes "has" objects should be
+considered to be a part of the whole object that contains them.
 
-=begin comment
+=for StoreComment
 
 View triggers should detect when the has ID is NULL and do an insert when it
 is and an update when it isn't. Hrm...will need to figure out how to handle
 popuplating IDs, then...
 
-=end comment
-
 =item type_of
 
-The attribute object defines the type of the containing object. For examle, a
+The attribute object defines the type of the containing object. For example, a
 Kinetic::Contact object has an attribute for the Kinetic::Type::Contact object
 that defines its type. The attributes of the type object will be available to
 users via read-only accessors (such as C<contact_type_name()>). In this way, a
@@ -358,12 +356,10 @@ read-only delegated accessors, but not necssarily to the contained type object
 itself (since permission to access that object is evaluated independently of
 the containing object).
 
-=begin comment
+=for StoreComment
 
 These objects should be saved independent of their containing objects, since
 they will usually not be changed.
-
-=end comment
 
 =item part_of
 
@@ -372,12 +368,10 @@ is a part of one and only one site. The contained object and its attributes
 will only be available via the attribute accessor method. No other accessors
 will be generated.
 
-=begin comment
+=for StoreComment
 
 These objects should be saved independent of their containing objects, since
 they will usually not be changed.
-
-=end comment
 
 =item references
 
@@ -387,12 +381,10 @@ element object. In other words, relationship has no inherent meaning, it
 simply I<is>. The contained object and its attributes will only be available
 via the attribute accessor method. No other accessors wiil be generated.
 
-=begin comment
+=for StoreComment
 
 These objects should be saved independent of their containing objects, since
 they will usually not be changed.
-
-=end comment
 
 =item extends
 
@@ -400,25 +392,23 @@ The containing object extends the contained object. For example,
 Kinetic::Party::User extends Kinetic::Party::Person. This is similar in
 principal to inheritance, but uses composition to prevent overly complex
 inheritance relationships. It also allows more than one containing object to
-refer to the same contained object. If you find yourself setting a contained
-object attribute to "extends" and enabling its "unique" attribute, consider
-using inhertitance, instead. The "extends" relationship assumes "once".
+refer to the same contained object. The "extends" relationship assumes that
+the attribute will be set once and only once (that is, the C<once> attribute
+of the attribute object will be true).
 
 The attributes of the contained objects will be available via read/write
-accessors in on the containing object that will simply delegate to the
-contained object. Thus a user will have implicit read/write access to an
-extended object via the delegated accessors (assuming that she has read/write
-permission to the extending object, of course), but the user's permission to
-access the contained object itself will be managed independent of the user's
-permissions to the containing object.
+accessors in the containing class that will simply delegate to the contained
+object. Thus a user will have implicit read/write access to an extended object
+via the delegated accessors (assuming that she has read/write permission to
+the extending object, of course), but the user's permission to access the
+contained object itself will be managed independent of the user's permissions
+to the containing object.
 
-=begin comment
+=for StoreComment
 
 The insert view trigger will need to detect if the contained object ID is
 NULL, and do an insert it if isn't and an update if it is. The update view
 trigger can always just do an update.
-
-=end comment
 
 =item child_of
 
@@ -427,11 +417,9 @@ category will always be a child a parent category. The contained object and
 its attributes will only be accessible by fetching the contained object from
 its attribute accessor object, or by a L<Class::Path|Class::Path> method.
 
-=begin comment
+=for StoreComment
 
 Database relationships of tree structures TBD.
-
-=end comment
 
 =item mediates
 
@@ -449,29 +437,26 @@ an stand-in for the contained object. This design is similar in principal to
 "extends", but exists solely for the purpose of mediating specific
 relationships.
 
-=begin comment
+=for StoreComment
 
 The insert view trigger will need to detect if the contained object ID is
 NULL, and do an insert it if isn't and an update if it is. The update view
 trigger can always just do an update.
 
-=end comment
-
 =item has_many
 
 The contained object is a collection of objects that are directly related to
 the containing object. For example, Kinetic::Party has many Kinetic::Contact
-objects. The accessor will return a Kinetic::Util::Collection of the contained
+objects. The accessor will return a
+L<Kinetic::Util::Collection|Kinetic::Util::Collection> of the contained
 objects. The permissions applied to the containing object will extend to the
-contained object, as well, since they are considered to be a part of the
+contained objects, as well, since they are considered to be a part of the
 containing object.
 
-=begin comment
+=for StoreComment
 
 The schema for the many relationships is TBD, and depends on whether they're
 relating to objects or mediators.
-
-=end comment
 
 =item references_many
 
@@ -485,7 +470,7 @@ be evaluated independent of the permission granted to the containing object.
 
 =item part_of_many
 
-The containing object is a part of any number of conatined objects of the
+The containing object is a part of any number of contained objects of the
 specified type. For example, a document type may be a part of many different
 sites. The permissions to access each of the contained objects will be
 evaluated independent of the permission granted to the containing object.
