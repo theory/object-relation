@@ -9,6 +9,7 @@ use base 'TEST::Class::Kinetic';
 use Class::Trait qw(
   TEST::Kinetic::Traits::Store
   TEST::Kinetic::Traits::HTML
+  TEST::Kinetic::Traits::JSON
 );
 use Test::More;
 use Test::Exception;
@@ -199,7 +200,13 @@ sub rest_interface : Test(32) {
       }
     ]
     END_JSON
-    is_json $rest->response, $expected, '... and it should be the correct JSON';
+    my $response = $test->sort_json(
+        {
+            json   => $rest->response,
+            values => [qw(foo bar snorfleglitz)],
+        }
+    );
+    is_json $response, $expected, '... and it should be the correct JSON';
 
     # Note that because of the way we're mocking up path_info, URL encoding
     # of parameters is *not* necessary

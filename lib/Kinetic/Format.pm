@@ -59,7 +59,7 @@ be updated using this class.
 
 =head3 new
 
-  my $xml = Kinetic::Format::JSON->new({ format => 'json' });
+  my $xml = Kinetic::Format->new({ format => 'json' });
 
 Creates and returns a new format object.  Requires a hashref as an argument.
 The key C<format> in the hashref must be a valid format with the Kinetic
