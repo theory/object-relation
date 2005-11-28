@@ -1,6 +1,6 @@
-package Kinetic::Format::JSON;
+package Kinetic::Format::XML;
 
-# $Id: JSON.pm 2190 2005-11-08 02:05:10Z curtis $
+# $Id: XML.pm 2190 2005-11-08 02:05:10Z curtis $
 
 # CONTRIBUTION SUBMISSION POLICY:
 #
@@ -20,10 +20,7 @@ package Kinetic::Format::JSON;
 
 use strict;
 use warnings;
-use JSON ();
-use Class::Delegator
-  send => [qw/objToJson jsonToObj/],
-  to   => '{json}';
+use XML::Simple ();
 
 use version;
 our $VERSION = version->new('0.0.1');
@@ -32,19 +29,19 @@ use base 'Kinetic::Format';
 
 =head1 Name
 
-Kinetic::Format::JSON - The Kinetic JSON serialization class
+Kinetic::Format::XML - The Kinetic XML serialization class
 
 =head1 Synopsis
 
-  use Kinetic::Format::JSON;
-  my $formatter = Kinetic::Format::JSON->new;
-  my $json      = $formatter->serialize($kinetic_object);
-  my $object    = $formatter->deserialize($json);
+  use Kinetic::Format::XML;
+  my $formatter = Kinetic::Format::XML->new;
+  my $xml      = $formatter->serialize($kinetic_object);
+  my $object    = $formatter->deserialize($xml);
 
 =head1 Description
 
 This class is used for serializing and deserializing Kinetic objects to and 
-from JSON.  New objects may be created or existing objects may be updated using
+from XML.  New objects may be created or existing objects may be updated using
 this class.
 
 =cut
@@ -57,14 +54,14 @@ this class.
 
 =head3 new
 
-  my $xml = Kinetic::Format::JSON->new;
+  my $xml = Kinetic::Format::XML->new;
   # or
-  my $xml = Kinetic::Format::JSON->new({
+  my $xml = Kinetic::Format::XML->new({
     pretty => 1,
     indent => 2,
   });
 
-Creates and returns a new JSON format  object.  It optionally takes a
+Creates and returns a new XML format  object.  It optionally takes a
 L<Kinetic|Kinetic> object as an argument.  This is equivalent to:
 
 If preferred, a hashref may be passed as an argument.  Keys are:
@@ -73,26 +70,24 @@ If preferred, a hashref may be passed as an argument.  Keys are:
 
 =item * pretty
 
-Whether to use newlines between JSON elements.
+Whether to use newlines between XML elements.
 
 =item * indent
 
-Indentation level (in spaces) for nested JSON elements.
+Indentation level (in spaces) for nested XML elements.
 
 =back
 
 As a general rule, you will want to call C<new> without arguments.  This
-ensures a more compact JSON representation, thus saving bandwidth.
+ensures a more compact XML representation, thus saving bandwidth.
 
 =cut
 
 sub _init {
     my ( $class, $arg_for ) = @_;
     $arg_for ||= {};
-    my $json = JSON->new(%$arg_for);
-    $json->unmapping(1)
-      ;    # return 'null' as undef instead of a JSON::NotString object
-    $arg_for->{json} = $json;
+    my $xml  = XML::Simple->new;
+    $arg_for->{xml} = $xml;
     return $arg_for;
 }
 
@@ -100,29 +95,39 @@ sub _init {
 
 =head3 ref_to_format
 
-  my $json = $formatter->ref_to_format($reference);
+  my $xml = $formatter->ref_to_format($reference);
 
-Converts an arbitrary reference to its JSON equivalent.
+Converts an arbitrary reference to its XML equivalent.
 
 =cut
 
 sub ref_to_format {
     my ( $self, $ref ) = @_;
     $ref = $self->expand_ref($ref);
-    return $self->objToJson($ref);
+    local $^W;   # suppress "uninitialized" warnings.  These are common with
+                 # undef keys
+    return $self->{xml}->XMLout($ref);
 }
 
 ##############################################################################
 
 =head3 format_to_ref
 
-  my $reference = $formatter->format_to_ref($json);
+  my $reference = $formatter->format_to_ref($xml);
 
-Converts JSON to its equivalent Perl reference.
+Converts XML to its equivalent Perl reference.
 
 =cut
 
-sub format_to_ref { shift->jsonToObj(@_) }
+sub format_to_ref { 
+    my ($self, $xml) = @_; 
+    return $self->{xml}->XMLin(
+        $xml,
+        suppressempty => undef,
+        keyattr       => [],
+        #ForceArray    => [ 'instance' ], # XXX maybe later?
+    );
+}
 
 1;
 

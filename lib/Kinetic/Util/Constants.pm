@@ -84,6 +84,9 @@ Readonly our $SEARCH_TYPE     => 'STRING';
 Readonly our $AVAILABLE_INSTANCES => 'Available instances';
 Readonly our $AVAILABLE_RESOURCES => 'Available resources';
 
+# Format
+Readonly our $KEY => 'Key';
+
 # Directories
 Readonly our $WWW_DIR => './www';
 
@@ -113,6 +116,9 @@ use Exporter::Tidy http => [
       $OBJECT_DELIMITER
       $PREPARE
       /
+  ],
+  format => [
+    qw/$KEY/
   ],
   rest => [
     qw/
@@ -182,6 +188,20 @@ C<__>, the resulting field would be C<customer__first_name>.
 
 This resolves to C<prepare>:  the name of the L<DBI|DBI> method used to prepare
 an SQL statement.
+
+=back
+
+=head2 :format
+
+L<Kinetic::Format|Kinetic::Format> related constants.
+
+=over 4
+
+=item * $KEY
+
+The identifier for the class key used in formats.  Important because it must
+not conflict with attributes names and must be an allowable key for JSON and
+XML.
 
 =back
 

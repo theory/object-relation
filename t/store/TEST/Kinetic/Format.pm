@@ -93,7 +93,7 @@ sub to_and_from_hashref : Test(7) {
       '... and calling it with a valid Kinetic object should succeed';
     my %expected = (
         bool        => 1,
-        _key        => 'one',
+        Key        => 'one',
         name        => 'foo',
         description => undef,
         uuid        => $foo->uuid,
@@ -126,7 +126,7 @@ sub expand_ref : Test(no_plan) {
       '... and calling it with a valid Kinetic object should succeed';
     my %expected = (
         bool        => 1,
-        _key        => 'one',
+        Key        => 'one',
         name        => 'foo',
         description => undef,
         uuid        => $foo->uuid,
@@ -140,7 +140,7 @@ sub expand_ref : Test(no_plan) {
     my @expected = (
         {
             'bool'        => 1,
-            '_key'        => 'one',
+            'Key'        => 'one',
             'name'        => 'foo',
             'description' => undef,
             'uuid'        => $foo->uuid,
@@ -148,7 +148,7 @@ sub expand_ref : Test(no_plan) {
         },
         {
             'bool'        => 1,
-            '_key'        => 'one',
+            'Key'        => 'one',
             'name'        => 'bar',
             'description' => undef,
             'uuid'        => $bar->uuid,
@@ -156,7 +156,7 @@ sub expand_ref : Test(no_plan) {
         },
         {
             'bool'        => 1,
-            '_key'        => 'one',
+            'Key'        => 'one',
             'name'        => 'snorfleglitz',
             'description' => undef,
             'uuid'        => $baz->uuid,
@@ -172,7 +172,7 @@ sub expand_ref : Test(no_plan) {
     %expected = (
         foo => {
             'bool'        => 1,
-            '_key'        => 'one',
+            'Key'        => 'one',
             'name'        => 'foo',
             'description' => undef,
             'uuid'        => $foo->uuid,
@@ -180,7 +180,7 @@ sub expand_ref : Test(no_plan) {
         },
         bar => {
             'bool'        => 1,
-            '_key'        => 'one',
+            'Key'        => 'one',
             'name'        => 'bar',
             'description' => undef,
             'uuid'        => $bar->uuid,
@@ -188,7 +188,7 @@ sub expand_ref : Test(no_plan) {
         },
         baz => {
             'bool'        => 1,
-            '_key'        => 'one',
+            'Key'        => 'one',
             'name'        => 'snorfleglitz',
             'description' => undef,
             'uuid'        => $baz->uuid,

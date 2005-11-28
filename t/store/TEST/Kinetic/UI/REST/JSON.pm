@@ -125,7 +125,7 @@ sub handle_rest_request : Test(19) {
       {
         "bool" : 1,
         "name" : "foo",
-        "_key" : "one",
+        "Key" : "one",
         "uuid" : "@{[$object_for{foo}->uuid]}",
         "description" : "foo description",
         "state" : 1
@@ -133,7 +133,7 @@ sub handle_rest_request : Test(19) {
       {
         "bool" : 1,
         "name" : "bar",
-        "_key" : "one",
+        "Key" : "one",
         "uuid" : "@{[$object_for{bar}->uuid]}",
         "description" : "bar description",
         "state" : 1
@@ -141,7 +141,7 @@ sub handle_rest_request : Test(19) {
       {
         "bool" : 1,
         "name" : "snorfleglitz",
-        "_key" : "one",
+        "Key" : "one",
         "uuid" : "@{[$object_for{baz}->uuid]}",
         "description" : "snorfleglitz description",
         "state" : 1
@@ -163,7 +163,7 @@ sub handle_rest_request : Test(19) {
       {
         "bool" : 1,
         "name" : "foo",
-        "_key" : "one",
+        "Key" : "one",
         "uuid" : "@{[$object_for{foo}->uuid]}",
         "description" : "foo description",
         "state" : 1
@@ -181,7 +181,7 @@ sub handle_rest_request : Test(19) {
       {
         "bool" : 1,
         "name" : "bar",
-        "_key" : "one",
+        "Key" : "one",
         "uuid" : "@{[$object_for{bar}->uuid]}",
         "description" : "bar description",
         "state" : 1
@@ -189,7 +189,7 @@ sub handle_rest_request : Test(19) {
       {
         "bool" : 1,
         "name" : "foo",
-        "_key" : "one",
+        "Key" : "one",
         "uuid" : "@{[$object_for{foo}->uuid]}",
         "description" : "foo description",
         "state" : 1
@@ -197,7 +197,7 @@ sub handle_rest_request : Test(19) {
       {
         "bool" : 1,
         "name" : "snorfleglitz",
-        "_key" : "one",
+        "Key" : "one",
         "uuid" : "@{[$object_for{baz}->uuid]}",
         "description" : "snorfleglitz description",
         "state" : 1
@@ -235,7 +235,7 @@ sub handle_rest_request : Test(19) {
       {
         "bool" : 1,
         "name" : "bar",
-        "_key" : "one",
+        "Key" : "one",
         "uuid" : "@{[$object_for{bar}->uuid]}",
         "description" : "bar description",
         "state" : 1

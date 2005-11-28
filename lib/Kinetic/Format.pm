@@ -31,6 +31,7 @@ use Kinetic::Util::Exceptions qw/
   throw_invalid_class
   throw_unimplemented
   /;
+use Kinetic::Util::Constants qw/:format/;
 
 =head1 Name
 
@@ -145,9 +146,9 @@ Restore the object from the desired format.
 =cut
 
 sub deserialize {
-    my ( $self, $json ) = @_;
+    my ( $self, $format ) = @_;
     $self->_verify_usage;
-    return $self->_hashref_to_obj( $self->format_to_ref($json) );
+    return $self->_hashref_to_obj( $self->format_to_ref($format) );
 }
 
 ##############################################################################
@@ -195,7 +196,7 @@ L<Kinetic|Kinetic> object and render it as a hashref.  Only publicly exposed
 data will be returned in the hash ref.  Each key will be an attribute name and
 the value should be the value of the key, if any.
 
-One special key, C<_key>, will be the class key for the L<Kinetic|Kinetic>
+One special key, C<$KEY>, will be the class key for the L<Kinetic|Kinetic>
 object.
 
 =cut
@@ -212,7 +213,7 @@ sub _obj_to_hashref {
             $value_for{ $attr->name } = $attr->raw($object);
         }
     }
-    $value_for{_key} = $object->my_class->key;
+    $value_for{$KEY} = $object->my_class->key;
     return \%value_for;
 }
 
@@ -230,7 +231,7 @@ L<Kinetic|Kinetic> object for it.
 
 sub _hashref_to_obj {
     my ( $self, $value_for ) = @_;
-    my $class  = Meta->for_key( delete $value_for->{_key} );
+    my $class  = Meta->for_key( delete $value_for->{$KEY} );
     my $object = $class->package->new;
     while ( my ( $attr, $value ) = each %$value_for ) {
         next unless defined $value;
