@@ -24,10 +24,9 @@ our $VERSION = version->new('0.0.1');
 
 use Kinetic::Util::Constants qw/:http :rest/;
 use Kinetic::Util::Exceptions qw/throw_required/;
+use Kinetic::Format;
 
-#use aliased 'Kinetic::UI::REST::XML';
-use aliased 'Kinetic::Format::JSON';
-use aliased 'Kinetic::UI::REST::JSON', 'Dispatch';
+use aliased 'Kinetic::UI::REST::Dispatch';
 
 use URI::Escape qw/uri_unescape/;
 
@@ -135,7 +134,7 @@ sub handle_request {
     $self->cgi($cgi)->status('')->response('')->content_type('');
     $self->desired_content_type($TEXT_CT);
 
-    my ( $class_key, $method, @args ) = $self->_get_request;
+    my ( $type, $class_key, $method, @args ) = $self->_get_request;
     $_ = uri_unescape($_) foreach @args;
 
     ## the following variables should be case-insensitive
@@ -144,7 +143,7 @@ sub handle_request {
     my $dispatch = Dispatch->new( { rest => $self } );
 
     # later we'll want to handle other format types
-    $dispatch->formatter( JSON->new );
+    $dispatch->formatter( Kinetic::Format->new( { format => $type } ) );
     eval {
         if ($class_key) {
             $dispatch->class_key($class_key)
@@ -225,17 +224,13 @@ sub _get_request {
     if ( !@request || ( $self->cgi->param || 0 ) > 1 ) {
         @request = $self->_get_request_from_query_string;
     }
-    if ( $request[1] =~ /^squery/ ) {
-
-        # XXX we're a little verbose here to make this self-documenting.
-        my $class_key = shift @request;
-        my $method    = shift @request;
+    my ( $type, $key, $method ) = splice @request, 0, 3;
+    if ( $method =~ /^squery/ ) {
         if ( !( @request % 2 ) ) {
             unshift @request => '';
         }
-        unshift @request => $class_key, $method;
     }
-    return @request;
+    return ( $type, $key, $method, @request );
 }
 
 sub _get_request_from_path_info {

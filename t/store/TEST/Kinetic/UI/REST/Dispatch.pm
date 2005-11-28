@@ -1,4 +1,4 @@
-package TEST::Kinetic::UI::REST::JSON;
+package TEST::Kinetic::UI::REST::Dispatch;
 
 # $Id: REST.pm 1094 2005-01-11 19:09:08Z curtis $
 
@@ -23,7 +23,7 @@ BEGIN { sig_handlers(1) }
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Format::JSON';
 use aliased 'Kinetic::UI::REST';
-use aliased 'Kinetic::UI::REST::JSON', 'Dispatch';
+use aliased 'Kinetic::UI::REST::Dispatch';
 
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object

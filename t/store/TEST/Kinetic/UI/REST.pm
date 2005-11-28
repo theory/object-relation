@@ -167,7 +167,7 @@ sub rest_interface : Test(32) {
     }
 
     my $cgi_mock = MockModule->new('CGI');
-    $cgi_mock->mock( path_info => '/one/squery' );
+    $cgi_mock->mock( path_info => '/json/one/squery' );
 
     ok $rest->handle_request( CGI->new ), 'An empty squery should succeed';
     is $rest->status, $HTTP_OK, '... with an appropriate status code';
@@ -211,7 +211,7 @@ sub rest_interface : Test(32) {
     # Note that because of the way we're mocking up path_info, URL encoding
     # of parameters is *not* necessary
 
-    $cgi_mock->mock( path_info => '/one/squery/name => "foo"/order_by/name', );
+    $cgi_mock->mock( path_info => '/json/one/squery/name => "foo"/order_by/name', );
 
     ok $rest->handle_request( CGI->new ),
       'An squery with a query and constraints should succeed';
@@ -231,7 +231,7 @@ sub rest_interface : Test(32) {
     END_JSON
     is_json $rest->response, $expected, '... and it should be the correct JSON';
 
-    $cgi_mock->mock( path_info => '/one/squery/order_by/name', );
+    $cgi_mock->mock( path_info => '/json/one/squery/order_by/name', );
 
     ok $rest->handle_request( CGI->new ),
       'An squery with constraints but no query should succeed';
@@ -268,7 +268,7 @@ sub rest_interface : Test(32) {
     END_JSON
     is_json $rest->response, $expected, '... and it should be the correct JSON';
 
-    $cgi_mock->mock( path_info => '/one/squery_uuids/order_by/name/' );
+    $cgi_mock->mock( path_info => '/json/one/squery_uuids/order_by/name/' );
     ok $rest->handle_request( CGI->new ),
       'squery_uuids with constraints but no query should succeed';
     is $rest->status, $HTTP_OK, '... with an appropriate status code';
@@ -283,7 +283,7 @@ sub rest_interface : Test(32) {
     is_json $rest->response, $expected, '... and it should be the correct JSON';
 
     $cgi_mock->mock(
-        path_info => '/one/lookup/uuid/' . $object_for{bar}->uuid );
+        path_info => '/json/one/lookup/uuid/' . $object_for{bar}->uuid );
     ok $rest->handle_request( CGI->new ),
       '$class_key/lookup/uuid/$uuid should succeed';
     is $rest->status, $HTTP_OK, '... with an appropriate status code';
@@ -303,6 +303,8 @@ sub rest_interface : Test(32) {
       '... and it should be the correct response';
 }
 
+1;
+__END__
 sub rest_faults : Test(11) {
     my $test = shift;
 

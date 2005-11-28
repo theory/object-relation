@@ -1,4 +1,4 @@
-package Kinetic::UI::REST::JSON;
+package Kinetic::UI::REST::Dispatch;
 
 # $Id: REST.pm 1544 2005-04-16 01:13:51Z theory $
 
@@ -37,11 +37,11 @@ use Class::BuildMethods 'rest', 'class_key', 'formatter',
 
 =head1 Name
 
-Kinetic::UI::REST::JSON - JSON REST services provider
+Kinetic::UI::REST::Dispatch - Dispatch REST services provider
 
 =head1 Synopsis
 
- use Kinetic::UI::REST::JSON;
+ use Kinetic::UI::REST::Dispatch;
 
  if (my $sub = Kinetic::UI::REST::XML->can($method)) {
    $sub->($rest);
@@ -60,7 +60,7 @@ methods directly.
 
 =head3 new
 
-  my $dispatch = Kinetic::UI::REST::JSON->new({ rest => $rest });
+  my $dispatch = Kinetic::UI::REST::Dispatch->new({ rest => $rest });
 
 The constructor. The C<rest> parameter should be an object conforming to the
 C<Kinetic::UI::Rest> interface.
@@ -186,7 +186,6 @@ sub _handle_method {
             }
             $response = \@response;
         }
-        # XXX Why not make ref_to_format() handle iterators and collections?
         $response = $self->formatter->ref_to_format($response);
         return $self->rest->response($response);
     }
