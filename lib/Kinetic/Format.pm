@@ -264,19 +264,32 @@ sub _verify_usage {
   my $ref = $formatter->expand_ref($reference);
 
 Given an arbitrary data structure, this method will walk the structure and
-expand the Kinetic object founds in to hash references.
+expand the Kinetic object founds into hash references.
+
+Current understands array refs, hashrefs, Kinetic objects and Iterators.
 
 =cut
 
 sub expand_ref {
-    my ($self, $ref) = @_;
-    if (blessed $ref && $ref->isa('Kinetic')) {
-        return $self->_obj_to_hashref($ref);
+    my ( $self, $ref ) = @_;
+    if ( blessed $ref) {
+        if ( $ref->isa('Kinetic') ) {
+            return $self->_obj_to_hashref($ref);
+        }
+        elsif ( $ref->isa('Kinetic::Util::Iterator') ) {
+            my @ref;
+            while ( my $object = $ref->next ) {
+                push @ref => $object;
+            }
+            $ref = \@ref;
+            return $self->expand_ref($ref);
+        }
     }
-    elsif ('ARRAY' eq ref $ref) {
+
+    if ( 'ARRAY' eq ref $ref ) {
         $_ = $self->expand_ref($_) foreach @$ref;
     }
-    elsif ('HASH' eq ref $ref) {
+    elsif ( 'HASH' eq ref $ref ) {
         $_ = $self->expand_ref($_) foreach values %$ref;
     }
     return $ref;

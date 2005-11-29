@@ -14,6 +14,8 @@ use Class::Trait qw(
 use Test::More;
 use Test::Exception;
 use Test::JSON;
+use Test::XML;
+
 {
     local $^W;
 
@@ -144,6 +146,52 @@ sub constructor : Test(14) {
 
     is $rest->path, 'rest/server/',
 '... and paths should have leading slashes removed and trailing slashes added';
+}
+
+sub rest_interface_xml : Test(no_plan) {
+    my $test = shift;
+
+    my %object_for;
+    @object_for{qw/foo bar baz/} = $test->test_objects;
+    $_->description( $_->name . " description" )->save foreach
+      values %object_for;
+
+    my $rest = REST->new( domain => 'http://foo/', path => 'rest/server/' );
+    $test->domain('http://foo/');
+    $test->path('rest/server/');
+
+    my $cgi_mock = MockModule->new('CGI');
+    $cgi_mock->mock( path_info => '/xml/one/squery/order_by/name' );
+
+    ok $rest->handle_request( CGI->new ), 'An empty squery should succeed';
+    is $rest->status, $HTTP_OK, '... with an appropriate status code';
+    ok $rest->response, '... and return an entity-body';
+    my $expected = <<"    END_XML";
+    <opt>
+        <anon 
+            name="bar" 
+            Key="one" 
+            bool="1" 
+            description="bar description" 
+            state="1" 
+            uuid="@{[$object_for{bar}->uuid]}" />
+        <anon 
+            name="foo" 
+            Key="one" 
+            bool="1" 
+            description="foo description" 
+            state="1" 
+            uuid="@{[$object_for{foo}->uuid]}" />
+        <anon 
+            name="snorfleglitz" 
+            Key="one" 
+            bool="1" 
+            description="snorfleglitz description" 
+            state="1" 
+            uuid="@{[$object_for{baz}->uuid]}" />
+    </opt>
+    END_XML
+    is_xml $rest->response, $expected, '... and it should be the correct XML';
 }
 
 sub rest_interface : Test(32) {
@@ -303,8 +351,6 @@ sub rest_interface : Test(32) {
       '... and it should be the correct response';
 }
 
-1;
-__END__
 sub rest_faults : Test(11) {
     my $test = shift;
 
@@ -318,7 +364,7 @@ sub rest_faults : Test(11) {
     $test->path('rest/server/');
 
     my $cgi_mock = MockModule->new('CGI');
-    $cgi_mock->mock( path_info => '/one/query' );
+    $cgi_mock->mock( path_info => '/json/one/query' );
 
     ok $rest->handle_request( CGI->new ),
       'An unavailable method should succeed';
@@ -329,7 +375,7 @@ sub rest_faults : Test(11) {
     }
     ok $rest->response, '... and return an entity-body';
 
-    $cgi_mock->mock( path_info => '/one/no_such_method/' );
+    $cgi_mock->mock( path_info => '/json/one/no_such_method/' );
 
     ok $rest->handle_request( CGI->new ),
       'An unavailable method should succeed';
@@ -337,16 +383,16 @@ sub rest_faults : Test(11) {
       '... with an appropriate status code';
     ok $rest->response, '... and return an entity-body';
     like $rest->response,
-qr{\QNo resource available to handle (/one/no_such_method/no_such_method)},
+qr{\QNo resource available to handle (/json/one/no_such_method/no_such_method)},
       '... with a reasonable error message';
 
-    $cgi_mock->mock( path_info => '/one/squery/name' );
+    $cgi_mock->mock( path_info => '/json/one/squery/name' );
     ok $rest->handle_request( CGI->new ), 'An malformed squery should succeed';
     is $rest->status, $HTTP_INTERNAL_SERVER_ERROR,
       '... with an appropriate status code';
     ok $rest->response, '... and return an entity-body';
     like $rest->response,
-qr{\QFatal error handling /one/squery/name: Could not parse search request},
+qr{\QFatal error handling /json/one/squery/name: Could not parse search request},
       '... with a reasonable error message';
 }
 

@@ -179,13 +179,6 @@ sub _handle_method {
     if ( $method->context == Class::Meta::CLASS ) {
         $self->rest->content_type($TEXT_CT);
         my $response = $method->call( $self->class->package, @args );
-        if ( blessed $response && $response->isa(Iterator) ) {
-            my @response;
-            while ( my $object = $response->next ) {
-                push @response => $object;
-            }
-            $response = \@response;
-        }
         $response = $self->formatter->ref_to_format($response);
         return $self->rest->response($response);
     }

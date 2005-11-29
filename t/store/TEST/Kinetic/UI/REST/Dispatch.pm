@@ -9,7 +9,7 @@ use base 'TEST::Class::Kinetic';
 use Test::More;
 use Test::Exception;
 use Test::JSON;
-use JSON;
+use Test::XML;
 
 use Class::Trait qw(
   TEST::Kinetic::Traits::Store
@@ -21,7 +21,7 @@ use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(1) }
 
 use aliased 'Test::MockModule';
-use aliased 'Kinetic::Format::JSON';
+use aliased 'Kinetic::Format';
 use aliased 'Kinetic::UI::REST';
 use aliased 'Kinetic::UI::REST::Dispatch';
 
@@ -79,6 +79,76 @@ sub _path_info {
     return $test;
 }
 
+sub handle_rest_request_xml : Test(7) {
+    my $test     = shift;
+    my $rest     = $test->{rest};
+    my $dispatch = Dispatch->new( { rest => $rest } );
+    my $url      = $test->url;
+
+    can_ok $dispatch, 'handle_rest_request';
+    my $key = One->my_class->key;
+    $dispatch->rest($rest)->class_key($key);
+
+    # The error message used path info
+    $test->_path_info("/$key/");
+    $dispatch->handle_rest_request;
+    is $rest->response, "No resource available to handle (/$key/)",
+      'Calling _handle_rest_request() with no method should fail';
+
+    my $formatter = Format->new( { format => 'xml' } );
+    $dispatch->formatter($formatter);
+
+    #
+    # testing a non-existent method
+    #
+
+    ok $dispatch->handle_rest_request('no_such_method'),
+      '... and we should be able to handle a non-existent method';
+    is $rest->response, 'No resource available to handle (/one/no_such_method)',
+      '... and get an appropriate error message';
+
+    #
+    # let's test squery
+    #
+
+    my %object_for;
+    @object_for{qw/foo bar baz/} = $test->test_objects;
+    $_->description( $_->name . " description" )->save foreach
+      values %object_for;
+
+    ok $dispatch->handle_rest_request('squery', '', 'order_by', 'name'),
+      'Calling handle_rest_request("squery") should succeed';
+    ok my $response = $rest->response, '... and we should have a response';
+
+    my $expected = <<"    END_XML";
+    <opt>
+        <anon 
+            name="bar" 
+            Key="one" 
+            bool="1" 
+            description="bar description" 
+            state="1" 
+            uuid="@{[$object_for{bar}->uuid]}" />
+        <anon 
+            name="foo" 
+            Key="one" 
+            bool="1" 
+            description="foo description" 
+            state="1" 
+            uuid="@{[$object_for{foo}->uuid]}" />
+        <anon 
+            name="snorfleglitz" 
+            Key="one" 
+            bool="1" 
+            description="snorfleglitz description" 
+            state="1" 
+            uuid="@{[$object_for{baz}->uuid]}" />
+    </opt>
+    END_XML
+
+    is_xml $response, $expected, '... and it should be the correct XML';
+}
+
 sub handle_rest_request : Test(19) {
     my $test     = shift;
     my $rest     = $test->{rest};
@@ -95,7 +165,7 @@ sub handle_rest_request : Test(19) {
     is $rest->response, "No resource available to handle (/$key/)",
       'Calling _handle_rest_request() with no method should fail';
 
-    my $formatter = JSON->new( { index => 2, pretty => 1 } );
+    my $formatter = Format->new( { format => 'json' } );
     $dispatch->formatter($formatter);
 
     #
