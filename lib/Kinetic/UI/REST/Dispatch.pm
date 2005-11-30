@@ -143,12 +143,32 @@ the correct format.
 
 =head3 handle_rest_request
 
- $dispatch->handle_rest_request
+ $dispatch->handle_rest_request(@args);
+
+This method sets the rest response and content type based upon the arguments
+passed to it.  The C<@args> array is assumed to be an array of array refs.
+Each array reference should have the "method" as the first item and the
+"arguments" to that method as subsequent elements.  If an iterator, collection
+or list is returned, subsequent array reference method and arguments will be
+applied in turn to each item returned.  A transaction will wrap all if there
+is more than one.  For example, if the arguments are as follows:
+
+ [ squery => 'name => "foo"' ],
+ [ name   => 'bar'           ],
+ [ 'save'                    ]
+
+Then we fetch every object who's name is "foo", change that name to "bar" and
+save it.
+
+This method expects that C<class_key> has been set prior to calling it.
 
 =cut
 
+# XXX the docs on this suck!
 sub handle_rest_request {
-    my ( $self, $method, @args ) = @_;
+    my ( $self, @method_chain ) = @_;
+    $method_chain[0] ||= [] ;
+    my ( $method, @args ) = @{ $method_chain[0] };
 
     unless ( defined $method ) {
         return $self->_not_implemented;

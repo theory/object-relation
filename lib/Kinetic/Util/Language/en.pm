@@ -146,6 +146,9 @@ our %Lexicon = (
     'Attribute "[_1]" is not unique',
     'Attribute “[_1]” is not unique',
 
+    'Error saving to data store: [_1]',
+    'Error saving to data store: [_1]',
+
     'I could not find uuid "[_1]" in data store for the [_2] class',
     'I could not find UUID “[_1]” in the data store for the [_2] class',
 

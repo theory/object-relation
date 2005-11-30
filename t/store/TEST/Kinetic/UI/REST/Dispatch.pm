@@ -102,7 +102,7 @@ sub handle_rest_request_xml : Test(7) {
     # testing a non-existent method
     #
 
-    ok $dispatch->handle_rest_request('no_such_method'),
+    ok $dispatch->handle_rest_request(['no_such_method']),
       '... and we should be able to handle a non-existent method';
     is $rest->response, 'No resource available to handle (/one/no_such_method)',
       '... and get an appropriate error message';
@@ -116,7 +116,7 @@ sub handle_rest_request_xml : Test(7) {
     $_->description( $_->name . " description" )->save foreach
       values %object_for;
 
-    ok $dispatch->handle_rest_request('squery', '', 'order_by', 'name'),
+    ok $dispatch->handle_rest_request(['squery', '', 'order_by', 'name']),
       'Calling handle_rest_request("squery") should succeed';
     ok my $response = $rest->response, '... and we should have a response';
 
@@ -172,7 +172,7 @@ sub handle_rest_request : Test(19) {
     # testing a non-existent method
     #
 
-    ok $dispatch->handle_rest_request('no_such_method'),
+    ok $dispatch->handle_rest_request(['no_such_method']),
       '... and we should be able to handle a non-existent method';
     is $rest->response, 'No resource available to handle (/one/no_such_method)',
       '... and get an appropriate error message';
@@ -186,7 +186,7 @@ sub handle_rest_request : Test(19) {
     $_->description( $_->name . " description" )->save foreach
       values %object_for;
 
-    ok $dispatch->handle_rest_request('squery'),
+    ok $dispatch->handle_rest_request(['squery']),
       'Calling handle_rest_request("squery") should succeed';
     ok my $response = $rest->response, '... and we should have a response';
 
@@ -224,7 +224,7 @@ sub handle_rest_request : Test(19) {
         { json => $response, values => [qw/foo bar snorfleglitz/] } );
     is_json $response, $expected, '... and it should be the correct JSON';
 
-    ok $dispatch->handle_rest_request( 'squery', 'name => "foo"' ),
+    ok $dispatch->handle_rest_request([ 'squery', 'name => "foo"' ]),
       'Calling handle_rest_request("squery", \'name => "foo"\') should succeed';
     ok $response = $rest->response, '... and we should have a response';
 
@@ -242,7 +242,7 @@ sub handle_rest_request : Test(19) {
     END_JSON
     is_json $response, $expected, '... and it should be the correct JSON';
 
-    ok $dispatch->handle_rest_request( 'squery', '', order_by => 'name' ),
+    ok $dispatch->handle_rest_request([ 'squery', '', order_by => 'name' ]),
 'Calling handle_rest_request("squery", "", order_by => "name") should succeed';
     ok $response = $rest->response, '... and we should have a response';
 
@@ -280,7 +280,7 @@ sub handle_rest_request : Test(19) {
     # let's test squery_uuids
     #
 
-    ok $dispatch->handle_rest_request( 'squery_uuids', '', order_by => 'name' ),
+    ok $dispatch->handle_rest_request([ 'squery_uuids', '', order_by => 'name' ]),
 'Calling handle_rest_request("squery_uuids", "", order_by => "name") should succeed';
     ok $response = $rest->response, '... and we should have a response';
     $expected = <<"    END_JSON";
@@ -296,8 +296,8 @@ sub handle_rest_request : Test(19) {
     # testing lookup
     #
 
-    ok $dispatch->handle_rest_request( 'lookup',
-        uuid => $object_for{bar}->uuid ),
+    ok $dispatch->handle_rest_request( ['lookup',
+        uuid => $object_for{bar}->uuid ]),
       'Calling handle_rest_request("lookup", uuid => $uuid) shoud succed';
 
     ok $response = $rest->response, '... and we should have a response';

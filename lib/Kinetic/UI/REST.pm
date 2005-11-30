@@ -134,26 +134,20 @@ sub handle_request {
     $self->cgi($cgi)->status('')->response('')->content_type('');
     $self->desired_content_type($TEXT_CT);
 
-    my ( $type, $class_key, $method, @args ) = $self->_get_request;
-    $_ = uri_unescape($_) foreach @args;
-
-    ## the following variables should be case-insensitive
-    $_ = lc foreach $class_key, $method;
+    my ( $type, $class_key, @request ) = $self->_get_request;
 
     my $dispatch = Dispatch->new( { rest => $self } );
 
     # later we'll want to handle other format types
     $dispatch->formatter( Kinetic::Format->new( { format => $type } ) );
     eval {
-        if ($class_key) {
+        if ($class_key)
+        {
             $dispatch->class_key($class_key)
-              ->handle_rest_request( $method, @args );
+              ->handle_rest_request( @request );
         }
         else {
-
-            # XXX set this up later
-            # XXX What would it be?
-            #$dispatch->class_list;
+            # XXX not sure what to do here yet.
         }
     };
     if ( my $error = $@ ) {
@@ -219,18 +213,13 @@ sub _get_request {
 
     my @request = $self->_get_request_from_path_info;
 
-    # naive.  We may have more than one "basic" parameters in
-    # the future (currently it's $TYPE_PARAM)
-    if ( !@request || ( $self->cgi->param || 0 ) > 1 ) {
-        @request = $self->_get_request_from_query_string;
-    }
     my ( $type, $key, $method ) = splice @request, 0, 3;
     if ( $method =~ /^squery/ ) {
         if ( !( @request % 2 ) ) {
             unshift @request => '';
         }
     }
-    return ( $type, $key, $method, @request );
+    return ( $type, $key, [ $method, @request ] );
 }
 
 sub _get_request_from_path_info {
@@ -251,27 +240,6 @@ sub _get_request_from_path_info {
     }
     $_ = uri_unescape($_) foreach @request;
     return @request;
-}
-
-sub _get_request_from_query_string {
-    my $self = shift;
-    my $cgi  = $self->cgi;
-
-    my $class_key = $cgi->param($CLASS_KEY_PARAM);
-    my $method    = 'squery';
-
-    my @args;
-    foreach my $param ( $cgi->param ) {
-        my $value = $cgi->param($param);
-        if ( 'squery' eq $param ) {
-            if ( !defined $value || '' eq $value ) {
-                $value = 'null';
-            }
-        }
-        next unless defined $value && '' ne $value;
-        push @args, $param, $value;
-    }
-    return ( $class_key, $method, @args );
 }
 
 ##############################################################################

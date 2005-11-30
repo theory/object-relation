@@ -25,9 +25,14 @@ our $VERSION = version->new('0.0.1');
 use DBI;
 use Clone;
 
+use Class::BuildMethods qw(
+  _in_transaction
+);
+
 use Kinetic::Util::Exceptions qw/
   panic
   throw_attribute
+  throw_fatal
   throw_invalid
   throw_invalid_class
   throw_search
@@ -97,24 +102,91 @@ many public class methods instantiate an object prior to doing work.
 This method saves an object to the data store. It also saves all contained
 objects to the data store at the same time, all in a single transaction.
 
+If a transaction has been started manually with C<begin_work>, this method
+does not attempt to start a new transaction.
+
 =cut
 
 sub save {
     my $self = shift->_from_proto;
 
+    if ( $self->_in_transaction ) {
+
+        # someone has started a transaction externally
+        eval { $self->_save(@_) };
+        throw_fatal [ 'Error saving to data store: [_1]', $@ ] if $@;
+    }
+    else {
+        $self->begin_work;
+        eval {
+            $self->_save(@_);
+            $self->commit;
+        };
+        if ( my $err = $@ ) {
+            $self->rollback;
+            throw_fatal [ 'Error saving to data store: [_1]', $@ ] if $@;
+        }
+    }
+    return $self;
+}
+
+##############################################################################
+
+=head3 begin_work
+
+  $store->begin_work;
+
+Begins a transaction.  No effect if we're already in a transaction.
+
+=cut
+
+sub begin_work {
+    my $self = shift;
+
     # XXX Cache the database handle only for the duration of a single call to
     # save(). We can change this if DBI is ever changed so that
     # connect_cached() stops resetting AutoCommit.
+    return if $self->_in_transaction;
     $self->{dbh} = $self->_dbh;
     $self->{dbh}->begin_work;
-    eval {
-        $self->_save(@_);
-        delete( $self->{dbh} )->commit;
-    };
-    if ( my $err = $@ ) {
-        delete( $self->{dbh} )->rollback;
-        die $err;
-    }
+    $self->_in_transaction(1);
+    return $self;
+}
+
+##############################################################################
+
+=head3 commit
+
+  $store->commit;
+
+Commits a transaction.  No effect if we're not in a transaction.
+
+=cut
+
+sub commit {
+    my $self = shift;
+    return unless $self->_in_transaction;
+    $self->_in_transaction(0);
+    delete( $self->{dbh} )->commit;
+    return $self;
+}
+
+##############################################################################
+
+=head3 rollback
+
+  $store->rollback;
+
+Rolls back an uncommitted transaction.  No effect if we're not in a
+transaction.
+
+=cut
+
+sub rollback {
+    my $self = shift;
+    return unless $self->_in_transaction;
+    $self->_in_transaction(0);
+    delete( $self->{dbh} )->rollback;
     return $self;
 }
 
@@ -735,7 +807,6 @@ sub _get_sql_results {
                 return $self->_build_object_from_hashref($result);
             }
         );
-        $iterator->request( $self->_intermediate_representation );
         return $iterator;
     }
     else {
@@ -745,15 +816,6 @@ sub _get_sql_results {
         }
         return \@results;
     }
-}
-
-sub _intermediate_representation {
-    my $self = shift;
-    if (@_) {
-        $self->{ir} = shift;
-        return $self;
-    }
-    return $self->{ir};
 }
 
 ##############################################################################
@@ -996,7 +1058,6 @@ sub _make_where_clause {
       ? code_lexer_stream($search_request)
       : string_lexer_stream( $search_request->[0] );
     my $ir = parse( $stream, $self );
-    $self->_intermediate_representation( Clone::clone($ir) );
     my ( $where_clause, $bind_params ) =
       $self->_convert_ir_to_where_clause($ir);
     $where_clause = "" if '()' eq $where_clause;
