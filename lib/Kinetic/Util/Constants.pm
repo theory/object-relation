@@ -62,6 +62,7 @@ Readonly our $HTTP_OK                    => '200 OK';
 Readonly our $HTTP_INTERNAL_SERVER_ERROR => '500 Internal Server Error';
 Readonly our $HTTP_NOT_IMPLEMENTED       => '501 Not Implemented';
 Readonly our $HTTP_NOT_FOUND             => '404 Not Found';
+Readonly our $HTTP_BAD_REQUEST           => '400 Bad Request';
 
 # XSLT
 Readonly our $CURRENT_PAGE   => '#';
@@ -100,6 +101,7 @@ use Exporter::Tidy http => [
       $HTTP_INTERNAL_SERVER_ERROR
       $HTTP_NOT_IMPLEMENTED
       $HTTP_NOT_FOUND
+      $HTTP_BAD_REQUEST
       /
   ],
   data => [
@@ -293,6 +295,10 @@ C<501 Not Implemented>
 =item * $HTTP_NOT_FOUND
 
 C<404 Not Found>
+
+=item * $HTTP_BAD_REQUEST
+
+C<400 Bad Request>
 
 =item * $HTTP_OK
 

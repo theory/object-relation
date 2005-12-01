@@ -29,6 +29,8 @@ use Kinetic::Format;
 use aliased 'Kinetic::UI::REST::Dispatch';
 
 use URI::Escape qw/uri_unescape/;
+use Readonly;
+Readonly my $PIPE => qr/%7[Cc]/;
 
 use Class::BuildMethods qw(
   cgi
@@ -137,23 +139,24 @@ sub handle_request {
     my ( $type, $class_key, @request ) = $self->_get_request;
 
     my $dispatch = Dispatch->new( { rest => $self } );
-
-    # later we'll want to handle other format types
     $dispatch->formatter( Kinetic::Format->new( { format => $type } ) );
     eval {
         if ($class_key)
         {
-            $dispatch->class_key($class_key)
-              ->handle_rest_request( @request );
+            $dispatch->class_key($class_key)->handle_rest_request(@request);
         }
         else {
-            # XXX not sure what to do here yet.
+
+            # XXX not sure what to do here yet.  We used to return a list of
+            # available classes.
         }
     };
     if ( my $error = $@ ) {
-        my $info = $cgi->path_info;
-        $self->status($HTTP_INTERNAL_SERVER_ERROR)
-          ->response("Fatal error handling $info: $error");
+        if ( !$self->status || $self->status eq $HTTP_OK ) {
+            my $info = $cgi->path_info;
+            $self->status($HTTP_INTERNAL_SERVER_ERROR)
+              ->response("Fatal error handling $info: $error");
+        }    # else error was set in the dispatch
     }
     $self->status($HTTP_OK) unless $self->status;
     return $self;
@@ -190,56 +193,47 @@ sub base_url {
     return join '' => $self->domain, $self->path;
 }
 
-##############################################################################
-
-=head3 query_string
-
-  my $query_string = $rest->query_string;
-
-At the present time, only returns the portion of the REST query string
-specifiying the content type.
-
-=cut
-
-sub query_string {
-    my $self = shift;
-    my $type = lc $self->output_type || return '';
-    return '' if 'xml' eq $type;    # because this is the default
-    return "?" . $TYPE_PARAM . "=$type";
-}
-
 sub _get_request {
     my $self = shift;
 
-    my @request = $self->_get_request_from_path_info;
-
-    my ( $type, $key, $method ) = splice @request, 0, 3;
-    if ( $method =~ /^squery/ ) {
-        if ( !( @request % 2 ) ) {
-            unshift @request => '';
+    my ( $type, $key, @links ) = $self->_get_request_from_path_info;
+    my $request = $links[0];
+    if ( $request->[0] =~ /^squery/ ) {
+        if ( ( @$request % 2 ) ) {
+            splice @$request, 1, 0,
+              '';    # insert an empty string after the method
         }
     }
-    return ( $type, $key, [ $method, @request ] );
+    return ( $type, $key, @links );
 }
 
 sub _get_request_from_path_info {
-    my $self      = shift;
-    my $cgi       = $self->cgi;
-    my @request   = grep { /\S/ } split '/' => $cgi->path_info;
+    my $self  = shift;
+    my $cgi   = $self->cgi;
+    my @links =
+      map {
+        [
+            map    { uri_unescape($_) }
+              grep { /\S/ }
+              split '/' => $_
+        ]
+      }
+      split $PIPE, $cgi->path_info;
+    my $request   = $links[0];
     my @base_path = split '/' => $self->path;
 
     # remove base path from request, if it's there
     for my $component (@base_path) {
         no warnings 'uninitialized';
-        if ( $component eq $request[0] ) {
-            shift @request;
+        if ( $component eq $request->[0] ) {
+            shift @$request;
         }
         else {
             last;
         }
     }
-    $_ = uri_unescape($_) foreach @request;
-    return @request;
+    my ( $type, $key ) = splice @$request, 0, 2;
+    return ( $type, $key, @links );
 }
 
 ##############################################################################

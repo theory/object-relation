@@ -30,7 +30,6 @@ use aliased 'Kinetic::Util::Iterator';
 use Kinetic::Meta;
 use Kinetic::Store;
 use Kinetic::Util::Constants qw/:http :rest/;
-use Kinetic::Util::Exceptions qw/throw_fatal throw_invalid_class/;
 
 use Class::BuildMethods 'rest', 'class_key', 'formatter',
   method => { default => '' };
@@ -108,17 +107,18 @@ sub class {
         return $self;
     }
     $self->{class} ||= Kinetic::Meta->for_key( $self->class_key );
+
+    unless ( $self->{class} ) {
+        $self->_bad_request("No class found for key (@{[$self->class_key]})");
+
+        # It's OK to die because the REST class catches this and Does The
+        # Right Thing
+        die;
+    }
     return $self->{class};
 }
 
 ##############################################################################
-
-=head3 method
-
-  my $method = $dispatch->method;
-  $dispatch->method($method);
-
-Getter/setter for method to be sent to class created from class key.
 
 =head3 formatter
 
@@ -167,47 +167,85 @@ This method expects that C<class_key> has been set prior to calling it.
 # XXX the docs on this suck!
 sub handle_rest_request {
     my ( $self, @method_chain ) = @_;
-    $method_chain[0] ||= [] ;
+
+    $method_chain[0] ||= [];
     my ( $method, @args ) = @{ $method_chain[0] };
 
-    unless ( defined $method ) {
-        return $self->_not_implemented;
+    unless ( defined $method_chain[0][0] ) {
+        return $self->_bad_request(
+            "No method supplied with " . $self->rest->path_info );
     }
-    my ( $class, $method_object, $ctor );
-    eval { $class = Kinetic::Meta->for_key( $self->class_key ) };
-    if ( $class && $method ) {
-        $self->class($class);
-        $method_object = $class->methods($method);
-        $ctor = $method_object ? '' : $class->constructors($method);
+    if ( @method_chain > 1 ) {
+        return $self->_handle_chain(@method_chain);
     }
-
-    return $ctor ? $self->_handle_constructor( $ctor, @args )
-      : $method_object ? $self->_handle_method( $method_object, @args )
-      : $self->_not_implemented($method);
+    else {
+        return $self->_handle_single_request( @{ $method_chain[0] } );
+    }
 }
 
-sub _handle_constructor {
-    my ( $self, $ctor, @args ) = @_;
-    my $obj = $ctor->call( $self->class->package, @args );
-    my $response = $self->formatter->ref_to_format($obj);
+sub _handle_single_request {
+    my ( $self, $method, @args ) = @_;
+    my $results = $self->_execute_method( $method, @args );
+    unless ($results) {
+        return $self->_not_implemented($method);
+    }
+    my $response = $self->formatter->ref_to_format($results);
     return $self->rest->response($response);
 }
 
-sub _handle_method {
-    my ( $self, $method, @args ) = @_;
+sub _handle_chain {
+    my ( $self, @method_chain ) = @_;
+    my $first_link = shift @method_chain;
+    my ( $method, @args ) = @$first_link;
+    my $rest = $self->rest;
 
-    if ( $method->context == Class::Meta::CLASS ) {
-        $self->rest->content_type($TEXT_CT);
-        my $response = $method->call( $self->class->package, @args );
-        $response = $self->formatter->ref_to_format($response);
-        return $self->rest->response($response);
+    # XXX this is just a proof of concept.  I'll clean it up later.
+    if ( 'new' ne $method && 'squery' ne $method && 'lookup' ne $method ) {
+        return $rest->status($HTTP_NOT_IMPLEMENTED)
+          ->response(
+            "First method in a chain must return objects.  You used ($method)");
     }
-    else {
+    my $result = $self->_execute_method( $method, @args );
+    my @objects;
+    if ( $result->isa('Kinetic') ) {
+        @objects = $result;
+    }
+    else {    # assume it's an iterator
+        while ( my $object = $result->next ) {
+            push @objects => $object;
+        }
+    }
 
-        # XXX we're not actually doing anything with this yet.
-        #my $obj = $self->class->contructors('lookup')->call(@$args)
-        #  or die;
-        #$method->call( $obj, @$args );
+    foreach my $link (@method_chain) {
+        my ( $method, @args ) = @$link;
+        foreach my $object (@objects) {
+            $object->$method(@args);
+        }
+    }
+    my $response = $self->formatter->ref_to_format(\@objects);
+    $self->rest->status($HTTP_OK)->response($response);
+    return $self;
+}
+
+sub _execute_method {
+    my ( $self, $method, @args ) = @_;
+    my $class = $self->class;
+    if ( my $method_object = $class->methods($method) ) {
+        if ( $method_object->context == Class::Meta::CLASS ) {
+            return $method_object->call( $class->package, @args );
+        }
+        else {
+
+            die "We aren't handling this yet!";
+
+            # XXX we're not actually doing anything with this yet.
+            #my $obj = $self->class->contructors('lookup')->call(@$args)
+            #  or die;
+            #$method->call( $obj, @$args );
+        }
+    }
+    elsif ( my $ctor = $class->constructors($method) ) {
+        return $ctor->call( $class->package, @args );
     }
 }
 
@@ -218,6 +256,11 @@ sub _not_implemented {
     my $info = $rest->path_info;
     $rest->status($HTTP_NOT_IMPLEMENTED)
       ->response("No resource available to handle ($info$method)");
+}
+
+sub _bad_request {
+    my ( $self, $message ) = @_;
+    $self->rest->status($HTTP_BAD_REQUEST)->response($message);
 }
 
 1;

@@ -107,6 +107,49 @@ sub teardown : Test(teardown) {
 
 sub server { shift->{REST} }
 
+sub chained_calls : Test(no_plan) {
+    my $test = shift;
+
+    my %object_for;
+    @object_for{qw/foo bar baz/} = $test->test_objects;
+    $_->description( $_->name . " description" )->save foreach
+      values %object_for;
+
+    my $rest = REST->new( domain => 'http://foo/', path => 'rest/server/' );
+    $test->domain('http://foo/');
+    $test->path('rest/server/');
+
+    my $cgi_mock = MockModule->new('CGI');
+    $cgi_mock->mock(
+        path_info => '/json/one/squery/name EQ "bar"%7Cname/rab%7Csave' );
+
+    ok $rest->handle_request( CGI->new ), 'A chained call should succeed';
+    is $rest->status, $HTTP_OK, '... with an appropriate status code';
+    ok $rest->response, '... and return an entity-body';
+    my $expected = <<"    END_JSON";
+    [
+      {
+        "bool" : 1,
+        "name" : "rab",
+        "Key" : "one",
+        "uuid" : "@{[$object_for{bar}->uuid]}",
+        "description" : "bar description",
+        "state" : 1
+      }
+    ]
+    END_JSON
+    is_json $rest->response, $expected, '... and it should be the correct JSON';
+
+    my ( $foo, $bar, $baz ) = $test->test_objects;
+    my $class = $bar->my_class;
+    my $store = Kinetic::Store->new;
+    ok my $iter = $store->squery( $class, 'name EQ "rab"' ),
+      '... and searching for the munged object should succeed';
+    my $object = $iter->next;
+    is $object->uuid, $bar->uuid,
+      '... and it should really be the correct object';
+}
+
 sub constructor : Test(14) {
     my $test = shift;
     can_ok REST, 'new';

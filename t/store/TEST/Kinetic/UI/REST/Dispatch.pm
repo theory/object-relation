@@ -17,6 +17,7 @@ use Class::Trait qw(
   TEST::Kinetic::Traits::JSON
 );
 
+use Kinetic::Util::Constants qw/:http/;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(1) }
 
@@ -79,7 +80,61 @@ sub _path_info {
     return $test;
 }
 
-sub handle_rest_request_xml : Test(7) {
+sub chained_requests : Test(no_plan) {
+    my $test     = shift;
+    my $rest     = $test->{rest};
+    my $dispatch = Dispatch->new( { rest => $rest } );
+    my $url      = $test->url;
+
+    can_ok $dispatch, 'handle_rest_request';
+    my $key = One->my_class->key;
+    $dispatch->rest($rest)->class_key($key);
+
+    my $formatter = Format->new( { format => 'json' } );
+    $dispatch->formatter($formatter);
+
+    #
+    # First chain method must create objects
+    #
+
+    $test->_path_info("/$key/squery_uuids|save");
+    ok $dispatch->handle_rest_request( [ 'squery_uuids', '' ], ['save'] ),
+      'A call chain with an invalid first method should succeed';
+    is $rest->status, $HTTP_NOT_IMPLEMENTED,
+      '... with an "not implemented" status header';
+    is $rest->response,
+      'First method in a chain must return objects.  You used (squery_uuids)',
+      '... and a response explaining what the problem is';
+
+    #
+    # testing a no-op chain
+    #
+
+    ok $dispatch->handle_rest_request( [ 'squery', '' ], ['save'] ),
+      'We should be able to handle a simple chain';
+    is $rest->status, $HTTP_OK, '... with a good status';
+    ok $rest->response, '... and a response';
+
+    #
+    # altering an object via a chain
+    #
+
+    ok $dispatch->handle_rest_request( [ 'squery', 'name EQ "bar"' ],
+        [ 'name', 'rab' ], ['save'] ),
+      '... and we should be able to handle a simple chain';
+    my ( $foo, $bar, $baz ) = $test->test_objects;
+    my $class = $bar->my_class;
+    my $store = Kinetic::Store->new;
+    ok my $iter = $store->squery( $class, 'name EQ "rab"' ),
+      '... and searching for the munged object should succeed';
+    my $object = $iter->next;
+    is $object->name, 'rab', '... and it should be altered as we expected';
+    is $object->uuid, $bar->uuid, '... but still have the correct UUID';
+    is $rest->status, $HTTP_OK, '... with a good status';
+    ok $rest->response, '... and a response';
+}
+
+sub handle_rest_request_xml : Test(8) {
     my $test     = shift;
     my $rest     = $test->{rest};
     my $dispatch = Dispatch->new( { rest => $rest } );
@@ -92,8 +147,10 @@ sub handle_rest_request_xml : Test(7) {
     # The error message used path info
     $test->_path_info("/$key/");
     $dispatch->handle_rest_request;
-    is $rest->response, "No resource available to handle (/$key/)",
-      'Calling _handle_rest_request() with no method should fail';
+    is $rest->status, $HTTP_BAD_REQUEST,
+      '... and it should return a bad request if we do not have a method';
+    is $rest->response, "No method supplied with /$key/",
+      '... and set an appropriate error message';
 
     my $formatter = Format->new( { format => 'xml' } );
     $dispatch->formatter($formatter);
@@ -102,7 +159,7 @@ sub handle_rest_request_xml : Test(7) {
     # testing a non-existent method
     #
 
-    ok $dispatch->handle_rest_request(['no_such_method']),
+    ok $dispatch->handle_rest_request( ['no_such_method'] ),
       '... and we should be able to handle a non-existent method';
     is $rest->response, 'No resource available to handle (/one/no_such_method)',
       '... and get an appropriate error message';
@@ -116,7 +173,7 @@ sub handle_rest_request_xml : Test(7) {
     $_->description( $_->name . " description" )->save foreach
       values %object_for;
 
-    ok $dispatch->handle_rest_request(['squery', '', 'order_by', 'name']),
+    ok $dispatch->handle_rest_request( [ 'squery', '', 'order_by', 'name' ] ),
       'Calling handle_rest_request("squery") should succeed';
     ok my $response = $rest->response, '... and we should have a response';
 
@@ -149,7 +206,7 @@ sub handle_rest_request_xml : Test(7) {
     is_xml $response, $expected, '... and it should be the correct XML';
 }
 
-sub handle_rest_request : Test(19) {
+sub handle_rest_request : Test(20) {
     my $test     = shift;
     my $rest     = $test->{rest};
     my $dispatch = Dispatch->new( { rest => $rest } );
@@ -162,8 +219,10 @@ sub handle_rest_request : Test(19) {
     # The error message used path info
     $test->_path_info("/$key/");
     $dispatch->handle_rest_request;
-    is $rest->response, "No resource available to handle (/$key/)",
-      'Calling _handle_rest_request() with no method should fail';
+    is $rest->status, $HTTP_BAD_REQUEST,
+      '... and it should return a bad request if we do not have a method';
+    is $rest->response, "No method supplied with /$key/",
+      '... and set an appropriate error message';
 
     my $formatter = Format->new( { format => 'json' } );
     $dispatch->formatter($formatter);
@@ -172,7 +231,7 @@ sub handle_rest_request : Test(19) {
     # testing a non-existent method
     #
 
-    ok $dispatch->handle_rest_request(['no_such_method']),
+    ok $dispatch->handle_rest_request( ['no_such_method'] ),
       '... and we should be able to handle a non-existent method';
     is $rest->response, 'No resource available to handle (/one/no_such_method)',
       '... and get an appropriate error message';
@@ -186,7 +245,7 @@ sub handle_rest_request : Test(19) {
     $_->description( $_->name . " description" )->save foreach
       values %object_for;
 
-    ok $dispatch->handle_rest_request(['squery']),
+    ok $dispatch->handle_rest_request( ['squery'] ),
       'Calling handle_rest_request("squery") should succeed';
     ok my $response = $rest->response, '... and we should have a response';
 
@@ -224,7 +283,7 @@ sub handle_rest_request : Test(19) {
         { json => $response, values => [qw/foo bar snorfleglitz/] } );
     is_json $response, $expected, '... and it should be the correct JSON';
 
-    ok $dispatch->handle_rest_request([ 'squery', 'name => "foo"' ]),
+    ok $dispatch->handle_rest_request( [ 'squery', 'name => "foo"' ] ),
       'Calling handle_rest_request("squery", \'name => "foo"\') should succeed';
     ok $response = $rest->response, '... and we should have a response';
 
@@ -242,7 +301,7 @@ sub handle_rest_request : Test(19) {
     END_JSON
     is_json $response, $expected, '... and it should be the correct JSON';
 
-    ok $dispatch->handle_rest_request([ 'squery', '', order_by => 'name' ]),
+    ok $dispatch->handle_rest_request( [ 'squery', '', order_by => 'name' ] ),
 'Calling handle_rest_request("squery", "", order_by => "name") should succeed';
     ok $response = $rest->response, '... and we should have a response';
 
@@ -280,7 +339,8 @@ sub handle_rest_request : Test(19) {
     # let's test squery_uuids
     #
 
-    ok $dispatch->handle_rest_request([ 'squery_uuids', '', order_by => 'name' ]),
+    ok $dispatch->handle_rest_request(
+        [ 'squery_uuids', '', order_by => 'name' ] ),
 'Calling handle_rest_request("squery_uuids", "", order_by => "name") should succeed';
     ok $response = $rest->response, '... and we should have a response';
     $expected = <<"    END_JSON";
@@ -296,8 +356,8 @@ sub handle_rest_request : Test(19) {
     # testing lookup
     #
 
-    ok $dispatch->handle_rest_request( ['lookup',
-        uuid => $object_for{bar}->uuid ]),
+    ok $dispatch->handle_rest_request(
+        [ 'lookup', uuid => $object_for{bar}->uuid ] ),
       'Calling handle_rest_request("lookup", uuid => $uuid) shoud succed';
 
     ok $response = $rest->response, '... and we should have a response';
