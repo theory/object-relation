@@ -200,8 +200,10 @@ sub _get_request {
     my $request = $links[0];
     if ( $request->[0] =~ /^squery/ ) {
         if ( ( @$request % 2 ) ) {
-            splice @$request, 1, 0,
-              '';    # insert an empty string after the method
+
+            # we have a query with constraints but no search so we need to
+            # insert an empty search after the query method.
+            splice @$request, 1, 0, '';
         }
     }
     return ( $type, $key, @links );
@@ -209,7 +211,6 @@ sub _get_request {
 
 sub _get_request_from_path_info {
     my $self  = shift;
-    my $cgi   = $self->cgi;
     my @links =
       map {
         [
@@ -218,7 +219,7 @@ sub _get_request_from_path_info {
               split '/' => $_
         ]
       }
-      split $PIPE, $cgi->path_info;
+      split $PIPE, $self->path_info;
     my $request   = $links[0];
     my @base_path = split '/' => $self->path;
 
