@@ -102,8 +102,8 @@ sub chained_requests : Test(no_plan) {
       'A call chain with an invalid first method should succeed';
     is $rest->status, $HTTP_NOT_IMPLEMENTED,
       '... with an "not implemented" status header';
-    is $rest->response,
-      'First method in a chain must return objects.  You used (squery_uuids)',
+    like $rest->response,
+qr/The first method in a chain must return objects. You used .squery_uuids./,
       '... and a response explaining what the problem is';
 
     #
@@ -161,7 +161,8 @@ sub handle_rest_request_xml : Test(8) {
 
     ok $dispatch->handle_rest_request( ['no_such_method'] ),
       '... and we should be able to handle a non-existent method';
-    is $rest->response, 'No resource available to handle (/one/no_such_method)',
+    like $rest->response,
+      qr{No resource available to handle ./one/no_such_method.},
       '... and get an appropriate error message';
 
     #
@@ -233,7 +234,8 @@ sub handle_rest_request : Test(20) {
 
     ok $dispatch->handle_rest_request( ['no_such_method'] ),
       '... and we should be able to handle a non-existent method';
-    is $rest->response, 'No resource available to handle (/one/no_such_method)',
+    like $rest->response,
+      qr{No resource available to handle ./one/no_such_method.},
       '... and get an appropriate error message';
 
     #

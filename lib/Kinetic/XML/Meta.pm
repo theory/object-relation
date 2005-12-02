@@ -29,7 +29,8 @@ use XML::Simple;
 use Kinetic::Util::Exceptions qw/throw_io throw_xml throw_invalid_class/;
 
 use Kinetic::Meta;
-use constant XML_VERSION => '0.01';
+use Readonly;
+Readonly our $XML_VERSION => '0.01';
 
 =head1 Name
 
@@ -149,7 +150,7 @@ sub dump_xml {
     eval {
         $xml->StartDocString;
         $xml->StartElementLiteral('kinetic');
-        $xml->AddAttributeLiteral( version => XML_VERSION );
+        $xml->AddAttributeLiteral( version => $XML_VERSION );
         while ( my $class = shift @CLASSES ) {
             $self->_add_class_to_xml( $xml, $class );
         }

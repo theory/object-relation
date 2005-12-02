@@ -38,13 +38,14 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use Exporter::Tidy default => ['parse'];
-use HOP::Stream    qw/drop list_to_stream/;
-use HOP::Parser    qw/:all/;
+use HOP::Stream qw/drop list_to_stream/;
+use HOP::Parser qw/:all/;
 
 use Kinetic::DateTime::Incomplete qw/is_incomplete_iso8601/;
 use Kinetic::Store::Search;
-use Kinetic::Util::Constants      qw/:data_store/;
-use Kinetic::Util::Exceptions     qw/panic throw_search/;
+use Kinetic::Util::Constants qw/:data_store/;
+use Kinetic::Util::Exceptions qw/panic throw_search/;
+use Kinetic::Util::Context;
 
 =head1 Name
 
@@ -71,12 +72,12 @@ for a given store.
 =cut
 
 # predefine a few things
-my $lparen       = match( OP => '(' );
-my $rparen       = match( OP => ')' );
-my $lbracket     = match( OP => '[' );
-my $rbracket     = match( OP => ']' );
-my $fat_comma    = match( OP => '=>' );
-my $comma        = match( OP => ',' );
+my $lparen    = match( OP => '(' );
+my $rparen    = match( OP => ')' );
+my $lbracket  = match( OP => '[' );
+my $rbracket  = match( OP => ']' );
+my $fat_comma = match( OP => '=>' );
+my $comma     = match( OP => ',' );
 my $either_comma = alternate( $fat_comma, $comma );
 my $search_value = match('VALUE');
 
@@ -85,7 +86,7 @@ my $search_value = match('VALUE');
 #
 
 my ( $search, $value, $normal_value, $between_value, $any, $statement,
-     $statement_list, $statements );
+    $statement_list, $statements );
 
 #
 # Eta-conversion
@@ -123,9 +124,8 @@ my $Statement_list = parser { $statement_list->(@_) };
 
 #  entire_input   ::= statements 'End_Of_Input'
 
-my $entire_input = error(
-  T( concatenate( $Statements, \&End_of_Input ), sub { $_[0] } )
-);
+my $entire_input =
+  error( T( concatenate( $Statements, \&End_of_Input ), sub { $_[0] } ) );
 
 #  statements     ::= statement | statement ',' statements
 
@@ -172,7 +172,7 @@ $statement_list = concatenate(
 $search = T(
     concatenate(
         match('IDENTIFIER'),
-        absorb(optional($fat_comma)),
+        absorb( optional($fat_comma) ),
         optional( match( KEYWORD => 'NOT' ) ),
         alternate( $Normal_value, $Between_value )
     ),
@@ -182,16 +182,8 @@ $search = T(
 #  normal_value   ::= value | compare value | any
 
 $normal_value =
-    T( 
-        alternate( 
-            concatenate( 
-                optional( match('COMPARE') ),
-                $Value
-            ), 
-            $Any
-        ),
-        sub { [ $_[0][0], $_[1] ] } 
-    );
+  T( alternate( concatenate( optional( match('COMPARE') ), $Value ), $Any ),
+    sub { [ $_[0][0], $_[1] ] } );
 
 #  note that parenthese are allowed for "BETWEEN" searches.  This allows
 #  STRING searches to do this:
@@ -208,18 +200,12 @@ $between_value = T(
     alternate(
         concatenate(
             absorb( optional( match( KEYWORD => 'BETWEEN' ) ) ),
-            absorb($lbracket),
-            $Value,
-            absorb($either_comma),
-            $Value,
+            absorb($lbracket), $Value, absorb($either_comma), $Value,
             absorb($rbracket),
         ),
         concatenate(
             absorb( match( KEYWORD => 'BETWEEN' ) ),
-            absorb($lparen),
-            $Value,
-            absorb($either_comma),
-            $Value,
+            absorb($lparen), $Value, absorb($either_comma), $Value,
             absorb($rparen),
         ),
     ),
@@ -239,12 +225,12 @@ $between_value = T(
 
 $any = T(
     concatenate(
-        absorb(match( KEYWORD => 'ANY' )),
+        absorb( match( KEYWORD => 'ANY' ) ),
         absorb($lparen),
         $Value,
-        rlist_values_of($search_value, $either_comma),
-        absorb( optional($comma) ),           # allow a trailing comma
-        absorb( $rparen ),
+        rlist_values_of( $search_value, $either_comma ),
+        absorb( optional($comma) ),    # allow a trailing comma
+        absorb($rparen),
     ),
     sub {
 
@@ -254,7 +240,7 @@ $any = T(
         [
             ['ANY'],
             [
-                _normalize_value( shift ),
+                _normalize_value(shift),
                 map { _normalize_value($_) } @{ +shift }
             ]
         ];
@@ -391,6 +377,7 @@ B<Throws:>
 =cut
 
 my $STORE;
+my $LANGUAGE = Kinetic::Util::Context->language;
 
 sub _make_search {
 
@@ -405,14 +392,23 @@ sub _make_search {
         # special case for searching on a contained object id ...
         my $id_column = $column . $OBJECT_DELIMITER . 'id';
         unless ( $STORE->_search_data_has_column($id_column) ) {
-            # XXX Remind me why we're not throwing exception objects.
-            die "Don't know how to search for ($column $negated $operator $value): unknown column ($column)";
+            die $LANGUAGE->maketext(
+                q{Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]},
+                $column,
+                $negated,
+                $operator,
+                $value,
+                $LANGUAGE->maketext( 'Unknown column "[_1]"', $column )
+            );
         }
         $column = $id_column;
         $value  =
           'ARRAY' eq ref $value ? [ map $_->id => @$value ]
           : ref $value ? $value->id
-          : die qq'Object key "$id_column" must point to an object, not a scalar ($value)';
+          : die $LANGUAGE->maketext(
+            'Object key "[_1]" must point to an object, not a scalar "[_1]"',
+            $id_column, $value
+          );
     }
 
     return Kinetic::Store::Search->new(
@@ -442,18 +438,19 @@ sub parse {
 
     if ( my $error = $@ ) {
         if ( 'ARRAY' eq ref $error ) {
-            my $message = fetch_error( $error );
-            throw_search [
-                'Could not parse search request:  [_1]',
-                $message
-            ];
+            my $message = fetch_error($error);
+            throw_search [ 'Could not parse search request:  [_1]', $message ];
         }
         else {
-            throw_search 'Could not parse search request' if $remainder or !$results;
+            throw_search 'Could not parse search request'
+              if $remainder
+              or !$results;
+
             # can't get rid of the former until we nail that down in the tests
             #panic "Unknown error ($error)";
         }
     }
+
     # XXX really need to figure out a more descriptive error message
     return $results;
 }

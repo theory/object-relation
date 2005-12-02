@@ -40,9 +40,7 @@ of the Kinetic localization interface.
 
 =cut
 
-our %Lexicon = (
-
-    # Classes.
+my %classes = (
     'Kinetic' => 'Kinetic',
     'Class'   => 'Class',
     'Classes' => 'Classes',
@@ -52,13 +50,97 @@ our %Lexicon = (
     'Persons' => 'Persons',
     'User'    => 'User',
     'Users'   => 'Users',
+);
 
-    # States.
+my %kinetic_object_states = (
     'Permanent' => 'Permanent',
     'Active'    => 'Active',
     'Inactive'  => 'Inactive',
     'Deleted'   => 'Deleted',
     'Purged'    => 'Purged',
+);
+
+my %lexer_parser_messages = (
+    'Could not lex search request.  Found bad tokens ([_1])',
+    'Could not lex search request. Found bad tokens ([_1])',
+
+    'I don\'t know how to lex a "[_1]"',
+    'I don\'t know how to lex a “[_1]”',
+
+    'Could not parse search request:  [_1]',
+    'Could not parse search request:  [_1]',
+
+    'Could not parse search request',
+    'Could not parse search request',
+
+    q{Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]},
+    'Don’t know how to search for ([_1] [_2] [_3] [_4]): [_5]',
+
+    'Object key "[_1]" must point to an object, not a scalar "[_1]"',
+    'Object key “[_1]” must point to an object, not a scalar “[_2]”',
+);
+
+my %search_messages = (
+    'BETWEEN searches may only take two values.  You have [_1]',
+    'BETWEEN searches may only take two values. You have [_1]',
+
+    'Odd number of constraints in string search:  "[_1]"',
+    'Odd number of constraints in string search “[_1]”',
+
+    'Failed to convert IR to where clause.  This should not happen.',
+    'Failed to convert IR to where clause. This should not happen.',
+
+    '[_1] does not support full-text searches',
+    '[_1] does not support full-text searches',
+
+    'MATCH:  [_1] does not support regular expressions',
+    'MATCH: [_1] does not support regular expressions',
+
+    'You cannot do GT or LT type searches with non-contiguous dates',
+    'You cannot do GT or LT type searches with non-contiguous dates',
+
+    'You cannot do range searches with non-contiguous dates',
+    'You cannot do range searches with non-contiguous dates',
+
+    'BETWEEN search dates must have identical segments defined',
+    'BETWEEN search dates must have identical segments defined',
+
+    'All types to an ANY search must match',
+    'All types to an ANY search must match',
+
+'BETWEEN searches must be between identical types. You have ([_1]) and ([_2])',
+'BETWEEN searches must be between identical types. You have ([_1]) and ([_2])',
+
+    'BETWEEN searches should have two terms. You have [_1] term(s).',
+    'BETWEEN searches should have two terms. You have [_1] term(s).',
+
+    'PANIC: ANY search data is not an array ref. This should never happen.',
+    'PANIC: ANY search data is not an array ref. This should never happen.',
+
+    'PANIC: BETWEEN search data is not an array ref. This should never happen.',
+    'PANIC: BETWEEN search data is not an array ref. This should never happen.',
+
+    'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
+    'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
+    
+    'Unknown column "[_1]"',
+    'Unknown column “[_1]”',
+);
+
+my %rest_messages = (
+    'The first method in a chain must return objects. You used "[_1]"',
+    'The first method in a chain must return objects. You used “[_1]”',
+
+    'No resource available to handle "[_1]"',
+    'No resource available to handle “[_1]”',
+);
+
+our %Lexicon = (
+    %classes,
+    %kinetic_object_states,
+    %lexer_parser_messages,
+    %search_messages,
+    %rest_messages,
 
     # Exceptions.
     'Value "[_1]" is not a valid [_2] object',
@@ -115,28 +197,6 @@ our %Lexicon = (
     'You must supply a name for the "[_1]"',
     'You must supply a name for the “[_1]”',
 
-    # XXX What's with the parentheses?
-    'Could not lex search request.  Found bad tokens ([_1])',
-    'Could not lex search request. Found bad tokens ([_1])',
-
-    'I don\'t know how to lex a "[_1]"',
-    'I don\'t know how to lex a “[_1]”',
-
-    'Could not parse search request:  [_1]',
-    'Could not parse search request:  [_1]',
-
-    'Could not parse search request',
-    'Could not parse search request',
-
-    'Failed to convert IR to where clause.  This should not happen.',
-    'Failed to convert IR to where clause. This should not happen.',
-
-    'Odd number of constraints in string search:  "[_1]"',
-    'Odd number of constraints in string search “[_1]”',
-
-    'BETWEEN searches may only take two values.  You have [_1]',
-    'BETWEEN searches may only take two values. You have [_1]',
-
     'Writing XML failed: [_1]',
     'Writing XML failed: [_1]',
 
@@ -155,21 +215,6 @@ our %Lexicon = (
     'I could not load the class "[_1]": [_2]',
     'I could not load the class “[_1]”: [_2]',
 
-    '[_1] does not support full-text searches',
-    '[_1] does not support full-text searches',
-
-    'MATCH:  [_1] does not support regular expressions',
-    'MATCH: [_1] does not support regular expressions',
-
-    'You cannot do GT or LT type searches with non-contiguous dates',
-    'You cannot do GT or LT type searches with non-contiguous dates',
-
-    'BETWEEN search dates must have identical segments defined',
-    'BETWEEN search dates must have identical segments defined',
-
-    'You cannot do range searches with non-contiguous dates',
-    'You cannot do range searches with non-contiguous dates',
-
     'Abstract class "[_1]" must not be used directly',
     'Abstract class “[_1]” must not be used directly',
 
@@ -179,12 +224,6 @@ our %Lexicon = (
     'Unknown import symbol "[_1]"',
     'Unknown import symbol “[_1]”',
 
-    q{Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]},
-    'Don’t know how to search for ([_1] [_2] [_3] [_4]): [_5]',
-
-    'All types to an ANY search must match',
-    'All types to an ANY search must match',
-
     'Unknown attributes to [_1]: [_2]',
     'Unknown attributes to [_1]: [_2]',
 
@@ -193,21 +232,6 @@ our %Lexicon = (
 
     'Unknown stylesheet requested: [_1]',
     'Unknown stylesheet requested: [_1]',
-
-'BETWEEN searches must be between identical types. You have ([_1]) and ([_2])',
-'BETWEEN searches must be between identical types. You have ([_1]) and ([_2])',
-
-    'BETWEEN searches should have two terms. You have [_1] term(s).',
-    'BETWEEN searches should have two terms. You have [_1] term(s).',
-
-    'PANIC: ANY search data is not an array ref. This should never happen.',
-    'PANIC: ANY search data is not an array ref. This should never happen.',
-
-    'PANIC: BETWEEN search data is not an array ref. This should never happen.',
-    'PANIC: BETWEEN search data is not an array ref. This should never happen.',
-
-    'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
-    'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
 
     'Invalid method "[_1]"',
     'Invalid method “[_1]”',

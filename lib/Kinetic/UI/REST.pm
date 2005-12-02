@@ -30,7 +30,7 @@ use aliased 'Kinetic::UI::REST::Dispatch';
 
 use URI::Escape qw/uri_unescape/;
 use Readonly;
-Readonly my $PIPE => qr/%7[Cc]/;
+Readonly my $CHAIN => qr/\./;
 
 use Class::BuildMethods qw(
   cgi
@@ -219,7 +219,7 @@ sub _get_request_from_path_info {
               split '/' => $_
         ]
       }
-      split $PIPE, $self->path_info;
+      split $CHAIN, $self->path_info;
     my $request   = $links[0];
     my @base_path = split '/' => $self->path;
 

@@ -30,9 +30,14 @@ use aliased 'Kinetic::Util::Iterator';
 use Kinetic::Meta;
 use Kinetic::Store;
 use Kinetic::Util::Constants qw/:http :rest/;
+use Kinetic::Util::Context;
 
-use Class::BuildMethods 'rest', 'class_key', 'formatter',
-  method => { default => '' };
+use Class::BuildMethods qw(
+  class_key
+  formatter
+  language
+  rest
+);
 
 =head1 Name
 
@@ -70,6 +75,7 @@ sub new {
     my ( $class, $arg_for ) = @_;
     my $self = bless {}, $class;
     $self->rest( $arg_for->{rest} );
+    $self->language( Kinetic::Util::Context->language );
     return $self;
 }
 
@@ -201,9 +207,12 @@ sub _handle_chain {
 
     # XXX this is just a proof of concept.  I'll clean it up later.
     if ( 'new' ne $method && 'squery' ne $method && 'lookup' ne $method ) {
-        return $rest->status($HTTP_NOT_IMPLEMENTED)
-          ->response(
-            "First method in a chain must return objects.  You used ($method)");
+        return $rest->status($HTTP_NOT_IMPLEMENTED)->response(
+            $self->language->maketext(
+'The first method in a chain must return objects. You used "[_1]"',
+                $method,
+            )
+        );
     }
     my $result = $self->_execute_method( $method, @args );
     my @objects;
@@ -222,7 +231,7 @@ sub _handle_chain {
             $object->$method(@args);
         }
     }
-    my $response = $self->formatter->ref_to_format(\@objects);
+    my $response = $self->formatter->ref_to_format( \@objects );
     $self->rest->status($HTTP_OK)->response($response);
     return $self;
 }
@@ -254,8 +263,12 @@ sub _not_implemented {
     $method = '' unless defined $method;
     my $rest = $self->rest;
     my $info = $rest->path_info;
-    $rest->status($HTTP_NOT_IMPLEMENTED)
-      ->response("No resource available to handle ($info$method)");
+    $rest->status($HTTP_NOT_IMPLEMENTED)->response(
+        $self->language->maketext(
+            'No resource available to handle "[_1]"',
+            "$info$method"
+        )
+    );
 }
 
 sub _bad_request {

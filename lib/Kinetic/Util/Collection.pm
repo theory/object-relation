@@ -27,7 +27,8 @@ use Kinetic::Util::Exceptions qw(throw_invalid);
 use aliased 'Kinetic::Util::Iterator';
 
 # to simplify the code, we use -1 instead of undef for "null" indexes
-use constant NULL => -1;
+use Readonly;
+Readonly our $NULL => -1;
 
 =head1 Name
 
@@ -88,9 +89,9 @@ sub new {
     }
     bless {
         iter  => $iter,
-        index => NULL,
+        index => $NULL,
         array => [],
-        got   => NULL,
+        got   => $NULL,
     }, $class;
 }
 
@@ -162,7 +163,7 @@ Returns the value at the current position of the collection.
 
 sub curr {
     my $self = shift;
-    return if $self->{index} == NULL;
+    return if $self->{index} == $NULL;
     return $self->{array}[$self->{index}];
 }
 
@@ -257,7 +258,7 @@ is not yet pointing at anything.
 
 sub index {
     my $self = shift;
-    return if $self->{index} == NULL;
+    return if $self->{index} == $NULL;
     return $self->{index};
 }
 
@@ -272,7 +273,7 @@ collection has been created with the same iterator.
 
 =cut
 
-sub reset { shift->{index} = NULL }
+sub reset { shift->{index} = $NULL }
 
 ##############################################################################
 
@@ -304,7 +305,7 @@ sub clear {
     my $self = shift;
     $self->{iter}->all if defined $self->{got};
     $self->{got}   = undef;
-    $self->{index} = NULL;
+    $self->{index} = $NULL;
     @{$self->{array}} = ();
 }
 

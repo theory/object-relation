@@ -117,13 +117,13 @@ sub save {
         throw_fatal [ 'Error saving to data store: [_1]', $@ ] if $@;
     }
     else {
-        $self->begin_work;
+        $self->_begin_work;
         eval {
             $self->_save(@_);
-            $self->commit;
+            $self->_commit;
         };
         if ( my $err = $@ ) {
-            $self->rollback;
+            $self->_rollback;
             throw_fatal [ 'Error saving to data store: [_1]', $@ ] if $@;
         }
     }
@@ -132,15 +132,15 @@ sub save {
 
 ##############################################################################
 
-=head3 begin_work
+=head3 _begin_work
 
-  $store->begin_work;
+  $store->_begin_work;
 
 Begins a transaction.  No effect if we're already in a transaction.
 
 =cut
 
-sub begin_work {
+sub _begin_work {
     my $self = shift;
 
     # XXX Cache the database handle only for the duration of a single call to
@@ -155,15 +155,15 @@ sub begin_work {
 
 ##############################################################################
 
-=head3 commit
+=head3 _commit
 
-  $store->commit;
+  $store->_commit;
 
 Commits a transaction.  No effect if we're not in a transaction.
 
 =cut
 
-sub commit {
+sub _commit {
     my $self = shift;
     return unless $self->_in_transaction;
     $self->_in_transaction(0);
@@ -173,16 +173,16 @@ sub commit {
 
 ##############################################################################
 
-=head3 rollback
+=head3 _rollback
 
-  $store->rollback;
+  $store->_rollback;
 
 Rolls back an uncommitted transaction.  No effect if we're not in a
 transaction.
 
 =cut
 
-sub rollback {
+sub _rollback {
     my $self = shift;
     return unless $self->_in_transaction;
     $self->_in_transaction(0);

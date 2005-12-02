@@ -121,7 +121,7 @@ sub chained_calls : Test(no_plan) {
 
     my $cgi_mock = MockModule->new('CGI');
     $cgi_mock->mock(
-        path_info => '/json/one/squery/name EQ "bar"%7Cname/rab%7Csave' );
+        path_info => '/json/one/squery/name EQ "bar".name/rab.save' );
 
     ok $rest->handle_request( CGI->new ), 'A chained call should succeed';
     is $rest->status, $HTTP_OK, '... with an appropriate status code';
@@ -302,7 +302,8 @@ sub rest_interface : Test(32) {
     # Note that because of the way we're mocking up path_info, URL encoding
     # of parameters is *not* necessary
 
-    $cgi_mock->mock( path_info => '/json/one/squery/name => "foo"/order_by/name', );
+    $cgi_mock->mock(
+        path_info => '/json/one/squery/name => "foo"/order_by/name', );
 
     ok $rest->handle_request( CGI->new ),
       'An squery with a query and constraints should succeed';
@@ -426,7 +427,7 @@ sub rest_faults : Test(11) {
       '... with an appropriate status code';
     ok $rest->response, '... and return an entity-body';
     like $rest->response,
-qr{\QNo resource available to handle (/json/one/no_such_method/no_such_method)},
+qr{No resource available to handle ./json/one/no_such_method/no_such_method.},
       '... with a reasonable error message';
 
     $cgi_mock->mock( path_info => '/json/one/squery/name' );

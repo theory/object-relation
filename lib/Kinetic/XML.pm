@@ -40,8 +40,9 @@ use Kinetic::Util::Exceptions qw/
 use Kinetic::Meta;
 use Kinetic::Store;
 
-use constant XML_VERSION          => '0.01';
-use constant CURR_KEY_PLACEHOLDER => '__';
+use Readonly;
+Readonly our $XML_VERSION          => '0.01';
+Readonly our $CURR_KEY_PLACEHOLDER => '__';
 
 =head1 Name
 
@@ -97,7 +98,7 @@ sub new {
     $args = 'HASH' eq ref $args ? $args : { object => $args };
     my $self = bless {}, $class;
     $self->object( $args->{object}                 || () );
-    $self->attributes( $args->{attributes}         || () ); # XXX BUG!
+    $self->attributes( $args->{attributes}         || () );    # XXX BUG!
     $self->stylesheet_url( $args->{stylesheet_url} || () );
     $self->resources_url( $args->{resources_url}   || () );
     $self;
@@ -320,7 +321,7 @@ sub dump_xml {
             $xml->PI( 'xml-stylesheet', qq'type="text/xsl" href="$url"' );
         }
         $xml->StartElementLiteral('kinetic');
-        $xml->AddAttributeLiteral( version => XML_VERSION );
+        $xml->AddAttributeLiteral( version => $XML_VERSION );
         if ( my $url = $self->resources_url ) {
             foreach my $key ( sort Kinetic::Meta->keys ) {
                 next if Kinetic::Meta->for_key($key)->abstract;
@@ -428,7 +429,7 @@ sub object {
         $self->{_curr_key} = $object->my_class->key;
         if ( exists $self->{_attributes} ) {
             if ( my $attributes =
-                delete $self->{_attributes}{CURR_KEY_PLACEHOLDER} )
+                delete $self->{_attributes}{$CURR_KEY_PLACEHOLDER} )
             {
                 $self->{_attributes}{ $self->{_curr_key} } = $attributes;
             }
@@ -517,7 +518,7 @@ sub attributes {
             delete @{$self}{qw/attributes _attributes/};
         }
         else {
-            my $curr_key = $self->{_curr_key} || CURR_KEY_PLACEHOLDER;
+            my $curr_key = $self->{_curr_key} || $CURR_KEY_PLACEHOLDER;
             $self->{_attributes} = {};
             $self->{attributes}  = $attributes;
             $attributes = [$attributes] unless ref $attributes;
