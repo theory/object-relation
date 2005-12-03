@@ -278,36 +278,21 @@ sub boolean_triggers {
 
 ##############################################################################
 
-=head3 once_triggers
+=head3 once_triggers_sql
 
-  my $once_trigger_sql = $kbs->once_triggers($class);
+  my $once_triggers_sql_body = $kbs->once_triggers_sql(
+    $key, $col, $table, $constraint
+  );
 
-Returns the SQLite triggers to validate the values of any "once" attributes in
-the table representing the contents of the class represented by the
-Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
-has no once attributes C<once_triggers()> will return C<undef> (or an empty
-list).
-
-Called by C<constraints_for_class()>.
+This method is called by C<once_triggers()> to generate database specific
+rules, functions, triggers, etc., to ensure that a column, once set to a
+non-null value, can never be changed.
 
 =cut
 
-sub once_triggers {
-    my ($self, $class) = @_;
-    my @onces = grep { $_->once} $class->table_attributes
-      or return;
-    my $table = $class->table;
-    my $key = $class->key;
-    my @trigs;
-    for my $attr (@onces) {
-        my $col = $attr->column;
-        # If the column is required, then the NOT NULL constraint will
-        # handle that bit for us--no need to be redundant.
-        my $when = $attr->required
-          ? "OLD.$col <> NEW.$col OR NEW.$col IS NULL"
-          : "OLD.$col IS NOT NULL AND (OLD.$col <> NEW.$col OR NEW.$col IS NULL)";
-        push @trigs,
-            "CREATE TRIGGER ck_$key\_$col\_once\n"
+sub once_triggers_sql {
+    my ($self, $key, $col, $table, $when) = @_;
+    return "CREATE TRIGGER ck_$key\_$col\_once\n"
           . "BEFORE UPDATE ON $table\n"
           . "FOR EACH ROW BEGIN\n"
           . "  SELECT CASE\n"
@@ -315,8 +300,6 @@ sub once_triggers {
         . qq{    THEN RAISE(ABORT, 'value of "$col" cannot be changed')\n}
           . "  END;\n"
           . "END;\n";
-    }
-    return join "\n", @trigs;
 }
 
 ##############################################################################

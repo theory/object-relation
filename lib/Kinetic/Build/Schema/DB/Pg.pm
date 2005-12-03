@@ -284,33 +284,21 @@ sub constraints_for_class {
 
 ##############################################################################
 
-=head3 once_triggers
+=head3 once_triggers_sql
 
-  my $once_triggers_sql = $kbs->once_triggers($class);
+  my $once_triggers_sql_body = $kbs->once_triggers_sql(
+    $key, $col, $table, $constraint
+  );
 
-Returns the SQL statements to generate trigger constraints for any "once"
-attributes in the Kinetic::Meta::Class::Schema object passed as the sole
-argument. The triggers are PL/pgSQL functions that ensure that, if a column
-has been set to a non-C<NULL> value, it's value can never be changed again.
-Called by C<constraints_for_class()>.
+This method is called by C<once_triggers()> to generate database specific
+rules, functions, triggers, etc., to ensure that a column, once set to a
+non-null value, can never be changed.
 
 =cut
 
-sub once_triggers {
-    my ($self, $class) = @_;
-    my @onces = grep { $_->once} $class->table_attributes
-      or return;
-    my $table = $class->table;
-    my $key = $class->key;
-    my @trigs;
-    for my $attr (@onces) {
-        my $col = $attr->column;
-        # If the column is required, then the NOT NULL constraint will
-        # handle that bit for us--no need to be redundant.
-        my $if = $attr->required
-          ? "OLD.$col <> NEW.$col OR NEW.$col IS NULL"
-          : "OLD.$col IS NOT NULL AND (OLD.$col <> NEW.$col OR NEW.$col IS NULL)";
-        push @trigs, qq{CREATE FUNCTION $key\_$col\_once() RETURNS trigger AS '
+sub once_triggers_sql {
+    my ($self, $key, $col, $table, $if) = @_;
+    return qq{CREATE FUNCTION $key\_$col\_once() RETURNS trigger AS '
   BEGIN
     IF $if
         THEN RAISE EXCEPTION ''value of "$col" cannot be changed'';
@@ -318,12 +306,8 @@ sub once_triggers {
     RETURN NEW;
   END;
 ' LANGUAGE plpgsql;
-
-CREATE TRIGGER $key\_$col\_once BEFORE UPDATE ON $table
-    FOR EACH ROW EXECUTE PROCEDURE $key\_$col\_once();
-};
-    }
-    return @trigs;
+    },
+    $self->create_trigger_for_table("${key}_${col}_once", 'UPDATE', $table);
 }
 
 ##############################################################################
@@ -358,47 +342,40 @@ sub unique_triggers {
         my ($comp_col, $new_col, $old_col) = $attr->type eq 'string'
             ? ("LOWER($col)", "LOWER(NEW.$col)", "LOWER(OLD.$col")
             : ($col,          "NEW.$col",        "OLD.$col"      );
+
+        my $lock_records = <<"        END_SQL";
+                /* Lock the relevant records in the parent and child tables. */
+                PERFORM true
+                FROM    $table, $parent_table
+                WHERE   $table.id = $parent_table.id AND $comp_col = $new_col FOR UPDATE;
+                IF (SELECT true
+                    FROM   $key
+                    WHERE  id <> NEW.id AND $comp_col = $new_col AND state > -1
+                    LIMIT 1
+                ) THEN
+                    RAISE EXCEPTION ''duplicate key violates unique constraint "ck_$table\_$col\_unique"'';
+                END IF;
+        END_SQL
+
         push @trigs, qq{CREATE FUNCTION cki_$key\_$col\_unique() RETURNS trigger AS '
   BEGIN
-    /* Lock the relevant records in the parent and child tables. */
-    PERFORM true
-    FROM    $table, $parent_table
-    WHERE   $table.id = $parent_table.id AND $comp_col = $new_col FOR UPDATE;
-    IF (SELECT true
-        FROM   $key
-        WHERE  id <> NEW.id AND $comp_col = $new_col AND state > -1
-        LIMIT 1
-    ) THEN
-        RAISE EXCEPTION ''duplicate key violates unique constraint "ck_$table\_$col\_unique"'';
-    END IF;
+    $lock_records 
     RETURN NEW;
   END;
 ' LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER cki_$key\_$col\_unique BEFORE INSERT ON $table
-    FOR EACH ROW EXECUTE PROCEDURE cki_$key\_$col\_unique();
+@{[ $self->create_trigger_for_table("cki_${key}_${col}_unique", 'INSERT', $table) ]}
 
 CREATE FUNCTION cku_$key\_$col\_unique() RETURNS trigger AS '
   BEGIN
     IF ($new_col <> $old_col) THEN
-        /* Lock the relevant records in the parent and child tables. */
-        PERFORM true
-        FROM    $table, $parent_table
-        WHERE   $table.id = $parent_table.id AND $comp_col = $new_col FOR UPDATE;
-        IF (SELECT true
-            FROM   $key
-            WHERE  id <> NEW.id AND $comp_col = $new_col AND state > -1
-            LIMIT 1
-        ) THEN
-            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_$table\_$col\_unique"'';
-        END IF;
+        $lock_records
     END IF;
     RETURN NEW;
   END;
 ' LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER cku_$key\_$col\_unique BEFORE UPDATE ON $table
-    FOR EACH ROW EXECUTE PROCEDURE cku_$key\_$col\_unique();
+@{[ $self->create_trigger_for_table("cku_${key}_${col}_unique", 'UPDATE', $table) ]}
 
 CREATE FUNCTION ckp_$key\_$col\_unique() RETURNS trigger AS '
   BEGIN
@@ -423,12 +400,31 @@ CREATE FUNCTION ckp_$key\_$col\_unique() RETURNS trigger AS '
   END;
 ' LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER ckp_$key\_$col\_unique BEFORE UPDATE ON $parent_table
-    FOR EACH ROW EXECUTE PROCEDURE ckp_$key\_$col\_unique();
+@{[ $self->create_trigger_for_table("ckp_${key}_${col}_unique", 'UPDATE', $parent_table) ]}
 };
     }
 
     return join "\n", @trigs;
+}
+
+##############################################################################
+
+=head3 create_trigger_for_table
+
+  my $trigger = $kbs->create_trigger_for_table($trigger_name, $type, $table);
+
+Given a trigger name and a table name, returns a C<CREATE TRIGGER> statement
+which will execute the named trigger before any row is updated/inserted in the
+table.  The C<$type> should be "UPDATE" or "INSERT".
+
+=cut
+
+sub create_trigger_for_table {
+    my ($self, $trigger, $type, $table) = @_;
+    return <<"    END_TRIGGER";
+    CREATE TRIGGER $trigger BEFORE $type ON $table
+    FOR EACH ROW EXECUTE PROCEDURE $trigger();
+    END_TRIGGER
 }
 
 ##############################################################################

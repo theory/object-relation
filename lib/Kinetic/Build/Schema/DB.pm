@@ -24,6 +24,7 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use base 'Kinetic::Build::Schema';
+use Kinetic::Util::Exceptions qw/throw_unimplemented/;
 
 =head1 Name
 
@@ -70,15 +71,18 @@ Kinetic::Meta::Class object as the sole argument.
 =cut
 
 sub schema_for_class {
-    my ($self, $class) = @_;
+    my ( $self, $class ) = @_;
     return grep { $_ }
-      $self->table_for_class($class),
-      $self->indexes_for_class($class),
-      $self->constraints_for_class($class),
-      $self->view_for_class($class),
-      $self->insert_for_class($class),
-      $self->update_for_class($class),
-      $self->delete_for_class($class);
+      map       { $self->$_($class) }
+      qw(
+      table_for_class
+      indexes_for_class
+      constraints_for_class
+      view_for_class
+      insert_for_class
+      update_for_class
+      delete_for_class
+    );
 }
 
 ##############################################################################
@@ -123,14 +127,17 @@ when a schema is being created in a new database.
 =cut
 
 sub behaviors_for_class {
-    my ($self, $class) = @_;
+    my ( $self, $class ) = @_;
     return grep { $_ }
-      $self->indexes_for_class($class),
-      $self->constraints_for_class($class),
-      $self->view_for_class($class),
-      $self->insert_for_class($class),
-      $self->update_for_class($class),
-      $self->delete_for_class($class);
+      map       { $self->$_($class) }
+      qw(
+      indexes_for_class
+      constraints_for_class
+      view_for_class
+      insert_for_class
+      update_for_class
+      delete_for_class
+    );
 }
 
 ##############################################################################
@@ -145,7 +152,7 @@ for the class;
 =cut
 
 sub table_for_class {
-    my ($self, $class) = @_;
+    my ( $self, $class ) = @_;
     my $sql = $self->start_table($class);
     $sql .= "    " . join ",\n    ", $self->columns_for_class($class);
     return $sql . $self->end_table($class);
@@ -163,7 +170,7 @@ statement for creating a table.
 =cut
 
 sub start_table {
-    my ($self, $class) = @_;
+    my ( $self, $class ) = @_;
     my $table = $class->table;
     return "CREATE TABLE $table (\n";
 }
@@ -195,12 +202,9 @@ table.
 =cut
 
 sub columns_for_class {
-    my ($self, $class) = @_;
-    return (
-        $self->pk_column($class),
-        map { $self->generate_column($class, $_) }
-          $class->table_attributes
-    );
+    my ( $self, $class ) = @_;
+    return ( $self->pk_column($class),
+        map { $self->generate_column( $class, $_ ) } $class->table_attributes );
 }
 
 ##############################################################################
@@ -216,16 +220,16 @@ C<Kinetic::Meta::Attribute> object passed to the method.
 =cut
 
 sub generate_column {
-    my ($self, $class, $attr) = @_;
+    my ( $self, $class, $attr ) = @_;
     my $null = $self->column_null($attr);
     my $def  = $self->column_default($attr);
     my $fk   = $self->column_reference($attr);
     my $type = $self->column_type($attr);
     my $name = $attr->column;
     return "$name $type"
-      . ($null ? " $null" : '')
-      . ($def ? " $def" : '')
-      . ($fk ? " $fk" : '')
+      . ( $null ? " $null" : '' )
+      . ( $def  ? " $def"  : '' )
+      . ( $fk   ? " $fk"   : '' );
 }
 
 ##############################################################################
@@ -256,7 +260,7 @@ is required, and an empty string if it is not required.
 =cut
 
 sub column_null {
-    my ($self, $attr) = @_;
+    my ( $self, $attr ) = @_;
     return "NOT NULL" if $attr->required;
     return '';
 }
@@ -281,20 +285,19 @@ my %num_types = (
 );
 
 sub column_default {
-    my ($self, $attr) = @_;
+    my ( $self, $attr ) = @_;
     my $def = $attr->{default};
     return unless defined $def && ref $def ne 'CODE';
     my $type = $attr->type;
 
     # Return the raw value for numeric data types.
     return "DEFAULT $def" if $num_types{$type};
-    return "DEFAULT " . ($def + 0) if $type eq 'state';
+    return "DEFAULT " . ( $def + 0 ) if $type eq 'state';
 
     # Otherwise, assume that it's a string.
     $def =~ s/'/''/g;
     return "DEFAULT '$def'";
 }
-
 
 ##############################################################################
 
@@ -314,7 +317,7 @@ C<undef> if they use named foreign key constraints, instead.
 =cut
 
 sub column_reference {
-    my ($self, $attr) = @_;
+    my ( $self, $attr ) = @_;
     my $ref = $attr->references or return;
     my $fk_table = $ref->table;
     return "REFERENCES $fk_table(id) ON DELETE " . uc $attr->on_delete;
@@ -335,8 +338,8 @@ the primary key for the current class.
 =cut
 
 sub pk_column {
-    my ($self, $class) = @_;
-    if (my $parent = $class->parent) {
+    my ( $self, $class ) = @_;
+    if ( my $parent = $class->parent ) {
         my $fk_table = $parent->table;
         return "id INTEGER NOT NULL PRIMARY KEY REFERENCES $fk_table(id) "
           . "ON DELETE CASCADE";
@@ -358,10 +361,9 @@ string, each separated by a "\n".
 =cut
 
 sub indexes_for_class {
-    my ($self, $class) = @_;
-    return join '',
-        map  { $self->index_for_attr($class => $_) }
-        grep { $_->index } $class->table_attributes
+    my ( $self, $class ) = @_;
+    return join '', map { $self->index_for_attr( $class => $_ ) }
+      grep { $_->index } $class->table_attributes;
 }
 
 ##############################################################################
@@ -378,7 +380,7 @@ the column to index.
 =cut
 
 sub index_for_attr {
-    my ($self, $class, $attr) = @_;
+    my ( $self, $class, $attr ) = @_;
     my $table  = $class->table;
     my $unique = $attr->unique ? ' UNIQUE' : '';
     my $name   = $attr->index($class);
@@ -418,7 +420,7 @@ may be overridden in subclasses to return constraint statements.
 =cut
 
 sub constraints_for_class {
-    my ($self, $class) = @_;
+    my ( $self, $class ) = @_;
     return;
 }
 
@@ -442,42 +444,43 @@ to do in a single C<SELECT> statement.
 =cut
 
 sub view_for_class {
-    my ($self, $class) = @_;
-    my $key = $class->key;
+    my ( $self, $class ) = @_;
+    my $key   = $class->key;
     my $table = $class->table;
 
-    my (@tables, @cols, @wheres);
-    if (my @parents = reverse $class->parents) {
+    my ( @tables, @cols, @wheres );
+    if ( my @parents = reverse $class->parents ) {
         my $last;
         for my $parent (@parents) {
             push @tables, $parent->key;
             push @wheres, "$last.id = $tables[-1].id" if $last;
             $last = $tables[-1];
             push @cols,
-              $self->view_columns($last, \@tables, \@wheres,
-                                   $class->parent_attributes($parent));
+              $self->view_columns( $last, \@tables, \@wheres,
+                $class->parent_attributes($parent) );
 
         }
         unshift @cols, "$tables[0].id AS id";
         push @wheres, "$last.id = $table.id";
-    } else {
+    }
+    else {
         @cols = ("$table.id AS id");
     }
     push @tables, $class->table;
-    push @cols, $self->view_columns($table, \@tables, \@wheres,
-                                    $class->table_attributes);
+    push @cols,
+      $self->view_columns( $table, \@tables, \@wheres,
+        $class->table_attributes );
 
-    my $cols = join ', ', @cols;
-    my $from = join ', ', @tables;
+    my $cols  = join ', ',    @cols;
+    my $from  = join ', ',    @tables;
     my $where = join ' AND ', @wheres;
-    my $name = $class->key;
+    my $name  = $class->key;
 
     # Output the view.
     return "CREATE VIEW $name AS\n"
       . "  SELECT $cols\n"
       . "  FROM   $from"
-      . ($where ?  "\n  WHERE  $where;" : (';'))
-      . "\n";
+      . ( $where ? "\n  WHERE  $where;" : (';') ) . "\n";
 }
 
 ##############################################################################
@@ -523,28 +526,31 @@ by the C<$table> argument.
 =cut
 
 sub view_columns {
-    my ($self, $table, $tables, $wheres) = splice @_, 0, 4;
+    my ( $self, $table, $tables, $wheres ) = splice @_, 0, 4;
     my @cols;
     for my $attr (@_) {
         my $col = $attr->column;
-        if (my $ref = $attr->references) {
+        if ( my $ref = $attr->references ) {
             my $key = $ref->key;
-            if ($attr->required) {
+            if ( $attr->required ) {
                 push @$tables, $key;
                 push @$wheres, "$table.$col = $key.id";
-            } else {
+            }
+            else {
                 my $join = "$table LEFT JOIN $key ON $table.$col = $key.id";
+
                 # Either change the existing table name to the join table
                 # syntax, or, if it is already joined to another table (and
                 # therefore is not the whole string), then push the new join
                 # string onto the table list.
-                unless (grep { s/^$table$/$join/} @$tables) {
+                unless ( grep { s/^$table$/$join/ } @$tables ) {
                     push @$tables, $join;
                 }
             }
             push @cols, "$table.$col AS $key\__id",
-              $self->_map_ref_columns($ref, $key);
-        } else {
+              $self->_map_ref_columns( $ref, $key );
+        }
+        else {
             push @cols, "$table.$col AS $col";
         }
     }
@@ -573,17 +579,77 @@ the columns for the primary attributes of a class.
 =cut
 
 sub _map_ref_columns {
-    my ($self, $class, $key, @keys) = @_;
+    my ( $self, $class, $key, @keys ) = @_;
     my @cols;
-    my $ckey = @keys ? join ('__', @keys, '') : ('');
-    for my $attr ($class->persistent_attributes) {
+    my $ckey = @keys ? join ( '__', @keys, '' ) : ('');
+    for my $attr ( $class->persistent_attributes ) {
         my $col = $attr->view_column;
         push @cols, "$key.$ckey$col AS $key\__$ckey$col";
-        if (my $ref = $attr->references) {
-            push @cols, $self->_map_ref_columns($ref, $key, @keys, $ref->key);
+        if ( my $ref = $attr->references ) {
+            push @cols, $self->_map_ref_columns( $ref, $key, @keys, $ref->key );
         }
     }
     return @cols;
+}
+
+##############################################################################
+
+=head3 once_triggers
+
+  my $once_trigger_sql = $kbs->once_triggers($class);
+
+Returns the triggers to validate the values of any "once" attributes in
+the table representing the contents of the class represented by the
+Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
+has no once attributes C<once_triggers()> will return C<undef> (or an empty
+list).
+
+Called by C<constraints_for_class()>.
+
+Calls C<once_triggers_sql()> which must be overridden in a subclass to
+generate database specific SQL.
+
+=cut
+
+sub once_triggers {
+    my ( $self, $class ) = @_;
+    my @onces = grep { $_->once } $class->table_attributes
+      or return;
+    my $table = $class->table;
+    my $key   = $class->key;
+    my @trigs;
+    for my $attr (@onces) {
+        my $col = $attr->column;
+
+        # If the column is required, then the NOT NULL constraint will
+        # handle that bit for us--no need to be redundant.
+        my $constraint =
+          $attr->required
+          ? "OLD.$col <> NEW.$col OR NEW.$col IS NULL"
+          : "OLD.$col IS NOT NULL AND (OLD.$col <> NEW.$col OR NEW.$col IS NULL)";
+        push @trigs,
+          $self->once_triggers_sql( $key, $col, $table, $constraint );
+    }
+    return join "\n", @trigs;
+}
+
+##############################################################################
+
+=head3 once_triggers_sql
+
+  my $once_triggers_sql_body = $kbs->once_triggers_sql(
+    $key, $col, $table, $constraint
+  );
+
+This method is called by C<once_triggers()> to generate database specific
+rules, functions, triggers, etc., to ensure that a column, once set to a
+non-null value, can never be changed.
+
+=cut
+
+sub once_triggers_sql {
+    throw_unimplemented [ '"[_1]" must be overridden in a subclass',
+        'once_triggers_sql' ];
 }
 
 1;

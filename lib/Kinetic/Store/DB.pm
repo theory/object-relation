@@ -37,6 +37,7 @@ use Kinetic::Util::Exceptions qw/
   throw_invalid_class
   throw_search
   throw_unimplemented
+  throw_unsupported
   /;
 use Kinetic::Store qw/:sorting/;
 use Kinetic::Store::Parser qw/parse/;
@@ -437,19 +438,35 @@ search.
 =cut
 
 sub _eq_date_handler {
-    throw_unimplemented "This must be overridden in a subclass";
+    throw_unimplemented [ '"[_1]" must be overridden in a subclass',
+        '_eq_date_format' ];
 }
 
 sub _gt_lt_date_handler {
-    throw_unimplemented "This must be overridden in a subclass";
+    throw_unimplemented [ '"[_1]" must be overridden in a subclass',
+        '_gt_lt_date_handler' ];
 }
 
 sub _between_date_handler {
-    throw_unimplemented "This must be overridden in a subclass";
+    my ( $self, $search ) = @_;
+    my $data = $search->data;
+    my ( $date1, $date2 ) = @$data;
+    throw_unsupported "You cannot do range searches with non-contiguous dates"
+      unless $date1->contiguous && $date2->contiguous;
+    throw_unsupported
+      "BETWEEN search dates must have identical segments defined"
+      unless $date1->same_segments($date2);
+    return $self->_between_date_sql($search);
+}
+
+sub _between_date_sql {
+    throw_unimplemented [ '"[_1]" must be overridden in a subclass',
+        '_between_date_sql' ];
 }
 
 sub _any_date_handler {
-    throw_unimplemented "This must be overridden in a subclass";
+    throw_unimplemented [ '"[_1]" must be overridden in a subclass',
+        '_any_date_handler' ];
 }
 
 sub _get_select_sql_and_bind_params {
@@ -1366,7 +1383,8 @@ C<DBI|DBI> connect args for the current store.
 =cut
 
 sub _connect_args {
-    throw_unimplemented "This must be overridden in a subclass";
+    throw_unimplemented [ '"[_1]" must be overridden in a subclass',
+        '_connect_args' ];
 }
 
 ##############################################################################

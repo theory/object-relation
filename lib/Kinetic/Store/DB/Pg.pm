@@ -29,7 +29,10 @@ use Exception::Class::DBI;
 use Kinetic::Util::Exceptions qw(throw_unsupported);
 use overload;
 use constant _connect_args => (
-    PG_DSN, PG_DB_USER, PG_DB_PASS, {
+    PG_DSN,
+    PG_DB_USER,
+    PG_DB_PASS,
+    {
         RaiseError     => 0,
         PrintError     => 0,
         pg_enable_utf8 => 1,
@@ -72,14 +75,16 @@ subclass.  See C<_insert> for caveats about object C<id>s.
 =cut
 
 sub _set_id {
-    my ($self, $object) = @_;
-    my $view        = $self->search_class->key;
+    my ( $self, $object ) = @_;
+    my $view = $self->search_class->key;
+
     # XXX This should work, but doesn't. The alternative is the equivalent,
     # so we'll just use it.
     #$object->{id}  = $self->_dbh->last_insert_id(
     #undef, undef, undef, undef, { sequence => 'seq_kinetic' }
     #);
-    ($object->{id}) = $self->_dbh->selectrow_array("SELECT CURRVAL('seq_kinetic')");
+    ( $object->{id} ) =
+      $self->_dbh->selectrow_array("SELECT CURRVAL('seq_kinetic')");
     return $self;
 }
 
@@ -94,6 +99,7 @@ TBD.
 =cut
 
 sub _full_text_search {
+
     # XXX not yet implemented
 }
 
@@ -110,22 +116,23 @@ who've had their stringify method overloaded into the overloaded form.
 =cut
 
 sub _execute {
-    my ($self, $sth, $bind_params) = @_;
-    @$bind_params = map { (ref && overload::Method($_, '""'))? "$_" : $_ } @$bind_params;
+    my ( $self, $sth, $bind_params ) = @_;
+    @$bind_params =
+      map { ( ref && overload::Method( $_, '""' ) ) ? "$_" : $_ } @$bind_params;
     $sth->execute(@$bind_params);
 }
 
 sub _eq_date_handler {
-    my ($self, $search) = @_;
-    my $date  = $search->data;
-    my $field = $search->column;
+    my ( $self, $search ) = @_;
+    my $date     = $search->data;
+    my $field    = $search->column;
     my $operator = $search->operator;
-    my (@tokens, @values);
-    foreach my $segment ($date->defined_store_fields) {
+    my ( @tokens, @values );
+    foreach my $segment ( $date->defined_store_fields ) {
         push @tokens => "EXTRACT($segment FROM $field) $operator ?";
         push @values => $date->$segment;
     }
-    return ("(".join(' AND ' => @tokens).")", \@values);
+    return ( "(" . join ( ' AND ' => @tokens ) . ")", \@values );
 }
 
 my %DATE = (
@@ -138,52 +145,48 @@ my %DATE = (
 );
 
 sub _gt_lt_date_handler {
-    my ($self, $search) = @_;
-    my ($date, $operator) = ($search->data, $search->operator);
-    throw_unsupported "You cannot do GT or LT type searches with non-contiguous dates"
-        unless $date->contiguous;
-    my ($token, $value) = $self->_date_token_and_value($search, $date);
-    return ("$token $operator ?", [$value]);
+    my ( $self, $search ) = @_;
+    my ( $date, $operator ) = ( $search->data, $search->operator );
+    throw_unsupported
+      "You cannot do GT or LT type searches with non-contiguous dates"
+      unless $date->contiguous;
+    my ( $token, $value ) = $self->_date_token_and_value( $search, $date );
+    return ( "$token $operator ?", [$value] );
 }
 
 sub _date_token_and_value {
-    my ($self, $search, $date) = @_;
-    my ($format,$value) = ('','');
-    foreach my $segment ($date->defined_store_fields) {
+    my ( $self, $search, $date ) = @_;
+    my ( $format, $value ) = ( '', '' );
+    foreach my $segment ( $date->defined_store_fields ) {
         $format .= $DATE{$segment}{format};
-        $value  .= sprintf "%0$DATE{$segment}{length}d" => $date->$segment;
+        $value .= sprintf "%0$DATE{$segment}{length}d" => $date->$segment;
     }
     my $field = $search->column;
     my $token = "to_char($field, '$format')";
-    return ($token, $value);
+    return ( $token, $value );
 }
 
-sub _between_date_handler {
-    my ($self, $search) = @_;
-    my $data = $search->data;
-    my ($date1, $date2) = @$data;
-    throw_unsupported "You cannot do range searches with non-contiguous dates"
-        unless $date1->contiguous && $date2->contiguous;
-    throw_unsupported "BETWEEN search dates must have identical segments defined"
-        unless $date1->same_segments($date2);
-    my ($negated, $operator) = ($search->negated, $search->operator);
-    my ($token, $value1) = $self->_date_token_and_value($search, $date1);
-    my (undef,  $value2) = $self->_date_token_and_value($search, $date2);
-    return ("$token $negated $operator ? AND ?", [$value1, $value2])
+sub _between_date_sql {
+    my ( $self,    $search )   = @_;
+    my ( $date1,   $date2 )    = @{ $search->data };
+    my ( $negated, $operator ) = ( $search->negated, $search->operator );
+    my ( $token, $value1 ) = $self->_date_token_and_value( $search, $date1 );
+    my ( undef, $value2 ) = $self->_date_token_and_value( $search, $date2 );
+    return ( "$token $negated $operator ? AND ?", [ $value1, $value2 ] );
 }
 
 sub _any_date_handler {
-    my ($self, $search)   = @_;
-    my ($negated, $value) = ($search->negated, $search->data);
-    my (@tokens, @values);
+    my ( $self, $search ) = @_;
+    my ( $negated, $value ) = ( $search->negated, $search->data );
+    my ( @tokens, @values );
     my $field = $search->column;
     foreach my $date (@$value) {
-        my ($token, $value) = $self->_date_token_and_value($search, $date);
+        my ( $token, $value ) = $self->_date_token_and_value( $search, $date );
         push @tokens => "$token = ?";
         push @values => $value;
     }
     my $token = join ' OR ' => @tokens;
-    return ($token, \@values);
+    return ( $token, \@values );
 }
 
 ##############################################################################

@@ -273,15 +273,7 @@ a database handle for use during the build.
 
 sub build {
     my $self = shift;
-    $self->_dbh(my $dbh = DBI->connect($self->dsn, '', '', {
-        RaiseError     => 0,
-        PrintError     => 0,
-        HandleError    => Kinetic::Util::Exception::DBI->handler,
-    }));
-
-    $self->SUPER::build(@_);
-    $dbh->disconnect;
-    return $self;
+    return $self->_build($self->dsn, 'SUPER::build', @_);
 }
 
 ##############################################################################
@@ -297,14 +289,7 @@ set up a database handle for use during the build.
 
 sub test_build {
     my $self = shift;
-    $self->_dbh(my $dbh = DBI->connect($self->test_dsn, '', '', {
-        RaiseError     => 0,
-        PrintError     => 0,
-        HandleError    => Kinetic::Util::Exception::DBI->handler,
-    }));
-    $self->SUPER::test_build(@_);
-    $dbh->disconnect;
-    return $self;
+    return $self->_build($self->test_dsn, 'SUPER::test_build', @_);
 }
 
 ##############################################################################
@@ -314,6 +299,29 @@ sub test_build {
 =head1 Private Interface
 
 =head2 Private Instance Methods
+
+=head3 _build
+
+  $kdb->_build($dsn, $method, @args);
+
+Called by C<build> and C<test_build>.  See those methods to understand their
+behavior.
+
+=cut
+
+sub _build {
+    my ($self, $dsn, $method, @args) = @_;
+    $self->_dbh(my $dbh = DBI->connect($dsn, '', '', {
+        RaiseError     => 0,
+        PrintError     => 0,
+        HandleError    => Kinetic::Util::Exception::DBI->handler,
+    }));
+    $self->$method(@args);
+    $dbh->disconnect;
+    return $self;
+}
+
+##############################################################################
 
 =head3 _path
 

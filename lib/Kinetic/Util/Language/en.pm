@@ -40,263 +40,266 @@ of the Kinetic localization interface.
 
 =cut
 
-my %classes = (
-    'Kinetic' => 'Kinetic',
-    'Class'   => 'Class',
-    'Classes' => 'Classes',
-    'Party'   => 'Party',
-    'Parties' => 'Parties',
-    'Person'  => 'Person',
-    'Persons' => 'Persons',
-    'User'    => 'User',
-    'Users'   => 'Users',
-);
+our %Lexicon;
+{
+    my %classes = (
+        'Kinetic' => 'Kinetic',
+        'Class'   => 'Class',
+        'Classes' => 'Classes',
+        'Party'   => 'Party',
+        'Parties' => 'Parties',
+        'Person'  => 'Person',
+        'Persons' => 'Persons',
+        'User'    => 'User',
+        'Users'   => 'Users',
+    );
 
-my %kinetic_object_states = (
-    'Permanent' => 'Permanent',
-    'Active'    => 'Active',
-    'Inactive'  => 'Inactive',
-    'Deleted'   => 'Deleted',
-    'Purged'    => 'Purged',
-);
+    my %kinetic_object_states = (
+        'Permanent' => 'Permanent',
+        'Active'    => 'Active',
+        'Inactive'  => 'Inactive',
+        'Deleted'   => 'Deleted',
+        'Purged'    => 'Purged',
+    );
 
-my %lexer_parser_messages = (
-    'Could not lex search request.  Found bad tokens ([_1])',
-    'Could not lex search request. Found bad tokens ([_1])',
+    my %lexer_parser_messages = (
+        'Could not lex search request.  Found bad tokens ([_1])',
+        'Could not lex search request. Found bad tokens ([_1])',
 
-    'I don\'t know how to lex a "[_1]"',
-    'I don\'t know how to lex a “[_1]”',
+        'I don\'t know how to lex a "[_1]"',
+        'I don\'t know how to lex a “[_1]”',
 
-    'Could not parse search request:  [_1]',
-    'Could not parse search request:  [_1]',
+        'Could not parse search request:  [_1]',
+        'Could not parse search request:  [_1]',
 
-    'Could not parse search request',
-    'Could not parse search request',
+        'Could not parse search request',
+        'Could not parse search request',
 
-    q{Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]},
-    'Don’t know how to search for ([_1] [_2] [_3] [_4]): [_5]',
+        q{Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]},
+        'Don’t know how to search for ([_1] [_2] [_3] [_4]): [_5]',
 
-    'Object key "[_1]" must point to an object, not a scalar "[_1]"',
-    'Object key “[_1]” must point to an object, not a scalar “[_2]”',
-);
+        'Object key "[_1]" must point to an object, not a scalar "[_1]"',
+'Object key “[_1]” must point to an object, not a scalar “[_2]”',
+    );
 
-my %search_messages = (
-    'BETWEEN searches may only take two values.  You have [_1]',
-    'BETWEEN searches may only take two values. You have [_1]',
+    my %search_messages = (
+        'BETWEEN searches may only take two values.  You have [_1]',
+        'BETWEEN searches may only take two values. You have [_1]',
 
-    'Odd number of constraints in string search:  "[_1]"',
-    'Odd number of constraints in string search “[_1]”',
+        'Odd number of constraints in string search:  "[_1]"',
+        'Odd number of constraints in string search “[_1]”',
 
-    'Failed to convert IR to where clause.  This should not happen.',
-    'Failed to convert IR to where clause. This should not happen.',
+        'Failed to convert IR to where clause.  This should not happen.',
+        'Failed to convert IR to where clause. This should not happen.',
 
-    '[_1] does not support full-text searches',
-    '[_1] does not support full-text searches',
+        '[_1] does not support full-text searches',
+        '[_1] does not support full-text searches',
 
-    'MATCH:  [_1] does not support regular expressions',
-    'MATCH: [_1] does not support regular expressions',
+        'MATCH:  [_1] does not support regular expressions',
+        'MATCH: [_1] does not support regular expressions',
 
-    'You cannot do GT or LT type searches with non-contiguous dates',
-    'You cannot do GT or LT type searches with non-contiguous dates',
+        'You cannot do GT or LT type searches with non-contiguous dates',
+        'You cannot do GT or LT type searches with non-contiguous dates',
 
-    'You cannot do range searches with non-contiguous dates',
-    'You cannot do range searches with non-contiguous dates',
+        'You cannot do range searches with non-contiguous dates',
+        'You cannot do range searches with non-contiguous dates',
 
-    'BETWEEN search dates must have identical segments defined',
-    'BETWEEN search dates must have identical segments defined',
+        'BETWEEN search dates must have identical segments defined',
+        'BETWEEN search dates must have identical segments defined',
 
-    'All types to an ANY search must match',
-    'All types to an ANY search must match',
+        'All types to an ANY search must match',
+        'All types to an ANY search must match',
 
 'BETWEEN searches must be between identical types. You have ([_1]) and ([_2])',
 'BETWEEN searches must be between identical types. You have ([_1]) and ([_2])',
 
-    'BETWEEN searches should have two terms. You have [_1] term(s).',
-    'BETWEEN searches should have two terms. You have [_1] term(s).',
+        'BETWEEN searches should have two terms. You have [_1] term(s).',
+        'BETWEEN searches should have two terms. You have [_1] term(s).',
 
-    'PANIC: ANY search data is not an array ref. This should never happen.',
-    'PANIC: ANY search data is not an array ref. This should never happen.',
+        'PANIC: ANY search data is not an array ref. This should never happen.',
+        'PANIC: ANY search data is not an array ref. This should never happen.',
 
-    'PANIC: BETWEEN search data is not an array ref. This should never happen.',
-    'PANIC: BETWEEN search data is not an array ref. This should never happen.',
+'PANIC: BETWEEN search data is not an array ref. This should never happen.',
+'PANIC: BETWEEN search data is not an array ref. This should never happen.',
 
-    'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
-    'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
-    
-    'Unknown column "[_1]"',
-    'Unknown column “[_1]”',
-);
+        'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
+        'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
 
-my %rest_messages = (
-    'The first method in a chain must return objects. You used "[_1]"',
-    'The first method in a chain must return objects. You used “[_1]”',
+        'Unknown column "[_1]"',
+        'Unknown column “[_1]”',
+    );
 
-    'No resource available to handle "[_1]"',
-    'No resource available to handle “[_1]”',
-);
+    my %rest_messages = (
+        'The first method in a chain must return objects. You used "[_1]"',
+        'The first method in a chain must return objects. You used “[_1]”',
 
-our %Lexicon = (
-    %classes,
-    %kinetic_object_states,
-    %lexer_parser_messages,
-    %search_messages,
-    %rest_messages,
+        'No resource available to handle "[_1]"',
+        'No resource available to handle “[_1]”',
+    );
 
-    # Exceptions.
-    'Value "[_1]" is not a valid [_2] object',
-    'Value “[_1]” is not a valid [_2] object',
+    %Lexicon = (
+        %classes,
+        %kinetic_object_states,
+        %lexer_parser_messages,
+        %search_messages,
+        %rest_messages,
 
-    'Value "[_1]" is not a UUID',
-    'Value “[_1]” is not a UUID',
+        # Exceptions.
+        'Value "[_1]" is not a valid [_2] object',
+        'Value “[_1]” is not a valid [_2] object',
 
-    'Attribute must be defined',
-    'Attribute must be defined',
+        'Value "[_1]" is not a UUID',
+        'Value “[_1]” is not a UUID',
 
-    'Localization for "[_1]" not found',
-    'Localization for “[_1]” not found',
+        'Attribute must be defined',
+        'Attribute must be defined',
 
-    'File "[_1]" not found',
-    'File “[_1]” not found',
+        'Localization for "[_1]" not found',
+        'Localization for “[_1]” not found',
 
-    'Cannot assign to read-only attribute "[_1]"',
-    'Cannot assign to read-only attribute “[_1]”',
+        'File "[_1]" not found',
+        'File “[_1]” not found',
 
-    'Argument "[_1]" is not a code reference',
-    'Argument “[_1]” is not a code reference',
+        'Cannot assign to read-only attribute "[_1]"',
+        'Cannot assign to read-only attribute “[_1]”',
 
-    'Argument "[_1]" is not a valid [_2] object',
-    'Argument “[_1]” is not a valid [_2] object',
+        'Argument "[_1]" is not a code reference',
+        'Argument “[_1]” is not a code reference',
 
-    'Argument "[_1]" is not a valid [_2] class',
-    'Argument “[_1]” is not a valid [_2] class',
+        'Argument "[_1]" is not a valid [_2] object',
+        'Argument “[_1]” is not a valid [_2] object',
 
-    'Value "[_1]" is not a string',
-    'Value “[_1]” is not a string',
+        'Argument "[_1]" is not a valid [_2] class',
+        'Argument “[_1]” is not a valid [_2] class',
 
-    'Value "[_1]" is not a whole number',
-    'Value “[_1]” is not a whole number',
+        'Value "[_1]" is not a string',
+        'Value “[_1]” is not a string',
 
-    'Cannot assign permanent state',
-    'Cannot assign permanent state',
+        'Value "[_1]" is not a whole number',
+        'Value “[_1]” is not a whole number',
 
-    'Cannot open file "[_1]": [_2]',
-    'Cannot open file “[_1]”: [_2]',
+        'Cannot assign permanent state',
+        'Cannot assign permanent state',
 
-    'Required argument "[_1]" to [_2] not found',
-    'Required argument “[_1]” to [_2] not found',
+        'Cannot open file "[_1]": [_2]',
+        'Cannot open file “[_1]”: [_2]',
 
-    'Required attribute "[_1]" not set',
-    'Required attribute “[_1]” not set',
+        'Required argument "[_1]" to [_2] not found',
+        'Required argument “[_1]” to [_2] not found',
 
-    'XML must have a version number.',
-    'XML must have a version number.',
+        'Required attribute "[_1]" not set',
+        'Required attribute “[_1]” not set',
 
-    'I could not find the class for key "[_1]"',
-    'I could not find the class for key “[_1]”',
+        'XML must have a version number.',
+        'XML must have a version number.',
 
-    'You must supply a name for the "[_1]"',
-    'You must supply a name for the “[_1]”',
+        'I could not find the class for key "[_1]"',
+        'I could not find the class for key “[_1]”',
 
-    'Writing XML failed: [_1]',
-    'Writing XML failed: [_1]',
+        'You must supply a name for the "[_1]"',
+        'You must supply a name for the “[_1]”',
 
-    'No such attribute "[_1]" for [_2]',
-    'No such attribute “[_1]” for [_2]',
+        'Writing XML failed: [_1]',
+        'Writing XML failed: [_1]',
 
-    'Attribute "[_1]" is not unique',
-    'Attribute “[_1]” is not unique',
+        'No such attribute "[_1]" for [_2]',
+        'No such attribute “[_1]” for [_2]',
 
-    'Error saving to data store: [_1]',
-    'Error saving to data store: [_1]',
+        'Attribute "[_1]" is not unique',
+        'Attribute “[_1]” is not unique',
 
-    'I could not find uuid "[_1]" in data store for the [_2] class',
-    'I could not find UUID “[_1]” in the data store for the [_2] class',
+        'Error saving to data store: [_1]',
+        'Error saving to data store: [_1]',
 
-    'I could not load the class "[_1]": [_2]',
-    'I could not load the class “[_1]”: [_2]',
+        'I could not find uuid "[_1]" in data store for the [_2] class',
+        'I could not find UUID “[_1]” in the data store for the [_2] class',
 
-    'Abstract class "[_1]" must not be used directly',
-    'Abstract class “[_1]” must not be used directly',
+        'I could not load the class "[_1]": [_2]',
+        'I could not load the class “[_1]”: [_2]',
 
-    'This must be overridden in a subclass',
-    'This must be overridden in a subclass',
+        'Abstract class "[_1]" must not be used directly',
+        'Abstract class “[_1]” must not be used directly',
 
-    'Unknown import symbol "[_1]"',
-    'Unknown import symbol “[_1]”',
+        '"[_1]" must be overridden in a subclass',
+        '“[_1]” must be overridden in a subclass',
 
-    'Unknown attributes to [_1]: [_2]',
-    'Unknown attributes to [_1]: [_2]',
+        'Unknown import symbol "[_1]"',
+        'Unknown import symbol “[_1]”',
 
-    'Bad type for [_1].  Should be [_2].',
-    'Bad type for [_1]. Should be [_2].',
+        'Unknown attributes to [_1]: [_2]',
+        'Unknown attributes to [_1]: [_2]',
 
-    'Unknown stylesheet requested: [_1]',
-    'Unknown stylesheet requested: [_1]',
+        'Bad type for [_1].  Should be [_2].',
+        'Bad type for [_1]. Should be [_2].',
 
-    'Invalid method "[_1]"',
-    'Invalid method “[_1]”',
+        'Unknown stylesheet requested: [_1]',
+        'Unknown stylesheet requested: [_1]',
 
-    # Kinetic::Meta::Class error.
-    'No direct attribute "[_1]" to sort by',
-    'No direct attribute “[_1]” to sort by',
+        'Invalid method "[_1]"',
+        'Invalid method “[_1]”',
 
-    # Kinetic Attribute labels and tips.
-    'UUID' => 'UUID',
-    'The globally unique identifier for this object',
-    'The globally unique identifier for this object',
+        # Kinetic::Meta::Class error.
+        'No direct attribute "[_1]" to sort by',
+        'No direct attribute “[_1]” to sort by',
 
-    'Name' => 'Name',
-    'The name of this object',
-    'The name of this object',
+        # Kinetic Attribute labels and tips.
+        'UUID' => 'UUID',
+        'The globally unique identifier for this object',
+        'The globally unique identifier for this object',
 
-    'Description' => 'Description',
-    'The description of this object',
-    'The description of this object',
+        'Name' => 'Name',
+        'The name of this object',
+        'The name of this object',
 
-    'State' => 'State',
-    'The state of this object',
-    'The state of this object',
+        'Description' => 'Description',
+        'The description of this object',
+        'The description of this object',
 
-    # Kinetic::Party::Person labels and tips.
-    'Last Name' => 'Last Name',
-    q{The person's last name},
-    'The person’s last name',
+        'State' => 'State',
+        'The state of this object',
+        'The state of this object',
 
-    'First Name' => 'First Name',
-    q{The person's first name},
-    'The person’s first name',
+        # Kinetic::Party::Person labels and tips.
+        'Last Name' => 'Last Name',
+        q{The person's last name},
+        'The person’s last name',
 
-    'Middle Name' => 'Middle Name',
-    q{The person's middle name},
-    'The person’s middle name',
+        'First Name' => 'First Name',
+        q{The person's first name},
+        'The person’s first name',
 
-    'Nickname' => 'Nickname',
-    q{The person's nickname},
-    'The person’s nickname',
+        'Middle Name' => 'Middle Name',
+        q{The person's middle name},
+        'The person’s middle name',
 
-    'Prefix' => 'Prefix',
-    q{The prefix to the person's name},
+        'Nickname' => 'Nickname',
+        q{The person's nickname},
+        'The person’s nickname',
+
+        'Prefix' => 'Prefix',
+        q{The prefix to the person's name},
 'The prefix to the person’s name, such as “Mr.”, “Ms.”, “Dr.”, etc.',
 
-    'Suffix' => 'Suffix',
-    q{The suffix to the person's name},
+        'Suffix' => 'Suffix',
+        q{The suffix to the person's name},
 'The suffix to the person’s name, such as “JD”, “PhD”, “MD”, etc.',
 
-    'Generation' => 'Generation',
-    q{The generation of the person's name},
-    'The generation to the person’s name, such as “Jr.”, “III”, etc.',
+        'Generation' => 'Generation',
+        q{The generation of the person's name},
+'The generation to the person’s name, such as “Jr.”, “III”, etc.',
 
-    'strfname_format' => '%p% f% M% l% g%, s',
+        'strfname_format' => '%p% f% M% l% g%, s',
 
-    # Kinetic::Party::Person::User labels and tips.
-    'Username' => 'Username',
-    q{The user's username},
-    'The user’s username',
+        # Kinetic::Party::Person::User labels and tips.
+        'Username' => 'Username',
+        q{The user's username},
+        'The user’s username',
 
-    'Password' => 'Password',
-    q{The user's password},
-    'The user’s password',
-);
+        'Password' => 'Password',
+        q{The user's password},
+        'The user’s password',
+    );
+}
 
 1;
 __END__

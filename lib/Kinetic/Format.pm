@@ -165,7 +165,8 @@ format.
 =cut
 
 sub ref_to_format {
-    throw_unimplemented "This must be overridden in a subclass";
+    throw_unimplemented [ '"[_1]" must be overridden in a subclass',
+        'ref_to_format' ];
 }
 
 ##############################################################################
@@ -182,7 +183,8 @@ format.
 =cut
 
 sub format_to_ref {
-    throw_unimplemented "This must be overridden in a subclass";
+    throw_unimplemented [ '"[_1]" must be overridden in a subclass',
+        'format_to_ref' ];
 }
 
 ##############################################################################

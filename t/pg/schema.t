@@ -5,19 +5,27 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
+
 #use Test::More 'no_plan';
 use Test::More tests => 80;
 use Test::Differences;
 
 {
+
     # Fake out loading of Pg store.
     package Kinetic::Store::DB::Pg;
     use File::Spec::Functions 'catfile';
-    $INC{catfile qw(Kinetic Store DB Pg.pm)} = __FILE__;
+    $INC{ catfile qw(Kinetic Store DB Pg.pm) } = __FILE__;
     sub _add_store_meta { 1 }
 }
 
 BEGIN { use_ok 'Kinetic::Build::Schema' or die }
+
+sub left_justify {
+    my $text = shift;
+    $text =~ s/^\s+//gsm;
+    return $text;
+}
 
 ok my $sg = Kinetic::Build::Schema->new, 'Get new Schema';
 isa_ok $sg, 'Kinetic::Build::Schema';
@@ -29,7 +37,7 @@ is_deeply [ map { $_->key } $sg->classes ],
   [qw(simple one composed comp_comp relation two)],
   "classes() returns classes in their proper dependency order";
 
-for my $class ($sg->classes) {
+for my $class ( $sg->classes ) {
     ok $class->is_a('Kinetic'), "Class is a Kinetic";
 }
 
@@ -37,12 +45,9 @@ for my $class ($sg->classes) {
 # attributes without unduly affecting other tests. I plan to change this soon
 # by adding new attributes.
 {
-    for my $spec (
-        [ simple => 'name'],
-        [ two    => 'date'],
-    ) {
-        my $class = Kinetic::Meta->for_key($spec->[0]);
-        my $attr  = $class->attributes($spec->[1]);
+    for my $spec ( [ simple => 'name' ], [ two => 'date' ], ) {
+        my $class = Kinetic::Meta->for_key( $spec->[0] );
+        my $attr  = $class->attributes( $spec->[1] );
         $attr->{unique}  = 1;
         $attr->{indexed} = 1;
     }
@@ -61,7 +66,7 @@ CONSTRAINT ck_state CHECK (
 ##############################################################################
 # Grab the simple class.
 ok my $simple = Kinetic::Meta->for_key('simple'), "Get simple class";
-is $simple->key, 'simple', "... Simple class has key 'simple'";
+is $simple->key,   'simple',  "... Simple class has key 'simple'";
 is $simple->table, '_simple', "... Simple class has table '_simple'";
 
 # Check that the CREATE TABLE statement is correct.
@@ -100,8 +105,8 @@ CREATE FUNCTION simple_uuid_once() RETURNS trigger AS '
 CREATE TRIGGER simple_uuid_once BEFORE UPDATE ON _simple
     FOR EACH ROW EXECUTE PROCEDURE simple_uuid_once();
 };
-eq_or_diff $sg->constraints_for_class($simple), $constraints,
-  "... Schema class generates CONSTRAINT statement";
+eq_or_diff left_justify( $sg->constraints_for_class($simple) ),
+  left_justify($constraints), "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
 my $view = q{CREATE VIEW simple AS
@@ -143,14 +148,18 @@ eq_or_diff $sg->delete_for_class($simple), $delete,
   "... Schema class generates view DELETE rule";
 
 # Check that a complete schema is properly generated.
-eq_or_diff join("\n", $sg->schema_for_class($simple)),
-  join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
+eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($simple) ) ),
+  left_justify(
+    join (
+        "\n", $table, $indexes, $constraints, $view, $insert, $update, $delete
+    )
+  ),
   "... Schema class generates complete schema";
 
 ##############################################################################
 # Grab the one class.
 ok my $one = Kinetic::Meta->for_key('one'), "Get one class";
-is $one->key, 'one', "... One class has key 'one'";
+is $one->key,   'one',        "... One class has key 'one'";
 is $one->table, 'simple_one', "... One class has table 'simple_one'";
 
 # Check that the CREATE TABLE statement is correct.
@@ -225,14 +234,14 @@ eq_or_diff $sg->delete_for_class($one), $delete,
   "... Schema class generates view DELETE rule";
 
 # Check that a complete schema is properly generated.
-eq_or_diff join("\n", $sg->schema_for_class($one)),
-  join("\n", $table, $constraints, $view, $insert, $update, $delete),
+eq_or_diff join ( "\n", $sg->schema_for_class($one) ),
+  join ( "\n", $table, $constraints, $view, $insert, $update, $delete ),
   "... Schema class generates complete schema";
 
 ##############################################################################
 # Grab the two class.
 ok my $two = Kinetic::Meta->for_key('two'), "Get two class";
-is $two->key, 'two', "... Two class has key 'two'";
+is $two->key,   'two',        "... Two class has key 'two'";
 is $two->table, 'simple_two', "... Two class has table 'simple_two'";
 
 # Check that the CREATE TABLE statement is correct.
@@ -335,8 +344,8 @@ CREATE TRIGGER ckp_two_date_unique BEFORE UPDATE ON _simple
     FOR EACH ROW EXECUTE PROCEDURE ckp_two_date_unique();
 };
 
-eq_or_diff $sg->constraints_for_class($two), $constraints,
-  "... Schema class generates CONSTRAINT statement";
+eq_or_diff left_justify( $sg->constraints_for_class($two) ),
+  left_justify($constraints), "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW two AS
@@ -386,14 +395,18 @@ eq_or_diff $sg->delete_for_class($two), $delete,
   "... Schema class generates view DELETE rule";
 
 # Check that a complete schema is properly generated.
-eq_or_diff join("\n", $sg->schema_for_class($two)),
-  join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
+eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($two) ) ),
+  left_justify(
+    join (
+        "\n", $table, $indexes, $constraints, $view, $insert, $update, $delete
+    )
+  ),
   "... Schema class generates complete schema";
 
 ##############################################################################
 # Grab the relation class.
 ok my $relation = Kinetic::Meta->for_key('relation'), "Get relation class";
-is $relation->key, 'relation', "... Relation class has key 'relation'";
+is $relation->key,   'relation',  "... Relation class has key 'relation'";
 is $relation->table, '_relation', "... Relation class has table '_relation'";
 
 # Check that the CREATE TABLE statement is correct.
@@ -467,8 +480,8 @@ CREATE TRIGGER relation_simple_id_once BEFORE UPDATE ON _relation
     FOR EACH ROW EXECUTE PROCEDURE relation_simple_id_once();
 };
 
-eq_or_diff $sg->constraints_for_class($relation), $constraints,
-  "... Schema class generates CONSTRAINT statement";
+eq_or_diff left_justify( $sg->constraints_for_class($relation) ),
+  left_justify($constraints), "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW relation AS
@@ -512,14 +525,18 @@ eq_or_diff $sg->delete_for_class($relation), $delete,
   "... Schema class generates view DELETE rule";
 
 # Check that a complete schema is properly generated.
-eq_or_diff join("\n", $sg->schema_for_class($relation)),
-  join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
+eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($relation) ) ),
+  left_justify(
+    join (
+        "\n", $table, $indexes, $constraints, $view, $insert, $update, $delete
+    )
+  ),
   "... Schema class generates complete schema";
 
 ##############################################################################
 # Grab the composed class.
 ok my $composed = Kinetic::Meta->for_key('composed'), "Get composed class";
-is $composed->key, 'composed', "... Composed class has key 'composed'";
+is $composed->key,   'composed',  "... Composed class has key 'composed'";
 is $composed->table, '_composed', "... Composed class has table '_composed'";
 
 # Check that the CREATE TABLE statement is correct.
@@ -574,8 +591,8 @@ CREATE FUNCTION composed_one_id_once() RETURNS trigger AS '
 CREATE TRIGGER composed_one_id_once BEFORE UPDATE ON _composed
     FOR EACH ROW EXECUTE PROCEDURE composed_one_id_once();
 };
-eq_or_diff $sg->constraints_for_class($composed), $constraints,
-  "... Schema class generates CONSTRAINT statement";
+eq_or_diff left_justify( $sg->constraints_for_class($composed) ),
+  left_justify($constraints), "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW composed AS
@@ -617,14 +634,18 @@ eq_or_diff $sg->delete_for_class($composed), $delete,
   "... Schema class generates view DELETE rule";
 
 # Check that a complete schema is properly generated.
-eq_or_diff join("\n", $sg->schema_for_class($composed)),
-  join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
+eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($composed) ) ),
+  left_justify(
+    join (
+        "\n", $table, $indexes, $constraints, $view, $insert, $update, $delete
+    )
+  ),
   "... Schema class generates complete schema";
 
 ##############################################################################
 # Grab the comp_comp class.
 ok my $comp_comp = Kinetic::Meta->for_key('comp_comp'), "Get comp_comp class";
-is $comp_comp->key, 'comp_comp', "... CompComp class has key 'comp_comp'";
+is $comp_comp->key,   'comp_comp',  "... CompComp class has key 'comp_comp'";
 is $comp_comp->table, '_comp_comp', "... CompComp class has table 'comp_comp'";
 
 # Check that the CREATE TABLE statement is correct.
@@ -679,8 +700,8 @@ CREATE FUNCTION comp_comp_composed_id_once() RETURNS trigger AS '
 CREATE TRIGGER comp_comp_composed_id_once BEFORE UPDATE ON _comp_comp
     FOR EACH ROW EXECUTE PROCEDURE comp_comp_composed_id_once();
 };
-eq_or_diff $sg->constraints_for_class($comp_comp), $constraints,
-  "... Schema class generates CONSTRAINT statement";
+eq_or_diff left_justify( $sg->constraints_for_class($comp_comp) ),
+  left_justify($constraints), "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW comp_comp AS
@@ -723,6 +744,10 @@ eq_or_diff $sg->delete_for_class($comp_comp), $delete,
   "... Schema class generates view DELETE rule";
 
 # Check that a complete schema is properly generated.
-eq_or_diff join("\n", $sg->schema_for_class($comp_comp)),
-  join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
+eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($comp_comp) ) ),
+  left_justify(
+    join (
+        "\n", $table, $indexes, $constraints, $view, $insert, $update, $delete
+    )
+  ),
   "... Schema class generates complete schema";

@@ -24,13 +24,15 @@ use version;
 our $VERSION = version->new('0.0.1');
 use Encode qw(_utf8_on);
 
-use Kinetic::Store            qw(:logical);
-use Kinetic::Util::Config     qw(:sqlite);
+use Kinetic::Store qw(:logical);
+use Kinetic::Util::Config qw(:sqlite);
 use Kinetic::Util::Exceptions qw(throw_unsupported);
 use Exception::Class::DBI;
 
 use constant _connect_args => (
-    'dbi:SQLite:dbname=' . SQLITE_FILE, '', '', {
+    'dbi:SQLite:dbname=' . SQLITE_FILE,
+    '', '',
+    {
         RaiseError  => 0,
         PrintError  => 0,
         HandleError => Kinetic::Util::Exception::DBI->handler,
@@ -64,7 +66,7 @@ ensures that data returned is uft8.
 =cut
 
 sub _fetchrow_hashref {
-    my ($self, $sth) = @_;
+    my ( $self, $sth ) = @_;
     my $hash = $sth->fetchrow_hashref;
     return unless $hash;
     _utf8_on($_) foreach values %$hash;
@@ -82,14 +84,15 @@ SQLite-specific implementation of C<Kinetic::Store::DB::_set_id>.
 =cut
 
 sub _set_id {
-    my ($class, $object) = @_;
+    my ( $class, $object ) = @_;
     my $view = $object->my_class->key;
+
     # XXX last_insert_id() doesn't seem to work properly. Watch
     # http://sqlite.org/cvstrac/tktview?tn=1191 for the fix.
-    my $result = $class->_dbh->selectcol_arrayref(
-        "SELECT id FROM $view WHERE uuid = ?", undef, $object->uuid
-    );
-    $object->id($result->[0]);
+    my $result =
+      $class->_dbh->selectcol_arrayref( "SELECT id FROM $view WHERE uuid = ?",
+        undef, $object->uuid );
+    $object->id( $result->[0] );
     return $class;
 }
 
@@ -104,7 +107,8 @@ Not implemented in SQLite
 =cut
 
 sub _full_text_search {
-    throw_unsupported [ "[_1] does not support full-text searches", __PACKAGE__ ];
+    throw_unsupported [ "[_1] does not support full-text searches",
+        __PACKAGE__ ];
 }
 
 ##############################################################################
@@ -120,10 +124,8 @@ expressions are not supported on SQLite.
 =cut
 
 sub _MATCH_SEARCH {
-    throw_unsupported [
-        "MATCH:  [_1] does not support regular expressions",
-        __PACKAGE__
-    ];
+    throw_unsupported [ "MATCH:  [_1] does not support regular expressions",
+        __PACKAGE__ ];
 }
 
 ##############################################################################
@@ -139,76 +141,75 @@ will make no column types case-insensitive.
 
 =cut
 
-sub _is_case_sensitive {}
+sub _is_case_sensitive { }
 
 ##############################################################################
 
 my @DATE = (
-    [year   => '%Y'], # XXX Years before 1000 and after 9999 are not supported.
-    [month  => '%m'],
-    [day    => '%d'],
-    [hour   => '%H'],
-    [minute => '%M'],
-    [second => '%S'],
+    [ year  => '%Y' ], # XXX Years before 1000 and after 9999 are not supported.
+    [ month => '%m' ],
+    [ day   => '%d' ],
+    [ hour  => '%H' ],
+    [ minute => '%M' ],
+    [ second => '%S' ],
 );
 
 sub _field_format {
-    my ($self, $field, $date) = @_;
+    my ( $self, $field, $date ) = @_;
     my @tokens;
     foreach my $date_data (@DATE) {
-        my ($segment, $fmt) = @$date_data;
+        my ( $segment, $fmt ) = @$date_data;
         my $value = $date->$segment;
         next unless defined $value;
         push @tokens => "strftime('$fmt', $field)";
     }
-    return join(' || ' => @tokens);
+    return join ( ' || ' => @tokens );
 }
 
 ##############################################################################
 
 sub _eq_date_handler {
-    my ($self, $search) = @_;
+    my ( $self, $search ) = @_;
     my $date     = $search->data;
-    my $token    = $self->_field_format($search->column, $date);
+    my $token    = $self->_field_format( $search->column, $date );
     my $operator = $search->operator;
-    return ("$token $operator ?", [$date->sort_string]);
+    return ( "$token $operator ?", [ $date->sort_string ] );
 }
 
 sub _gt_lt_date_handler {
-    my ($self, $search) = @_;
-    my ($date, $operator) = ($search->data, $search->operator);
-    throw_unsupported "You cannot do GT or LT type searches with non-contiguous dates"
-        unless $date->contiguous;
-    my $token = $self->_field_format($search->column, $date);
+    my ( $self, $search ) = @_;
+    my ( $date, $operator ) = ( $search->data, $search->operator );
+    throw_unsupported
+      "You cannot do GT or LT type searches with non-contiguous dates"
+      unless $date->contiguous;
+    my $token = $self->_field_format( $search->column, $date );
     my $value = $date->sort_string;
-    return ("$token $operator ?", [$value]);
+    return ( "$token $operator ?", [$value] );
 }
 
-sub _between_date_handler {
-    my ($self, $search) = @_;
-    my $data = $search->data;
-    my ($date1, $date2) = @$data;
-    throw_unsupported "You cannot do range searches with non-contiguous dates"
-        unless $date1->contiguous && $date2->contiguous;
-    throw_unsupported "BETWEEN search dates must have identical segments defined"
-        unless $date1->same_segments($date2);
-    my ($negated, $operator) = ($search->negated, $search->operator);
-    my $token = $self->_field_format($search->column, $date1);
-    return ("$token $negated $operator ? AND ?", [$date1->sort_string, $date2->sort_string])
+sub _between_date_sql {
+    my ( $self,    $search )   = @_;
+    my ( $date1,   $date2 )    = @{ $search->data };
+    my ( $negated, $operator ) = ( $search->negated, $search->operator );
+    my $token = $self->_field_format( $search->column, $date1 );
+    return (
+        "$token $negated $operator ? AND ?",
+        [ $date1->sort_string, $date2->sort_string ]
+    );
 }
 
 sub _any_date_handler {
-    my ($self, $search)   = @_;
-    my ($negated, $value) = ($search->negated, $search->data);
-    my (@tokens, @values);
+    my ( $self, $search ) = @_;
+    my ( $negated, $value ) = ( $search->negated, $search->data );
+    my ( @tokens, @values );
     my $field = $search->column;
     foreach my $date (@$value) {
-        my $token = $self->_field_format($field, $date);
+        my $token = $self->_field_format( $field, $date );
         push @tokens => "$token = ?";
         push @values => $date->sort_string;
     }
     my $token = join ' OR ' => @tokens;
-    return ($token, \@values);
+    return ( $token, \@values );
 }
 
 1;
