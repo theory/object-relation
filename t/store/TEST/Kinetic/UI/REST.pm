@@ -121,7 +121,7 @@ sub chained_calls : Test(no_plan) {
 
     my $cgi_mock = MockModule->new('CGI');
     $cgi_mock->mock(
-        path_info => '/json/one/squery/name EQ "bar".name/rab.save' );
+        path_info => '/json/one/squery/name EQ "bar",name/rab,save' );
 
     ok $rest->handle_request( CGI->new ), 'A chained call should succeed';
     is $rest->status, $HTTP_OK, '... with an appropriate status code';

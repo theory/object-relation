@@ -49,6 +49,7 @@ use aliased 'Kinetic::Meta' => 'Meta', qw/:with_dbstore_api/;
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::DateTime::Incomplete';
 use aliased 'Kinetic::Store::Search';
+use aliased 'Kinetic::Util::State';
 
 my %SEARCH_TYPE_FOR = map { $_ => 1 } qw/CODE STRING XML/;
 
@@ -502,6 +503,12 @@ sub _save {
     $object->_save_prep;
     local $self->{search_class} = $object->my_class;
     local $self->{view}         = $self->{search_class}->key;
+
+    # XXX get a cleaner way of handling this
+    if ( $object->state == State->PURGED ) {
+        return $self->_delete($object);
+    }
+
     local @{$self}{qw/columns values/};
     $self->_save( $_->get($object) ) for $self->{search_class}->ref_attributes;
 
@@ -513,6 +520,28 @@ sub _save {
     return $object->id
       ? $self->_update($object)
       : $self->_insert($object);
+}
+
+##############################################################################
+
+=head3 _delete
+
+  $self->_delete($object);
+
+This method deletes a Kinetic object from the data store.  Does nothing if the
+object has not previously been saved to the data store.
+
+It does not attempt to delete contained or related objects as the
+C<Kinetic::Meta> framework establishes constraints to handle this.
+
+=cut
+
+sub _delete {
+    my ( $self, $object ) = @_;
+    return unless my $id = $object->id;    # it was never in the data store
+    my $sql = "DELETE FROM $self->{view} WHERE id = ?";
+    $self->_prepare_method($CACHED);
+    return $self->_do_sql( $sql, [$id] );
 }
 
 ##############################################################################
@@ -1066,25 +1095,41 @@ be generated.
 
 sub _make_where_clause {
     my ( $self, $search_request ) = @_;
-    return ( '', [] ) unless @$search_request && $search_request->[0];
 
-    # unless explicitly set elsewhere, the default search type is CODE
-    $self->{search_type} ||= 'CODE';
-    my $stream =
-      $self->{search_type} eq 'CODE'    # XXX we may need to clean this up later
-      ? code_lexer_stream($search_request)
-      : string_lexer_stream( $search_request->[0] );
-    my $ir = parse( $stream, $self );
-    my ( $where_clause, $bind_params ) =
-      $self->_convert_ir_to_where_clause($ir);
-    $where_clause = "" if '()' eq $where_clause;
-    return ( $where_clause, $bind_params );
+    my $deleted = 0 + State->DELETED;
+
+    if ( @$search_request && $search_request->[0] ) {
+
+        # unless explicitly set elsewhere, the default search type is CODE
+        $self->{search_type} ||= 'CODE';
+        my $stream =
+          $self->{search_type} eq
+          'CODE'    # XXX we may need to clean this up later
+          ? code_lexer_stream($search_request)
+          : string_lexer_stream( $search_request->[0] );
+        my $ir = parse( $stream, $self );
+        $self->{searching_on_state} = 0;
+        my ( $where_clause, $bind_params ) =
+          $self->_convert_ir_to_where_clause($ir);
+        $where_clause = "" if '()' eq $where_clause;
+
+        unless ( $self->{searching_on_state} ) {
+            $where_clause .= ' AND state > ?';
+            push @$bind_params, $deleted;
+        }
+        return ( $where_clause, $bind_params );
+    }
+    else {
+        return ( 'state > ?', [$deleted] )
+          unless @$search_request && $search_request->[0];
+    }
+
 }
 
 sub _convert_ir_to_where_clause {
     my ( $self, $ir ) = @_;
     my ( @where, @bind );
-    while ( my $term = shift @$ir ) {
+    while ( defined( my $term = shift @$ir ) ) {
         unless ( ref $term ) {    # Currently, this means its 'OR'
             pop @where if 'AND' eq $where[-1];
             push @where => $term;
@@ -1098,6 +1143,9 @@ sub _convert_ir_to_where_clause {
         elsif ( Search eq ref $term ) {
             my $search_method = $term->search_method;
             my ( $token, $bind ) = $self->$search_method($term);
+            if ( $token =~ /\bstate\b/i ) {
+                $self->{searching_on_state} = 1;
+            }
             push @where => $token;
             push @bind  => @$bind;
         }

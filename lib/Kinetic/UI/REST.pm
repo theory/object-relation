@@ -30,7 +30,7 @@ use aliased 'Kinetic::UI::REST::Dispatch';
 
 use URI::Escape qw/uri_unescape/;
 use Readonly;
-Readonly my $CHAIN => qr/\./;
+Readonly my $CHAIN => qr/,/;
 
 use Class::BuildMethods qw(
   cgi

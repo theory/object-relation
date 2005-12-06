@@ -31,8 +31,7 @@ __PACKAGE__->runtests unless caller;
 
 sub _num_recs {
     my ( $test, $table ) = @_;
-    my $result =
-      $test->dbh->selectrow_arrayref("SELECT count(*) FROM $table");
+    my $result = $test->dbh->selectrow_arrayref("SELECT count(*) FROM $table");
     return $result->[0];
 }
 
@@ -137,9 +136,10 @@ sub where_clause : Test(11) {
             desc => 'bar',
         ]
     );
-    is $where, '(LOWER(name) = LOWER(?) AND LOWER(desc) = LOWER(?))',
+    is $where,
+      '(LOWER(name) = LOWER(?) AND LOWER(desc) = LOWER(?)) AND state > ?',
       'and simple compound where snippets should succeed';
-    is_deeply $bind, [qw/foo bar/], 'and return the correct bind params';
+    is_deeply $bind, [qw/foo bar -1/], 'and return the correct bind params';
 
     $store->{search_data}{columns} =
       [qw/name desc this/];    # so it doesn't think it's an object search
@@ -158,9 +158,9 @@ sub where_clause : Test(11) {
         ]
     );
     is $where,
-      '(LOWER(name) = LOWER(?) AND (LOWER(desc) = LOWER(?) AND this = ?))',
+      '(LOWER(name) = LOWER(?) AND (LOWER(desc) = LOWER(?) AND this = ?)) AND state > ?',
       'and compound where snippets with array refs should succeed';
-    is_deeply $bind, [qw/foo bar that/], 'and return the correct bind params';
+    is_deeply $bind, [qw/foo bar that -1/], 'and return the correct bind params';
 
     ( $where, $bind ) = $store->_make_where_clause(
         [
@@ -172,9 +172,9 @@ sub where_clause : Test(11) {
         ]
     );
     is $where,
-      '(LOWER(name) = LOWER(?) OR (LOWER(desc) = LOWER(?) AND this = ?))',
+      '(LOWER(name) = LOWER(?) OR (LOWER(desc) = LOWER(?) AND this = ?)) AND state > ?',
       'and compound where snippets with array refs should succeed';
-    is_deeply $bind, [qw/foo bar that/], 'and return the correct bind params';
+    is_deeply $bind, [qw/foo bar that -1/], 'and return the correct bind params';
 
     $store->{search_data}{columns} = [
         qw/
@@ -205,9 +205,9 @@ sub where_clause : Test(11) {
     );
     is $where,
       '((last_name = ? AND first_name = ?) OR (bio  LIKE ?) OR '
-      . '(one__type  LIKE ? AND one__value  LIKE ? AND fav_number >= ?))',
+      . '(one__type  LIKE ? AND one__value  LIKE ? AND fav_number >= ?)) AND state > ?',
       'Even very complex conditions should be manageable';
-    is_deeply $bind, [qw/Wall Larry %perl% email @cpan\.org$ 42/],
+    is_deeply $bind, [qw/Wall Larry %perl% email @cpan\.org$ 42 -1/],
       'and be able to generate the correct bindings';
 
     ( $where, $bind ) = $store->_make_where_clause(
@@ -226,9 +226,9 @@ sub where_clause : Test(11) {
     );
     is $where,
       '((last_name = ? AND first_name = ?) OR (bio  LIKE ?) OR '
-      . '(one__type  LIKE ? AND one__value  LIKE ? AND fav_number >= ?))',
+      . '(one__type  LIKE ? AND one__value  LIKE ? AND fav_number >= ?)) AND state > ?',
       'Even very complex conditions should be manageable';
-    is_deeply $bind, [qw/Wall Larry %perl% email @cpan\.org$ 42/],
+    is_deeply $bind, [qw/Wall Larry %perl% email @cpan\.org$ 42 -1/],
       'and be able to generate the correct bindings';
 }
 
