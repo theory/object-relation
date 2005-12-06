@@ -69,7 +69,7 @@ C<setup_code()>).
 
 my %types = (
     string   => 'TEXT',
-    uuid     => 'TEXT',
+    uuid     => 'UUID',
     boolean  => 'BOOLEAN',
     whole    => 'INTEGER',
     state    => 'STATE',
@@ -123,11 +123,19 @@ columns.
 
 sub column_default {
     my ($self, $attr) = @_;
+    my $type = $attr->type;
+
+    if ($type eq 'boolean') {
+        my $def = $attr->default;
+        return unless defined $def;
+        return $def ? 'DEFAULT true' : 'DEFAULT false';
+    }
+
+    elsif ($type eq 'uuid') {
+        return 'DEFAULT UUID_V4()';
+    }
+
     return $self->SUPER::column_default($attr)
-      unless $attr->type eq 'boolean';
-    my $def = $attr->default;
-    return unless defined $def;
-    return $def ? 'DEFAULT true' : 'DEFAULT false';
 }
 
 ##############################################################################

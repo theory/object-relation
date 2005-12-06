@@ -72,7 +72,7 @@ is $simple->table, '_simple', "... Simple class has table '_simple'";
 # Check that the CREATE TABLE statement is correct.
 my $table = q{CREATE TABLE _simple (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
-    uuid TEXT NOT NULL,
+    uuid UUID NOT NULL DEFAULT UUID_V4(),
     state STATE NOT NULL DEFAULT 1,
     name TEXT NOT NULL,
     description TEXT
@@ -412,7 +412,7 @@ is $relation->table, '_relation', "... Relation class has table '_relation'";
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE _relation (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
-    uuid TEXT NOT NULL,
+    uuid UUID NOT NULL DEFAULT UUID_V4(),
     state STATE NOT NULL DEFAULT 1,
     one_id INTEGER NOT NULL,
     simple_id INTEGER NOT NULL
@@ -542,7 +542,7 @@ is $composed->table, '_composed', "... Composed class has table '_composed'";
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE _composed (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
-    uuid TEXT NOT NULL,
+    uuid UUID NOT NULL DEFAULT UUID_V4(),
     state STATE NOT NULL DEFAULT 1,
     one_id INTEGER
 );
@@ -651,7 +651,7 @@ is $comp_comp->table, '_comp_comp', "... CompComp class has table 'comp_comp'";
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE _comp_comp (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
-    uuid TEXT NOT NULL,
+    uuid UUID NOT NULL DEFAULT UUID_V4(),
     state STATE NOT NULL DEFAULT 1,
     composed_id INTEGER NOT NULL
 );
