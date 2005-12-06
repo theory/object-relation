@@ -462,9 +462,11 @@ sub insert_for_class {
           . join(', ', map { $_->column } $impl->table_attributes )
           . ")\n  VALUES ($func('seq_kinetic'), "
           . join(', ', map {
-              $_->type eq 'uuid'
-                  ? 'COALESCE(NEW.uuid, UUID_V4())'
-                  : 'NEW.' . $_->view_column
+              sprintf(
+                  ($_->type eq 'uuid' ? 'COALESCE(NEW.%s, UUID_V4())'
+                                      : 'NEW.%s'),
+                  $_->view_column
+              )
           } $impl->table_attributes)
           . ");\n";
         $func = 'CURRVAL';
