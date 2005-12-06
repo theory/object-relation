@@ -82,28 +82,22 @@ eq_or_diff $sg->indexes_for_class($simple), $indexes,
 my $constraints = q{CREATE TRIGGER cki_simple_state
 BEFORE INSERT ON _simple
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN NEW.state NOT BETWEEN -1 AND 2
-    THEN RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-  END;
+    SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER cku_simple_state
 BEFORE UPDATE OF state ON _simple
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN NEW.state NOT BETWEEN -1 AND 2
-    THEN RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-  END;
+    SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER ck_simple_uuid_once
 BEFORE UPDATE ON _simple
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
-    THEN RAISE(ABORT, 'value of "uuid" cannot be changed')
-  END;
+    SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
+    WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
 END;
 
 CREATE TRIGGER cki_simple_name_unique
@@ -208,36 +202,29 @@ is $sg->indexes_for_class($one), '',
 $constraints = q{CREATE TRIGGER cki_one_bool
 BEFORE INSERT ON simple_one
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN NEW.bool NOT IN (1, 0)
-    THEN RAISE(ABORT, 'value for domain boolean violates check constraint "ck_boolean"')
-  END;
+    SELECT RAISE(ABORT, 'value for domain boolean violates check constraint "ck_boolean"')
+    WHERE  NEW.bool NOT IN (1, 0);
 END;
 
 CREATE TRIGGER cku_one_bool
 BEFORE UPDATE OF bool ON simple_one
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN NEW.bool NOT IN (1, 0)
-    THEN RAISE(ABORT, 'value for domain boolean violates check constraint "ck_boolean"')
-  END;
+    SELECT RAISE(ABORT, 'value for domain boolean violates check constraint "ck_boolean"')
+    WHERE  NEW.bool NOT IN (1, 0);
 END;
 
 CREATE TRIGGER pfki_simple_one_id
 BEFORE INSERT ON simple_one
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN (SELECT id FROM _simple WHERE id = NEW.id) IS NULL
-    THEN RAISE(ABORT, 'insert on table "simple_one" violates foreign key constraint "pfk_simple_one_id"')
-  END;
+    SELECT RAISE(ABORT, 'insert on table "simple_one" violates foreign key constraint "pfk_simple_one_id"')
+    WHERE  NEW.id IS NOT NULL AND (SELECT id FROM _simple WHERE id = NEW.id) IS NULL;
 END;
 
 CREATE TRIGGER pfku_simple_one_id
 BEFORE UPDATE ON simple_one
 FOR EACH ROW BEGIN
-  SELECT CASE WHEN (SELECT id FROM _simple WHERE id = NEW.id) IS NULL
-    THEN RAISE(ABORT, 'update on table "simple_one" violates foreign key constraint "pfk_simple_one_id"')
-  END;
+    SELECT RAISE(ABORT, 'update on table "simple_one" violates foreign key constraint "pfk_simple_one_id"')
+    WHERE  NEW.id IS NOT NULL AND (SELECT id FROM _simple WHERE id = NEW.id) IS NULL;
 END;
 
 CREATE TRIGGER pfkd_simple_one_id
@@ -379,18 +366,15 @@ END;
 CREATE TRIGGER pfki_simple_two_id
 BEFORE INSERT ON simple_two
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN (SELECT id FROM _simple WHERE id = NEW.id) IS NULL
-    THEN RAISE(ABORT, 'insert on table "simple_two" violates foreign key constraint "pfk_simple_two_id"')
-  END;
+    SELECT RAISE(ABORT, 'insert on table "simple_two" violates foreign key constraint "pfk_simple_two_id"')
+    WHERE  NEW.id IS NOT NULL AND (SELECT id FROM _simple WHERE id = NEW.id) IS NULL;
 END;
 
 CREATE TRIGGER pfku_simple_two_id
 BEFORE UPDATE ON simple_two
 FOR EACH ROW BEGIN
-  SELECT CASE WHEN (SELECT id FROM _simple WHERE id = NEW.id) IS NULL
-    THEN RAISE(ABORT, 'update on table "simple_two" violates foreign key constraint "pfk_simple_two_id"')
-  END;
+    SELECT RAISE(ABORT, 'update on table "simple_two" violates foreign key constraint "pfk_simple_two_id"')
+    WHERE  NEW.id IS NOT NULL AND (SELECT id FROM _simple WHERE id = NEW.id) IS NULL;
 END;
 
 CREATE TRIGGER pfkd_simple_two_id
@@ -402,27 +386,22 @@ END;
 CREATE TRIGGER fki_two_one_id
 BEFORE INSERT ON simple_two
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL
-    THEN RAISE(ABORT, 'insert on table "simple_two" violates foreign key constraint "fk_two_one_id"')
-  END;
+    SELECT RAISE(ABORT, 'insert on table "simple_two" violates foreign key constraint "fk_two_one_id"')
+    WHERE  (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL;
 END;
 
 CREATE TRIGGER fku_two_one_id
 BEFORE UPDATE ON simple_two
 FOR EACH ROW BEGIN
-  SELECT CASE WHEN (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL
-    THEN RAISE(ABORT, 'update on table "simple_two" violates foreign key constraint "fk_two_one_id"')
-  END;
+    SELECT RAISE(ABORT, 'update on table "simple_two" violates foreign key constraint "fk_two_one_id"')
+    WHERE  (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL;
 END;
 
 CREATE TRIGGER fkd_two_one_id
 BEFORE DELETE ON simple_one
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN (SELECT one_id FROM simple_two WHERE one_id = OLD.id) IS NOT NULL
-    THEN RAISE(ABORT, 'delete on table "simple_one" violates foreign key constraint "fk_two_one_id"')
-  END;
+    SELECT RAISE(ABORT, 'delete on table "simple_one" violates foreign key constraint "fk_two_one_id"')
+    WHERE  (SELECT one_id FROM simple_two WHERE one_id = OLD.id) IS NOT NULL;
 END;
 };
 eq_or_diff $sg->constraints_for_class($two), $constraints,
@@ -515,98 +494,78 @@ eq_or_diff $sg->indexes_for_class($relation), $indexes,
 $constraints = q{CREATE TRIGGER cki_relation_state
 BEFORE INSERT ON _relation
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN NEW.state NOT BETWEEN -1 AND 2
-    THEN RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-  END;
+    SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER cku_relation_state
 BEFORE UPDATE OF state ON _relation
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN NEW.state NOT BETWEEN -1 AND 2
-    THEN RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-  END;
+    SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER ck_relation_uuid_once
 BEFORE UPDATE ON _relation
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
-    THEN RAISE(ABORT, 'value of "uuid" cannot be changed')
-  END;
+    SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
+    WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
 END;
 
 CREATE TRIGGER ck_relation_one_id_once
 BEFORE UPDATE ON _relation
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL
-    THEN RAISE(ABORT, 'value of "one_id" cannot be changed')
-  END;
+    SELECT RAISE(ABORT, 'value of "one_id" cannot be changed')
+    WHERE  OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL;
 END;
 
 CREATE TRIGGER ck_relation_simple_id_once
 BEFORE UPDATE ON _relation
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN OLD.simple_id <> NEW.simple_id OR NEW.simple_id IS NULL
-    THEN RAISE(ABORT, 'value of "simple_id" cannot be changed')
-  END;
+    SELECT RAISE(ABORT, 'value of "simple_id" cannot be changed')
+    WHERE  OLD.simple_id <> NEW.simple_id OR NEW.simple_id IS NULL;
 END;
 
 CREATE TRIGGER fki_relation_one_id
 BEFORE INSERT ON _relation
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL
-    THEN RAISE(ABORT, 'insert on table "_relation" violates foreign key constraint "fk_relation_one_id"')
-  END;
+    SELECT RAISE(ABORT, 'insert on table "_relation" violates foreign key constraint "fk_relation_one_id"')
+    WHERE  (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL;
 END;
 
 CREATE TRIGGER fku_relation_one_id
 BEFORE UPDATE ON _relation
 FOR EACH ROW BEGIN
-  SELECT CASE WHEN (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL
-    THEN RAISE(ABORT, 'update on table "_relation" violates foreign key constraint "fk_relation_one_id"')
-  END;
+    SELECT RAISE(ABORT, 'update on table "_relation" violates foreign key constraint "fk_relation_one_id"')
+    WHERE  (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL;
 END;
 
 CREATE TRIGGER fkd_relation_one_id
 BEFORE DELETE ON simple_one
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN (SELECT one_id FROM _relation WHERE one_id = OLD.id) IS NOT NULL
-    THEN RAISE(ABORT, 'delete on table "simple_one" violates foreign key constraint "fk_relation_one_id"')
-  END;
+    SELECT RAISE(ABORT, 'delete on table "simple_one" violates foreign key constraint "fk_relation_one_id"')
+    WHERE  (SELECT one_id FROM _relation WHERE one_id = OLD.id) IS NOT NULL;
 END;
 
 CREATE TRIGGER fki_relation_simple_id
 BEFORE INSERT ON _relation
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN (SELECT id FROM _simple WHERE id = NEW.simple_id) IS NULL
-    THEN RAISE(ABORT, 'insert on table "_relation" violates foreign key constraint "fk_relation_simple_id"')
-  END;
+    SELECT RAISE(ABORT, 'insert on table "_relation" violates foreign key constraint "fk_relation_simple_id"')
+    WHERE  (SELECT id FROM _simple WHERE id = NEW.simple_id) IS NULL;
 END;
 
 CREATE TRIGGER fku_relation_simple_id
 BEFORE UPDATE ON _relation
 FOR EACH ROW BEGIN
-  SELECT CASE WHEN (SELECT id FROM _simple WHERE id = NEW.simple_id) IS NULL
-    THEN RAISE(ABORT, 'update on table "_relation" violates foreign key constraint "fk_relation_simple_id"')
-  END;
+    SELECT RAISE(ABORT, 'update on table "_relation" violates foreign key constraint "fk_relation_simple_id"')
+    WHERE  (SELECT id FROM _simple WHERE id = NEW.simple_id) IS NULL;
 END;
 
 CREATE TRIGGER fkd_relation_simple_id
 BEFORE DELETE ON _simple
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN (SELECT simple_id FROM _relation WHERE simple_id = OLD.id) IS NOT NULL
-    THEN RAISE(ABORT, 'delete on table "_simple" violates foreign key constraint "fk_relation_simple_id"')
-  END;
+    SELECT RAISE(ABORT, 'delete on table "_simple" violates foreign key constraint "fk_relation_simple_id"')
+    WHERE  (SELECT simple_id FROM _relation WHERE simple_id = OLD.id) IS NOT NULL;
 END;
 };
 eq_or_diff $sg->constraints_for_class($relation), $constraints,
@@ -690,63 +649,50 @@ eq_or_diff $sg->indexes_for_class($composed), $indexes,
 $constraints = q{CREATE TRIGGER cki_composed_state
 BEFORE INSERT ON _composed
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN NEW.state NOT BETWEEN -1 AND 2
-    THEN RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-  END;
+    SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER cku_composed_state
 BEFORE UPDATE OF state ON _composed
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN NEW.state NOT BETWEEN -1 AND 2
-    THEN RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-  END;
+    SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER ck_composed_uuid_once
 BEFORE UPDATE ON _composed
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
-    THEN RAISE(ABORT, 'value of "uuid" cannot be changed')
-  END;
+    SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
+    WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
 END;
 
 CREATE TRIGGER ck_composed_one_id_once
 BEFORE UPDATE ON _composed
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN OLD.one_id IS NOT NULL AND (OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL)
-    THEN RAISE(ABORT, 'value of "one_id" cannot be changed')
-  END;
+    SELECT RAISE(ABORT, 'value of "one_id" cannot be changed')
+    WHERE  OLD.one_id IS NOT NULL AND (OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL);
 END;
 
 CREATE TRIGGER fki_composed_one_id
 BEFORE INSERT ON _composed
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL
-    THEN RAISE(ABORT, 'insert on table "_composed" violates foreign key constraint "fk_composed_one_id"')
-  END;
+    SELECT RAISE(ABORT, 'insert on table "_composed" violates foreign key constraint "fk_composed_one_id"')
+    WHERE  NEW.one_id IS NOT NULL AND (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL;
 END;
 
 CREATE TRIGGER fku_composed_one_id
 BEFORE UPDATE ON _composed
 FOR EACH ROW BEGIN
-  SELECT CASE WHEN (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL
-    THEN RAISE(ABORT, 'update on table "_composed" violates foreign key constraint "fk_composed_one_id"')
-  END;
+    SELECT RAISE(ABORT, 'update on table "_composed" violates foreign key constraint "fk_composed_one_id"')
+    WHERE  NEW.one_id IS NOT NULL AND (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL;
 END;
 
 CREATE TRIGGER fkd_composed_one_id
 BEFORE DELETE ON simple_one
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN (SELECT one_id FROM _composed WHERE one_id = OLD.id) IS NOT NULL
-    THEN RAISE(ABORT, 'delete on table "simple_one" violates foreign key constraint "fk_composed_one_id"')
-  END;
+    SELECT RAISE(ABORT, 'delete on table "simple_one" violates foreign key constraint "fk_composed_one_id"')
+    WHERE  (SELECT one_id FROM _composed WHERE one_id = OLD.id) IS NOT NULL;
 END;
 };
 eq_or_diff $sg->constraints_for_class($composed), $constraints,
@@ -829,63 +775,50 @@ eq_or_diff $sg->indexes_for_class($comp_comp), $indexes,
 $constraints = q{CREATE TRIGGER cki_comp_comp_state
 BEFORE INSERT ON _comp_comp
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN NEW.state NOT BETWEEN -1 AND 2
-    THEN RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-  END;
+    SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER cku_comp_comp_state
 BEFORE UPDATE OF state ON _comp_comp
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN NEW.state NOT BETWEEN -1 AND 2
-    THEN RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-  END;
+    SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER ck_comp_comp_uuid_once
 BEFORE UPDATE ON _comp_comp
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
-    THEN RAISE(ABORT, 'value of "uuid" cannot be changed')
-  END;
+    SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
+    WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
 END;
 
 CREATE TRIGGER ck_comp_comp_composed_id_once
 BEFORE UPDATE ON _comp_comp
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN OLD.composed_id <> NEW.composed_id OR NEW.composed_id IS NULL
-    THEN RAISE(ABORT, 'value of "composed_id" cannot be changed')
-  END;
+    SELECT RAISE(ABORT, 'value of "composed_id" cannot be changed')
+    WHERE  OLD.composed_id <> NEW.composed_id OR NEW.composed_id IS NULL;
 END;
 
 CREATE TRIGGER fki_comp_comp_composed_id
 BEFORE INSERT ON _comp_comp
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN (SELECT id FROM _composed WHERE id = NEW.composed_id) IS NULL
-    THEN RAISE(ABORT, 'insert on table "_comp_comp" violates foreign key constraint "fk_comp_comp_composed_id"')
-  END;
+    SELECT RAISE(ABORT, 'insert on table "_comp_comp" violates foreign key constraint "fk_comp_comp_composed_id"')
+    WHERE  (SELECT id FROM _composed WHERE id = NEW.composed_id) IS NULL;
 END;
 
 CREATE TRIGGER fku_comp_comp_composed_id
 BEFORE UPDATE ON _comp_comp
 FOR EACH ROW BEGIN
-  SELECT CASE WHEN (SELECT id FROM _composed WHERE id = NEW.composed_id) IS NULL
-    THEN RAISE(ABORT, 'update on table "_comp_comp" violates foreign key constraint "fk_comp_comp_composed_id"')
-  END;
+    SELECT RAISE(ABORT, 'update on table "_comp_comp" violates foreign key constraint "fk_comp_comp_composed_id"')
+    WHERE  (SELECT id FROM _composed WHERE id = NEW.composed_id) IS NULL;
 END;
 
 CREATE TRIGGER fkd_comp_comp_composed_id
 BEFORE DELETE ON _composed
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN (SELECT composed_id FROM _comp_comp WHERE composed_id = OLD.id) IS NOT NULL
-    THEN RAISE(ABORT, 'delete on table "_composed" violates foreign key constraint "fk_comp_comp_composed_id"')
-  END;
+    SELECT RAISE(ABORT, 'delete on table "_composed" violates foreign key constraint "fk_comp_comp_composed_id"')
+    WHERE  (SELECT composed_id FROM _comp_comp WHERE composed_id = OLD.id) IS NOT NULL;
 END;
 };
 

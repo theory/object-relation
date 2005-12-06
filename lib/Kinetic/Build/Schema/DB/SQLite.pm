@@ -210,20 +210,16 @@ sub state_trigger {
             "CREATE TRIGGER cki_$key\_$col\n"
           . "BEFORE INSERT ON $table\n"
           . "FOR EACH ROW BEGIN\n"
-          . "  SELECT CASE\n"
-          . "    WHEN NEW.$col NOT BETWEEN -1 AND 2\n"
-          . "    THEN RAISE(ABORT, 'value for domain state violates "
-          .                      qq{check constraint "ck_state"')\n}
-          . "  END;\n"
+          . "    SELECT RAISE(ABORT, 'value for domain state violates "
+          .                        qq{check constraint "ck_state"')\n}
+          . "    WHERE  NEW.$col NOT BETWEEN -1 AND 2;\n"
           . "END;\n",
             "CREATE TRIGGER cku_$key\_$col\n"
           . "BEFORE UPDATE OF $col ON $table\n"
           . "FOR EACH ROW BEGIN\n"
-          . "  SELECT CASE\n"
-          . "    WHEN NEW.$col NOT BETWEEN -1 AND 2\n"
-          . "    THEN RAISE(ABORT, 'value for domain state violates "
-          .                      qq{check constraint "ck_state"')\n}
-          . "  END;\n"
+          . "    SELECT RAISE(ABORT, 'value for domain state violates "
+          .                        qq{check constraint "ck_state"')\n}
+          . "    WHERE  NEW.$col NOT BETWEEN -1 AND 2;\n"
           . "END;\n";
     }
     return join "\n", @trigs;
@@ -257,20 +253,16 @@ sub boolean_triggers {
             "CREATE TRIGGER cki_$key\_$col\n"
           . "BEFORE INSERT ON $table\n"
           . "FOR EACH ROW BEGIN\n"
-          . "  SELECT CASE\n"
-          . "    WHEN NEW.$col NOT IN (1, 0)\n"
-          . "    THEN RAISE(ABORT, 'value for domain boolean violates "
-          .                      qq{check constraint "ck_boolean"')\n}
-          . "  END;\n"
+          . "    SELECT RAISE(ABORT, 'value for domain boolean violates "
+          .                        qq{check constraint "ck_boolean"')\n}
+          . "    WHERE  NEW.$col NOT IN (1, 0);\n"
           . "END;\n",
             "CREATE TRIGGER cku_$key\_$col\n"
           . "BEFORE UPDATE OF $col ON $table\n"
           . "FOR EACH ROW BEGIN\n"
-          . "  SELECT CASE\n"
-          . "    WHEN NEW.$col NOT IN (1, 0)\n"
-          . "    THEN RAISE(ABORT, 'value for domain boolean violates "
-          .                      qq{check constraint "ck_boolean"')\n}
-          . "  END;\n"
+          . "    SELECT RAISE(ABORT, 'value for domain boolean violates "
+          .                        qq{check constraint "ck_boolean"')\n}
+          . "    WHERE  NEW.$col NOT IN (1, 0);\n"
           . "END;\n";
     }
     return join "\n", @trigs;
@@ -295,10 +287,8 @@ sub once_triggers_sql {
     return "CREATE TRIGGER ck_$key\_$col\_once\n"
           . "BEFORE UPDATE ON $table\n"
           . "FOR EACH ROW BEGIN\n"
-          . "  SELECT CASE\n"
-          . "    WHEN $when\n"
-        . qq{    THEN RAISE(ABORT, 'value of "$col" cannot be changed')\n}
-          . "  END;\n"
+        . qq{    SELECT RAISE(ABORT, 'value of "$col" cannot be changed')\n}
+          . "    WHERE  $when;\n"
           . "END;\n";
 }
 
@@ -519,13 +509,14 @@ sub delete_for_class {
 
 sub _generate_fk {
     my ($self, $class, $attr, $fk_class) = @_;
-    my $key = $class->key;
-    my $table = $class->table;
-    my $fk_key = $fk_class->key;
+    my $key      = $class->key;
+    my $table    = $class->table;
+    my $fk_key   = $fk_class->key;
     my $fk_table = $fk_class->table;
     my ($fk, $col, $cascade) = ref $attr
       ? ($attr->foreign_key, $attr->column, uc $attr->on_delete eq 'CASCADE')
       : ($class->foreign_key, 'id', 1);
+    my $null = ref $attr && $attr->required ? '' : "NEW.$col IS NOT NULL AND ";
 
     # We actually have three different triggers for each foreign key, so we
     # have to give each one a slightly different name.
@@ -536,23 +527,20 @@ sub _generate_fk {
     return (qq{CREATE TRIGGER $fki
 BEFORE INSERT ON $table
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN (SELECT id FROM $fk_table WHERE id = NEW.$col) IS NULL
-    THEN RAISE(ABORT, 'insert on table "$table" violates foreign key constraint "$fk"')
-  END;
+    SELECT RAISE(ABORT, 'insert on table "$table" violates foreign key constraint "$fk"')
+    WHERE  $null(SELECT id FROM $fk_table WHERE id = NEW.$col) IS NULL;
 END;
 },
 
       qq{CREATE TRIGGER $fku
 BEFORE UPDATE ON $table
 FOR EACH ROW BEGIN
-  SELECT CASE WHEN (SELECT id FROM $fk_table WHERE id = NEW.$col) IS NULL
-    THEN RAISE(ABORT, 'update on table "$table" violates foreign key constraint "$fk"')
-  END;
+    SELECT RAISE(ABORT, 'update on table "$table" violates foreign key constraint "$fk"')
+    WHERE  $null(SELECT id FROM $fk_table WHERE id = NEW.$col) IS NULL;
 END;
 },
       ($cascade
-       ? qq{CREATE TRIGGER $fkd
+         ? qq{CREATE TRIGGER $fkd
 BEFORE DELETE ON $fk_table
 FOR EACH ROW BEGIN
   DELETE from $table WHERE $col = OLD.id;
@@ -561,10 +549,8 @@ END;
          : qq{CREATE TRIGGER $fkd
 BEFORE DELETE ON $fk_table
 FOR EACH ROW BEGIN
-  SELECT CASE
-    WHEN (SELECT $col FROM $table WHERE $col = OLD.id) IS NOT NULL
-    THEN RAISE(ABORT, 'delete on table "$fk_table" violates foreign key constraint "$fk"')
-  END;
+    SELECT RAISE(ABORT, 'delete on table "$fk_table" violates foreign key constraint "$fk"')
+    WHERE  (SELECT $col FROM $table WHERE $col = OLD.id) IS NOT NULL;
 END;
 })
   );
