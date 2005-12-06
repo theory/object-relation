@@ -4,7 +4,7 @@
 
 use strict;
 use Test::More tests => 37;
-use Data::UUID;
+use OSSP::uuid;
 
 package Kinetic::TestTypes;
 use strict;
@@ -26,12 +26,16 @@ BEGIN {
     ok( $cm->add_constructor(name => 'new'), "Create new() constructor" );
 
     # Add a UUID Attribute.
-    my $ug = Data::UUID->new;
+    my $ug = OSSP::uuid->new;
     ok( $cm->add_attribute( name     => 'uuid',
                             view     => Class::Meta::PUBLIC,
                             type     => 'uuid',
                             required => 1,
-                            default  => sub { $ug->create_str },
+                            default  => sub {
+                                my $uuid = OSSP::uuid->new;
+                                $uuid->make('v4');
+                                return $uuid->export('str');
+                            },
                             authz    => Class::Meta::READ,
                           ),
         "Add uuid attribute" );
@@ -85,7 +89,8 @@ ok( my $t = Kinetic::TestTypes->new,
 
 # Test the UUID accessor.
 ok(my $uuid = $t->uuid, "Get UUID" );
-ok( Data::UUID->new->from_string($uuid), "It's a valid UUID" );
+my $ug = OSSP::uuid->new;
+ok $ug->import(str => $uuid), "It's a valid UUID";
 
 # Make sure we can't set it.
 eval { $t->uuid($uuid) };

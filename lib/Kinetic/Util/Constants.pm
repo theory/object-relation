@@ -50,7 +50,7 @@ Readonly our $ATTR_DELIMITER   => '.';
 Readonly our $PREPARE          => 'prepare';
 Readonly our $CACHED           => 'prepare_cached';
 Readonly our $UUID_RE          =>
-  qr/[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}/;
+  qr/[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}/;
 
 # HTTP content types
 Readonly our $TEXT_CT => 'text/plain';

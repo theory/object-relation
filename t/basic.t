@@ -5,7 +5,8 @@
 use strict;
 use Test::More tests => 60;
 #use Test::More 'no_plan';
-use Data::UUID;
+use OSSP::uuid;
+use MIME::Base64 ();
 
 BEGIN {
     use_ok 'Kinetic' or die;
@@ -57,12 +58,14 @@ isa_ok $kinetic, 'Kinetic';
 
 # Check UUID.
 $kinetic->_save_prep; # Force UUID generation.
-my $ug = Data::UUID->new;
+my $ug = OSSP::uuid->new;
 ok my $uuid = $kinetic->uuid, "Get UUID";
-ok $ug->from_string($uuid), "It's a valid UUID";
-ok $ug->from_hexstring($kinetic->uuid_hex), "Valid Hex UUID";
-ok $ug->from_b64string($kinetic->uuid_base64), "Valid Base 64 UUID";
-ok $ug->to_string($kinetic->uuid_bin), "Valid binary UUID";
+ok $ug->import(str => $uuid), "It's a valid UUID";
+is join('-', unpack('x2 a8 a4 a4 a4 a12', $kinetic->uuid_hex)),
+    $kinetic->uuid, 'Valid Hex UUID';
+is $kinetic->uuid_bin, $ug->export('bin'), 'Valid binary UUID';
+is MIME::Base64::decode_base64($kinetic->uuid_base64),
+    $kinetic->uuid_bin, 'Valid Base64 UUID';
 ok my $attr = $class->attributes('uuid'), "Get UUID attr object";
 is $attr->get($kinetic), $kinetic->uuid, "Get UUID value";
 is $attr->name, 'uuid', "Check UUID attr name";
