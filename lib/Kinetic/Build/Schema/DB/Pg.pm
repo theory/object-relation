@@ -450,7 +450,7 @@ are ignored, and should be inserted separately.
 
 sub insert_for_class {
     my ($self, $class) = @_;
-    my $key = $class->key;
+    my $key  = $class->key;
     my $func = 'NEXTVAL';
 
     # Output the INSERT rule.
@@ -461,7 +461,11 @@ sub insert_for_class {
         $sql .= "\n  INSERT INTO $table (id, "
           . join(', ', map { $_->column } $impl->table_attributes )
           . ")\n  VALUES ($func('seq_kinetic'), "
-          . join(', ', map { "NEW." . $_->view_column } $impl->table_attributes)
+          . join(', ', map {
+              $_->type eq 'uuid'
+                  ? 'COALESCE(NEW.uuid, UUID_V4())'
+                  : 'NEW.' . $_->view_column
+          } $impl->table_attributes)
           . ");\n";
         $func = 'CURRVAL';
     }
@@ -491,9 +495,11 @@ sub update_for_class {
     for my $impl (reverse ($class->parents), $class) {
         my $table = $impl->table;
         $sql .= "\n  UPDATE $table\n  SET    "
-          . join(', ',
-                 map { sprintf "%s = NEW.%s", $_->column, $_->view_column }
-                   $impl->table_attributes)
+          . join(
+              ', ',
+              map { sprintf "%s = NEW.%s", $_->column, $_->view_column }
+              grep { $_->type ne 'uuid' } $impl->table_attributes
+            )
           . "\n  WHERE  id = OLD.id;\n";
     }
     return $sql . ");\n";

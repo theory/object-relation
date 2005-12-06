@@ -120,7 +120,7 @@ eq_or_diff $sg->view_for_class($simple), $view,
 my $insert = q{CREATE RULE insert_simple AS
 ON INSERT TO simple DO INSTEAD (
   INSERT INTO _simple (id, uuid, state, name, description)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.uuid, NEW.state, NEW.name, NEW.description);
+  VALUES (NEXTVAL('seq_kinetic'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.name, NEW.description);
 );
 };
 eq_or_diff $sg->insert_for_class($simple), $insert,
@@ -130,7 +130,7 @@ eq_or_diff $sg->insert_for_class($simple), $insert,
 my $update = q{CREATE RULE update_simple AS
 ON UPDATE TO simple DO INSTEAD (
   UPDATE _simple
-  SET    uuid = NEW.uuid, state = NEW.state, name = NEW.name, description = NEW.description
+  SET    state = NEW.state, name = NEW.name, description = NEW.description
   WHERE  id = OLD.id;
 );
 };
@@ -199,7 +199,7 @@ eq_or_diff $sg->view_for_class($one), $view,
 $insert = q{CREATE RULE insert_one AS
 ON INSERT TO one DO INSTEAD (
   INSERT INTO _simple (id, uuid, state, name, description)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.uuid, NEW.state, NEW.name, NEW.description);
+  VALUES (NEXTVAL('seq_kinetic'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.name, NEW.description);
 
   INSERT INTO simple_one (id, bool)
   VALUES (CURRVAL('seq_kinetic'), NEW.bool);
@@ -212,7 +212,7 @@ eq_or_diff $sg->insert_for_class($one), $insert,
 $update = q{CREATE RULE update_one AS
 ON UPDATE TO one DO INSTEAD (
   UPDATE _simple
-  SET    uuid = NEW.uuid, state = NEW.state, name = NEW.name, description = NEW.description
+  SET    state = NEW.state, name = NEW.name, description = NEW.description
   WHERE  id = OLD.id;
 
   UPDATE simple_one
@@ -360,7 +360,7 @@ eq_or_diff $sg->view_for_class($two), $view,
 $insert = q{CREATE RULE insert_two AS
 ON INSERT TO two DO INSTEAD (
   INSERT INTO _simple (id, uuid, state, name, description)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.uuid, NEW.state, NEW.name, NEW.description);
+  VALUES (NEXTVAL('seq_kinetic'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.name, NEW.description);
 
   INSERT INTO simple_two (id, one_id, age, date)
   VALUES (CURRVAL('seq_kinetic'), NEW.one__id, NEW.age, NEW.date);
@@ -373,7 +373,7 @@ eq_or_diff $sg->insert_for_class($two), $insert,
 $update = q{CREATE RULE update_two AS
 ON UPDATE TO two DO INSTEAD (
   UPDATE _simple
-  SET    uuid = NEW.uuid, state = NEW.state, name = NEW.name, description = NEW.description
+  SET    state = NEW.state, name = NEW.name, description = NEW.description
   WHERE  id = OLD.id;
 
   UPDATE simple_two
@@ -497,7 +497,7 @@ eq_or_diff $sg->view_for_class($relation), $view,
 $insert = q{CREATE RULE insert_relation AS
 ON INSERT TO relation DO INSTEAD (
   INSERT INTO _relation (id, uuid, state, one_id, simple_id)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.uuid, NEW.state, NEW.one__id, NEW.simple__id);
+  VALUES (NEXTVAL('seq_kinetic'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.one__id, NEW.simple__id);
 );
 };
 eq_or_diff $sg->insert_for_class($relation), $insert,
@@ -507,7 +507,7 @@ eq_or_diff $sg->insert_for_class($relation), $insert,
 $update = q{CREATE RULE update_relation AS
 ON UPDATE TO relation DO INSTEAD (
   UPDATE _relation
-  SET    uuid = NEW.uuid, state = NEW.state, one_id = NEW.one__id, simple_id = NEW.simple__id
+  SET    state = NEW.state, one_id = NEW.one__id, simple_id = NEW.simple__id
   WHERE  id = OLD.id;
 );
 };
@@ -606,7 +606,7 @@ eq_or_diff $sg->view_for_class($composed), $view,
 $insert = q{CREATE RULE insert_composed AS
 ON INSERT TO composed DO INSTEAD (
   INSERT INTO _composed (id, uuid, state, one_id)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.uuid, NEW.state, NEW.one__id);
+  VALUES (NEXTVAL('seq_kinetic'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.one__id);
 );
 };
 eq_or_diff $sg->insert_for_class($composed), $insert,
@@ -616,7 +616,7 @@ eq_or_diff $sg->insert_for_class($composed), $insert,
 $update = q{CREATE RULE update_composed AS
 ON UPDATE TO composed DO INSTEAD (
   UPDATE _composed
-  SET    uuid = NEW.uuid, state = NEW.state, one_id = NEW.one__id
+  SET    state = NEW.state, one_id = NEW.one__id
   WHERE  id = OLD.id;
 );
 };
@@ -716,7 +716,7 @@ eq_or_diff $sg->view_for_class($comp_comp), $view,
 $insert = q{CREATE RULE insert_comp_comp AS
 ON INSERT TO comp_comp DO INSTEAD (
   INSERT INTO _comp_comp (id, uuid, state, composed_id)
-  VALUES (NEXTVAL('seq_kinetic'), NEW.uuid, NEW.state, NEW.composed__id);
+  VALUES (NEXTVAL('seq_kinetic'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.composed__id);
 );
 };
 eq_or_diff $sg->insert_for_class($comp_comp), $insert,
@@ -726,7 +726,7 @@ eq_or_diff $sg->insert_for_class($comp_comp), $insert,
 $update = q{CREATE RULE update_comp_comp AS
 ON UPDATE TO comp_comp DO INSTEAD (
   UPDATE _comp_comp
-  SET    uuid = NEW.uuid, state = NEW.state, composed_id = NEW.composed__id
+  SET    state = NEW.state, composed_id = NEW.composed__id
   WHERE  id = OLD.id;
 );
 };

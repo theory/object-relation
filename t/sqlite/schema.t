@@ -155,7 +155,7 @@ my $update = q{CREATE TRIGGER update_simple
 INSTEAD OF UPDATE ON simple
 FOR EACH ROW BEGIN
   UPDATE _simple
-  SET    uuid = NEW.uuid, state = NEW.state, name = NEW.name, description = NEW.description
+  SET    state = NEW.state, name = NEW.name, description = NEW.description
   WHERE  id = OLD.id;
 END;
 };
@@ -264,7 +264,7 @@ $update = q{CREATE TRIGGER update_one
 INSTEAD OF UPDATE ON one
 FOR EACH ROW BEGIN
   UPDATE _simple
-  SET    uuid = NEW.uuid, state = NEW.state, name = NEW.name, description = NEW.description
+  SET    state = NEW.state, name = NEW.name, description = NEW.description
   WHERE  id = OLD.id;
 
   UPDATE simple_one
@@ -435,7 +435,7 @@ $update = q{CREATE TRIGGER update_two
 INSTEAD OF UPDATE ON two
 FOR EACH ROW BEGIN
   UPDATE _simple
-  SET    uuid = NEW.uuid, state = NEW.state, name = NEW.name, description = NEW.description
+  SET    state = NEW.state, name = NEW.name, description = NEW.description
   WHERE  id = OLD.id;
 
   UPDATE simple_two
@@ -596,7 +596,7 @@ $update = q{CREATE TRIGGER update_relation
 INSTEAD OF UPDATE ON relation
 FOR EACH ROW BEGIN
   UPDATE _relation
-  SET    uuid = NEW.uuid, state = NEW.state, one_id = NEW.one__id, simple_id = NEW.simple__id
+  SET    state = NEW.state, one_id = NEW.one__id, simple_id = NEW.simple__id
   WHERE  id = OLD.id;
 END;
 };
@@ -722,7 +722,7 @@ $update = q{CREATE TRIGGER update_composed
 INSTEAD OF UPDATE ON composed
 FOR EACH ROW BEGIN
   UPDATE _composed
-  SET    uuid = NEW.uuid, state = NEW.state, one_id = NEW.one__id
+  SET    state = NEW.state, one_id = NEW.one__id
   WHERE  id = OLD.id;
 END;
 };
@@ -850,7 +850,7 @@ $update = q{CREATE TRIGGER update_comp_comp
 INSTEAD OF UPDATE ON comp_comp
 FOR EACH ROW BEGIN
   UPDATE _comp_comp
-  SET    uuid = NEW.uuid, state = NEW.state, composed_id = NEW.composed__id
+  SET    state = NEW.state, composed_id = NEW.composed__id
   WHERE  id = OLD.id;
 END;
 };
