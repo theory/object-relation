@@ -28,7 +28,9 @@ use Kinetic::Store qw(:logical);
 use Kinetic::Util::Config qw(:sqlite);
 use Kinetic::Util::Exceptions qw(throw_unsupported);
 use Exception::Class::DBI;
+use OSSP::uuid;
 
+use constant DBI_CLASS => 'Kinetic::Store::DB::SQLite::DBI';
 use constant _connect_args => (
     'dbi:SQLite:dbname=' . SQLITE_FILE,
     '', '',
@@ -210,6 +212,29 @@ sub _any_date_handler {
     }
     my $token = join ' OR ' => @tokens;
     return ( $token, \@values );
+}
+
+##############################################################################
+# Subclass DBI in order to add custom functions to SQLite at the beginning of
+# every connection.
+
+package Kinetic::Store::DB::SQLite::DBI;
+use base 'DBI';
+
+package Kinetic::Store::DB::SQLite::DBI::st;
+use base 'DBI::st';
+
+package Kinetic::Store::DB::SQLite::DBI::db;
+use base 'DBI::db';
+
+sub connected {
+    my $dbh = shift;
+    # Add UUID_V4() function.
+    $dbh->func('UUID_V4', 0, sub {
+        my $uuid = OSSP::uuid->new;
+        $uuid->make('v4');
+        return $uuid->export('str');
+    }, 'create_function');
 }
 
 1;

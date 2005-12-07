@@ -24,6 +24,7 @@ use version;
 our $VERSION = version->new('0.0.1');
 use DBI;
 use Clone;
+use constant DBI_CLASS => 'DBI';
 
 use Class::BuildMethods qw(
   _in_transaction
@@ -1412,7 +1413,9 @@ Returns the current database handle.
 
 sub _dbh {
     my $self = shift->_from_proto;
-    return $self->{dbh} || DBI->connect_cached( $self->_connect_args );
+    return $self->{dbh} || $self->DBI_CLASS->connect_cached(
+        $self->_connect_args
+    );
 
     # XXX Switch to this single line if connect_cached() ever stops resetting
     # AutoCommit. See http://www.nntp.perl.org/group/perl.dbi.dev/3892

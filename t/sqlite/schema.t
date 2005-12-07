@@ -144,7 +144,7 @@ my $insert = q{CREATE TRIGGER insert_simple
 INSTEAD OF INSERT ON simple
 FOR EACH ROW BEGIN
   INSERT INTO _simple (uuid, state, name, description)
-  VALUES (NEW.uuid, NEW.state, NEW.name, NEW.description);
+  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.name, NEW.description);
 END;
 };
 eq_or_diff $sg->insert_for_class($simple), $insert,
@@ -250,10 +250,10 @@ $insert = q{CREATE TRIGGER insert_one
 INSTEAD OF INSERT ON one
 FOR EACH ROW BEGIN
   INSERT INTO _simple (uuid, state, name, description)
-  VALUES (NEW.uuid, NEW.state, NEW.name, NEW.description);
+  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.name, NEW.description);
 
   INSERT INTO simple_one (id, bool)
-  VALUES (last_insert_rowid(), NEW.bool);
+  VALUES (last_insert_rowid(), COALESCE(NEW.bool, 1));
 END;
 };
 eq_or_diff $sg->insert_for_class($one), $insert,
@@ -421,7 +421,7 @@ $insert = q{CREATE TRIGGER insert_two
 INSTEAD OF INSERT ON two
 FOR EACH ROW BEGIN
   INSERT INTO _simple (uuid, state, name, description)
-  VALUES (NEW.uuid, NEW.state, NEW.name, NEW.description);
+  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.name, NEW.description);
 
   INSERT INTO simple_two (id, one_id, age, date)
   VALUES (last_insert_rowid(), NEW.one__id, NEW.age, NEW.date);
@@ -585,7 +585,7 @@ $insert = q{CREATE TRIGGER insert_relation
 INSTEAD OF INSERT ON relation
 FOR EACH ROW BEGIN
   INSERT INTO _relation (uuid, state, one_id, simple_id)
-  VALUES (NEW.uuid, NEW.state, NEW.one__id, NEW.simple__id);
+  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.one__id, NEW.simple__id);
 END;
 };
 eq_or_diff $sg->insert_for_class($relation), $insert,
@@ -711,7 +711,7 @@ $insert = q{CREATE TRIGGER insert_composed
 INSTEAD OF INSERT ON composed
 FOR EACH ROW BEGIN
   INSERT INTO _composed (uuid, state, one_id)
-  VALUES (NEW.uuid, NEW.state, NEW.one__id);
+  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.one__id);
 END;
 };
 eq_or_diff $sg->insert_for_class($composed), $insert,
@@ -839,7 +839,7 @@ $insert = q{CREATE TRIGGER insert_comp_comp
 INSTEAD OF INSERT ON comp_comp
 FOR EACH ROW BEGIN
   INSERT INTO _comp_comp (uuid, state, composed_id)
-  VALUES (NEW.uuid, NEW.state, NEW.composed__id);
+  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.composed__id);
 END;
 };
 eq_or_diff $sg->insert_for_class($comp_comp), $insert,

@@ -429,7 +429,16 @@ sub insert_for_class {
           . ($pk ? 'id, ' : '')
           . join(', ', map { $_->column } $impl->table_attributes )
           . ")\n  VALUES ($pk"
-          . join(', ', map { "NEW." . $_->view_column } $impl->table_attributes)
+          . join(', ', map {
+              if (my $def = $self->column_default($_)) {
+                  $def =~ s/DEFAULT\s+//;
+                  'COALESCE(NEW.' . $_->view_column . ", $def)";
+              } elsif ($_->type eq 'uuid') {
+                  'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
+              } else {
+                  'NEW.' . $_->view_column;
+              }
+          } $impl->table_attributes)
           . ");\n";
         $pk ||= 'last_insert_rowid(), ';
     }
