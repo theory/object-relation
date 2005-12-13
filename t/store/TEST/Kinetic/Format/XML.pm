@@ -95,9 +95,6 @@ sub serialize : Test(7) {
     is_well_formed_xml $xml, '... and it should return valid XML';
     $xml =~ s/$UUID_RE/XXX/g;
 
-    # XXX Because of the way XML serializes strings, the data in "one" must
-    # maintain its format and spacing
-
     $expected = <<'    END_EXPECTED';
     <opt
         name="june17"
@@ -105,11 +102,10 @@ sub serialize : Test(7) {
         age=""
         date="1968-06-17T00:00:00"
         description=""
-        one="&lt;opt name=&quot;foo&quot; Key=&quot;one&quot; bool=&quot;1&quot; description=&quot;&quot; state=&quot;1&quot; uuid=&quot;XXX&quot; /&gt;
-"
         state="1"
-        uuid="XXX"
-    />
+        uuid="XXX">
+        <one name="foo" Key="one" bool="1" description="" state="1" uuid="XXX" />
+    </opt>
     END_EXPECTED
     is_xml $xml, $expected, '... and the XML should be the correct XML';
 }

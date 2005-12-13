@@ -107,7 +107,7 @@ sub teardown : Test(teardown) {
 
 sub server { shift->{REST} }
 
-sub chained_calls : Test(no_plan) {
+sub chained_calls : Test(6) {
     my $test = shift;
 
     my %object_for;
@@ -191,7 +191,7 @@ sub constructor : Test(14) {
 '... and paths should have leading slashes removed and trailing slashes added';
 }
 
-sub rest_interface_xml : Test(no_plan) {
+sub rest_interface_xml : Test(4) {
     my $test = shift;
 
     my %object_for;

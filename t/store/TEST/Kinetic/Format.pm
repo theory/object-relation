@@ -110,7 +110,7 @@ sub to_and_from_hashref : Test(7) {
     is_deeply $object, $foo, '... and it should be the correct object';
 }
 
-sub expand_ref : Test(no_plan) {
+sub expand_ref : Test(9) {
     my $test = shift;
 
     my $formatter = bless {}, $FORMAT;

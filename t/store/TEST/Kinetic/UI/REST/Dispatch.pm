@@ -80,7 +80,7 @@ sub _path_info {
     return $test;
 }
 
-sub chained_requests : Test(no_plan) {
+sub chained_requests : Test(13) {
     my $test     = shift;
     my $rest     = $test->{rest};
     my $dispatch = Dispatch->new( { rest => $rest } );

@@ -209,7 +209,7 @@ sub _obj_to_hashref {
     foreach my $attr ( $object->my_class->attributes ) {
         if ( $attr->references ) {
             my $contained = $attr->get($object);
-            $value_for{ $attr->name } = $self->serialize($contained);
+            $value_for{ $attr->name } = $self->_obj_to_hashref($contained);
         }
         else {
             $value_for{ $attr->name } = $attr->raw($object);
@@ -240,7 +240,7 @@ sub _hashref_to_obj {
         if ( my $attribute = $class->attributes($attr) ) {
             next unless $attribute->persistent;
             if ( $attribute->references ) {
-                my $contained = $self->deserialize($value);
+                my $contained = $self->_hashref_to_obj($value);
                 $object->$attr($contained);
             }
             else {

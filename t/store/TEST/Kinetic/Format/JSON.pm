@@ -90,27 +90,26 @@ sub serialize : Test(7) {
         )
     );
     $two->one($foo);
+    $ENV{DEBUG} = 1;
     ok $json = $formatter->serialize($two),
       'Serializing an object with a contained object should succeed';
+    $ENV{DEBUG} = 0;
     is_valid_json $json, '... and it should return valid JSON';
     $json =~ s/$UUID_RE/XXX/g;
 
-    # XXX Because of the way JSON serializes strings, the data in "one" must
-    # maintain its format and spacing
-
     $expected = <<'    END_EXPECTED';
     {
-      "one" : "{
-  \"bool\" : 1,
-  \"name\" : \"foo\",
-  \"uuid\" : \"XXX\",
-  \"description\" : null,
-  \"state\" : 1,
-  \"Key\" : \"one\"
-}",
+      "one" : {
+          "bool"        : 1,
+          "name"        : "foo",
+          "uuid"        : "XXX",
+          "description" : null,
+          "state"       : 1,
+          "Key"         : "one"
+      },
       "date"        : "1968-06-17T00:00:00",
       "name"        : "june17",
-      "Key"        : "two",
+      "Key"         : "two",
       "uuid"        : "XXX",
       "description" : null,
       "age"         : null,
