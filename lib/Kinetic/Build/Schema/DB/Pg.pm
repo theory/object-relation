@@ -333,7 +333,7 @@ sub once_triggers_sql {
     RETURN NEW;
   END;
 ' LANGUAGE plpgsql;
-    },
+},
     $self->create_trigger_for_table("${key}_${col}_once", 'UPDATE', $table);
 }
 
@@ -449,8 +449,8 @@ table.  The C<$type> should be "UPDATE" or "INSERT".
 sub create_trigger_for_table {
     my ($self, $trigger, $type, $table) = @_;
     return <<"    END_TRIGGER";
-    CREATE TRIGGER $trigger BEFORE $type ON $table
-    FOR EACH ROW EXECUTE PROCEDURE $trigger();
+CREATE TRIGGER $trigger BEFORE $type ON $table
+FOR EACH ROW EXECUTE PROCEDURE $trigger();
     END_TRIGGER
 }
 
@@ -460,40 +460,20 @@ sub create_trigger_for_table {
 
   my $insert_rule_sql = $kbs->insert_for_class($class);
 
-Returns a PostgreSQL rule that manages C<INSERT> statements executed against
-the view for the class. The rule ensures that the C<INSERT> statement updates
-the table for the class as well as any parent classes. Contained objects
-are ignored, and should be inserted separately.
+Returns a PostgreSQL C<RULE> that manages C<INSERT> statements executed
+against the view for the class. The rule ensures that the C<INSERT> statement
+updates the table for the class as well as any parent classes. Contained
+objects are ignored, and should be inserted separately.
 
 =cut
 
 sub insert_for_class {
     my ($self, $class) = @_;
-    my $key  = $class->key;
-    my $func = 'NEXTVAL';
-    my $seq  = '';
-
-    # Output the INSERT rule.
-    my $sql = "CREATE RULE insert_$key AS\n"
-      . "ON INSERT TO $key DO INSTEAD (";
-    for my $impl (reverse($class->parents), $class) {
-        my $table = $impl->table;
-        $seq ||= $impl->key;
-        $sql .= "\n  INSERT INTO $table (id, "
-          . join(', ', map { $_->column } $impl->table_attributes )
-          . ")\n  VALUES ($func('seq_$seq'), "
-          . join(', ', map {
-              sprintf(
-                  ($_->type eq 'uuid' ? 'COALESCE(NEW.%s, UUID_V4())'
-                                      : 'NEW.%s'),
-                  $_->view_column
-              )
-          } $impl->table_attributes)
-          . ");\n";
-        $func = 'CURRVAL';
+    if (my $extends = $class->extends) {
+        return $self->_extend_for_class($class, $extends);
+    } else {
+        return $self->_insert_for_class($class);
     }
-
-    return $sql . ");\n";
 }
 
 ##############################################################################
@@ -524,6 +504,21 @@ sub update_for_class {
               grep { $_->type ne 'uuid' } $impl->table_attributes
             )
           . "\n  WHERE  id = OLD.id;\n";
+    }
+
+    if (my $extends = $class->extends) {
+        my $view = $extends->key;
+        # Update the extended class's VIEW, too.
+        $sql .= "\n  UPDATE $view\n  SET    "
+          . join(
+              ', ',
+              map  {
+                  sprintf "%s = NEW.%s", $_->acts_as->view_column, $_->view_column
+              }
+              grep { $_->type ne 'uuid' }
+              grep { $_->delegates_to || '' eq $extends } $class->attributes
+            )
+          . "\n  WHERE  id = OLD.$view\__id;\n";
     }
     return $sql . ");\n";
 }
@@ -582,6 +577,230 @@ CONSTRAINT ck_state CHECK (
 
 }
 
+##############################################################################
+
+=begin private
+
+=head1 Private Interface
+
+=head2 Private Instance Methods
+
+=head3 _insert_for_class
+
+  my $sql = $kbs->_insert_for_class($class);
+
+This method is called by C<insert_for_class()> to create the C<INSERT> C<RULE>
+on the view for a class that does not extend another class, which is to say
+for most classes.
+
+=cut
+
+sub _insert_for_class {
+    my ($self, $class) = @_;
+    my $key  = $class->key;
+    my $func = 'NEXTVAL';
+    my $seq  = '';
+
+    # Output the INSERT rule.
+    my $sql = "CREATE RULE insert_$key AS\n"
+      . "ON INSERT TO $key DO INSTEAD (";
+    for my $impl (reverse($class->parents), $class) {
+        $seq ||= $impl->key;
+        $sql  .= $self->_insert_into_table($impl, "$func('seq_$seq')");
+        $func  = 'CURRVAL';
+    }
+    return $sql . ");\n";
+}
+
+##############################################################################
+
+=head3 _extend_for_class
+
+  my $sql = $kbs->_insert_into_table($extending_class, $extended_class);
+
+This method is called by C<insert_for_class()> to create the C<RULE>s
+necessary to insert a new record into the view for a class that extends
+another class.
+
+=cut
+
+sub _extend_for_class {
+    my ($self, $class, $extends) = @_;
+    my $key  = $class->key;
+    my $ext_key = $extends->key;
+    my $func = 'NEXTVAL';
+    my $seq  = '';
+
+    # Get a list of the attributes that delegate to the extended class.
+    my @ext_attrs = grep { $_->delegates_to || '' eq $extends }
+        $class->attributes;
+
+    # Output the main insert RULE.
+    my $sql = "CREATE RULE insert_$key AS\n"
+      . "ON INSERT TO $key WHERE NEW.$ext_key\__id IS NULL DO INSTEAD (";
+    for my $impl (reverse($class->parents)) {
+        $seq ||= $impl->key;
+        $sql .= $self->_insert_into_table($impl, "$func('seq_$seq')");
+        $func = 'CURRVAL';
+    }
+
+    # Append the INSERTs into the extended VIEW and the extending TABLE.
+    $seq ||= $class->key;
+    $sql .= $self->_extended_insert   ( $class, $extends, \@ext_attrs )
+          . $self->_extending_insert   ( $class, $extends, "$func('seq_$seq')")
+          . ");\n";
+
+    # Start the extend RULE
+    $sql .= "\nCREATE RULE extend_$key AS\n"
+          . "ON INSERT TO $key WHERE NEW.$ext_key\__id IS NOT NULL DO INSTEAD (";
+    for my $impl (reverse($class->parents)) {
+        $sql .= $self->_insert_into_table($impl, "$func('seq_$seq')");
+        $func = 'CURRVAL';
+    }
+
+    # Append UPDATE to exteded VIEW and INSERT into extending TABLE.
+    $sql .= $self->_extended_insert_up( $class, $extends, \@ext_attrs )
+          . $self->_insert_into_table($class, "$func('seq_$seq')")
+          . ");\n";
+
+    # Append dummy RULE: Pg requires an unconditional DO INSTEAD on VIEWs.
+    $sql .= "\nCREATE RULE insert_$key\_dummy AS\n"
+          . "ON INSERT TO $key DO INSTEAD NOTHING;\n";
+    return $sql;
+}
+
+##############################################################################
+
+=head3 _insert_into_table
+
+  my $sql = $kbs->_insert_into_table($class, $seq_code);
+
+Used by C<_insert_for_class() and C<_extend_for_class()>, this method is used
+to generate the C<INSERT> statement used by a C<RULE> to C<INSERT> into a
+table when inserting into a C<VIEW> that represents a class. The $seq_code
+argument should be a string representing the SQL code to generate the ID for
+the table, e.g., "NEXTVAL('seq_person')".
+
+=cut
+
+sub _insert_into_table {
+    my ($self, $impl, $seq) = @_;
+    my $table = $impl->table;
+    return "\n  INSERT INTO $table (id, "
+        . join(', ', map { $_->column } $impl->table_attributes )
+        . ")\n  VALUES ($seq, "
+        . join(', ', map {
+            if (my $def = $self->column_default($_)) {
+                $def =~ s/DEFAULT\s+//;
+                'COALESCE(NEW.' . $_->view_column . ", $def)";
+            } elsif ($_->type eq 'uuid') {
+                'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
+            } else {
+                'NEW.' . $_->view_column;
+            }
+        } $impl->table_attributes)
+        . ");\n";
+}
+
+#############################################################################
+
+=head3 _extended_insert
+
+  my $sql = $kbs->_extended_insert($class, $extends, \@ext_attrs);
+
+This method, called by C<_extend_for_class()>, returns SQL to be used in the
+C<INSERT> C<RULE> on a C<VIEW> for an extended class. The SQL returned is a
+single C<INSERT> into the C<VIEW> for the extended class.
+
+=cut
+
+sub _extended_insert {
+    my ($self, $class, $extends, $ext_attrs) = @_;
+    my $ext_key = $extends->key;
+
+    return "\n  INSERT INTO $ext_key ("
+        . join(', ', map { $_->view_column } $extends->persistent_attributes )
+        . ")\n  VALUES ("
+        . join(', ', map {
+            if (my $def = $self->column_default($_)) {
+                $def =~ s/DEFAULT\s+//;
+                'COALESCE(NEW.' . $_->view_column . ", $def)";
+            } elsif ($_->type eq 'uuid') {
+                'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
+            } else {
+                'NEW.' . $_->view_column;
+            }
+        } @$ext_attrs)
+        . ");\n"
+}
+
+##############################################################################
+
+=head3 _extended_insert_up
+
+  my $sql = $kbs->_extended_insert_up($class, $extends, \@ext_attrs);
+
+This method, called by C<_extend_for_class()>, returns SQL to be used in the
+C<INSERT> C<RULE> on a C<VIEW> for an extended class. The SQL returned is an
+C<UPDATE> of the C<VIEW> of the extended class.
+
+=cut
+
+sub _extended_insert_up {
+    my ($self, $class, $extends, $ext_attrs) = @_;
+    my $ext_key   = $extends->key;
+
+    return "\n  UPDATE $ext_key\n  SET    "
+        . join(
+            ', ',
+            map {
+                my $col = $_->acts_as->view_column;
+                sprintf "%s = COALESCE(NEW.%s, %s)",
+                    $col, $_->view_column, $col;
+            }
+            grep { $_->type ne 'uuid' } @$ext_attrs
+        )
+        . "\n  WHERE  id = NEW.$ext_key\__id;\n";
+}
+
+##############################################################################
+
+=head3 _extending_insert
+
+  my $sql = $kbs->_extending_insert($class, $extends, \@ext_attrs);
+
+This method, called by C<_extend_for_class()>, returns SQL to be used in the
+C<INSERT> C<RULE> on a C<VIEW> for an extended class. The SQL returned is an
+C<INSERT> into the table of the extending class.
+
+=cut
+
+sub _extending_insert {
+    my ($self, $class, $extends, $seq) = @_;
+    my $table   = $class->table;
+    my $ext_key = $extends->key;
+    my $ext_seq = $ext_key;
+    if (my @parents = reverse($extends->parents)) {
+        $ext_seq = $parents[0]->key;
+    }
+
+    return "\n  INSERT INTO $table (id, "
+        . join(', ', map { $_->column } $class->table_attributes )
+        . ")\n  VALUES ($seq, "
+        . join(', ', map {
+            if (my $def = $self->column_default($_)) {
+                $def =~ s/DEFAULT\s+//;
+                'COALESCE(NEW.' . $_->view_column . ", $def)";
+            } elsif ($_->type eq 'uuid') {
+                'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
+            } elsif ($_->type eq $ext_key) {
+                "CURRVAL('seq_$ext_seq')";
+            } else {
+                'NEW.' . $_->view_column;
+            }
+        } $class->table_attributes)
+        . ");\n";
+}
 1;
 __END__
 

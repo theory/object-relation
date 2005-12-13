@@ -7,7 +7,7 @@ use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
 
 #use Test::More 'no_plan';
-use Test::More tests => 87;
+use Test::More tests => 99;
 use Test::Differences;
 
 {
@@ -106,7 +106,7 @@ CREATE FUNCTION simple_uuid_once() RETURNS trigger AS '
 ' LANGUAGE plpgsql;
 
 CREATE TRIGGER simple_uuid_once BEFORE UPDATE ON _simple
-    FOR EACH ROW EXECUTE PROCEDURE simple_uuid_once();
+FOR EACH ROW EXECUTE PROCEDURE simple_uuid_once();
 };
 eq_or_diff left_justify( $sg->constraints_for_class($simple) ),
   left_justify($constraints), "... Schema class generates CONSTRAINT statement";
@@ -123,7 +123,7 @@ eq_or_diff $sg->view_for_class($simple), $view,
 my $insert = q{CREATE RULE insert_simple AS
 ON INSERT TO simple DO INSTEAD (
   INSERT INTO _simple (id, uuid, state, name, description)
-  VALUES (NEXTVAL('seq_simple'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.name, NEW.description);
+  VALUES (NEXTVAL('seq_simple'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.name, NEW.description);
 );
 };
 eq_or_diff $sg->insert_for_class($simple), $insert,
@@ -208,10 +208,10 @@ eq_or_diff $sg->view_for_class($one), $view,
 $insert = q{CREATE RULE insert_one AS
 ON INSERT TO one DO INSTEAD (
   INSERT INTO _simple (id, uuid, state, name, description)
-  VALUES (NEXTVAL('seq_simple'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.name, NEW.description);
+  VALUES (NEXTVAL('seq_simple'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.name, NEW.description);
 
   INSERT INTO simple_one (id, bool)
-  VALUES (CURRVAL('seq_simple'), NEW.bool);
+  VALUES (CURRVAL('seq_simple'), COALESCE(NEW.bool, true));
 );
 };
 eq_or_diff $sg->insert_for_class($one), $insert,
@@ -306,7 +306,7 @@ CREATE FUNCTION cki_two_date_unique() RETURNS trigger AS '
 ' LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE TRIGGER cki_two_date_unique BEFORE INSERT ON simple_two
-    FOR EACH ROW EXECUTE PROCEDURE cki_two_date_unique();
+FOR EACH ROW EXECUTE PROCEDURE cki_two_date_unique();
 
 CREATE FUNCTION cku_two_date_unique() RETURNS trigger AS '
   BEGIN
@@ -328,7 +328,7 @@ CREATE FUNCTION cku_two_date_unique() RETURNS trigger AS '
 ' LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE TRIGGER cku_two_date_unique BEFORE UPDATE ON simple_two
-    FOR EACH ROW EXECUTE PROCEDURE cku_two_date_unique();
+FOR EACH ROW EXECUTE PROCEDURE cku_two_date_unique();
 
 CREATE FUNCTION ckp_two_date_unique() RETURNS trigger AS '
   BEGIN
@@ -354,7 +354,7 @@ CREATE FUNCTION ckp_two_date_unique() RETURNS trigger AS '
 ' LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE TRIGGER ckp_two_date_unique BEFORE UPDATE ON _simple
-    FOR EACH ROW EXECUTE PROCEDURE ckp_two_date_unique();
+FOR EACH ROW EXECUTE PROCEDURE ckp_two_date_unique();
 };
 
 eq_or_diff left_justify( $sg->constraints_for_class($two) ),
@@ -373,7 +373,7 @@ eq_or_diff $sg->view_for_class($two), $view,
 $insert = q{CREATE RULE insert_two AS
 ON INSERT TO two DO INSTEAD (
   INSERT INTO _simple (id, uuid, state, name, description)
-  VALUES (NEXTVAL('seq_simple'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.name, NEW.description);
+  VALUES (NEXTVAL('seq_simple'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.name, NEW.description);
 
   INSERT INTO simple_two (id, one_id, age, date)
   VALUES (CURRVAL('seq_simple'), NEW.one__id, NEW.age, NEW.date);
@@ -472,7 +472,7 @@ CREATE FUNCTION relation_uuid_once() RETURNS trigger AS '
 ' LANGUAGE plpgsql;
 
 CREATE TRIGGER relation_uuid_once BEFORE UPDATE ON _relation
-    FOR EACH ROW EXECUTE PROCEDURE relation_uuid_once();
+FOR EACH ROW EXECUTE PROCEDURE relation_uuid_once();
 
 CREATE FUNCTION relation_simple_id_once() RETURNS trigger AS '
   BEGIN
@@ -484,7 +484,7 @@ CREATE FUNCTION relation_simple_id_once() RETURNS trigger AS '
 ' LANGUAGE plpgsql;
 
 CREATE TRIGGER relation_simple_id_once BEFORE UPDATE ON _relation
-    FOR EACH ROW EXECUTE PROCEDURE relation_simple_id_once();
+FOR EACH ROW EXECUTE PROCEDURE relation_simple_id_once();
 };
 
 eq_or_diff left_justify( $sg->constraints_for_class($relation) ),
@@ -504,7 +504,7 @@ eq_or_diff $sg->view_for_class($relation), $view,
 $insert = q{CREATE RULE insert_relation AS
 ON INSERT TO relation DO INSTEAD (
   INSERT INTO _relation (id, uuid, state, one_id, simple_id)
-  VALUES (NEXTVAL('seq_relation'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.one__id, NEW.simple__id);
+  VALUES (NEXTVAL('seq_relation'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.one__id, NEW.simple__id);
 );
 };
 eq_or_diff $sg->insert_for_class($relation), $insert,
@@ -590,7 +590,7 @@ CREATE FUNCTION composed_uuid_once() RETURNS trigger AS '
 ' LANGUAGE plpgsql;
 
 CREATE TRIGGER composed_uuid_once BEFORE UPDATE ON _composed
-    FOR EACH ROW EXECUTE PROCEDURE composed_uuid_once();
+FOR EACH ROW EXECUTE PROCEDURE composed_uuid_once();
 
 CREATE FUNCTION composed_one_id_once() RETURNS trigger AS '
   BEGIN
@@ -602,7 +602,7 @@ CREATE FUNCTION composed_one_id_once() RETURNS trigger AS '
 ' LANGUAGE plpgsql;
 
 CREATE TRIGGER composed_one_id_once BEFORE UPDATE ON _composed
-    FOR EACH ROW EXECUTE PROCEDURE composed_one_id_once();
+FOR EACH ROW EXECUTE PROCEDURE composed_one_id_once();
 };
 eq_or_diff left_justify( $sg->constraints_for_class($composed) ),
   left_justify($constraints), "... Schema class generates CONSTRAINT statement";
@@ -619,7 +619,7 @@ eq_or_diff $sg->view_for_class($composed), $view,
 $insert = q{CREATE RULE insert_composed AS
 ON INSERT TO composed DO INSTEAD (
   INSERT INTO _composed (id, uuid, state, one_id)
-  VALUES (NEXTVAL('seq_composed'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.one__id);
+  VALUES (NEXTVAL('seq_composed'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.one__id);
 );
 };
 eq_or_diff $sg->insert_for_class($composed), $insert,
@@ -705,7 +705,7 @@ CREATE FUNCTION comp_comp_uuid_once() RETURNS trigger AS '
 ' LANGUAGE plpgsql;
 
 CREATE TRIGGER comp_comp_uuid_once BEFORE UPDATE ON _comp_comp
-    FOR EACH ROW EXECUTE PROCEDURE comp_comp_uuid_once();
+FOR EACH ROW EXECUTE PROCEDURE comp_comp_uuid_once();
 
 CREATE FUNCTION comp_comp_composed_id_once() RETURNS trigger AS '
   BEGIN
@@ -717,7 +717,7 @@ CREATE FUNCTION comp_comp_composed_id_once() RETURNS trigger AS '
 ' LANGUAGE plpgsql;
 
 CREATE TRIGGER comp_comp_composed_id_once BEFORE UPDATE ON _comp_comp
-    FOR EACH ROW EXECUTE PROCEDURE comp_comp_composed_id_once();
+FOR EACH ROW EXECUTE PROCEDURE comp_comp_composed_id_once();
 };
 eq_or_diff left_justify( $sg->constraints_for_class($comp_comp) ),
   left_justify($constraints), "... Schema class generates CONSTRAINT statement";
@@ -735,7 +735,7 @@ eq_or_diff $sg->view_for_class($comp_comp), $view,
 $insert = q{CREATE RULE insert_comp_comp AS
 ON INSERT TO comp_comp DO INSTEAD (
   INSERT INTO _comp_comp (id, uuid, state, composed_id)
-  VALUES (NEXTVAL('seq_comp_comp'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.composed__id);
+  VALUES (NEXTVAL('seq_comp_comp'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.composed__id);
 );
 };
 eq_or_diff $sg->insert_for_class($comp_comp), $insert,
@@ -771,3 +771,141 @@ eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($comp_comp) ) ),
     )
   ),
   "... Schema class generates complete schema";
+
+##############################################################################
+# Grab the extends class.
+ok my $extend = Kinetic::Meta->for_key('extend'), "Get extend class";
+is $extend->key, 'extend', "... Extend class has key 'extend'";
+is $extend->table, '_extend', "... CompComp class has table '_extend'";
+
+# Check that the CREATE SEQUENCE statement is correct.
+$seq = "CREATE SEQUENCE seq_extend;\n";
+is $sg->sequence_for_class($extend), $seq,
+    '... Schema class generates CREATE SEQUENCE statement';
+
+# Check that the CREATE TABLE statement is correct.
+$table = q{CREATE TABLE _extend (
+    id INTEGER NOT NULL DEFAULT NEXTVAL('seq_extend'),
+    uuid UUID NOT NULL DEFAULT UUID_V4(),
+    state STATE NOT NULL DEFAULT 1,
+    two_id INTEGER NOT NULL
+);
+};
+eq_or_diff $sg->table_for_class($extend), $table,
+  "... Schema class generates CREATE TABLE statement";
+
+# Check that the CREATE INDEX statements are correct.
+$indexes = q{CREATE UNIQUE INDEX idx_extend_uuid ON _extend (uuid);
+CREATE INDEX idx_extend_state ON _extend (state);
+CREATE INDEX idx_extend_two_id ON _extend (two_id);
+};
+
+eq_or_diff $sg->indexes_for_class($extend), $indexes,
+  "... Schema class generates CREATE INDEX statements";
+
+# Check that the constraint and foreign key triggers are correct.
+$constraints = q{ALTER TABLE _extend
+  ADD CONSTRAINT pk_extend_id PRIMARY KEY (id);
+
+ALTER TABLE _extend
+  ADD CONSTRAINT fk_two_id FOREIGN KEY (two_id)
+  REFERENCES simple_two(id) ON DELETE CASCADE;
+
+CREATE FUNCTION extend_uuid_once() RETURNS trigger AS '
+  BEGIN
+    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
+        THEN RAISE EXCEPTION ''value of "uuid" cannot be changed'';
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER extend_uuid_once BEFORE UPDATE ON _extend
+FOR EACH ROW EXECUTE PROCEDURE extend_uuid_once();
+
+CREATE FUNCTION extend_two_id_once() RETURNS trigger AS '
+  BEGIN
+    IF OLD.two_id <> NEW.two_id OR NEW.two_id IS NULL
+        THEN RAISE EXCEPTION ''value of "two_id" cannot be changed'';
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER extend_two_id_once BEFORE UPDATE ON _extend
+FOR EACH ROW EXECUTE PROCEDURE extend_two_id_once();
+};
+
+eq_or_diff $sg->constraints_for_class($extend), $constraints,
+  "... Schema class generates CONSTRAINT statement";
+
+# Check that the CREATE VIEW statement is correct.
+$view = q{CREATE VIEW extend AS
+  SELECT _extend.id AS id, _extend.uuid AS uuid, _extend.state AS state, _extend.two_id AS two__id, two.uuid AS two__uuid, two.state AS two__state, two.name AS two__name, two.description AS two__description, two.one__id AS two__one__id, two.one__uuid AS two__one__uuid, two.one__state AS two__one__state, two.one__name AS two__one__name, two.one__description AS two__one__description, two.one__bool AS two__one__bool, two.age AS two__age, two.date AS two__date
+  FROM   _extend, two
+  WHERE  _extend.two_id = two.id;
+};
+eq_or_diff $sg->view_for_class($extend), $view,
+  "... Schema class generates CREATE VIEW statement";
+
+# Check that the INSERT rule/trigger is correct.
+$insert = q{CREATE RULE insert_extend AS
+ON INSERT TO extend WHERE NEW.two__id IS NULL DO INSTEAD (
+  INSERT INTO two (uuid, state, name, description, one__id, age, date)
+  VALUES (COALESCE(NEW.two__uuid, UUID_V4()), COALESCE(NEW.two__state, 1), NEW.two__name, NEW.two__description, NEW.two__one__id, NEW.two__age, NEW.two__date);
+
+  INSERT INTO _extend (id, uuid, state, two_id)
+  VALUES (NEXTVAL('seq_extend'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), CURRVAL('seq_simple'));
+);
+
+CREATE RULE extend_extend AS
+ON INSERT TO extend WHERE NEW.two__id IS NOT NULL DO INSTEAD (
+  UPDATE two
+  SET    state = COALESCE(NEW.two__state, state), name = COALESCE(NEW.two__name, name), description = COALESCE(NEW.two__description, description), one__id = COALESCE(NEW.two__one__id, one__id), age = COALESCE(NEW.two__age, age), date = COALESCE(NEW.two__date, date)
+  WHERE  id = NEW.two__id;
+
+  INSERT INTO _extend (id, uuid, state, two_id)
+  VALUES (NEXTVAL('seq_extend'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.two__id);
+);
+
+CREATE RULE insert_extend_dummy AS
+ON INSERT TO extend DO INSTEAD NOTHING;
+};
+eq_or_diff $sg->insert_for_class($extend), $insert,
+  "... Schema class generates view INSERT rule";
+
+# Check that the UPDATE rule/trigger is correct.
+$update = q{CREATE RULE update_extend AS
+ON UPDATE TO extend DO INSTEAD (
+  UPDATE _extend
+  SET    state = NEW.state, two_id = NEW.two__id
+  WHERE  id = OLD.id;
+
+  UPDATE two
+  SET    state = NEW.two__state, name = NEW.two__name, description = NEW.two__description, one__id = NEW.two__one__id, age = NEW.two__age, date = NEW.two__date
+  WHERE  id = OLD.two__id;
+);
+};
+eq_or_diff $sg->update_for_class($extend), $update,
+  "... Schema class generates view UPDATE rule";
+
+# Check that the DELETE rule/trigger is correct.
+$delete = q{CREATE RULE delete_extend AS
+ON DELETE TO extend DO INSTEAD (
+  DELETE FROM _extend
+  WHERE  id = OLD.id;
+);
+};
+eq_or_diff $sg->delete_for_class($extend), $delete,
+  "... Schema class generates view DELETE rule";
+
+# Check that a complete schema is properly generated.
+eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($extend) ) ),
+  left_justify(
+    join (
+        "\n", $seq, $table, $indexes, $constraints, $view, $insert, $update,
+        $delete
+    )
+  ),
+  "... Schema class generates complete schema";
+

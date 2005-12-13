@@ -574,7 +574,7 @@ END;
 
   my $sql = $kbs->_insert_into_table($class, $pk);
 
-Used by C<_insert_for_class(), this method is used to generate the C<INSERT>
+Used by C<insert_for_class(), this method is used to generate the C<INSERT>
 statement used by a trigger to C<INSERT> into tables when inserting into a
 C<VIEW> that represents a class. The only classes for which it is not used are
 those that extend another class.
@@ -607,7 +607,7 @@ sub _insert_into_table {
 
   my $sql = $kbs->_extended_insert($class, $extends, \@ext_attrs);
 
-This method, called by C<_insert_for_class()>, returns SQL to be used in the
+This method, called by C<insert_for_class()>, returns SQL to be used in the
 C<INSERT> trigger on a C<VIEW> for an extended class. The SQL returned is one
 or more C<INSERT>s into the table or tables of the extended class.
 
@@ -681,7 +681,7 @@ sub _extended_insert_into_table {
 
   my $sql = $kbs->_extended_insert_up($class, $extends, \@ext_attrs);
 
-This method, called by C<_insert_for_class()>, returns SQL to be used in the
+This method, called by C<insert_for_class()>, returns SQL to be used in the
 C<INSERT> trigger on a C<VIEW> for an extended class. The SQL returned is an
 C<UPDATE> of the C<VIEW> of the extended class.
 
@@ -711,7 +711,7 @@ sub _extended_insert_up {
 
   my $sql = $kbs->_extending_insert($class, $extends, \@ext_attrs);
 
-This method, called by C<_insert_for_class()>, returns SQL to be used in the
+This method, called by C<insert_for_class()>, returns SQL to be used in the
 C<INSERT> trigger on a C<VIEW> for an extended class. The SQL returned is an
 C<INSERT> into the table of the extending class.
 
