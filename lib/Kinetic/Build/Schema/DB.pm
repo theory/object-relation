@@ -203,8 +203,10 @@ table.
 
 sub columns_for_class {
     my ( $self, $class ) = @_;
-    return ( $self->pk_column($class),
-        map { $self->generate_column( $class, $_ ) } $class->table_attributes );
+    return (
+        $self->pk_column($class),
+        map { $self->generate_column( $class, $_ ) } $class->table_attributes
+    );
 }
 
 ##############################################################################
@@ -293,6 +295,9 @@ sub column_default {
     # Return the raw value for numeric data types.
     return "DEFAULT $def" if $num_types{$type};
     return "DEFAULT " . ( $def + 0 ) if $type eq 'state';
+
+    # Return nothing if it's a reference.
+    return if ref $def;
 
     # Otherwise, assume that it's a string.
     $def =~ s/'/''/g;
@@ -450,37 +455,39 @@ sub view_for_class {
 
     my ( @tables, @cols, @wheres );
     if ( my @parents = reverse $class->parents ) {
-        my $last;
+        my $prev;
         for my $parent (@parents) {
             push @tables, $parent->key;
-            push @wheres, "$last.id = $tables[-1].id" if $last;
-            $last = $tables[-1];
+            push @wheres, "$prev.id = $tables[-1].id" if $prev;
+            $prev = $tables[-1];
             push @cols,
-              $self->view_columns( $last, \@tables, \@wheres,
+              $self->view_columns($prev, \@tables, \@wheres,
                 $class->parent_attributes($parent) );
 
         }
         unshift @cols, "$tables[0].id AS id";
-        push @wheres, "$last.id = $table.id";
+        push @wheres,  "$prev.id = $table.id";
     }
     else {
         @cols = ("$table.id AS id");
     }
     push @tables, $class->table;
-    push @cols,
-      $self->view_columns( $table, \@tables, \@wheres,
-        $class->table_attributes );
 
-    my $cols  = join ', ',    @cols;
-    my $from  = join ', ',    @tables;
-    my $where = join ' AND ', @wheres;
+    # Get all of the column names.
+    push @cols, $self->view_columns(
+        $table, \@tables, \@wheres, $class->table_attributes
+    );
+
+    my $cols  = join ', '    => @cols;
+    my $from  = join ', '    => @tables;
+    my $where = join ' AND ' => @wheres;
     my $name  = $class->key;
 
     # Output the view.
     return "CREATE VIEW $name AS\n"
-      . "  SELECT $cols\n"
-      . "  FROM   $from"
-      . ( $where ? "\n  WHERE  $where;" : (';') ) . "\n";
+        . "  SELECT $cols\n"
+        . "  FROM   $from"
+        . ( $where ? "\n  WHERE  $where;" : (';') ) . "\n";
 }
 
 ##############################################################################
@@ -533,10 +540,13 @@ sub view_columns {
         if ( my $ref = $attr->references ) {
             my $key = $ref->key;
             if ( $attr->required ) {
+                # It will be an INNER JOIN.
                 push @$tables, $key;
                 push @$wheres, "$table.$col = $key.id";
             }
+
             else {
+                # It will be a LEFT JOIN.
                 my $join = "$table LEFT JOIN $key ON $table.$col = $key.id";
 
                 # Either change the existing table name to the join table
@@ -547,11 +557,14 @@ sub view_columns {
                     push @$tables, $join;
                 }
             }
+
+            # Generate the list of columns for the VIEW query.
             push @cols, "$table.$col AS $key\__id",
-              $self->_map_ref_columns( $ref, $key );
+                $self->_map_ref_columns( $ref, $key );
         }
+
         else {
-            push @cols, "$table.$col AS $col";
+            push @cols, "$table.$col AS " . $attr->view_column;
         }
     }
     return @cols;
@@ -567,14 +580,16 @@ sub view_columns {
 
 =head3 _map_ref_columns
 
-  my @cols_sql = $kbs->_map_ref_columns($class, $key, @keys);
+  my @cols_sql = $kbs->_map_ref_columns($class, $key, $view_class, @keys);
 
 This method is called by C<view_columns()> to create the column names for
 contained objects in a view. It may be called recursively if the contained
-object itself has one or more contained objects. Contained object column names
-are the key name of the class, a double underscore, and then the name of the
-column. The double underscore distinguishes contained object column names from
-the columns for the primary attributes of a class.
+object itself has one or more contained objects.
+
+Contained object column names are the key name of the class, a double
+underscore, and then the name of the column. The double underscore
+distinguishes contained object column names from the columns for the primary
+attributes of a class.
 
 =cut
 
@@ -585,8 +600,11 @@ sub _map_ref_columns {
     for my $attr ( $class->persistent_attributes ) {
         my $col = $attr->view_column;
         push @cols, "$key.$ckey$col AS $key\__$ckey$col";
+
         if ( my $ref = $attr->references ) {
-            push @cols, $self->_map_ref_columns( $ref, $key, @keys, $ref->key );
+            push @cols, $self->_map_ref_columns(
+                $ref, $key, @keys, $ref->key
+            );
         }
     }
     return @cols;

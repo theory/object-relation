@@ -168,9 +168,11 @@ sub foreign_key {
 Returns the
 L<Kinetic::Meta::Attribute::Schema|Kinetic::Meta::Attribute::Schema> objects
 for the attributes that correspond to columns in the table used for the class.
-Thus, it excludes attributes from concrete parent classe, since they're
-implemented in their own tables. See C<parent_attributes()> to get a list of
-the attributes of concrete parent classes.
+Thus, it excludes attributes from concrete parent classes and from any
+extended classes, since they're implemented in their own tables. See
+C<parent_attributes()> to get a list of the attributes of concrete parent
+classes and C<view_attributes()> for a list of table attributes I<and>
+extended class attributes.
 
 =cut
 
@@ -220,14 +222,13 @@ sub build {
         # There are concrete parent classes from which we need to inherit.
         my $table = $root->key;
         $self->{parent} = $root;
-        $parent_attrs{$table} = [$root->persistent_attributes];
+        $parent_attrs{$table} = [_col_attrs($root)];
 
         for my $impl (@parents, $self) {
             my $impl_key    = $impl->key;
             $self->{parent} = $impl unless $impl_key eq $key;
             $table         .= "_$impl_key";
-            @cols = grep { $_->class->key eq $impl_key }
-                $impl->persistent_attributes;
+            @cols = grep { $_->class->key eq $impl_key } _col_attrs($impl);
             # Copy @cols to prevent spillover into subclasses.
             $parent_attrs{$impl_key} = [@cols];
         }
@@ -237,15 +238,25 @@ sub build {
     } else {
         # It has no parent class, so its column attributes are all of its
         # attributes.
-        @cols = $self->persistent_attributes;
+        @cols = _col_attrs($self);
     }
 
     $self->{cols}         = \@cols;
     $self->{parent_attrs} = \%parent_attrs;
     $self->{parents}      = \@parents;
+
     return $self;
 }
 
+sub _col_attrs {
+    my $class = shift;
+    my $extend = $class->extends or return $class->persistent_attributes;
+    # If extends, exclude delegate attrs and add extended object attrs.
+    return (
+        grep( { !$_->delegates_to } $class->persistent_attributes ),
+        $class->attributes( $extend->key )
+    );
+}
 
 1;
 __END__

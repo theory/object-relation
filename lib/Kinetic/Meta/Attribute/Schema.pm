@@ -193,7 +193,11 @@ sub build {
     my $self = shift;
     $self->SUPER::build(@_);
     if ($self->references) {
-        $self->{on_delete} ||= 'RESTRICT';
+        unless ($self->{on_delete}) {
+            $self->{on_delete} = $self->relationship eq 'extends'
+                ? 'CASCADE'
+                : 'RESTRICT';
+        }
     } else {
         delete $self->{on_delete};
     }

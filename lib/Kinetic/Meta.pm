@@ -94,25 +94,107 @@ class class be Kinetic::Meta::Class and that the attribute class be
 Kinetic::Meta::Attribute.
 
 In addition to the parameters supported by C<< Class::Meta->new >>,
-C<< Kinetic::Meta->new >> supports on extra attribute: C<sort_by>. This
-attribute is the name of an attribute or array reference of names of the
+C<< Kinetic::Meta->new >> supports these extra attributes:
+
+=over
+
+=item sort_by
+
+This attribute is the name of an attribute or array reference of names of the
 attributes to use when sorting a list of objects of the class. If
 C<sort_order> is not specified, it defaults to the first attribute declared
 after the C<uuid> and C<state> attributes.
+
+=item extends
+
+This attribute specifies a single Kinetic class name that the class extends.
+Extension is similar to inheritance, only extended class objects have their
+own UUIDs and states, and there can be multiple extending objects for a single
+extended objecct (think one person acting as several users).
+
+=back
 
 =cut
 
 __PACKAGE__->default_error_handler(\&throw_exlib);
 
 sub new {
-    my $pkg = shift;
-    $pkg->SUPER::new(
+    my $pkg  = shift;
+    my $self = $pkg->SUPER::new(
         # We must specify the package
         package         => scalar caller,
         @_,
         class_class     => $pkg->class_class,
         attribute_class => $pkg->attribute_class,
     );
+
+    my $class   = $self->class;
+    my $extend  = $class->extends or return $self;
+    my $package = $class->package;
+
+    my %attrs = map { $_->name => undef } $class->attributes;
+
+    # Turn keys into class objects.
+    my $key     = $extend->key;
+    my $ext_pkg = $extend->package;
+
+    # Make sure that we're not using inheritance!
+    throw_invalid_class [
+        'I cannot extend [_1] into [_2] because [_2] inherits from [_1]',
+        $ext_pkg,
+        $class,
+    ] if $package->isa($ext_pkg);
+
+    # Add an attribute for the extended object.
+    $self->add_attribute(
+                name => $key,
+                type => $key,
+            required => 1,
+                once => 1,
+               label => $extend->{name},
+                view => Class::Meta::TRUSTED,
+              create => Class::Meta::NONE,
+             default => sub { $ext_pkg->new },
+        relationship => 'extends',
+    );
+
+    # Add attributes from the extended class.
+    for my $attr ($extend->attributes) {
+        my $name = $attr->name;
+        my $attr_name = exists $attrs{$name} ? "$key\_$name" : $name;
+        # I need Attribute objects on the Attribute object!
+        $self->add_attribute(
+                    name => $attr_name,
+                    type => $attr->type,
+                required => $attr->required,
+                    once => $attr->once,
+                   label => $attr->{label},
+                    desc => $attr->desc,
+                    view => $attr->view,
+                   authz => $attr->authz,
+                  create => Class::Meta::NONE,
+                 context => $attr->context,
+                 default => $attr->default,
+             widget_meta => $attr->widget_meta,
+                  unique => $attr->unique,
+                distinct => $attr->distinct,
+                 indexed => $attr->indexed,
+              persistent => $attr->persistent,
+            delegates_to => $extend,
+                 acts_as => $attr,
+        );
+        # Set up the delegation method.
+        no strict 'refs';
+        *{"$package\::$attr_name"} = eval qq{
+            sub { shift->{$key}->$name(\@_) }
+        };
+    }
+
+    # Set up the accessor for the extended object.
+    no strict 'refs';
+    *{"$package\::$key"} = eval qq{ sub { shift->{$key} } };
+
+    return $self;
 }
 
 ##############################################################################

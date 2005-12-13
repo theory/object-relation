@@ -10,6 +10,7 @@ our $VERSION = version->new('0.0.1');
 use base 'Class::Meta::Attribute';
 use Kinetic::Util::Context;
 use Kinetic::Meta::Type;
+use Kinetic::Util::Constants qw($OBJECT_DELIMITER);
 use Widget::Meta;
 
 =head1 Name
@@ -61,19 +62,27 @@ sub import {
     my ($pkg, $api_label) = @_;
     return unless $api_label;
     if ($api_label eq ':with_dbstore_api') {
-        return if defined(&column);
+        return if defined(&_column);
         # Create methods specific to database stores.
         no strict 'refs';
         *{__PACKAGE__ . '::_column'} = sub {
               my $self = shift;
+              if (my $acts_as = $self->acts_as) {
+                  return $acts_as->column;
+              }
               return $self->name unless $self->references;
               return $self->name . '_id';
         };
 
         *{__PACKAGE__ . '::_view_column'} = sub {
             my $self = shift;
+            if (my $acts_as = $self->acts_as) {
+                my $key = $self->delegates_to->key;
+                return $key . $OBJECT_DELIMITER . $acts_as->name
+                    . ($acts_as->references ? $OBJECT_DELIMITER . 'id' : '');
+            }
             return $self->name unless $self->references;
-            return $self->name . '__id';
+            return $self->name . $OBJECT_DELIMITER . 'id';
         };
     }
 }
@@ -301,6 +310,39 @@ sub references { shift->{references} }
 
 ##############################################################################
 
+=head3 delegates_to
+
+  my $delegates_to = $attr->delegates_to;
+
+If the attribute transparently delegates to an object of another class, this
+method will return the Kinetic::Meta::Class object describing that class. This
+attribute is implicitly set by Kinetic::Meta for classes that either extend
+another class or reference other classes via the "type_of" relationship. In
+those cases, Kinetic::Meta will create extra attributes to delegate to the
+attributes of the referenced or extended classes, and those attriburtes will
+have their C<delegates_to> attributes set accordingly.
+
+=cut
+
+sub delegates_to { shift->{delegates_to} }
+
+##############################################################################
+
+=head3 acts_as
+
+  my $acts_as = $attr->acts_as;
+
+If C<delegates_to()> returns a Kinetic::Meta::Class object representing the
+class of object to which the attribute delegates, C<acts_as()> returns the
+Kinetic::Meta::Attribute object to which this attribute corresponds. That is,
+this attribute I<acts as> the attribute returned here.
+
+=cut
+
+sub acts_as { shift->{acts_as} }
+
+##############################################################################
+
 =head3 relationship
 
   my $relationship = $attr->relationship;
@@ -508,7 +550,7 @@ sub build {
     $self->SUPER::build(@_);
 
     my $type = Kinetic::Meta::Type->new($self->{type});
-    # Create the attribute object get code reference.
+    # Create the attribute object raw() and bake() code references.
     if ($self->authz >= Class::Meta::READ) {
         my $get = $type->make_attr_get($self);
         if (my $raw = $type->raw) {

@@ -57,6 +57,8 @@ L<Kinetic::Build::Schema::DB|Kinetic::Build::Schema::DB> for more information.
 
 =head2 Instance Methods
 
+##############################################################################
+
 =head3 column_type
 
   my $type = $kbs->column_type($attr);
@@ -423,11 +425,113 @@ sub insert_for_class {
     my $sql = "CREATE TRIGGER insert_$key\n"
       . "INSTEAD OF INSERT ON $key\nFOR EACH ROW BEGIN";
     my $pk = '';
-    for my $impl (reverse($class->parents), $class) {
-        my $table = $impl->table;
-        $sql .= "\n  INSERT INTO $table ("
+
+    # Output the insert statements for all parent tables.
+    for my $impl (reverse($class->parents)) {
+        $sql .= $self->_insert_into_table($impl, $pk);
+        $pk ||= 'last_insert_rowid(), ';
+    }
+
+    if (my $extends = $class->extends) {
+        # We may need to update the extended table. Trickier trigger.
+        my @ext_attrs = grep { $_->delegates_to || '' eq $extends }
+            $class->attributes;
+
+        $sql .= $self->_extended_insert   ( $class, $extends, \@ext_attrs )
+              . $self->_extended_insert_up( $class, $extends, \@ext_attrs )
+              . $self->_extending_insert  ( $class, $extends, \@ext_attrs );
+    } else {
+        # All is normal.
+        $sql .= $self->_insert_into_table($class, $pk);
+    }
+
+    return $sql . "END;\n";
+
+}
+
+sub _extended_insert {
+    my ($self, $class, $extends, $ext_attrs) = @_;
+    my $pk      = '';
+    my $sql     = '';
+
+    # Output the insert statements for all parent tables.
+    # We can't just use the view becausee last_insert_rowid() doesn't return IDs
+    # inserted by triggers. See http://sqlite.org/cvstrac/tktview?tn=1191.
+    for my $impl (reverse($extends->parents), $extends) {
+        $sql .= $self->_extended_insert_into_table($extends, $impl, $ext_attrs, $pk);
+        $pk ||= 'last_insert_rowid(), ';
+    }
+    return $sql;
+}
+sub _extended_insert_into_table {
+    my ($self, $top_class, $impl, $ext_attrs, $pk) = @_;
+    my $ext_key = $top_class->key;
+    my $table   = $impl->table;
+    my %attrs   = map { $_ => 1 } $impl->table_attributes;
+
+    return "\n  INSERT INTO $table ("
+        . ($pk ? 'id, ' : '')
+        . join(', ', map { $_->column } $impl->table_attributes )
+        . ")\n  SELECT $pk"
+        . join(', ', map {
+            if (my $def = $self->column_default($_)) {
+                $def =~ s/DEFAULT\s+//;
+                'COALESCE(NEW.' . $_->view_column . ", $def)";
+            } elsif ($_->type eq 'uuid') {
+                'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
+            } else {
+                'NEW.' . $_->view_column;
+            }
+        } grep { $attrs{$_->acts_as} } @$ext_attrs)
+        . "\n  WHERE  NEW.$ext_key\__id IS NULL;\n";
+}
+
+sub _extended_insert_up {
+    my ($self, $class, $extends, $ext_attrs) = @_;
+    my $ext_key   = $extends->key;
+
+    return "\n  UPDATE $ext_key\n  SET    "
+        . join(
+            ', ',
+            map {
+                my $col = $_->acts_as->view_column;
+                sprintf "%s = COALESCE(NEW.%s, %s)",
+                    $col, $_->view_column, $col;
+            }
+            grep { $_->type ne 'uuid' } @$ext_attrs
+        )
+        . "\n  WHERE  NEW.$ext_key\__id IS NOT NULL "
+        . "AND id = NEW.$ext_key\__id;\n";
+}
+
+sub _extending_insert {
+    my ($self, $class, $extends, $ext_attrs) = @_;
+    my $ext_key  = $extends->key;
+    my $table = $class->table;
+    return "\n  INSERT INTO $table ("
+        . join(', ', map { $_->column } $class->table_attributes )
+        . ")\n  VALUES ("
+        . join(', ', map {
+            if (my $def = $self->column_default($_)) {
+                $def =~ s/DEFAULT\s+//;
+                'COALESCE(NEW.' . $_->view_column . ", $def)";
+            } elsif ($_->type eq 'uuid') {
+                'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
+            } elsif ($_->type eq $ext_key) {
+                'COALESCE(NEW.' . $_->view_column . ", last_insert_rowid())";
+            } else {
+                'NEW.' . $_->view_column;
+            }
+        } $class->table_attributes)
+        . ");\n";
+}
+
+sub _insert_into_table {
+    my ($self, $class, $pk) = @_;
+    my $table = $class->table;
+    return "\n  INSERT INTO $table ("
           . ($pk ? 'id, ' : '')
-          . join(', ', map { $_->column } $impl->table_attributes )
+          . join(', ', map { $_->column } $class->table_attributes )
           . ")\n  VALUES ($pk"
           . join(', ', map {
               if (my $def = $self->column_default($_)) {
@@ -438,13 +542,8 @@ sub insert_for_class {
               } else {
                   'NEW.' . $_->view_column;
               }
-          } $impl->table_attributes)
+          } $class->table_attributes)
           . ");\n";
-        $pk ||= 'last_insert_rowid(), ';
-    }
-
-    return $sql . "END;\n";
-
 }
 
 ##############################################################################
@@ -463,9 +562,42 @@ objects are ignored, and should be updated separately.
 sub update_for_class {
     my ($self, $class) = @_;
     my $key = $class->key;
-    # Output the UPDATE trigger.
     my $sql .= "CREATE TRIGGER update_$key\n"
       . "INSTEAD OF UPDATE ON $key\nFOR EACH ROW BEGIN";
+
+    if (my $extends = $class->extends) {
+        # We may need to update the extended table. Trickier trigger.
+        $sql .= $self->_extended_update( $class, $extends )
+              . $self->_update_table(    $class           );
+    }
+
+    else {
+        # All is normal.
+        $sql .= $self->_update_table($class);
+    }
+
+    return $sql . "END;\n";
+}
+
+sub _extended_update {
+    my ($self, $class, $extended) = @_;
+    my $ext_key  = $extended->key;
+
+    return "\n  UPDATE $ext_key\n  SET    "
+        . join(
+            ', ',
+            map  {
+                sprintf "%s = NEW.%s", $_->acts_as->view_column, $_->view_column
+            }
+            grep { $_->type ne 'uuid' }
+            grep { $_->delegates_to || '' eq $extended } $class->attributes
+        )
+      . "\n  WHERE  id = OLD.$ext_key\__id;\n";
+}
+
+sub _update_table {
+    my ($self, $class) = @_;
+    my $sql = '';
     for my $impl (reverse ($class->parents), $class) {
         my $table = $impl->table;
         $sql .= "\n  UPDATE $table\n  SET    "
@@ -476,7 +608,8 @@ sub update_for_class {
             )
           . "\n  WHERE  id = OLD.id;\n";
     }
-    return $sql . "END;\n";
+    return $sql;
+
 }
 
 ##############################################################################

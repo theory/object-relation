@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 74;
+use Test::More tests => 98;
 #use Test::More 'no_plan';
 
 package MyTestThingy;
@@ -18,6 +18,24 @@ BEGIN {
     use_ok('Kinetic::Meta::AccessorBuilder') or die;
     use_ok('Kinetic::Meta::Widget')          or die;
 }
+
+BEGIN {
+    # Make sure the Store methods don't load until we load a db Store.
+    ok !defined(&Kinetic::Meta::Attribute::_column),
+        'Attribute::_column() should not exist';
+    ok !defined(&Kinetic::Meta::Attribute::_view_column),
+        'Attribute::_view_column() should not exist';
+
+    # Implicitly loads database store.
+    use_ok('Kinetic');
+
+    ok defined(&Kinetic::Meta::Attribute::_column),
+        'Now Attribute::_column() should exist';
+    ok defined(&Kinetic::Meta::Attribute::_view_column),
+        'Now Attribute::_view_column() should exist';
+}
+
+use base 'Kinetic';
 
 BEGIN {
     is( Kinetic::Meta->class_class, 'Kinetic::Meta::Class',
@@ -49,9 +67,7 @@ BEGIN {
 
 package MyTestFooey;
 
-BEGIN {
-    Test::More->import;
-}
+BEGIN { Test::More->import; }
 
 BEGIN {
     ok my $km = Kinetic::Meta->new(
@@ -84,6 +100,32 @@ BEGIN {
     ok $km->build, "Build TestFooey class";
 }
 
+package MyTestExtends;
+use base 'Kinetic';
+BEGIN { Test::More->import; }
+
+BEGIN {
+    ok my $km = Kinetic::Meta->new(
+        key         => 'extend',
+        name        => 'Extend',
+        plural_name => 'Extends',
+        extends     => 'thingy',
+    ), "Create TestExtends class";
+
+    ok $km->add_constructor(
+        name   => 'new',
+        create => 1,
+    ), 'Add constructor';
+
+    ok $km->add_attribute(
+        name          => 'rank',
+        type          => 'string',
+        label         => 'Rank',
+    ), "Add rank attribute";
+
+    ok $km->build, "Build TestExtends class";
+}
+
 package MyTest::Meta::Excptions;
 
 BEGIN {
@@ -92,6 +134,7 @@ BEGIN {
 
 BEGIN {
     ok my $km = Kinetic::Meta->new(
+
         key         => 'owie',
         name        => 'Owie',
         plural_name => 'Owies',
@@ -163,18 +206,6 @@ is $attr->type, 'string', "Check attr type";
 is $attr->label, 'Foo', "Check attr label";
 is $attr->indexed, 1, "Indexed should be true";
 
-eval { $attr->_column };
-ok $err = $@, "Should get error trying to call _column()";
-like $err,
-  qr/Can't locate object method "_column" via package "Kinetic::Meta::Attribute"/,
-  '...Because the _column() method should not exist';
-
-eval { $attr->_view_column };
-ok $err = $@, "Should get error trying to call _view_column()";
-like $err,
-  qr/Can't locate object method "_view_column" via package "Kinetic::Meta::Attribute"/,
-  '...Because the _view_column() method should not exist';
-
 ok my $wm = $attr->widget_meta, "Get widget meta object";
 isa_ok $wm, 'Kinetic::Meta::Widget';
 isa_ok $wm, 'Widget::Meta';
@@ -208,3 +239,33 @@ $attr = $fclass->attributes('fname');
 is_deeply [$fclass->direct_attributes], [$attr, $fclass->attributes('lname')],
   "And direct_attributes should return the non-referenced attributes";
 is $attr->relationship, undef, "The fname attribute should have no relationship";
+
+# Text extends class.
+ok $class = MyTestExtends->my_class, 'Get TestExtends class object';
+is $class->extends, MyTestThingy->my_class, 'It should extend Thingy';
+is_deeply [map { $_->name } $class->attributes ],
+          [qw(uuid state thingy_uuid thingy_state foo rank)],
+    'It should include the attributes from thingy';
+
+# Test its accessors.
+ok my $ex = MyTestExtends->new, 'Create new Extends object';
+isa_ok $ex => 'MyTestExtends';
+isa_ok $ex => 'Kinetic';
+ok !$ex->isa('MyTestThingy'), 'The object isn\'ta MyTestThingy';
+
+# Make sure that delegates_to is set properly.
+ok my $thingy_class = Kinetic::Meta->for_key('thingy'),
+    'Get the thingy class object';
+ok $attr = $class->attributes('uuid'), 'Get the uuid attribute object';
+is $attr->delegates_to, undef, 'uuid should not delegate';
+is $attr->acts_as, undef, 'uuid should not act as another attribute';
+ok $attr = $class->attributes('foo'), 'Get the foo attribute object';
+is $attr->delegates_to, $thingy_class, 'foo should delegate to thingy';
+is $attr->acts_as, $thingy_class->attributes('foo'),
+    'foo should act as the thingy foo';
+
+is $ex->uuid, undef, 'The UUID should be undefined';
+is $ex->thingy_uuid, undef, 'And the thingy UUID should be undef';
+ok $ex->_save_prep, 'Prepare it for storage';
+ok $ex->uuid, 'The UUID should now be defined';
+ok $ex->thingy_uuid, 'And so should the thingy UUID';

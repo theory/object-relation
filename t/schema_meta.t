@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use diagnostics;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
-use Test::More tests => 146;
+use Test::More tests => 177;
 
 {
     # Fake out loading of Pg store.

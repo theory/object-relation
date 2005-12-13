@@ -16,7 +16,7 @@ BEGIN {
         type          => 'one',
         label         => 'One',
         required      => 1,
-        relationship  => 'extends',
+        relationship  => 'type_of',
         default       => sub { TestApp::Simple::One->new },
         widget_meta   => Kinetic::Meta::Widget->new(
             type => 'search',

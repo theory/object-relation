@@ -68,6 +68,31 @@ sub import {
 }
 
 ##############################################################################
+# Constructor.
+##############################################################################
+
+=head1 Class Interface
+
+=head2 Constructor
+
+=head3 new
+
+This constructor overrides the parent class constructor from
+L<Class::Meta::Class|Class::Meta::Class> in order to check for an C<extends>
+parameter and, if it's present, convert it from a class key to the
+corresponding class object.
+
+=cut
+
+sub new {
+    my $self = shift->SUPER::new(@_);
+    if (my $extend = $self->{extends}) {
+        $self->{extends} = Kinetic::Meta->for_key($extend) unless ref $extend;
+    }
+    return $self;
+}
+
+##############################################################################
 # Instance Methods.
 ##############################################################################
 
@@ -109,9 +134,9 @@ sub plural_name {
   my $sort_by  = $class->sort_by;
   my @sort_bys = $class->sort_by;
 
-Returns the nam of the attribute to use when sorting a list of objects of this
-class. If more than one attribute has been specified for sorting, they can all
-be retreived by calling C<sort_by()> in an array context.
+Returns the name of the attribute to use when sorting a list of objects of
+this class. If more than one attribute has been specified for sorting, they
+can all be retreived by calling C<sort_by()> in an array context.
 
 =cut
 
@@ -119,6 +144,21 @@ sub sort_by {
     my $self = shift;
     return wantarray ? @{ $self->{sort_by} } : $self->{sort_by}[0];
 }
+
+##############################################################################
+
+=head3 extends
+
+  my $extends  = $class->extends;
+
+Returns a Kinetic::Meta::Class object representing a class that this class
+extends. Extension is different than inheritance, in that the object in the
+extended class can correspond to one or more instances of objects in the
+extending class.
+
+=cut
+
+sub extends { shift->{extends} }
 
 ##############################################################################
 
@@ -187,7 +227,6 @@ sub build {
     my $self = shift->SUPER::build(@_);
 
     # Organize attrs into categories.
-    my @attrs = $self->attributes;
     my (@ref, @direct, @persist);
     for my $attr ($self->attributes) {
         push @persist, $attr if $attr->persistent;
@@ -201,7 +240,7 @@ sub build {
     # Cache categories for fast method calls.
     $self->{ref_attrs}        = \@ref;
     $self->{direct_attrs}     = \@direct;
-    $self->{persistent_attrs} = @persist == @attrs ? \@attrs : \@persist;
+    $self->{persistent_attrs} = \@persist;
 
     if (my $sort_by = $self->{sort_by}) {
         $sort_by = [$sort_by] unless ref $sort_by;

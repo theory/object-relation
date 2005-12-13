@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
-use Test::More tests => 25;
+use Test::More tests => 27;
 
 {
     # Fake out loading of SQLite store.

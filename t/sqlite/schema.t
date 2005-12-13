@@ -5,8 +5,8 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
-#use Test::More 'no_plan';
-use Test::More tests => 80;
+use Test::More 'no_plan';
+#use Test::More tests => 81;
 use Test::Differences;
 
 {
@@ -26,7 +26,7 @@ isa_ok $sg, 'Kinetic::Build::Schema::DB::SQLite';
 
 ok $sg->load_classes('t/sample/lib'), "Load classes";
 is_deeply [ map { $_->key } $sg->classes ],
-  [qw(simple one composed comp_comp relation two)],
+  [qw(simple one composed comp_comp two extend relation)],
   "classes() returns classes in their proper dependency order";
 
 for my $class ($sg->classes) {
@@ -512,13 +512,6 @@ FOR EACH ROW BEGIN
     WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
 END;
 
-CREATE TRIGGER ck_relation_one_id_once
-BEFORE UPDATE ON _relation
-FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value of "one_id" cannot be changed')
-    WHERE  OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL;
-END;
-
 CREATE TRIGGER ck_relation_simple_id_once
 BEFORE UPDATE ON _relation
 FOR EACH ROW BEGIN
@@ -749,7 +742,7 @@ eq_or_diff join("\n", $sg->schema_for_class($composed)),
 # Grab the comp_comp class.
 ok my $comp_comp = Kinetic::Meta->for_key('comp_comp'), "Get comp_comp class";
 is $comp_comp->key, 'comp_comp', "... CompComp class has key 'comp_comp'";
-is $comp_comp->table, '_comp_comp', "... CompComp class has table 'comp_comp'";
+is $comp_comp->table, '_comp_comp', "... CompComp class has table '_comp_comp'";
 
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE _comp_comp (
@@ -872,4 +865,147 @@ eq_or_diff $sg->delete_for_class($comp_comp), $delete,
 eq_or_diff join("\n", $sg->schema_for_class($comp_comp)),
   join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
   "... Schema class generates complete schema";
+
+##############################################################################
+# Grab the extends class.
+ok my $extend = Kinetic::Meta->for_key('extend'), "Get extend class";
+is $extend->key, 'extend', "... Extend class has key 'extend'";
+is $extend->table, '_extend', "... CompComp class has table '_extend'";
+
+# Check that the CREATE TABLE statement is correct.
+$table = q{CREATE TABLE _extend (
+    id INTEGER NOT NULL PRIMARY KEY,
+    uuid TEXT NOT NULL,
+    state INTEGER NOT NULL DEFAULT 1,
+    two_id INTEGER NOT NULL REFERENCES simple_two(id) ON DELETE CASCADE
+);
+};
+eq_or_diff $sg->table_for_class($extend), $table,
+  "... Schema class generates CREATE TABLE statement";
+
+# Check that the CREATE INDEX statements are correct.
+$indexes = q{CREATE UNIQUE INDEX idx_extend_uuid ON _extend (uuid);
+CREATE INDEX idx_extend_state ON _extend (state);
+CREATE INDEX idx_extend_two_id ON _extend (two_id);
+};
+
+eq_or_diff $sg->indexes_for_class($extend), $indexes,
+  "... Schema class generates CREATE INDEX statements";
+
+# Check that the constraint and foreign key triggers are correct.
+$constraints = q{CREATE TRIGGER cki_extend_state
+BEFORE INSERT ON _extend
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
+END;
+
+CREATE TRIGGER cku_extend_state
+BEFORE UPDATE OF state ON _extend
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
+END;
+
+CREATE TRIGGER ck_extend_uuid_once
+BEFORE UPDATE ON _extend
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
+    WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
+END;
+
+CREATE TRIGGER ck_extend_two_id_once
+BEFORE UPDATE ON _extend
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value of "two_id" cannot be changed')
+    WHERE  OLD.two_id <> NEW.two_id OR NEW.two_id IS NULL;
+END;
+
+CREATE TRIGGER fki_extend_two_id
+BEFORE INSERT ON _extend
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'insert on table "_extend" violates foreign key constraint "fk_extend_two_id"')
+    WHERE  (SELECT id FROM simple_two WHERE id = NEW.two_id) IS NULL;
+END;
+
+CREATE TRIGGER fku_extend_two_id
+BEFORE UPDATE ON _extend
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'update on table "_extend" violates foreign key constraint "fk_extend_two_id"')
+    WHERE  (SELECT id FROM simple_two WHERE id = NEW.two_id) IS NULL;
+END;
+
+CREATE TRIGGER fkd_extend_two_id
+BEFORE DELETE ON simple_two
+FOR EACH ROW BEGIN
+  DELETE from _extend WHERE two_id = OLD.id;
+END;
+};
+
+eq_or_diff $sg->constraints_for_class($extend), $constraints,
+  "... Schema class generates CONSTRAINT statement";
+
+# Check that the CREATE VIEW statement is correct.
+$view = q{CREATE VIEW extend AS
+  SELECT _extend.id AS id, _extend.uuid AS uuid, _extend.state AS state, _extend.two_id AS two__id, two.uuid AS two__uuid, two.state AS two__state, two.name AS two__name, two.description AS two__description, two.one__id AS two__one__id, two.one__uuid AS two__one__uuid, two.one__state AS two__one__state, two.one__name AS two__one__name, two.one__description AS two__one__description, two.one__bool AS two__one__bool, two.age AS two__age, two.date AS two__date
+  FROM   _extend, two
+  WHERE  _extend.two_id = two.id;
+};
+eq_or_diff $sg->view_for_class($extend), $view,
+  "... Schema class generates CREATE VIEW statement";
+
+# Check that the INSERT rule/trigger is correct.
+$insert = q{CREATE TRIGGER insert_extend
+INSTEAD OF INSERT ON extend
+FOR EACH ROW BEGIN
+  INSERT INTO _simple (uuid, state, name, description)
+  SELECT COALESCE(NEW.two__uuid, UUID_V4()), COALESCE(NEW.two__state, 1), NEW.two__name, NEW.two__description
+  WHERE  NEW.two__id IS NULL;
+
+  INSERT INTO simple_two (id, one_id, age, date)
+  SELECT last_insert_rowid(), NEW.two__one__id, NEW.two__age, NEW.two__date
+  WHERE  NEW.two__id IS NULL;
+
+  UPDATE two
+  SET    state = COALESCE(NEW.two__state, state), name = COALESCE(NEW.two__name, name), description = COALESCE(NEW.two__description, description), one__id = COALESCE(NEW.two__one__id, one__id), age = COALESCE(NEW.two__age, age), date = COALESCE(NEW.two__date, date)
+  WHERE  NEW.two__id IS NOT NULL AND id = NEW.two__id;
+
+  INSERT INTO _extend (uuid, state, two_id)
+  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), COALESCE(NEW.two__id, last_insert_rowid()));
+END;
+};
+eq_or_diff $sg->insert_for_class($extend), $insert,
+  "... Schema class generates view INSERT rule";
+
+# Check that the UPDATE rule/trigger is correct.
+$update = q{CREATE TRIGGER update_extend
+INSTEAD OF UPDATE ON extend
+FOR EACH ROW BEGIN
+  UPDATE two
+  SET    state = NEW.two__state, name = NEW.two__name, description = NEW.two__description, one__id = NEW.two__one__id, age = NEW.two__age, date = NEW.two__date
+  WHERE  id = OLD.two__id;
+
+  UPDATE _extend
+  SET    state = NEW.state, two_id = NEW.two__id
+  WHERE  id = OLD.id;
+END;
+};
+eq_or_diff $sg->update_for_class($extend), $update,
+  "... Schema class generates view UPDATE rule";
+
+# Check that the DELETE rule/trigger is correct.
+$delete = q{CREATE TRIGGER delete_extend
+INSTEAD OF DELETE ON extend
+FOR EACH ROW BEGIN
+  DELETE FROM _extend
+  WHERE  id = OLD.id;
+END;
+};
+eq_or_diff $sg->delete_for_class($extend), $delete,
+  "... Schema class generates view DELETE rule";
+
+# Check that a complete schema is properly generated.
+#eq_or_diff join("\n", $sg->schema_for_class($extend)),
+#  join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
+#  "... Schema class generates complete schema";
 

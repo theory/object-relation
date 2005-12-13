@@ -7,7 +7,7 @@ use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
 
 #use Test::More 'no_plan';
-use Test::More tests => 80;
+use Test::More tests => 81;
 use Test::Differences;
 
 {
@@ -34,11 +34,11 @@ isa_ok $sg, 'Kinetic::Build::Schema::DB::Pg';
 
 ok $sg->load_classes('t/sample/lib'), "Load classes";
 is_deeply [ map { $_->key } $sg->classes ],
-  [qw(simple one composed comp_comp relation two)],
+  [qw(simple one composed comp_comp two extend relation)],
   "classes() returns classes in their proper dependency order";
 
 for my $class ( $sg->classes ) {
-    ok $class->is_a('Kinetic'), "Class is a Kinetic";
+    ok $class->is_a('Kinetic'), $class->package . ' is a Kinetic';
 }
 
 # XXX Hanky-panky. You didn't see this. Necessary for testing C<unique>
@@ -454,18 +454,6 @@ CREATE FUNCTION relation_uuid_once() RETURNS trigger AS '
 
 CREATE TRIGGER relation_uuid_once BEFORE UPDATE ON _relation
     FOR EACH ROW EXECUTE PROCEDURE relation_uuid_once();
-
-CREATE FUNCTION relation_one_id_once() RETURNS trigger AS '
-  BEGIN
-    IF OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL
-        THEN RAISE EXCEPTION ''value of "one_id" cannot be changed'';
-    END IF;
-    RETURN NEW;
-  END;
-' LANGUAGE plpgsql;
-
-CREATE TRIGGER relation_one_id_once BEFORE UPDATE ON _relation
-    FOR EACH ROW EXECUTE PROCEDURE relation_one_id_once();
 
 CREATE FUNCTION relation_simple_id_once() RETURNS trigger AS '
   BEGIN
