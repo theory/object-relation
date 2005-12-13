@@ -57,8 +57,6 @@ L<Kinetic::Build::Schema::DB|Kinetic::Build::Schema::DB> for more information.
 
 =head2 Instance Methods
 
-##############################################################################
-
 =head3 column_type
 
   my $type = $kbs->column_type($attr);
@@ -449,103 +447,6 @@ sub insert_for_class {
 
 }
 
-sub _extended_insert {
-    my ($self, $class, $extends, $ext_attrs) = @_;
-    my $pk      = '';
-    my $sql     = '';
-
-    # Output the insert statements for all parent tables.
-    # We can't just use the view becausee last_insert_rowid() doesn't return IDs
-    # inserted by triggers. See http://sqlite.org/cvstrac/tktview?tn=1191.
-    for my $impl (reverse($extends->parents), $extends) {
-        $sql .= $self->_extended_insert_into_table($extends, $impl, $ext_attrs, $pk);
-        $pk ||= 'last_insert_rowid(), ';
-    }
-    return $sql;
-}
-sub _extended_insert_into_table {
-    my ($self, $top_class, $impl, $ext_attrs, $pk) = @_;
-    my $ext_key = $top_class->key;
-    my $table   = $impl->table;
-    my %attrs   = map { $_ => 1 } $impl->table_attributes;
-
-    return "\n  INSERT INTO $table ("
-        . ($pk ? 'id, ' : '')
-        . join(', ', map { $_->column } $impl->table_attributes )
-        . ")\n  SELECT $pk"
-        . join(', ', map {
-            if (my $def = $self->column_default($_)) {
-                $def =~ s/DEFAULT\s+//;
-                'COALESCE(NEW.' . $_->view_column . ", $def)";
-            } elsif ($_->type eq 'uuid') {
-                'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
-            } else {
-                'NEW.' . $_->view_column;
-            }
-        } grep { $attrs{$_->acts_as} } @$ext_attrs)
-        . "\n  WHERE  NEW.$ext_key\__id IS NULL;\n";
-}
-
-sub _extended_insert_up {
-    my ($self, $class, $extends, $ext_attrs) = @_;
-    my $ext_key   = $extends->key;
-
-    return "\n  UPDATE $ext_key\n  SET    "
-        . join(
-            ', ',
-            map {
-                my $col = $_->acts_as->view_column;
-                sprintf "%s = COALESCE(NEW.%s, %s)",
-                    $col, $_->view_column, $col;
-            }
-            grep { $_->type ne 'uuid' } @$ext_attrs
-        )
-        . "\n  WHERE  NEW.$ext_key\__id IS NOT NULL "
-        . "AND id = NEW.$ext_key\__id;\n";
-}
-
-sub _extending_insert {
-    my ($self, $class, $extends, $ext_attrs) = @_;
-    my $ext_key  = $extends->key;
-    my $table = $class->table;
-    return "\n  INSERT INTO $table ("
-        . join(', ', map { $_->column } $class->table_attributes )
-        . ")\n  VALUES ("
-        . join(', ', map {
-            if (my $def = $self->column_default($_)) {
-                $def =~ s/DEFAULT\s+//;
-                'COALESCE(NEW.' . $_->view_column . ", $def)";
-            } elsif ($_->type eq 'uuid') {
-                'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
-            } elsif ($_->type eq $ext_key) {
-                'COALESCE(NEW.' . $_->view_column . ", last_insert_rowid())";
-            } else {
-                'NEW.' . $_->view_column;
-            }
-        } $class->table_attributes)
-        . ");\n";
-}
-
-sub _insert_into_table {
-    my ($self, $class, $pk) = @_;
-    my $table = $class->table;
-    return "\n  INSERT INTO $table ("
-          . ($pk ? 'id, ' : '')
-          . join(', ', map { $_->column } $class->table_attributes )
-          . ")\n  VALUES ($pk"
-          . join(', ', map {
-              if (my $def = $self->column_default($_)) {
-                  $def =~ s/DEFAULT\s+//;
-                  'COALESCE(NEW.' . $_->view_column . ", $def)";
-              } elsif ($_->type eq 'uuid') {
-                  'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
-              } else {
-                  'NEW.' . $_->view_column;
-              }
-          } $class->table_attributes)
-          . ");\n";
-}
-
 ##############################################################################
 
 =head3 update_for_class
@@ -577,39 +478,6 @@ sub update_for_class {
     }
 
     return $sql . "END;\n";
-}
-
-sub _extended_update {
-    my ($self, $class, $extended) = @_;
-    my $ext_key  = $extended->key;
-
-    return "\n  UPDATE $ext_key\n  SET    "
-        . join(
-            ', ',
-            map  {
-                sprintf "%s = NEW.%s", $_->acts_as->view_column, $_->view_column
-            }
-            grep { $_->type ne 'uuid' }
-            grep { $_->delegates_to || '' eq $extended } $class->attributes
-        )
-      . "\n  WHERE  id = OLD.$ext_key\__id;\n";
-}
-
-sub _update_table {
-    my ($self, $class) = @_;
-    my $sql = '';
-    for my $impl (reverse ($class->parents), $class) {
-        my $table = $impl->table;
-        $sql .= "\n  UPDATE $table\n  SET    "
-          . join(
-              ', ',
-              map { sprintf "%s = NEW.%s", $_->column, $_->view_column }
-              grep { $_->type ne 'uuid' } $impl->table_attributes
-            )
-          . "\n  WHERE  id = OLD.id;\n";
-    }
-    return $sql;
-
 }
 
 ##############################################################################
@@ -698,6 +566,235 @@ FOR EACH ROW BEGIN
 END;
 })
   );
+}
+
+##############################################################################
+
+=head3 _insert_into_table
+
+  my $sql = $kbs->_insert_into_table($class, $pk);
+
+Used by C<_insert_for_class(), this method is used to generate the C<INSERT>
+statement used by a trigger to C<INSERT> into tables when inserting into a
+C<VIEW> that represents a class. The only classes for which it is not used are
+those that extend another class.
+
+=cut
+
+sub _insert_into_table {
+    my ($self, $class, $pk) = @_;
+    my $table = $class->table;
+    return "\n  INSERT INTO $table ("
+          . ($pk ? 'id, ' : '')
+          . join(', ', map { $_->column } $class->table_attributes )
+          . ")\n  VALUES ($pk"
+          . join(', ', map {
+              if (my $def = $self->column_default($_)) {
+                  $def =~ s/DEFAULT\s+//;
+                  'COALESCE(NEW.' . $_->view_column . ", $def)";
+              } elsif ($_->type eq 'uuid') {
+                  'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
+              } else {
+                  'NEW.' . $_->view_column;
+              }
+          } $class->table_attributes)
+          . ");\n";
+}
+
+##############################################################################
+
+=head3 _extended_insert
+
+  my $sql = $kbs->_extended_insert($class, $extends, \@ext_attrs);
+
+This method, called by C<_insert_for_class()>, returns SQL to be used in the
+C<INSERT> trigger on a C<VIEW> for an extended class. The SQL returned is one
+or more C<INSERT>s into the table or tables of the extended class.
+
+=cut
+
+sub _extended_insert {
+    my ($self, $class, $extends, $ext_attrs) = @_;
+    my $pk      = '';
+    my $sql     = '';
+
+    # Output the insert statements for all parent tables.
+    # We can't just use the view becausee last_insert_rowid() doesn't return IDs
+    # inserted by triggers. See http://sqlite.org/cvstrac/tktview?tn=1191.
+    for my $impl (reverse($extends->parents), $extends) {
+        $sql .= $self->_extended_insert_into_table(
+            $extends,
+            $impl,
+            $ext_attrs,
+            $pk
+        );
+        $pk ||= 'last_insert_rowid(), ';
+    }
+    return $sql;
+}
+
+##############################################################################
+
+=head3 _extended_insert_into_table
+
+  my $sql = $kbs->_extended_insert_into_table(
+      $top_class,
+      $class,
+      $ext_attrs,
+      $pk
+  );
+
+This method is called repeatedly by C<_extended_insert()> to generate and
+return C<INSERT> statements for the extended class table and all of it is
+parents (if any). The $pk argument should be an empty string the first time
+it's called, and 'last_insert_rowid(), ' thereafter, so that the primary key
+of the root class is used as the primary key for all child classes.
+
+=cut
+
+sub _extended_insert_into_table {
+    my ($self, $top_class, $impl, $ext_attrs, $pk) = @_;
+    my $ext_key = $top_class->key;
+    my $table   = $impl->table;
+    my %attrs   = map { $_ => 1 } $impl->table_attributes;
+
+    return "\n  INSERT INTO $table ("
+        . ($pk ? 'id, ' : '')
+        . join(', ', map { $_->column } $impl->table_attributes )
+        . ")\n  SELECT $pk"
+        . join(', ', map {
+            if (my $def = $self->column_default($_)) {
+                $def =~ s/DEFAULT\s+//;
+                'COALESCE(NEW.' . $_->view_column . ", $def)";
+            } elsif ($_->type eq 'uuid') {
+                'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
+            } else {
+                'NEW.' . $_->view_column;
+            }
+        } grep { $attrs{$_->acts_as} } @$ext_attrs)
+        . "\n  WHERE  NEW.$ext_key\__id IS NULL;\n";
+}
+
+##############################################################################
+
+=head3 _extended_insert_up
+
+  my $sql = $kbs->_extended_insert_up($class, $extends, \@ext_attrs);
+
+This method, called by C<_insert_for_class()>, returns SQL to be used in the
+C<INSERT> trigger on a C<VIEW> for an extended class. The SQL returned is an
+C<UPDATE> of the C<VIEW> of the extended class.
+
+=cut
+
+sub _extended_insert_up {
+    my ($self, $class, $extends, $ext_attrs) = @_;
+    my $ext_key   = $extends->key;
+
+    return "\n  UPDATE $ext_key\n  SET    "
+        . join(
+            ', ',
+            map {
+                my $col = $_->acts_as->view_column;
+                sprintf "%s = COALESCE(NEW.%s, %s)",
+                    $col, $_->view_column, $col;
+            }
+            grep { $_->type ne 'uuid' } @$ext_attrs
+        )
+        . "\n  WHERE  NEW.$ext_key\__id IS NOT NULL "
+        . "AND id = NEW.$ext_key\__id;\n";
+}
+
+##############################################################################
+
+=head3 _extending_insert
+
+  my $sql = $kbs->_extending_insert($class, $extends, \@ext_attrs);
+
+This method, called by C<_insert_for_class()>, returns SQL to be used in the
+C<INSERT> trigger on a C<VIEW> for an extended class. The SQL returned is an
+C<INSERT> into the table of the extending class.
+
+=cut
+
+sub _extending_insert {
+    my ($self, $class, $extends, $ext_attrs) = @_;
+    my $ext_key  = $extends->key;
+    my $table = $class->table;
+    return "\n  INSERT INTO $table ("
+        . join(', ', map { $_->column } $class->table_attributes )
+        . ")\n  VALUES ("
+        . join(', ', map {
+            if (my $def = $self->column_default($_)) {
+                $def =~ s/DEFAULT\s+//;
+                'COALESCE(NEW.' . $_->view_column . ", $def)";
+            } elsif ($_->type eq 'uuid') {
+                'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
+            } elsif ($_->type eq $ext_key) {
+                'COALESCE(NEW.' . $_->view_column . ", last_insert_rowid())";
+            } else {
+                'NEW.' . $_->view_column;
+            }
+        } $class->table_attributes)
+        . ");\n";
+}
+
+##############################################################################
+
+=head3 _update_table
+
+  my $sql = $kbs->_update_table($class);
+
+Used by C<_update_for_class(), this method is used to generate the C<UPDATE>
+statements used by a trigger to C<UPDATE> tables when updating a C<VIEW> that
+represents a class. The only classes for which it is not used are those that
+extend another class.
+
+=cut
+
+sub _update_table {
+    my ($self, $class) = @_;
+    my $sql = '';
+    for my $impl (reverse ($class->parents), $class) {
+        my $table = $impl->table;
+        $sql .= "\n  UPDATE $table\n  SET    "
+          . join(
+              ', ',
+              map { sprintf "%s = NEW.%s", $_->column, $_->view_column }
+              grep { $_->type ne 'uuid' } $impl->table_attributes
+            )
+          . "\n  WHERE  id = OLD.id;\n";
+    }
+    return $sql;
+
+}
+
+##############################################################################
+
+=head3 _extended_update
+
+  my $sql = $kbs->_extended_update($class, $extended);
+
+Used by C<_update_for_class(), this method is used to generate the C<UPDATE>
+statements used by a trigger to C<UPDATE> tables when updating a C<VIEW> that
+represents a class that extends another class.
+
+=cut
+
+sub _extended_update {
+    my ($self, $class, $extended) = @_;
+    my $ext_key  = $extended->key;
+
+    return "\n  UPDATE $ext_key\n  SET    "
+        . join(
+            ', ',
+            map  {
+                sprintf "%s = NEW.%s", $_->acts_as->view_column, $_->view_column
+            }
+            grep { $_->type ne 'uuid' }
+            grep { $_->delegates_to || '' eq $extended } $class->attributes
+        )
+      . "\n  WHERE  id = OLD.$ext_key\__id;\n";
 }
 
 1;
