@@ -75,6 +75,7 @@ sub schema_for_class {
     return grep { $_ }
       map       { $self->$_($class) }
       qw(
+      sequence_for_class
       table_for_class
       indexes_for_class
       constraints_for_class
@@ -142,12 +143,25 @@ sub behaviors_for_class {
 
 ##############################################################################
 
+=head3 sequence_for_class
+
+  my $sequence_sql = $kbs->sequence_for_class($class);
+
+This method takes a class object. By default it returns an empty string.
+Subclassses may use it to return a C<CREATE SEQUENCE> statement for the class.
+
+=cut
+
+sub sequence_for_class { return '' }
+
+##############################################################################
+
 =head3 table_for_class
 
   my $table_sql = $kbs->table_for_class($class);
 
-This method takes a class object. It returns a C<CREATE TABLE> sql statement
-for the class;
+This method takes a class object. It returns a C<CREATE TABLE> SQL statement
+for the class.
 
 =cut
 

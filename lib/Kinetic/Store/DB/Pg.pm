@@ -27,6 +27,7 @@ use base qw(Kinetic::Store::DB);
 use Kinetic::Util::Config qw(:pg);
 use Exception::Class::DBI;
 use Kinetic::Util::Exceptions qw(throw_unsupported);
+use List::Util qw(first);
 use overload;
 use constant _connect_args => (
     PG_DSN,
@@ -68,23 +69,30 @@ storage API, by overriding C<Kinetic::Store::DB> methods as needed.
 
   $store->_set_id($object);
 
-This method is used by C<_insert> to set the C<id> of an object.  This is
-frequently database specific, so this method may have to be overridden in a
-subclass.  See C<_insert> for caveats about object C<id>s.
+This method is used by C<_insert> to set the C<id> of an object from the
+sequence used to insert it. See C<_insert> for caveats about object C<id>s.
 
 =cut
 
 sub _set_id {
     my ( $self, $object ) = @_;
-    my $view = $self->search_class->key;
+    my $class = $self->search_class;
+    my $view  = $class->key;
+    my $seq   = $view;
+
+    # If this class inherits from other classes, the sequence will be that
+    # of the base class.
+    if (my $base = first { !$_->abstract } reverse $class->parents) {
+        $seq = $base->key;
+    }
 
     # XXX This should work, but doesn't. The alternative is the equivalent,
     # so we'll just use it.
     #$object->{id}  = $self->_dbh->last_insert_id(
-    #undef, undef, undef, undef, { sequence => 'seq_kinetic' }
+    #undef, undef, undef, undef, { sequence => "seq_$seq" }
     #);
     ( $object->{id} ) =
-      $self->_dbh->selectrow_array("SELECT CURRVAL('seq_kinetic')");
+      $self->_dbh->selectrow_array("SELECT CURRVAL('seq_$seq')");
     return $self;
 }
 

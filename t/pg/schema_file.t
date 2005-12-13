@@ -46,7 +46,7 @@ open $schema, '<', $fn or die "Cannot open '$fn': $!\n";
 @schema = <$schema>;
 close $schema;
 ok @schema, "... Got schema file contents";
-is $schema[0], "CREATE SEQUENCE seq_kinetic;\n",
+is $schema[0], "CREATE DOMAIN state AS SMALLINT NOT NULL DEFAULT 1\n",
   "... Got setup SQL";
 test_contains_order(\@schema, @class_keys);
 

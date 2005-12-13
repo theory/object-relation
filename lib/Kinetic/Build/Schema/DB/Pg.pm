@@ -54,6 +54,24 @@ L<Kinetic::Build::Schema::DB|Kinetic::Build::Schema::DB> for more information.
 
 =head2 Instance Methods
 
+=head3 sequence_for_class
+
+  my $sequence_sql = $kbs->sequence_for_class($class);
+
+This method takes a class object and returns a C<CREATE SEQUENCE> statement
+for the class if it has no parent classes. If it has parent classes, it simply
+returns an empty string.
+
+=cut
+
+sub sequence_for_class {
+    my ($self, $class) = @_;
+    return '' if $class->parents;
+    return 'CREATE SEQUENCE seq_' . $class->key . ";\n";
+}
+
+##############################################################################
+
 =head3 column_type
 
   my $type = $kbs->column_type($attr);
@@ -92,18 +110,19 @@ sub column_type {
 
 Returns the SQL statement to create the primary key column for the table for
 the Kinetic::Meta::Class::Schema object passed as its sole argument. If the
-class has no concrete parent class, the primary key column expression will
-set up a C<DEFAULT> statement to get its value from the "seq_kinetic" sequence.
-Otherwise, it will be be a simple column declaration. The primary key constraint
-is actually returned by C<constraints_for_class()>, and so is not included in
-the expression returned by C<pk_column()>.
+class has no concrete parent class, the primary key column expression will set
+up a C<DEFAULT> statement to get its value from the sequence created for the
+class. Otherwise, it will be be a simple column declaration. The primary key
+constraint is actually returned by C<constraints_for_class()>, and so is not
+included in the expression returned by C<pk_column()>.
 
 =cut
 
 sub pk_column {
     my ($self, $class) = @_;
-    return "id INTEGER NOT NULL" if $class->parent;
-    return "id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic')";
+    return 'id INTEGER NOT NULL' if $class->parent;
+    my $key = $class->key;
+    return "id INTEGER NOT NULL DEFAULT NEXTVAL('seq_$key')";
 }
 
 ##############################################################################
@@ -452,15 +471,17 @@ sub insert_for_class {
     my ($self, $class) = @_;
     my $key  = $class->key;
     my $func = 'NEXTVAL';
+    my $seq  = '';
 
     # Output the INSERT rule.
     my $sql = "CREATE RULE insert_$key AS\n"
       . "ON INSERT TO $key DO INSTEAD (";
     for my $impl (reverse($class->parents), $class) {
         my $table = $impl->table;
+        $seq ||= $impl->key;
         $sql .= "\n  INSERT INTO $table (id, "
           . join(', ', map { $_->column } $impl->table_attributes )
-          . ")\n  VALUES ($func('seq_kinetic'), "
+          . ")\n  VALUES ($func('seq_$seq'), "
           . join(', ', map {
               sprintf(
                   ($_->type eq 'uuid' ? 'COALESCE(NEW.%s, UUID_V4())'
@@ -544,11 +565,6 @@ returns statement to perform the following tasks:
 
 =item *
 
-Create a sequence, named "seq_kinetic", to be used for all primary key values
-in the database.
-
-=item *
-
 Creates a domain, "state", that can be used as a column type in Kinetic
 tables.
 
@@ -558,9 +574,7 @@ tables.
 
 sub setup_code {
 
-'CREATE SEQUENCE seq_kinetic;
-
-CREATE DOMAIN state AS SMALLINT NOT NULL DEFAULT 1
+'CREATE DOMAIN state AS SMALLINT NOT NULL DEFAULT 1
 CONSTRAINT ck_state CHECK (
    VALUE BETWEEN -1 AND 2
 );

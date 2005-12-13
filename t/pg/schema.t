@@ -7,7 +7,7 @@ use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
 
 #use Test::More 'no_plan';
-use Test::More tests => 81;
+use Test::More tests => 87;
 use Test::Differences;
 
 {
@@ -55,13 +55,11 @@ for my $class ( $sg->classes ) {
 
 ##############################################################################
 # Check Setup SQL.
-is $sg->setup_code, 'CREATE SEQUENCE seq_kinetic;
-
-CREATE DOMAIN state AS SMALLINT NOT NULL DEFAULT 1
+is $sg->setup_code, 'CREATE DOMAIN state AS SMALLINT NOT NULL DEFAULT 1
 CONSTRAINT ck_state CHECK (
    VALUE BETWEEN -1 AND 2
 );
-', "Pg setup SQL has sequence, state domain";
+', "Pg setup SQL has state domain";
 
 ##############################################################################
 # Grab the simple class.
@@ -69,9 +67,14 @@ ok my $simple = Kinetic::Meta->for_key('simple'), "Get simple class";
 is $simple->key,   'simple',  "... Simple class has key 'simple'";
 is $simple->table, '_simple', "... Simple class has table '_simple'";
 
+# Check that the CREATE SEQUENCE statement is correct.
+my $seq = "CREATE SEQUENCE seq_simple;\n";
+is $sg->sequence_for_class($simple), $seq,
+    '... Schema class generates CREATE SEQUENCE statement';
+
 # Check that the CREATE TABLE statement is correct.
 my $table = q{CREATE TABLE _simple (
-    id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
+    id INTEGER NOT NULL DEFAULT NEXTVAL('seq_simple'),
     uuid UUID NOT NULL DEFAULT UUID_V4(),
     state STATE NOT NULL DEFAULT 1,
     name TEXT NOT NULL,
@@ -120,7 +123,7 @@ eq_or_diff $sg->view_for_class($simple), $view,
 my $insert = q{CREATE RULE insert_simple AS
 ON INSERT TO simple DO INSTEAD (
   INSERT INTO _simple (id, uuid, state, name, description)
-  VALUES (NEXTVAL('seq_kinetic'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.name, NEW.description);
+  VALUES (NEXTVAL('seq_simple'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.name, NEW.description);
 );
 };
 eq_or_diff $sg->insert_for_class($simple), $insert,
@@ -151,7 +154,8 @@ eq_or_diff $sg->delete_for_class($simple), $delete,
 eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($simple) ) ),
   left_justify(
     join (
-        "\n", $table, $indexes, $constraints, $view, $insert, $update, $delete
+        "\n", $seq, $table, $indexes, $constraints, $view, $insert, $update,
+        $delete
     )
   ),
   "... Schema class generates complete schema";
@@ -161,6 +165,11 @@ eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($simple) ) ),
 ok my $one = Kinetic::Meta->for_key('one'), "Get one class";
 is $one->key,   'one',        "... One class has key 'one'";
 is $one->table, 'simple_one', "... One class has table 'simple_one'";
+
+# Check that the CREATE SEQUENCE statement is correct.
+$seq = '';
+is $sg->sequence_for_class($one), $seq,
+    '... There should be no sequence for an inheriting class';
 
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE simple_one (
@@ -199,10 +208,10 @@ eq_or_diff $sg->view_for_class($one), $view,
 $insert = q{CREATE RULE insert_one AS
 ON INSERT TO one DO INSTEAD (
   INSERT INTO _simple (id, uuid, state, name, description)
-  VALUES (NEXTVAL('seq_kinetic'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.name, NEW.description);
+  VALUES (NEXTVAL('seq_simple'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.name, NEW.description);
 
   INSERT INTO simple_one (id, bool)
-  VALUES (CURRVAL('seq_kinetic'), NEW.bool);
+  VALUES (CURRVAL('seq_simple'), NEW.bool);
 );
 };
 eq_or_diff $sg->insert_for_class($one), $insert,
@@ -243,6 +252,10 @@ eq_or_diff join ( "\n", $sg->schema_for_class($one) ),
 ok my $two = Kinetic::Meta->for_key('two'), "Get two class";
 is $two->key,   'two',        "... Two class has key 'two'";
 is $two->table, 'simple_two', "... Two class has table 'simple_two'";
+
+# Check that the CREATE SEQUENCE statement is correct.
+is $sg->sequence_for_class($two), $seq,
+    '... There should be no sequence for an inheriting class';
 
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE simple_two (
@@ -360,10 +373,10 @@ eq_or_diff $sg->view_for_class($two), $view,
 $insert = q{CREATE RULE insert_two AS
 ON INSERT TO two DO INSTEAD (
   INSERT INTO _simple (id, uuid, state, name, description)
-  VALUES (NEXTVAL('seq_kinetic'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.name, NEW.description);
+  VALUES (NEXTVAL('seq_simple'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.name, NEW.description);
 
   INSERT INTO simple_two (id, one_id, age, date)
-  VALUES (CURRVAL('seq_kinetic'), NEW.one__id, NEW.age, NEW.date);
+  VALUES (CURRVAL('seq_simple'), NEW.one__id, NEW.age, NEW.date);
 );
 };
 eq_or_diff $sg->insert_for_class($two), $insert,
@@ -398,7 +411,8 @@ eq_or_diff $sg->delete_for_class($two), $delete,
 eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($two) ) ),
   left_justify(
     join (
-        "\n", $table, $indexes, $constraints, $view, $insert, $update, $delete
+        "\n", $table, $indexes, $constraints, $view, $insert, $update,
+        $delete
     )
   ),
   "... Schema class generates complete schema";
@@ -409,9 +423,14 @@ ok my $relation = Kinetic::Meta->for_key('relation'), "Get relation class";
 is $relation->key,   'relation',  "... Relation class has key 'relation'";
 is $relation->table, '_relation', "... Relation class has table '_relation'";
 
+# Check that the CREATE SEQUENCE statement is correct.
+$seq = "CREATE SEQUENCE seq_relation;\n";
+is $sg->sequence_for_class($relation), $seq,
+    '... Schema class generates CREATE SEQUENCE statement';
+
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE _relation (
-    id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
+    id INTEGER NOT NULL DEFAULT NEXTVAL('seq_relation'),
     uuid UUID NOT NULL DEFAULT UUID_V4(),
     state STATE NOT NULL DEFAULT 1,
     one_id INTEGER NOT NULL,
@@ -485,7 +504,7 @@ eq_or_diff $sg->view_for_class($relation), $view,
 $insert = q{CREATE RULE insert_relation AS
 ON INSERT TO relation DO INSTEAD (
   INSERT INTO _relation (id, uuid, state, one_id, simple_id)
-  VALUES (NEXTVAL('seq_kinetic'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.one__id, NEW.simple__id);
+  VALUES (NEXTVAL('seq_relation'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.one__id, NEW.simple__id);
 );
 };
 eq_or_diff $sg->insert_for_class($relation), $insert,
@@ -516,7 +535,8 @@ eq_or_diff $sg->delete_for_class($relation), $delete,
 eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($relation) ) ),
   left_justify(
     join (
-        "\n", $table, $indexes, $constraints, $view, $insert, $update, $delete
+        "\n", $seq, $table, $indexes, $constraints, $view, $insert, $update,
+        $delete
     )
   ),
   "... Schema class generates complete schema";
@@ -527,9 +547,14 @@ ok my $composed = Kinetic::Meta->for_key('composed'), "Get composed class";
 is $composed->key,   'composed',  "... Composed class has key 'composed'";
 is $composed->table, '_composed', "... Composed class has table '_composed'";
 
+# Check that the CREATE SEQUENCE statement is correct.
+$seq = "CREATE SEQUENCE seq_composed;\n";
+is $sg->sequence_for_class($composed), $seq,
+    '... Schema class generates CREATE SEQUENCE statement';
+
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE _composed (
-    id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
+    id INTEGER NOT NULL DEFAULT NEXTVAL('seq_composed'),
     uuid UUID NOT NULL DEFAULT UUID_V4(),
     state STATE NOT NULL DEFAULT 1,
     one_id INTEGER
@@ -594,7 +619,7 @@ eq_or_diff $sg->view_for_class($composed), $view,
 $insert = q{CREATE RULE insert_composed AS
 ON INSERT TO composed DO INSTEAD (
   INSERT INTO _composed (id, uuid, state, one_id)
-  VALUES (NEXTVAL('seq_kinetic'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.one__id);
+  VALUES (NEXTVAL('seq_composed'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.one__id);
 );
 };
 eq_or_diff $sg->insert_for_class($composed), $insert,
@@ -625,7 +650,8 @@ eq_or_diff $sg->delete_for_class($composed), $delete,
 eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($composed) ) ),
   left_justify(
     join (
-        "\n", $table, $indexes, $constraints, $view, $insert, $update, $delete
+        "\n", $seq, $table, $indexes, $constraints, $view, $insert, $update,
+        $delete
     )
   ),
   "... Schema class generates complete schema";
@@ -636,9 +662,14 @@ ok my $comp_comp = Kinetic::Meta->for_key('comp_comp'), "Get comp_comp class";
 is $comp_comp->key,   'comp_comp',  "... CompComp class has key 'comp_comp'";
 is $comp_comp->table, '_comp_comp', "... CompComp class has table 'comp_comp'";
 
+# Check that the CREATE SEQUENCE statement is correct.
+$seq = "CREATE SEQUENCE seq_comp_comp;\n";
+is $sg->sequence_for_class($comp_comp), $seq,
+    '... Schema class generates CREATE SEQUENCE statement';
+
 # Check that the CREATE TABLE statement is correct.
 $table = q{CREATE TABLE _comp_comp (
-    id INTEGER NOT NULL DEFAULT NEXTVAL('seq_kinetic'),
+    id INTEGER NOT NULL DEFAULT NEXTVAL('seq_comp_comp'),
     uuid UUID NOT NULL DEFAULT UUID_V4(),
     state STATE NOT NULL DEFAULT 1,
     composed_id INTEGER NOT NULL
@@ -704,7 +735,7 @@ eq_or_diff $sg->view_for_class($comp_comp), $view,
 $insert = q{CREATE RULE insert_comp_comp AS
 ON INSERT TO comp_comp DO INSTEAD (
   INSERT INTO _comp_comp (id, uuid, state, composed_id)
-  VALUES (NEXTVAL('seq_kinetic'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.composed__id);
+  VALUES (NEXTVAL('seq_comp_comp'), COALESCE(NEW.uuid, UUID_V4()), NEW.state, NEW.composed__id);
 );
 };
 eq_or_diff $sg->insert_for_class($comp_comp), $insert,
@@ -735,7 +766,8 @@ eq_or_diff $sg->delete_for_class($comp_comp), $delete,
 eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($comp_comp) ) ),
   left_justify(
     join (
-        "\n", $table, $indexes, $constraints, $view, $insert, $update, $delete
+        "\n", $seq, $table, $indexes, $constraints, $view, $insert, $update,
+        $delete
     )
   ),
   "... Schema class generates complete schema";
