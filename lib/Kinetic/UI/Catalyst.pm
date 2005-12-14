@@ -23,9 +23,10 @@ use Catalyst qw/
 our $VERSION = '0.01';
 
 __PACKAGE__->config(
-    name             => 'Kinetic Catalyst Interface',
-    'V::TToolkit' =>
-      { INCLUDE_PATH => __PACKAGE__->path_to('www/templates/tt') },
+    name            => 'Kinetic Catalyst Interface',
+    'V::TToolkit'  => {
+        INCLUDE_PATH => __PACKAGE__->path_to('www/templates/tt')
+    },
     authentication => {
         users => {
             ovid   => { password => 'divo' },
