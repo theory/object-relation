@@ -1,0 +1,3 @@
+<p>Project is "[% c.config.name %]"</p>
+
+<p>[% message %]</p>
