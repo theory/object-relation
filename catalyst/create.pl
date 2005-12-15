@@ -15,7 +15,7 @@ GetOptions(
 
 pod2usage(1) if ( $help || !$ARGV[0] );
 
-my $helper = Catalyst::Helper->new( { '.newfiles' => !$force } );
+my $helper = Catalyst::Helper->new( { '.newfiles' => !$force, short => 1 } );
 
 pod2usage(1) unless $helper->mk_component( 'Kinetic::UI::Catalyst', @ARGV );
 

@@ -1,0 +1,8 @@
+[% 
+   WRAPPER 'shared/main.tt'
+   title = 'Welcome to ' _  c.config.name
+%]
+<div class="search">
+  <p>Please click on one of the links to the left</p>
+</div>
+[% END %]

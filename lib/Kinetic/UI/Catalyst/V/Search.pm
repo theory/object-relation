@@ -1,18 +1,11 @@
-package Kinetic::UI::Catalyst::V::TToolkit;
+package Kinetic::UI::Catalyst::V::Search;
 
 use strict;
 use base 'Catalyst::View::TT';
 
-#sub process : Private {
-#    my $self = shift;
-#    use Data::Dumper;
-#    $_[0]->log->debug(Dumper($self->template));
-#    $self->NEXT::process(@_);
-#}
-
 =head1 NAME
 
-Kinetic::UI::Catalyst::V::TToolkit - TT View Component
+Kinetic::UI::Catalyst::V::Search - TT View Component
 
 =head1 SYNOPSIS
 

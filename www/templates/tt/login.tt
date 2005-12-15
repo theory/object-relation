@@ -1,31 +1,33 @@
-<form action="/login" method="post">
-<fieldset>
-  <legend>Login ...</legend>
-
-  <table>
-    <tr>
-      <td>User:</td>
-      <td>
-        <input type="text" name="username"/>
-        [% IF message %]
-          <span style="color:red">[% message %]</span>
-        [% END %]
-      </td>
-    </tr>
-    <tr>
-      <td>Password:</td>
-      <td><input type="password" name="password"/></td>
-    </tr>
-    <tr>
-      <td colspan="2"><input type="submit"/></td>
-    </tr>
-  </table>
-</fieldset>
-</form>
-
-
-[% IF ! c.req.user %]
-<script>
-        document.forms[0].username.focus();
-</script>
+[% 
+   WRAPPER 'shared/main.tt'
+   title = 'Please login' 
+%]
+  <div class="listing">
+    <form action="/login" method="post">
+      <fieldset>
+        <legend>Login</legend>
+        <table>
+          <tr>
+            <td>User:</td>
+            <td>
+              <input type="text" name="username"/>
+              [% IF message %]
+                <span style="color:red">[% message %]</span>
+              [% END %]
+            </td>
+          </tr>
+          <tr>
+            <td>Password:</td>
+            <td><input type="password" name="password"/></td>
+          </tr>
+          <tr>
+            <td colspan="2"><input type="submit" value="Login"/></td>
+          </tr>
+        </table>
+      </fieldset>
+    </form>
+  </div>
+  [% IF ! c.req.user %]
+  <script>document.forms[0].username.focus();</script>
+  [% END %]
 [% END %]

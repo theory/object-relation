@@ -2,6 +2,16 @@ package Kinetic::UI::Catalyst;
 
 use strict;
 use warnings;
+use aliased 'Kinetic::Build::Schema';
+
+my $schema;
+
+BEGIN {
+
+    # XXX this needs to be externally configurable
+    $schema = Schema->new;
+    $schema->load_classes('t/sample/lib');
+}
 
 #
 # Set flags and add plugins for the application
@@ -23,10 +33,13 @@ use Catalyst qw/
 our $VERSION = '0.01';
 
 __PACKAGE__->config(
-    name            => 'Kinetic Catalyst Interface',
-    'V::TToolkit'  => {
-        INCLUDE_PATH => __PACKAGE__->path_to('www/templates/tt')
-    },
+    name    => 'Kinetic Catalyst Interface',
+    classes => [
+        grep { !Kinetic::Meta->for_key($_)->abstract }
+          sort Kinetic::Meta->keys
+    ],
+    'V::TToolkit' =>
+      { INCLUDE_PATH => __PACKAGE__->path_to('www/templates/tt') },
     authentication => {
         users => {
             ovid   => { password => 'divo' },
@@ -73,7 +86,9 @@ sub default : Private {
     my ( $self, $c ) = @_;
 
     # Hello World
-    $c->response->body( $c->welcome_message );
+    #$c->response->body( $c->welcome_message );
+    $c->stash->{template} = 'default.tt';
+    $c->forward('Kinetic::UI::Catalyst::V::TToolkit');
 }
 
 #

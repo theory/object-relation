@@ -1,0 +1,17 @@
+[% 
+   WRAPPER 'shared/main.tt'
+   title = 'Search' 
+%]
+  [% USE Renderer %]
+  <div class="search">
+    <p>[% search_key %]</p>
+    <table>
+      [% FOREACH attr = class.attributes %]
+      <tr>
+        <td>[% attr.name %]</td>
+        <td>[% Renderer.render(attr) %]</td>
+      </tr>
+      [% END %]
+    </table>
+  <div>
+[% END %]

@@ -39,8 +39,11 @@ sub login : Local {
         $c->forward('Kinetic::UI::Catalyst::V::TToolkit');
     }
     else {
+        if ( $c->session->{referer} =~ m{^/?login} ) {
+            $c->session->{referer} = '/';
+        }
         $c->log->debug('login succeeded');
-        $c->res->redirect($c->session->{referer});
+        $c->res->redirect( $c->session->{referer} || '/' );
     }
 }
 

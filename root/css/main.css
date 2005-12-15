@@ -1,0 +1,88 @@
+body {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    color: #202060;
+}
+
+a {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    line-height: 14px;
+    text-decoration: none;
+    color: #800000;
+}
+
+a:hover {
+    color: #FF0000;
+}
+
+a.menu {
+    white-space:nowrap;
+}
+
+a.menu:hover {
+    color: #FF0000;
+}
+
+a.menuselect {
+    font-weight: bold;
+    color: #202060;
+    white-space:nowrap;
+}
+
+a.menuselect:hover {
+    font-weight: bold;
+    color: #FF0000;
+}
+
+.search, .listing, .pages {
+    padding-right:    5px;
+    padding-left:     5px;
+    margin-bottom:    2px;
+    margin-top:       2px;
+    margin-left:      180px; /* see sidebar */
+    -moz-border-radius: 10px;
+}
+
+.search, .listing {
+    padding-bottom:   5px;
+    padding-top:      5px;
+}
+
+.search, .pages {
+    color:            #202060;
+    background-color: #eeeeee;
+}
+
+.listing {
+    text-align:       left;
+    color:            #202060;
+    background-color: #C0C0C0;
+}
+
+#sidebar {
+    margin-bottom:    2px;
+    width:            176px;
+    float:            left;
+    background-color: #C0C0C0;
+    -moz-border-radius: 10px;
+}
+
+/*
+    Alternating colors for table rows
+*/
+
+.row_0 { background-color: #aaaaaa }
+.row_1 { background-color: #eeeeee }
+
+/*
+    Make first letter of header uppercase
+*/
+
+.header:first-letter { text-transform: uppercase }
+.header {
+    color:            white;
+    background-color: black;
+    font-size:        16px;
+}
+
