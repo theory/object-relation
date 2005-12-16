@@ -189,7 +189,10 @@ sub _add_delegates {
         ),
     );
 
-    # XXX Kinetic::Meta::Class::Schema->parents doesn't work!
+    # XXX Kinetic::Meta::Class::Schema->parents doesn't work because it
+    # only returns non-abstract parents and, besides, doesn't figure out
+    # what they are until build() is called.
+
     my $parent  = ($class->Class::Meta::Class::parents)[0];
 
     # This isn't redundant because attributes can have been added to $class
