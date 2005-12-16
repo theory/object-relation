@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 102;
+use Test::More tests => 118;
 #use Test::More 'no_plan';
 use lib '/Users/david/dev/Kineticode/trunk/Class-Meta/lib';
 
@@ -62,6 +62,12 @@ BEGIN {
             tip  => 'Kinetic',
         )
     ), "Add attribute";
+
+    ok $km->add_method(
+        name => 'hello',
+    ), 'Add method';
+
+    sub hello { return 'hello' }
 
     ok $km->build, "Build TestThingy class";
 }
@@ -280,3 +286,26 @@ ok $ex->uuid ne $ex->thingy_uuid, 'And they should have different UUIDs';
 is_deeply [map { $_->name } $class->persistent_attributes],
           [qw(id uuid state thingy thingy_uuid thingy_state foo rank)],
     'We should get public and trusted attributes';
+
+# Make sure that methods are delegated.
+ok my $meth = $class->methods('hello'), 'Get extend hello method object';
+ok my $meth2 = $thingy_class->methods('hello'),
+    'Get thingy hello method object';
+is $meth->acts_as, $meth2, 'Extend hello should act as thingy hello';
+is $meth->delegates_to, $thingy_class,
+    'Extend hello should delegate to thingy';
+
+ok $meth = $class->methods('save'), 'Get extend save method object';
+ok $meth2 = $thingy_class->methods('save'),
+    'Get thingy save method object';
+ok !$meth->acts_as, 'Extend save should not act as anything';
+ok !$meth->delegates_to, 'Extend save should not delegate to anything';
+ok $meth = $class->methods('thingy_save'), 'Get extend thingy_save object';
+is $meth->acts_as, $meth2, 'Extend thingy_sve should act as thingy save';
+is $meth->delegates_to, $thingy_class,
+    'Extend thingy_save should delegate to thingy';
+
+can_ok $ex, 'hello';
+can_ok $ex, 'save';
+can_ok $ex, 'thingy_save';
+is $ex->hello, 'hello', 'The hello() method should dispatch to thingy';

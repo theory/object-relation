@@ -250,52 +250,6 @@ sub persistent { shift->{persistent} }
 
 ##############################################################################
 
-=head2 Instance methods
-
-=head3 raw
-
-  my $raw_value = $attr->raw($thingy);
-
-This method returns the raw value of an attribute. This value will most often
-be the same as that returned by C<get()>, but when the attribute fetched is an
-object, it might return a raw value suitable for serialization or storage in a
-database. For example, if the attribute was a C<DateTime> object, the C<get()>
-metod will return the object, but the C<raw()> method might return an ISO-8601
-formatted string using the UTC time zone, instead.
-
-=cut
-
-sub raw {
-    my $self = shift;
-    my $code = $self->{_raw} or $self->class->handle_error(
-        sprintf 'Cannot get raw value for attribute "%s"', $self->name
-    );
-    goto &$code;
-}
-
-##############################################################################
-
-=head3 bake
-
-  $attr->bake($thingy, $value);
-
-Similar to C<raw()>, this method is the corresponding mutator.  This should
-always work:
-
-  $attr->bake($thing, $attr->raw($thing));
-
-=cut
-
-sub bake {
-    my $self = shift;
-    my $code = $self->{_bake} or $self->class->handle_error(
-        sprintf 'Cannot set bake value for attribute "%s"', $self->name
-    );
-    goto &$code;
-}
-
-##############################################################################
-
 =head3 references
 
   my $references = $attr->references;
@@ -319,7 +273,7 @@ method will return the Kinetic::Meta::Class object describing that class. This
 attribute is implicitly set by Kinetic::Meta for classes that either extend
 another class or reference other classes via the "type_of" relationship. In
 those cases, Kinetic::Meta will create extra attributes to delegate to the
-attributes of the referenced or extended classes, and those attriburtes will
+attributes of the referenced or extended classes, and those attributes will
 have their C<delegates_to> attributes set accordingly.
 
 =cut
@@ -458,11 +412,14 @@ of the attribute object will be true).
 
 The attributes of the contained objects will be available via read/write
 accessors in the containing class that will simply delegate to the contained
-object. Thus a user will have implicit read/write access to an extended object
-via the delegated accessors (assuming that she has read/write permission to
-the extending object, of course), but the user's permission to access the
-contained object itself will be managed independent of the user's permissions
-to the containing object.
+object. Likewise, the methods of the contained objects will be available via
+delegating methods in the containing class. The naming conventions for each
+apply as described for the delgating accessors and methods in "type_of"
+relationships. Thus a user will have implicit read/write access to an extended
+object via the delegated accessors and methods (assuming that she has
+read/write permission to the extending object, of course), but the user's
+permission to access the contained object itself will be managed independent
+of the user's permissions to the containing object.
 
 =for StoreComment
 
@@ -491,11 +448,14 @@ between a parent element and a subelement. Like "extends", the "mediates"
 relationship assumes "once".
 
 The attributes of the contained object will be accessible via read/write
-delegation methods. The permissions evaluated for the contained object will
-implicitly be applied to the mediating object, as well, since it functions as
-an stand-in for the contained object. This design is similar in principal to
-"extends", but exists solely for the purpose of mediating specific
-relationships.
+delegation methods. Likewise, the methods of the contained objects will be
+available via delegating methods in the containing class. The naming
+conventions for each apply as described for the delgating accessors and
+methods in "type_of" relationships. The permissions evaluated for the
+contained object will implicitly be applied to the mediating object, as well,
+since it functions as an stand-in for the contained object. This design is
+similar in principal to "extends", but exists solely for the purpose of
+mediating specific relationships.
 
 =for StoreComment
 
@@ -540,6 +500,52 @@ evaluated independent of the permission granted to the containing object.
 =cut
 
 sub relationship { shift->{relationship} }
+
+##############################################################################
+
+=head2 Instance methods
+
+=head3 raw
+
+  my $raw_value = $attr->raw($thingy);
+
+This method returns the raw value of an attribute. This value will most often
+be the same as that returned by C<get()>, but when the attribute fetched is an
+object, it might return a raw value suitable for serialization or storage in a
+database. For example, if the attribute was a C<DateTime> object, the C<get()>
+metod will return the object, but the C<raw()> method might return an ISO-8601
+formatted string using the UTC time zone, instead.
+
+=cut
+
+sub raw {
+    my $self = shift;
+    my $code = $self->{_raw} or $self->class->handle_error(
+        sprintf 'Cannot get raw value for attribute "%s"', $self->name
+    );
+    goto &$code;
+}
+
+##############################################################################
+
+=head3 bake
+
+  $attr->bake($thingy, $value);
+
+Similar to C<raw()>, this method is the corresponding mutator.  This should
+always work:
+
+  $attr->bake($thing, $attr->raw($thing));
+
+=cut
+
+sub bake {
+    my $self = shift;
+    my $code = $self->{_bake} or $self->class->handle_error(
+        sprintf 'Cannot set bake value for attribute "%s"', $self->name
+    );
+    goto &$code;
+}
 
 ##############################################################################
 

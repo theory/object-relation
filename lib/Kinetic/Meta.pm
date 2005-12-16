@@ -11,6 +11,7 @@ use base 'Class::Meta';
 use Kinetic::Meta::DataTypes;
 use Kinetic::Meta::Attribute;
 use Kinetic::Meta::Class;
+use Kinetic::Meta::Method;
 use Kinetic::Util::Exceptions qw(throw_exlib throw_invalid_class);
 use Class::Meta::Types::String; # Move to DataTypes.
 
@@ -126,6 +127,7 @@ sub new {
         @_,
         class_class     => $pkg->class_class,
         attribute_class => $pkg->attribute_class,
+        method_class    => $pkg->method_class,
     );
 
     my $class = $self->class;
@@ -168,72 +170,6 @@ sub new {
     return $self;
 }
 
-sub _add_delegates {
-    my ($self, $ref, $rel, $persist, $def) = @_;
-    my $class = $self->class;
-    my $key   = $ref->key;
-
-    # Add attribute for the object.
-    $self->add_attribute(
-                name => $key,
-                type => $key,
-            required => 1,
-               label => $ref->{label},
-                view => Class::Meta::TRUSTED,
-              create => Class::Meta::RDWR,
-             default => $def,
-        relationship => $rel,
-        widget_meta  => Kinetic::Meta::Widget->new(
-            type => 'search',
-            tip  => $ref->{label},
-        ),
-    );
-
-    # XXX Kinetic::Meta::Class::Schema->parents doesn't work because it
-    # only returns non-abstract parents and, besides, doesn't figure out
-    # what they are until build() is called.
-
-    my $parent  = ($class->Class::Meta::Class::parents)[0];
-
-    # This isn't redundant because attributes can have been added to $class
-    # only by _add_delegates(). It won't return any for parent classes until
-    # after build() is called, and since this is new(), the class itself
-    # hasn't declared any yet!
-    my %attrs = map { $_->name => undef }
-        $class->attributes, $parent->attributes;
-
-    # Add attributes from the extended class.
-    for my $attr ($ref->attributes) {
-        my $name      = $attr->name;
-        my $attr_name = exists $attrs{$name} ? "$key\_$name" : $name;
-
-        # I need Attribute objects on the Attribute object!
-        $self->add_attribute(
-                    name => $attr_name,
-                    type => $attr->type,
-                required => $attr->required,
-                    once => $attr->once,
-                   label => $attr->{label},
-                    desc => $attr->desc,
-                    view => $attr->view,
-                   authz => $attr->authz,
-                  create => Class::Meta::NONE,
-                 context => $attr->context,
-                 default => $attr->default,
-             widget_meta => $attr->widget_meta,
-                  unique => $attr->unique,
-                distinct => $attr->distinct,
-                 indexed => $attr->indexed,
-              persistent => $persist,
-            delegates_to => $ref,
-                 acts_as => $attr,
-        );
-        # Delegation methods are created by Kinetic::Meta::AccessorBuilder.
-    }
-
-    return $self;
-}
-
 ##############################################################################
 
 =head2 Class Attributes
@@ -265,7 +201,7 @@ sub class_class {
   my $attribute_class = Kinetic::Meta->attribute_class;
   Kinetic::Meta->attribute_class($attribute_class);
 
-The subclass or Class::Meta::attribue that will be used to represent attribute
+The subclass or Class::Meta::Attribute that will be used to represent attribute
 objects. The value of this class attribute is only used at startup time when
 classes are loaded, so if you want to change it form the default, which is
 "Kinetic::Meta::Attribute", do it before you load any Kinetic classes.
@@ -278,6 +214,28 @@ sub attribute_class {
     shift;
     return $attribute_class unless @_;
     $attribute_class = shift;
+}
+
+##############################################################################
+
+=head3 method_class
+
+  my $method_class = Kinetic::Meta->method_class;
+  Kinetic::Meta->method_class($method_class);
+
+The subclass or Class::Meta::Method that will be used to represent method
+objects. The value of this class method is only used at startup time when
+classes are loaded, so if you want to change it form the default, which is
+"Kinetic::Meta::Method", do it before you load any Kinetic classes.
+
+=cut
+
+my $method_class = 'Kinetic::Meta::Method';
+
+sub method_class {
+    shift;
+    return $method_class unless @_;
+    $method_class = shift;
 }
 
 ##############################################################################
@@ -305,6 +263,150 @@ sub for_key {
         $key
     ];
 }
+
+##############################################################################
+
+=begin private
+
+=head1 Private Interface
+
+=head2 Private Instance Methods
+
+=head3 _add_delegates
+
+  $km->_add_delegates($ref, $rel, $persist, $default);
+
+This method is called by C<new()> to add delegating attributes to a
+Kinetic::Meta::Class that extends, mediates, or is a type of another class.
+The arguments are as follows:
+
+=over
+
+=item 1 $ref
+
+The first argument is a Kinetic::Meta::Class object representing the class
+that the current class references for the relationship.
+
+=item 2 $rel
+
+The second argument is a string denoting the type of relationship, one of
+"extends", "mediates", or "type_of".
+
+=item 3 $persist
+
+A boolean value indicating whether the attributes should be persistent or not.
+Only "type_of" attributes should not be persistent.
+
+=item 4 $default
+
+The default value for the attribute, if any.
+
+=back
+
+=cut
+
+sub _add_delegates {
+    my ($self, $ref, $rel, $persist, $def) = @_;
+    my $class = $self->class;
+    my $key   = $ref->key;
+
+    # Add attribute for the object.
+    $self->add_attribute(
+                name => $key,
+                type => $key,
+            required => 1,
+               label => $ref->{label},
+                view => Class::Meta::TRUSTED,
+              create => Class::Meta::RDWR,
+             default => $def,
+        relationship => $rel,
+        widget_meta  => Kinetic::Meta::Widget->new(
+            type => 'search',
+            tip  => $ref->{label},
+        ),
+    );
+
+    # XXX Kinetic::Meta::Class::Schema->parents doesn't work because it
+    # only returns non-abstract parents and, besides, doesn't figure out
+    # what they are until build() is called.
+
+    my $parent = ($class->Class::Meta::Class::parents)[0];
+
+    # This isn't redundant because attributes can have been added to $class
+    # only by _add_delegates(). It won't return any for parent classes until
+    # after build() is called, and since this is new(), the class itself
+    # hasn't declared any yet!
+    my %attrs = map { $_->name => undef }
+        $class->attributes, $parent->attributes;
+
+    # Add attributes from the extended class.
+    for my $attr ($ref->attributes) {
+        my $name      = $attr->name;
+        my $attr_name = exists $attrs{$name} ? "$key\_$name" : $name;
+
+        # Create a new attribute that references the original attribute.
+        $self->add_attribute(
+                    name => $attr_name,
+                    type => $attr->type,
+                required => $attr->required,
+                    once => $attr->once,
+                   label => $attr->{label},
+                    desc => $attr->desc,
+                    view => $attr->view,
+                   authz => $attr->authz,
+                  create => Class::Meta::NONE,
+                 context => $attr->context,
+                 default => $attr->default,
+             widget_meta => $attr->widget_meta,
+                  unique => $attr->unique,
+                distinct => $attr->distinct,
+                 indexed => $attr->indexed,
+              persistent => $persist,
+            delegates_to => $ref,
+                 acts_as => $attr,
+        );
+        # Delegation methods are created by Kinetic::Meta::AccessorBuilder.
+    }
+
+    if ($persist) {
+        # Copy over the methods, too.
+        my $pack = $class->package;
+        my %meths = map { $_->name => undef }
+            $class->methods, $parent->methods;
+
+        for my $meth ($ref->methods) {
+            my $name      = $meth->name;
+            my $meth_name = exists $meths{$name} ? "$key\_$name" : $name;
+
+            $self->add_method(
+                       name => $meth_name,
+                       label => $meth->{label},
+                        desc => $meth->desc,
+                        view => $meth->view,
+                     context => $meth->context,
+                        args => $meth->args,
+                     returns => $meth->returns,
+                delegates_to => $ref,
+                     acts_as => $meth,
+            );
+
+            # Create the delegating method.
+            no strict 'refs';
+            *{"$pack\::$meth_name"} = eval qq{
+                sub {
+                    my \$o = shift->$key or return;
+                    \$o->$name(\@_);
+                }
+            };
+        }
+    }
+
+    return $self;
+}
+
+=end private
+
+=cut
 
 1;
 __END__
