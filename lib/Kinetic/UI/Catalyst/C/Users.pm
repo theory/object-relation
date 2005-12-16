@@ -4,6 +4,9 @@ use strict;
 use warnings;
 use base 'Catalyst::Controller';
 
+use version;
+our $VERSION = version->new('0.0.1');
+
 =head1 NAME
 
 Kinetic::UI::Catalyst::C::Users - Catalyst Controller
@@ -17,6 +20,16 @@ See L<Kinetic::UI::Catalyst>
 Catalyst Controller.
 
 =head1 METHODS
+
+=cut
+
+##############################################################################
+
+=head2 greet
+
+  $c->forward('Kinetic::UI::Catalyst::C::Users', 'greet');
+
+Greets the users.  This is for testing and will be removed.
 
 =cut
 
@@ -34,6 +47,14 @@ sub greet : Local {
     }
     $context->stash->{template} = 'greet.tt';
 }
+
+##############################################################################
+
+=head2 end 
+
+Default 'end' action.
+
+=cut
 
 sub end : Private {
     my ( $self, $context ) = @_;

@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use diagnostics;
 
-use Test::More tests => 394;
+use Test::More tests => 402;
 use File::Spec;
 use File::Find;
 

@@ -675,7 +675,7 @@ sub _extend_for_class {
 
   my $sql = $kbs->_insert_into_table($class, $seq_code);
 
-Used by C<_insert_for_class() and C<_extend_for_class()>, this method is used
+Used by C<_insert_for_class()> and C<_extend_for_class()>, this method is used
 to generate the C<INSERT> statement used by a C<RULE> to C<INSERT> into a
 table when inserting into a C<VIEW> that represents a class. The $seq_code
 argument should be a string representing the SQL code to generate the ID for

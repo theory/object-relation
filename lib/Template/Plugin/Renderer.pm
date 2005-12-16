@@ -24,8 +24,9 @@ use warnings;
 use version;
 our $VERSION = version->new('0.0.1');
 
+use HTML::Entities qw/encode_entities/;
+
 use base 'Template::Plugin';
-use aliased 'Kinetic';
 use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Meta::Attribute';
 use Kinetic::Util::Exceptions qw/
@@ -34,24 +35,14 @@ use Kinetic::Util::Exceptions qw/
   throw_unimplemented
   /;
 
-=head1 Name
+=head1 NAME
 
-Kinetic::Render - Render Kinetic objects for different views
+Template::Plugin::Renderer - Render Kinetic object attributes
 
 =head1 Synopsis
 
-  use Kinetic::Render;
-  my $render = Kinetic::Render->new( { 
-    view   => 'read',  # or 'write'
-  } );
-  my $html   = $render->render($kinetic_object);
-
-  my $class  = $kinetic_object->my_class;
-  
-  $render->view('write'); # for editing
-  foreach my $attr ($class->attributes) {
-    $render->render($attr);
-  }
+ [% USE Renderer %]
+ [% Renderer.render(attr) %]
 
 =head1 Description
 
@@ -62,39 +53,29 @@ and is not suitable for serialization/deserialization.
 =cut
 
 ##############################################################################
-# Constructors
-##############################################################################
-
-=head2 Constructors
 
 =head3 new
 
-  my $xml = Kinetic::Render->new({ format => 'html' });
+ [% USE Renderer %]
 
-Creates and returns a new format object.  Requires a hashref as an argument.
-The key C<format> in the hashref must be a valid format with the Kinetic
-Platform supports.  Currently supported formats are:
-
-=over 4 
-
-=item * html
-
-=back
+The constructor is automatically called by Template Toolkit.
 
 =cut
 
 sub new {
-    my ( $class, %args ) = @_;
-    bless \%args, $class;    # XXX tighten this up later
+    my ( $class, $template_context ) = @_;
+    bless { context => $template_context },
+      $class;    # XXX tighten this up later
 }
 
 ##############################################################################
 
 =head3 render
 
-  my $render = $renderer->render($object);
+  my $render = $renderer->render($attribute);
 
-Render the L<Kinetic|Kinetic> object in the desired format.
+Render the L<Kinetic|Kinetic> object attribute according to its
+L<Kinetic::Meta::Widget|Kinetic::Meta::Widget> information.
 
 =cut
 
@@ -107,18 +88,24 @@ my %renderer_for = (
     textarea => \&_render_textarea,
 );
 
+sub _context { shift->{context} }
+
 sub render {
+    # eventually we'll have to handle 'view' mode
     my $self   = shift;
     my $object = shift;
-    if (@_) {
-        return $self->_render_attribute( $object, shift );
-    }
-    elsif ( $object->isa(Attribute) ) {
+    if ( $object->isa(Attribute) ) {
         my $widget = $object->widget_meta;
         my $type = $widget ? $widget->type : '';
-        my $renderer = $renderer_for{$type};
-        return '<input type="text">' unless $renderer; # XXX warn?
-        return $self->$renderer($object, $widget);
+        if ( my $renderer = $renderer_for{$type} ) {
+            return $self->$renderer($object);
+        }
+        else {
+            throw_fatal [
+                'Could not determine widget type handler for "[_1]"',
+                $object->name
+            ];
+        }
     }
     else {
 
@@ -128,83 +115,85 @@ sub render {
     }
 }
 
-sub _render_attribute {
-    my ( $self, $object, $attr ) = @_;
-    return $attr->get($object);
-}
-
 sub _render_calendar {
-    my ($self, $attribute, $widget) = @_;
-    my $type = $widget->type;
-    return '<input type="text"> ' . $type;
+    my ( $self, $attribute, $object ) = @_;
+    my $w    = $attribute->widget_meta;
+    my $type = $w->type;
+    my $name    = encode_entities( $attribute->name );
+    return <<"    END_CALENDAR"
+    <input name="$name" id="$name" type="text"/>
+    <input id="${name}_trigger" type="image" src="/images/calendar/calendar.gif"/>
+    <script type="text/javascript">
+      Calendar.setup({
+        inputField  : "$name",             // ID of the input field
+        ifFormat    : "%Y-%m-%dT00:00:00", // the date format
+        button      : "${name}_trigger"    // ID of the button
+      });
+    </script>
+    END_CALENDAR
 }
 
 sub _render_checkbox {
-    my ($self, $attribute, $widget) = @_;
-    my $type = $widget->type;
-    return '<input type="text"> ' . $type;
+    my ( $self, $attribute, $object ) = @_;
+    my $w       = $attribute->widget_meta;
+    my $name    = encode_entities( $attribute->name );
+    my $checked = $w->checked ? ' checked="checked"' : '';
+    return qq{<input name="$name" type="checkbox"$checked/>};
 }
 
 sub _render_dropdown {
-    my ($self, $attribute, $widget) = @_;
-    my $type = $widget->type;
-    return '<input type="text"> ' . $type;
+    my ( $self, $attribute, $object ) = @_;
+    my $w    = $attribute->widget_meta;
+    my $name = encode_entities( $attribute->name );
+    my $html = qq{<select name="$name">\n};
+    foreach my $option ( @{ $w->options } ) {
+        my ( $value, $name )
+          = ( encode_entities( $option->[0] ),
+            encode_entities( $option->[1] ) );
+        $html .= qq{  <option value="$value">$name</option>\n};
+    }
+    return $html . '</select>';
 }
 
 sub _render_search {
-    my ($self, $attribute, $widget) = @_;
-    my $type = $widget->type;
+    my ( $self, $attribute, $object ) = @_;
+    my $w    = $attribute->widget_meta;
+    my $type = $w->type;
     return '<input type="text"> ' . $type;
 }
 
 sub _render_text {
-    my ($self, $attribute, $widget) = @_;
-    my $type = $widget->type;
-    return '<input type="text"> ' . $type;
+    my ( $self, $attribute, $object ) = @_;
+    my $w      = $attribute->widget_meta;
+    my $name   = encode_entities( $attribute->name );
+    my $tip    = encode_entities( $w->tip || '' );
+    my $size   = $w->size || 40;
+    my $length = $w->length || $size;
+    return
+      qq{<input name="$name" type="text" size="$size" maxlength="$length" tip="$tip"/>};
 }
 
 sub _render_textarea {
-    my ($self, $attribute, $widget) = @_;
-    my $type = $widget->type;
-    return '<input type="text"> ' . $type;
+    my ( $self, $attribute, $object ) = @_;
+    my $w    = $attribute->widget_meta;
+    my $rows = $w->rows || 4;
+    my $cols = $w->cols || 40;
+    my $name = encode_entities( $attribute->name );
+    my $tip  = encode_entities( $w->tip || '' );
+    return
+      qq{<textarea name="$name" rows="$rows" cols="$cols" tip="$tip"></textarea>};
 }
 
 1;
 
 __END__
 
-=head1 IMPLEMENTING A NEW FORMAT
+=head1 RENDERING
 
-Adding a new format is as simple as implementing the format with the format
-name as the class name upper case, appended to C<Kinetic::Render>:
+Rendering a new object attribute is as simple as:
 
- package Kinetic::Render::HTML;
-
-Factory classes must meet the following conditions:
-
-=over 4
-
-=item * Inherit from L<Kinetic::Render>.
-
-The factory class should inherit from C<Kinetic::Render>. 
-
-=item * C<new> is optional.
-
-A constructor should not be supplied, but if it is, it should be named C<new>
-and should call the super class constructor.
-
-=item * Implement C<_init> method.
-
-It should have an C<_init> method which sets up special properties, if any, of
-the class.  If an init method is present, it should accept an optional hash
-reference of properties necessary for the class and return a single argument.
-
-=item * Implement C<format_to_ref> and C<ref_to_format> methods.
-
-The input and output is described in this document.  Implementation behavior
-is up to the implementor.
-
-=back
+ [% USE Renderer %]
+ [% Renderer.render(attr) %]
 
 =head1 Copyright and License
 

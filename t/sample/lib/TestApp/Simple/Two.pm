@@ -40,6 +40,10 @@ BEGIN {
         type     => 'whole',
         label    => 'Age',
         default  => undef,
+        widget_meta   => Kinetic::Meta::Widget->new(
+            type => 'text',
+            tip  => 'Age',
+        )
     );
 
     $km->add_attribute(

@@ -4,6 +4,9 @@ use strict;
 use warnings;
 use base 'Catalyst::Controller';
 
+use version;
+our $VERSION = version->new('0.0.1');
+
 =head1 NAME
 
 Kinetic::UI::Catalyst::C::Search - Catalyst Controller
@@ -20,19 +23,16 @@ Catalyst Controller.
 
 =cut
 
-#
-# Uncomment and modify this or add new actions to fit your needs
-#
-#=head2 default
-#
-#=cut
-#
-#sub default : Private {
-#    my ( $self, $c ) = @_;
-#
-#    # Hello World
-#    $c->response->body('Kinetic::UI::Catalyst::C::Search is on Catalyst!');
-#}
+##############################################################################
+
+=head2 search
+
+  $c->forward('Kinetic::UI::Catalyst::C::Search', 'search');
+
+For a URL in the form C</search/$class_key>, this method will set the search
+template and class key.
+
+=cut
 
 sub search : Regex('^search/([[:alpha:]][[:word:]]*)$') {
     my ( $self, $c ) = @_;

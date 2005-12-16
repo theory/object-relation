@@ -4,6 +4,9 @@ use strict;
 use warnings;
 use base 'Catalyst::Controller';
 
+use version;
+our $VERSION = version->new('0.0.1');
+
 =head1 NAME
 
 Kinetic::UI::Catalyst::C::Login - Catalyst Controller
@@ -20,13 +23,17 @@ Catalyst Controller.
 
 =cut
 
-#
-# Uncomment and modify this or add new actions to fit your needs
-#
-#=head2 default
-#
-#=cut
-#
+##############################################################################
+
+=head2 login
+
+  $c->forward("Kinetic::UI::Catalyst::C::Login", 'login');
+
+This method automatically checks authentication and attempts to log the user
+in.  If successful, forwards them to the referring page.  Otherwise, returns
+them to the login screen.
+
+=cut
 
 sub login : Local {
     my ( $self, $c ) = @_;

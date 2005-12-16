@@ -151,6 +151,9 @@ our %Lexicon;
         'Value "[_1]" is not a UUID',
         'Value “[_1]” is not a UUID',
 
+        'Could not determine widget type handler for "[_1]"',
+        'Could not determine widget type handler for “[_1]”',
+
         'Attribute must be defined',
         'Attribute must be defined',
 
@@ -210,6 +213,9 @@ our %Lexicon;
 
         'Error saving to data store: [_1]',
         'Error saving to data store: [_1]',
+
+        'Non-persistent temporary object storage',
+        'Non-persistent temporary object storage',
 
         'I could not find uuid "[_1]" in data store for the [_2] class',
         'I could not find UUID “[_1]” in the data store for the [_2] class',

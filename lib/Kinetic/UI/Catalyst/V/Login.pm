@@ -3,6 +3,10 @@ package Kinetic::UI::Catalyst::V::Login;
 use strict;
 use base 'Catalyst::View::TT';
 
+use version;
+our $VERSION = version->new('0.0.1');
+
+
 =head1 NAME
 
 Kinetic::UI::Catalyst::V::Login - TT View Component

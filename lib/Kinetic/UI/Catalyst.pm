@@ -4,6 +4,9 @@ use strict;
 use warnings;
 use aliased 'Kinetic::Build::Schema';
 
+use version;
+our $VERSION = version->new('0.0.1');
+
 my $schema;
 
 BEGIN {
@@ -19,8 +22,18 @@ BEGIN {
 #         -Debug: activates the debug mode for very useful log messages
 # Static::Simple: will serve static files from the applications root directory
 #
-use Catalyst qw/
-  -Debug
+
+my @DEBUG;
+
+BEGIN {
+    unless ( $ENV{HARNESS_ACTIVE} ) {
+        # Don't display debugging information when running tests
+        # We'll eventually want to have finer-grained control over this
+        @DEBUG = '-Debug';
+    }
+}
+
+use Catalyst @DEBUG, qw/
   Authentication
   Authentication::Store::Minimal
   Authentication::Credential::Password
@@ -29,8 +42,6 @@ use Catalyst qw/
   Session::State::Cookie
   Static::Simple
   /;
-
-our $VERSION = '0.01';
 
 __PACKAGE__->config(
     name    => 'Kinetic Catalyst Interface',
@@ -65,6 +76,18 @@ Catalyst based application.
 =head1 METHODS
 
 =head2 default
+
+=cut
+
+##############################################################################
+
+=head2 begin
+
+This is the default start action for all Catalyst actions.  It checks to see
+if we have an authenticated user and, if not, forwards them to the login page.
+
+See L<Kinetic::UI::Catalyst::C::Login|Kinetic::UI::Catalyst::C::Login> for
+more information.
 
 =cut
 

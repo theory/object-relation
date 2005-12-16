@@ -574,7 +574,7 @@ END;
 
   my $sql = $kbs->_insert_into_table($class, $pk);
 
-Used by C<insert_for_class(), this method is used to generate the C<INSERT>
+Used by C<insert_for_class()>, this method is used to generate the C<INSERT>
 statement used by a trigger to C<INSERT> into tables when inserting into a
 C<VIEW> that represents a class. The only classes for which it is not used are
 those that extend another class.
@@ -745,7 +745,7 @@ sub _extending_insert {
 
   my $sql = $kbs->_update_table($class);
 
-Used by C<_update_for_class(), this method is used to generate the C<UPDATE>
+Used by C<_update_for_class()>, this method is used to generate the C<UPDATE>
 statements used by a trigger to C<UPDATE> tables when updating a C<VIEW> that
 represents a class. The only classes for which it is not used are those that
 extend another class.
@@ -775,7 +775,7 @@ sub _update_table {
 
   my $sql = $kbs->_extended_update($class, $extended);
 
-Used by C<_update_for_class(), this method is used to generate the C<UPDATE>
+Used by C<_update_for_class()>, this method is used to generate the C<UPDATE>
 statements used by a trigger to C<UPDATE> tables when updating a C<VIEW> that
 represents a class that extends another class.
 

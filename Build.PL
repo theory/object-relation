@@ -31,6 +31,7 @@ my $build = Kinetic::Build->new(
         'Class::BuildMethods'        => 0.10,
         'Class::Delegator'           => 0.04,
         'Class::Meta'                => 0.49,
+        'Class::Meta::Declare'       => 0.02,
         'Clone'                      => 0.15,
         'Data::Pageset'              => 1.01,
         'DateTime'                   => 0.24,

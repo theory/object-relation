@@ -3,6 +3,14 @@
   <head>
     <title>[% c.config.name _ ' -- ' _ title %]</title>
     <link rel="stylesheet" href="/css/main.css">
+    [%
+    # the following need to be customizable, particularly the lang
+    # pulled from http://www.dynarch.com/projects/calendar/
+    %]
+    <style type="text/css">@import url("/css/calendar-blue.css");</style>
+    <script type="text/javascript" src="/js/calendar.js"></script>
+    <script type="text/javascript" src="/js/lang/calendar-en.js"></script>
+    <script type="text/javascript" src="/js/calendar-setup.js"></script>
   </head>
   <body>
     <div id="sidebar">

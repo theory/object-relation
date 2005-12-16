@@ -3,6 +3,9 @@ package Kinetic::UI::Catalyst::V::TToolkit;
 use strict;
 use base 'Catalyst::View::TT';
 
+use version;
+our $VERSION = version->new('0.0.1');
+
 #sub process : Private {
 #    my $self = shift;
 #    use Data::Dumper;
