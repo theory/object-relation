@@ -454,20 +454,9 @@ sub dump_xml_with_resources : Test(9) {
         }
     );
 
-    # we have more resources than are defined in this test class as the test
-    # suite generates some other resources.  This does not affect the validity
-    # of the test so long as we're aware of these other classes.
-
-    # namespaces are not used as XML::Genx appears to have problems generating
-    # them correctly :(
-
-    my $resource_xml = <<'    END_RESOURCES';
-    <resource href="http://foobar/one/squery"    id="one"/>
-    <resource href="http://foobar/partof/squery" id="partof"/>
-    <resource href="http://foobar/simple/squery" id="simple"/>
-    <resource href="http://foobar/thingy/squery" id="thingy"/>
-    <resource href="http://foobar/two/squery"    id="two"/>
-    END_RESOURCES
+    my $resource_xml = join '', map {
+        sprintf '<resource href="http://foobar/%s/squery" id="%s"/>', $_, $_
+    } sort grep { !Kinetic::Meta->for_key($_)->abstract } Kinetic::Meta->keys;
 
     my $one_uuid = $one->uuid;
     is_xml $xml->dump_xml,

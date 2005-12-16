@@ -9,12 +9,12 @@ use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
 use Test::More tests => 91;
 use Test::Differences;
 
-{
+FAKESQLITE: {
     # Fake out loading of SQLite store.
     package Kinetic::Store::DB::SQLite;
+    use base 'Kinetic::Store::DB';
     use File::Spec::Functions 'catfile';
     $INC{catfile qw(Kinetic Store DB SQLite.pm)} = __FILE__;
-    sub _add_store_meta { 1 }
 }
 
 BEGIN { use_ok 'Kinetic::Build::Schema' or die };

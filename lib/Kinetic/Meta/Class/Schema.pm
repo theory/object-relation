@@ -172,11 +172,42 @@ Thus, it excludes attributes from concrete parent classes and from any
 extended classes, since they're implemented in their own tables. See
 C<parent_attributes()> to get a list of the attributes of concrete parent
 classes and C<view_attributes()> for a list of table attributes I<and>
-extended class attributes.
+extended class attributes. It also excludes the C<id> attribute, since it just
+gets in the way when building schemas.
 
 =cut
 
 sub table_attributes { @{shift->{cols}} }
+
+##############################################################################
+
+=head3 persistent_attributes
+
+  my @attrs = $class->persistent_attributes;
+
+Overrides the parent version to exclude the C<id> attribute, since it just
+gets in the way when building schemas.
+
+=cut
+
+sub persistent_attributes {
+    grep { $_->name ne 'id' } shift->SUPER::persistent_attributes(@_)
+}
+
+##############################################################################
+
+=head3 direct_attributes
+
+  my @attrs = $class->direct_attributes;
+
+Overrides the parent version to exclude the C<id> attribute, since it just
+gets in the way when building schemas.
+
+=cut
+
+sub direct_attributes {
+    grep { $_->name ne 'id' } shift->SUPER::direct_attributes(@_)
+}
 
 ##############################################################################
 
@@ -250,12 +281,15 @@ sub build {
 
 sub _col_attrs {
     my $class = shift;
-    my $extend = $class->extends or return $class->persistent_attributes;
-    # If extends, exclude delegate attrs and add extended object attrs.
-    return (
-        grep( { !$_->delegates_to } $class->persistent_attributes ),
-        $class->attributes( $extend->key )
-    );
+    if ($class->extends) {
+        # If extends, exclude delegate attrs.
+        return grep {
+            !$_->delegates_to && $_->name ne 'id'
+        } $class->persistent_attributes
+    }
+    else {
+        return grep { $_->name ne 'id' } $class->persistent_attributes
+    }
 }
 
 1;

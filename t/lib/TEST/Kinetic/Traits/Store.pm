@@ -51,7 +51,7 @@ sub mock_dbh {
 
   $test->unmock_dbh;
 
-Unmocks previously mocked database handle.  Carps if the database handle was
+Unmocks previously mocked database handle. Carps if the database handle was
 not previously mocked.
 
 =cut

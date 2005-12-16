@@ -115,14 +115,10 @@ sub test_rules : Test(29) {
     $sg->load_classes( $kbs->builder->source_dir );
     for my $class ( $sg->classes ) {
         my $view = $class->key;
-        SKIP: {
-            skip 'View extend does not appear to exist', 1,
-              if 'extend' eq $view;
-            is_deeply $dbh->selectall_arrayref(
-                "SELECT 1 FROM sqlite_master WHERE type ='view' AND name = ?",
-                {}, $view ),
-            [ [1] ], "View $view should exist";
-        }
+        is_deeply $dbh->selectall_arrayref(
+            "SELECT 1 FROM sqlite_master WHERE type ='view' AND name = ?",
+            {}, $view
+        ), [[1]], "View $view should exist";
     }
 
     # Try building the production database.

@@ -20,6 +20,7 @@ use aliased 'Kinetic::Util::State';
 
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';
+use aliased 'TestApp::Extend';
 
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->any_supported(qw/pg sqlite/)
@@ -64,7 +65,6 @@ sub test_id : Test(5) {
     ok !grep( { $_->name eq 'id' } $class->attributes ),
       "A call to attributes() should not include private attribute id";
     {
-
         package Kinetic::Store;
         Test::More::ok grep( { $_->name eq 'id' } $class->attributes ),
           "But it should include it when we mock the Kinetic::Store package";
@@ -528,6 +528,165 @@ sub constraints : Test(4) {
       ' ORDER BY foo, bar', 'even if we have multiple order by columns';
     is Store->_constraints( { order_by => 'name', sort_order => ASC } ),
       ' ORDER BY name ASC', 'and ORDER BY can be ascending or descending';
+}
+
+sub test_extend : Test(45) {
+    my $self = shift;
+    return unless $self->_should_run;
+    $self->clear_database;
+
+    # Create a One object for the Two objects to reference.
+    ok my $one = One->new(name => 'One'), 'Create a One object';
+    ok $one->save, 'Save the one object';
+
+    # Create a new Extend object without a pre-existing Two object.
+    ok my $extend = Extend->new( name => 'Extend', one => $one),
+        'Create Extend with no existing Two';
+    isa_ok $extend, Extend;
+
+    # Let's chck out the SQL that gets sent off.
+    my $mocker = Test::MockModule->new('Kinetic::Store::DB');
+    my ($sql, $vals);
+    my $do_sql = sub {
+        shift;
+        ($sql = shift) =~ s/\d+/ /g;
+        $sql =~ s/\d+$//;
+        $sql =~ s/^\d+//;
+        $vals = shift;
+    };
+    $mocker->mock(_do_sql => $do_sql);
+    $mocker->mock(_set_ids => 1);
+    ok $extend->save, 'Call the save method';
+    is $sql, 'INSERT INTO extend (id, uuid, state, two__id, two__uuid, '
+           . 'two__state, two__name, two__description, two__one__id, '
+           . 'two__age, two__date) '
+           . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'It should insert the Exend and Two data into the view';
+
+    is_deeply $vals, [
+        undef, # id
+        $extend->uuid,
+        $extend->state->value,
+        undef, # two__id
+        $extend->two_uuid,
+        $extend->two_state->value,
+        $extend->name,
+        $extend->description,
+        $extend->one->id,
+        $extend->age,
+        $extend->date,
+    ], 'It should set the proper values';;
+
+    # Now do the save for real.
+    $mocker->unmock_all;
+    ok $extend->save, 'Save the extend object';
+
+    isa_ok my $two = $extend->two, Two;
+    is $extend->one->uuid, $one->uuid,
+        'It should reference the one object';
+    is $extend->two->one->uuid, $one->uuid,
+        'The Two object should reference the One object';
+
+    # Look it up to be sure that it's the same.
+    ok $extend = Extend->lookup( uuid => $extend->uuid ),
+        'Look up the Extend object';
+    is $two->uuid, $two->uuid, 'It should still refrence the Two object';
+    is $extend->one->uuid, $one->uuid,
+        'It should still reference the one object';
+    is $extend->two->one->uuid, $one->uuid,
+        'The Two object should still reference the One object';
+
+    # Look up the Two object.
+    ok $two = Two->lookup( uuid => $two->uuid ), 'Look up the Two object';
+    is $two->uuid, $extend->two->uuid, 'The UUID should be the same';
+
+    # Make a change to the Two object.
+    ok $two->name('New Name'), 'Change Two\'s name';
+    ok $two->save, 'Save Two with new name';
+    TODO: {
+        local $TODO = 'Need to implement object caching';
+        is $extend->two->name, $two->name,
+            'The new name should be in the Extend object';
+    }
+
+    # Look up the Two object again.
+    ok $two = Two->lookup( uuid => $two->uuid ),
+        'Look up the Two object again';
+    is $two->name, 'New Name',
+        'The Looked-up Two should have the new name';
+    TODO: {
+        local $TODO = 'Need to implement object caching';
+        is $two->name, $extend->two->name,
+            'The new name should be in the Extend object';
+    }
+
+    ok $extend = Extend->lookup( uuid => $extend->uuid ),
+        'Look up the Extend object again';
+    is $two->name, $extend->two->name,
+        'The new name should be in the looked-up Extend object';
+
+    # Now change the Extend object.
+    ok $extend->deactivate, 'Deactivate the Extend object';
+    ok $extend->name('LOLO'), 'Rename the Extend object';
+
+    # Check out the UPDATE statement.
+    $mocker->mock(_do_sql => $do_sql);
+    ok $extend->save, 'Save the extend object';
+    is $sql, 'UPDATE extend SET id = ?, uuid = ?, state = ?, two__id = ?, '
+           . 'two__uuid = ?, two__state = ?, two__name = ?, '
+           . 'two__description = ?, two__one__id = ?, two__age = ?, '
+           . 'two__date = ? WHERE id = ?',
+        'It should update Extend and Two view the extend view';
+    is_deeply $vals, [
+        $extend->id,
+        $extend->uuid,
+        $extend->state->value,
+        $extend->two->id,
+        $extend->two_uuid,
+        $extend->two_state->value,
+        $extend->name,
+        $extend->description,
+        $extend->one->id,
+        $extend->age,
+        $extend->date,
+        $extend->id,
+    ], 'It should set the proper values';;
+
+    $mocker->unmock_all;
+    ok $extend->save, 'Save the extend object';
+
+    # Create a second extend object referencing the same Two object.
+    ok my $ex2 = Extend->new( two => $extend->two),
+        'Create new Extend referencing same two';
+    isa_ok $ex2, Extend;
+    ok $ex2->save, 'Save the new Extend object';
+
+    is $ex2->one->uuid, $one->uuid,
+        'It should reference the one object';
+    is $ex2->two->one->uuid, $one->uuid,
+        'The Two object should reference the One object';
+
+    # Look it up to be sure that it's the same.
+    ok $ex2 = Extend->lookup( uuid => $ex2->uuid ),
+        'Look up the Extend object';
+    is $ex2->one->uuid, $one->uuid,
+        'It should still reference the one object';
+    is $ex2->two->one->uuid, $one->uuid,
+        'The Two object should still reference the One object';
+
+    # We should now have two Extend objects pointing at the same Two.
+    ok my $extends = Extend->query, 'Get all Extend objects';
+    isa_ok $extends, 'Kinetic::Util::Iterator', 'it should be a';
+    ok my @extends = $extends->all, 'Get extends objects from the iterator';
+    is scalar @extends, 2, 'There should be two Extends objects';
+    is_deeply [ map { $_->two_uuid } @extends ], [ ($two->uuid) x 2 ],
+        'They should have  the same Two object UUID';
+
+    TODO: {
+        local $TODO = 'Need to implement object caching';
+        is_deeply [ map { '' . $_->two } @extends ], ["$two", "$two"],
+            'And in fact they should point to the very same Two object';
+    }
 }
 
 1;

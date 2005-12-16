@@ -74,7 +74,7 @@ sub import {
     my ($pkg, $dir) = @_;
     if ($ENV{RUNTEST}) {
         push @CLASSES,
-          map { eval "require $_" or die $!; $_ } split /\s+/, $ENV{RUNTEST};
+          map { eval "require $_" or die $@; $_ } split /\s+/, $ENV{RUNTEST};
     } elsif ($dir) {
         my $want = sub {
             my $file = $File::Find::name;
@@ -134,13 +134,13 @@ sub supported { exists $SUPPORTED{$_[1]} }
   if (__PACKAGE__->any_supported(@features)) { ... }
 
 This method returns a boolean value indicating whether or not I<any> features
-of the Kinetic framework are supported.  Takes a list of features.
+of the Kinetic framework are supported. Takes a list of features.
 
 Optionally
 
 =cut
 
-sub any_supported { 
+sub any_supported {
     my ($class, @features) = @_;
     foreach my $feature (@features) {
         return 1 if exists $SUPPORTED{$feature};

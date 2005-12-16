@@ -76,9 +76,8 @@ sequence used to insert it. See C<_insert> for caveats about object C<id>s.
 
 sub _set_id {
     my ( $self, $object ) = @_;
-    my $class = $self->search_class;
-    my $view  = $class->key;
-    my $seq   = $view;
+    my $class = $object->my_class;
+    my $seq   = $class->key;
 
     # If this class inherits from other classes, the sequence will be that
     # of the base class.
@@ -91,8 +90,9 @@ sub _set_id {
     #$object->{id}  = $self->_dbh->last_insert_id(
     #undef, undef, undef, undef, { sequence => "seq_$seq" }
     #);
-    ( $object->{id} ) =
-      $self->_dbh->selectrow_array("SELECT CURRVAL('seq_$seq')");
+    $object->id(
+        $self->_dbh->selectrow_array("SELECT CURRVAL('seq_$seq')")
+    );
     return $self;
 }
 

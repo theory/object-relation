@@ -3,10 +3,10 @@
 # $Id$
 
 use strict;
-use Test::More tests => 159;
+use Test::More tests => 157;
 #use Test::More 'no_plan';
 
-package MyTestThingy;
+package MyTestBase;
 
 BEGIN {
     Test::More->import;
@@ -19,6 +19,12 @@ BEGIN {
     use_ok('Kinetic::Meta::Widget') or die;
 }
 
+BEGIN {
+    ok( Kinetic::Meta->new( key => 'base')->build, 'Build base' );
+}
+
+package MyTestThingy;
+BEGIN { Test::More->import }
 BEGIN {
     is( Kinetic::Meta->class_class, 'Kinetic::Meta::Class',
         "The class class should be 'Kinetic::Meta::Class'");
@@ -80,24 +86,20 @@ BEGIN {
 ##############################################################################
 
 package MyTestTypeOf;
+use base 'MyTestBase';
 BEGIN { Test::More->import }
 BEGIN {
     ok my $km = Kinetic::Meta->new(
         key         => 'typeof',
         name        => 'Typeof',
         plural_name => 'Typeofs',
+        type_of     => 'thingy',
     ), "Create TestTypeof class";
 
     ok $km->add_constructor(
         name   => 'new',
         create => 1,
     ), 'Add constructor';
-
-    ok $km->add_attribute(
-        name          => 'thingy',
-        type          => 'thingy',
-        relationship  => 'type_of',
-    ), "Add type_of attribute";
 
     ok $km->build, "Build TestTypeof class";
 }
@@ -155,25 +157,20 @@ BEGIN {
 ##############################################################################
 
 package MyTestExtends;
+use base 'MyTestBase';
 BEGIN { Test::More->import }
 BEGIN {
     ok my $km = Kinetic::Meta->new(
         key         => 'extends',
         name        => 'Extends',
         plural_name => 'Extends',
+        extends     => 'thingy',
     ), "Create TestExtends class";
 
     ok $km->add_constructor(
         name   => 'new',
         create => 1,
     ), 'Add constructor';
-
-    ok $km->add_attribute(
-        name          => 'thingy',
-        type          => 'thingy',
-        label         => 'Type of Thingy',
-        relationship  => 'extends',
-    ), "Add extends attribute";
 
     ok $km->build, "Build TestExtends class";
 }
@@ -206,25 +203,20 @@ BEGIN {
 ##############################################################################
 
 package MyTestMediates;
+use base 'MyTestBase';
 BEGIN { Test::More->import }
 BEGIN {
     ok my $km = Kinetic::Meta->new(
         key         => 'mediates',
         name        => 'Mediates',
         plural_name => 'Mediates',
+        mediates    => 'thingy',
     ), "Create TestMediates class";
 
     ok $km->add_constructor(
         name   => 'new',
         create => 1,
     ), 'Add constructor';
-
-    ok $km->add_attribute(
-        name          => 'thingy',
-        type          => 'thingy',
-        label         => 'Type of Thingy',
-        relationship  => 'mediates',
-    ), "Add mediates attribute";
 
     ok $km->build, "Build TestMediates class";
 }

@@ -10,13 +10,12 @@ use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
 use Test::More tests => 99;
 use Test::Differences;
 
-{
-
+FAKEPG: {
     # Fake out loading of Pg store.
     package Kinetic::Store::DB::Pg;
+    use base 'Kinetic::Store::DB';
     use File::Spec::Functions 'catfile';
     $INC{ catfile qw(Kinetic Store DB Pg.pm) } = __FILE__;
-    sub _add_store_meta { 1 }
 }
 
 BEGIN { use_ok 'Kinetic::Build::Schema' or die }

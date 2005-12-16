@@ -262,24 +262,31 @@ relationships and descriptions their delegation method requirements.
 
 sub _delegate {
     my ($pkg, $attr, $authz) = @_;
+    my $class = $attr->class;
+    my $ref   = $attr->references;
     my $aname = $attr->name;
-    my $class = $attr->references;
-   for my $attr ($class->attributes) {
+
+    # Meta.pm maps the delegating attribute to the attribute it acts as.
+    my %attrs = map  { $_->acts_as => $_->name }
+                grep { ($_->delegates_to || '') eq $ref } $class->attributes;
+
+    for my $attr ($ref->attributes) {
         next unless $attr->authz >= Class::Meta::READ;
         my $name = $attr->name;
-        my $meth = defined(&{"${pkg}::$name"}) ? "$aname\_$name" : $name;
+        # The delegatting attribute should tell us its name.
+        my $meth = $attrs{$attr};
         no strict 'refs';
         *{"${pkg}::$meth"} = eval(
             $authz == Class::Meta::READ || $attr->authz == Class::Meta::READ
               ? "sub {
-                     my \$obj = shift->{$aname} or return;
+                     my \$o = shift->{$aname} or return;
                      throw_read_only([
                          'Cannot assign to read-only attribute \"[_1]\"',
                           '$meth'
                      ]) if \@_;
-                     return  \$obj->$name;
+                     return  \$o->$name;
                  }"
-              : "sub { my \$obj = shift->{$aname} or return; \$obj->$name(\@_) }"
+              : "sub { my \$o = shift->$aname or return; \$o->$name(\@_) }"
         );
     }
 }

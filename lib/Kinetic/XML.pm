@@ -349,11 +349,13 @@ sub dump_xml {
 
 my %referenced = (
     has        => 0,
-    type_of    => 1,
     part_of    => 1,
     references => 1,
-    extends    => 0,
     child_of   => 1,
+
+    # extending relationships
+    type_of    => 1, # XXX This should be changed to 0.
+    extends    => 0,
     mediates   => 0,
 
     # "many" relationships

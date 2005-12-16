@@ -389,14 +389,24 @@ popuplating IDs, then...
 
 =item type_of
 
-The attribute object defines the type of the containing object. For example, a
-Kinetic::Contact object has an attribute for the Kinetic::Type::Contact object
-that defines its type. The attributes of the type object will be available to
-users via read-only accessors (such as C<contact_type_name()>). In this way, a
-user has read permission to see the attributes of the type object only via the
-read-only delegated accessors, but not necssarily to the contained type object
-itself (since permission to access that object is evaluated independently of
-the containing object).
+Since objects of one class can be types of only one other class, this
+relationship can only be specified when creating the new class:
+
+  my $km = Kinetic::Meta->new(
+          key => 'contact',
+      type_of => 'contact_type'
+  );
+
+An attribute will automatically be created that defines the type of the
+containing object. Given the above example, a Kinetic::Contact object has an
+attribute for the Kinetic::Type::Contact object that defines its type. The
+attributes of the type object will be available to users via read-only
+accessors (such as C<name()> or, if the contact class inherits from another
+class that defineds a C<name()> attribute, C<contact_type_name()>). In this
+way, a user has read permission to see the attributes of the type object only
+via the read-only delegated accessors, but not necssarily to the contained
+type object itself (since permission to access that object is evaluated
+independently of the containing object).
 
 =for StoreComment
 
@@ -430,7 +440,15 @@ they will usually not be changed.
 
 =item extends
 
-The containing object extends the contained object. For example,
+A class can optionally extend one other class, but can do so only when
+creating the new class:
+
+  my $km = Kinetic::Meta->new(
+          key => 'usr',
+      extends => 'person'
+  );
+
+The containing object extends the contained object. In this example,
 Kinetic::Party::User extends Kinetic::Party::Person. This is similar in
 principal to inheritance, but uses composition to prevent overly complex
 inheritance relationships. It also allows more than one containing object to

@@ -3,8 +3,9 @@
 # $Id$
 
 use strict;
-use Test::More tests => 98;
+use Test::More tests => 102;
 #use Test::More 'no_plan';
+use lib '/Users/david/dev/Kineticode/trunk/Class-Meta/lib';
 
 package MyTestThingy;
 
@@ -193,9 +194,10 @@ can_ok $class, 'persistent_attributes';
 
 is_deeply [$class->ref_attributes], [],
     'There should be no referenced attributes';
-is_deeply [$class->direct_attributes],[$class->attributes],
+is_deeply [$class->direct_attributes], [$class->attributes('id'), $class->attributes],
     'With no ref_attributes, direct_attributes should return all attributes';
-is_deeply [$class->persistent_attributes],[$class->attributes],
+
+is_deeply [$class->persistent_attributes], [$class->attributes('id'), $class->attributes],
     'By default, persistent_attributes should return all attributes';
 
 ok my $attr = $class->attributes('foo'), "Get foo attribute";
@@ -228,7 +230,7 @@ is_deeply [$fclass->persistent_attributes],
           [ grep { $_->name ne 'lname' } $fclass->attributes ],
     'Persistent attributes should have all but the non-persistent attribute';
 
-is_deeply [$class->persistent_attributes],[$class->attributes],
+is_deeply [$class->persistent_attributes], [$class->attributes('id'), $class->attributes],
     'By default, persistent_attributes should return all attributes';
 
 is $attr->references, MyTestThingy->my_class,
@@ -264,8 +266,17 @@ is $attr->delegates_to, $thingy_class, 'foo should delegate to thingy';
 is $attr->acts_as, $thingy_class->attributes('foo'),
     'foo should act as the thingy foo';
 
+ok $ex->foo('fooey'), 'Should be able to set delegated attribute';
+is $ex->foo, $ex->thingy->foo, 'The value should have been passed through';
+
 is $ex->uuid, undef, 'The UUID should be undefined';
 is $ex->thingy_uuid, undef, 'And the thingy UUID should be undef';
 ok $ex->_save_prep, 'Prepare it for storage';
 ok $ex->uuid, 'The UUID should now be defined';
 ok $ex->thingy_uuid, 'And so should the thingy UUID';
+ok $ex->uuid ne $ex->thingy_uuid, 'And they should have different UUIDs';
+
+# We should get the trusted extended object attribute.
+is_deeply [map { $_->name } $class->persistent_attributes],
+          [qw(id uuid state thingy thingy_uuid thingy_state foo rank)],
+    'We should get public and trusted attributes';

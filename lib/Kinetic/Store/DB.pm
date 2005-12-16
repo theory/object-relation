@@ -31,6 +31,7 @@ use Class::BuildMethods qw(
 );
 
 use Kinetic::Util::Exceptions qw/
+  isa_exception
   panic
   throw_attribute
   throw_fatal
@@ -117,7 +118,10 @@ sub save {
 
         # someone has started a transaction externally
         eval { $self->_save(@_) };
-        throw_fatal [ 'Error saving to data store: [_1]', $@ ] if $@;
+        if (my $err = $@) {
+            $err->rethrow if isa_exception($err);
+            throw_fatal [ 'Error saving to data store: [_1]', $err ];
+        }
     }
     else {
         $self->_begin_work;
@@ -127,7 +131,8 @@ sub save {
         };
         if ( my $err = $@ ) {
             $self->_rollback;
-            throw_fatal [ 'Error saving to data store: [_1]', $@ ] if $@;
+            $err->rethrow if isa_exception($err);
+            throw_fatal [ 'Error saving to data store: [_1]', $err ];
         }
     }
     return $self;
@@ -239,14 +244,19 @@ sub lookup {
     unless ( ref $search_class ) {
         $search_class = Kinetic::Meta->for_key($search_class);
     }
+
     my $attr = $search_class->attributes($attr_key);
-    throw_attribute [ 'No such attribute "[_1]" for [_2]', $attr_key,
-        $search_class->package ]
-      unless $attr;
+    throw_attribute [
+        'No such attribute "[_1]" for [_2]', $attr_key,
+        $search_class->package
+    ] unless $attr;
+
     throw_attribute [ 'Attribute "[_1]" is not unique', $attr_key ]
-      unless $attr->unique;
+        unless $attr->unique;
+
     $self->_prepare_method($CACHED);
     $self->_should_create_iterator(0);
+
     local $self->{search_class} = $search_class;
     my $results = $self->_query( $attr_key, $value );
 
@@ -254,7 +264,8 @@ sub lookup {
         my $package = $search_class->package;
         panic [
             "PANIC: lookup([_1], [_2], [_3]) returned more than one result.",
-            $package, $attr_key, $value ];
+            $package, $attr_key, $value,
+        ];
     }
     return $results->[0];
 }
@@ -490,9 +501,10 @@ sub _get_select_sql_and_bind_params {
 
   $self->_save($object);
 
-This method is called by C<save> to handle the actual saving of objects.  It
-calls itself recursively if it encounters a contained object, thus allowing
-for a single save to be called at the top level.
+This method is called by C<save> to handle the actual saving of objects. It
+calls itself recursively (via the C<_save_contained()> method) if it $object
+contains other objects, thus allowing for a single save to be called at the
+top level.
 
 =cut
 
@@ -511,7 +523,7 @@ sub _save {
     }
 
     local @{$self}{qw/columns values/};
-    $self->_save( $_->get($object) ) for $self->{search_class}->ref_attributes;
+    $self->_save_contained($object);
 
     foreach my $attr ( $self->{search_class}->persistent_attributes ) {
         push @{ $self->{columns} } => $attr->_view_column;
@@ -521,6 +533,38 @@ sub _save {
     return $object->id
       ? $self->_update($object)
       : $self->_insert($object);
+}
+
+##############################################################################
+
+=head3 _save_contained
+
+  $self->_save_contained($object);
+
+This method is called by C<_save> to handle the saving of the contained
+objects of $object. It calls itself recursively if it encounters an extended
+object, so as to save the contained objects of the extended object. The
+extended object is not itself saved, as that is handled in the normal save for
+$object as executed by C<_save()>.
+
+=cut
+
+sub _save_contained {
+    my ($self, $object) = @_;
+    my $class = $object->my_class;
+
+    if (my $extended = $class->extends) {
+        # Recurse to save the references in all extendeds, first.
+        $self->_save_contained(
+            $class->attributes($extended->key)->get($object)
+        );
+    }
+
+    $self->_save( $_->get($object) ) for grep {
+        $_->relationship ne 'extends'
+    } $class->ref_attributes;
+
+    return $self;
 }
 
 ##############################################################################
@@ -582,9 +626,9 @@ sub _query {
 
   $self->_set_search_type(\@search_params);
 
-This method is called internally by both C<query> C<count> and C<lookup>.  It
-determines whether or not the search is a CODE or STRING search and sets the 
-search type property accordingly.  It will I<remove> the search type from the
+This method is called internally by both C<query> C<count> and C<lookup>. It
+determines whether or not the search is a CODE or STRING search and sets the
+search type property accordingly. It will I<remove> the search type from the
 front of the search params, if it's there.
 
 Also, if we have a string search, everything passed I<after> the search is
@@ -713,9 +757,35 @@ sub _insert {
     my $sql = "INSERT INTO $self->{view} ($columns) VALUES ($placeholders)";
     $self->_prepare_method($CACHED);
     $self->_do_sql( $sql, $self->{values} );
-    $self->_set_id($object);
-    return $self;
+    return $self->_set_ids($object);
 }
+
+##############################################################################
+
+=head3 _set_id
+
+  $store->_set_ids($object);
+
+This method is used by C<_insert> to set the C<id> of an object and any object
+taht it extends, plus any objects that the extending object extends, etc.
+
+=cut
+
+sub _set_ids {
+    my ($self, $object) = @_;
+    my $class = $object->my_class;
+
+    if (my $extended = $class->extends) {
+        # Recurse to get the IDs in all extendeds.
+        $self->_set_ids(
+            $class->attributes($extended->key)->get($object)
+        );
+    }
+
+    return $self->_set_id($object);
+}
+
+
 
 ##############################################################################
 
@@ -723,9 +793,10 @@ sub _insert {
 
   $store->_set_id($object);
 
-This method is used by C<_insert> to set the C<id> of an object.  This is
-frequently database specific, so this method may have to be overridden in a
-subclass.  See C<_insert> for caveats about object C<id>s.
+This method is used by C<_set_ids> to set the C<id> of an object. The method
+for retreiving the C<id> is frequently database specific, so this method may
+have to be overridden in a subclass. See C<_insert> for caveats about object
+C<id>s.
 
 =cut
 
@@ -751,6 +822,7 @@ Creates and executes an C<UPDATE> sql statement for the given object.
 
 sub _update {
     my ( $self, $object ) = @_;
+    # XXX Exclude once attributes from updates!
     my $columns = join ', ' => map { "$_ = ?" } @{ $self->{columns} };
     push @{ $self->{values} } => $object->id;
     my $sql = "UPDATE $self->{view} SET $columns WHERE id = ?";
@@ -773,7 +845,6 @@ sub _do_sql {
     my ( $self, $sql, $bind_params ) = @_;
     my $dbi_method = $self->_prepare_method;
     my $sth        = $self->_dbh->$dbi_method($sql);
-
     # The warning has been suppressed due to "use of unitialized value in
     # subroutine entry" warnings from DBD::SQLite.
     no warnings 'uninitialized';
@@ -847,7 +918,7 @@ sub _get_sql_results {
 
     if ( $self->_should_create_iterator ) {
         my $search_class = $self->{search_class};
-        my $iterator     = Iterator->new(
+        my $iterator = Iterator->new(
             sub {
                 my $result = $self->_fetchrow_hashref($sth) or return;
                 local $self->{search_class} = $search_class;
@@ -974,18 +1045,24 @@ sub _set_search_data {
         my @build_order;
         while (@classes_to_process) {
             foreach my $data ( splice @classes_to_process, 0 ) {
-                my $package = $data->{class}->package;
+                my $class   = $data->{class};
+                my $prefix  = $data->{prefix};
+                my $package = $class->package;
                 unshift @build_order => $package;
-                foreach my $attr ( $data->{class}->attributes ) {
+                foreach my $attr ( $class->persistent_attributes ) {
+                    next if $attr->acts_as;
                     my $column      = $attr->_view_column;
-                    my $view_column = "$data->{prefix}$column";
-
+                    my $view_column = "$prefix$column";
                     $packages{$package}{columns}{$view_column} = $column;
-                    if ( my $class = $attr->references ) {
+
+                    if ( my $class = $attr->references) {
                         push @classes_to_process => {
                             class  => $class,
-                            prefix => $class->key . $OBJECT_DELIMITER,
+                            prefix => $prefix
+                                ? $prefix . $class->key . $OBJECT_DELIMITER
+                                : $class->key . $OBJECT_DELIMITER
                         };
+
                         $packages{$package}{contains}{$column} = $class;
                     }
                     else {

@@ -128,40 +128,77 @@ sub new {
         attribute_class => $pkg->attribute_class,
     );
 
-    my $class   = $self->class;
-    my $extend  = $class->extends or return $self;
-    my $package = $class->package;
+    my $class = $self->class;
 
-    my %attrs = map { $_->name => undef } $class->attributes;
+    # Set up attributes if this class extends another class.
+    if (my $extended  = $class->extends) {
+        my $package = $class->package;
+        my $ext_pkg = $extended->package;
 
-    # Turn keys into class objects.
-    my $key     = $extend->key;
-    my $ext_pkg = $extend->package;
+        # Make sure that we're not using inheritance!
+        throw_invalid_class [
+            'I cannot extend [_1] into [_2] because [_2] inherits from [_1]',
+            $ext_pkg,
+            $class,
+        ] if $package->isa($ext_pkg);
 
-    # Make sure that we're not using inheritance!
-    throw_invalid_class [
-        'I cannot extend [_1] into [_2] because [_2] inherits from [_1]',
-        $ext_pkg,
-        $class,
-    ] if $package->isa($ext_pkg);
+        $self->_add_delegates(
+            $extended,
+            'extends',
+            1,
+            sub { $extended->package->new }
+        );
+    }
 
-    # Add an attribute for the extended object.
+    # Set up attributes if this class is a type of another class.
+    if (my $type = $class->type_of) {
+        $self->_add_delegates($type, 'type_of', 0);
+    }
+
+    # Set up attributes if this class mediates another class.
+    if (my $mediated = $class->mediates) {
+        $self->_add_delegates(
+            $mediated,
+            'mediates',
+            0, # XXX Actually it should persist, so fix!
+            sub { $mediated->package->new }
+        );
+    }
+
+    return $self;
+}
+
+sub _add_delegates {
+    my ($self, $ref, $rel, $persist, $def) = @_;
+    my $class = $self->class;
+    my $key   = $ref->key;
+
+    # Add attribute for the object.
     $self->add_attribute(
                 name => $key,
                 type => $key,
             required => 1,
-                once => 1,
-               label => $extend->{name},
+               label => $ref->{label},
                 view => Class::Meta::TRUSTED,
-              create => Class::Meta::NONE,
-             default => sub { $ext_pkg->new },
-        relationship => 'extends',
+              create => Class::Meta::RDWR,
+             default => $def,
+        relationship => $rel,
+        widget_meta  => Kinetic::Meta::Widget->new(
+            type => 'search',
+            tip  => $ref->{label},
+        ),
     );
 
+    # XXX Kinetic::Meta::Class::Schema->parents doesn't work!
+    my $parent  = ($class->Class::Meta::Class::parents)[0];
+    my %attrs = map { $_->name => undef }
+        $class->attributes, $parent->attributes;
+
     # Add attributes from the extended class.
-    for my $attr ($extend->attributes) {
-        my $name = $attr->name;
+    for my $attr ($ref->attributes) {
+        my $name      = $attr->name;
         my $attr_name = exists $attrs{$name} ? "$key\_$name" : $name;
+
         # I need Attribute objects on the Attribute object!
         $self->add_attribute(
                     name => $attr_name,
@@ -179,20 +216,12 @@ sub new {
                   unique => $attr->unique,
                 distinct => $attr->distinct,
                  indexed => $attr->indexed,
-              persistent => $attr->persistent,
-            delegates_to => $extend,
+              persistent => $persist,
+            delegates_to => $ref,
                  acts_as => $attr,
         );
-        # Set up the delegation method.
-        no strict 'refs';
-        *{"$package\::$attr_name"} = eval qq{
-            sub { shift->{$key}->$name(\@_) }
-        };
+        # Delegation methods are created by Kinetic::Meta::AccessorBuilder.
     }
-
-    # Set up the accessor for the extended object.
-    no strict 'refs';
-    *{"$package\::$key"} = eval qq{ sub { shift->{$key} } };
 
     return $self;
 }

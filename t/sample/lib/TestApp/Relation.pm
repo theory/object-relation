@@ -9,32 +9,8 @@ BEGIN {
         key         => 'relation',
         name        => 'Relation',
         plural_name => 'Relations',
-    );
-
-    $km->add_attribute(
-        name          => 'one',
-        type          => 'one',
-        label         => 'One',
-        required      => 1,
-        relationship  => 'type_of',
-        default       => sub { TestApp::Simple::One->new },
-        widget_meta   => Kinetic::Meta::Widget->new(
-            type => 'search',
-            tip  => 'One',
-        )
-    );
-
-    $km->add_attribute(
-        name          => 'simple',
-        type          => 'simple',
-        label         => 'Simple',
-        required      => 1,
-        relationship  => 'mediates',
-        default       => sub { TestApp::Simple->new },
-        widget_meta   => Kinetic::Meta::Widget->new(
-            type => 'search',
-            tip  => 'Simple',
-        )
+        type_of     => 'one',
+        mediates    => 'simple',
     );
 
     # Add non-persistent attribute.

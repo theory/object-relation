@@ -51,7 +51,7 @@ sub purge : Test(9) {
       'Purging an object not in the data store should succeed';
     is $test->_num_recs('one'), 2,
       '... should not change the number of objects in the store';
-    
+
     #
     # purging contained objects
     #

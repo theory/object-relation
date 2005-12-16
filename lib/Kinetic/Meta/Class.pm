@@ -78,16 +78,18 @@ sub import {
 =head3 new
 
 This constructor overrides the parent class constructor from
-L<Class::Meta::Class|Class::Meta::Class> in order to check for an C<extends>
-parameter and, if it's present, convert it from a class key to the
-corresponding class object.
+L<Class::Meta::Class|Class::Meta::Class> in order to check for C<extends>,
+C<type_of>, and C<mediates> parameters and, if any is present, convert it from
+a class key to the corresponding class object.
 
 =cut
 
 sub new {
     my $self = shift->SUPER::new(@_);
-    if (my $extend = $self->{extends}) {
-        $self->{extends} = Kinetic::Meta->for_key($extend) unless ref $extend;
+    for my $rel (qw(extends type_of mediates)) {
+        if (my $ref = $self->{$rel}) {
+            $self->{$rel} = Kinetic::Meta->for_key($ref) unless ref $ref;
+        }
     }
     return $self;
 }
@@ -162,6 +164,32 @@ sub extends { shift->{extends} }
 
 ##############################################################################
 
+=head3 type_of
+
+  my $type_of  = $class->type_of;
+
+Returns a Kinetic::Meta::Class object representing a class that this class is
+a type of.
+
+=cut
+
+sub type_of { shift->{type_of} }
+
+##############################################################################
+
+=head3 mediates
+
+  my $mediates  = $class->mediates;
+
+Returns a Kinetic::Meta::Class object representing a class that this class
+mediates.
+
+=cut
+
+sub mediates { shift->{mediates} }
+
+##############################################################################
+
 =head2 Instance Methods
 
 =head3 ref_attributes
@@ -228,12 +256,16 @@ sub build {
 
     # Organize attrs into categories.
     my (@ref, @direct, @persist);
-    for my $attr ($self->attributes) {
-        push @persist, $attr if $attr->persistent;
-        if ($attr->references) {
-            push @ref, $attr;
-        } else {
-            push @direct, $attr;
+    FAKE: {
+        # Fake out Kinetic::Store so that we can get at trusted attributes.
+        package Kinetic::Store;
+        for my $attr ($self->attributes) {
+            push @persist, $attr if $attr->persistent;
+            if ($attr->references) {
+                push @ref, $attr;
+            } else {
+                push @direct, $attr;
+            }
         }
     }
 
