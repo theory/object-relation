@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 118;
+use Test::More tests => 119;
 #use Test::More 'no_plan';
 use lib '/Users/david/dev/Kineticode/trunk/Class-Meta/lib';
 
@@ -226,6 +226,8 @@ is_deeply [$fclass->sort_by], [ $fclass->attributes('lname', 'fname') ],
 ok $attr = $fclass->attributes('thingy'), "Get thingy attribute";
 isa_ok $attr, 'Kinetic::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
+is $attr->widget_meta->type, 'text',
+    'It should default to a "text" widget type';
 
 is_deeply [$fclass->ref_attributes], [$attr],
     'We should be able to get the one referenced attribute';

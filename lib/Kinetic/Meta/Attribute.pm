@@ -142,15 +142,17 @@ my %RELATIONSHIPS = (
 
 sub new {
     my $self = shift->SUPER::new(@_);
-    $self->{unique}   ||= $self->{distinct};
-    $self->{indexed}  ||= $self->{unique};
-    $self->{persistent} = 1 unless defined $self->{persistent};
+    $self->{unique}      ||= $self->{distinct};
+    $self->{indexed}     ||= $self->{unique};
+    $self->{persistent}    = 1 unless defined $self->{persistent};
+    $self->{widget_meta} ||= Kinetic::Meta::Widget->new( type => 'text' );
 
     if (exists $self->{relationship}) {
         $self->class->handle_error(
            qq{I don't know what a "$self->{relationship}" relationship is}
         ) unless exists $RELATIONSHIPS{$self->{relationship}}
     }
+
     return $self;
 }
 
