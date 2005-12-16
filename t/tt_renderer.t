@@ -55,7 +55,7 @@ BEGIN {
                     tip  => 'Thanks for the tip',
                 ),
             },
-            cal => { widget_meta => Widget->new( type => 'calendar', ), }
+            cal => { widget_meta => Widget->new( type => 'calendar' ) }
         ]
     );
 }
@@ -76,39 +76,49 @@ can_ok $r, 'render';
 ok my $html = $r->render( $attr_for{foo} ),
   'We should be able to render text widgets';
 is_xml $html,
-  '<input name="foo" type="text" size="40" tip="foo tip" maxlength="40"/>',
+  '<input name="foo" id="foo" type="text" size="40" tip="foo tip" maxlength="40"/>',
   '... and it should return XHTML with valid defaults';
 
 # checkbox
 
 ok $html = $r->render( $attr_for{check} ),
   'We should be able to render checkbox widgets';
-is_xml $html, '<input name="check" type="checkbox" checked="checked"/>',
+is_xml $html,
+  '<input name="check" id="check" type="checkbox" checked="checked"/>',
   '... and it should return XHTML with valid defaults';
 
 # textarea
 
 ok $html = $r->render( $attr_for{some_text_area} ),
   'We should be able to render textarea widgets';
-is_xml $html,
-  '<textarea name="some_text_area" rows="6" cols="20" tip="Thanks for the tip"/>',
+my $expected = <<END;
+    <textarea 
+        name="some_text_area"
+        id="some_text_area"
+        rows="6" 
+        cols="20"
+        tip="Thanks for the tip"/>
+END
+is_xml wrap($html), wrap($expected),
   '... and it should return XHTML with valid defaults';
 
 # calendar
-
 ok $html = $r->render( $attr_for{cal} ),
   'We should be able to render calendar widgets';
 
-my $expected = <<'END_EXPECTED';
+$expected = <<'END_EXPECTED';
 <input name="cal" id="cal" type="text"/>
 <input id="cal_trigger" type="image" src="/images/calendar/calendar.gif"/>
 <script type="text/javascript"/>
 END_EXPECTED
 
 $html =~ s{(<script type="text/javascript">).*}{$1</script>}s;
-$html =~ s/^\s+//gsm;    
-TODO: {
-    local $TODO = 'Why the heck is this test failing?';
-    is_xml $html, $expected,
-    '... and it should return XHTML with valid defaults';
+$html =~ s/^\s+//gsm;
+
+is_xml wrap($html), wrap($expected),
+  '... and it should return XHTML with valid defaults';
+
+sub wrap {
+    my $text = shift;
+    return "<html>$text</html>";
 }

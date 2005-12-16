@@ -5,7 +5,6 @@
 use warnings;
 use strict;
 use File::Spec::Functions;
-use Kinetic::Build;
 
 my (@scripts, $conf);
 BEGIN {

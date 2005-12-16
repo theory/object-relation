@@ -9,7 +9,7 @@
       <table>
         [% FOREACH attr = class.attributes %]
         <tr>
-          <td>[% attr.name %]</td>
+          <td><label for="[% attr.name %]">[% attr.name %]</label></td>
           <td>[% Renderer.render(attr) %]</td>
         </tr>
         [% END %]

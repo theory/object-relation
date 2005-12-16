@@ -30,8 +30,6 @@ use base 'Template::Plugin';
 use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Meta::Attribute';
 use Kinetic::Util::Exceptions qw/
-  throw_fatal
-  throw_invalid_class
   throw_unimplemented
   /;
 
@@ -101,7 +99,7 @@ sub render {
             return $self->$renderer($object);
         }
         else {
-            throw_fatal [
+            throw_unimplemented [
                 'Could not determine widget type handler for "[_1]"',
                 $object->name
             ];
@@ -138,14 +136,14 @@ sub _render_checkbox {
     my $w       = $attribute->widget_meta;
     my $name    = encode_entities( $attribute->name );
     my $checked = $w->checked ? ' checked="checked"' : '';
-    return qq{<input name="$name" type="checkbox"$checked/>};
+    return qq{<input name="$name" id="$name" type="checkbox"$checked/>};
 }
 
 sub _render_dropdown {
     my ( $self, $attribute, $object ) = @_;
     my $w    = $attribute->widget_meta;
     my $name = encode_entities( $attribute->name );
-    my $html = qq{<select name="$name">\n};
+    my $html = qq{<select name="$name" id="$name">\n};
     foreach my $option ( @{ $w->options } ) {
         my ( $value, $name )
           = ( encode_entities( $option->[0] ),
@@ -170,7 +168,7 @@ sub _render_text {
     my $size   = $w->size || 40;
     my $length = $w->length || $size;
     return
-      qq{<input name="$name" type="text" size="$size" maxlength="$length" tip="$tip"/>};
+      qq{<input name="$name" id="$name" type="text" size="$size" maxlength="$length" tip="$tip"/>};
 }
 
 sub _render_textarea {
@@ -181,7 +179,7 @@ sub _render_textarea {
     my $name = encode_entities( $attribute->name );
     my $tip  = encode_entities( $w->tip || '' );
     return
-      qq{<textarea name="$name" rows="$rows" cols="$cols" tip="$tip"></textarea>};
+      qq{<textarea name="$name" id="$name" rows="$rows" cols="$cols" tip="$tip"></textarea>};
 }
 
 1;
