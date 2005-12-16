@@ -15,7 +15,7 @@ my $RENDERER;
 BEGIN {
     chdir 't' if -d 't';
     use lib '../lib';
-    $RENDERER = 'Template::Plugin::Renderer';
+    $RENDERER = 'Kinetic::Template::Plugin::Renderer';
     use_ok $RENDERER or die;
 }
 

@@ -27,6 +27,7 @@ my @DEBUG;
 
 BEGIN {
     unless ( $ENV{HARNESS_ACTIVE} ) {
+
         # Don't display debugging information when running tests
         # We'll eventually want to have finer-grained control over this
         @DEBUG = '-Debug';
@@ -49,8 +50,10 @@ __PACKAGE__->config(
         grep { !Kinetic::Meta->for_key($_)->abstract }
           sort Kinetic::Meta->keys
     ],
-    'V::TToolkit' =>
-      { INCLUDE_PATH => __PACKAGE__->path_to('www/templates/tt') },
+    'V::TToolkit' => {
+        INCLUDE_PATH => __PACKAGE__->path_to('www/templates/tt'),
+        PLUGIN_BASE  => 'Kinetic::Template::Plugin',
+    },
     authentication => {
         users => {
             ovid   => { password => 'divo' },

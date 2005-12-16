@@ -1,4 +1,4 @@
-package Template::Plugin::Renderer;
+package Kinetic::Template::Plugin::Renderer;
 
 # $Id: JSON.pm 2190 2005-11-08 02:05:10Z curtis $
 
@@ -35,7 +35,7 @@ use Kinetic::Util::Exceptions qw/
 
 =head1 NAME
 
-Template::Plugin::Renderer - Render Kinetic object attributes
+Kinetic::Template::Plugin::Renderer - Render Kinetic object attributes
 
 =head1 Synopsis
 
@@ -45,7 +45,7 @@ Template::Plugin::Renderer - Render Kinetic object attributes
 =head1 Description
 
 This class is used for rendering objects for a given output type and view.
-Unlike the L<Kinetic::Render|Kinetic::Render> class, this is a one-way process
+Unlike the L<Kinetic::Format|Kinetic::Format> class, this is a one-way process
 and is not suitable for serialization/deserialization.
 
 =cut
