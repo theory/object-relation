@@ -191,6 +191,11 @@ sub _add_delegates {
 
     # XXX Kinetic::Meta::Class::Schema->parents doesn't work!
     my $parent  = ($class->Class::Meta::Class::parents)[0];
+
+    # This isn't redundant because attributes can have been added to $class
+    # only by _add_delegates(). It won't return any for parent classes until
+    # after build() is called, and since this is new(), the class itself
+    # hasn't declared any yet!
     my %attrs = map { $_->name => undef }
         $class->attributes, $parent->attributes;
 
