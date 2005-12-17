@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 119;
+use Test::More tests => 145;
 #use Test::More 'no_plan';
 use lib '/Users/david/dev/Kineticode/trunk/Class-Meta/lib';
 
@@ -311,3 +311,44 @@ can_ok $ex, 'hello';
 can_ok $ex, 'save';
 can_ok $ex, 'thingy_save';
 is $ex->hello, 'hello', 'The hello() method should dispatch to thingy';
+
+# Make sure that nothing has been modified.
+ok $ex = MyTestExtends->new, 'Create another Extend object';
+is_deeply [$ex->_get_modified], [], 'No attributes should have been modified';
+ok !$ex->_is_modified('uuid'), 'UUID should not be modified';
+ok !$ex->_is_modified('foo'), 'And neither should foo';
+ok !$ex->_is_modified('rank'), 'Nor rank';
+is_deeply [$ex->_get_modified], [], 'Thingy has no mods, either';
+
+ok $ex->rank(undef), 'Set the rank to undef (unchanged)';
+ok !$ex->_is_modified('rank'), 'Rank should still be unchanged';
+is_deeply [$ex->_get_modified], [], 'There should still be no list of modified';
+
+ok $ex->rank('amateur'), 'Set the rank to something different';
+ok $ex->_is_modified('rank'), 'It should know that rank has been modified';
+is_deeply [$ex->_get_modified], ['rank'],
+    'And rank should be the only item in the list of modified';
+
+ok $ex->foo('Yow'), 'Set the foo attribute';
+ok $ex->_is_modified('foo'), 'It should know that foo has been modified';
+is_deeply [$ex->_get_modified], [qw(rank foo)],
+    'It should list both rank and foo as modified';
+ok $ex->thingy->_is_modified('foo'), 'Thingy should know foo is modified';
+is_deeply [$ex->thingy->_get_modified], ['foo'],
+    'Thingy should list foo as modified';
+
+ok $ex->_clear_modified, 'Clear modified';
+ok ! @{$ex->_get_modified}, 'Now no attributes should be listed as modified';
+ok !$ex->_is_modified('foo'), 'It should think that foo is unmodified';
+ok !$ex->_is_modified('rank'), 'Same for rank';
+
+ok $ex->thingy->_is_modified('foo'),
+    'But thingy should still think foo is modified';
+is_deeply [$ex->thingy->_get_modified], ['foo'],
+    'Thingy should still list foo as modified';
+ok $ex->thingy->_clear_modified, 'Clear thingy modified';
+
+ok !$ex->thingy->_is_modified('foo'),
+    'Now thingy should not think foo is modified';
+is_deeply [$ex->thingy->_get_modified], [],
+    'Thingy should list none as modified';

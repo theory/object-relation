@@ -7,6 +7,7 @@ use Test::More tests => 157;
 #use Test::More 'no_plan';
 
 package MyTestBase;
+use base 'Kinetic';
 
 BEGIN {
     Test::More->import;
@@ -24,6 +25,7 @@ BEGIN {
 }
 
 package MyTestThingy;
+use base 'Kinetic';
 BEGIN { Test::More->import }
 BEGIN {
     is( Kinetic::Meta->class_class, 'Kinetic::Meta::Class',
@@ -61,6 +63,7 @@ BEGIN {
 ##############################################################################
 
 package MyTestHas;
+use base 'Kinetic';
 BEGIN { Test::More->import }
 BEGIN {
     ok my $km = Kinetic::Meta->new(
@@ -107,6 +110,7 @@ BEGIN {
 ##############################################################################
 
 package MyTestPartof;
+use base 'Kinetic';
 BEGIN { Test::More->import }
 BEGIN {
     ok my $km = Kinetic::Meta->new(
@@ -132,6 +136,7 @@ BEGIN {
 ##############################################################################
 
 package MyTestReferences;
+use base 'Kinetic';
 BEGIN { Test::More->import }
 BEGIN {
     ok my $km = Kinetic::Meta->new(
@@ -178,6 +183,7 @@ BEGIN {
 ##############################################################################
 
 package MyTestChildof;
+use base 'Kinetic';
 BEGIN { Test::More->import }
 BEGIN {
     ok my $km = Kinetic::Meta->new(
@@ -224,6 +230,7 @@ BEGIN {
 ##############################################################################
 
 package MyTestFail;
+use base 'Kinetic';
 BEGIN { Test::More->import }
 
 ok my $km = Kinetic::Meta->new( key => 'fail'), "Create a failing KM object";

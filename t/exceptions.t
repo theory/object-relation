@@ -49,7 +49,12 @@ NOIMPORT: { # 22 tests.
           qr{\AUndefined subroutine &Kinetic::Util::Exceptions::TestNoImport::throw_fatal},
           "Is a Perl exception passed to ExternalLib");
 
-    eval { Kinetic::Util::Exception::Fatal->throw('Attribute must be defined') };
+    eval {
+        Kinetic::Util::Exception::Fatal->throw([
+            'File "[_1]" not found',
+            'booyah',
+        ]);
+    };
     ok( $err = $@, 'Catch exception' );
     isa_ok( $err, 'Kinetic::Util::Exception' );
     isa_ok( $err, 'Kinetic::Util::Exception::Fatal' );
@@ -59,8 +64,10 @@ NOIMPORT: { # 22 tests.
     ok( Kinetic::Util::Exceptions::isa_exception($err),
         "is an exception" );
 
-    ok( $err = Kinetic::Util::Exception::Fatal->new('Attribute must be defined'),
-        'New, unthrown exception' );
+    ok $err = Kinetic::Util::Exception::Fatal->new([
+        'File "[_1]" not found',
+        'booyah',
+    ]), 'New, unthrown exception';
     isa_ok( $err, 'Kinetic::Util::Exception' );
     isa_ok( $err, 'Kinetic::Util::Exception::Fatal' );
     isa_ok( $err, "Exception::Class::Base" );
@@ -70,9 +77,8 @@ NOIMPORT: { # 22 tests.
         "is an exception" );
 
     ok( $err = Kinetic::Util::Exception::Fatal->new(
-        error => 'Attribute must be defined'
-        ),
-        'New, unthrown exception' );
+        error => [ 'File "[_1]" not found', 'booyah' ],
+    ), 'New, unthrown exception' );
     isa_ok( $err, 'Kinetic::Util::Exception' );
     isa_ok( $err, 'Kinetic::Util::Exception::Fatal' );
     isa_ok( $err, "Exception::Class::Base" );
@@ -103,8 +109,9 @@ STRING: {
     package Kinetic::Util::Exceptions::TestString;
     use Kinetic::Util::Exceptions qw(:all);
     use Test::More;
-    ok(my $err = Kinetic::Util::Exception::Fatal->new('Attribute must be defined'),
-       "Get an exception object");
+    ok(my $err = Kinetic::Util::Exception::Fatal->new(
+        [ 'File "[_1]" not found', 'booyah' ]
+    ), 'Get an exception object');
     is( ($err->_filtered_frames)[-1]->filename, __FILE__,
         "We should get this file in the last frame in the stack");
     like $err->trace_as_text, qr{^\[t/exceptions\.t:\d+\]$},
@@ -112,7 +119,7 @@ STRING: {
     ok my $str = "$err", "Get the stringified version";
     is $str, $err->as_string,
       "The stringified version should be the same as that returned by as_string";
-    like $str, qr{\AAttribute must be defined$}ms,
+    like $str, qr{\AFile .booyah. not found}ms,
       "The error message should be the first thing in the output";
     like $str, qr{^\[t/exceptions\.t:\d+\]\Z}ms,
       "The stack trace should be the last thing in the output";

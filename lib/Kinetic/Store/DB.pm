@@ -586,7 +586,8 @@ sub _delete {
     return unless my $id = $object->id;    # it was never in the data store
     my $sql = "DELETE FROM $self->{view} WHERE id = ?";
     $self->_prepare_method($CACHED);
-    return $self->_do_sql( $sql, [$id] );
+    $self->_do_sql( $sql, [$id] );
+    return $object->_clear_modified
 }
 
 ##############################################################################
@@ -767,7 +768,8 @@ sub _insert {
   $store->_set_ids($object);
 
 This method is used by C<_insert> to set the C<id> of an object and any object
-taht it extends, plus any objects that the extending object extends, etc.
+taht it extends, plus any objects that the extending object extends, etc., as
+well as to clear the list of modified attributes on each object.
 
 =cut
 
@@ -782,10 +784,36 @@ sub _set_ids {
         );
     }
 
+    $object->_clear_modified;
     return $self->_set_id($object);
 }
 
+##############################################################################
 
+=head3 _clear_mods
+
+  $store->_clear_mods($object);
+
+This method is called by C<_update()> to clear the list of modified attributes
+in $object, as well as any object that it extends, plus any that the extended
+object extends, etc.
+
+=cut
+
+sub _clear_mods {
+    my ($self, $object) = @_;
+    my $class = $object->my_class;
+
+    if (my $extended = $class->extends) {
+        # Recurse to clear the list of modified attributes in all extendeds.
+        $self->_clear_mods(
+            $class->attributes($extended->key)->get($object)
+        );
+    }
+
+    $object->_clear_modified;
+    return $self;
+}
 
 ##############################################################################
 
@@ -827,7 +855,8 @@ sub _update {
     push @{ $self->{values} } => $object->id;
     my $sql = "UPDATE $self->{view} SET $columns WHERE id = ?";
     $self->_prepare_method($CACHED);
-    return $self->_do_sql( $sql, $self->{values} );
+    $self->_do_sql( $sql, $self->{values} );
+    return $self->_clear_mods($object);
 }
 
 ##############################################################################
@@ -1542,6 +1571,7 @@ sub _add_store_meta {
         authz    => Class::Meta::RDWR,
         view     => Class::Meta::TRUSTED,
     );
+
     return $self;
 }
 

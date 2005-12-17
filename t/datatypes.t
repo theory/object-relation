@@ -3,12 +3,13 @@
 # $Id$
 
 use strict;
-use Test::More tests => 37;
-use OSSP::uuid;
+use Test::More tests => 38;
+use Kinetic::Util::Functions qw(:uuid);
+
 
 package Kinetic::TestTypes;
 use strict;
-use Kinetic::Util::State;
+use base 'Kinetic';
 
 BEGIN {
     Test::More->import;
@@ -24,30 +25,6 @@ BEGIN {
     ), "Create new CM object" );
 
     ok( $cm->add_constructor(name => 'new'), "Create new() constructor" );
-
-    # Add a UUID Attribute.
-    my $ug = OSSP::uuid->new;
-    ok( $cm->add_attribute( name     => 'uuid',
-                            view     => Class::Meta::PUBLIC,
-                            type     => 'uuid',
-                            required => 1,
-                            default  => sub {
-                                my $uuid = OSSP::uuid->new;
-                                $uuid->make('v4');
-                                return $uuid->export('str');
-                            },
-                            authz    => Class::Meta::READ,
-                          ),
-        "Add uuid attribute" );
-
-    # Add a state attribute.
-    ok( $cm->add_attribute( name     => 'state',
-                            label    => 'State',
-                            default  => Kinetic::Util::State->ACTIVE,
-                            required => 1,
-                            type     => 'state'
-                          ),
-        "Add state attribute" );
 
     # Add boolean attribute.
     ok( $cm->add_attribute( name     => 'bool',
@@ -88,13 +65,20 @@ ok( my $t = Kinetic::TestTypes->new,
     'Kinetic::TestTypes->new');
 
 # Test the UUID accessor.
-ok(my $uuid = $t->uuid, "Get UUID" );
-my $ug = OSSP::uuid->new;
-ok $ug->import(str => $uuid), "It's a valid UUID";
+eval { $t->uuid('foo') };
+ok my $err = $@, 'Got error setting UUID to bogus value';
+like $err->error, qr/Value .foo. is not a UUID/,
+    'It should be the correct error';
 
-# Make sure we can't set it.
-eval { $t->uuid($uuid) };
-ok( $@, "Got error setting UUID" );
+my $uuid = create_uuid();
+ok $t->uuid($uuid), 'Set the UUID';
+is $t->uuid, $uuid, 'Check the UUID';
+
+# Make sure we can't set it again.
+eval { $t->uuid(create_uuid()) };
+ok( $err = $@, "Got error setting UUID to a new value" );
+like $err->error, qr/Attribute .uuid. can be set only once/,
+    'It should be the correct error';
 
 # Test state accessor.
 is $t->state, Kinetic::Util::State->ACTIVE, "State should be active by default";

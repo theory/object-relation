@@ -62,7 +62,15 @@ C<build_attr_set()>. See the Class::Meta documentation for more information.
 ##############################################################################
 
 my $req_chk = sub {
-    throw_invalid('Attribute must be defined') unless defined $_[0];
+    throw_invalid([ 'Attribute "[_1]" must be defined', $_[1] ])
+        unless defined $_[0];
+};
+
+my $once_chk = sub {
+    my ($new, $key, $obj) = @_;
+    no warnings;
+    throw_invalid([ 'Attribute "[_1]" can be set only once', $key ])
+        if defined $obj->{$key} && $obj->{$key} ne $new && $obj->uuid;
 };
 
 ##############################################################################
@@ -82,7 +90,7 @@ my %builders = (
         get => sub {
             my $name = shift;
             return sub {
-                # XXX Turn off this error in certain modes?
+                # Turn off this error in certain modes?
                 throw_read_only(['Cannot assign to read-only attribute "[_1]"',
                                  $name])
                   if @_ > 1;
@@ -95,17 +103,15 @@ my %builders = (
                 my $self = shift;
                 return $self->{$name} unless @_;
                 # Assign the value.
-                $self->{$name} = shift;
-                return $self;
+                return _set($self, $name, shift);
             } unless @checks;
             return sub {
                 my $self = shift;
                 return $self->{$name} unless @_;
                 # Check the value passed in.
-                $_->($_[0]) for @checks;
+                $_->($_[0], $name, $self) for @checks;
                 # Assign the value.
-                $self->{$name} = $_[0];
-                return $self;
+                return _set($self, $name, $_[0]);
             };
         },
     },
@@ -115,16 +121,13 @@ my %builders = (
             my ($name, @checks) = @_;
             return sub {
                 my $self = shift;
-                unless (@_) {
-                    return ref $self->{$name}
-                      ? $self->{$name}
-                      : $self->{$name} = Kinetic::Util::State->new($self->{$name})
-                }
+                $self->{$name} = Kinetic::Util::State->new($self->{$name})
+                    unless ref $self->{$name};
+                return $self->{$name} unless @_;
                 # Check the value passed in.
-                $_->($_[0]) for @checks;
+                $_->($_[0], $name, $self) for @checks;
                 # Assign the value.
-                $self->{$name} = shift;
-                return $self;
+                return _set($self, $name, shift);
             };
         },
     },
@@ -153,10 +156,9 @@ my %builders = (
                     return $self->{$name};
                 }
                 # Check the value passed in.
-                $_->($_[0]) for @checks;
+                $_->($_[0], $name, $self) for @checks;
                 # Assign the value.
-                $self->{$name} = shift;
-                return $self;
+                return _set($self, $name, shift);
             };
         },
     }
@@ -165,6 +167,7 @@ my %builders = (
 sub build {
     my ($pkg, $attr, $create, @checks) = @_;
     unshift @checks, $req_chk if $attr->required;
+    unshift @checks, $once_chk if $attr->once;
     my $name = $attr->name;
 
     no strict 'refs';
@@ -189,7 +192,7 @@ sub build {
                     my $pkg = shift;
                     return $data unless @_;
                     # Check the value passed in.
-                    $_->($_[0]) for @checks;
+                    $_->($_[0], $name, $pkg) for @checks;
                     # Assign the value.
                     $data = $_[0];
                 };
@@ -276,19 +279,53 @@ sub _delegate {
         # The delegatting attribute should tell us its name.
         my $meth = $attrs{$attr};
         no strict 'refs';
-        *{"${pkg}::$meth"} = eval(
-            $authz == Class::Meta::READ || $attr->authz == Class::Meta::READ
-              ? "sub {
-                     my \$o = shift->{$aname} or return;
-                     throw_read_only([
-                         'Cannot assign to read-only attribute \"[_1]\"',
-                          '$meth'
-                     ]) if \@_;
-                     return  \$o->$name;
-                 }"
-              : "sub { my \$o = shift->$aname or return; \$o->$name(\@_) }"
-        );
+        *{"${pkg}::$meth"}
+            = $authz == Class::Meta::READ || $attr->authz == Class::Meta::READ
+                ? sub {
+                    my $o = shift->{$aname};
+                    throw_read_only([
+                        'Cannot assign to read-only attribute "[_1]"',
+                        $meth
+                    ]) if @_;
+                    return unless $o;
+                    return $o->$name;
+                }
+                : sub {
+                     my $self = shift;
+                     my $o = $self->$aname or return;
+                     return $o->$name unless @_;
+                     $o->$name(@_);
+                     $self->_add_modified($meth) if $o->_is_modified($name);
+                     return $self;
+                }
     }
+}
+
+##############################################################################
+
+=head3 _set
+
+  _set($object, $attr_name, $value);
+
+This function is used to set an attribute to a new value. It will only set it
+to the new value if it is different from the old value. In addition it will
+add the name of the attribute to a list of changed attributes that can then be
+fetched by the data store for updating the table with only the changed
+attributes.
+
+=cut
+
+sub _set {
+    my ($self, $key, $new) = @_;
+    my $old = $self->{$key};
+    COMPARE: {
+        no warnings;
+        return $self if defined $new == defined $old && $new eq $old;
+    }
+
+    $self->{$key} = $new;
+    $self->_add_modified($key);
+    return $self;
 }
 
 1;

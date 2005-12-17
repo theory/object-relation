@@ -365,6 +365,8 @@ Those methods are:
 
 ##############################################################################
 
+=head2 Other Instance Methods
+
 =head3 save
 
   $kinetic->save;
@@ -381,11 +383,8 @@ C<save> method in L<Kinetic::Store|Kinetic::Store> for more information.
     );
 
     $cm->build;
-} # BEGIN
 
 ##############################################################################
-
-=head2 Other Instance Methods
 
 =head3 clone
 
@@ -397,32 +396,124 @@ existing object.
 
 =cut
 
-sub clone {
-    my $self = shift;
+    sub clone {
+        my $self = shift;
 
-    # Construct a new object and grab the UUID.
-    my $class = $self->my_class;
-    my $new   = ref($self)->new;
+        # Construct a new object and grab the UUID.
+        my $class = $self->my_class;
+        my $new   = ref($self)->new;
 
-    # I think it's okay to use the underlying hash, so that we're sure to
-    # get all private attributes, too.
-    while (my ($k, $v) = each %$self) {
-        # XXX Need to account for circular references?
-        $new->{$k} = UNIVERSAL::can($v, 'clone')
-          ? $v->clone
-          : $v;
+        # I think it's okay to use the underlying hash, so that we're sure to
+        # get all private attributes, too.
+        while (my ($k, $v) = each %$self) {
+            # XXX Need to account for circular references?
+            $new->{$k} = UNIVERSAL::can($v, 'clone')
+                ? $v->clone
+                : $v;
+        }
+
+        # Reset the UUID (it was replaced in the while block) and return.
+        $new->{uuid} = undef;
+        return $new;
     }
-
-    # Reset the UUID (it was replaced in the while block) and return.
-    $new->{uuid} = undef;
-    return $new;
-}
+    $cm->add_method(
+        name    => 'clone',
+        context => Class::Meta::OBJECT,
+    );
 
 ##############################################################################
 
 =begin private
 
 =head2 Private Instance Methods
+
+=head3 _add_modified
+
+  $kinetic->_add_modified(@attr_name);
+
+Pass in one or more attribute names and they will be added to the list of
+object attributes that have been modified. Called by the accessors generated
+by L<Kinetic::Meta::AccessorBuilder|Kinetic::Meta::AccessorBuilder>.
+
+=cut
+
+    my (%MODIFIED, %MODIFIED_FOR);
+    sub _add_modified {
+        my $self = shift;
+        my $for = $MODIFIED_FOR{$self} ||= {};
+        push @{ $MODIFIED{$self} }, grep { !$for->{$_}++} @_;
+        return $self;
+    }
+
+##############################################################################
+
+=head3 _modified
+
+  my $bool = $kinetic->_is_modified($attr_name);
+
+This method returns a true value if the attribute named by $attr_name has been
+modified since the object was instantiated or since the last time it was
+saved, and false if it has not. Called by the delegating accessors generated
+by L<Kinetic::Meta::AccessorBuilder|Kinetic::Meta::AccessorBuilder>.
+
+=cut
+
+    sub _is_modified {
+        my $self = shift;
+        my $for = $MODIFIED_FOR{$self} or return undef;
+        return $for->{shift()} ? $self : undef;
+    }
+
+##############################################################################
+
+=head3 _get_modified
+
+  my @modified = $kinetic->_get_modified;
+  my $modified = $kinetic->_get_modified;
+
+Returns a list or array reference of the names of all of the attributes that
+have been modified since the object was instantiated or since the last time it
+was saved. Called by C<Kinetic::Store|Kinetic::Store> and its subclasses to
+determine what changes to send to the data store.
+
+=cut
+
+    sub _get_modified {
+        my $self = shift;
+        my $mod = $MODIFIED{$self} or return;
+        return wantarray ? @{ $mod } : $mod;
+    }
+
+##############################################################################
+
+=head3 _clear_modified
+
+  $kinetic->_clar_modified;
+
+Clears out the list of the names of modified attributes. Called by
+C<Kinetic::Store|Kinetic::Store> and its subclasses once they have saved any
+changes to the data store.
+
+=cut
+
+    sub _clear_modified {
+        my $self = shift;
+        my $mod = $MODIFIED{$self} or return $self;
+        @{ $mod } = ();
+        %{ $MODIFIED_FOR{$self} } = ();
+        return $self;
+    }
+
+    sub DESTROY {
+        my $self = shift;
+        delete $MODIFIED{$self};
+        delete $MODIFIED_FOR{$self};
+        return $self;
+    }
+
+} # BEGIN
+
+##############################################################################
 
 =head3 _save_prep
 

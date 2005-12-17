@@ -33,6 +33,8 @@ Kinetic::Util::Language::en->add_to_lexicon(
   'Relation',
   'Relations',
   'Relations',
+  'Non-persistent temporary object storage',
+  'Non-persistent temporary object storage',
 );
 
 1;

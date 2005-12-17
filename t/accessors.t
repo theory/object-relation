@@ -4,12 +4,13 @@
 
 use strict;
 use warnings;
-use Test::More tests => 118;
+use Test::More tests => 117;
 #use Test::More 'no_plan';
 use Kinetic::Util::State qw(:all);
 use Kinetic::DateTime;
 
 package Kinetic::TestAccessors;
+use base 'Kinetic';
 use strict;
 use Kinetic::Util::State qw(:all);
 
@@ -79,16 +80,6 @@ BEGIN {
                             type     => 'whole',
                             required => 1,
                             default  => 3,
-                          ),
-        "Add READWRITE attribute" );
-
-    # Add a READWRITE state attribute, so we can test the raw accessor.
-    ok( $cm->add_attribute( name     => 'state',
-                            context  => Class::Meta::OBJECT,
-                            view     => Class::Meta::PUBLIC,
-                            type     => 'state',
-                            required => 1,
-                            default  => ACTIVE,
                           ),
         "Add READWRITE attribute" );
 
