@@ -768,7 +768,7 @@ sub _insert {
   $store->_set_ids($object);
 
 This method is used by C<_insert> to set the C<id> of an object and any object
-taht it extends, plus any objects that the extending object extends, etc., as
+that it extends, plus any objects that the extending object extends, etc., as
 well as to clear the list of modified attributes on each object.
 
 =cut
