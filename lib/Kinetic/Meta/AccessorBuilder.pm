@@ -265,9 +265,10 @@ relationships and descriptions their delegation method requirements.
 
 sub _delegate {
     my ($pkg, $attr, $authz) = @_;
-    my $class = $attr->class;
-    my $ref   = $attr->references;
-    my $aname = $attr->name;
+    my $class   = $attr->class;
+    my $ref     = $attr->references;
+    my $aname   = $attr->name;
+    my $ref_pkg = $ref->package;
 
     # Meta.pm maps the delegating attribute to the attribute it acts as.
     my %attrs = map  { $_->acts_as => $_->name }
@@ -279,25 +280,27 @@ sub _delegate {
         # The delegatting attribute should tell us its name.
         my $meth = $attrs{$attr};
         no strict 'refs';
-        *{"${pkg}::$meth"}
-            = $authz == Class::Meta::READ || $attr->authz == Class::Meta::READ
-                ? sub {
-                    my $o = shift->{$aname};
+        *{"${pkg}::$meth"} = eval(
+            $authz == Class::Meta::READ || $attr->authz == Class::Meta::READ
+                ? qq{sub {
+                    my \$o = shift->{$aname};
                     throw_read_only([
                         'Cannot assign to read-only attribute "[_1]"',
-                        $meth
-                    ]) if @_;
-                    return unless $o;
-                    return $o->$name;
-                }
-                : sub {
-                     my $self = shift;
-                     my $o = $self->$aname or return;
-                     return $o->$name unless @_;
-                     $o->$name(@_);
-                     $self->_add_modified($meth) if $o->_is_modified($name);
-                     return $self;
-                }
+                        '$meth',
+                    ]) if \@_;
+                    return unless \$o;
+                    return \$o->$name;
+                }}
+                : qq{sub {
+                     my \$self = shift;
+                     my \$o = \$self->{$aname} or return;
+                     return \$o->$name unless \@_;
+                     \$o->$name(\@_);
+                     \$self->_add_modified('$meth')
+                         if \$o->_is_modified('$name');
+                     return \$self;
+                }}
+        );
     }
 }
 
