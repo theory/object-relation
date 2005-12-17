@@ -154,6 +154,12 @@ our %Lexicon;
         'Could not determine widget type handler for "[_1]"',
         'Could not determine widget type handler for “[_1]”',
 
+        'Unknown render mode "[_1]"',
+        'Unknown render mode “[_1]”',
+
+        'Invalid keys passed to constructor: "[_1]"',
+        'Invalid keys passed to constructor: “[_1]”',
+
         'Attribute must be defined',
         'Attribute must be defined',
 

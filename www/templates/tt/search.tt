@@ -2,7 +2,7 @@
    WRAPPER shared/main.tt
    title = 'Search' 
 %]
-  [% USE Renderer %]
+  [% USE Renderer( mode => 'edit', format => {} ) %]
   <div class="search">
     <fieldset>
       <legend>[% search_key %]</legend>

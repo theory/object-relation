@@ -7,8 +7,9 @@ use warnings;
 
 #use Test::More tests => 118;
 use Test::More 'no_plan';
+
+use Test::Exception;
 use Test::XML;
-use aliased 'Widget::Meta';
 
 my $RENDERER;
 
@@ -24,7 +25,7 @@ BEGIN {
     package Test::Language::en;
     use Kinetic::Util::Language::en;
     Kinetic::Util::Language::en->add_to_lexicon( map { $_ => $_ }
-          ( 'foo tip', ' ', 'Thanks for the tip' ) );
+          ( 'Foo', 'foo tip', ' ', 'Thanks for the tip' ) );
 
     package Some::Package;
 
@@ -36,9 +37,10 @@ BEGIN {
         meta       => [ use => 'Kinetic::Meta' ],
         attributes => [
             foo => {
+                label => 'Foo',
                 widget_meta => Widget->new(
-                    type => 'text',
-                    tip  => 'foo tip',
+                    type  => 'text',
+                    tip   => 'foo tip',
                 ),
             },
             check => {
@@ -60,10 +62,23 @@ BEGIN {
     );
 }
 
+#
+# XXX Note the unusual way of calling the constructor.  Becuase a TT plugin's
+# constructor has "context" passed after the class and the subsequent
+# arguments are passed has a hashref, we pass "undef" for the context (the
+# code is not relying on it) and this constructor is equilant to:
+#
+# [% USE Renderer( mode => 'edit', format => {} ) %]
+#
+
 can_ok $RENDERER, 'new';
-ok my $r = $RENDERER->new,
+ok my $r = $RENDERER->new( undef, { mode => 'edit' } ),  # format has defaults
   '... and we should be able to create a new renderer';
 isa_ok $r, $RENDERER, '... and the object it returns';
+
+can_ok $r, 'mode';
+throws_ok { $r->mode('foo') } 'Kinetic::Util::Exception::Fatal::Invalid',
+  '... and attempting to set it to an illegal value should fail';
 
 my $test_class = Some::Package->new;
 my $meta_class = $test_class->my_class;
@@ -75,10 +90,11 @@ can_ok $r, 'render';
 
 ok my $html = $r->render( $attr_for{foo} ),
   'We should be able to render text widgets';
-is_xml $html,
-  '<input name="foo" id="foo" type="text" size="40" tip="foo tip" maxlength="40"/>',
+is_xml wrap($html),
+  wrap('<label for="foo">Foo</label> <input name="foo" id="foo" type="text" size="40" tip="foo tip" maxlength="40"/>'),
   '... and it should return XHTML with valid defaults';
 
+exit;
 # checkbox
 
 ok $html = $r->render( $attr_for{check} ),

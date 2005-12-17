@@ -25,11 +25,14 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use HTML::Entities qw/encode_entities/;
+use Readonly;
+Readonly my $ALLOWED_MODE => qr/^view|edit|search$/;
 
 use base 'Template::Plugin';
 use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Meta::Attribute';
 use Kinetic::Util::Exceptions qw/
+  throw_invalid
   throw_unimplemented
   /;
 
@@ -61,9 +64,73 @@ The constructor is automatically called by Template Toolkit.
 =cut
 
 sub new {
-    my ( $class, $template_context ) = @_;
-    bless { context => $template_context },
+    my ( $class, $template_context, $value_for ) = @_;
+
+    $value_for->{format} ||= {};
+    unless ( 'format mode' eq join ' ', sort keys %$value_for ) {
+        throw_invalid [
+            'Invalid keys passed to constructor: "[_1]"',
+            join ' ', sort keys %$value_for
+        ];
+    }
+    my $self = bless { context => $template_context },
       $class;    # XXX tighten this up later
+    $self->mode( $value_for->{mode} );
+
+    $value_for->{format}{view}   ||= '%s';
+    $value_for->{format}{edit}   ||= '%s %s';
+    $value_for->{format}{search} ||= '%s %s %s';
+    while ( my ( $mode, $format ) = each %{ $value_for->{format} } ) {
+        $self->format( $mode, $format );
+    }
+    return $self;
+}
+
+##############################################################################
+
+=head3 mode
+
+  [% Renderer.mode('view') %]
+  [% IF 'view' == Renderer.mode %]
+
+Getter/setter for rendering mode.  The allowed values for mode are C<view>,
+C<edit> and C<search>.  Attempting to set the mode to a different value will
+throw an exception.
+
+=cut
+
+sub mode {
+    my $self = shift;
+    return $self->{mode} unless @_;
+    my $mode = shift;
+    unless ( $mode =~ $ALLOWED_MODE ) {
+        throw_invalid [ 'Unknown render mode "[_1]"', $mode ];
+    }
+    $self->{mode} = $mode;
+    return $self;
+}
+
+##############################################################################
+
+=head3 format
+
+  [% Renderer.format('edit', '<td>%s</td><td>%s</tt>') %]
+
+Set the format for a given render mode.
+
+XXX Flesh out POD
+
+=cut
+
+sub format {
+    my $self = shift;
+    my $mode = shift;
+    unless ( $mode =~ $ALLOWED_MODE ) {
+        throw_invalid [ 'Unknown render mode "[_1]"', $mode ];
+    }
+    return $self->{$mode} unless @_;
+    $self->{$mode} = shift;
+    return $self;
 }
 
 ##############################################################################
@@ -89,10 +156,19 @@ my %renderer_for = (
 sub _context { shift->{context} }
 
 sub render {
+
     # eventually we'll have to handle 'view' mode
     my $self   = shift;
     my $object = shift;
     if ( $object->isa(Attribute) ) {
+        if ( 'view' eq $self->mode ) {
+            unless (@_) {
+                throw_invalid [];
+            }
+            my $kinetic_object = shift;
+            return sprintf $self->format('view'),
+              $object->get($kinetic_object);
+        }
         my $widget = $object->widget_meta;
         my $type = $widget ? $widget->type : '';
         if ( my $renderer = $renderer_for{$type} ) {
@@ -117,7 +193,7 @@ sub _render_calendar {
     my ( $self, $attribute, $object ) = @_;
     my $w    = $attribute->widget_meta;
     my $type = $w->type;
-    my $name    = encode_entities( $attribute->name );
+    my $name = encode_entities( $attribute->name );
     return <<"    END_CALENDAR"
     <input name="$name" id="$name" type="text"/>
     <input id="${name}_trigger" type="image" src="/images/calendar/calendar.gif"/>
@@ -162,13 +238,16 @@ sub _render_search {
 
 sub _render_text {
     my ( $self, $attribute, $object ) = @_;
-    my $w      = $attribute->widget_meta;
-    my $name   = encode_entities( $attribute->name );
-    my $tip    = encode_entities( $w->tip || '' );
-    my $size   = $w->size || 40;
-    my $length = $w->length || $size;
-    return
-      qq{<input name="$name" id="$name" type="text" size="$size" maxlength="$length" tip="$tip"/>};
+    my $w          = $attribute->widget_meta;
+    my $label      = encode_entities( $attribute->label );
+    my $name       = encode_entities( $attribute->name );
+    my $tip        = encode_entities( $w->tip || '' );
+    my $size       = $w->size || 40;
+    my $length     = $w->length || $size;
+    my $html_label = qq{<label for="$name">$label</label>};
+    my $input
+      = qq{<input name="$name" id="$name" type="text" size="$size" maxlength="$length" tip="$tip"/>};
+    return sprintf $self->format('edit'), $html_label, $input;
 }
 
 sub _render_textarea {
@@ -182,6 +261,52 @@ sub _render_textarea {
       qq{<textarea name="$name" id="$name" rows="$rows" cols="$cols" tip="$tip"></textarea>};
 }
 
+{
+    my %from_widget = (
+        tip    => '',
+        size   => 40,
+        length => 40,
+        rows   => 4,
+        cols   => 40,
+    );
+    my %from_attribute = (
+        label => sub { ucfirst( _fetch_values( @_, 'name' )->{name} ) },
+        name  => ''
+    );
+
+    sub _fetch_values {
+        my ( $attribute, $widget, @names ) = @_;
+        my %value_for;
+        foreach my $name (@names) {
+            my $value;
+            if (exists $from_widget{$name}) {
+                $value = $widget->$name;
+                unless (defined $value) {
+                    my $default = $from_widget{$name};
+                    if ('CODE' eq ref $default) {
+                        $default = $default->($attribute, $widget);
+                    }
+                    $value = $default;
+                }
+            }
+            elsif (exists $from_attribute{$name}) {
+                my $value = $attribute->$name;
+                unless (defined $value) {
+                    my $default = $from_attribute{$name};
+                    if ('CODE' eq ref $default) {
+                        $default = $default->($attribute, $attribute);
+                    }
+                    $value = $default;
+                }
+            }
+            else {
+                # throw exception
+            }
+            $value_for{$name} = $value;
+        }
+        return \%value_for;
+    }
+}
 1;
 
 __END__
@@ -199,7 +324,13 @@ Copyright (c) 2004-2005 Kineticode, Inc. <info@kineticode.com>
 
 This work is made available under the terms of Version 2 of the GNU General
 Public License. You should have received a copy of the GNU General Public
-License along with this program; if not, download it from
+License along with this pr292:	final indentation level: 1
+
+Final nesting depth of '{'s is 1
+The most recent un-matched '{' is on line 263
+263: sub _fetch_values {
+                       ^
+ogram; if not, download it from
 L<http://www.gnu.org/licenses/gpl.txt> or write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
@@ -209,3 +340,5 @@ A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
 details.
 
 =cut
+292:	To see 1 non-critical warnings rerun with -w
+292:	To save a full .LOG file rerun with -g
