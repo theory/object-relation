@@ -511,8 +511,6 @@ top level.
 sub _save {
     my ( $self, $object ) = @_;
 
-    # XXX So this is something we need to get implemented.
-    #return $class unless $object->changed;
     $object->_save_prep;
     local $self->{search_class} = $object->my_class;
     local $self->{view}         = $self->{search_class}->key;
@@ -525,14 +523,9 @@ sub _save {
     local @{$self}{qw/columns values/};
     $self->_save_contained($object);
 
-    foreach my $attr ( $self->{search_class}->persistent_attributes ) {
-        push @{ $self->{columns} } => $attr->_view_column;
-        push @{ $self->{values} }  => $attr->raw($object);
-    }
-
     return $object->id
-      ? $self->_update($object)
-      : $self->_insert($object);
+        ? $self->_update($object)
+        : $self->_insert($object);
 }
 
 ##############################################################################
@@ -753,11 +746,19 @@ externally for any purpose.
 
 sub _insert {
     my ( $self, $object ) = @_;
-    my $columns = join ', ' => @{ $self->{columns} };
-    my $placeholders = join ', ' => ( ('?') x @{ $self->{columns} } );
+    # INSERT all attributes.
+    my (@cols, @vals);
+    foreach my $attr ( $self->{search_class}->persistent_attributes ) {
+        next if $attr->name eq 'id';
+        push @cols => $attr->_view_column;
+        push @vals => $attr->raw($object);
+    }
+
+    my $columns = join ', ' => @cols;
+    my $placeholders = join ', ' => ('?') x @cols;
     my $sql = "INSERT INTO $self->{view} ($columns) VALUES ($placeholders)";
     $self->_prepare_method($CACHED);
-    $self->_do_sql( $sql, $self->{values} );
+    $self->_do_sql( $sql, \@vals );
     return $self->_set_ids($object);
 }
 
@@ -850,12 +851,18 @@ Creates and executes an C<UPDATE> sql statement for the given object.
 
 sub _update {
     my ( $self, $object ) = @_;
-    # XXX Exclude once attributes from updates!
-    my $columns = join ', ' => map { "$_ = ?" } @{ $self->{columns} };
-    push @{ $self->{values} } => $object->id;
+    # UPDATE only modified attributes.
+    my (@cols, @vals);
+    foreach my $attr ( $self->{search_class}->attributes($object->_get_modified) ) {
+        push @cols => $attr->_view_column;
+        push @vals => $attr->raw($object);
+    }
+
+    my $columns = join ', ' => map { "$_ = ?" } @cols;
+    push @vals => $object->id;
     my $sql = "UPDATE $self->{view} SET $columns WHERE id = ?";
     $self->_prepare_method($CACHED);
-    $self->_do_sql( $sql, $self->{values} );
+    $self->_do_sql( $sql, \@vals );
     return $self->_clear_mods($object);
 }
 

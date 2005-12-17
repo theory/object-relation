@@ -448,8 +448,8 @@ sub insert : Test(7) {
     $one->description('test class');
 
     can_ok Store, '_insert';
-    my $expected =
-q{INSERT INTO one (uuid, state, name, description, bool) VALUES (?, ?, ?, ?, ?)};
+    my $expected = q{INSERT INTO one (uuid, state, name, description, bool) }
+                 . q{VALUES (?, ?, ?, ?, ?)};
     my $bind_params = [
         '1',    # state: Active
         'Ovid',
@@ -492,17 +492,9 @@ sub update : Test(7) {
     can_ok Store, '_update';
     $one->{id} = 42;
 
-    # XXX The uuid should not change, should it?  I should
     # exclude it from this?
-    my $expected =
-      "UPDATE one SET uuid = ?, state = ?, name = ?, description = ?, "
-      . "bool = ? WHERE id = ?";
-    my $bind_params = [
-        '1',    # state: Active
-        'Ovid',
-        'test class',
-        '1'     # bool
-    ];
+    my $expected = 'UPDATE one SET name = ?, description = ? WHERE id = ?';
+    my $bind_params = [ 'test class' ];
     my @attributes = $one->my_class->attributes;
     my $store      = Store->new;
     @{$store}{qw/search_class view columns values/} = (
@@ -512,9 +504,9 @@ sub update : Test(7) {
     );
     ok $store->_update($one), 'and calling it should succeed';
     is $SQL, $expected, 'and it should generate the correct sql';
-    my $uuid = shift @$BIND;
+    my $name = shift @$BIND;
     my $id   = pop @$BIND;
-    is $one->uuid, $uuid, 'and the uuid should be correct';
+    is $one->name, $name, 'and the name should be correct';
     is $one->{id}, $id, 'and the final bind param is the id';
     is_deeply $BIND, $bind_params, 'and the correct bind params';
     is $one->{id}, 42, 'and the private id should not be changed';
@@ -557,14 +549,13 @@ sub test_extend : Test(45) {
     $mocker->mock(_do_sql => $do_sql);
     $mocker->mock(_set_ids => 1);
     ok $extend->save, 'Call the save method';
-    is $sql, 'INSERT INTO extend (id, uuid, state, two__id, two__uuid, '
+    is $sql, 'INSERT INTO extend (uuid, state, two__id, two__uuid, '
            . 'two__state, two__name, two__description, two__one__id, '
            . 'two__age, two__date) '
-           . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+           . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         'It should insert the Exend and Two data into the view';
 
     is_deeply $vals, [
-        undef, # id
         $extend->uuid,
         $extend->state->value,
         undef, # two__id
@@ -632,23 +623,11 @@ sub test_extend : Test(45) {
     # Check out the UPDATE statement.
     $mocker->mock(_do_sql => $do_sql);
     ok $extend->save, 'Save the extend object';
-    is $sql, 'UPDATE extend SET id = ?, uuid = ?, state = ?, two__id = ?, '
-           . 'two__uuid = ?, two__state = ?, two__name = ?, '
-           . 'two__description = ?, two__one__id = ?, two__age = ?, '
-           . 'two__date = ? WHERE id = ?',
+    is $sql, 'UPDATE extend SET state = ?, two__name = ? WHERE id = ?',
         'It should update Extend and Two view the extend view';
     is_deeply $vals, [
-        $extend->id,
-        $extend->uuid,
         $extend->state->value,
-        $extend->two->id,
-        $extend->two_uuid,
-        $extend->two_state->value,
         $extend->name,
-        $extend->description,
-        $extend->one->id,
-        $extend->age,
-        $extend->date,
         $extend->id,
     ], 'It should set the proper values';;
 
