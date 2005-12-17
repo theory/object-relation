@@ -268,7 +268,6 @@ sub _delegate {
     my $class   = $attr->class;
     my $ref     = $attr->references;
     my $aname   = $attr->name;
-    my $ref_pkg = $ref->package;
 
     # Meta.pm maps the delegating attribute to the attribute it acts as.
     my %attrs = map  { $_->acts_as => $_->name }
