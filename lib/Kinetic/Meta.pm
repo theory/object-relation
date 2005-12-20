@@ -139,22 +139,24 @@ sub new {
 
         # Make sure that we're not using inheritance!
         throw_invalid_class [
-            'I cannot extend [_1] into [_2] because [_2] inherits from [_1]',
+            '[_1] cannot extend [_2] because it inherits from it',
+            $package,
             $ext_pkg,
-            $class,
         ] if $package->isa($ext_pkg);
 
         $self->_add_delegates(
             $extended,
             'extends',
             1,
-            sub { $extended->package->new }
+            sub { $extended->package->new },
+            $class->type_of,
+            $class->mediates,
         );
     }
 
     # Set up attributes if this class is a type of another class.
     if (my $type = $class->type_of) {
-        $self->_add_delegates($type, 'type_of', 0);
+        $self->_add_delegates($type, 'type_of', 0, $class->mediates);
     }
 
     # Set up attributes if this class mediates another class.
@@ -162,7 +164,7 @@ sub new {
         $self->_add_delegates(
             $mediated,
             'mediates',
-            0, # XXX Actually it should persist, so fix!
+            0,
             sub { $mediated->package->new }
         );
     }
@@ -306,7 +308,7 @@ The default value for the attribute, if any.
 =cut
 
 sub _add_delegates {
-    my ($self, $ref, $rel, $persist, $def) = @_;
+    my ($self, $ref, $rel, $persist, $def, @others) = @_;
     my $class = $self->class;
     my $key   = $ref->key;
 
@@ -333,11 +335,14 @@ sub _add_delegates {
     my $parent = ($class->Class::Meta::Class::parents)[0];
 
     # This isn't redundant because attributes can have been added to $class
-    # only by _add_delegates(). It won't return any for parent classes until
-    # after build() is called, and since this is new(), the class itself
+    # only by _add_delegates(). It won't return any for the current class
+    # until after build() is called, and since this is new(), the class itself
     # hasn't declared any yet!
     my %attrs = map { $_->name => undef }
         $class->attributes, $parent->attributes;
+
+    # Disallow attributes with the same names as other important relations.
+    $attrs{$_->key} = undef for grep { defined } @others;
 
     # Add attributes from the extended class.
     for my $attr ($ref->attributes) {
