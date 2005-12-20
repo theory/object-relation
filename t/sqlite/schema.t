@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
 #use Test::More 'no_plan';
-use Test::More tests => 91;
+use Test::More tests => 92;
 use Test::Differences;
 
 FAKESQLITE: {
@@ -589,7 +589,7 @@ $update = q{CREATE TRIGGER update_relation
 INSTEAD OF UPDATE ON relation
 FOR EACH ROW BEGIN
   UPDATE _relation
-  SET    state = NEW.state, one_id = NEW.one__id, simple_id = NEW.simple__id
+  SET    state = NEW.state, one_id = NEW.one__id
   WHERE  id = OLD.id;
 END;
 };
@@ -715,7 +715,7 @@ $update = q{CREATE TRIGGER update_composed
 INSTEAD OF UPDATE ON composed
 FOR EACH ROW BEGIN
   UPDATE _composed
-  SET    state = NEW.state, one_id = NEW.one__id
+  SET    state = NEW.state
   WHERE  id = OLD.id;
 END;
 };
@@ -843,7 +843,7 @@ $update = q{CREATE TRIGGER update_comp_comp
 INSTEAD OF UPDATE ON comp_comp
 FOR EACH ROW BEGIN
   UPDATE _comp_comp
-  SET    state = NEW.state, composed_id = NEW.composed__id
+  SET    state = NEW.state
   WHERE  id = OLD.id;
 END;
 };
@@ -986,7 +986,7 @@ FOR EACH ROW BEGIN
   WHERE  id = OLD.two__id;
 
   UPDATE _extend
-  SET    state = NEW.state, two_id = NEW.two__id
+  SET    state = NEW.state
   WHERE  id = OLD.id;
 END;
 };
@@ -1005,7 +1005,7 @@ eq_or_diff $sg->delete_for_class($extend), $delete,
   "... Schema class generates view DELETE rule";
 
 # Check that a complete schema is properly generated.
-#eq_or_diff join("\n", $sg->schema_for_class($extend)),
-#  join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
-#  "... Schema class generates complete schema";
+eq_or_diff join("\n", $sg->schema_for_class($extend)),
+  join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
+  "... Schema class generates complete schema";
 

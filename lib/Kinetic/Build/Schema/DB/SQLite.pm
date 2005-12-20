@@ -699,7 +699,7 @@ sub _extended_insert_up {
                 sprintf "%s = COALESCE(NEW.%s, %s)",
                     $col, $_->view_column, $col;
             }
-            grep { $_->type ne 'uuid' } @$ext_attrs
+            grep { !$_->once } @$ext_attrs
         )
         . "\n  WHERE  NEW.$ext_key\__id IS NOT NULL "
         . "AND id = NEW.$ext_key\__id;\n";
@@ -761,7 +761,7 @@ sub _update_table {
           . join(
               ', ',
               map { sprintf "%s = NEW.%s", $_->column, $_->view_column }
-              grep { $_->type ne 'uuid' } $impl->table_attributes
+              grep { !$_->once } $impl->table_attributes
             )
           . "\n  WHERE  id = OLD.id;\n";
     }
@@ -791,7 +791,7 @@ sub _extended_update {
             map  {
                 sprintf "%s = NEW.%s", $_->acts_as->view_column, $_->view_column
             }
-            grep { $_->type ne 'uuid' }
+            grep { !$_->once }
             grep { $_->delegates_to || '' eq $extended } $class->attributes
         )
       . "\n  WHERE  id = OLD.$ext_key\__id;\n";

@@ -501,7 +501,7 @@ sub update_for_class {
           . join(
               ', ',
               map { sprintf "%s = NEW.%s", $_->column, $_->view_column }
-              grep { $_->type ne 'uuid' } $impl->table_attributes
+              grep { !$_->once } $impl->table_attributes
             )
           . "\n  WHERE  id = OLD.id;\n";
     }
@@ -515,7 +515,7 @@ sub update_for_class {
               map  {
                   sprintf "%s = NEW.%s", $_->acts_as->view_column, $_->view_column
               }
-              grep { $_->type ne 'uuid' }
+              grep { !$_->once }
               grep { $_->delegates_to || '' eq $extends } $class->attributes
             )
           . "\n  WHERE  id = OLD.$view\__id;\n";
@@ -758,7 +758,7 @@ sub _extended_insert_up {
                 sprintf "%s = COALESCE(NEW.%s, %s)",
                     $col, $_->view_column, $col;
             }
-            grep { $_->type ne 'uuid' } @$ext_attrs
+            grep { !$_->once } @$ext_attrs
         )
         . "\n  WHERE  id = NEW.$ext_key\__id;\n";
 }

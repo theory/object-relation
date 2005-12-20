@@ -513,7 +513,7 @@ eq_or_diff $sg->insert_for_class($relation), $insert,
 $update = q{CREATE RULE update_relation AS
 ON UPDATE TO relation DO INSTEAD (
   UPDATE _relation
-  SET    state = NEW.state, one_id = NEW.one__id, simple_id = NEW.simple__id
+  SET    state = NEW.state, one_id = NEW.one__id
   WHERE  id = OLD.id;
 );
 };
@@ -628,7 +628,7 @@ eq_or_diff $sg->insert_for_class($composed), $insert,
 $update = q{CREATE RULE update_composed AS
 ON UPDATE TO composed DO INSTEAD (
   UPDATE _composed
-  SET    state = NEW.state, one_id = NEW.one__id
+  SET    state = NEW.state
   WHERE  id = OLD.id;
 );
 };
@@ -744,7 +744,7 @@ eq_or_diff $sg->insert_for_class($comp_comp), $insert,
 $update = q{CREATE RULE update_comp_comp AS
 ON UPDATE TO comp_comp DO INSTEAD (
   UPDATE _comp_comp
-  SET    state = NEW.state, composed_id = NEW.composed__id
+  SET    state = NEW.state
   WHERE  id = OLD.id;
 );
 };
@@ -877,7 +877,7 @@ eq_or_diff $sg->insert_for_class($extend), $insert,
 $update = q{CREATE RULE update_extend AS
 ON UPDATE TO extend DO INSTEAD (
   UPDATE _extend
-  SET    state = NEW.state, two_id = NEW.two__id
+  SET    state = NEW.state
   WHERE  id = OLD.id;
 
   UPDATE two
