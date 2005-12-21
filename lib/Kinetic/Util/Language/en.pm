@@ -254,9 +254,12 @@ our %Lexicon;
         'No direct attribute "[_1]" to sort by',
         'No direct attribute “[_1]” to sort by',
 
-        # Kinetic::Meta error.
+        # Kinetic::Meta errors.
         '[_1] cannot extend [_2] because it inherits from it',
         '[_1] cannot extend [_2] because it inherits from it',
+
+        '[_1] can either extend or mediate another class, but not both',
+        '[_1] can either extend or mediate another class, but not both',
 
         # Kinetic Attribute labels and tips.
         'UUID' => 'UUID',

@@ -473,8 +473,8 @@ $table = q{CREATE TABLE _relation (
     id INTEGER NOT NULL PRIMARY KEY,
     uuid TEXT NOT NULL,
     state INTEGER NOT NULL DEFAULT 1,
-    one_id INTEGER NOT NULL REFERENCES simple_one(id) ON DELETE RESTRICT,
-    simple_id INTEGER NOT NULL REFERENCES _simple(id) ON DELETE RESTRICT
+    simple_id INTEGER NOT NULL REFERENCES _simple(id) ON DELETE CASCADE,
+    one_id INTEGER NOT NULL REFERENCES simple_one(id) ON DELETE RESTRICT
 );
 };
 eq_or_diff $sg->table_for_class($relation), $table,
@@ -483,8 +483,8 @@ eq_or_diff $sg->table_for_class($relation), $table,
 # Check that the CREATE INDEX statements are correct.
 $indexes = q{CREATE UNIQUE INDEX idx_relation_uuid ON _relation (uuid);
 CREATE INDEX idx_relation_state ON _relation (state);
-CREATE INDEX idx_relation_one_id ON _relation (one_id);
 CREATE INDEX idx_relation_simple_id ON _relation (simple_id);
+CREATE INDEX idx_relation_one_id ON _relation (one_id);
 };
 
 eq_or_diff $sg->indexes_for_class($relation), $indexes,
@@ -519,6 +519,26 @@ FOR EACH ROW BEGIN
     WHERE  OLD.simple_id <> NEW.simple_id OR NEW.simple_id IS NULL;
 END;
 
+CREATE TRIGGER fki_relation_simple_id
+BEFORE INSERT ON _relation
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'insert on table "_relation" violates foreign key constraint "fk_relation_simple_id"')
+    WHERE  (SELECT id FROM _simple WHERE id = NEW.simple_id) IS NULL;
+END;
+
+CREATE TRIGGER fku_relation_simple_id
+BEFORE UPDATE ON _relation
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'update on table "_relation" violates foreign key constraint "fk_relation_simple_id"')
+    WHERE  (SELECT id FROM _simple WHERE id = NEW.simple_id) IS NULL;
+END;
+
+CREATE TRIGGER fkd_relation_simple_id
+BEFORE DELETE ON _simple
+FOR EACH ROW BEGIN
+  DELETE from _relation WHERE simple_id = OLD.id;
+END;
+
 CREATE TRIGGER fki_relation_one_id
 BEFORE INSERT ON _relation
 FOR EACH ROW BEGIN
@@ -539,36 +559,15 @@ FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'delete on table "simple_one" violates foreign key constraint "fk_relation_one_id"')
     WHERE  (SELECT one_id FROM _relation WHERE one_id = OLD.id) IS NOT NULL;
 END;
-
-CREATE TRIGGER fki_relation_simple_id
-BEFORE INSERT ON _relation
-FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'insert on table "_relation" violates foreign key constraint "fk_relation_simple_id"')
-    WHERE  (SELECT id FROM _simple WHERE id = NEW.simple_id) IS NULL;
-END;
-
-CREATE TRIGGER fku_relation_simple_id
-BEFORE UPDATE ON _relation
-FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'update on table "_relation" violates foreign key constraint "fk_relation_simple_id"')
-    WHERE  (SELECT id FROM _simple WHERE id = NEW.simple_id) IS NULL;
-END;
-
-CREATE TRIGGER fkd_relation_simple_id
-BEFORE DELETE ON _simple
-FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'delete on table "_simple" violates foreign key constraint "fk_relation_simple_id"')
-    WHERE  (SELECT simple_id FROM _relation WHERE simple_id = OLD.id) IS NOT NULL;
-END;
 };
 eq_or_diff $sg->constraints_for_class($relation), $constraints,
   "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW relation AS
-  SELECT _relation.id AS id, _relation.uuid AS uuid, _relation.state AS state, _relation.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, _relation.simple_id AS simple__id, simple.uuid AS simple__uuid, simple.state AS simple__state, simple.name AS simple__name, simple.description AS simple__description
-  FROM   _relation, one, simple
-  WHERE  _relation.one_id = one.id AND _relation.simple_id = simple.id;
+  SELECT _relation.id AS id, _relation.uuid AS uuid, _relation.state AS state, _relation.simple_id AS simple__id, simple.uuid AS simple__uuid, simple.state AS simple__state, simple.name AS simple__name, simple.description AS simple__description, _relation.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool
+  FROM   _relation, simple, one
+  WHERE  _relation.simple_id = simple.id AND _relation.one_id = one.id;
 };
 eq_or_diff $sg->view_for_class($relation), $view,
   "... Schema class generates CREATE VIEW statement";
@@ -577,8 +576,16 @@ eq_or_diff $sg->view_for_class($relation), $view,
 $insert = q{CREATE TRIGGER insert_relation
 INSTEAD OF INSERT ON relation
 FOR EACH ROW BEGIN
-  INSERT INTO _relation (uuid, state, one_id, simple_id)
-  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.one__id, NEW.simple__id);
+  INSERT INTO _simple (uuid, state, name, description)
+  SELECT COALESCE(NEW.simple__uuid, UUID_V4()), COALESCE(NEW.simple__state, 1), NEW.simple__name, NEW.simple__description
+  WHERE  NEW.simple__id IS NULL;
+
+  UPDATE simple
+  SET    state = COALESCE(NEW.simple__state, state), name = COALESCE(NEW.simple__name, name), description = COALESCE(NEW.simple__description, description)
+  WHERE  NEW.simple__id IS NOT NULL AND id = NEW.simple__id;
+
+  INSERT INTO _relation (uuid, state, simple_id, one_id)
+  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), COALESCE(NEW.simple__id, last_insert_rowid()), NEW.one__id);
 END;
 };
 eq_or_diff $sg->insert_for_class($relation), $insert,
@@ -588,6 +595,10 @@ eq_or_diff $sg->insert_for_class($relation), $insert,
 $update = q{CREATE TRIGGER update_relation
 INSTEAD OF UPDATE ON relation
 FOR EACH ROW BEGIN
+  UPDATE simple
+  SET    state = NEW.simple__state, name = NEW.simple__name, description = NEW.simple__description
+  WHERE  id = OLD.simple__id;
+
   UPDATE _relation
   SET    state = NEW.state, one_id = NEW.one__id
   WHERE  id = OLD.id;

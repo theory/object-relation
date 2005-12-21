@@ -432,8 +432,8 @@ $table = q{CREATE TABLE _relation (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_relation'),
     uuid UUID NOT NULL DEFAULT UUID_V4(),
     state STATE NOT NULL DEFAULT 1,
-    one_id INTEGER NOT NULL,
-    simple_id INTEGER NOT NULL
+    simple_id INTEGER NOT NULL,
+    one_id INTEGER NOT NULL
 );
 };
 eq_or_diff $sg->table_for_class($relation), $table,
@@ -442,8 +442,8 @@ eq_or_diff $sg->table_for_class($relation), $table,
 # Check that the CREATE INDEX statements are correct.
 $indexes = q{CREATE UNIQUE INDEX idx_relation_uuid ON _relation (uuid);
 CREATE INDEX idx_relation_state ON _relation (state);
-CREATE INDEX idx_relation_one_id ON _relation (one_id);
 CREATE INDEX idx_relation_simple_id ON _relation (simple_id);
+CREATE INDEX idx_relation_one_id ON _relation (one_id);
 };
 
 eq_or_diff $sg->indexes_for_class($relation), $indexes,
@@ -454,12 +454,12 @@ $constraints = q{ALTER TABLE _relation
   ADD CONSTRAINT pk_relation_id PRIMARY KEY (id);
 
 ALTER TABLE _relation
-  ADD CONSTRAINT fk_one_id FOREIGN KEY (one_id)
-  REFERENCES simple_one(id) ON DELETE RESTRICT;
+  ADD CONSTRAINT fk_simple_id FOREIGN KEY (simple_id)
+  REFERENCES _simple(id) ON DELETE CASCADE;
 
 ALTER TABLE _relation
-  ADD CONSTRAINT fk_simple_id FOREIGN KEY (simple_id)
-  REFERENCES _simple(id) ON DELETE RESTRICT;
+  ADD CONSTRAINT fk_one_id FOREIGN KEY (one_id)
+  REFERENCES simple_one(id) ON DELETE RESTRICT;
 
 CREATE FUNCTION relation_uuid_once() RETURNS trigger AS '
   BEGIN
@@ -491,9 +491,9 @@ eq_or_diff left_justify( $sg->constraints_for_class($relation) ),
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW relation AS
-  SELECT _relation.id AS id, _relation.uuid AS uuid, _relation.state AS state, _relation.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, _relation.simple_id AS simple__id, simple.uuid AS simple__uuid, simple.state AS simple__state, simple.name AS simple__name, simple.description AS simple__description
-  FROM   _relation, one, simple
-  WHERE  _relation.one_id = one.id AND _relation.simple_id = simple.id;
+  SELECT _relation.id AS id, _relation.uuid AS uuid, _relation.state AS state, _relation.simple_id AS simple__id, simple.uuid AS simple__uuid, simple.state AS simple__state, simple.name AS simple__name, simple.description AS simple__description, _relation.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool
+  FROM   _relation, simple, one
+  WHERE  _relation.simple_id = simple.id AND _relation.one_id = one.id;
 };
 
 eq_or_diff $sg->view_for_class($relation), $view,
@@ -501,10 +501,26 @@ eq_or_diff $sg->view_for_class($relation), $view,
 
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_relation AS
-ON INSERT TO relation DO INSTEAD (
-  INSERT INTO _relation (id, uuid, state, one_id, simple_id)
-  VALUES (NEXTVAL('seq_relation'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.one__id, NEW.simple__id);
+ON INSERT TO relation WHERE NEW.simple__id IS NULL DO INSTEAD (
+  INSERT INTO simple (uuid, state, name, description)
+  VALUES (COALESCE(NEW.simple__uuid, UUID_V4()), COALESCE(NEW.simple__state, 1), NEW.simple__name, NEW.simple__description);
+
+  INSERT INTO _relation (id, uuid, state, simple_id, one_id)
+  VALUES (NEXTVAL('seq_relation'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), CURRVAL('seq_simple'), NEW.one__id);
 );
+
+CREATE RULE extend_relation AS
+ON INSERT TO relation WHERE NEW.simple__id IS NOT NULL DO INSTEAD (
+  UPDATE simple
+  SET    state = COALESCE(NEW.simple__state, state), name = COALESCE(NEW.simple__name, name), description = COALESCE(NEW.simple__description, description)
+  WHERE  id = NEW.simple__id;
+
+  INSERT INTO _relation (id, uuid, state, simple_id, one_id)
+  VALUES (NEXTVAL('seq_relation'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.simple__id, NEW.one__id);
+);
+
+CREATE RULE insert_relation_dummy AS
+ON INSERT TO relation DO INSTEAD NOTHING;
 };
 eq_or_diff $sg->insert_for_class($relation), $insert,
   "... Schema class generates view INSERT rule";
@@ -515,6 +531,10 @@ ON UPDATE TO relation DO INSTEAD (
   UPDATE _relation
   SET    state = NEW.state, one_id = NEW.one__id
   WHERE  id = OLD.id;
+
+  UPDATE simple
+  SET    state = NEW.simple__state, name = NEW.simple__name, description = NEW.simple__description
+  WHERE  id = OLD.simple__id;
 );
 };
 eq_or_diff $sg->update_for_class($relation), $update,

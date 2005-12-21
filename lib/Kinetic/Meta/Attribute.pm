@@ -565,10 +565,8 @@ sub build {
     # Kinetic::Meta class. Use Class::Meta->for_key to avoid
     # Kinetic::Meta->for_key's exception.
     if ($self->{references} = Class::Meta->for_key($self->type)) {
-        $self->{relationship} ||= 'has';
-        $self->{once} = 1
-          if $self->{relationship} eq 'extends'
-          || $self->{relationship} eq 'mediates';
+        my $rel = $self->{relationship} ||= 'has';
+        $self->{once} = 1 if $rel eq 'extends' || $rel eq 'mediates';
     } else {
         $self->{relationship} = undef;
     }

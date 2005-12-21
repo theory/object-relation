@@ -536,9 +536,9 @@ sub _save {
 
 This method is called by C<_save> to handle the saving of the contained
 objects of $object. It calls itself recursively if it encounters an extended
-object, so as to save the contained objects of the extended object. The
-extended object is not itself saved, as that is handled in the normal save for
-$object as executed by C<_save()>.
+or mediated object, so as to save the contained objects of the extended
+object. The extended or mediated object is not itself saved, as that is
+handled in the normal save for $object as executed by C<_save()>.
 
 =cut
 
@@ -546,15 +546,16 @@ sub _save_contained {
     my ($self, $object) = @_;
     my $class = $object->my_class;
 
-    if (my $extended = $class->extends) {
+    if (my $extended = $class->extends || $class->mediates) {
         # Recurse to save the references in all extendeds, first.
         $self->_save_contained(
             $class->attributes($extended->key)->get($object)
         );
     }
 
-    $self->_save( $_->get($object) ) for grep {
-        $_->relationship ne 'extends'
+    $self->_save($_) for map { $_->get($object) || () } grep {
+        my $rel = $_->relationship;
+        $rel ne 'extends' && $rel ne 'mediates';
     } $class->ref_attributes;
 
     return $self;
@@ -752,6 +753,8 @@ sub _insert {
         next if $attr->name eq 'id';
         push @cols => $attr->_view_column;
         push @vals => $attr->raw($object);
+        throw_invalid([ 'Attribute "[_1]" must be defined', $attr->name ])
+            if $attr->required && !defined $attr->get($object);
     }
 
     my $columns = join ', ' => @cols;
@@ -769,8 +772,9 @@ sub _insert {
   $store->_set_ids($object);
 
 This method is used by C<_insert> to set the C<id> of an object and any object
-that it extends, plus any objects that the extending object extends, etc., as
-well as to clear the list of modified attributes on each object.
+that it extends or mediates, plus any objects that the extending or mediating
+object extends, etc., as well as to clear the list of modified attributes on
+each object.
 
 =cut
 
@@ -778,7 +782,7 @@ sub _set_ids {
     my ($self, $object) = @_;
     my $class = $object->my_class;
 
-    if (my $extended = $class->extends) {
+    if (my $extended = $class->extends || $class->mediates) {
         # Recurse to get the IDs in all extendeds.
         $self->_set_ids(
             $class->attributes($extended->key)->get($object)
@@ -796,8 +800,8 @@ sub _set_ids {
   $store->_clear_mods($object);
 
 This method is called by C<_update()> to clear the list of modified attributes
-in $object, as well as any object that it extends, plus any that the extended
-object extends, etc.
+in $object, as well as any object that it extends or mediates, plus any that
+the extended object extends or mediates, etc.
 
 =cut
 
@@ -805,7 +809,7 @@ sub _clear_mods {
     my ($self, $object) = @_;
     my $class = $object->my_class;
 
-    if (my $extended = $class->extends) {
+    if (my $extended = $class->extends || $class->mediates) {
         # Recurse to clear the list of modified attributes in all extendeds.
         $self->_clear_mods(
             $class->attributes($extended->key)->get($object)
@@ -852,8 +856,9 @@ Creates and executes an C<UPDATE> sql statement for the given object.
 sub _update {
     my ( $self, $object ) = @_;
     # UPDATE only modified attributes.
+    my @mods = $object->_get_modified or return $self;
     my (@cols, @vals);
-    foreach my $attr ( $self->{search_class}->attributes($object->_get_modified) ) {
+    foreach my $attr ( $self->{search_class}->attributes(@mods) ) {
         push @cols => $attr->_view_column;
         push @vals => $attr->raw($object);
     }

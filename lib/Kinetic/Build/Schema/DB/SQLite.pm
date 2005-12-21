@@ -410,8 +410,9 @@ sub unique_triggers {
 
 Returns an SQLite trigger that manages C<INSERT> statements executed against
 the view for the class. The trigger ensures that the C<INSERT> statement
-updates the table for the class as well as any parent classes. Contained
-objects are ignored, and should be inserted separately.
+updates the table for the class as well as any parent classes. Extended and
+mediated objects are also inserted or updated as appropriate, but other
+contained objects are ignored, and should be inserted or updated separately.
 
 =cut
 
@@ -430,10 +431,11 @@ sub insert_for_class {
         $pk ||= 'last_insert_rowid(), ';
     }
 
-    if (my $extends = $class->extends) {
+    if (my $extends = $class->extends || $class->mediates) {
         # We may need to update the extended table. Trickier trigger.
-        my @ext_attrs = grep { $_->delegates_to || '' eq $extends }
-            $class->attributes;
+        my @ext_attrs = grep {
+            $_->persistent && $_->delegates_to || '' eq $extends
+        } $class->attributes;
 
         $sql .= $self->_extended_insert   ( $class, $extends, \@ext_attrs )
               . $self->_extended_insert_up( $class, $extends, \@ext_attrs )
@@ -455,8 +457,9 @@ sub insert_for_class {
 
 Returns an SQLite trigger that manages C<UPDATE> statements executed against
 the view for the class. The trigger ensures that the C<UPDATE> statement
-updates the table for the class as well as any parent classes. Contained
-objects are ignored, and should be updated separately.
+updates the table for the class as well as any parent classes. Extended and
+mediated objects are also updated, but other contained objects are ignored,
+and should be updated separately.
 
 =cut
 
@@ -466,7 +469,7 @@ sub update_for_class {
     my $sql .= "CREATE TRIGGER update_$key\n"
       . "INSTEAD OF UPDATE ON $key\nFOR EACH ROW BEGIN";
 
-    if (my $extends = $class->extends) {
+    if (my $extends = $class->extends || $class->mediates) {
         # We may need to update the extended table. Trickier trigger.
         $sql .= $self->_extended_update( $class, $extends )
               . $self->_update_table(    $class           );
@@ -791,8 +794,11 @@ sub _extended_update {
             map  {
                 sprintf "%s = NEW.%s", $_->acts_as->view_column, $_->view_column
             }
-            grep { !$_->once }
-            grep { $_->delegates_to || '' eq $extended } $class->attributes
+            grep {
+                     $_->persistent
+                 && !$_->once
+                 &&  $_->delegates_to || '' eq $extended
+            } $class->attributes
         )
       . "\n  WHERE  id = OLD.$ext_key\__id;\n";
 }

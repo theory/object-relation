@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 145;
+use Test::More tests => 214;
 #use Test::More 'no_plan';
 use lib '/Users/david/dev/Kineticode/trunk/Class-Meta/lib';
 
@@ -133,6 +133,50 @@ BEGIN {
     ok $km->build, "Build TestExtends class";
 }
 
+package MyTestMediates;
+use base 'Kinetic';
+BEGIN { Test::More->import; }
+
+BEGIN {
+    ok my $km = Kinetic::Meta->new(
+        key         => 'mediate',
+        name        => 'Mediate',
+        plural_name => 'Mediates',
+        mediates     => 'thingy',
+    ), "Create TestMediates class";
+
+    ok $km->add_constructor(
+        name   => 'new',
+        create => 1,
+    ), 'Add constructor';
+
+    ok $km->add_attribute(
+        name          => 'booyah',
+        type          => 'string',
+        label         => 'Booyah',
+    ), "Add booyah attribute";
+
+    ok $km->build, "Build TestMediates class";
+}
+
+package MyTest::Meta::ExtMed;
+use base 'Kinetic';
+BEGIN { Test::More->import; }
+BEGIN {
+    eval {
+        Kinetic::Meta->new(
+            key      => 'ow',
+            extends  => 'thingy',
+            mediates => 'extend',
+        );
+    };
+    ok my $err = $@, 'Catch extends and mediates exception';
+    is $err->error,
+        'MyTest::Meta::ExtMed can either extend or mediate another class, '
+        . 'but not both',
+        'It should have the correct message';
+}
+
 package MyTest::Meta::Excptions;
 
 BEGIN {
@@ -250,6 +294,7 @@ is_deeply [$fclass->direct_attributes], [$attr, $fclass->attributes('lname')],
   "And direct_attributes should return the non-referenced attributes";
 is $attr->relationship, undef, "The fname attribute should have no relationship";
 
+##############################################################################
 # Text extends class.
 ok $class = MyTestExtends->my_class, 'Get TestExtends class object';
 is $class->extends, MyTestThingy->my_class, 'It should extend Thingy';
@@ -351,4 +396,106 @@ ok $ex->thingy->_clear_modified, 'Clear thingy modified';
 ok !$ex->thingy->_is_modified('foo'),
     'Now thingy should not think foo is modified';
 is_deeply [$ex->thingy->_get_modified], [],
+    'Thingy should list none as modified';
+
+##############################################################################
+# Text mediates class.
+ok $class = MyTestMediates->my_class, 'Get TestMediates class object';
+is $class->mediates, MyTestThingy->my_class, 'It should mediate Thingy';
+is_deeply [map { $_->name } $class->attributes ],
+          [qw(uuid state thingy_uuid thingy_state foo booyah)],
+    'It should include the attributes from thingy';
+
+# Test its accessors.
+ok my $med = MyTestMediates->new, 'Create new Mediates object';
+isa_ok $med => 'MyTestMediates';
+isa_ok $med => 'Kinetic';
+ok !$med->isa('MyTestThingy'), 'The object isn\'ta MyTestThingy';
+
+# Make sure that delegates_to is set properly.
+ok $attr = $class->attributes('uuid'), 'Get the uuid attribute object';
+is $attr->delegates_to, undef, 'uuid should not delegate';
+is $attr->acts_as, undef, 'uuid should not act as another attribute';
+ok $attr = $class->attributes('foo'), 'Get the foo attribute object';
+is $attr->delegates_to, $thingy_class, 'foo should delegate to thingy';
+is $attr->acts_as, $thingy_class->attributes('foo'),
+    'foo should act as the thingy foo';
+
+ok $med->foo('fooey'), 'Should be able to set delegated attribute';
+is $med->foo, $med->thingy->foo, 'The value should have been passed through';
+
+is $med->uuid, undef, 'The UUID should be undefined';
+is $med->thingy_uuid, undef, 'And the thingy UUID should be undef';
+ok $med->_save_prep, 'Prepare it for storage';
+ok $med->uuid, 'The UUID should now be defined';
+ok $med->thingy_uuid, 'And so should the thingy UUID';
+ok $med->uuid ne $med->thingy_uuid, 'And they should have different UUIDs';
+
+# We should get the trusted mediateed object attribute.
+is_deeply [map { $_->name } $class->persistent_attributes],
+          [qw(id uuid state thingy thingy_uuid thingy_state foo booyah)],
+    'We should get public and trusted attributes';
+
+# Make sure that methods are delegated.
+ok $meth = $class->methods('hello'), 'Get mediate hello method object';
+ok $meth2 = $thingy_class->methods('hello'),
+    'Get thingy hello method object';
+is $meth->acts_as, $meth2, 'Mediate hello should act as thingy hello';
+is $meth->delegates_to, $thingy_class,
+    'Mediate hello should delegate to thingy';
+
+ok $meth = $class->methods('save'), 'Get mediate save method object';
+ok $meth2 = $thingy_class->methods('save'),
+    'Get thingy save method object';
+ok !$meth->acts_as, 'Mediate save should not act as anything';
+ok !$meth->delegates_to, 'Mediate save should not delegate to anything';
+ok $meth = $class->methods('thingy_save'), 'Get mediate thingy_save object';
+is $meth->acts_as, $meth2, 'Mediate thingy_sve should act as thingy save';
+is $meth->delegates_to, $thingy_class,
+    'Mediate thingy_save should delegate to thingy';
+
+can_ok $med, 'hello';
+can_ok $med, 'save';
+can_ok $med, 'thingy_save';
+is $med->hello, 'hello', 'The hello() method should dispatch to thingy';
+
+# Make sure that nothing has been modified.
+ok $med = MyTestMediates->new, 'Create another Mediate object';
+is_deeply [$med->_get_modified], [], 'No attributes should have been modified';
+ok !$med->_is_modified('uuid'), 'UUID should not be modified';
+ok !$med->_is_modified('foo'), 'And neither should foo';
+ok !$med->_is_modified('booyah'), 'Nor booyah';
+is_deeply [$med->_get_modified], [], 'Thingy has no mods, either';
+
+ok $med->booyah(undef), 'Set the booyah to undef (unchanged)';
+ok !$med->_is_modified('booyah'), 'Booyah should still be unchanged';
+is_deeply [$med->_get_modified], [], 'There should still be no list of modified';
+
+ok $med->booyah('amateur'), 'Set the booyah to something different';
+ok $med->_is_modified('booyah'), 'It should know that booyah has been modified';
+is_deeply [$med->_get_modified], ['booyah'],
+    'And booyah should be the only item in the list of modified';
+
+ok $med->foo('Yow'), 'Set the foo attribute';
+ok $med->_is_modified('foo'), 'It should know that foo has been modified';
+is_deeply [$med->_get_modified], [qw(booyah foo)],
+    'It should list both booyah and foo as modified';
+ok $med->thingy->_is_modified('foo'), 'Thingy should know foo is modified';
+is_deeply [$med->thingy->_get_modified], ['foo'],
+    'Thingy should list foo as modified';
+
+ok $med->_clear_modified, 'Clear modified';
+ok ! @{$med->_get_modified}, 'Now no attributes should be listed as modified';
+ok !$med->_is_modified('foo'), 'It should think that foo is unmodified';
+ok !$med->_is_modified('booyah'), 'Same for booyah';
+
+ok $med->thingy->_is_modified('foo'),
+    'But thingy should still think foo is modified';
+is_deeply [$med->thingy->_get_modified], ['foo'],
+    'Thingy should still list foo as modified';
+ok $med->thingy->_clear_modified, 'Clear thingy modified';
+
+ok !$med->thingy->_is_modified('foo'),
+    'Now thingy should not think foo is modified';
+is_deeply [$med->thingy->_get_modified], [],
     'Thingy should list none as modified';

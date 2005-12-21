@@ -101,8 +101,10 @@ sub import {
             # Set the raw method to return the object ID. Use
             # Class::Meta->for_key to avoid Kinetic::Meta->for_key's
             # exception.
-            $self->{raw} ||= sub { shift->id }
-                if Class::Meta->for_key($self->key);
+            $self->{raw} ||= sub {
+                my $obj = shift or return undef;
+                return $obj->id;
+            } if Class::Meta->for_key($self->key);
             return $self;
         };
     }

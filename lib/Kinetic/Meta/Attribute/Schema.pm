@@ -194,7 +194,8 @@ sub build {
     $self->SUPER::build(@_);
     if ($self->references) {
         unless ($self->{on_delete}) {
-            $self->{on_delete} = $self->relationship eq 'extends'
+            my $rel = $self->relationship;
+            $self->{on_delete} = $rel eq 'extends' || $rel eq 'mediates'
                 ? 'CASCADE'
                 : 'RESTRICT';
         }

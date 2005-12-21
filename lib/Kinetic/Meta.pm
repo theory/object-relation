@@ -131,9 +131,18 @@ sub new {
     );
 
     my $class = $self->class;
+    my $extended = $class->extends;
+    my $mediated = $class->mediates;
+
+    if ($extended and $mediated) {
+        throw_invalid_class [
+            '[_1] can either extend or mediate another class, but not both',
+            $class->package,
+        ];
+    }
 
     # Set up attributes if this class extends another class.
-    if (my $extended  = $class->extends) {
+    elsif ($extended) {
         my $package = $class->package;
         my $ext_pkg = $extended->package;
 
@@ -150,23 +159,22 @@ sub new {
             1,
             sub { $extended->package->new },
             $class->type_of,
-            $class->mediates,
+        );
+    }
+
+    # Set up attributes if this class mediates another class.
+    elsif ($mediated) {
+        $self->_add_delegates(
+            $mediated,
+            'mediates',
+            1,
+            sub { $mediated->package->new }
         );
     }
 
     # Set up attributes if this class is a type of another class.
     if (my $type = $class->type_of) {
-        $self->_add_delegates($type, 'type_of', 0, $class->mediates);
-    }
-
-    # Set up attributes if this class mediates another class.
-    if (my $mediated = $class->mediates) {
-        $self->_add_delegates(
-            $mediated,
-            'mediates',
-            0,
-            sub { $mediated->package->new }
-        );
+        $self->_add_delegates($type, 'type_of', 0);
     }
 
     return $self;

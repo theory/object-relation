@@ -533,7 +533,7 @@ sub _save_prep {
     return $self if $self->uuid;
     $self->uuid(create_uuid());
     my $class   = $self->my_class;
-    my $extends = $class->extends or return $self;
+    my $extends = $class->extends || $class->mediates or return $self;
     my $attr    = $class->attributes($extends->key);
     my $obj     = $attr->get($self);
     $obj->_save_prep;

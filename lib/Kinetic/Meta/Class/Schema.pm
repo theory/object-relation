@@ -281,15 +281,10 @@ sub build {
 
 sub _col_attrs {
     my $class = shift;
-    if ($class->extends) {
-        # If extends, exclude delegate attrs.
-        return grep {
-            !$_->delegates_to && $_->name ne 'id'
-        } $class->persistent_attributes
-    }
-    else {
-        return grep { $_->name ne 'id' } $class->persistent_attributes
-    }
+    # Skip over ID and attributes that delegate to another class.
+    return grep {
+        !$_->delegates_to && $_->name ne 'id'
+    } $class->persistent_attributes
 }
 
 1;

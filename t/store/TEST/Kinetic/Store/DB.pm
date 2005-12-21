@@ -18,9 +18,11 @@ use aliased 'Kinetic::Store' => 'DONT_USE', ':all';
 use aliased 'Kinetic::Store::DB' => 'Store';
 use aliased 'Kinetic::Util::State';
 
+use aliased 'TestApp::Simple';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';
 use aliased 'TestApp::Extend';
+use aliased 'TestApp::Relation';
 
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->any_supported(qw/pg sqlite/)
@@ -464,6 +466,7 @@ sub insert : Test(7) {
         [ map { $_->_column } @attributes ],
         [ map { $_->raw($one) } @attributes ],
     );
+    $one->_save_prep; # To populate UUID.
     ok $store->_insert($one), 'and calling it should succeed';
     is $SQL, $expected, 'and it should generate the correct sql';
     my $uuid = shift @$BIND;
@@ -536,7 +539,7 @@ sub test_extend : Test(45) {
         'Create Extend with no existing Two';
     isa_ok $extend, Extend;
 
-    # Let's chck out the SQL that gets sent off.
+    # Let's check out the SQL that gets sent off.
     my $mocker = Test::MockModule->new('Kinetic::Store::DB');
     my ($sql, $vals);
     my $do_sql = sub {
@@ -566,7 +569,7 @@ sub test_extend : Test(45) {
         $extend->one->id,
         $extend->age,
         $extend->date,
-    ], 'It should set the proper values';;
+    ], 'It should set the proper values';
 
     # Now do the save for real.
     $mocker->unmock_all;
@@ -665,6 +668,148 @@ sub test_extend : Test(45) {
         local $TODO = 'Need to implement object caching';
         is_deeply [ map { '' . $_->two } @extends ], ["$two", "$two"],
             'And in fact they should point to the very same Two object';
+    }
+}
+
+sub test_mediate : Test(43) {
+    my $self = shift;
+    return unless $self->_should_run;
+    $self->clear_database;
+
+    # Create a One object for the Relation objects to reference.
+    ok my $one = One->new(name => 'One'), 'Create a One object';
+    ok $one->save, 'Save the one object';
+
+    # Create a new Relation object without a pre-existing Simple object.
+    ok my $relation = Relation->new( name => 'Relation', one => $one),
+        'Create Relation with no existing Simple';
+    isa_ok $relation, Relation;
+
+    # Let's check out the SQL that gets sent off.
+    my $mocker = Test::MockModule->new('Kinetic::Store::DB');
+    my ($sql, $vals);
+    my $do_sql = sub {
+        shift;
+        ($sql = shift) =~ s/\d+/ /g;
+        $sql =~ s/\d+$//;
+        $sql =~ s/^\d+//;
+        $vals = shift;
+    };
+    $mocker->mock(_do_sql => $do_sql);
+    $mocker->mock(_set_ids => 1);
+    ok $relation->save, 'Call the save method';
+    is $sql, 'INSERT INTO relation (uuid, state, simple__id, simple__uuid, '
+           . 'simple__state, simple__name, simple__description, one__id) '
+           . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'It should insert the Exend and Simple data into the view';
+
+    is_deeply $vals, [
+        $relation->uuid,
+        $relation->state->value,
+        undef, # simple__id
+        $relation->simple_uuid,
+        $relation->simple_state->value,
+        $relation->name,
+        $relation->description,
+        $relation->one->id,
+    ], 'It should set the proper values';
+
+    # Now do the save for real.
+    $mocker->unmock_all;
+    ok $relation->save, 'Save the relation object';
+
+    isa_ok my $simple = $relation->simple, Simple;
+    is $relation->one->uuid, $one->uuid,
+        'It should reference the one object';
+
+    # Look it up to be sure that it's the same.
+    ok $relation = Relation->lookup( uuid => $relation->uuid ),
+        'Look up the Relation object';
+    is $simple->uuid, $simple->uuid, 'It should still refrence the Simple object';
+    is $relation->one->uuid, $one->uuid,
+        'It should still reference the one object';
+
+    # Look up the Simple object.
+    ok $simple = Simple->lookup( uuid => $simple->uuid ),
+        'Look up the Simple object';
+    is $simple->uuid, $relation->simple->uuid, 'The UUID should be the same';
+
+    # Make a change to the Simple object.
+    ok $simple->name('New Name'), 'Change Simple\'s name';
+    ok $simple->save, 'Save Simple with new name';
+    TODO: {
+        local $TODO = 'Need to implement object caching';
+        is $relation->simple->name, $simple->name,
+            'The new name should be in the Relation object';
+    }
+
+    # Look up the Simple object again.
+    ok $simple = Simple->lookup( uuid => $simple->uuid ),
+        'Look up the Simple object again';
+    is $simple->name, 'New Name',
+        'The Looked-up Simple should have the new name';
+    TODO: {
+        local $TODO = 'Need to implement object caching';
+        is $simple->name, $relation->simple->name,
+            'The new name should be in the Relation object';
+    }
+
+    ok $relation = Relation->lookup( uuid => $relation->uuid ),
+        'Look up the Relation object again';
+    is $simple->name, $relation->simple->name,
+        'The new name should be in the looked-up Relation object';
+
+    # Now change the Relation object.
+    ok $relation->deactivate, 'Deactivate the Relation object';
+    ok $relation->name('LOLO'), 'Rename the Relation object';
+
+    # Check out the UPDATE statement.
+    $mocker->mock(_do_sql => $do_sql);
+    ok $relation->save, 'Save the relation object';
+    is $sql, 'UPDATE relation SET state = ?, simple__name = ? WHERE id = ?',
+        'It should update Relation and Simple view the relation view';
+    is_deeply $vals, [
+        $relation->state->value,
+        $relation->name,
+        $relation->id,
+    ], 'It should set the proper values';;
+
+    $mocker->unmock_all;
+    ok $relation->save, 'Save the relation object';
+
+    # Make sure that failing to set one results in an exception.
+    eval { Relation->new( simple => $relation->simple)->save };
+    ok my $err = $@, 'Caught required exception';
+    like $err->error, qr/Attribute .one. must be defined/,
+        'And it should be the correct exception';
+
+    # Create a second relation object referencing the same Simple object.
+    ok my $rel2 = Relation->new( simple => $relation->simple, one => $one),
+        'Create new Relation referencing same simple';
+    isa_ok $rel2, Relation;
+    ok $rel2->save, 'Save the new Relation object';
+
+    is $rel2->one->uuid, $one->uuid,
+        'It should reference the one object';
+
+    # Look it up to be sure that it's the same.
+    ok $rel2 = Relation->lookup( uuid => $rel2->uuid ),
+        'Look up the Relation object';
+    is $rel2->one->uuid, $one->uuid,
+        'It should still reference the one object';
+
+    # We should now have simple Relation objects pointing at the same Simple.
+    ok my $relations = Relation->query, 'Get all Relation objects';
+    isa_ok $relations, 'Kinetic::Util::Iterator', 'it should be a';
+    ok my @relations = $relations->all, 'Get relations objects from the iterator';
+    is scalar @relations, 2, 'There should be simple Relations objects';
+    is_deeply [ map { $_->simple_uuid } @relations ], [ ($simple->uuid) x 2 ],
+        'They should have  the same Simple object UUID';
+
+    TODO: {
+        local $TODO = 'Need to implement object caching';
+        is_deeply [ map { '' . $_->simple } @relations ], ["$simple", "$simple"],
+            'And in fact they should point to the very same Simple object';
     }
 }
 

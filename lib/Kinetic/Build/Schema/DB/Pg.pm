@@ -462,14 +462,15 @@ FOR EACH ROW EXECUTE PROCEDURE $trigger();
 
 Returns a PostgreSQL C<RULE> that manages C<INSERT> statements executed
 against the view for the class. The rule ensures that the C<INSERT> statement
-updates the table for the class as well as any parent classes. Contained
-objects are ignored, and should be inserted separately.
+updates the table for the class as well as any parent classes. Extended and
+mediated objects are also inserted or updated as appropriate, but other
+contained objects are ignored, and should be inserted or updated separately.
 
 =cut
 
 sub insert_for_class {
     my ($self, $class) = @_;
-    if (my $extends = $class->extends) {
+    if (my $extends = $class->extends || $class->mediates) {
         return $self->_extend_for_class($class, $extends);
     } else {
         return $self->_insert_for_class($class);
@@ -484,8 +485,9 @@ sub insert_for_class {
 
 Returns a PostgreSQL rule that manages C<UPDATE> statements executed against
 the view for the class. The rule ensures that the C<UPDATE> statement updates
-the table for the class as well as any parent classes. Contained objects are
-ignored, and should be updated separately.
+the table for the class as well as any parent classes. Extended and mediated
+objects are also updated, but other contained objects are ignored, and should
+be updated separately.
 
 =cut
 
@@ -506,8 +508,8 @@ sub update_for_class {
           . "\n  WHERE  id = OLD.id;\n";
     }
 
-    if (my $extends = $class->extends) {
-        my $view = $extends->key;
+    if (my $extended = $class->extends || $class->mediates) {
+        my $view = $extended->key;
         # Update the extended class's VIEW, too.
         $sql .= "\n  UPDATE $view\n  SET    "
           . join(
@@ -515,8 +517,11 @@ sub update_for_class {
               map  {
                   sprintf "%s = NEW.%s", $_->acts_as->view_column, $_->view_column
               }
-              grep { !$_->once }
-              grep { $_->delegates_to || '' eq $extends } $class->attributes
+              grep {
+                      $_->persistent
+                  && !$_->once
+                  &&  $_->delegates_to || '' eq $extended
+              } $class->attributes
             )
           . "\n  WHERE  id = OLD.$view\__id;\n";
     }
@@ -632,8 +637,9 @@ sub _extend_for_class {
     my $seq  = '';
 
     # Get a list of the attributes that delegate to the extended class.
-    my @ext_attrs = grep { $_->delegates_to || '' eq $extends }
-        $class->attributes;
+    my @ext_attrs = grep {
+        $_->persistent && $_->delegates_to || '' eq $extends
+    } $class->attributes;
 
     # Output the main insert RULE.
     my $sql = "CREATE RULE insert_$key AS\n"

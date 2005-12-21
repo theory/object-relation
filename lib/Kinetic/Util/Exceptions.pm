@@ -651,6 +651,13 @@ use base qw(Kinetic::Util::Exception::Fatal Exception::Class::DBI);
 
 sub new { Exception::Class::Base::new(@_) }
 sub Kinetic::Util::Exception::ExternalLib::new { Exception::Class::Base::new(@_) }
+sub full_message {
+    my $self = shift;
+    return $self->SUPER::full_message unless $self->can('statement');
+    return $self->SUPER::full_message
+        . '[ for statement "'
+        . $self->statement . '"]';
+}
 
 1;
 __END__
