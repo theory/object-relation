@@ -2,18 +2,61 @@
    WRAPPER shared/main.tt
    title = 'Search' 
 %]
-  [% USE Renderer( mode => 'edit', format => {} ) %]
+  [% formats = { 
+    edit   => '<td>%s</td><td>%s</td>',
+    search => '<td>%s</td><td>%s</td><td>%s</td><td>%s</td>'
+  } %]
+  [% USE Renderer( mode => mode, format => formats ) %]
   <div class="search">
     <fieldset>
-      <legend>[% search_key %]</legend>
-      <table>
-        [% FOREACH attr = class.attributes %]
-        <tr>
-          <td><label for="[% attr.name %]">[% attr.name %]</label></td>
-          <td>[% Renderer.render(attr) %]</td>
-        </tr>
-        [% END %]
-      </table>
+      <legend>[% key %]</legend>
+      <form method="get" name="search_form" onsubmit="javascript:doSearch(this); return false" id="search_form">
+        <input type="hidden" name="_class_key" value="[% key %]" />
+        <input type="hidden" name="_domain"    value="[% domain %]" />
+        <input type="hidden" name="_path"      value="[% path %]" />
+        <input type="hidden" name="_type"      value="html" />
+        <table>
+          [% FOREACH attr = class.attributes %]
+          <tr>
+            [% Renderer.render(attr) %]
+          </tr>
+          [% END %]
+          [% IF (mode = 'search') %]
+          <tr>
+            <td>
+              Limit:
+            </td>
+            <td colspan="3">
+              <input type="text" name="_limit" value="20" />
+            </td>
+          </tr>
+          <tr>
+            <td>
+              Order by:
+            </td>
+            <td colspan="3">
+              <select name="_order_by">
+                <option value="name">Name</option>
+                <option value="age">Age</option>
+                <option value="note">Note</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              Sort Order:
+            </td>
+            <td colspan="3">
+              <select name="_sort_order">
+                <option value="ASC">Ascending</option>
+                <option value="DESC">Descending</option>
+              </select>
+            </td>
+          </tr>
+          [% END %]
+        </table>
+        <input type="submit" value="[% mode %]">
+      </form>
     </fieldset>
   <div>
 [% END %]

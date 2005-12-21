@@ -37,12 +37,14 @@ template and class key.
 sub search : Regex('^search/([[:alpha:]][[:word:]]*)$') {
     my ( $self, $c ) = @_;
 
-    $c->stash->{template}   = 'search.tt';
+    $c->stash->{template} = 'search.tt';
     my $key = $c->request->snippets->[0];
-    $c->stash->{search_key} = $key;
-    if (my $class = Kinetic::Meta->for_key($key)) {
+    $c->stash->{key}  = $key;
+    $c->stash->{path} = '/';    # XXX just for now ...
+    if ( my $class = Kinetic::Meta->for_key($key) ) {
         $c->stash->{class} = $class;
     }
+    $c->stash->{mode} = 'search';
     $c->forward('Kinetic::UI::Catalyst::V::TToolkit');
 }
 

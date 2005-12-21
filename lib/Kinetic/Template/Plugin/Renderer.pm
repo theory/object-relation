@@ -79,7 +79,7 @@ sub new {
 
     $value_for->{format}{view}   ||= '%s';
     $value_for->{format}{edit}   ||= '%s %s';
-    $value_for->{format}{search} ||= '%s %s %s';
+    $value_for->{format}{search} ||= '%s %s %s %s';
     while ( my ( $mode, $format ) = each %{ $value_for->{format} } ) {
         $self->format( $mode, $format );
     }
@@ -124,6 +124,10 @@ XXX Flesh out POD
 
 sub format {
     my $self = shift;
+    unless (@_) {
+        my $mode = $self->mode;
+        return $self->{$mode};
+    }
     my $mode = shift;
     unless ( $mode =~ $ALLOWED_MODE ) {
         throw_invalid [ 'Unknown render mode "[_1]"', $mode ];
@@ -157,156 +161,150 @@ sub _context { shift->{context} }
 
 sub render {
 
-    # eventually we'll have to handle 'view' mode
-    my $self   = shift;
-    my $object = shift;
-    if ( $object->isa(Attribute) ) {
-        if ( 'view' eq $self->mode ) {
-            unless (@_) {
-                throw_invalid [];
-            }
-            my $kinetic_object = shift;
-            return sprintf $self->format('view'),
-              $object->get($kinetic_object);
-        }
-        my $widget = $object->widget_meta;
-        my $type = $widget ? $widget->type : '';
-        if ( my $renderer = $renderer_for{$type} ) {
-            return $self->$renderer($object);
-        }
-        else {
-            throw_unimplemented [
-                'Could not determine widget type handler for "[_1]"',
-                $object->name
-            ];
-        }
+    my $self      = shift;
+    my $attribute = shift;
+
+    if ( 'view' eq $self->mode ) {
+
+        # XXX should throw an exception if there is no object
+        my $object = shift;
+        return sprintf $self->format, $attribute->get($object);
+    }
+
+    my $type = $attribute->widget_meta->type || '';
+
+    if ( my $renderer = $renderer_for{$type} ) {
+        $self->_properties($attribute);
+        return $self->$renderer($attribute);
     }
     else {
-
-        # XXX Rendering an entire object
-        # XXX will we ever use this?  If so, how?  We'll need some way of
-        # specifying the format
+        throw_unimplemented [
+            'Could not determine widget type handler for "[_1]"',
+            $attribute->name
+        ];
     }
+}
+
+sub _do_render {
+    my ( $self, $value_for ) = @_;
+    if ( 'edit' eq $self->mode ) {
+        return sprintf $self->format, $value_for->{label_html},
+          $value_for->{main};
+    }
+    else {    # assume search
+        my $logical = <<"        END_LOGICAL";
+            <select name="_$value_for->{name}_logical" id="_$value_for->{name}_logical">
+              <option value="">is</option>
+              <option value="NOT">is not</option>
+            </select>
+        END_LOGICAL
+
+        my $comparison = <<"        END_COMPARISON";
+            <select name="_$value_for->{name}_comp" id="_$value_for->{name}_comp" onchange="checkForMultiValues(this); return false">
+              <option value="EQ">equal to</option>
+              <option value="LIKE">like</option>
+              <option value="LT">less than</option>
+              <option value="GT">greater than</option>
+              <option value="LE">less than or equal</option>
+              <option value="GE">greater than or equal</option>
+              <option value="NE">not equal</option>
+              <option value="BETWEEN">between</option>
+              <option value="ANY">any of</option>
+            </select>
+        END_COMPARISON
+        return sprintf $self->format, $value_for->{label_html}, $logical,
+          $comparison, $value_for->{main};
+    }
+}
+
+sub _properties {
+    my $self = shift;
+    return $self->{properties} unless @_;
+    my $attr      = shift;
+    my $w         = $attr->widget_meta;
+    my %value_for = (
+        name   => encode_entities( $attr->name ),
+        label  => encode_entities( $attr->label || ucfirst $attr->name ),
+        tip    => encode_entities( $w->tip || '' ),
+        size   => ( $w->size || 40 ),
+        length => ( $w->length ),
+        rows   => ( $w->rows || 4 ),
+        cols   => ( $w->cols || 40 ),
+        object => shift @_,
+    );
+    $value_for{length} ||= $value_for{size};
+    $value_for{label_html}
+      = qq{<label for="$value_for{name}">$value_for{label}</label>};
+    $self->{properties} = \%value_for;
 }
 
 sub _render_calendar {
     my ( $self, $attribute, $object ) = @_;
-    my $w    = $attribute->widget_meta;
-    my $type = $w->type;
-    my $name = encode_entities( $attribute->name );
-    return <<"    END_CALENDAR"
-    <input name="$name" id="$name" type="text"/>
-    <input id="${name}_trigger" type="image" src="/images/calendar/calendar.gif"/>
+    my $value_for = $self->_properties;
+    $value_for->{main} = <<"    END_CALENDAR";
+    <input name="$value_for->{name}" id="$value_for->{name}" type="text"/>
+    <input id="$value_for->{name}_trigger" type="image" src="/images/calendar/calendar.gif"/>
     <script type="text/javascript">
       Calendar.setup({
-        inputField  : "$name",             // ID of the input field
+        inputField  : "$value_for->{name}",             // ID of the input field
         ifFormat    : "%Y-%m-%dT00:00:00", // the date format
-        button      : "${name}_trigger"    // ID of the button
+        button      : "$value_for->{name}_trigger"    // ID of the button
       });
     </script>
     END_CALENDAR
+    return $self->_do_render($value_for);
 }
 
 sub _render_checkbox {
     my ( $self, $attribute, $object ) = @_;
-    my $w       = $attribute->widget_meta;
-    my $name    = encode_entities( $attribute->name );
-    my $checked = $w->checked ? ' checked="checked"' : '';
-    return qq{<input name="$name" id="$name" type="checkbox"$checked/>};
+    my $value_for = $self->_properties;
+    my $checked
+      = $attribute->widget_meta->checked ? ' checked="checked"' : '';
+    $value_for->{main}
+      = qq{<input name="$value_for->{name}" id="$value_for->{name}" type="checkbox"$checked/>};
+    return $self->_do_render($value_for);
 }
 
 sub _render_dropdown {
     my ( $self, $attribute, $object ) = @_;
-    my $w    = $attribute->widget_meta;
-    my $name = encode_entities( $attribute->name );
-    my $html = qq{<select name="$name" id="$name">\n};
-    foreach my $option ( @{ $w->options } ) {
+    my $value_for = $self->_properties;
+    my $html
+      = qq{<select name="$value_for->{name}" id="$value_for->{name}">\n};
+    foreach my $option ( @{ $attribute->widget_meta->options } ) {
         my ( $value, $name )
           = ( encode_entities( $option->[0] ),
             encode_entities( $option->[1] ) );
         $html .= qq{  <option value="$value">$name</option>\n};
     }
-    return $html . '</select>';
+    $value_for->{main} = $html . '</select>';
+    return $self->_do_render($value_for);
 }
 
 sub _render_search {
     my ( $self, $attribute, $object ) = @_;
-    my $w    = $attribute->widget_meta;
-    my $type = $w->type;
-    return '<input type="text"> ' . $type;
+
+    # XXX flesh this out when we figure it out
+    my $value_for = $self->_properties;
+    $value_for->{main} = '<input type="text"/> search';
+    return $self->_do_render($value_for);
 }
 
 sub _render_text {
     my ( $self, $attribute, $object ) = @_;
-    my $w          = $attribute->widget_meta;
-    my $label      = encode_entities( $attribute->label );
-    my $name       = encode_entities( $attribute->name );
-    my $tip        = encode_entities( $w->tip || '' );
-    my $size       = $w->size || 40;
-    my $length     = $w->length || $size;
-    my $html_label = qq{<label for="$name">$label</label>};
-    my $input
-      = qq{<input name="$name" id="$name" type="text" size="$size" maxlength="$length" tip="$tip"/>};
-    return sprintf $self->format('edit'), $html_label, $input;
+    my $value_for = $self->_properties;
+    $value_for->{main}
+      = qq{<input name="$value_for->{name}" id="$value_for->{name}" type="text" size="$value_for->{size}" maxlength="$value_for->{length}" tip="$value_for->{tip}"/>};
+    return $self->_do_render($value_for);
 }
 
 sub _render_textarea {
     my ( $self, $attribute, $object ) = @_;
-    my $w    = $attribute->widget_meta;
-    my $rows = $w->rows || 4;
-    my $cols = $w->cols || 40;
-    my $name = encode_entities( $attribute->name );
-    my $tip  = encode_entities( $w->tip || '' );
-    return
-      qq{<textarea name="$name" id="$name" rows="$rows" cols="$cols" tip="$tip"></textarea>};
+    my $value_for = $self->_properties;
+    $value_for->{main}
+      = qq{<textarea name="$value_for->{name}" id="$value_for->{name}" rows="$value_for->{rows}" cols="$value_for->{cols}" tip="$value_for->{tip}"></textarea>};
+    return $self->_do_render($value_for);
 }
 
-{
-    my %from_widget = (
-        tip    => '',
-        size   => 40,
-        length => 40,
-        rows   => 4,
-        cols   => 40,
-    );
-    my %from_attribute = (
-        label => sub { ucfirst( _fetch_values( @_, 'name' )->{name} ) },
-        name  => ''
-    );
-
-    sub _fetch_values {
-        my ( $attribute, $widget, @names ) = @_;
-        my %value_for;
-        foreach my $name (@names) {
-            my $value;
-            if (exists $from_widget{$name}) {
-                $value = $widget->$name;
-                unless (defined $value) {
-                    my $default = $from_widget{$name};
-                    if ('CODE' eq ref $default) {
-                        $default = $default->($attribute, $widget);
-                    }
-                    $value = $default;
-                }
-            }
-            elsif (exists $from_attribute{$name}) {
-                my $value = $attribute->$name;
-                unless (defined $value) {
-                    my $default = $from_attribute{$name};
-                    if ('CODE' eq ref $default) {
-                        $default = $default->($attribute, $attribute);
-                    }
-                    $value = $default;
-                }
-            }
-            else {
-                # throw exception
-            }
-            $value_for{$name} = $value;
-        }
-        return \%value_for;
-    }
-}
 1;
 
 __END__
@@ -324,13 +322,7 @@ Copyright (c) 2004-2005 Kineticode, Inc. <info@kineticode.com>
 
 This work is made available under the terms of Version 2 of the GNU General
 Public License. You should have received a copy of the GNU General Public
-License along with this pr292:	final indentation level: 1
-
-Final nesting depth of '{'s is 1
-The most recent un-matched '{' is on line 263
-263: sub _fetch_values {
-                       ^
-ogram; if not, download it from
+License along with this pr ogram; if not, download it from
 L<http://www.gnu.org/licenses/gpl.txt> or write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
@@ -340,5 +332,3 @@ A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
 details.
 
 =cut
-292:	To see 1 non-critical warnings rerun with -w
-292:	To save a full .LOG file rerun with -g

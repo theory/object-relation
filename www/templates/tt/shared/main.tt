@@ -11,6 +11,7 @@
     <script type="text/javascript" src="/js/calendar.js"></script>
     <script type="text/javascript" src="/js/lang/calendar-en.js"></script>
     <script type="text/javascript" src="/js/calendar-setup.js"></script>
+    <script type="text/javascript" src="/js/Kinetic/Search.js"></script>
   </head>
   <body>
     <div id="sidebar">
