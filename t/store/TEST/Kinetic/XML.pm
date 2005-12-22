@@ -25,9 +25,6 @@ use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
 
 use aliased 'Kinetic::XML';
 
-use Kinetic::Util::Exceptions qw/sig_handlers/;
-BEGIN { sig_handlers(1) }
-
 __PACKAGE__->runtests unless caller;
 
 BEGIN {

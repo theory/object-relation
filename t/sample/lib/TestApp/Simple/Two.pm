@@ -40,6 +40,7 @@ BEGIN {
         type     => 'whole',
         label    => 'Age',
         default  => undef,
+        unique   => 1,
         widget_meta   => Kinetic::Meta::Widget->new(
             type => 'text',
             tip  => 'Age',

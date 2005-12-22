@@ -23,6 +23,7 @@ use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';
 use aliased 'TestApp::Extend';
 use aliased 'TestApp::Relation';
+use aliased 'TestApp::Composed';
 
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->any_supported(qw/pg sqlite/)
@@ -812,5 +813,53 @@ sub test_mediate : Test(43) {
             'And in fact they should point to the very same Simple object';
     }
 }
+
+sub test_unique : Test(21) {
+    my $self = shift;
+    return unless $self->_should_run;
+    $self->clear_database;
+
+    # Test distinct attribute.
+    ok my $simple = Simple->new(name => 'Foo'), 'Create simple object';
+    ok $simple->save, '... And save it';
+    ok my $simple2 = Simple->new(name => 'Bar'), 'Create another simple';
+    $simple2->{uuid} = $simple->uuid; # XXX Don't try this at home.
+    thrown_ok { $simple2->save } 'Exception::Class::DBI::STH',
+         qr/(?:column uuid is not unique| duplicate key violates unique constraint "idx_simple_uuid")/,
+         '... Saving it with the same UUID should fail';
+
+    # Test unique attribute--relative to state.
+    ok my $one = One->new(name => 'One')->save, 'Create and save one object';
+    ok my $comp = Composed->new(one => $one, color => 'red'),
+        'Create composed object';
+    ok $comp->save, '... And save it';
+    ok my $comp2 = Composed->new(one => $one, color => 'red'),
+        'Create another composed object with the same color';
+    thrown_ok { $comp2->save } 'Exception::Class::DBI::STH',
+        qr/(?:column color is not unique|duplicate key violates unique constraint "idx_composed_color")/,
+        '... Saving (INSERT) it should fail';
+    ok $comp2->color('blue'), '... So change its color';
+    ok $comp2->save, '... Now it should save';
+    ok $comp2->color('red'), '... Switch back to the dupe color';
+    thrown_ok { $comp2->save } 'Exception::Class::DBI::STH',
+         qr/(?:column color is not unique|duplicate key violates unique constraint "idx_composed_color")/,
+         '... Saving it (UPDATE) should fail';
+
+    # Test unique attribute with state in a parent class.
+    ok my $two = Two->new(name => 'Two', one => $one, age => 37),
+        'Create two object';
+    ok $two->save, '... And save it';
+    ok my $two2 = Two->new(name => 'Two2', one => $one, age => 37),
+        'Create another two object with the same age';
+    thrown_ok { $two2->save } 'Exception::Class::DBI::STH',
+         qr/(?:column age is not unique|duplicate key violates unique constraint "ck_simple_two_age_unique")/,
+         '... Saving it (INSERT) should fail';
+    ok $two2->age(36), '... So change its age';
+    ok $two2->save, '... Now it should save';
+    ok $two2->age(37), '... Switch back to the dupe age';
+    thrown_ok { $two2->save } 'Exception::Class::DBI::STH',
+         qr/(?:column age is not unique|duplicate key violates unique constraint "ck_simple_two_age_unique")/, '... Saving it (UPDATE) should fail';
+}
+
 
 1;

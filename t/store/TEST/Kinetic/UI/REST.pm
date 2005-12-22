@@ -26,8 +26,6 @@ use Test::XML;
 }
 
 use Kinetic::Util::Constants qw/:http :rest/;
-use Kinetic::Util::Exceptions qw/sig_handlers/;
-BEGIN { sig_handlers(0) }
 use TEST::REST::Server;
 
 use aliased 'Test::MockModule';

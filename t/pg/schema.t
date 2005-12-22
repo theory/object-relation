@@ -40,18 +40,6 @@ for my $class ( $sg->classes ) {
     ok $class->is_a('Kinetic'), $class->package . ' is a Kinetic';
 }
 
-# XXX Hanky-panky. You didn't see this. Necessary for testing C<unique>
-# attributes without unduly affecting other tests. I plan to change this soon
-# by adding new attributes.
-{
-    for my $spec ( [ simple => 'name' ], [ two => 'date' ], ) {
-        my $class = Kinetic::Meta->for_key( $spec->[0] );
-        my $attr  = $class->attributes( $spec->[1] );
-        $attr->{unique}  = 1;
-        $attr->{indexed} = 1;
-    }
-}
-
 ##############################################################################
 # Check Setup SQL.
 is $sg->setup_code, 'CREATE DOMAIN state AS SMALLINT NOT NULL DEFAULT 1
@@ -86,7 +74,7 @@ eq_or_diff $sg->table_for_class($simple), $table,
 # Check that the CREATE INDEX statements are correct.
 my $indexes = q{CREATE UNIQUE INDEX idx_simple_uuid ON _simple (uuid);
 CREATE INDEX idx_simple_state ON _simple (state);
-CREATE UNIQUE INDEX idx_simple_name ON _simple (LOWER(name)) WHERE state > -1;
+CREATE INDEX idx_simple_name ON _simple (LOWER(name));
 };
 eq_or_diff $sg->indexes_for_class($simple), $indexes,
   "... Schema class generates CREATE INDEX statements";
@@ -107,7 +95,7 @@ CREATE FUNCTION simple_uuid_once() RETURNS trigger AS '
 CREATE TRIGGER simple_uuid_once BEFORE UPDATE ON _simple
 FOR EACH ROW EXECUTE PROCEDURE simple_uuid_once();
 };
-eq_or_diff left_justify( $sg->constraints_for_class($simple) ),
+eq_or_diff left_justify( join("\n", $sg->constraints_for_class($simple)) ),
   left_justify($constraints), "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
@@ -191,7 +179,7 @@ ALTER TABLE simple_one
   ADD CONSTRAINT pfk_simple_one_id FOREIGN KEY (id)
   REFERENCES _simple(id) ON DELETE CASCADE;
 };
-eq_or_diff $sg->constraints_for_class($one), $constraints,
+eq_or_diff join("\n", $sg->constraints_for_class($one)), $constraints,
   "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
@@ -269,7 +257,7 @@ eq_or_diff $sg->table_for_class($two), $table,
 
 # Check that the CREATE INDEX statements are correct.
 $indexes = qq{CREATE INDEX idx_two_one_id ON simple_two (one_id);
-CREATE INDEX idx_two_date ON simple_two (date);
+CREATE INDEX idx_two_age ON simple_two (age);
 };
 
 eq_or_diff $sg->indexes_for_class($two), $indexes,
@@ -287,49 +275,49 @@ ALTER TABLE simple_two
   ADD CONSTRAINT fk_one_id FOREIGN KEY (one_id)
   REFERENCES simple_one(id) ON DELETE RESTRICT;
 
-CREATE FUNCTION cki_two_date_unique() RETURNS trigger AS '
+CREATE FUNCTION cki_two_age_unique() RETURNS trigger AS '
   BEGIN
     /* Lock the relevant records in the parent and child tables. */
     PERFORM true
     FROM    simple_two, _simple
-    WHERE   simple_two.id = _simple.id AND date = NEW.date FOR UPDATE;
+    WHERE   simple_two.id = _simple.id AND age = NEW.age FOR UPDATE;
     IF (SELECT true
         FROM   two
-        WHERE  id <> NEW.id AND date = NEW.date AND state > -1
+        WHERE  id <> NEW.id AND age = NEW.age AND state > -1
         LIMIT 1
     ) THEN
-        RAISE EXCEPTION ''duplicate key violates unique constraint "ck_simple_two_date_unique"'';
+        RAISE EXCEPTION ''duplicate key violates unique constraint "ck_simple_two_age_unique"'';
     END IF;
     RETURN NEW;
   END;
 ' LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER cki_two_date_unique BEFORE INSERT ON simple_two
-FOR EACH ROW EXECUTE PROCEDURE cki_two_date_unique();
+CREATE TRIGGER cki_two_age_unique BEFORE INSERT ON simple_two
+FOR EACH ROW EXECUTE PROCEDURE cki_two_age_unique();
 
-CREATE FUNCTION cku_two_date_unique() RETURNS trigger AS '
+CREATE FUNCTION cku_two_age_unique() RETURNS trigger AS '
   BEGIN
-    IF (NEW.date <> OLD.date) THEN
+    IF (NEW.age <> OLD.age) THEN
         /* Lock the relevant records in the parent and child tables. */
         PERFORM true
         FROM    simple_two, _simple
-        WHERE   simple_two.id = _simple.id AND date = NEW.date FOR UPDATE;
+        WHERE   simple_two.id = _simple.id AND age = NEW.age FOR UPDATE;
         IF (SELECT true
             FROM   two
-            WHERE  id <> NEW.id AND date = NEW.date AND state > -1
+            WHERE  id <> NEW.id AND age = NEW.age AND state > -1
             LIMIT 1
         ) THEN
-            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_simple_two_date_unique"'';
+            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_simple_two_age_unique"'';
         END IF;
     END IF;
     RETURN NEW;
   END;
 ' LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER cku_two_date_unique BEFORE UPDATE ON simple_two
-FOR EACH ROW EXECUTE PROCEDURE cku_two_date_unique();
+CREATE TRIGGER cku_two_age_unique BEFORE UPDATE ON simple_two
+FOR EACH ROW EXECUTE PROCEDURE cku_two_age_unique();
 
-CREATE FUNCTION ckp_two_date_unique() RETURNS trigger AS '
+CREATE FUNCTION ckp_two_age_unique() RETURNS trigger AS '
   BEGIN
     IF (NEW.state > -1 AND OLD.state < 0
         AND (SELECT true FROM simple_two WHERE id = NEW.id)
@@ -338,25 +326,25 @@ CREATE FUNCTION ckp_two_date_unique() RETURNS trigger AS '
         PERFORM true
         FROM    simple_two, _simple
         WHERE   simple_two.id = _simple.id
-                AND date = (SELECT date FROM simple_two WHERE id = NEW.id)
+                AND age = (SELECT age FROM simple_two WHERE id = NEW.id)
         FOR UPDATE;
 
-        IF (SELECT COUNT(date)
+        IF (SELECT COUNT(age)
             FROM   simple_two
-            WHERE date = (SELECT date FROM simple_two WHERE id = NEW.id)
+            WHERE age = (SELECT age FROM simple_two WHERE id = NEW.id)
         ) > 1 THEN
-            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_simple_two_date_unique"'';
+            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_simple_two_age_unique"'';
         END IF;
     END IF;
     RETURN NEW;
   END;
 ' LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER ckp_two_date_unique BEFORE UPDATE ON _simple
-FOR EACH ROW EXECUTE PROCEDURE ckp_two_date_unique();
+CREATE TRIGGER ckp_two_age_unique BEFORE UPDATE ON _simple
+FOR EACH ROW EXECUTE PROCEDURE ckp_two_age_unique();
 };
 
-eq_or_diff left_justify( $sg->constraints_for_class($two) ),
+eq_or_diff left_justify( join("\n", $sg->constraints_for_class($two)) ),
   left_justify($constraints), "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
@@ -486,7 +474,7 @@ CREATE TRIGGER relation_simple_id_once BEFORE UPDATE ON _relation
 FOR EACH ROW EXECUTE PROCEDURE relation_simple_id_once();
 };
 
-eq_or_diff left_justify( $sg->constraints_for_class($relation) ),
+eq_or_diff left_justify( join("\n", $sg->constraints_for_class($relation)) ),
   left_justify($constraints), "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
@@ -576,7 +564,8 @@ $table = q{CREATE TABLE _composed (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_composed'),
     uuid UUID NOT NULL DEFAULT UUID_V4(),
     state STATE NOT NULL DEFAULT 1,
-    one_id INTEGER
+    one_id INTEGER,
+    color TEXT
 );
 };
 eq_or_diff $sg->table_for_class($composed), $table,
@@ -586,6 +575,7 @@ eq_or_diff $sg->table_for_class($composed), $table,
 $indexes = q{CREATE UNIQUE INDEX idx_composed_uuid ON _composed (uuid);
 CREATE INDEX idx_composed_state ON _composed (state);
 CREATE INDEX idx_composed_one_id ON _composed (one_id);
+CREATE UNIQUE INDEX idx_composed_color ON _composed (LOWER(color)) WHERE state > -1;
 };
 
 eq_or_diff $sg->indexes_for_class($composed), $indexes,
@@ -623,12 +613,12 @@ CREATE FUNCTION composed_one_id_once() RETURNS trigger AS '
 CREATE TRIGGER composed_one_id_once BEFORE UPDATE ON _composed
 FOR EACH ROW EXECUTE PROCEDURE composed_one_id_once();
 };
-eq_or_diff left_justify( $sg->constraints_for_class($composed) ),
+eq_or_diff left_justify( join("\n", $sg->constraints_for_class($composed)) ),
   left_justify($constraints), "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW composed AS
-  SELECT _composed.id AS id, _composed.uuid AS uuid, _composed.state AS state, _composed.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool
+  SELECT _composed.id AS id, _composed.uuid AS uuid, _composed.state AS state, _composed.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, _composed.color AS color
   FROM   _composed LEFT JOIN one ON _composed.one_id = one.id;
 };
 eq_or_diff $sg->view_for_class($composed), $view,
@@ -637,8 +627,8 @@ eq_or_diff $sg->view_for_class($composed), $view,
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_composed AS
 ON INSERT TO composed DO INSTEAD (
-  INSERT INTO _composed (id, uuid, state, one_id)
-  VALUES (NEXTVAL('seq_composed'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.one__id);
+  INSERT INTO _composed (id, uuid, state, one_id, color)
+  VALUES (NEXTVAL('seq_composed'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.one__id, NEW.color);
 );
 };
 eq_or_diff $sg->insert_for_class($composed), $insert,
@@ -648,7 +638,7 @@ eq_or_diff $sg->insert_for_class($composed), $insert,
 $update = q{CREATE RULE update_composed AS
 ON UPDATE TO composed DO INSTEAD (
   UPDATE _composed
-  SET    state = NEW.state
+  SET    state = NEW.state, color = NEW.color
   WHERE  id = OLD.id;
 );
 };
@@ -738,12 +728,12 @@ CREATE FUNCTION comp_comp_composed_id_once() RETURNS trigger AS '
 CREATE TRIGGER comp_comp_composed_id_once BEFORE UPDATE ON _comp_comp
 FOR EACH ROW EXECUTE PROCEDURE comp_comp_composed_id_once();
 };
-eq_or_diff left_justify( $sg->constraints_for_class($comp_comp) ),
+eq_or_diff left_justify( join("\n", $sg->constraints_for_class($comp_comp)) ),
   left_justify($constraints), "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW comp_comp AS
-  SELECT _comp_comp.id AS id, _comp_comp.uuid AS uuid, _comp_comp.state AS state, _comp_comp.composed_id AS composed__id, composed.uuid AS composed__uuid, composed.state AS composed__state, composed.one__id AS composed__one__id, composed.one__uuid AS composed__one__uuid, composed.one__state AS composed__one__state, composed.one__name AS composed__one__name, composed.one__description AS composed__one__description, composed.one__bool AS composed__one__bool
+  SELECT _comp_comp.id AS id, _comp_comp.uuid AS uuid, _comp_comp.state AS state, _comp_comp.composed_id AS composed__id, composed.uuid AS composed__uuid, composed.state AS composed__state, composed.one__id AS composed__one__id, composed.one__uuid AS composed__one__uuid, composed.one__state AS composed__one__state, composed.one__name AS composed__one__name, composed.one__description AS composed__one__description, composed.one__bool AS composed__one__bool, composed.color AS composed__color
   FROM   _comp_comp, composed
   WHERE  _comp_comp.composed_id = composed.id;
 };
@@ -855,7 +845,7 @@ CREATE TRIGGER extend_two_id_once BEFORE UPDATE ON _extend
 FOR EACH ROW EXECUTE PROCEDURE extend_two_id_once();
 };
 
-eq_or_diff $sg->constraints_for_class($extend), $constraints,
+eq_or_diff join("\n", $sg->constraints_for_class($extend)), $constraints,
   "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.

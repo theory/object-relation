@@ -5,8 +5,6 @@
 use strict;
 use warnings;
 use Test::More;
-use Kinetic::Util::Exceptions qw/sig_handlers/;
-BEGIN { sig_handlers(0) }
 
 eval "use Test::Pod::Coverage 0.08";
 my @modules;

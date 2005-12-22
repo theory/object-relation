@@ -18,8 +18,6 @@ use Class::Trait qw(
 );
 
 use Kinetic::Util::Constants qw/:http/;
-use Kinetic::Util::Exceptions qw/sig_handlers/;
-BEGIN { sig_handlers(1) }
 
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Format';

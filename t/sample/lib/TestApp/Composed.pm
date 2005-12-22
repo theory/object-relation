@@ -23,6 +23,18 @@ BEGIN {
         )
     );
 
+    $km->add_attribute(
+        name     => 'color',
+        type     => 'string',
+        label    => 'Color',
+        default  => undef,
+        unique   => 1,
+        widget_meta   => Kinetic::Meta::Widget->new(
+            type => 'text',
+            tip  => 'Color',
+        )
+    );
+
     $km->build;
 }
 

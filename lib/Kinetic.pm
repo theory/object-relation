@@ -376,7 +376,11 @@ C<save> method in L<Kinetic::Store|Kinetic::Store> for more information.
 
 =cut
 
-    sub save { Kinetic::Store->save(@_); }
+    sub save {
+        my $self = shift;
+        Kinetic::Store->save($self, @_);
+        return $self;
+    }
     $cm->add_method(
         name    => 'save',
         context => Class::Meta::OBJECT,

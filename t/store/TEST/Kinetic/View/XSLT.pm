@@ -16,8 +16,6 @@ use Class::Trait qw( TEST::Kinetic::Traits::HTML );
 use Class::Trait qw( TEST::Kinetic::Traits::XML );
 
 use Kinetic::Util::Constants qw/$CURRENT_PAGE :labels/;
-use Kinetic::Util::Exceptions qw/sig_handlers/;
-BEGIN { sig_handlers(0) }
 
 use aliased 'Kinetic::View::XSLT';
 use aliased 'Kinetic::Store' => 'Store', ':all';

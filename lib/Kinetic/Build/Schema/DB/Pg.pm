@@ -235,12 +235,11 @@ sub index_on {
 
 =head3 constraints_for_class
 
-  my $constraint_sql = $kbs->constraints_for_class($class);
+  my @constraints = $kbs->constraints_for_class($class);
 
 Returns the SQL statements to create all of the constraints for the class
 described by the Kinetic::Meta::Class::Schema object passed as the sole
-argument. All of the constraint declaration statements will be returned in a
-single string, each separated by a double "\n\n".
+argument.
 
 The constraint statements returned may include one or more of the following:
 
@@ -263,6 +262,12 @@ Foreign key constraints to the tables for contained (referenced) objects.
 
 "Once triggers", which prevent a value from being changed in a column after
 the first time it has been set to a non-C<NULL> value.
+
+=item *
+
+"Unique triggers", which prevent a column from having two rows with the same
+value. Only applies when the C<state> column is in a parent table, because
+otherwise this constraint is actually handled by a partial unique index.
 
 =back
 
@@ -306,7 +311,7 @@ sub constraints_for_class {
         $self->unique_triggers( $class ),
     );
 
-    return join "\n", @cons;
+    return @cons;
 }
 
 ##############################################################################
@@ -341,13 +346,13 @@ sub once_triggers_sql {
 
 =head3 unique_triggers
 
-  my $unique_trigger_sql = $kbs->unique_triggers($class);
+  my @unique_triggers = $kbs->unique_triggers($class);
 
 Returns the PostgreSQL triggers to validate the values of any "unique"
 attributes, wherein the attribute is in a different class than the C<state>
 attribute. Unique attributes in the same class as the C<state> attribute are
 handled by a partial unique index. If the class has no unique attributes
-C<unique_triggers()> will return C<undef> (or an empty list).
+C<unique_triggers()> will return an empty list.
 
 Called by C<constraints_for_class()>.
 
@@ -431,7 +436,7 @@ CREATE FUNCTION ckp_$key\_$col\_unique() RETURNS trigger AS '
 };
     }
 
-    return join "\n", @trigs;
+    return @trigs;
 }
 
 ##############################################################################

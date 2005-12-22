@@ -10,13 +10,7 @@ use base 'TEST::Class::Kinetic';
 use Test::JSON;
 use Test::More;
 use Test::Exception;
-
-{
-    no warnings;
-    use Kinetic::Util::Exceptions qw/sig_handlers/;
-    BEGIN { sig_handlers(0) }
-    use Class::Trait qw(TEST::Kinetic::Traits::Store);
-}
+use Class::Trait qw(TEST::Kinetic::Traits::Store);
 
 use Kinetic::Util::Constants qw/$UUID_RE/;
 

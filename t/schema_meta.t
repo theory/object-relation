@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use diagnostics;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
-use Test::More tests => 177;
+use Test::More tests => 180;
 
 {
     # Fake out loading of Pg store.
@@ -49,7 +49,7 @@ my $two_class = test_class('two', 'simple_two', 3, $simple_class);
 test_attr($two_class, 'one', 'one_id', 'idx_two_one_id', $one_class);
 
 # Test the schema attributes of the composed class attributes.
-my $composed_class = test_class('composed', '_composed', 3);
+my $composed_class = test_class('composed', '_composed', 4);
 test_attr($composed_class, 'one', 'one_id', 'idx_composed_one_id', $one_class);
 
 sub test_class {

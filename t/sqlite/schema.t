@@ -33,21 +33,6 @@ for my $class ($sg->classes) {
     ok $class->is_a('Kinetic'), "Class is a Kinetic";
 }
 
-# XXX Hanky-panky. You didn't see this. Necessary for testing C<unique>
-# attributes without unduly affecting other tests. I plan to change this soon
-# by adding new attributes.
-{
-    for my $spec (
-        [ simple => 'name'],
-        [ two    => 'date'],
-    ) {
-        my $class = Kinetic::Meta->for_key($spec->[0]);
-        my $attr  = $class->attributes($spec->[1]);
-        $attr->{unique}  = 1;
-        $attr->{indexed} = 1;
-    }
-}
-
 ##############################################################################
 # Check Setup SQL.
 is $sg->setup_code, undef, "SQLite setup SQL is undefined";
@@ -99,36 +84,9 @@ FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
     WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
 END;
-
-CREATE TRIGGER cki_simple_name_unique
-BEFORE INSERT ON _simple
-FOR EACH ROW BEGIN
-    SELECT RAISE (ABORT, 'column name is not unique')
-    WHERE  (
-               SELECT 1
-               FROM   _simple
-               WHERE  state > -1 AND name = NEW.name
-               LIMIT  1
-           );
-END;
-
-CREATE TRIGGER cku_simple_name_unique
-BEFORE UPDATE ON _simple
-FOR EACH ROW BEGIN
-    SELECT RAISE (ABORT, 'column name is not unique')
-    WHERE  (NEW.name <> OLD.name OR (
-                NEW.state > -1 AND OLD.state < 0
-            )) AND (
-               SELECT 1 from _simple
-               WHERE  id <> NEW.id
-                      AND name = NEW.name
-                      AND state > -1
-               LIMIT 1
-           );
-END;
 };
 
-eq_or_diff $sg->constraints_for_class($simple), $constraints,
+eq_or_diff join("\n", $sg->constraints_for_class($simple)), $constraints,
   "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
@@ -233,7 +191,7 @@ FOR EACH ROW BEGIN
   DELETE from simple_one WHERE id = OLD.id;
 END;
 };
-eq_or_diff $sg->constraints_for_class($one), $constraints,
+eq_or_diff join("\n", $sg->constraints_for_class($one)), $constraints,
   "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
@@ -311,53 +269,53 @@ eq_or_diff $sg->table_for_class($two), $table,
 
 # Check that the CREATE INDEX statements are correct.
 $indexes = q{CREATE INDEX idx_two_one_id ON simple_two (one_id);
-CREATE INDEX idx_two_date ON simple_two (date);
+CREATE INDEX idx_two_age ON simple_two (age);
 };
 
 eq_or_diff $sg->indexes_for_class($two), $indexes,
   "... Schema class generates CREATE INDEX statements";
 
 # Check that the constraint and foreign key triggers are correct.
-$constraints = q{CREATE TRIGGER cki_two_date_unique
+$constraints = q{CREATE TRIGGER cki_two_age_unique
 BEFORE INSERT ON simple_two
 FOR EACH ROW BEGIN
-    SELECT RAISE (ABORT, 'column date is not unique')
+    SELECT RAISE (ABORT, 'column age is not unique')
     WHERE  (
                SELECT 1
                FROM   _simple, simple_two
                WHERE  _simple.id = simple_two.id
                       AND _simple.state > -1
-                      AND simple_two.date = NEW.date
+                      AND simple_two.age = NEW.age
                LIMIT  1
            );
 END;
 
-CREATE TRIGGER cku_two_date_unique
+CREATE TRIGGER cku_two_age_unique
 BEFORE UPDATE ON simple_two
 FOR EACH ROW BEGIN
-    SELECT RAISE (ABORT, 'column date is not unique')
-    WHERE  NEW.date <> OLD.date AND (
+    SELECT RAISE (ABORT, 'column age is not unique')
+    WHERE  NEW.age <> OLD.age AND (
                SELECT 1
                FROM   _simple, simple_two
                WHERE  _simple.id = simple_two.id
                       AND _simple.id <> NEW.id
                       AND _simple.state > -1
-                      AND simple_two.date = NEW.date
+                      AND simple_two.age = NEW.age
                LIMIT  1
            );
 END;
 
-CREATE TRIGGER ckp_two_date_unique
+CREATE TRIGGER ckp_two_age_unique
 BEFORE UPDATE ON _simple
 FOR EACH ROW BEGIN
-    SELECT RAISE (ABORT, 'column date is not unique')
+    SELECT RAISE (ABORT, 'column age is not unique')
     WHERE  NEW.state > -1 AND OLD.state < 0
            AND (SELECT 1 FROM simple_two WHERE id = NEW.id)
            AND (
-               SELECT COUNT(date)
+               SELECT COUNT(age)
                FROM   simple_two
-               WHERE  date = (
-                   SELECT date FROM simple_two
+               WHERE  age = (
+                   SELECT age FROM simple_two
                    WHERE id = NEW.id
                )
            ) > 1;
@@ -404,7 +362,7 @@ FOR EACH ROW BEGIN
     WHERE  (SELECT one_id FROM simple_two WHERE one_id = OLD.id) IS NOT NULL;
 END;
 };
-eq_or_diff $sg->constraints_for_class($two), $constraints,
+eq_or_diff join("\n", $sg->constraints_for_class($two)), $constraints,
   "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
@@ -560,7 +518,7 @@ FOR EACH ROW BEGIN
     WHERE  (SELECT one_id FROM _relation WHERE one_id = OLD.id) IS NOT NULL;
 END;
 };
-eq_or_diff $sg->constraints_for_class($relation), $constraints,
+eq_or_diff join("\n", $sg->constraints_for_class($relation)), $constraints,
   "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
@@ -634,7 +592,8 @@ $table = q{CREATE TABLE _composed (
     id INTEGER NOT NULL PRIMARY KEY,
     uuid TEXT NOT NULL,
     state INTEGER NOT NULL DEFAULT 1,
-    one_id INTEGER REFERENCES simple_one(id) ON DELETE RESTRICT
+    one_id INTEGER REFERENCES simple_one(id) ON DELETE RESTRICT,
+    color TEXT COLLATE nocase
 );
 };
 eq_or_diff $sg->table_for_class($composed), $table,
@@ -644,6 +603,7 @@ eq_or_diff $sg->table_for_class($composed), $table,
 $indexes = q{CREATE UNIQUE INDEX idx_composed_uuid ON _composed (uuid);
 CREATE INDEX idx_composed_state ON _composed (state);
 CREATE INDEX idx_composed_one_id ON _composed (one_id);
+CREATE INDEX idx_composed_color ON _composed (color);
 };
 
 eq_or_diff $sg->indexes_for_class($composed), $indexes,
@@ -678,6 +638,33 @@ FOR EACH ROW BEGIN
     WHERE  OLD.one_id IS NOT NULL AND (OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL);
 END;
 
+CREATE TRIGGER cki_composed_color_unique
+BEFORE INSERT ON _composed
+FOR EACH ROW BEGIN
+    SELECT RAISE (ABORT, 'column color is not unique')
+    WHERE  (
+               SELECT 1
+               FROM   _composed
+               WHERE  state > -1 AND color = NEW.color
+               LIMIT  1
+           );
+END;
+
+CREATE TRIGGER cku_composed_color_unique
+BEFORE UPDATE ON _composed
+FOR EACH ROW BEGIN
+    SELECT RAISE (ABORT, 'column color is not unique')
+    WHERE  (NEW.color <> OLD.color OR (
+                NEW.state > -1 AND OLD.state < 0
+            )) AND (
+               SELECT 1 from _composed
+               WHERE  id <> NEW.id
+                      AND color = NEW.color
+                      AND state > -1
+               LIMIT 1
+           );
+END;
+
 CREATE TRIGGER fki_composed_one_id
 BEFORE INSERT ON _composed
 FOR EACH ROW BEGIN
@@ -699,12 +686,12 @@ FOR EACH ROW BEGIN
     WHERE  (SELECT one_id FROM _composed WHERE one_id = OLD.id) IS NOT NULL;
 END;
 };
-eq_or_diff $sg->constraints_for_class($composed), $constraints,
+eq_or_diff join("\n", $sg->constraints_for_class($composed)), $constraints,
   "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW composed AS
-  SELECT _composed.id AS id, _composed.uuid AS uuid, _composed.state AS state, _composed.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool
+  SELECT _composed.id AS id, _composed.uuid AS uuid, _composed.state AS state, _composed.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, _composed.color AS color
   FROM   _composed LEFT JOIN one ON _composed.one_id = one.id;
 };
 eq_or_diff $sg->view_for_class($composed), $view,
@@ -714,8 +701,8 @@ eq_or_diff $sg->view_for_class($composed), $view,
 $insert = q{CREATE TRIGGER insert_composed
 INSTEAD OF INSERT ON composed
 FOR EACH ROW BEGIN
-  INSERT INTO _composed (uuid, state, one_id)
-  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.one__id);
+  INSERT INTO _composed (uuid, state, one_id, color)
+  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.one__id, NEW.color);
 END;
 };
 eq_or_diff $sg->insert_for_class($composed), $insert,
@@ -726,7 +713,7 @@ $update = q{CREATE TRIGGER update_composed
 INSTEAD OF UPDATE ON composed
 FOR EACH ROW BEGIN
   UPDATE _composed
-  SET    state = NEW.state
+  SET    state = NEW.state, color = NEW.color
   WHERE  id = OLD.id;
 END;
 };
@@ -826,12 +813,12 @@ FOR EACH ROW BEGIN
 END;
 };
 
-eq_or_diff $sg->constraints_for_class($comp_comp), $constraints,
+eq_or_diff join("\n", $sg->constraints_for_class($comp_comp)), $constraints,
   "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW comp_comp AS
-  SELECT _comp_comp.id AS id, _comp_comp.uuid AS uuid, _comp_comp.state AS state, _comp_comp.composed_id AS composed__id, composed.uuid AS composed__uuid, composed.state AS composed__state, composed.one__id AS composed__one__id, composed.one__uuid AS composed__one__uuid, composed.one__state AS composed__one__state, composed.one__name AS composed__one__name, composed.one__description AS composed__one__description, composed.one__bool AS composed__one__bool
+  SELECT _comp_comp.id AS id, _comp_comp.uuid AS uuid, _comp_comp.state AS state, _comp_comp.composed_id AS composed__id, composed.uuid AS composed__uuid, composed.state AS composed__state, composed.one__id AS composed__one__id, composed.one__uuid AS composed__one__uuid, composed.one__state AS composed__one__state, composed.one__name AS composed__one__name, composed.one__description AS composed__one__description, composed.one__bool AS composed__one__bool, composed.color AS composed__color
   FROM   _comp_comp, composed
   WHERE  _comp_comp.composed_id = composed.id;
 };
@@ -953,7 +940,7 @@ FOR EACH ROW BEGIN
 END;
 };
 
-eq_or_diff $sg->constraints_for_class($extend), $constraints,
+eq_or_diff join("\n", $sg->constraints_for_class($extend)), $constraints,
   "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.

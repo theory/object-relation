@@ -116,12 +116,11 @@ sub index_for_attr {
 
 =head3 constraints_for_class
 
-  my $constraint_sql = $kbs->constraints_for_class($class);
+  my @constraint_sql = $kbs->constraints_for_class($class);
 
 Returns the SQL statements to create all of the constraints for the class
 described by the Kinetic::Meta::Class::Schema object passed as the sole
-argument. All of the constraint declaration statements will be returned in a
-single string, each separated by a double "\n\n".
+argument.
 
 The constraint statements returned may include one or more of the following:
 
@@ -150,14 +149,17 @@ concrete parent class.
 
 Foreign key constraints to the tables for contained (referenced) objects.
 
+=item *
+
+"Unique triggers," which ensure that the value of a unique colum is indeed
+unique.
+
 =back
 
 =cut
 
 sub constraints_for_class {
     my ($self, $class) = @_;
-    my $key = $class->key;
-    my $table = $class->table;
 
     # Start with any state, boolean, once, and unique triggers.
     my @cons = (
@@ -173,25 +175,25 @@ sub constraints_for_class {
     }
 
     # Add foreign keys for any attributes that reference other objects.
-    for my $attr ($class->table_attributes) {
+    for my $attr ($class->ref_attributes) {
+        next if $attr->acts_as;
         my $ref = $attr->references or next;
         push @cons, $self->_generate_fk($class, $attr, $ref);
     }
-
-    return join "\n", @cons;
+    return @cons;
 }
 
 ##############################################################################
 
 =head3 state_trigger
 
-  my $state_trigger_sql = $kbs->state_trigger($class);
+  my @state_triggers = $kbs->state_trigger($class);
 
-Returns an SQLite trigger to validate that the value of a state column in the
+Returns SQLite triggers to validate that the value of a state column in the
 table representing the contents of the class represented by the
 Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
 does not have a state attribute (because it inherits the state from a concrete
-parent class), C<state_trigger()> will return C<undef> (or an empty list).
+parent class), C<state_trigger()> will return an empty list.
 
 Called by C<constraints_for_class()>.
 
@@ -222,19 +224,19 @@ sub state_trigger {
           . "    WHERE  NEW.$col NOT BETWEEN -1 AND 2;\n"
           . "END;\n";
     }
-    return join "\n", @trigs;
+    return @trigs;
 }
 
 ##############################################################################
 
 =head3 boolean_triggers
 
-  my $boolean_trigger_sql = $kbs->boolean_triggers($class);
+  my @boolean_triggers = $kbs->boolean_triggers($class);
 
 Returns the SQLite triggers to validate the values of any boolean type
 attributes in the class are stored as either 0 or 1 (zero or one) in their
 columns in the databse. If the class has no boolean attributes
-C<boolean_triggers()> will return C<undef> (or an empty list).
+C<boolean_triggers()> will return an empty list.
 
 Called by C<constraints_for_class()>.
 
@@ -265,7 +267,7 @@ sub boolean_triggers {
           . "    WHERE  NEW.$col NOT IN (1, 0);\n"
           . "END;\n";
     }
-    return join "\n", @trigs;
+    return @trigs;
 }
 
 ##############################################################################
@@ -296,13 +298,12 @@ sub once_triggers_sql {
 
 =head3 unique_triggers
 
-  my $unique_trigger_sql = $kbs->unique_triggers($class);
+  my @unique_triggers = $kbs->unique_triggers($class);
 
 Returns the SQLite triggers to validate the values of any "unique" attributes
 in the table representing the contents of the class represented by the
 Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
-has no unique attributes C<unique_triggers()> will return C<undef> (or an
-empty list).
+has no unique attributes C<unique_triggers()> will return an empty list.
 
 Called by C<constraints_for_class()>.
 
@@ -338,7 +339,7 @@ sub unique_triggers {
               . "BEFORE UPDATE ON $table\n"
               . "FOR EACH ROW BEGIN\n"
               . "    SELECT RAISE (ABORT, 'column $col is not unique')\n"
-              . "    WHERE  (NEW.name <> OLD.name OR (\n"
+              . "    WHERE  (NEW.$col <> OLD.$col OR (\n"
               . "                NEW.state > -1 AND OLD.state < 0\n"
               . "            )) AND (\n"
               . "               SELECT 1 from $table\n"
@@ -399,7 +400,7 @@ sub unique_triggers {
               . "END;\n";
         }
     }
-    return join "\n", @trigs;
+    return @trigs;
 }
 
 ##############################################################################

@@ -194,7 +194,8 @@ sub _rollback {
     my $self = shift;
     return unless $self->_in_transaction;
     $self->_in_transaction(0);
-    delete( $self->{dbh} )->rollback;
+    my $dbh = delete $self->{dbh};
+    $dbh->rollback unless $dbh->{AutoCommit};
     return $self;
 }
 

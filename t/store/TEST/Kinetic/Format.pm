@@ -13,9 +13,6 @@ use Test::Exception;
 
 use Class::Trait qw( TEST::Kinetic::Traits::Store );
 
-use Kinetic::Util::Exceptions qw/sig_handlers/;
-BEGIN { sig_handlers(1) }
-
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Store' => 'Store', ':all';
 use aliased 'TestApp::Simple::One';
