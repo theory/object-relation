@@ -25,8 +25,12 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use HTML::Entities qw/encode_entities/;
+use Scalar::Util qw/blessed/;
+
 use Readonly;
-Readonly my $ALLOWED_MODE => qr/^view|edit|search$/;
+Readonly my $ALLOWED_MODE     => qr/^view|edit|search$/;
+Readonly my @CONSTRAINT_ORDER => qw/limit order_by sort_order/;
+Readonly my %CONSTRAINTS      => map { $_ => "_render_$_" } @CONSTRAINT_ORDER;
 
 use base 'Template::Plugin';
 use aliased 'Kinetic::Meta';
@@ -77,9 +81,10 @@ sub new {
       $class;    # XXX tighten this up later
     $self->mode( $value_for->{mode} );
 
-    $value_for->{format}{view}   ||= '%s';
-    $value_for->{format}{edit}   ||= '%s %s';
-    $value_for->{format}{search} ||= '%s %s %s %s';
+    $value_for->{format}{view}        ||= '%s';
+    $value_for->{format}{edit}        ||= '%s %s';
+    $value_for->{format}{search}      ||= '%s %s %s %s';
+    $value_for->{format}{constraints} ||= '%s %s';
     while ( my ( $mode, $format ) = each %{ $value_for->{format} } ) {
         $self->format( $mode, $format );
     }
@@ -129,7 +134,7 @@ sub format {
         return $self->{$mode};
     }
     my $mode = shift;
-    unless ( $mode =~ $ALLOWED_MODE ) {
+    unless ( $mode =~ /^$ALLOWED_MODE|constraints$/ ) {
         throw_invalid [ 'Unknown render mode "[_1]"', $mode ];
     }
     return $self->{$mode} unless @_;
@@ -160,60 +165,32 @@ my %renderer_for = (
 sub _context { shift->{context} }
 
 sub render {
+    my $self  = shift;
+    my $thing = shift;
 
-    my $self      = shift;
-    my $attribute = shift;
+    if ( blessed $thing && $thing->isa(Attribute) ) {
+        if ( 'view' eq $self->mode ) {
 
-    if ( 'view' eq $self->mode ) {
+            # XXX should throw an exception if there is no object
+            my $object = shift;
+            return sprintf $self->format, $thing->get($object);
+        }
 
-        # XXX should throw an exception if there is no object
-        my $object = shift;
-        return sprintf $self->format, $attribute->get($object);
+        my $type = $thing->widget_meta->type || '';
+
+        if ( my $renderer = $renderer_for{$type} ) {
+            $self->_properties($thing);
+            return $self->$renderer($thing);
+        }
+        else {
+            throw_unimplemented [
+                'Could not determine widget type handler for "[_1]"',
+                $thing->name
+            ];
+        }
     }
-
-    my $type = $attribute->widget_meta->type || '';
-
-    if ( my $renderer = $renderer_for{$type} ) {
-        $self->_properties($attribute);
-        return $self->$renderer($attribute);
-    }
-    else {
-        throw_unimplemented [
-            'Could not determine widget type handler for "[_1]"',
-            $attribute->name
-        ];
-    }
-}
-
-sub _do_render {
-    my ( $self, $value_for ) = @_;
-    if ( 'edit' eq $self->mode ) {
-        return sprintf $self->format, $value_for->{label_html},
-          $value_for->{main};
-    }
-    else {    # assume search
-        my $logical = <<"        END_LOGICAL";
-            <select name="_$value_for->{name}_logical" id="_$value_for->{name}_logical">
-              <option value="">is</option>
-              <option value="NOT">is not</option>
-            </select>
-        END_LOGICAL
-
-        my $comparison = <<"        END_COMPARISON";
-            <select name="_$value_for->{name}_comp" id="_$value_for->{name}_comp" onchange="checkForMultiValues(this); return false">
-              <option value="EQ">equal to</option>
-              <option value="LIKE">like</option>
-              <option value="LT">less than</option>
-              <option value="GT">greater than</option>
-              <option value="LE">less than or equal</option>
-              <option value="GE">greater than or equal</option>
-              <option value="NE">not equal</option>
-              <option value="BETWEEN">between</option>
-              <option value="ANY">any of</option>
-            </select>
-        END_COMPARISON
-        return sprintf $self->format, $value_for->{label_html}, $logical,
-          $comparison, $value_for->{main};
+    elsif ( defined( my $method = $CONSTRAINTS{$thing} ) ) {
+        return $self->$method(shift);
     }
 }
 
@@ -237,6 +214,46 @@ sub _properties {
       = qq{<label for="$value_for{name}">$value_for{label}</label>};
     $self->{properties} = \%value_for;
 }
+
+sub constraints { \@CONSTRAINT_ORDER }
+
+#
+# constraint rendering methods
+#
+
+sub _render_limit {
+    my $self = shift;
+    return sprintf $self->format('constraints'), 'Limit:',
+      '<input type="text" name="_limit" value="20" />';
+}
+
+sub _render_order_by {
+    my $self   = shift;
+    my $key    = shift;
+    my $class  = Kinetic::Meta->for_key($key);
+    my $select = qq{<select name="_order_by">\n};
+    foreach my $attr ( $class->attributes ) {
+        $select .= sprintf qq{<option value="%s">%s</option>\n}, $attr->name,
+          ($attr->label || ucfirst $attr->name);
+    }
+    $select .= '</select>';
+    return sprintf $self->format('constraints'), 'Order by:', $select;
+}
+
+sub _render_sort_order {
+    my $self = shift;
+    return sprintf $self->format('constraints'), 'Sort order:',
+      <<"    END_SORT_ORDER";
+    <select name="_sort_order">
+        <option value="ASC">Ascending</option>
+        <option value="DESC">Descending</option>
+    </select>
+    END_SORT_ORDER
+}
+
+#
+# various widget rendering methods
+#
 
 sub _render_calendar {
     my ( $self, $attribute, $object ) = @_;
@@ -303,6 +320,39 @@ sub _render_textarea {
     $value_for->{main}
       = qq{<textarea name="$value_for->{name}" id="$value_for->{name}" rows="$value_for->{rows}" cols="$value_for->{cols}" tip="$value_for->{tip}"></textarea>};
     return $self->_do_render($value_for);
+}
+
+sub _do_render {
+    my ( $self, $value_for ) = @_;
+    if ( 'edit' eq $self->mode ) {
+        return sprintf $self->format, $value_for->{label_html},
+          $value_for->{main};
+    }
+    else {    # assume search
+        my $logical = <<"        END_LOGICAL";
+            <select name="_$value_for->{name}_logical" id="_$value_for->{name}_logical">
+              <option value="">is</option>
+              <option value="NOT">is not</option>
+            </select>
+        END_LOGICAL
+
+        my $comparison = <<"        END_COMPARISON";
+            <!--<select name="_$value_for->{name}_comp" id="_$value_for->{name}_comp" onchange="checkForMultiValues(this); return false">-->
+            <select name="_$value_for->{name}_comp" id="_$value_for->{name}_comp">
+              <option value="EQ">equal to</option>
+              <option value="LIKE">like</option>
+              <option value="LT">less than</option>
+              <option value="GT">greater than</option>
+              <option value="LE">less than or equal</option>
+              <option value="GE">greater than or equal</option>
+              <option value="NE">not equal</option>
+              <!--<option value="BETWEEN">between</option>-->
+              <option value="ANY">any of</option>
+            </select>
+        END_COMPARISON
+        return sprintf $self->format, $value_for->{label_html}, $logical,
+          $comparison, $value_for->{main};
+    }
 }
 
 1;

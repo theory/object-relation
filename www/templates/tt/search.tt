@@ -3,18 +3,19 @@
    title = 'Search' 
 %]
   [% formats = { 
-    edit   => '<td>%s</td><td>%s</td>',
-    search => '<td>%s</td><td>%s</td><td>%s</td><td>%s</td>'
+    edit        => '<td>%s</td><td>%s</td>',
+    search      => '<td>%s</td><td>%s</td><td>%s</td><td>%s</td>',
+    constraints => '<td>%s</td><td colspan="3">%s</td>'
   } %]
   [% USE Renderer( mode => mode, format => formats ) %]
   <div class="search">
     <fieldset>
       <legend>[% key %]</legend>
       <form method="get" name="search_form" onsubmit="javascript:doSearch(this); return false" id="search_form">
-        <input type="hidden" name="_class_key" value="[% key %]" />
-        <input type="hidden" name="_domain"    value="[% domain %]" />
-        <input type="hidden" name="_path"      value="[% path %]" />
-        <input type="hidden" name="_type"      value="html" />
+        <input type="hidden" name="_class_key" value="[% key %]"/>
+        <input type="hidden" name="_domain"    value="[% domain %]"/>
+        <input type="hidden" name="_path"      value="[% path %]"/>
+        <input type="hidden" name="_type"      value="html"/>
         <table>
           [% FOREACH attr = class.attributes %]
           <tr>
@@ -23,36 +24,13 @@
           [% END %]
           [% IF (mode = 'search') %]
           <tr>
-            <td>
-              Limit:
-            </td>
-            <td colspan="3">
-              <input type="text" name="_limit" value="20" />
-            </td>
+            <td colspan="4"><hr/><td>
           </tr>
+            [% FOREACH constraint = Renderer.constraints %]
           <tr>
-            <td>
-              Order by:
-            </td>
-            <td colspan="3">
-              <select name="_order_by">
-                <option value="name">Name</option>
-                <option value="age">Age</option>
-                <option value="note">Note</option>
-              </select>
-            </td>
+              [% Renderer.render(constraint, key) %]
           </tr>
-          <tr>
-            <td>
-              Sort Order:
-            </td>
-            <td colspan="3">
-              <select name="_sort_order">
-                <option value="ASC">Ascending</option>
-                <option value="DESC">Descending</option>
-              </select>
-            </td>
-          </tr>
+            [% END %]
           [% END %]
         </table>
         <input type="submit" value="[% mode %]">

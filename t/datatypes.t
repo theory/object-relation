@@ -127,7 +127,7 @@ is $t->my_class->attributes('datetime')->raw($t),
   $dt->clone->set_time_zone('UTC')->iso8601,
   "Make sure the raw value is a UTC string";
 eval { $t->datetime('foo') };
-ok my $err = $@, "Caught bad DateTime exception";
+ok $err = $@, "Caught bad DateTime exception";
 isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
 
 # Test the class attribute.

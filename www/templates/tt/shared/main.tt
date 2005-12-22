@@ -21,5 +21,7 @@
     [% END %]
     </div>
     [% content %]
+    [% USE Dumper %]
+    <span style="color:red"><pre>[% Dumper.dump_html(debug) %]</pre></span>
   </body>
 </html>

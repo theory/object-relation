@@ -113,14 +113,6 @@ sub class {
         return $self;
     }
     $self->{class} ||= Kinetic::Meta->for_key( $self->class_key );
-
-    unless ( $self->{class} ) {
-        $self->_bad_request("No class found for key (@{[$self->class_key]})");
-
-        # It's OK to die because the REST class catches this and Does The
-        # Right Thing
-        die;
-    }
     return $self->{class};
 }
 

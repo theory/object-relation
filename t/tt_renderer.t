@@ -92,6 +92,11 @@ BEGIN {
     );
 }
 
+sub wrap {
+    my $text = shift;
+    return "<html>$text</html>";
+}
+
 my $object = Some::Package->new(
     foo            => 'foo this, baby',
     check          => 1,
@@ -123,16 +128,16 @@ my %attr_for   = map { $_->name => $_ } $meta_class->attributes;
 
 can_ok $r, 'render';
 
-is $r->render($attr_for{foo}, $object), $object->foo,
-    '"text" rendering in "view" mode should return the value';
-is $r->render($attr_for{check}, $object), $object->check,
-    '"checkbox" rendering in "view" mode should return the value';
-is $r->render($attr_for{some_text_area}, $object), $object->some_text_area,
-    '"textarea" rendering in "view" mode should return the value';
-is $r->render($attr_for{cal}, $object), $object->cal,
-    '"calendar" rendering in "view" mode should return the value';
-is $r->render($attr_for{select}, $object), $object->select,
-    '"dropdown" rendering in "view" mode should return the value';
+is $r->render( $attr_for{foo}, $object ), $object->foo,
+  '"text" rendering in "view" mode should return the value';
+is $r->render( $attr_for{check}, $object ), $object->check,
+  '"checkbox" rendering in "view" mode should return the value';
+is $r->render( $attr_for{some_text_area}, $object ), $object->some_text_area,
+  '"textarea" rendering in "view" mode should return the value';
+is $r->render( $attr_for{cal}, $object ), $object->cal,
+  '"calendar" rendering in "view" mode should return the value';
+is $r->render( $attr_for{select}, $object ), $object->select,
+  '"dropdown" rendering in "view" mode should return the value';
 
 #
 # edit mode
@@ -220,6 +225,57 @@ is_xml wrap($html), wrap($expected),
   '... and it should return XHTML with valid defaults';
 
 #
+# constraints
+#
+
+my $key = $object->my_class->key;
+
+$r->format( constraints => '<html><p>%s</p><p>%s</p></html>' );
+can_ok $r, 'constraints';
+my @expected = qw(limit order_by sort_order);
+is_deeply $r->constraints, \@expected,
+  '... and it should return the correct constraints';
+
+is_xml $r->render('limit', $key),
+    '<html><p>Limit:</p><p><input type="text" name="_limit" value="20"/></p></html>',
+    '... and limit constraints should render correctly';
+
+$expected = <<'END_EXPECTED';
+<html>
+    <p>Order by:</p>
+    <p>
+        <select name="_order_by">
+            <option value="foo">Foo</option>
+            <option value="check">Checkbox</option>
+            <option value="some_text_area">Text area</option>
+            <option value="cal">Calendar</option>
+            <option value="select">Select one</option>
+        </select>
+    </p>
+</html>
+END_EXPECTED
+is_xml $r->render('order_by', $key), $expected,
+    '... and order by constraints should render correctly';
+
+$expected = <<'END_EXPECTED';
+<html>
+    <p>Sort order:</p>
+    <p>
+        <select name="_sort_order">
+            <option value="ASC">Ascending</option>
+            <option value="DESC">Descending</option>
+        </select>
+    </p>
+</html>
+END_EXPECTED
+is_xml $r->render('sort_order', $key), $expected,
+    '... and sort order constraints should render correctly';
+
+__END__
+
+# XXX Holding off on this a bit while I figure out the best way to test it
+
+#
 # search mode
 #
 
@@ -262,7 +318,3 @@ END_EXPECTED
 is_xml wrap($html), wrap($expected),
   '... and it should return XHTML with valid defaults';
 
-sub wrap {
-    my $text = shift;
-    return "<html>$text</html>";
-}
