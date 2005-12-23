@@ -13,7 +13,7 @@ use Kinetic::Meta::Attribute;
 use Kinetic::Meta::Class;
 use Kinetic::Meta::Method;
 use Kinetic::Util::Exceptions qw(throw_exlib throw_invalid_class);
-use Class::Meta::Types::String; # Move to DataTypes.
+use Class::Meta::Types::String;    # Move to DataTypes.
 
 =head1 Name
 
@@ -69,7 +69,7 @@ More may be added in the future.
 =cut
 
 sub import {
-    my ($pkg, $api_label) = @_;
+    my ( $pkg, $api_label ) = @_;
     return unless $api_label;
     $_->import($api_label) for qw(
         Kinetic::Meta::Class
@@ -359,24 +359,24 @@ sub _add_delegates {
 
         # Create a new attribute that references the original attribute.
         $self->add_attribute(
-                    name => $attr_name,
-                    type => $attr->type,
-                required => $attr->required,
-                    once => $attr->once,
-                   label => $attr->{label},
-                    desc => $attr->desc,
-                    view => $attr->view,
-                   authz => $attr->authz,
-                  create => Class::Meta::NONE,
-                 context => $attr->context,
-                 default => $attr->default,
-             widget_meta => $attr->widget_meta,
-                  unique => $attr->unique,
-                distinct => $attr->distinct,
-                 indexed => $attr->indexed,
-              persistent => $persist,
+            name         => $attr_name,
+            type         => $attr->type,
+            required     => $attr->required,
+            once         => $attr->once,
+            label        => $attr->{label},
+            desc         => $attr->desc,
+            view         => $attr->view,
+            authz        => $attr->authz,
+            create       => Class::Meta::NONE,
+            context      => $attr->context,
+            default      => $attr->default,
+            widget_meta  => $attr->widget_meta,
+            unique       => $attr->unique,
+            distinct     => $attr->distinct,
+            indexed      => $attr->indexed,
+            persistent   => $persist,
             delegates_to => $ref,
-                 acts_as => $attr,
+            acts_as      => $attr,
         );
         # Delegation methods are created by Kinetic::Meta::AccessorBuilder.
     }
@@ -392,15 +392,15 @@ sub _add_delegates {
             my $meth_name = exists $meths{$name} ? "$key\_$name" : $name;
 
             $self->add_method(
-                       name => $meth_name,
-                       label => $meth->{label},
-                        desc => $meth->desc,
-                        view => $meth->view,
-                     context => $meth->context,
-                        args => $meth->args,
-                     returns => $meth->returns,
+                name         => $meth_name,
+                label        => $meth->{label},
+                desc         => $meth->desc,
+                view         => $meth->view,
+                context      => $meth->context,
+                args         => $meth->args,
+                returns      => $meth->returns,
                 delegates_to => $ref,
-                     acts_as => $meth,
+                acts_as      => $meth,
             );
 
             # Create the delegating method.
