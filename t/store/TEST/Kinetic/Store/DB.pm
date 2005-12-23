@@ -1019,4 +1019,80 @@ sub test_update_state : Test(4) {
         '... And with the proper message';
 }
 
+sub test_fk_restrict : Test(7) {
+    my $self = shift;
+    return unless $self->_should_run;
+    $self->clear_database;
+
+    # First, make sure that RESTRICT works properly.
+    ok my $one = One->new(name => 'One'), 'Create One object';
+    ok $one->save, '... And save it';
+    ok my $comp = Composed->new(one => $one),
+        'Create Composed object referencing the One object';
+    ok $comp->save, '... And save it';
+    ok $one->purge, '... Now purge the One object';
+    throws_ok { $one->save } 'Kinetic::Util::Exception::DBI',
+        '... And saving it should throw an exception';
+    like $@,
+        qr/(?:update or )?delete on (?:table )?"simple_one" violates foreign key constraint "fk_composed_one_id"/,
+        '... And it should have the proper error';
+}
+
+sub test_fk_cascade : Test(10) {
+    my $self = shift;
+    return unless $self->_should_run;
+    $self->clear_database;
+
+    # Create an Extend object.
+    ok my $one = One->new(name => 'One'), 'Create One object';
+    ok $one->save, '... And save it';
+    ok my $two = Two->new(name => 'Two', one => $one), 'Create Two object';
+    ok $two->save, '... And save it';
+    ok my $extend = Extend->new(name => 'Extend', two => $two),
+        'Create Extend object';
+    ok $extend->save, '... And save it';
+    ok $extend = Extend->lookup(uuid => $extend->uuid),
+        '... We should be able to look it up';
+
+    ok $two->purge, 'Now purge the Two object';
+    ok $two->save, '... And save it';
+    ok !Extend->lookup(uuid => $extend->uuid),
+        '... Now there should be no Exend object to look up';
+}
+
+sub test_fk_insert : Test(5) {
+    my $self = shift;
+    return unless $self->_should_run;
+    $self->clear_database;
+
+    ok my $one = One->new(name => 'One'), 'Create One object';
+    ok $one->{id} = -1, '... And fake an ID';
+    ok my $two = Two->new(name => 'Two', one => $one), 'Create Two object';
+    throws_ok { $two->save } 'Kinetic::Util::Exception::DBI',
+        '... And it should throw an error for an invalid foreign key';
+    like $@,
+        qr/insert(?: or update)? on table "simple_two" violates foreign key constraint "fk_two_one_id"/,
+        '... Which should have the proper error message';
+}
+
+sub test_fk_update : Test(9) {
+    my $self = shift;
+    return unless $self->_should_run;
+    $self->clear_database;
+
+    ok my $one = One->new(name => 'One'), 'Create One object';
+    ok $one->save, '... And save it';
+    ok my $two = Two->new(name => 'Two', one => $one), 'Create Two object';
+    ok $two->save, '... And save it';
+
+    ok $one = One->new(name => 'Another'), 'Create another One object';
+    ok $one->{id} = -1, '... Fake its IDs';
+    ok $two->one($one), '... And associate it it with the Two object';
+    throws_ok { $two->save } 'Kinetic::Util::Exception::DBI',
+        '... And it should throw an error for an invalid foreign key';
+    like $@,
+        qr/(?:insert or )?update on table "simple_two" violates foreign key constraint "fk_two_one_id"/,
+        '... Which should have the proper error message';
+}
+
 1;

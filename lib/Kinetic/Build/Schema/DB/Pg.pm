@@ -287,7 +287,7 @@ sub constraints_for_class {
     # Add a foreign key from the id column to the parent table if this
     # class has a parent table class.
     if (my $parent = $class->parent) {
-        my $fk = $class->foreign_key;
+        my $fk       = $class->foreign_key;
         my $fk_table = $parent->table;
         push @cons, "ALTER TABLE $table\n"
           . "  ADD CONSTRAINT $fk FOREIGN KEY (id)\n"
@@ -299,9 +299,10 @@ sub constraints_for_class {
         my $ref        = $attr->references or next;
         my $fk_table   = $ref->table;
         my $del_action = uc $attr->on_delete;
-        my $col = $attr->column;
+        my $col        = $attr->column;
+        my $fk         = $attr->foreign_key;
         push @cons, "ALTER TABLE $table\n"
-          . "  ADD CONSTRAINT fk_$col FOREIGN KEY ($col)\n"
+          . "  ADD CONSTRAINT $fk FOREIGN KEY ($col)\n"
           . "  REFERENCES $fk_table(id) ON DELETE $del_action;\n";
     }
 

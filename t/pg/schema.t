@@ -272,7 +272,7 @@ ALTER TABLE simple_two
   REFERENCES _simple(id) ON DELETE CASCADE;
 
 ALTER TABLE simple_two
-  ADD CONSTRAINT fk_one_id FOREIGN KEY (one_id)
+  ADD CONSTRAINT fk_two_one_id FOREIGN KEY (one_id)
   REFERENCES simple_one(id) ON DELETE RESTRICT;
 
 CREATE FUNCTION cki_two_age_unique() RETURNS trigger AS '
@@ -442,11 +442,11 @@ $constraints = q{ALTER TABLE _relation
   ADD CONSTRAINT pk_relation_id PRIMARY KEY (id);
 
 ALTER TABLE _relation
-  ADD CONSTRAINT fk_simple_id FOREIGN KEY (simple_id)
+  ADD CONSTRAINT fk_relation_simple_id FOREIGN KEY (simple_id)
   REFERENCES _simple(id) ON DELETE CASCADE;
 
 ALTER TABLE _relation
-  ADD CONSTRAINT fk_one_id FOREIGN KEY (one_id)
+  ADD CONSTRAINT fk_relation_one_id FOREIGN KEY (one_id)
   REFERENCES simple_one(id) ON DELETE RESTRICT;
 
 CREATE FUNCTION relation_uuid_once() RETURNS trigger AS '
@@ -586,7 +586,7 @@ $constraints = q{ALTER TABLE _composed
   ADD CONSTRAINT pk_composed_id PRIMARY KEY (id);
 
 ALTER TABLE _composed
-  ADD CONSTRAINT fk_one_id FOREIGN KEY (one_id)
+  ADD CONSTRAINT fk_composed_one_id FOREIGN KEY (one_id)
   REFERENCES simple_one(id) ON DELETE RESTRICT;
 
 CREATE FUNCTION composed_uuid_once() RETURNS trigger AS '
@@ -701,7 +701,7 @@ $constraints = q{ALTER TABLE _comp_comp
   ADD CONSTRAINT pk_comp_comp_id PRIMARY KEY (id);
 
 ALTER TABLE _comp_comp
-  ADD CONSTRAINT fk_composed_id FOREIGN KEY (composed_id)
+  ADD CONSTRAINT fk_comp_comp_composed_id FOREIGN KEY (composed_id)
   REFERENCES _composed(id) ON DELETE RESTRICT;
 
 CREATE FUNCTION comp_comp_uuid_once() RETURNS trigger AS '
@@ -817,7 +817,7 @@ $constraints = q{ALTER TABLE _extend
   ADD CONSTRAINT pk_extend_id PRIMARY KEY (id);
 
 ALTER TABLE _extend
-  ADD CONSTRAINT fk_two_id FOREIGN KEY (two_id)
+  ADD CONSTRAINT fk_extend_two_id FOREIGN KEY (two_id)
   REFERENCES simple_two(id) ON DELETE CASCADE;
 
 CREATE FUNCTION extend_uuid_once() RETURNS trigger AS '
