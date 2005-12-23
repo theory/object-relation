@@ -385,13 +385,13 @@ sub unique_triggers {
                     WHERE  id <> NEW.id AND $comp_col = $new_col AND state > -1
                     LIMIT 1
                 ) THEN
-                    RAISE EXCEPTION ''duplicate key violates unique constraint "ck_$table\_$col\_unique"'';
+                    RAISE EXCEPTION ''duplicate key violates unique constraint "ck_$key\_$col\_unique"'';
                 END IF;
         END_SQL
 
         push @trigs, qq{CREATE FUNCTION cki_$key\_$col\_unique() RETURNS trigger AS '
   BEGIN
-    $lock_records 
+    $lock_records
     RETURN NEW;
   END;
 ' LANGUAGE plpgsql SECURITY DEFINER;
@@ -425,7 +425,7 @@ CREATE FUNCTION ckp_$key\_$col\_unique() RETURNS trigger AS '
             FROM   $table
             WHERE $comp_col = (SELECT $comp_col FROM $table WHERE id = NEW.id)
         ) > 1 THEN
-            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_$table\_$col\_unique"'';
+            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_$key\_$col\_unique"'';
         END IF;
     END IF;
     RETURN NEW;

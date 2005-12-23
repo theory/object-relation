@@ -286,7 +286,7 @@ CREATE FUNCTION cki_two_age_unique() RETURNS trigger AS '
         WHERE  id <> NEW.id AND age = NEW.age AND state > -1
         LIMIT 1
     ) THEN
-        RAISE EXCEPTION ''duplicate key violates unique constraint "ck_simple_two_age_unique"'';
+        RAISE EXCEPTION ''duplicate key violates unique constraint "ck_two_age_unique"'';
     END IF;
     RETURN NEW;
   END;
@@ -307,7 +307,7 @@ CREATE FUNCTION cku_two_age_unique() RETURNS trigger AS '
             WHERE  id <> NEW.id AND age = NEW.age AND state > -1
             LIMIT 1
         ) THEN
-            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_simple_two_age_unique"'';
+            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_two_age_unique"'';
         END IF;
     END IF;
     RETURN NEW;
@@ -333,7 +333,7 @@ CREATE FUNCTION ckp_two_age_unique() RETURNS trigger AS '
             FROM   simple_two
             WHERE age = (SELECT age FROM simple_two WHERE id = NEW.id)
         ) > 1 THEN
-            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_simple_two_age_unique"'';
+            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_two_age_unique"'';
         END IF;
     END IF;
     RETURN NEW;

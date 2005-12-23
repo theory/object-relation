@@ -814,7 +814,7 @@ sub test_mediate : Test(43) {
     }
 }
 
-sub test_unique : Test(21) {
+sub test_unique : Test(53) {
     my $self = shift;
     return unless $self->_should_run;
     $self->clear_database;
@@ -824,9 +824,11 @@ sub test_unique : Test(21) {
     ok $simple->save, '... And save it';
     ok my $simple2 = Simple->new(name => 'Bar'), 'Create another simple';
     $simple2->{uuid} = $simple->uuid; # XXX Don't try this at home.
-    thrown_ok { $simple2->save } 'Exception::Class::DBI::STH',
-         qr/(?:column uuid is not unique| duplicate key violates unique constraint "idx_simple_uuid")/,
+    throws_ok { $simple2->save } 'Exception::Class::DBI::STH',
          '... Saving it with the same UUID should fail';
+    like $@,
+        qr/(?:column uuid is not unique| duplicate key violates unique constraint "idx_simple_uuid")/,
+         '... And it should fail with the proper message';
 
     # Test unique attribute--relative to state.
     ok my $one = One->new(name => 'One')->save, 'Create and save one object';
@@ -835,15 +837,47 @@ sub test_unique : Test(21) {
     ok $comp->save, '... And save it';
     ok my $comp2 = Composed->new(one => $one, color => 'red'),
         'Create another composed object with the same color';
-    thrown_ok { $comp2->save } 'Exception::Class::DBI::STH',
-        qr/(?:column color is not unique|duplicate key violates unique constraint "idx_composed_color")/,
+    throws_ok { $comp2->save } 'Exception::Class::DBI::STH',
         '... Saving (INSERT) it should fail';
+    like $@,
+        qr/(?:column color is not unique|duplicate key violates unique constraint "idx_composed_color")/,
+        '... And it should fail with the proper message';
+
+    # Make sure that an update fails.
     ok $comp2->color('blue'), '... So change its color';
     ok $comp2->save, '... Now it should save';
     ok $comp2->color('red'), '... Switch back to the dupe color';
-    thrown_ok { $comp2->save } 'Exception::Class::DBI::STH',
-         qr/(?:column color is not unique|duplicate key violates unique constraint "idx_composed_color")/,
+    throws_ok { $comp2->save } 'Exception::Class::DBI::STH',
          '... Saving it (UPDATE) should fail';
+    like $@,
+        qr/(?:column color is not unique|duplicate key violates unique constraint "idx_composed_color")/,
+         '... And it should fail with the proper message';
+
+    # Now try to insert with the other objects deleted (but not purged).
+    ok $comp->delete, 'Delete the original Composed object';
+    ok $comp->save, '... And save it';
+    ok my $comp3 = Composed->new(one => $one, color => 'red'),
+        '... Create a third Composed object with color => red';
+    ok $comp3->save,
+        '... Saving should work, because the other Composed object is deleted';
+    ok $comp = Composed->lookup( uuid => $comp->uuid ),
+        '... We should still be able to look up the original Composed object';
+    is $comp->color, 'red', '... And its color should still be red';
+    is $comp->state, Kinetic::Util::State->DELETED, '... And it should be deleted';
+
+    # Now purge the new Composed so that we can test UPDATE.
+    ok $comp3->purge, 'Purge the third Composed object';
+    ok $comp3->save, 'Save the purged object';
+    ok $comp2->color('red'), 'Set the second composed object to red';
+    ok $comp2->save, '... Saving it (UPDATE) should succeed';
+
+    # Undeleting the original red state should fail to save.
+    ok $comp->activate, 'Activate the original Composed object';
+    throws_ok { $comp->save } 'Exception::Class::DBI::STH',
+         '... Saving it (UPDATE) should fail';
+    like $@,
+        qr/(?:column color is not unique|duplicate key violates unique constraint "idx_composed_color")/,
+         '... And it should fail with the proper message';
 
     # Test unique attribute with state in a parent class.
     ok my $two = Two->new(name => 'Two', one => $one, age => 37),
@@ -851,14 +885,43 @@ sub test_unique : Test(21) {
     ok $two->save, '... And save it';
     ok my $two2 = Two->new(name => 'Two2', one => $one, age => 37),
         'Create another two object with the same age';
-    thrown_ok { $two2->save } 'Exception::Class::DBI::STH',
-         qr/(?:column age is not unique|duplicate key violates unique constraint "ck_simple_two_age_unique")/,
+    throws_ok { $two2->save } 'Exception::Class::DBI::STH',
          '... Saving it (INSERT) should fail';
+    like $@,
+        qr/(?:column age is not unique|duplicate key violates unique constraint "ck_two_age_unique")/,
+         '... And it should fail with the proper message';
     ok $two2->age(36), '... So change its age';
     ok $two2->save, '... Now it should save';
     ok $two2->age(37), '... Switch back to the dupe age';
     thrown_ok { $two2->save } 'Exception::Class::DBI::STH',
-         qr/(?:column age is not unique|duplicate key violates unique constraint "ck_simple_two_age_unique")/, '... Saving it (UPDATE) should fail';
+         qr/(?:column age is not unique|duplicate key violates unique constraint "ck_two_age_unique")/, '... Saving it (UPDATE) should fail';
+
+    # Now try to insert with the other objects deleted (but not purged).
+    ok $two->delete, 'Delete the original Two object';
+    ok $two->save, '... And save it';
+    ok my $two3 = Two->new(name => 'Two3', one => $one, age => 37),
+        '... Create a third Two object with age => 37';
+    ok $two3->save,
+        '... Saving should work, because the other Two object is deleted';
+    ok $two = Two->lookup( uuid => $two->uuid ),
+        '... We should still be able to look up the original Two object';
+    is $two->age, 37, '... And its age should still be 37';
+    is $two->state, Kinetic::Util::State->DELETED, '... And it should be deleted';
+
+    # Now purge the new Two so that we can test UPDATE.
+    ok $two3->purge, 'Purge the third Two object';
+    ok $two3->save, 'Save the purged object';
+    ok $two2->age(37), 'Set the second two object to 37';
+    ok $two2->save, '... Saving it (UPDATE) should succeed';
+
+    # Undeleting the original red state should fail to save.
+    ok $two->activate, 'Activate the original Two object';
+    throws_ok { $two->save } 'Exception::Class::DBI::STH',
+         '... Saving it (UPDATE) should fail';
+    like $@,
+         qr/(?:column age is not unique|duplicate key violates unique constraint "ck_two_age_unique")/, '... Saving it (UPDATE) should fail';
+         '... And it should fail with the proper message';
+
 }
 
 

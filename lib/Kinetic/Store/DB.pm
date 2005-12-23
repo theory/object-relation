@@ -256,6 +256,7 @@ sub lookup {
         unless $attr->unique;
 
     $self->_prepare_method($CACHED);
+    $self->{searching_on_state} = 1; # Always allow lookup() to find deleted objects.
     $self->_should_create_iterator(0);
 
     local $self->{search_class} = $search_class;
@@ -1228,7 +1229,7 @@ sub _make_where_clause {
           ? code_lexer_stream($search_request)
           : string_lexer_stream( $search_request->[0] );
         my $ir = parse( $stream, $self );
-        $self->{searching_on_state} = 0;
+        $self->{searching_on_state} ||= 0;
         my ( $where_clause, $bind_params ) =
           $self->_convert_ir_to_where_clause($ir);
         $where_clause = "" if '()' eq $where_clause;
