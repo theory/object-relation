@@ -34,7 +34,9 @@ Kinetic::::Party::Person - Kinetic person objects
 
 =head1 Description
 
-This class serves as the abstract base class for people in TKP.
+This class represents people in TKP. Person objects may be used in all kinds
+of contexts, but we expect that they'll primarily be used via extending
+classes, such as L<Kinetic::Party::User|Kinetic::Party::User>.
 
 =cut
 
@@ -43,7 +45,6 @@ BEGIN {
         key         => 'person',
         name        => 'Person',
         plural_name => 'Persons',
-        abstract    => 1,
     );
 
 ##############################################################################
@@ -52,7 +53,7 @@ BEGIN {
 
 =head1 Instance Interface
 
-In addition to the interface inherited from L<Kinetic::::|Kinetic> and
+In addition to the interface inherited from L<Kinetic::|Kinetic> and
 L<Kinetic::::Party|Kinetic::::Party>, this class offers a number of its own
 attributes.
 
@@ -213,7 +214,7 @@ The generation to the person's name, such as "Jr.", "III", etc.
   $name = $person->strfname($format);
 
 Returns the person object's name as formatted according to a
-L<Linguage::Strfname|Linguage::Strfname> format. Kinetic::::Party::Person uses
+L<Linguage::Strfname|Linguage::Strfname> format. Kinetic::::Party::Person
 defines this method as a read-only attribute.
 
 The default format is specified by the locale returned by the currently
