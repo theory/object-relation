@@ -10,6 +10,7 @@ use Class::Trait qw(
   TEST::Kinetic::Traits::Store
   TEST::Kinetic::Traits::HTML
   TEST::Kinetic::Traits::JSON
+  TEST::Kinetic::Traits::SampleObjects
 );
 use Test::More;
 use Test::Exception;

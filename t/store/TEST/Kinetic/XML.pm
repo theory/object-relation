@@ -15,6 +15,7 @@ use Test::File::Contents;
 use Encode qw(is_utf8);
 
 use Class::Trait qw(TEST::Kinetic::Traits::Store);
+use Class::Trait qw(TEST::Kinetic::Traits::SampleObjects);
 use Kinetic::Meta;
 use Kinetic::Util::Language::en;
 use aliased 'Kinetic::DateTime';

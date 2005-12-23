@@ -20,7 +20,7 @@ The following methods are are methods common debugging helpers.
 
 =head3 debug
 
-  $test->debug(@data); 
+  $test->debug(@data);
 
 Foreach element in C<@data>, C<debug> will C<diag> a row of asterisks followed
 by the data.  If the data is not a reference, it will simply be output with

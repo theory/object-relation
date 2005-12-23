@@ -108,6 +108,24 @@ sub runall { shift->runtests(@CLASSES) }
 
 ##############################################################################
 
+=head3 dev_testing
+
+  sub test_dev : Test(1) {
+      reutrn "Not running dev tests" unless TEST::Class::Kinetic->dev_testing;
+      ok 1, 'We can use run dev tests!';
+      # ...
+  }
+
+This method returns true if development tests can be run (i.e., those that can
+make changes to a data store) and falise if they cannot. Use it to determine
+whether or not to run dev tests.
+
+=cut
+
+sub dev_testing { exists $ENV{KINETIC_SUPPORTED} }
+
+##############################################################################
+
 =head3 supported
 
   sub test_sqlite : Test(1) {

@@ -20,7 +20,7 @@ use Kinetic::Util::Constants qw(:xslt :rest);
 
 =head1 Provided methods
 
-Requires: 
+Requires:
 
 =over 4
 

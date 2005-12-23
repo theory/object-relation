@@ -34,7 +34,7 @@ Requires:
 =head3 domain
 
  my $domain = $test->domain;
- $test->domain($domain);   
+ $test->domain($domain);
 
 Getter/setter for test domain.  Domain in this context is actually the base
 URL (without the base path).  For example:

@@ -14,6 +14,7 @@ use Kinetic::XML;
 use Class::Trait qw( TEST::Kinetic::Traits::Store );
 use Class::Trait qw( TEST::Kinetic::Traits::HTML );
 use Class::Trait qw( TEST::Kinetic::Traits::XML );
+use Class::Trait qw( TEST::Kinetic::Traits::SampleObjects );
 
 use Kinetic::Util::Constants qw/$CURRENT_PAGE :labels/;
 

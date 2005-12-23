@@ -13,6 +13,7 @@ use Encode qw(is_utf8);
 use aliased 'Test::MockModule';
 
 use Class::Trait qw(TEST::Kinetic::Traits::Store);
+use Class::Trait qw(TEST::Kinetic::Traits::SampleObjects);
 use Kinetic::Store qw/:all/;
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Util::State';

@@ -11,7 +11,10 @@ use Test::JSON;
 use Test::More;
 use Test::Exception;
 
-use Class::Trait qw( TEST::Kinetic::Traits::Store );
+use Class::Trait qw(
+    TEST::Kinetic::Traits::Store
+    TEST::Kinetic::Traits::SampleObjects
+);
 
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Store' => 'Store', ':all';

@@ -10,7 +10,10 @@ use base 'TEST::Class::Kinetic';
 use Test::JSON;
 use Test::More;
 use Test::Exception;
-use Class::Trait qw(TEST::Kinetic::Traits::Store);
+use Class::Trait qw(
+    TEST::Kinetic::Traits::Store
+    TEST::Kinetic::Traits::SampleObjects
+);
 
 use Kinetic::Util::Constants qw/$UUID_RE/;
 
