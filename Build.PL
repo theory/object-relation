@@ -69,6 +69,7 @@ my $build = Kinetic::Build->new(
         'FSA::Rules'                => 0.21,
         'HTTP::Server::Simple'      => 0.13,
         'Module::Build'             => 0.26,
+        'Pod::Man'                  => 2.04,   # Supports =encoding
         'Test::Class'               => 0.10,
         'Test::Differences'         => 0.47,
         'Test::Exception'           => 0.21,
