@@ -921,8 +921,102 @@ sub test_unique : Test(53) {
     like $@,
          qr/(?:column age is not unique|duplicate key violates unique constraint "ck_two_age_unique")/, '... Saving it (UPDATE) should fail';
          '... And it should fail with the proper message';
+}
+
+sub test_once : Test(2) {
+    my $self = shift;
+    return unless $self->_should_run;
+    $self->clear_database;
+
+    # Test once attribute "uuid".
+    # UPDATEs don't send UUID to the server, because they're once. Views don't
+    # pass them on, either, for the same reason. So we have to test it
+    # manually against the table. And we have to use the admin password so
+    # because users don't have permission to update PostgreSQL tables, just
+    # views.
+    my $dbh = $self->dbh;
+    if (ref($self) =~ /Pg$/) {
+        $dbh = DBI->connect(
+            Kinetic::Util::Config::PG_DSN(),
+            Kinetic::Util::Config::PG_DB_SUPER_USER(),
+            Kinetic::Util::Config::PG_DB_SUPER_PASS(),
+            {
+                RaiseError     => 0,
+                PrintError     => 0,
+                pg_enable_utf8 => 1,
+                HandleError    => Kinetic::Util::Exception::DBI->handler,
+                AutoCommit     => 0,
+            }
+        );
+        $dbh->begin_work;
+    }
+    my $uuid = Kinetic::Util::Functions::create_uuid();
+    $dbh->do(
+        q{INSERT INTO simple (uuid, name) VALUES (?, ?)},
+        undef,
+        $uuid,
+        'foo',
+    );
+
+    throws_ok {
+        $dbh->do(
+            q{UPDATE _simple SET uuid = ? WHERE uuid = ?},
+            undef,
+            Kinetic::Util::Functions::create_uuid(),
+            $uuid,
+        )
+    } 'Exception::Class::DBI::DBH', '... And updating UUID should fail';
+    like $@,
+        qr/value of "uuid" cannot be changed/,
+        '... And it should fail with the proper message';
+
+    if (ref($self) =~ /Pg$/) {
+        $dbh->rollback;
+        $dbh->disconnect;
+    }
+}
+
+sub test_insert_state : Test(2) {
+    my $self = shift;
+    return unless $self->_should_run;
+    $self->clear_database;
+    my $dbh = $self->dbh;
+
+    # Try to insert a bogus state.
+    throws_ok {
+        $dbh->do(
+            q{INSERT INTO simple (name, state) VALUES (?, ?)},
+            undef,
+            'Foo',
+            12,
+        )
+    } 'Exception::Class::DBI::DBH', 'Inserting an invalid state should fail';
+    like $@, qr/value for domain state violates check constraint "ck_state"/,
+        '... And with the proper message';
 
 }
 
+# This has to be a separate test because the dbh gets horked on error.
+sub test_update_state : Test(4) {
+    my $self = shift;
+    return unless $self->_should_run;
+    $self->clear_database;
+    my $dbh = $self->dbh;
+
+    # Try to update to a bogus state.
+    ok my $simple = Simple->new(name => 'Foo'), 'Create simple object';
+    ok $simple->save, '... And save it';
+    throws_ok {
+        $dbh->do(
+            q{UPDATE simple SET state = ? WHERE uuid = ?},
+            undef,
+            12,
+            $simple->uuid,
+        )
+    } 'Exception::Class::DBI::DBH',
+        'Updating to an invalid state should fail';
+    like $@, qr/value for domain state violates check constraint "ck_state"/,
+        '... And with the proper message';
+}
 
 1;
