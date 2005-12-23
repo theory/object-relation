@@ -814,7 +814,12 @@ sub test_mediate : Test(43) {
     }
 }
 
-sub test_unique : Test(53) {
+sub unique_attr_regex {
+    my ($self, $col, $key) = @_;
+    return qr/column $col is not unique/;
+}
+
+sub test_unique : Test(54) {
     my $self = shift;
     return unless $self->_should_run;
     $self->clear_database;
@@ -826,8 +831,7 @@ sub test_unique : Test(53) {
     $simple2->{uuid} = $simple->uuid; # XXX Don't try this at home.
     throws_ok { $simple2->save } 'Exception::Class::DBI::STH',
          '... Saving it with the same UUID should fail';
-    like $@,
-        qr/(?:column uuid is not unique| duplicate key violates unique constraint "idx_simple_uuid")/,
+    like $@, $self->unique_attr_regex('uuid', 'simple'),
          '... And it should fail with the proper message';
 
     # Test unique attribute--relative to state.
@@ -839,8 +843,7 @@ sub test_unique : Test(53) {
         'Create another composed object with the same color';
     throws_ok { $comp2->save } 'Exception::Class::DBI::STH',
         '... Saving (INSERT) it should fail';
-    like $@,
-        qr/(?:column color is not unique|duplicate key violates unique constraint "idx_composed_color")/,
+    like $@, $self->unique_attr_regex('color', 'composed'),
         '... And it should fail with the proper message';
 
     # Make sure that an update fails.
@@ -849,8 +852,7 @@ sub test_unique : Test(53) {
     ok $comp2->color('red'), '... Switch back to the dupe color';
     throws_ok { $comp2->save } 'Exception::Class::DBI::STH',
          '... Saving it (UPDATE) should fail';
-    like $@,
-        qr/(?:column color is not unique|duplicate key violates unique constraint "idx_composed_color")/,
+    like $@, $self->unique_attr_regex('color', 'composed'),
          '... And it should fail with the proper message';
 
     # Now try to insert with the other objects deleted (but not purged).
@@ -875,8 +877,7 @@ sub test_unique : Test(53) {
     ok $comp->activate, 'Activate the original Composed object';
     throws_ok { $comp->save } 'Exception::Class::DBI::STH',
          '... Saving it (UPDATE) should fail';
-    like $@,
-        qr/(?:column color is not unique|duplicate key violates unique constraint "idx_composed_color")/,
+    like $@, $self->unique_attr_regex('color', 'composed'),
          '... And it should fail with the proper message';
 
     # Test unique attribute with state in a parent class.
@@ -887,14 +888,15 @@ sub test_unique : Test(53) {
         'Create another two object with the same age';
     throws_ok { $two2->save } 'Exception::Class::DBI::STH',
          '... Saving it (INSERT) should fail';
-    like $@,
-        qr/(?:column age is not unique|duplicate key violates unique constraint "ck_two_age_unique")/,
+    like $@, $self->unique_attr_regex('age', 'two'),
          '... And it should fail with the proper message';
     ok $two2->age(36), '... So change its age';
     ok $two2->save, '... Now it should save';
     ok $two2->age(37), '... Switch back to the dupe age';
-    thrown_ok { $two2->save } 'Exception::Class::DBI::STH',
-         qr/(?:column age is not unique|duplicate key violates unique constraint "ck_two_age_unique")/, '... Saving it (UPDATE) should fail';
+    throws_ok { $two2->save } 'Exception::Class::DBI::STH',
+            '... Saving it (UPDATE) should fail';
+    like $@, $self->unique_attr_regex('age', 'two'),
+         '... And it should fail with the proper message';
 
     # Now try to insert with the other objects deleted (but not purged).
     ok $two->delete, 'Delete the original Two object';
@@ -918,9 +920,8 @@ sub test_unique : Test(53) {
     ok $two->activate, 'Activate the original Two object';
     throws_ok { $two->save } 'Exception::Class::DBI::STH',
          '... Saving it (UPDATE) should fail';
-    like $@,
-         qr/(?:column age is not unique|duplicate key violates unique constraint "ck_two_age_unique")/, '... Saving it (UPDATE) should fail';
-         '... And it should fail with the proper message';
+    like $@, $self->unique_attr_regex('age', 'two'),
+        '... And it should fail with the proper message';
 }
 
 sub test_once : Test(2) {
@@ -1019,6 +1020,21 @@ sub test_update_state : Test(4) {
         '... And with the proper message';
 }
 
+sub delete_fk_regex {
+    my ($self, $col, $key, $table) = @_;
+    return qr/delete on table "$table" violates foreign key constraint "fk_$key\_$col/;
+}
+
+sub insert_fk_regex {
+    my ($self, $col, $key, $table) = @_;
+    return qr/insert on table "$table" violates foreign key constraint "fk_$key\_$col/;
+}
+
+sub update_fk_regex {
+    my ($self, $col, $key, $table) = @_;
+    return qr/update on table "$table" violates foreign key constraint "fk_$key\_$col/;
+}
+
 sub test_fk_restrict : Test(7) {
     my $self = shift;
     return unless $self->_should_run;
@@ -1033,8 +1049,7 @@ sub test_fk_restrict : Test(7) {
     ok $one->purge, '... Now purge the One object';
     throws_ok { $one->save } 'Kinetic::Util::Exception::DBI',
         '... And saving it should throw an exception';
-    like $@,
-        qr/(?:update or )?delete on (?:table )?"simple_one" violates foreign key constraint "fk_composed_one_id"/,
+    like $@, $self->delete_fk_regex('one_id', 'composed', 'simple_one'),
         '... And it should have the proper error';
 }
 
@@ -1070,8 +1085,7 @@ sub test_fk_insert : Test(5) {
     ok my $two = Two->new(name => 'Two', one => $one), 'Create Two object';
     throws_ok { $two->save } 'Kinetic::Util::Exception::DBI',
         '... And it should throw an error for an invalid foreign key';
-    like $@,
-        qr/insert(?: or update)? on table "simple_two" violates foreign key constraint "fk_two_one_id"/,
+    like $@, $self->insert_fk_regex('one_id', 'two', 'simple_two'),
         '... Which should have the proper error message';
 }
 
@@ -1090,8 +1104,7 @@ sub test_fk_update : Test(9) {
     ok $two->one($one), '... And associate it it with the Two object';
     throws_ok { $two->save } 'Kinetic::Util::Exception::DBI',
         '... And it should throw an error for an invalid foreign key';
-    like $@,
-        qr/(?:insert or )?update on table "simple_two" violates foreign key constraint "fk_two_one_id"/,
+    like $@, $self->update_fk_regex('one_id', 'two', 'simple_two'),
         '... Which should have the proper error message';
 }
 

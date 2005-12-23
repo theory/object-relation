@@ -23,6 +23,27 @@ __PACKAGE__->SKIP_CLASS(
 ) if caller; # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
+# This method is used by TEST::Kinetic::Store::DB to check unique constraint
+# error messages.
+sub unique_attr_regex {
+    my ($self, $col, $key) = @_;
+    # Sometimes its an index that enforces the constraint. Other times its
+    # a constraint trigger that we install.
+    return qr/duplicate key violates unique constraint "(?:idx_$key\_$col|ck_$key\_$col\_unique)"/;
+}
+
+sub delete_fk_regex {
+    my ($self, $col, $key, $table) = @_;
+    return qr/update or delete on (?:table )?"$table" violates foreign key constraint "fk_$key\_$col"/;
+}
+
+sub insert_fk_regex {
+    my ($self, $col, $key, $table) = @_;
+    return qr/insert or update on table "$table" violates foreign key constraint "fk_$key\_$col"/;
+}
+
+sub update_fk_regex { shift->insert_fk_regex(@_) }
+
 sub full_text_search : Test(1) {
     my $test = shift;
     my ($foo, $bar, $baz) = $test->test_objects;
