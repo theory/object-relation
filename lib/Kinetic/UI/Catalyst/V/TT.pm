@@ -1,4 +1,4 @@
-package Kinetic::UI::Catalyst::V::TToolkit;
+package Kinetic::UI::Catalyst::V::TT;
 
 use strict;
 use base 'Catalyst::View::TT';
@@ -15,7 +15,7 @@ our $VERSION = version->new('0.0.1');
 
 =head1 NAME
 
-Kinetic::UI::Catalyst::V::TToolkit - TT View Component
+Kinetic::UI::Catalyst::V::TT - TT View Component
 
 =head1 SYNOPSIS
 

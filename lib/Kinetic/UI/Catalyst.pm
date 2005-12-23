@@ -50,9 +50,9 @@ __PACKAGE__->config(
         grep { !Kinetic::Meta->for_key($_)->abstract }
           sort Kinetic::Meta->keys
     ],
-    'V::TToolkit' => {
+    'V::TT' => {
         INCLUDE_PATH => __PACKAGE__->path_to('www/templates/tt'),
-        PLUGIN_BASE  => 'Kinetic::Template::Plugin',
+        PLUGIN_BASE  => 'Kinetic::UI::TT::Plugin',
     },
     authentication => {
         users => {
@@ -114,7 +114,7 @@ sub default : Private {
     # Hello World
     #$c->response->body( $c->welcome_message );
     $c->stash->{template} = 'default.tt';
-    $c->forward('Kinetic::UI::Catalyst::V::TToolkit');
+    $c->forward('Kinetic::UI::Catalyst::V::TT');
 }
 
 #

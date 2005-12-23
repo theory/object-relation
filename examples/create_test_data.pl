@@ -50,7 +50,7 @@ Two->new(
     description => 'The poet "Ovid"',
     date        => DateTime->now,
     one         => $foo,
-    age         => 60
+    age         => 23
 )->save;
 
 print "Creating $instances 'Two' objects for paging tests ...\n\n";
@@ -64,7 +64,7 @@ print "Creating $instances 'Two' objects for paging tests ...\n\n";
             description => "Object number $_",
             date        => DateTime->now,
             one         => $foo,
-            age         => ( $_ + 2 ),
+            age         => ( $_ + 24 ),
         )->save;
     }
 }

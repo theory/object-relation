@@ -201,11 +201,26 @@ sub clear_database {
         $test->{dbi_mock}->mock( commit     => 1 );
     }
     else {
-        foreach my $key ( Kinetic::Meta->keys ) {
-            next if Kinetic::Meta->for_key($key)->abstract;
-            eval { $test->{dbh}->do("DELETE FROM $key") };
-            require Carp;
-            Carp::carp("Could not delete records from $key: $@") if $@;
+        my %keys = map { $_ => 1 }
+          grep { !Kinetic::Meta->for_key($_)->abstract } Kinetic::Meta->keys;
+
+        # it's possible that we'll accidentally try to delete a key which has
+        # an FK constraint on another key.  To avoid this, we keep deleting
+        # keys until there are none left.  If, at any time, we have failed to
+        # delete a key on a given pass, we know there was a circular
+        # dependency and we carp.  This should not happen.
+
+        while ( my $count = keys %keys ) {
+            foreach my $key ( keys %keys ) {    # confused yet?
+                eval { $test->{dbh}->do("DELETE FROM $key") };
+                delete $keys{$key} unless $@;
+            }
+            if ( $count == keys %keys ) {
+                my @keys = sort keys %keys;
+                require Carp;
+                Carp::carp(
+                    "Could not delete all records from db for (@keys)");
+            }
         }
     }
 }

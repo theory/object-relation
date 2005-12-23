@@ -41,7 +41,7 @@ template and class key.
 
 =cut
 
-sub search : Regex('^search/([[:alpha:]]\w*)(?:/(squery|slookup)(?:/(.*))?)?$') {
+sub search : Regex( '^search/([[:alpha:]]\w*)(?:/(squery|slookup)(?:/(.*))?)?$') {
     my ( $self, $c ) = @_;
 
     $c->stash->{template} = 'search.tt';
@@ -51,26 +51,34 @@ sub search : Regex('^search/([[:alpha:]]\w*)(?:/(squery|slookup)(?:/(.*))?)?$') 
         my @args;
         if ( defined( my $args = $c->request->snippets->[2] ) ) {
             @args = map { uri_unescape($_) } split /\/_?/ => $args;
+            if ( '_' eq substr $args, 0, 1 ) {
+
+                # we've begun with a constraint so we need an empty search
+                # string
+                unshift @args, '';
+            }
         }
-        push @results => {
-            method => $method,
-            args   => \@args,
-        };
-        my $dispatch = Dispatch->new; # XXX see the comment at the top
+        my $dispatch = Dispatch->new;    # XXX see the comment at the top
         $dispatch->class_key($key);
-        my $iterator = $dispatch->_execute_method( $method, @args );
-        while ( my $result = $iterator->next ) {
-            push @results => $result;
+        my @attributes;
+        my $count = 0;
+        foreach my $attr ( $dispatch->class->attributes ) {
+            next if $attr->acts_as || $attr->references;
+            push @attributes => $attr->name unless 'uuid' eq $attr->name;
+            last if $count++ > 3;
         }
+        $c->stash->{attributes} = \@attributes;
+        $c->stash->{iterator}   = $dispatch->_execute_method( $method, @args );
     }
-    $c->stash->{key}  = $key;
+    $c->stash->{key} = $key;
+
     $c->stash->{path} = '/';    # XXX just for now ...
     if ( my $class = Kinetic::Meta->for_key($key) ) {
         $c->stash->{class} = $class;
     }
     $c->stash->{mode} = 'search';
     $c->stash->{debug} = [ $c->request->snippets, \@results ];
-    $c->forward('Kinetic::UI::Catalyst::V::TToolkit');
+    $c->forward('Kinetic::UI::Catalyst::V::TT');
 }
 
 =head1 AUTHOR

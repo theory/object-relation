@@ -44,6 +44,8 @@ Kinetic::Util::Language::en->add_to_lexicon(
   'Composed',
   'Composeds',
   'Composeds',
+  'Color',
+  'Color'
 );
 
 1;

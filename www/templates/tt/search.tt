@@ -2,39 +2,23 @@
    WRAPPER shared/main.tt
    title = 'Search' 
 %]
-  [% formats = { 
-    edit        => '<td>%s</td><td>%s</td>',
-    search      => '<td>%s</td><td>%s</td><td>%s</td><td>%s</td>',
-    constraints => '<td>%s</td><td colspan="3">%s</td>'
-  } %]
-  [% USE Renderer( mode => mode, format => formats ) %]
-  <div class="search">
-    <fieldset>
-      <legend>[% key %]</legend>
-      <form method="get" name="search_form" onsubmit="javascript:doSearch(this); return false" id="search_form">
-        <input type="hidden" name="_class_key" value="[% key %]"/>
-        <input type="hidden" name="_domain"    value="[% domain %]"/>
-        <input type="hidden" name="_path"      value="[% path %]"/>
-        <input type="hidden" name="_type"      value="html"/>
-        <table>
-          [% FOREACH attr = class.attributes %]
-          <tr>
-            [% Renderer.render(attr) %]
-          </tr>
-          [% END %]
-          [% IF (mode = 'search') %]
-          <tr>
-            <td colspan="4"><hr/><td>
-          </tr>
-            [% FOREACH constraint = Renderer.constraints %]
-          <tr>
-              [% Renderer.render(constraint, key) %]
-          </tr>
-            [% END %]
-          [% END %]
-        </table>
-        <input type="submit" value="[% mode %]">
-      </form>
-    </fieldset>
-  <div>
+  [% INCLUDE shared/crud.tt mode = 'search' %]
+  <div class="listing">
+    <table>
+      <tr>
+      [% FOREACH attr IN attributes %]
+        <th>[% attr %]</th>
+      [% END %]
+      </tr>
+      [% class = [ 'row_0', 'row_1' ];
+         WHILE (object = iterator.next) %]
+      <tr>
+        [% FOREACH attr IN attributes %]
+        <td class="[% class.0 %]"><a href="[% domain %][% path %]view/[% key %]/[% object.uuid %]">[% object.$attr %]</a></td>
+        [% END %]
+      </tr>
+        [% class.unshift(class.pop) %]
+      [% END %]
+    </table>
+  </div>
 [% END %]

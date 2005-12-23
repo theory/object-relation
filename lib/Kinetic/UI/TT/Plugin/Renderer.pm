@@ -1,4 +1,4 @@
-package Kinetic::Template::Plugin::Renderer;
+package Kinetic::UI::TT::Plugin::Renderer;
 
 # $Id: JSON.pm 2190 2005-11-08 02:05:10Z curtis $
 
@@ -81,7 +81,7 @@ sub new {
       $class;    # XXX tighten this up later
     $self->mode( $value_for->{mode} );
 
-    $value_for->{format}{view}        ||= '%s';
+    $value_for->{format}{view}        ||= '%s %s';
     $value_for->{format}{edit}        ||= '%s %s';
     $value_for->{format}{search}      ||= '%s %s %s %s';
     $value_for->{format}{constraints} ||= '%s %s';
@@ -173,7 +173,7 @@ sub render {
 
             # XXX should throw an exception if there is no object
             my $object = shift;
-            return sprintf $self->format, $thing->get($object);
+            return sprintf $self->format, $thing->label, $thing->get($object);
         }
 
         my $type = $thing->widget_meta->type || '';
@@ -214,6 +214,19 @@ sub _properties {
       = qq{<label for="$value_for{name}">$value_for{label}</label>};
     $self->{properties} = \%value_for;
 }
+
+##############################################################################
+
+=head2 constraints
+
+  [% FOREACH constraint = Renderer.constraints %]
+    [% Renderer.render(constraint, class_key) %]
+  [% END %]
+
+The C<constraints> method returns an arrayref of the cosntraints observed in
+searches.
+
+=cut
 
 sub constraints { \@CONSTRAINT_ORDER }
 

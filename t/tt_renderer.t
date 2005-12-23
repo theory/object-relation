@@ -16,7 +16,7 @@ my $RENDERER;
 BEGIN {
     chdir 't' if -d 't';
     use lib '../lib';
-    $RENDERER = 'Kinetic::Template::Plugin::Renderer';
+    $RENDERER = 'Kinetic::UI::TT::Plugin::Renderer';
     use_ok $RENDERER or die;
 }
 
@@ -128,15 +128,15 @@ my %attr_for   = map { $_->name => $_ } $meta_class->attributes;
 
 can_ok $r, 'render';
 
-is $r->render( $attr_for{foo}, $object ), $object->foo,
+is $r->render( $attr_for{foo}, $object ), 'Foo '.$object->foo,
   '"text" rendering in "view" mode should return the value';
-is $r->render( $attr_for{check}, $object ), $object->check,
+is $r->render( $attr_for{check}, $object ),'Checkbox '. $object->check,
   '"checkbox" rendering in "view" mode should return the value';
-is $r->render( $attr_for{some_text_area}, $object ), $object->some_text_area,
+is $r->render( $attr_for{some_text_area}, $object ), 'Text area '.$object->some_text_area,
   '"textarea" rendering in "view" mode should return the value';
-is $r->render( $attr_for{cal}, $object ), $object->cal,
+is $r->render( $attr_for{cal}, $object ), 'Calendar '.$object->cal,
   '"calendar" rendering in "view" mode should return the value';
-is $r->render( $attr_for{select}, $object ), $object->select,
+is $r->render( $attr_for{select}, $object ), 'Select one '.$object->select,
   '"dropdown" rendering in "view" mode should return the value';
 
 #

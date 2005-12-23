@@ -43,7 +43,7 @@ sub login : Local {
     if ( !$c->login() ) {
         $c->log->debug('login failed');
         $c->stash->{message} = 'Login failed.';
-        $c->forward('Kinetic::UI::Catalyst::V::TToolkit');
+        $c->forward('Kinetic::UI::Catalyst::V::TT');
     }
     else {
         if ( $c->session->{referer} =~ m{^/?login} ) {

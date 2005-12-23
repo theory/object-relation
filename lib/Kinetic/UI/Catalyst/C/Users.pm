@@ -58,7 +58,7 @@ Default 'end' action.
 
 sub end : Private {
     my ( $self, $context ) = @_;
-    $context->forward("Kinetic::UI::Catalyst::V::TToolkit");
+    $context->forward("Kinetic::UI::Catalyst::V::TT");
 }
 
 =head1 AUTHOR

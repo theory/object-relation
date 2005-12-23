@@ -17,7 +17,7 @@
     <div id="sidebar">
     <p>Classes:</p>
     [% FOREACH key = c.config.classes %]
-      <a href="/search/[% key %]/">[% key %]</a><br/>
+      <a href="/search/[% key %]/squery/_limit/20">[% key %]</a><br/>
     [% END %]
     </div>
     [% content %]

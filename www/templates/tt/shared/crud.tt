@@ -1,0 +1,41 @@
+[% formats = { 
+  view        => '<td>%s</td><td>%s</td>',
+  edit        => '<td>%s</td><td>%s</td>',
+  search      => '<td>%s</td><td>%s</td><td>%s</td><td>%s</td>',
+  constraints => '<td>%s</td><td colspan="3">%s</td>'
+} %]
+[% USE Renderer( mode => mode, format => formats ) %]
+<div class="search">
+  <fieldset>
+    <legend>[% key %]</legend>
+  [% IF (mode == 'search') %]
+    <form method="get" name="search_form" onsubmit="javascript:doSearch(this); return false" id="search_form">
+      <input type="hidden" name="_class_key" value="[% key %]"/>
+      <input type="hidden" name="_domain"    value="[% domain %]"/>
+      <input type="hidden" name="_path"      value="[% path %]"/>
+      <input type="hidden" name="_type"      value="html"/>
+  [% END %]
+      <table>
+  [% FOREACH attr IN class.attributes %]
+    [% NEXT IF attr.references OR attr.acts_as %]
+        <tr>
+    [% Renderer.render(attr, object) %]
+        </tr>
+  [% END %]
+  [% IF (mode == 'search') %]
+        <tr>
+          <td colspan="4"><hr/><td>
+        </tr>
+    [% FOREACH constraint IN Renderer.constraints %]
+        <tr>
+      [% Renderer.render(constraint, key) %]
+        </tr>
+    [% END %]
+  [% END %]
+      </table>
+  [% IF (mode == 'search') %]
+      <input type="submit" value="[% mode %]">
+    </form>
+  [% END %]
+  </fieldset>
+</div>
