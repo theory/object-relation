@@ -42,4 +42,40 @@ sub query_match : Test(1) {
         'SQLite should croak() if a MATCH search is attempted';
 }
 
+sub test_boolean : Test(6) {
+    my $self = shift;
+    return unless $self->_should_run;
+    $self->clear_database;
+
+    my $dbh = $self->dbh;
+    throws_ok {
+        $dbh->do(
+            q{INSERT INTO one(name, bool) VALUES(?, ?)},
+            {},
+            'Name',
+            12,
+        ),
+    } 'Kinetic::Util::Exception::DBI',
+        'INSERTing an invalid bool should generate an error';
+    like $@,
+        qr/value for domain boolean violates check constraint "ck_boolean"/,
+        '... And the error message should be correct';
+
+    ok my $one = One->new(name => 'One'), 'Create One object';
+    ok $one->save, '... And save it';
+    throws_ok {
+        $dbh->do(
+            q{UPDATE one SET bool = ? WHERE uuid = ?},
+            {},
+            12,
+            $one->uuid,
+        ),
+    } 'Kinetic::Util::Exception::DBI',
+        'UPDATINGing  withan invalid bool should generate an error';
+    like $@,
+        qr/value for domain boolean violates check constraint "ck_boolean"/,
+        '... And the error message should be correct';
+    
+}
+
 1;
