@@ -182,12 +182,10 @@ Getter/setter for database handle.
 =cut
 
 sub dbh {
-    my $test = shift;
-    if (@_) {
-        $test->{dbh} = shift;
-        return $test;
-    }
-    return $test->{dbh};
+    my $self = shift;
+    return $self->{dbh} unless @_;
+    $self->{dbh} = shift;
+    return $self;
 }
 
 1;

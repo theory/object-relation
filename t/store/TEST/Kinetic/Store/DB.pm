@@ -9,11 +9,6 @@ use Test::More;
 use Test::Exception;
 use base 'TEST::Kinetic::Store';
 
-use Class::Trait qw(
-    TEST::Kinetic::Traits::Store
-    TEST::Kinetic::Traits::SampleObjects
-);
-
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Meta::Attribute';
@@ -531,8 +526,7 @@ sub constraints : Test(4) {
 
 sub test_extend : Test(45) {
     my $self = shift;
-    return unless $self->_should_run;
-    $self->clear_database;
+    return 'Skip test_extend for abstract class' unless $self->_should_run;
 
     # Create a One object for the Two objects to reference.
     ok my $one = One->new(name => 'One'), 'Create a One object';
@@ -677,8 +671,7 @@ sub test_extend : Test(45) {
 
 sub test_mediate : Test(43) {
     my $self = shift;
-    return unless $self->_should_run;
-    $self->clear_database;
+    return 'Skip test_mediate for abstract class' unless $self->_should_run;
 
     # Create a One object for the Relation objects to reference.
     ok my $one = One->new(name => 'One'), 'Create a One object';
@@ -824,8 +817,7 @@ sub unique_attr_regex {
 
 sub test_unique : Test(54) {
     my $self = shift;
-    return unless $self->_should_run;
-    $self->clear_database;
+    return 'Skip test_unique for abstract class' unless $self->_should_run;
 
     # Test distinct attribute.
     ok my $simple = Simple->new(name => 'Foo'), 'Create simple object';
@@ -929,8 +921,7 @@ sub test_unique : Test(54) {
 
 sub test_once : Test(2) {
     my $self = shift;
-    return unless $self->_should_run;
-    $self->clear_database;
+    return 'Skip test_once for abstract class' unless $self->_should_run;
 
     # Test once attribute "uuid".
     # UPDATEs don't send UUID to the server, because they're once. Views don't
@@ -982,8 +973,8 @@ sub test_once : Test(2) {
 
 sub test_insert_state : Test(2) {
     my $self = shift;
-    return unless $self->_should_run;
-    $self->clear_database;
+    return 'Skip test_insert_state for abstract class'
+        unless $self->_should_run;
     my $dbh = $self->dbh;
 
     # Try to insert a bogus state.
@@ -1003,8 +994,8 @@ sub test_insert_state : Test(2) {
 # This has to be a separate test because the dbh gets horked on error.
 sub test_update_state : Test(4) {
     my $self = shift;
-    return unless $self->_should_run;
-    $self->clear_database;
+    return 'Skip test_update_state for abstract class'
+        unless $self->_should_run;
     my $dbh = $self->dbh;
 
     # Try to update to a bogus state.
@@ -1040,8 +1031,8 @@ sub update_fk_regex {
 
 sub test_fk_restrict : Test(7) {
     my $self = shift;
-    return unless $self->_should_run;
-    $self->clear_database;
+    return 'Skip test_fk_restrict for abstract class'
+        unless $self->_should_run;
 
     # First, make sure that RESTRICT works properly.
     ok my $one = One->new(name => 'One'), 'Create One object';
@@ -1058,8 +1049,8 @@ sub test_fk_restrict : Test(7) {
 
 sub test_fk_cascade : Test(10) {
     my $self = shift;
-    return unless $self->_should_run;
-    $self->clear_database;
+    return 'Skip test_fk_cascade for abstract class'
+        unless $self->_should_run;
 
     # Create an Extend object.
     ok my $one = One->new(name => 'One'), 'Create One object';
@@ -1080,8 +1071,8 @@ sub test_fk_cascade : Test(10) {
 
 sub test_fk_insert : Test(5) {
     my $self = shift;
-    return unless $self->_should_run;
-    $self->clear_database;
+    return 'Skip test_fk_insert for abstract class'
+        unless $self->_should_run;
 
     ok my $one = One->new(name => 'One'), 'Create One object';
     ok $one->{id} = -1, '... And fake an ID';
@@ -1094,8 +1085,8 @@ sub test_fk_insert : Test(5) {
 
 sub test_fk_update : Test(9) {
     my $self = shift;
-    return unless $self->_should_run;
-    $self->clear_database;
+    return 'Skip test_fk_update for abstract class'
+        unless $self->_should_run;
 
     ok my $one = One->new(name => 'One'), 'Create One object';
     ok $one->save, '... And save it';

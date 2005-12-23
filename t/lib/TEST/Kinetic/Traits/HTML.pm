@@ -62,7 +62,7 @@ sub domain {
 =head3 path
 
  my $path = $test->path;
- $test->path($path);   
+ $test->path($path);
 
 Getter/setter for test path.  Path in this context is actually the base
 path (without the domain).  For example:
