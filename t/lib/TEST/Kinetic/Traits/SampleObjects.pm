@@ -10,6 +10,13 @@ use aliased 'TestApp::Simple::Two';
 
 ##############################################################################
 
+=head1 Provided methods
+
+=head2 Instance methods
+
+The following methods are are methods that allow for the creation and
+retrieval of test objects based on the classes defined in F<t/sample/lib>.
+
 =head3 create_test_objects
 
   $test->create_test_objects;
