@@ -4,7 +4,8 @@
 
 use strict;
 use warnings;
-use Test::More tests => 66;
+use Test::More tests => 75;
+use DBI;
 
 BEGIN {
     use_ok('Kinetic::Util::Exceptions') or die;
@@ -145,7 +146,7 @@ DBI: {
     package Kinetic::Util::Exceptions::TestDBI;
     use Kinetic::Util::Exceptions;
     use Test::More;
-    ok my $err = Kinetic::Util::Exception::DBI->new('DBI error'),
+    ok my $err = Exception::Class::DBI->new('DBI error'),
       "Create DBI error";
     isa_ok $err, 'Kinetic::Util::Exception::DBI';
     isa_ok $err, 'Kinetic::Util::Exception::Fatal';
@@ -159,6 +160,26 @@ DBI: {
       "The error message should be the first thing in the output";
     like $str, qr{^\[t/exceptions\.t:\d+\]\Z}ms,
       "The stack trace should be the last thing in the output";
+
+    # Make sure that the STH includes the SQL statement.
+    ok my $dbh = DBI->connect('dbi:ExampleP:dummy', '', '',{
+        PrintError => 0,
+        RaiseError => 0,
+        HandleError => Kinetic::Util::Exception::DBI->handler
+    }), 'Connect to database';
+    END { $dbh->disconnect if $dbh };
+
+    # Trigger an exception.
+    eval { $dbh->prepare("select * from foo")->execute };
+    ok $err = $@, "Get exception";
+    isa_ok $err, 'Exception::Class::DBI';
+    isa_ok $err, 'Exception::Class::DBI::H';
+    isa_ok $err, 'Exception::Class::DBI::STH';
+    isa_ok $err, 'Kinetic::Util::Exception';
+    isa_ok $err, 'Kinetic::Util::Exception::DBI';
+    like $err, qr/[for Statement "select * from foo"]/,
+        'The full message should include the SQL statement.';
+    like $err, qr/[t.exceptions\.t:174]/, 'It should also contain a stack trace';
 }
 
 1;

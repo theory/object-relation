@@ -642,7 +642,8 @@ sub _filtered_frames {
 
 # Make Exception::Class::DBI inherit from this class, too.
 package Kinetic::Util::Exception::DBI;
-use base qw(Kinetic::Util::Exception::Fatal Exception::Class::DBI);
+use base qw(Kinetic::Util::Exception::Fatal);
+use Exception::Class::DBI;
 
 # XXX Fool class that shouldn't have localized messages into not calling our
 # new() method. I'd rather not reference Exception::Class::Base::new directly
@@ -651,13 +652,19 @@ use base qw(Kinetic::Util::Exception::Fatal Exception::Class::DBI);
 
 sub new { Exception::Class::Base::new(@_) }
 sub Kinetic::Util::Exception::ExternalLib::new { Exception::Class::Base::new(@_) }
+
+sub handler { Exception::Class::DBI::handler(@_) }
 sub full_message {
     my $self = shift;
     return $self->SUPER::full_message unless $self->can('statement');
     return $self->SUPER::full_message
-        . '[ for statement "'
+        . ' [for Statement "'
         . $self->statement . '"]';
 }
+
+# XXX Yes, this is ugly, but it's the simplest way to do it, because
+# Exception:Class::DBI and its subclasses are not really subclassable.
+unshift @Exception::Class::DBI::ISA, __PACKAGE__;
 
 1;
 __END__
