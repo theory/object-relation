@@ -75,7 +75,6 @@ sub test_boolean : Test(6) {
     like $@,
         qr/value for domain boolean violates check constraint "ck_boolean"/,
         '... And the error message should be correct';
-    
 }
 
 1;
