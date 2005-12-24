@@ -64,7 +64,9 @@ my $build = Kinetic::Build->new(
         'XML::Simple'                => 2.13,
     },
     build_requires       => {
+        'Apache::FakeRequest'       => 1.00,
         'App::Info'                 => 0.42,
+        'CGI'                       => 3.11,
         'Class::Trait'              => 0.11,
         'FSA::Rules'                => 0.21,
         'HTTP::Server::Simple'      => 0.13,

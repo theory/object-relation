@@ -27,6 +27,14 @@ lib/Kinetic/Build/Store/DB/SQLite.pm
 lib/Kinetic/Build/Test.pm
 lib/Kinetic/DateTime.pm
 lib/Kinetic/DateTime/Incomplete.pm
+lib/Kinetic/Engine.pm
+lib/Kinetic/Engine
+lib/Kinetic/Engine/Request.pm
+lib/Kinetic/Engine/Request
+lib/Kinetic/Engine/Request/CLI.pm
+lib/Kinetic/Engine/Request/Apache.pm
+lib/Kinetic/Engine/Request/CGI.pm
+lib/Kinetic/Engine/Request/Apache2.pm
 lib/Kinetic/Format.pm
 lib/Kinetic/Format/JSON.pm
 lib/Kinetic/Format/XML.pm
@@ -169,6 +177,7 @@ t/datatypes.t
 t/datetime.t
 t/datetimeincomplete.t
 t/dbmeta.t
+t/engine.t
 t/exceptions.t
 t/iterator.t
 t/js/html/search.html
@@ -201,6 +210,7 @@ t/pg/schema_file.t
 t/pod.t
 t/pod_coverage.t
 t/relationships.t
+t/request.t
 t/sample/conf/kinetic.conf
 t/sample/lib/TestApp/CompComp.pm
 t/sample/lib/TestApp/Composed.pm
