@@ -3,8 +3,9 @@
 # $Id: datetime.t 894 2004-12-04 02:48:49Z curtis $
 
 use strict;
-use Test::More tests => 47;
+use Test::More tests => 48;
 #use Test::More 'no_plan';
+use Test::NoWarnings; # Adds an extra test.
 
 my $CLASS;
 BEGIN {

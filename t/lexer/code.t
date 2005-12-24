@@ -2,8 +2,9 @@
 use warnings;
 use strict;
 
-use Test::More tests => 36;
+use Test::More tests => 37;
 #use Test::More 'no_plan';
+use Test::NoWarnings; # Adds an extra test.
 
 use lib 'lib';
 use HOP::Stream 'drop';

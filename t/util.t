@@ -3,8 +3,9 @@
 # $Id: meta.t 2238 2005-11-19 07:33:20Z theory $
 
 use strict;
-use Test::More tests => 11;
+use Test::More tests => 12;
 #use Test::More 'no_plan';
+use Test::NoWarnings; # Adds an extra test.
 
 BEGIN { use_ok('Kinetic::Util::Functions') or die; }
 

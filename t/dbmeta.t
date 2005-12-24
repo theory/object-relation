@@ -3,7 +3,8 @@
 # $Id$
 
 use strict;
-use Test::More tests => 42;
+use Test::More tests => 43;
+use Test::NoWarnings; # Adds an extra test.
 
 package MyTestThingy;
 

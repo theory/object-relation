@@ -4,7 +4,8 @@
 
 use strict;
 use warnings;
-use Test::More tests => 2;
+use Test::More tests => 3;
+use Test::NoWarnings; # Adds an extra test.
 
 BEGIN {
     # Try missing file.

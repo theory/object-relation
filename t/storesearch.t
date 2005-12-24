@@ -3,8 +3,9 @@
 # $Id: storesearch.t 894 2004-12-04 02:48:49Z curtis $
 
 use strict;
-use Test::More tests => 60;
+use Test::More tests => 61;
 #use Test::More 'no_plan';
+use Test::NoWarnings; # Adds an extra test.
 use Test::Exception;
 
 use aliased 'Kinetic::DateTime::Incomplete';

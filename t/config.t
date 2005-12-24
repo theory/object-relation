@@ -4,7 +4,8 @@
 
 use strict;
 use warnings;
-use Test::More tests => 13;
+use Test::More tests => 14;
+use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Build::Test;
 use File::Spec;
 use File::Find;

@@ -5,8 +5,9 @@
 use strict;
 use warnings;
 
-#use Test::More tests => 118;
-use Test::More 'no_plan';
+use Test::More tests => 29;
+#use Test::More 'no_plan';
+use Test::NoWarnings; # Adds an extra test.
 
 use Test::Exception;
 use Test::XML;

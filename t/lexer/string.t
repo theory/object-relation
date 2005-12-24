@@ -2,8 +2,9 @@
 use warnings;
 use strict;
 
-use Test::More tests => 42;
+use Test::More tests => 43;
 #use Test::More 'no_plan';
+use Test::NoWarnings; # Adds an extra test.
 use Test::Exception;
 
 use lib 'lib/', '../lib/';

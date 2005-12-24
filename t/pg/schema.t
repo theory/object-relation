@@ -7,7 +7,8 @@ use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
 
 #use Test::More 'no_plan';
-use Test::More tests => 99;
+use Test::More tests => 100;
+use Test::NoWarnings; # Adds an extra test.
 use Test::Differences;
 
 FAKEPG: {

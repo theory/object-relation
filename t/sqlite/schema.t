@@ -6,7 +6,8 @@ use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
 #use Test::More 'no_plan';
-use Test::More tests => 92;
+use Test::More tests => 93;
+use Test::NoWarnings; # Adds an extra test.
 use Test::Differences;
 
 FAKESQLITE: {

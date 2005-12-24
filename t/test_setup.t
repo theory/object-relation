@@ -3,7 +3,8 @@
 # $Id$
 
 use strict;
-use Test::More tests => 4;
+use Test::More tests => 5;
+use Test::NoWarnings; # Adds an extra test.
 
 BEGIN {
     use_ok 'Kinetic::Build::Test', (

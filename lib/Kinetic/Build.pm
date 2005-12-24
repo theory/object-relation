@@ -463,6 +463,27 @@ sub ACTION_help {
 
 ##############################################################################
 
+=head3 manifest
+
+=begin comment
+
+=head3 ACTION_manifest
+
+=end comment
+
+Overrides the Module::Build C<manifest> action in order to turn off our
+overriding of warnings. This is because ExtUtils::Manifest unfortunately
+uses C<warn> when it adds a file to the manifest.
+
+=cut
+
+sub ACTION_manifest {
+    local $SIG{__WARN__};
+    shift->SUPER::ACTION_manifest(@_);
+}
+
+##############################################################################
+
 =head2 Methods
 
 =head3 check_store

@@ -5,8 +5,9 @@
 use strict;
 use warnings;
 
-use Test::More tests => 43;
+use Test::More tests => 44;
 #use Test::More qw/no_plan/;
+use Test::NoWarnings; # Adds an extra test.
 
 BEGIN { use_ok('Kinetic::Util::Iterator') or die }
 

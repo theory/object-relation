@@ -4,8 +4,9 @@
 
 use strict;
 use warnings;
-use Test::More tests => 117;
+use Test::More tests => 118;
 #use Test::More 'no_plan';
+use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Util::State qw(:all);
 use Kinetic::DateTime;
 

@@ -4,7 +4,8 @@
 
 use strict;
 use warnings;
-use Test::More tests => 6;
+use Test::More tests => 7;
+use Test::NoWarnings; # Adds an extra test.
 
 BEGIN { use_ok 'Kinetic::Util::Context' or die }
 

@@ -3,7 +3,8 @@
 # $Id$
 
 use strict;
-use Test::More tests => 38;
+use Test::More tests => 39;
+use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Util::Functions qw(:uuid);
 
 

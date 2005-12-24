@@ -4,7 +4,8 @@
 
 use strict;
 use warnings;
-use Test::More tests => 94;
+use Test::More tests => 95;
+use Test::NoWarnings; # Adds an extra test.
 
 BEGIN {
     use_ok('Kinetic::Util::State') or die;

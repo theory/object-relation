@@ -4,7 +4,8 @@
 
 use strict;
 use warnings;
-use Test::More tests => 75;
+use Test::More tests => 76;
+use Test::NoWarnings; # Adds an extra test.
 use DBI;
 
 BEGIN {

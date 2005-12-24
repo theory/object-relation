@@ -3,8 +3,9 @@
 # $Id$
 
 use strict;
-use Test::More tests => 157;
+use Test::More tests => 158;
 #use Test::More 'no_plan';
+use Test::NoWarnings; # Adds an extra test.
 
 package MyTestBase;
 use base 'Kinetic';

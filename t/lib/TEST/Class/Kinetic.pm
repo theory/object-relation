@@ -27,6 +27,7 @@ use Cwd ();
 use File::Path ();
 use File::Find;
 use File::Spec::Functions;
+require Test::NoWarnings;
 use aliased 'Test::MockModule';
 
 __PACKAGE__->runtests unless caller;
@@ -316,6 +317,24 @@ sub tck_cleanup : Test(teardown) {
     if (my $paths = delete $self->{_paths_}) {
         File::Path::rmtree($_) for reverse @$paths;
     }
+}
+
+##############################################################################
+
+=head2 Test Methods
+
+=head3 z_no_warnings
+
+This is a Test::Class C<shutdown> method that runs after all tests have run in
+each test class. It ensures that were no warnings while the tests ran. If
+there were none, its single test passes. If there were warnings, the test will
+fail and a stack trace will be sent to diagnostic output.
+
+=cut
+
+sub z_no_warnings : Test(shutdown => 1) {
+    Test::NoWarnings::had_no_warnings();
+    Test::NoWarnings::clear_warnings();
 }
 
 1;

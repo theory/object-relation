@@ -3,8 +3,9 @@
 # $Id$
 
 use strict;
-use Test::More tests => 214;
+use Test::More tests => 215;
 #use Test::More 'no_plan';
+use Test::NoWarnings; # Adds an extra test.
 use lib '/Users/david/dev/Kineticode/trunk/Class-Meta/lib';
 
 package MyTestThingy;
