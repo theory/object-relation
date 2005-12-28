@@ -20,8 +20,12 @@ package Kinetic::Engine::Request::Apache2;
 
 use strict;
 use warnings;
-use base 'Apache2::Request';
-#use base 'Kinetic::Engine::Request';
+#use base 'Apache2::Request';
+use base 'Kinetic::Engine::Request';
+
+use Class::Delegator
+    send => 'param',
+      to => 'handler';
 
 use version;
 our $VERSION = version->new('0.0.1');
