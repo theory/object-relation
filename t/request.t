@@ -76,6 +76,9 @@ sub set_handler {
 
 my $req = test_shared_behavior( 'Kinetic::Engine::Request::Apache2',
     \&set_handler );
+my $req2 = $REQUEST->new;
+is $req, $req2, '... calling new again should return the same request';
+$req->_clear_singleton;
 
 # test CGI
 
@@ -89,6 +92,7 @@ $req = test_shared_behavior(
         $req->engine->handler(CGI->new({%default_values}));
     }
 );
+$req->_clear_singleton;
 
 sub test_shared_behavior {
     my ( $factory_class, $mock_handler ) = @_;

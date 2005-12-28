@@ -42,24 +42,31 @@ XXX ...
         'Apache2::Request' => 'Kinetic::Engine::Request::Apache2',
         'Apache::Request'  => 'Kinetic::Engine::Request::Apache',
         'CGI'              => 'Kinetic::Engine::Request::CGI',
-        'CLI'              => 'Kinetic::Engine::Request::CLI',
     );
 
+    my $self;
+
     sub new {
-        my $class   = shift;
-        my $engine  = Kinetic::Engine->new;
-        my $factory = $factory_for{ $engine->type }
-          or throw_fatal [ 'Unknown Kinetic::Engine type "[_1]"',
-            $engine->type ];
-        eval "use $factory";
-        if ( my $error = $@ ) {
-            throw_fatal [ 'I could not load the class "[_1]": [_2]', $factory,
-                $error ];
+        unless ($self) {
+            my $class   = shift;
+            my $engine  = Kinetic::Engine->new;
+            my $factory = $factory_for{ $engine->type }
+              or throw_fatal [ 'Unknown Kinetic::Engine type "[_1]"',
+                $engine->type ];
+            eval "use $factory";
+            if ( my $error = $@ ) {
+                throw_fatal [
+                    'I could not load the class "[_1]": [_2]', $factory,
+                    $error
+                ];
+            }
+            $self = $factory->new;
+            $self->engine($engine);
         }
-        my $self = $factory->new;
-        $self->engine($engine);
         return $self;
     }
+
+    sub _clear_singleton { undef $self } # testing hook
 }
 
 ##############################################################################

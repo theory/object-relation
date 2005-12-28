@@ -52,7 +52,7 @@ sub new {
   my $type = $engine->type;
 
 Returns the primary class of the type of server interface being used.
-Examples include C<Apache::Request2> and "C<CGI>.
+Examples include C<Apache2::Request> and C<CGI>.
 
 =cut
 

@@ -26,9 +26,6 @@ use Kinetic::Util::Exceptions qw/throw_fatal/;
 use version;
 our $VERSION = version->new('0.0.1');
 
-# XXX Currently there is no implementation here.  This is merely a stub so
-# that the common request object can be tested
-
 ##############################################################################
 
 =head3 new
