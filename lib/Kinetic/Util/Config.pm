@@ -84,6 +84,39 @@ the configuration file:
 
 =cut
 
+use Regexp::Common;
+
+BEGIN {
+    my $shebang_re  = qr/#!\S*/;
+    my $bareword_re = qr/[[:word:]]+/;
+    my $quoted_re   = $RE{quoted};
+    my $comma_re    = qr/(?:=>|,)/;
+    my $n_re        = qr/\s*(?:\n|\r)?\s*/;
+    my $pair_re = qr/\s*$bareword_re\s*$comma_re\s*(?:$bareword_re|$quoted_re)/;
+    my $hash_body_re
+    = qr/\s*{\s*(?:$pair_re\s*$comma_re\s*)*\s*(?:$pair_re\s*$comma_re?\s*)\s*}\s*/;
+    my $comment_re = qr/(?:^\s*#.*$n_re)*/m;
+    my $hash_re
+    = qr/\s*$comment_re?\s*$bareword_re\s*$comma_re\s*$hash_body_re\s*/;
+    my $hashes_re
+    = qr/\s*(?:$hash_re\s*$comma_re)*\s*(?:$hash_re\s*$comma_re?\s*)/;
+    my $conf_re = qr/$shebang_re?\s*$hashes_re\s*/;
+
+    sub _untaint_config {
+        my $_conf = shift;
+        my ($conf) = $_conf =~ /^($conf_re)$/sm;
+        return $conf;
+    }
+
+    # testing hooks
+    if ( $ENV{HARNESS_ACTIVE} ) {
+        *_comma_re     = sub { $comma_re };
+        *_comment_re   = sub { $comment_re };
+        *_pair_re      = sub { $pair_re };
+        *_hash_body_re = sub { $hash_body_re };
+    }
+}
+
 BEGIN {
     # Load the configuration file. It's hard-coded; if it ever changes,
     # it should also be changed in inst/lib/Kinetic/Build.pm.
@@ -92,8 +125,9 @@ BEGIN {
     die "No such configuration file '$conf_file'" unless -f $conf_file;
     open CONF, $conf_file or die "Cannot open $conf_file: $!";
     local $/;
-    my %conf = eval <CONF>;
+    my $conf = _untaint_config(<CONF>);
     close CONF;
+    my %conf = eval $conf;
     my %export;
     while (my ($label, $set) = each %conf) {
         my @export;

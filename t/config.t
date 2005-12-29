@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 14;
+use Test::More tests => 25;
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Build::Test;
 use File::Spec;
@@ -12,6 +12,60 @@ use File::Find;
 
 BEGIN {
     use_ok('Kinetic::Util::Config') or die;
+}
+
+##############################################################################
+
+# test the various config parser bits so we can make sure they are performing
+# as expected.
+my @comments = ( <<'END1', <<'END2', <<'END3', <<'END4');
+# comment 1
+END1
+    # comment 2
+END2
+# comment 3
+    # comment 4
+END3
+
+    # test comment
+
+END4
+
+my $comma_re   = Kinetic::Util::Config::_comma_re();
+my $comment_re = Kinetic::Util::Config::_comment_re();
+foreach my $comment (@comments) {
+    like $comment, qr/^$comment_re$/, 'comment_re matches';
+}
+
+my @pairs = (
+    "group => 'nobody',",
+    "httpd => '/usr/local/apache/bin/httpd',",
+    "user  => 'nobody',",
+    "conf  => '/usr/local/kinetic/conf/httpd.conf',",
+    "port  => 80,",
+);
+my $pair_re = Kinetic::Util::Config::_pair_re();
+foreach my $pair (@pairs) {
+    like $pair, qr/^$pair_re\s*$comma_re?$/, qq{"$pair" is a pair};
+}
+
+my @hash_body = ( <<'END1', <<'END2');
+{
+    group => 'nobody',
+    httpd => '/usr/local/apache/bin/httpd',
+    user  => 'nobody',
+    conf  => '/usr/local/kinetic/conf/httpd.conf',
+    port  => 80,
+},
+END1
+{
+    class => 'Kinetic::Store::DB::SQLite',
+},
+END2
+
+my $hash_body_re = Kinetic::Util::Config::_hash_body_re();
+foreach my $hash_body (@hash_body) {
+    like $hash_body, qr/^$hash_body_re\s*$comma_re\s*$/, 'hash body matches';
 }
 
 ##############################################################################
