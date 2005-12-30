@@ -127,7 +127,6 @@ such as data store information.
 
 sub new {
     my $self = do {
-        local $SIG{__WARN__};
         shift->SUPER::new(
             # Set up new default values for parent class properties.
             install_base => File::Spec->catdir(
@@ -464,27 +463,6 @@ sub ACTION_help {
 
 ##############################################################################
 
-=head3 manifest
-
-=begin comment
-
-=head3 ACTION_manifest
-
-=end comment
-
-Overrides the Module::Build C<manifest> action in order to turn off our
-overriding of warnings. This is because ExtUtils::Manifest unfortunately
-uses C<warn> when it adds a file to the manifest.
-
-=cut
-
-sub ACTION_manifest {
-    local $SIG{__WARN__};
-    shift->SUPER::ACTION_manifest(@_);
-}
-
-##############################################################################
-
 =head2 Methods
 
 =head3 check_store
@@ -705,7 +683,7 @@ sub get_reply {
 
 =head1 Private Methods
 
-=head2 Class Methods
+=head2 Private Class Methods
 
 =head3 _fatal_error
 
@@ -731,7 +709,7 @@ sub _fatal_error {
 
 ##############################################################################
 
-=head2 Instance Methods
+=head2 Private Instance Methods
 
 =head3 _copy_to
 
