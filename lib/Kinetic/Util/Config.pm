@@ -24,6 +24,7 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use File::Spec;
+use Config::Std;
 use Exporter::Tidy ();
 
 =head1 Name
@@ -34,22 +35,23 @@ Kinetic::Util::Config - Kinetic application configuration
 
 In kinetic.conf:
 
-  apache => {
-      bin     => '/usr/local/apache/bin/httpd',
-      conf    => '/usr/local/kinetic/conf/httpd.conf',
-      port    => '80',
-      user    => 'nobody',
-      group   => 'nobody'
-  },
+  [APACHE]
+  httpd : /usr/local/apache/bin/httpd
+  conf  : /usr/local/kinetic/conf/httpd.conf
+  port  : 80
+  user  : nobody
+  group : nobody
 
-  store => {
-      class   => 'Kinetic::Store::DBI::Pg',
-      db_name => 'kinetic',
-      db_pass => 'kinetic',
-      db_user => 'kinetic',
-      db_host => undef,
-      db_port => undef,
-  }
+  [STORE]
+  class : Kinetic::Store::DB::Pg
+
+  [PG]
+  db_name : kinetic
+  db_user : kinetic
+  db_pass : kinetic
+  port    :
+  host    :
+  dsn     : dbi:Pg:dbname=kinetic
 
 In a Kinetic class:
 
@@ -68,13 +70,13 @@ To get all constants:
 =head1 Description
 
 This module reads in a configuration file and sets up constants that can be
-used in Kinetic modules. The configuration file consists of Perl code that,
-when C<eval>ed by Kinetic::Util::Config, generates a hash of hash references. Each
-hash reference is turned into a series of constants, one for each key/value
-pair. They keys in the main hash are used as prefixes to the name of each
-constant generated from the values stored in the associated hash reference.
-They are also used for labels for easy importation of a group of related
-constants.
+used in Kinetic modules. The configuration file format is defined by the
+modified INI format supported by L<Config::Std|Config::Std>. Each
+configuration values is turned into a constant; multi-part configuration
+values are turned into list constants, I<not> array reference constants. The
+section labels are used as prefixes to the names of each constant generated
+for each of their values. They are also used for labels for easy importation
+of a group of related constants.
 
 While no constants are exported by Kinetic::Util::Config by default, the
 special C<all> tag can be used to export I<all> of the constants created from
@@ -84,60 +86,27 @@ the configuration file:
 
 =cut
 
-use Regexp::Common;
-
-BEGIN {
-    my $shebang_re  = qr/#!\S*/;
-    my $bareword_re = qr/[[:word:]]+/;
-    my $quoted_re   = $RE{quoted};
-    my $comma_re    = qr/(?:=>|,)/;
-    my $n_re        = qr/\s*(?:\n|\r)?\s*/;
-    my $pair_re = qr/\s*$bareword_re\s*$comma_re\s*(?:$bareword_re|$quoted_re)/;
-    my $hash_body_re
-    = qr/\s*{\s*(?:$pair_re\s*$comma_re\s*)*\s*(?:$pair_re\s*$comma_re?\s*)\s*}\s*/;
-    my $comment_re = qr/(?:^\s*#.*$n_re)*/m;
-    my $hash_re
-    = qr/\s*$comment_re?\s*$bareword_re\s*$comma_re\s*$hash_body_re\s*/;
-    my $hashes_re
-    = qr/\s*(?:$hash_re\s*$comma_re)*\s*(?:$hash_re\s*$comma_re?\s*)/;
-    my $conf_re = qr/$shebang_re?\s*$hashes_re\s*/;
-
-    sub _untaint_config {
-        my $_conf = shift;
-        my ($conf) = $_conf =~ /^($conf_re)$/sm;
-        return $conf;
-    }
-
-    # testing hooks
-    if ( $ENV{HARNESS_ACTIVE} ) {
-        *_comma_re     = sub { $comma_re };
-        *_comment_re   = sub { $comment_re };
-        *_pair_re      = sub { $pair_re };
-        *_hash_body_re = sub { $hash_body_re };
-    }
-}
-
 BEGIN {
     # Load the configuration file. It's hard-coded; if it ever changes,
     # it should also be changed in inst/lib/Kinetic/Build.pm.
     my $conf_file = delete $ENV{KINETIC_CONF}
       || '/usr/local/kinetic/conf/kinetic.conf';
     die "No such configuration file '$conf_file'" unless -f $conf_file;
-    open CONF, $conf_file or die "Cannot open $conf_file: $!";
-    local $/;
-    my $conf = _untaint_config(<CONF>);
-    close CONF;
-    my %conf = eval $conf;
+    read_config($conf_file => my %conf);
     my %export;
     while (my ($label, $set) = each %conf) {
         my @export;
         my $prefix = uc $label;
         while (my ($const, $val) = each %$set) {
             $const = "$prefix\_" . uc $const;
-            eval "use constant $const => \$val";
+            if (ref $val eq 'ARRAY') {
+                eval "use constant $const => \@\$val";
+            } else {
+                eval "use constant $const => \$val";
+            }
             push @export, $const;
         }
-        $export{$label} = \@export;
+        $export{lc $label} = \@export;
     }
     Exporter::Tidy->import(%export);
 }

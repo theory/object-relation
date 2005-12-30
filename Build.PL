@@ -34,6 +34,7 @@ my $build = Kinetic::Build->new(
         'Class::Meta'                => 0.52,
         'Class::Meta::Declare'       => 0.02,
         'Clone'                      => 0.15,
+        'Config::Std'                => '0.0.2',
         'Data::Pageset'              => 1.01,
         'DateTime'                   => 0.24,
         'DateTime::Format::Strptime' => 1.0601,

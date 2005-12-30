@@ -52,6 +52,7 @@ Kinetic::Build::Test also sets up US English as the localization during tests.
 
 use Kinetic::Util::Context;
 use Kinetic::Util::Language::en_us;
+use Config::Std;
 Kinetic::Util::Context->language(Kinetic::Util::Language->get_handle('en_us'));
 
 my ($conf_file, $backup);
@@ -67,10 +68,7 @@ BEGIN {
 sub import {
     shift;
     return unless @_;
-    open CONF, '<', $conf_file or die "cannot open $conf_file: $!";
-    local $/;
-    my %conf = eval <CONF>;
-    close CONF;
+    read_config($conf_file => my %conf);
 
     # Merge in new values.
     my %new = @_;
@@ -81,15 +79,7 @@ sub import {
     $backup = $conf_file . '.bak';
     require File::Copy;
     File::Copy::copy($conf_file, $backup);
-    open CONF, '>', $conf_file or die "cannot open $conf_file: $!";
-    while (my ($k, $v) = each %conf) {
-        print CONF "$k => {\n";
-        while (my ($dir, $val) = each %$v) {
-            print CONF "    $dir => ", defined $val ? "'$val',\n" : "undef,\n";
-        }
-        print CONF "},\n\n";
-    }
-    close CONF;
+    write_config(%conf);
 }
 
 END {

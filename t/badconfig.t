@@ -22,7 +22,8 @@ BEGIN {
         local $ENV{KINETIC_CONF} = $fn;
         eval 'use Kinetic::Util::Config';
         ok( my $err = $@, "Got error" );
-        like( $err, qr/^Cannot open/, 'Got cannot open file error');
+        # XXX Error message defined by Config::Std.
+        like( $err, qr/^Can't open/, 'Got cannot open file error');
     };
     # Clean up.
     unlink $fn if -e $fn;

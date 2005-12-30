@@ -11,6 +11,7 @@ use aliased 'Kinetic::Build';
 use Test::Exception;
 use File::Spec::Functions;
 use Test::File;
+use Config::Std;
 
 __PACKAGE__->runtests unless caller;
 
@@ -24,11 +25,7 @@ sub get_pg_auth : Test(startup) {
     # These are set up by the main ./Build. We're in t/sample, so we need to
     # get ../conf/kinetic.conf.
     my $conf_file = catfile updir, 'conf', 'kinetic.conf';
-    open my $conf, '<', $conf_file or die "Cannot open $conf_file: $!";
-    local $/;
-    my %conf = eval <$conf>;
-    close $conf;
-    $self->{conf} = \%conf;
+    read_config($conf_file => $self->{conf});
 }
 
 sub test_class_methods : Test(7) {
@@ -111,8 +108,8 @@ sub test_rules : Test(161) {
       'And now we should be in the "Server info" state';
 
     # Check that data collection attributes have been filled in.
-    is $kbs->db_host, undef, 'DB host should be undef';
-    is $kbs->db_port, undef, 'DB port should be undef';
+    is $kbs->db_host, '', 'DB host should be the null string';
+    is $kbs->db_port, '', 'DB port should be the null string';
     is $kbs->db_name, 'fooness', 'DB name should be "fooness"';
     is $kbs->db_user, 'kinetic', 'DB user should be "kinetic"';
     is $kbs->db_pass, '', 'DB password should be empty';
@@ -140,7 +137,7 @@ sub test_rules : Test(161) {
     @replies = ('pg', '5432', 'fooness', 'kinetic', '');
     ok $fsa->reset->curr_state('Server info'), 'Set up Server info again';
     is $kbs->db_host, 'pg', 'DB host should now be "pg"';
-    is $kbs->db_port, undef, 'DB port should still be undef';
+    is $kbs->db_port, '', 'DB port should still be the null string';
     is $kbs->_dsn('foo'), 'dbi:Pg:dbname=foo;host=pg',
       "The dsn should include the host name";
 
@@ -148,7 +145,7 @@ sub test_rules : Test(161) {
     #           db_host      db_port db_name    db_user    db_pass
     @replies = ('localhost', '5433', 'fooness', 'kinetic', '');
     ok $fsa->reset->curr_state('Server info'), 'Set up Server info again';
-    is $kbs->db_host, undef, 'DB host should now be undef';
+    is $kbs->db_host, '', 'DB host should now be the null string';
     is $kbs->db_port, '5433', 'DB port should still be "5433"';
     is $kbs->_dsn('foo'), 'dbi:Pg:dbname=foo;port=5433',
       "The dsn should include the port number";
@@ -174,8 +171,8 @@ sub test_rules : Test(161) {
     is $fsa->curr_state->name, 'Connect super user',
       'We should now be in the "Connect super user" state';
 
-    is $kbs->db_host, undef, 'DB host should be undef';
-    is $kbs->db_port, undef, 'DB port should be undef';
+    is $kbs->db_host, '', 'DB host should be the null string';
+    is $kbs->db_port, '', 'DB port should be the null string';
     is $kbs->db_name, 'fooness', 'DB name should be "fooness"';
     is $kbs->db_user, 'kinetic', 'DB user should be "kinetic"';
     is $kbs->db_pass, '', 'DB password should be empty';
@@ -609,8 +606,8 @@ sub test_validate_user_db : Test(31) {
     ok $kbs->validate, "We should be able to validate";
     is_deeply [$kbs->actions], ['build_db'],
       'We should have just the "build_db" action';
-    is $kbs->db_host, undef, 'Database host is undefined';
-    is $kbs->db_port, undef, 'Port is undefined';
+    is $kbs->db_host, '', 'Database host is null string';
+    is $kbs->db_port, '', 'Port is null string';
     is $kbs->db_name, 'kinetic', 'Database name is "kinetic"';
     is $kbs->db_user, 'kinetic', 'Database user is "kinetic"';
     is $kbs->db_pass, 'asdfasdf', 'Database user is "asdfasdf"';
@@ -624,8 +621,8 @@ sub test_validate_user_db : Test(31) {
         db_name => '__kinetic_test__',
         db_user => '__kinetic_test__',
         db_pass => '__kinetic_test__',
-        host    => undef,
-        port    => undef,
+        host    => '',
+        port    => '',
         db_super_user => undef,
         db_super_pass => undef,
         template_db_name => undef,
@@ -637,8 +634,8 @@ sub test_validate_user_db : Test(31) {
         db_name => 'kinetic',
         db_user => 'kinetic',
         db_pass => 'asdfasdf',
-        host    => undef,
-        port    => undef,
+        host    => '',
+        port    => '',
         dsn     => 'dbi:Pg:dbname=kinetic',
     }, "The configuration should be set up properly.";
 
@@ -704,8 +701,8 @@ sub test_validate_super_user : Test(31) {
     is_deeply [$kbs->actions], ['create_db', 'add_plpgsql', 'create_user',
                                 'build_db', 'grant_permissions'],
       "We should have the right actions";
-    is $kbs->db_host, 'pgme', 'Database host is undefined';
-    is $kbs->db_port, '5433', 'Port is undefined';
+    is $kbs->db_host, 'pgme', 'Database host is "pgme"';
+    is $kbs->db_port, '5433', 'Port is 5433';
     is $kbs->db_name, 'kinetic', 'Database name is "kinetic"';
     is $kbs->db_user, 'kinetic', 'Database user is "kinetic"';
     is $kbs->db_pass, 'asdfasdf', 'Database user is "asdfasdf"';
@@ -796,8 +793,8 @@ sub test_validate_super_user_arg : Test(31) {
     is_deeply [$kbs->actions], ['add_plpgsql', 'create_user', 'build_db',
                                 'grant_permissions'],
       "We should have the right actions";
-    is $kbs->db_host, undef, 'Database host is undefined';
-    is $kbs->db_port, undef, 'Port is undefined';
+    is $kbs->db_host, '', 'Database host is null string';
+    is $kbs->db_port, '', 'Port is null string';
     is $kbs->db_name, 'howdy', 'Database name is "howdy"';
     is $kbs->db_user, 'howdy', 'Database user is "howdy"';
     is $kbs->db_pass, 'asdfasdf', 'Database user is "asdfasdf"';
@@ -811,8 +808,8 @@ sub test_validate_super_user_arg : Test(31) {
         db_name => '__kinetic_test__',
         db_user => '__kinetic_test__',
         db_pass => '__kinetic_test__',
-        host    => undef,
-        port    => undef,
+        host    => '',
+        port    => '',
         db_super_user => 'postgres',
         db_super_pass => 'postgres',
         template_db_name => undef,
@@ -824,8 +821,8 @@ sub test_validate_super_user_arg : Test(31) {
         db_name => 'howdy',
         db_user => 'howdy',
         db_pass => 'asdfasdf',
-        host    => undef,
-        port    => undef,
+        host    => '',
+        port    => '',
         dsn     => 'dbi:Pg:dbname=howdy',
     }, "The configuration should be set up properly.";
 

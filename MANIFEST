@@ -30,8 +30,8 @@ lib/Kinetic/DateTime/Incomplete.pm
 lib/Kinetic/Engine.pm
 lib/Kinetic/Engine/Request.pm
 lib/Kinetic/Engine/Request/Apache.pm
-lib/Kinetic/Engine/Request/CGI.pm
 lib/Kinetic/Engine/Request/Apache2.pm
+lib/Kinetic/Engine/Request/CGI.pm
 lib/Kinetic/Format.pm
 lib/Kinetic/Format/JSON.pm
 lib/Kinetic/Format/XML.pm

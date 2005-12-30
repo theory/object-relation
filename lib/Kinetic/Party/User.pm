@@ -24,6 +24,7 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use base qw(Kinetic::Party);
+use Kinetic::Party::Person;
 use Kinetic::Util::Config qw(:user);
 use Kinetic::Util::Exceptions qw(throw_password throw_attribute);
 use Digest::MD5;

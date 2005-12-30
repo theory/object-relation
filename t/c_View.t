@@ -2,6 +2,7 @@
 use Test::More tests => 5;
 use Test::NoWarnings; # Adds an extra test.
 use Test::Output;
+use Config::Std; # Avoid warnings;
 
 use_ok( Catalyst::Test, 'Kinetic::UI::Catalyst' );
 use_ok('Kinetic::UI::Catalyst::C::View');

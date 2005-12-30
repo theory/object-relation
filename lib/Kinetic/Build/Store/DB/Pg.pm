@@ -180,8 +180,8 @@ sub rules {
                     default => $ENV{PGHOST} || 'localhost',
                 );
 
-                # Just use undef if it's localhost.
-                $self->{db_host} = undef if $self->{db_host} eq 'localhost';
+                # Just use null string if it's localhost.
+                $self->{db_host} = '' if $self->{db_host} eq 'localhost';
 
                 # Get the port number.
                 if ($ENV{PGPORT}) {
@@ -198,8 +198,8 @@ sub rules {
                         default =>  $def_port,
                     );
 
-                    # Just use undef if it's a local domain socket or 5432.
-                    $self->{db_port} = undef
+                    # Just use null string if it's a local domain socket or 5432.
+                    $self->{db_port} = ''
                       if $self->{db_port} eq 'local domain socket'
                       || $self->{db_port} eq '5432';
                 }
@@ -779,7 +779,7 @@ sub db_super_pass { shift->{db_super_pass} }
   my $db_host = $kbs->db_host;
   $kbs->db_host($db_host);
 
-The host name of the Kinetic database server. Undefind by default, which
+The host name of the Kinetic database server. Null string by default, which
 generally means that the connection will be made to localhost via Unix
 sockets. Not used by the SQLite data store.
 
@@ -794,7 +794,7 @@ sub db_host { shift->{db_host} }
   my $db_port = $kbs->db_port;
   $kbs->db_port($db_port);
 
-The port number of the Kinetic database server. Undefind by default, which
+The port number of the Kinetic database server. Null string by default, which
 generally means that the connection will be made to the default port for the
 database. Not used by the SQLite data store.
 

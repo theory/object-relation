@@ -25,6 +25,7 @@ use DBI;
 use File::Spec;
 use File::Path ();
 use File::Copy ();
+use Config::Std ();
 # Be sure to load exceptions early.
 use Kinetic::Util::Exceptions;
 
@@ -534,49 +535,42 @@ sub process_conf_files {
             $self->notes(test_conf_file => $conf_file);
             $prefix = 'test_';
         }
-        open CONF, '<', $conf_file or die "cannot open $conf_file: $!";
-        my @conf;
-        while (<CONF>) {
-            push @conf, $_;
-            # Do we have the start of a section?
-            next unless /^'?(\w+)'?\s?=>\s?{/;
-            if ($1 eq $self->store) {
+
+        # Load the configuration.
+        Config::Std::Hash::read_config($conf_file => my %conf);
+
+        for my $section ( keys %conf ) {
+            my $lc_section = lc $section;
+            if ( $lc_section eq $self->store ) {
+
                 # It's the configuration section for the data store.
                 # Let the store builder set up the configuration.
                 my $store = $self->notes('build_store');
-                if (my $method = $store->can($prefix . "config")) {
-                    if (my $section = $store->$method) {
-                        push @conf, $self->_serialize_conf_hash($section),
-                          "},\n";
+                if ( my $method = $store->can( $prefix . 'config' ) ) {
+                    if ( my $settings = $store->$method ) {
+                        $conf{$section} = $settings;
                     }
                 }
-            } elsif ($STORES{$1}) {
-                # It's a section for another data store. Comment it out.
-                $conf[-1] = "# $conf[-1]";
-                push @conf, "# }\n";
-            } elsif (my $method = $self->can($prefix . $1 . '_config')
-                     || $self->can($1 . '_config'))
-            {
-                # There's a configuration method for it in this class.
-                if (my $section = $self->$method) {
-                    # Insert the section contents using the *_config method.
-                    push @conf, $self->_serialize_conf_hash($section), "},\n";
-                }
-            } else {
-                # Continue with the next line to grab the default contents
-                # of the section.
-                next;
             }
+            elsif ( $STORES{$lc_section} ) {
 
-            # Dump the default contents of the section.
-            while (<CONF>) { last if /^},?$/; }
+                # It's a section for another data store. Remove it.
+                delete $conf{$section};
+            }
+            elsif ( my $method
+                = $self->can( $prefix . $lc_section . '_config' )
+                || $self->can( $lc_section . '_config' ) )
+            {
+
+                # There's a configuration method for it in this class.
+                if ( my $settings = $self->$method ) {
+
+                    # Insert the section contents using the *_config method.
+                    $conf{$section} = $settings;
+                }
+            }
         }
-        close CONF;
-        my $tmp = "$conf_file.tmp";
-        open TMP, '>', $tmp or die "cannot open $tmp: $!";
-        print TMP @conf;
-        close TMP;
-        File::Copy::move($tmp, $conf_file);
+        Config::Std::Hash::write_config(%conf);
     }
     return $self;
 }
