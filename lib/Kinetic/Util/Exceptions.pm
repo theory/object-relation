@@ -302,9 +302,9 @@ use Exception::Class(
 
 =item Kinetic::Util::Exception::Fatal::Attribute
 
-Kinetic attribute exception. Thrown if a Kinetic attribute is used incorrectly,
-such as "unknown attributes" or trying to use a non-unique attribute where a 
-unique attribute would be used. Alias: C<throw_attribute>.
+Kinetic attribute exception. Thrown if a Kinetic attribute is used
+incorrectly, such as "unknown attributes" or trying to use a non-unique
+attribute where a unique attribute would be used. Alias: C<throw_attribute>.
 
 =cut
 

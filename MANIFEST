@@ -167,7 +167,6 @@ t/c_Search.t
 t/c_View.t
 t/clone.t
 t/collection.t
-t/conf/kinetic.conf
 t/config.t
 t/context.t
 t/datatypes.t

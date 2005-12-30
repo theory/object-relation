@@ -374,7 +374,7 @@ sub _add_delegates {
             unique       => $attr->unique,
             distinct     => $attr->distinct,
             indexed      => $attr->indexed,
-            persistent   => $persist,
+            persistent   => $attr->persistent && $persist,
             delegates_to => $ref,
             acts_as      => $attr,
         );

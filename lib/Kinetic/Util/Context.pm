@@ -35,13 +35,13 @@ Kinetic::Util::Context - Kinetic utility object context
   use Kinetic::Util::Context;
 
   # Use class methods.
-  my $user = Kinetic::Util::Context->current_user;
+  my $user = Kinetic::Util::Context->user;
   my $lang = Kinetic::Util::Context->language;
   my $cache = Kinetic::Util::Context->cache;
 
   # Use the singleton object.
   my $cx = $cx->new;
-  $user = $cx->current_user;
+  $user = $cx->user;
   $lang = $cx->language;
   $cache = $cx->cache;
 
@@ -56,7 +56,7 @@ in as a user.
 =cut
 
 my $cx = bless {
-    current_user => undef, # XXX TBD.
+    user => undef, # XXX TBD.
     language     => Kinetic::Util::Language->get_handle,
     cache        => undef, # XXX TBD.
 }, __PACKAGE__;
@@ -124,9 +124,9 @@ sub cache {
 
 ##############################################################################
 
-=head3 current_user
+=head3 user
 
-  my $current_user = $cx->current_user;
+  my $user = $cx->user;
 
 Returns the L<Kinetic::Party::Person::User|Kinetic::Party::Person::User>
 object to be used for all authorization. This object will be considered the
@@ -135,13 +135,13 @@ Kinetic.
 
 =cut
 
-sub current_user {
+sub user {
     shift;
-    return $cx->{current_user} unless @_;
+    return $cx->{user} unless @_;
     UNIVERSAL::isa($_[0], 'Kinetic::Party::Person::User')
       or throw_invalid(['Value "[_1]" is not a valid [_2] object', $_[0],
                         'Kinetic::Party::Person::User']);
-    return $cx->{current_user} = shift;
+    return $cx->{user} = shift;
 }
 
 1;

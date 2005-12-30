@@ -1,4 +1,4 @@
-package Kinetic::Party::Person::User;
+package Kinetic::Party::User;
 
 # $Id$
 
@@ -23,18 +23,19 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use base qw(Kinetic::Party::Person);
+use base qw(Kinetic::Party);
 use Kinetic::Util::Config qw(:user);
-use Kinetic::Util::Exceptions qw(throw_password);
+use Kinetic::Util::Exceptions qw(throw_password throw_attribute);
 use Digest::MD5;
 
 =head1 Name
 
-Kinetic::Party::Person::User - Kinetic user objects
+Kinetic::Party::User - Kinetic user objects
 
 =head1 Description
 
-This class provides the basic interface for Kinetic user objects.
+This class extends L<Kinetic::Party::Person|Kinetic::Party::Person> to
+implement Kinetic user objects.
 
 =cut
 
@@ -43,6 +44,7 @@ BEGIN {
         key         => 'usr',
         name        => 'User',
         plural_name => 'Users',
+        extends     => 'person',
     );
 
 ##############################################################################
@@ -52,7 +54,7 @@ BEGIN {
 =head1 Instance Interface
 
 In addition to the interface inherited from L<Kinetic::|Kinetic>,
-L<Kinetic::Party|Kinetic::Party>, and
+L<Kinetic::Party|Kinetic::Party>, and extended from
 L<Kinetic::Party::Person|Kinetic::Party::Person>, this class offers a number
 of its own attributes.
 
@@ -63,13 +65,17 @@ of its own attributes.
   my $username = $person->username;
   $person->username($username);
 
-The user's username, which can be used to log into the system.
+The user's username. This attribute is unique for all active and inactive
+users.
+
 
 =cut
 
     $cm->add_attribute(
         name        => 'username',
         label       => 'Username',
+        required    => 1,
+        unique      => 1,
         type        => 'string',
         widget_meta => Kinetic::Meta::Widget->new(
             type => 'text',
@@ -97,70 +103,92 @@ B<Throws:>
 
 =cut
 
+    # Start with the public attribute. Not persistent.
     $cm->add_attribute(
         name        => 'password',
         label       => 'Password',
         type        => 'string',
-        authz       => Class::Meta::READ,
+        required    => 1,
+        authz       => Class::Meta::WRITE,
         create      => Class::Meta::NONE,
+        persistent  => 0,
         widget_meta => Kinetic::Meta::Widget->new(
             type => 'password',
-            tip  => "The user's password"
+            tip  => q{The user's password}
         )
+    );
+
+    # Add the attribute that actually gets stored.
+    $cm->add_attribute(
+        name        => '_password',
+        type        => 'string',
+        required    => 1,
+        authz       => Class::Meta::RDWR,
+        view        => Class::Meta::TRUSTED,
+    );
+
+    # Add the attribute used for updating other authentication schemes.
+    $cm->add_attribute(
+        name       => '_new_pass',
+        type       => 'string',
+        authz      => Class::Meta::RDWR,
+        view       => Class::Meta::PRIVATE,
+        persistent => 0,
     );
 
     # So we define the accessor ourselves.
     sub password {
         my $self = shift;
-        unless (@_) {
-            # XXX This isn't the cleanest way to handle things, but it works
-            # for now. Need to have a way for Kinetic::Store to get at the
-            # password value for, erm, storing.
-            return unless caller->isa('Kinetic::Store');
-            return $self->{password};
-        }
+        throw_attribute [
+            'Attribute "[_1]" is write-only',
+            'password',
+        ] unless @_;
 
         my $password = shift;
         throw_password [
             'Password must be as least [_1] characters',
             USER_MIN_PASS_LEN
-        ] unless length $password > USER_MIN_PASS_LEN;
+        ] unless length $password >= USER_MIN_PASS_LEN;
 
         # The password is okay. Stash it for changing in save().
-        $self->{new_pass} = $password;
-
-        # XXX Switch to a different digest?
-        $self->{password} = Digest::MD5::md5_hex(
-            '$8fFidf*34;,a(o};"?i8J<*/#1qE3 $*23kf3K4;-+3f#\'Qz-4feI3rfe}%:e'
-            . Digest::MD5::md5_hex($password)
-        );
-        return $self;
+        $self->_new_pass($password);
+        return $self->_password(_hash($password));
     }
 
 ##############################################################################
 
 =head2 Instance Methods
 
-=head3 session
+=head3 compare_password
 
-=head3 authenticate
+  $user->compare_password($password);
 
-=head3 login
-
-=head3 logout
-
-=head3 is_logged_in
+Compares the password passed as the sole argument to the user's current
+password. Returns the user object if the passwords are the same, and C<undef>
+if they are not.
 
 =cut
 
+    $cm->add_method(
+        name => 'compare_password',
+        code => sub {
+            my $self = shift;
+            return $self->_password eq _hash(shift) ? $self : undef;
+        },
+    );
+
 ##############################################################################
 
-=head3 save
+=begin private
 
-  $user->save;
+=head2 Private Instance Methods
 
-Overrides the parent C<save()> method in order to save changed passwords to
-all appropriate password stores.
+=head3 _save_prep
+
+  $user->_save_prep;
+
+Overrides the parent C<_save_prep()> method in order to save changed passwords
+to all appropriate password stores.
 
 B<Throws:>
 
@@ -179,20 +207,41 @@ B<Throws:>
     $cm->build;
 } # BEGIN
 
-sub save {
+sub _save_prep {
     my $self = shift;
-    $self->SUPER::save(@_);
-    my $new_pass = $self->{new_pass} or return $self;
+    $self->SUPER::_save_prep(@_);
+    my $new_pass = $self->_new_pass or return $self;
+    $self->_new_pass(undef);
     # XXX Change the password in all password stores.
 
     # Return control.
     return $self;
 }
 
+##############################################################################
+
+=head2 Private Functions
+
+  my $hash = _hash($string);
+
+Returns a hashed version of $string. Used for hasing passwords.
+
+=cut
+
+sub _hash {
+    # XXX Switch to a different hashing digest?
+    Digest::MD5::md5_hex(
+        '$8fFidf*34;,a(o};"?i8J<*/#1qE3 $*23kf3K4;-+3f#\'Qz-4feI3rfe}%:e'
+        . Digest::MD5::md5_hex(shift)
+    );
+}
+
 1;
 __END__
 
 ##############################################################################
+
+=end private
 
 =head1 Copyright and License
 

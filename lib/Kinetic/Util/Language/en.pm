@@ -256,6 +256,12 @@ our %Lexicon;
         'Invalid method "[_1]"',
         'Invalid method “[_1]”',
 
+        'Password must be as least [_1] characters',
+        'Password must be as least [_1] characters',
+
+        'Attribute "[_1]" is write-only',
+        'Attribute “[_1]” is write-only',
+
         # Kinetic::Meta::Class error.
         'No direct attribute "[_1]" to sort by',
         'No direct attribute “[_1]” to sort by',

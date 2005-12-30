@@ -103,6 +103,14 @@ sub test_save : Test(8) {
     ok my $obj   = $pkg->new,       "Construct new $pkg object";
     is $obj->uuid, undef,           'UUID should be undef';
 
+    # Set up any test values.
+    if (my $vals = $self->attr_values) {
+        while (my ($key, $val) = each %$vals) {
+            my $attr = $class->attributes($key);
+            $attr->set($obj => $val);
+        }
+    }
+
     return 'Not testing Data Stores' unless $self->dev_testing;
 
     ok $obj->save,                  "Save the $pkg object";
@@ -112,6 +120,8 @@ sub test_save : Test(8) {
     ok $obj = $pkg->lookup( uuid => $obj->uuid ), 'Look up the object';
     is $obj->uuid, $uuid, 'It should have the same UUID';
 }
+
+sub attr_values { }
 
 1;
 __END__
