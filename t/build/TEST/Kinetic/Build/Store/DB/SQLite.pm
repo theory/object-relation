@@ -78,7 +78,7 @@ sub test_rules : Test(29) {
     my $db_file = catfile 'store', 'fooness';
     is $kbs->dsn, "dbi:SQLite:dbname=$db_file",
       "...and the DSN should be set";
-    my $test_file = catfile 't', 'data', 'fooness';
+    my $test_file = catfile $builder->base_dir, 't', 'data', 'fooness';
     is $kbs->test_dsn, "dbi:SQLite:dbname=$test_file",
       "as should the test DSN";
 

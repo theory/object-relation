@@ -353,7 +353,8 @@ directory named by the the C<test_data_dir> Kinetic::Build property.
 
 sub _test_path {
     my $self = shift;
-    return catfile $self->builder->test_data_dir, $self->db_file;
+    my $build = $self->builder;
+    return catfile $build->base_dir, $build->test_data_dir, $self->db_file;
 }
 
 ##############################################################################

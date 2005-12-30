@@ -69,7 +69,7 @@ sub atest_process_conf_files : Test(14) {
       '... The store should point to the correct data store';
 
     # Check the test config file.
-    my $test_file = catfile 't', 'data', 'kinetic.db';
+    my $test_file = catfile $builder->base_dir, 't', 'data', 'kinetic.db';
     file_contents_like 't/conf/kinetic.conf', qr/file\s+=>\s+'$test_file',/,
       '... The test database file name should be set properly';
     file_contents_like 't/conf/kinetic.conf', qr/#\s*pg\s+=>\s+{/,

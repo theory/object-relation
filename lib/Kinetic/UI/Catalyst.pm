@@ -2,18 +2,24 @@ package Kinetic::UI::Catalyst;
 
 use strict;
 use warnings;
+
+use Cwd;
+use File::Spec::Functions qw(catdir);
+
 use aliased 'Kinetic::Build::Schema';
 
 use version;
 our $VERSION = version->new('0.0.1');
 
-my $schema;
+my ( $schema, $root );
 
 BEGIN {
 
+    $root = $ENV{KINETIC_ROOT} || getcwd();
+
     # XXX this needs to be externally configurable
     $schema = Schema->new;
-    $schema->load_classes('t/sample/lib');
+    $schema->load_classes( catdir( $root, 't/sample/lib' ) );
 }
 
 #
@@ -96,6 +102,29 @@ more information.
 
 sub begin : Private {
     my ( $self, $c ) = @_;
+
+    my $cwd = getcwd();
+    opendir CWD, $cwd or die "Could not open $cwd: $!";
+    my @dirs = readdir(CWD) or die "Could not readdir $cwd: $!";
+    $c->stash->{debug} = {
+        conf => $ENV{KINETIC_CONF},
+        env  => \%ENV,
+    };
+
+    # move this to its own method
+    if ( defined( my $version = $ENV{MOD_PERL_API_VERSION} ) ) {
+        if ( 2 <= $version ) {
+            require Apache2::Directive;
+
+            my $tree         = Apache2::Directive::conftree();
+            my $documentroot = $tree->lookup('DocumentRoot');
+            my $vhost        = $tree->lookup( 'VirtualHost', 'localhost' );
+            my $servername   = $vhost->{'ServerName'};
+
+            $c->stash->{debug}{tree}  = $tree->as_hash;
+            $c->stash->{debug}{vhost} = $vhost;
+        }
+    }
 
     # force login for all pages
     unless ( $c->user ) {

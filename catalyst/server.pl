@@ -9,7 +9,6 @@ use strict;
 use Getopt::Long;
 use Pod::Usage;
 use FindBin;
-use lib '/Users/curtispoe/Downloads/Catalyst-5.61/lib';
 use lib "$FindBin::Bin/../lib";
 
 my $debug         = 0;
