@@ -537,6 +537,7 @@ sub process_conf_files {
         }
 
         # Load the configuration.
+        # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
         Config::Std::Hash::read_config($conf_file => my %conf);
 
         for my $section ( keys %conf ) {
@@ -570,6 +571,7 @@ sub process_conf_files {
                 }
             }
         }
+        # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
         Config::Std::Hash::write_config(%conf);
     }
     return $self;
