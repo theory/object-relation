@@ -26,7 +26,7 @@ our $VERSION = version->new('0.0.1');
 use base qw(Kinetic::Party);
 use Kinetic::Party::Person;
 use Kinetic::Util::Config qw(:user);
-use Kinetic::Util::Exceptions qw(throw_password throw_attribute);
+use Kinetic::Util::Exceptions qw(throw_invalid throw_attribute);
 use Digest::MD5;
 
 =head1 Name
@@ -146,7 +146,7 @@ B<Throws:>
         ] unless @_;
 
         my $password = shift;
-        throw_password [
+        throw_invalid [
             'Password must be as least [_1] characters',
             USER_MIN_PASS_LEN
         ] unless length $password >= USER_MIN_PASS_LEN;

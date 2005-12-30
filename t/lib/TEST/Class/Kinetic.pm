@@ -27,7 +27,8 @@ use Cwd ();
 use File::Path ();
 use File::Find;
 use File::Spec::Functions;
-require Test::NoWarnings;
+use Config::Std; # Avoid warnings.
+use Test::NoWarnings ();
 use aliased 'Test::MockModule';
 
 __PACKAGE__->runtests unless caller;

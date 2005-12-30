@@ -12,7 +12,6 @@ use Test::File;
 use Test::File::Contents;
 use File::Copy;
 use File::Spec::Functions;
-use Config::Std; # Avoid warnings.
 
 __PACKAGE__->runtests unless caller;
 

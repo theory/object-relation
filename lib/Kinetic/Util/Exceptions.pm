@@ -64,9 +64,8 @@ invalid.
 
 This class will never has its error message localized. This is so that it can
 be thrown by libraries not under direct Kinetic control and therefore are not
-localizable. This class is also used for the global C<$SIG{__DIE__}> and
-C<$SIG{__WARN__}> handlers, so that error messages and warnings always include
-a nicely formatted stack trace.
+localizable. This class is also used for the global C<$SIG{__DIE__}> handler,
+so that exceptions always include a nicely formatted stack trace.
 
 =item Kinetic::Util::Exception::DBI
 
@@ -369,18 +368,18 @@ use Exception::Class(
     },
 );
 
-=item Kinetic::Util::Exception::Error::Password
+=item Kinetic::Util::Exception::Error::Auth
 
-Password error. Thrown for authentication failures. This exception class may or
-may not be retained. Alias: C<throw_password>.
+Authentication failure. Thrown when authentication fails. Alias:
+C<throw_auth>.
 
 =cut
 
 use Exception::Class(
-    'Kinetic::Util::Exception::Error::Password' => {
-        description => 'Kinetic password error',
+    'Kinetic::Util::Exception::Error::Auth' => {
+        description => 'Kinetic authentication error',
         isa         => 'Kinetic::Util::Exception::Error',
-        alias       => 'throw_password',
+        alias       => 'throw_auth',
     },
 );
 
@@ -406,15 +405,13 @@ use Exception::Class(
 
 ##############################################################################
 
-use Exporter::Tidy all => [
-  qw(
+use Exporter::Tidy all => [qw(
     panic isa_kinetic_exception isa_exception throw_exlib throw_fatal
     throw_invalid throw_read_only throw_lang throw_stat throw_io throw_error
-    throw_password throw_required throw_xml throw_unknown_class
+    throw_auth throw_required throw_xml throw_unknown_class
     throw_invalid_class throw_not_found throw_unsupported throw_unimplemented
     throw_search throw_attribute sig_handlers
-  )
-];
+)];
 
 ##############################################################################
 
@@ -481,9 +478,9 @@ sub isa_exception {
   sig_handlers(0);
 
 This function accepts a boolean value. If true, it turns on stack traces via
-the WARN and DIE signal handlers. If false, it disables them. If called
-without arguments, it merely returns a boolean value indicating whether or not
-the signal handlers are enabled.
+the DIE signal handler. If false, it disables them. If called without
+arguments, it merely returns a boolean value indicating whether or not the
+signal handlers are enabled.
 
 =cut
 
@@ -491,10 +488,6 @@ my $SIG_DIE = sub {
     my $err = shift;
     $err->rethrow if UNIVERSAL::can($err, 'rethrow');
     Kinetic::Util::Exception::ExternalLib->throw($err);
-};
-
-my $SIG_WARN = sub {
-    print STDERR Kinetic::Util::Exception::ExternalLib->new(shift)->as_string;
 };
 
 my $HANDLERS = 1;
@@ -507,16 +500,14 @@ sub _set_handlers {
     $HANDLERS = shift;
     if ($HANDLERS) {
         $SIG{__DIE__}  = $SIG_DIE;
-        $SIG{__WARN__} = $SIG_WARN;
     }
     else {
         local $^W;
         undef $SIG{__DIE__};
-        undef $SIG{__WARN__};
     }
 }
 
-# Always use exception objects for exceptions and warnings.
+# Always use exception objects for exceptions.
 # XXX I can't recall how we said we would deal with this
 sig_handlers(1); # turn on signal handlers by default
 ##############################################################################
