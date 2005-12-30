@@ -30,7 +30,7 @@ sub test_password : Test(12) {
     ok !$user->compare_password('bad'), 'A bad password should not';
 
     throws_ok { $user->password('a') }
-        'Kinetic::Util::Exception::Error::Password',
+        'Kinetic::Util::Exception::Fatal::Invalid',
         'A short password should throw an exception';
     like $@->error, qr/Password must be as least \d+ characters/,
         'And it should have the proper message';

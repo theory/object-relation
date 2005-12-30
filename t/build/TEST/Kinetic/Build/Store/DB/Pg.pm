@@ -11,6 +11,7 @@ use aliased 'Kinetic::Build';
 use Test::Exception;
 use File::Spec::Functions;
 use Test::File;
+use Config::Std;
 
 __PACKAGE__->runtests unless caller;
 

@@ -411,7 +411,7 @@ existing object.
         # get all private attributes, too.
         while (my ($k, $v) = each %$self) {
             # XXX Need to account for circular references?
-            $new->{$k} = UNIVERSAL::can($v, 'clone')
+            $new->{$k} = ref $v && eval { $v->can('clone') }
                 ? $v->clone
                 : $v;
         }

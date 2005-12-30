@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 76;
+use Test::More tests => 74;
 use Test::NoWarnings; # Adds an extra test.
 use DBI;
 
@@ -137,10 +137,6 @@ GLOBAL: {
     isa_ok $err, 'Kinetic::Util::Exception::ExternalLib';
     isa_ok $err, 'Kinetic::Util::Exception';
     isa_ok $err, "Exception::Class::Base";
-    stderr_like { warn "Oof"} qr{\AOof at}ms,
-      'Warnings should start with the warning message';
-    stderr_like { warn "Oof"} qr{^\[t/exceptions\.t:\d+\]\Z}ms,
-      'Warnings should end with the stack trace';
 }
 
 DBI: {
