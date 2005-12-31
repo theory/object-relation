@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use diagnostics;
 
-use Test::More tests => 435;
+use Test::More tests => 443;
 use Test::NoWarnings; # Adds an extra test.
 use File::Spec;
 use File::Find;
@@ -42,12 +42,8 @@ BEGIN {
     }
 
     # Find all libraries.
-    # XXX Ovid: not sure if this is the best fix, but some localizations are
-    # "computed" and only show up in tests.  For example, 
-    # "The description of this object" only shows up in the tests for
-    # Kinetic::XML::Meta
     my $find_libs = sub {
-        return unless /\.(?:pm|t)$/;
+        return unless /\.pm$/;
         return if /#/;    # Ignore old backup files.
         return if $File::Find::name =~ /Language[^.]/;    # Ignore l10n libs.
         push @libs, $File::Find::name;
@@ -68,7 +64,7 @@ ok my $lang = Kinetic::Util::Language->get_handle('en_us'),
 is(
     $lang->maketext( 'Value "[_1]" is not a valid [_2] object', 'foo', 'bar' ),
     "Value \x{201c}foo\x{201d} is not a valid bar object",
-    'Text maketext'
+    'Check maketext'
 );
 
 # Try adding to the lexicon.

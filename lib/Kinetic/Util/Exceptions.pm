@@ -330,6 +330,21 @@ use Exception::Class(
     },
 );
 
+=item Kinetic::Util::Exception::Fatal::Config
+
+Configuration exception. Thrown if there is an error in the F<kinetic.conf>
+configuration data, such as a missing configuration setting.
+
+=cut
+
+use Exception::Class(
+    'Kinetic::Util::Exception::Fatal::Config' => {
+        description => 'Configuration error',
+        isa         => 'Kinetic::Util::Exception::Fatal',
+        alias       => 'throw_config',
+    },
+);
+
 =item Kinetic::Util::Exception::Fatal::Panic
 
 Panic exception. This internal exception should (theoretically) never be
@@ -408,7 +423,7 @@ use Exception::Class(
 use Exporter::Tidy all => [qw(
     panic isa_kinetic_exception isa_exception throw_exlib throw_fatal
     throw_invalid throw_read_only throw_lang throw_stat throw_io throw_error
-    throw_auth throw_required throw_xml throw_unknown_class
+    throw_auth throw_required throw_xml throw_unknown_class throw_config
     throw_invalid_class throw_not_found throw_unsupported throw_unimplemented
     throw_search throw_attribute sig_handlers
 )];

@@ -262,6 +262,12 @@ our %Lexicon;
         'Attribute "[_1]" is write-only',
         'Attribute “[_1]” is write-only',
 
+        'Authentication failed',
+        'Authentication failed',
+
+        'The "[_1]" configuration section needs a "[_2]" setting',
+        'The “[_1]” configuration section needs a “[_2]” setting',
+
         # Kinetic::Meta::Class error.
         'No direct attribute "[_1]" to sort by',
         'No direct attribute “[_1]” to sort by',

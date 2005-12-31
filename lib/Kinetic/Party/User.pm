@@ -41,7 +41,7 @@ implement Kinetic user objects.
 =cut
 
 BEGIN {
-    my $cm = Kinetic::Meta->new(
+    my $km = Kinetic::Meta->new(
         key         => 'usr',
         name        => 'User',
         plural_name => 'Users',
@@ -72,7 +72,7 @@ users.
 
 =cut
 
-    $cm->add_attribute(
+    $km->add_attribute(
         name        => 'username',
         label       => 'Username',
         required    => 1,
@@ -105,7 +105,7 @@ B<Throws:>
 =cut
 
     # Start with the public attribute. Not persistent.
-    $cm->add_attribute(
+    $km->add_attribute(
         name        => 'password',
         label       => 'Password',
         type        => 'string',
@@ -120,21 +120,12 @@ B<Throws:>
     );
 
     # Add the attribute that actually gets stored.
-    $cm->add_attribute(
+    $km->add_attribute(
         name        => '_password',
         type        => 'string',
         required    => 1,
         authz       => Class::Meta::RDWR,
         view        => Class::Meta::TRUSTED,
-    );
-
-    # Add the attribute used for updating other authentication schemes.
-    $cm->add_attribute(
-        name       => '_new_pass',
-        type       => 'string',
-        authz      => Class::Meta::RDWR,
-        view       => Class::Meta::PRIVATE,
-        persistent => 0,
     );
 
     # So we define the accessor ourselves.
@@ -151,8 +142,6 @@ B<Throws:>
             USER_MIN_PASS_LEN
         ] unless length $password >= USER_MIN_PASS_LEN;
 
-        # The password is okay. Stash it for changing in save().
-        $self->_new_pass($password);
         return $self->_password(_hash($password));
     }
 
@@ -170,7 +159,7 @@ if they are not.
 
 =cut
 
-    $cm->add_method(
+    $km->add_method(
         name => 'compare_password',
         code => sub {
             my $self = shift;
@@ -178,50 +167,18 @@ if they are not.
         },
     );
 
-##############################################################################
-
-=begin private
-
-=head2 Private Instance Methods
-
-=head3 _save_prep
-
-  $user->_save_prep;
-
-Overrides the parent C<_save_prep()> method in order to save changed passwords
-to all appropriate password stores.
-
-B<Throws:>
-
-=over 4
-
-=item Error::Undef
-
-=item Error::Invalid
-
-=item Exception::DA
-
-=back
-
-=cut
-
-    $cm->build;
-} # BEGIN
-
-sub _save_prep {
-    my $self = shift;
-    $self->SUPER::_save_prep(@_);
-    my $new_pass = $self->_new_pass or return $self;
-    $self->_new_pass(undef);
-    # XXX Change the password in all password stores.
-
-    # Return control.
-    return $self;
+    $km->build;
 }
 
 ##############################################################################
 
+=begin private
+
+=head Private Interface
+
 =head2 Private Functions
+
+=head3 _hash
 
   my $hash = _hash($string);
 
