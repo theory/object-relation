@@ -6,6 +6,9 @@ use base 'Catalyst::View::TT';
 use version;
 our $VERSION = version->new('0.0.1');
 
+# Disable the TT timer
+__PACKAGE__->config->{CONTEXT} = undef;
+
 #sub process : Private {
 #    my $self = shift;
 #    use Data::Dumper;

@@ -16,8 +16,10 @@
   <body>
     <div id="sidebar">
     <p>Classes:</p>
-    [% FOREACH key = c.config.classes %]
-      <a href="/search/[% key %]/squery/_limit/20">[% key %]</a><br/>
+    [% FOREACH key = c.config.classes;
+         search_uri = "/search/" _ key _ "/squery/_limit/20";
+    %]
+      <a href="[% Catalyst.uri_from(key) %]">[% key %]</a><br/>
     [% END %]
     </div>
     [% content %]

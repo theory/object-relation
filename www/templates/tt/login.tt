@@ -3,7 +3,7 @@
    title = 'Please login' 
 %]
   <div class="listing">
-    <form action="/login" method="post">
+    <form action="login" method="post">
       <fieldset>
         <legend>Login</legend>
         <table>

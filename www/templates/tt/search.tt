@@ -13,8 +13,10 @@
       [% class = [ 'row_0', 'row_1' ];
          WHILE (object = iterator.next) %]
       <tr>
-        [% FOREACH attr IN attributes %]
-        <td class="[% class.0 %]"><a href="[% domain %][% path %]view/[% key %]/[% object.uuid %]">[% object.$attr %]</a></td>
+        [% FOREACH attr IN attributes;
+            href = "/view/" _ key _ "/" _ object.uuid;
+        %]
+        <td class="[% class.0 %]"><a href="[% c.uri_for(href) %]">[% object.$attr %]</a></td>
         [% END %]
       </tr>
         [% class.unshift(class.pop) %]

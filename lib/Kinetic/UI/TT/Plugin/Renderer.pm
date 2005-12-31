@@ -163,6 +163,7 @@ my %renderer_for = (
 );
 
 sub _context { shift->{context} }
+sub _c { shift->{context}{STASH}{c} } # XXX Yuck! (Catalyst object)
 
 sub render {
     my $self  = shift;

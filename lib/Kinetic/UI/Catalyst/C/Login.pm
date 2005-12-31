@@ -39,18 +39,19 @@ sub login : Local {
     my ( $self, $c ) = @_;
 
     $c->stash->{template} = 'login.tt';
-    $c->session->{referer} ||= $c->req->path;
+
+    $c->session->{referer} ||= $c->req->referer;
     if ( !$c->login() ) {
         $c->log->debug('login failed');
         $c->stash->{message} = 'Login failed.';
         $c->forward('Kinetic::UI::Catalyst::V::TT');
     }
     else {
-        if ( $c->session->{referer} =~ m{^/?login} ) {
-            $c->session->{referer} = '/';
+        if ( $c->session->{referer} =~ m{login$} ) {
+            $c->session->{referer} ||= $c->req->referer;
         }
         $c->log->debug('login succeeded');
-        $c->res->redirect( $c->session->{referer} || '/' );
+        $c->res->redirect( $c->session->{referer} );
     }
 }
 

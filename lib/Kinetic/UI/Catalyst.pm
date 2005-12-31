@@ -129,7 +129,7 @@ sub begin : Private {
     # force login for all pages
     unless ( $c->user ) {
         $c->req->action(undef);
-        $c->forward( 'Kinetic::UI::Catalyst::C::Login', 'login' );
+        $c->forward( 'login', 'login' );
     }
 }
 
