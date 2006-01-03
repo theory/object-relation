@@ -89,7 +89,7 @@ if they were not set by a command-line parameter, the user will be prompted
 for input.
 
 The supported parameters are the same as for the C<get_reply()> method, but
-the C<name>, C<lable>, and C<default> parameters are required when passing
+the C<name>, C<label>, and C<default> parameters are required when passing
 parameters rather than using Module::Build's default arguments.
 
 =cut
@@ -228,7 +228,7 @@ __PACKAGE__->add_property(
     label   => 'Data store',
     default => 'sqlite',
     options => [ sort keys %STORES ],
-    message => 'Which data store back end shold I use?'
+    message => 'Which data store back end should I use?'
 );
 
 ##############################################################################
@@ -315,6 +315,39 @@ false value by default.
 =cut
 
 __PACKAGE__->add_property(dev_tests => 0);
+
+##############################################################################
+
+=head3 admin_username
+
+  my $admin_username = $build->admin_username;
+  $build->admin_username($admin_username);
+
+The username to use for the default administrative user created for all TKP
+installations. Defaults to "admin".
+
+=cut
+
+__PACKAGE__->add_property(admin_username => 'admin');
+
+##############################################################################
+
+=head3 admin_password
+
+  my $admin_password = $build->admin_password;
+  $build->admin_password($admin_password);
+
+The password to use for the default administrative user created for all TKP
+installations. Defaults to "change me now!".
+
+=cut
+
+__PACKAGE__->add_property(
+    name    => 'admin_password',
+    label   => 'Administrative User password',
+    default => 'change me now!',
+    message => 'What password should be used for the default account?',
+);
 
 ##############################################################################
 
@@ -458,6 +491,35 @@ sub ACTION_help {
     # hack our own. :-( We'll also want to add something to pull in options
     # specified by the classes referenced in %STORES.
     $self->SUPER::ACTION_help(@_);
+    return $self;
+}
+
+##############################################################################
+
+=head3 install
+
+=begin comment
+
+=head3 ACTION_install
+
+=end comment
+
+Overrides Module::Build's C<test> action to build the data store and
+initialize any default objects in the database.
+
+=cut
+
+sub ACTION_install {
+    my $self = shift;
+    $self->SUPER::ACTION_install(@_);
+
+    # Build the data store.
+    my $kbs = $self->notes('build_store');
+    $kbs->build;
+
+    # Create any base objects.
+    $self->init_kinetic;
+
     return $self;
 }
 
@@ -675,6 +737,31 @@ sub get_reply {
     $self->log_info("$params{label}: $params{default}\n")
       unless $self->quiet;
     return $params{default};
+}
+
+##############################################################################
+
+=head3 init_kinetic
+
+  $build->init_kinetic;
+
+This method is called by the C<install> action to initialize Kinetic objects
+in the newly installed Kinetic data store. Currently, this means simply
+creating an admin user, but other objects will no doubt be created in the
+future.
+
+=cut
+
+sub init_kinetic {
+    my $self = shift;
+    require Kinetic::Party::User;
+    Kinetic::Party::User->new(
+        last_name  => 'User',
+        first_name => 'Admin',
+        username   => $self->admin_username,
+        password   => $self->admin_password,
+    )->save;
+    return $self;
 }
 
 ##############################################################################

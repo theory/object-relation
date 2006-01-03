@@ -4,6 +4,7 @@
 
 use strict;
 use Test::More;
+use Class::Std; # Avoid warnings;
 eval "use Test::Pod::Coverage 0.08";
 plan skip_all => "Test::Pod::Coverage required for testing POD coverage" if $@;
 

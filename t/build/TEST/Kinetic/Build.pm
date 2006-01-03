@@ -119,7 +119,7 @@ sub test_props : Test(11) {
     $builder->dispatch('clean');
     file_not_exists_ok 'blib', 'Build lib should be gone';
 
-    # Don't accept defaults; we should be prompted for the data store.
+    # Don't accept defaults; we should be prompted for stuff.
     my @msgs;
     $mb->mock(_readline => '1');
     $mb->mock(_prompt => sub { shift; push @msgs, @_; });
@@ -128,9 +128,17 @@ sub test_props : Test(11) {
     $store->mock(info_class => 'TEST::Kinetic::TestInfo');
     $mb->mock(_is_tty => 1);
     $builder = $self->new_builder(accept_defaults => 0);
-    is join('', @msgs),
-      "  1> pg\n  2> sqlite\nWhich data store back end shold I use? [2]: ",
-      "We should be prompted for the data store";
+    diag join '|', @msgs;
+    is_deeply \@msgs, [
+        "  1> pg\n  2> sqlite\n",
+        'Which data store back end should I use?',
+        ' [2]:',
+        ' ',
+        'What password should be used for the default account?',
+        ' [change me now!]:',
+        ' ',
+    ], 'We should be prompted for the data store and other stuff';
+
     is $builder->store, 'pg', 'Data store should now be "pg"';
 }
 
@@ -229,8 +237,10 @@ sub test_get_reply : Test(49) {
     my $builder = $self->new_builder(quiet => 0);
     $self->{builder} = $builder;
     is delete $self->{info},
-      "Data store: pg\nLooking for pg_config\n"
-      . "path to pg_config: /usr/local/pgsql/bin/pg_config\n",
+          "Data store: pg\n"
+        . "Administrative User password: change me now!\n"
+        . "Looking for pg_config\n"
+        . "path to pg_config: /usr/local/pgsql/bin/pg_config\n",
       "Should have data store set by command-line option";
 
     # We should be told what the setting is, but not prompted.

@@ -273,7 +273,7 @@ a database handle for use during the build.
 
 sub build {
     my $self = shift;
-    return $self->_build($self->dsn, 'SUPER::build', @_);
+    return $self->_build($self->dsn, $self->_dir, 'SUPER::build', @_);
 }
 
 ##############################################################################
@@ -289,7 +289,7 @@ set up a database handle for use during the build.
 
 sub test_build {
     my $self = shift;
-    return $self->_build($self->test_dsn, 'SUPER::test_build', @_);
+    return $self->_build($self->test_dsn, $self->_test_dir, 'SUPER::test_build', @_);
 }
 
 ##############################################################################
@@ -302,15 +302,17 @@ sub test_build {
 
 =head3 _build
 
-  $kdb->_build($dsn, $method, @args);
+  $kdb->_build($dsn, $method, $dir, @args);
 
-Called by C<build> and C<test_build>.  See those methods to understand their
+Called by C<build> and C<test_build>. See those methods to understand their
 behavior.
 
 =cut
 
 sub _build {
-    my ($self, $dsn, $method, @args) = @_;
+    my ($self, $dsn, $dir, $method, @args) = @_;
+    File::Path::mkpath $dir, 1;
+
     $self->_dbh(my $dbh = DBI->connect($dsn, '', '', {
         RaiseError     => 0,
         PrintError     => 0,
@@ -336,7 +338,11 @@ method.
 
 sub _path {
     my $self = shift;
-    return catfile $self->builder->install_base, 'store', $self->db_file;
+    return catfile $self->_dir, $self->db_file;
+}
+
+sub _dir {
+    return catdir shift->builder->install_base, 'store';
 }
 
 ##############################################################################
@@ -353,8 +359,12 @@ directory named by the the C<test_data_dir> Kinetic::Build property.
 
 sub _test_path {
     my $self = shift;
-    my $build = $self->builder;
-    return catfile $build->base_dir, $build->test_data_dir, $self->db_file;
+    return catfile $self->_test_dir, $self->db_file;
+}
+
+sub _test_dir {
+    my $build = shift->builder;
+    return catdir $build->base_dir, $build->test_data_dir;
 }
 
 ##############################################################################
