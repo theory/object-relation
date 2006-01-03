@@ -341,6 +341,16 @@ sub _path {
     return catfile $self->_dir, $self->db_file;
 }
 
+##############################################################################
+
+=head3 _dir
+
+  my $dir = $kbs->_dir;
+
+Returns the full path to the directory used by C<_path()>.
+
+=cut
+
 sub _dir {
     return catdir shift->builder->install_base, 'store';
 }
@@ -361,6 +371,16 @@ sub _test_path {
     my $self = shift;
     return catfile $self->_test_dir, $self->db_file;
 }
+
+##############################################################################
+
+=head3 _test_dir
+
+  my $test_dir = $kbs->_test_dir;
+
+Returns the full path to the directory used by C<_test_path()>.
+
+=cut
 
 sub _test_dir {
     my $build = shift->builder;
