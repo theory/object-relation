@@ -135,8 +135,14 @@ sub new {
         );
     };
 
-    # Add elements we need here.
+    # Prevent installation into lib/perl5. We just want lib'.
+    $self->install_path->{lib}  ||= $self->install_base . '/lib';
+
+    # Add config file element and install path.
     $self->add_build_element('conf');
+    $self->install_path->{conf} ||= $self->install_base . '/conf';
+
+    # Add any other elements we need here.
 
     # Prompts.
     for my $prompt (@prompts) {
@@ -163,7 +169,7 @@ file.
 sub resume {
     my $self = shift->SUPER::resume(@_);
     if (my $conf = $self->notes('build_conf_file')) {
-        $ENV{KINETIC_CONF} = $conf;
+        $ENV{KINETIC_CONF} ||= $conf;
     }
     if (my $store = $self->store) {
         my $build_store_class = $STORES{$store}

@@ -12,6 +12,7 @@ use Test::File;
 use Test::File::Contents;
 use File::Copy;
 use File::Spec::Functions;
+use List::MoreUtils qw(any);
 
 __PACKAGE__->runtests unless caller;
 
@@ -89,7 +90,7 @@ sub atest_process_conf_files : Test(14) {
     file_not_exists_ok 'blib', 'Build lib should be gone';
 }
 
-sub test_props : Test(11) {
+sub test_props : Test(13) {
     my $self = shift;
     my $class = $self->test_class;
     my $mb = MockModule->new($class);
@@ -102,6 +103,18 @@ sub test_props : Test(11) {
 
     my $builder = $self->new_builder;
     $self->{builder} = $builder;
+
+    # Make sure the install paths are set.
+    my $base = $builder->install_base;
+    is_deeply $builder->install_path, {
+        lib  => "$base/lib",
+        conf => "$base/conf",
+    }, 'Make sure that the install paths are set';
+
+    # Make sure that we've added the "config" build element.
+    ok any( sub { $_ eq 'conf' }, @{ $builder->build_elements } ),
+        'Check for "conf" build element';
+
     is $builder->accept_defaults, 1, 'Accept Defaults should be enabled';
     is $builder->store, 'sqlite', 'Default store should be "SQLite"';
     is $builder->source_dir, 'lib', 'Default source dir should be "lib"';
