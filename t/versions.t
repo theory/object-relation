@@ -13,7 +13,7 @@ if ($@) {
 }
 else {
     @modules =
-      #grep { /^Kinetic/ }    # XXX remove after testing
+      grep { ! /Apache/ }        # can't load them because of Apache constants
       grep { $_ ne 'Kinetic' } Test::Pod::Coverage::all_modules();
     plan tests => @modules + 1;
 }

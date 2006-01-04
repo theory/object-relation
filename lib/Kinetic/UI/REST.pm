@@ -34,10 +34,10 @@ Readonly my $CHAIN => qr/,/;
 
 use Class::BuildMethods qw(
   cgi
+  content_type
+  desired_content_type
   response
   status
-  desired_content_type
-  content_type
 );
 
 =head1 Name
@@ -91,7 +91,6 @@ sub new {
         content_type => '',
         domain       => $args{domain},
         path         => $args{path},
-        xslt         => 'search',
     } => $class;
 }
 
@@ -141,8 +140,7 @@ sub handle_request {
     my $dispatch = Dispatch->new( { rest => $self } );
     $dispatch->formatter( Kinetic::Format->new( { format => $type } ) );
     eval {
-        if ($class_key)
-        {
+        if ($class_key) {
             $dispatch->class_key($class_key)->handle_rest_request(@request);
         }
         else {
@@ -213,13 +211,16 @@ sub _get_request_from_path_info {
     my $self  = shift;
     my @links =
       map {
-        [
-            map    { uri_unescape($_) }
-              grep { /\S/ }
+        [   map    { uri_unescape($_) }
+              grep {/\S/}
               split '/' => $_
         ]
       }
       split $CHAIN, $self->path_info;
+    #use Data::Dumper;
+    #warn "Path info (@{[$self->path_info]}) Path (@{[$self->path]})\n";
+    #warn "URL is (@{[$self->cgi->url]})\n";
+    #warn Dumper($self);
     my $request   = $links[0];
     my @base_path = split '/' => $self->path;
 
@@ -330,9 +331,28 @@ called.
 
 sub path_info {
     my $self = shift;
+
     return unless my $cgi = $self->cgi;
+
+    # XXX CGI.pm's mod_perl handling appears to be broken ... :(
+    if ( defined( my $version = $ENV{MOD_PERL_API_VERSION} ) ) {
+        if ( 2 <= $version ) {
+            my $path_info = $cgi->url . $cgi->path_info;
+            my $base_url  = $self->base_url;
+            $path_info =~ s/$base_url//;
+            return "/$path_info";
+        }
+    }
     $cgi->path_info;
 }
+
+##############################################################################
+
+=head3 uri
+
+  my $uri = $rest->uri;
+
+=cut
 
 ##############################################################################
 
