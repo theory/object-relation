@@ -33,7 +33,7 @@ sub test_class_methods : Test(8) {
     ok $class->rules, "We should get some rules";
 }
 
-sub test_rules : Test(29) {
+sub test_rules : Test(35) {
     my $self  = shift;
     my $class = $self->test_class;
 
@@ -113,12 +113,15 @@ sub test_rules : Test(29) {
     );
     my $sg = $kbs->schema_class->new;
     $sg->load_classes( $kbs->builder->source_dir );
-    for my $class ( $sg->classes ) {
-        my $view = $class->key;
+    for my $view ( Kinetic::Meta->keys ) {
+        my $class = Kinetic::Meta->for_key($view);
+        my ($expect, $not) = $class->abstract
+            ? ([], ' not')
+            : ([[1]], '');
         is_deeply $dbh->selectall_arrayref(
             "SELECT 1 FROM sqlite_master WHERE type ='view' AND name = ?",
             {}, $view
-        ), [[1]], "View $view should exist";
+        ), $expect, "View $view should$not exist";
     }
 
     # Try building the production database.
@@ -139,12 +142,17 @@ sub test_rules : Test(29) {
         }
     );
 
-    for my $view (qw'simple one two composed comp_comp') {
+    for my $view ( Kinetic::Meta->keys ) {
+        my $class = Kinetic::Meta->for_key($view);
+        my ($expect, $not) = $class->abstract
+            ? ([], ' not')
+            : ([[1]], '');
         is_deeply $dbh->selectall_arrayref(
             "SELECT 1 FROM sqlite_master WHERE type ='view' AND name = ?",
-            {}, $view ),
-          [ [1] ], "View $view should exist";
+            {}, $view
+        ), $expect, "View $view should$not exist";
     }
+
     $dbh->disconnect;
     unlink $db_file;
 }

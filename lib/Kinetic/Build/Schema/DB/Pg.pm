@@ -92,6 +92,7 @@ my %types = (
     whole    => 'INTEGER',
     state    => 'STATE',
     datetime => 'TIMESTAMP',
+    version  => 'TEXT',
 );
 
 sub column_type {
@@ -227,7 +228,7 @@ sub index_on {
     my ($self, $attr) = @_;
     my $name = $attr->column;
     my $type = $attr->type;
-    return "LOWER($name)" if $type eq 'string';
+    return "LOWER($name)" if $type eq 'string' || $type eq 'version';
     return $name;
 }
 
@@ -371,8 +372,10 @@ sub unique_triggers {
     my $parent_table = $state_class->table;
     my @trigs;
     for my $attr (@uniques) {
-        my $col = $attr->column;
-        my ($comp_col, $new_col, $old_col) = $attr->type eq 'string'
+        my $col  = $attr->column;
+        my $type = $attr->type;
+        my ($comp_col, $new_col, $old_col)
+            = $type eq 'string' || $type eq 'version'
             ? ("LOWER($col)", "LOWER(NEW.$col)", "LOWER(OLD.$col")
             : ($col,          "NEW.$col",        "OLD.$col"      );
 

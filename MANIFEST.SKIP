@@ -12,3 +12,5 @@
 ^\.#
 ^App-Kinetic
 \.svn
+^t\Wdata\W
+^t\Wconf\W

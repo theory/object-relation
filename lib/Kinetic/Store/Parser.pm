@@ -406,7 +406,7 @@ sub _make_search {
           'ARRAY' eq ref $value ? [ map $_->id => @$value ]
           : ref $value ? $value->id
           : die $LANGUAGE->maketext(
-            'Object key "[_1]" must point to an object, not a scalar "[_1]"',
+            'Object key "[_1]" must point to an object, not a scalar "[_2]"',
             $id_column, $value
           );
     }

@@ -43,15 +43,16 @@ of the Kinetic localization interface.
 our %Lexicon;
 {
     my %classes = (
-        'Kinetic' => 'Kinetic',
-        'Class'   => 'Class',
-        'Classes' => 'Classes',
-        'Party'   => 'Party',
-        'Parties' => 'Parties',
-        'Person'  => 'Person',
-        'Persons' => 'Persons',
-        'User'    => 'User',
-        'Users'   => 'Users',
+        'Kinetic'             => 'Kinetic',
+        'Class'               => 'Class',
+        'Classes'             => 'Classes',
+        'Party'               => 'Party',
+        'Parties'             => 'Parties',
+        'Person'              => 'Person',
+        'Persons'             => 'Persons',
+        'User'                => 'User',
+        'Users'               => 'Users',
+        'Version Information' => 'Version Information'
     );
 
     my %kinetic_object_states = (
@@ -70,7 +71,7 @@ our %Lexicon;
         'I don\'t know how to lex a “[_1]”',
 
         'Could not parse search request:  [_1]',
-        'Could not parse search request:  [_1]',
+        'Could not parse search request: [_1]',
 
         'Could not parse search request',
         'Could not parse search request',
@@ -78,8 +79,8 @@ our %Lexicon;
         q{Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]},
         'Don’t know how to search for ([_1] [_2] [_3] [_4]): [_5]',
 
-        'Object key "[_1]" must point to an object, not a scalar "[_1]"',
-'Object key “[_1]” must point to an object, not a scalar “[_2]”',
+        'Object key "[_1]" must point to an object, not a scalar "[_2]"',
+        'Object key “[_1]” must point to an object, not a scalar “[_2]”',
     );
 
     my %search_messages = (
@@ -110,8 +111,8 @@ our %Lexicon;
         'All types to an ANY search must match',
         'All types to an ANY search must match',
 
-'BETWEEN searches must be between identical types. You have ([_1]) and ([_2])',
-'BETWEEN searches must be between identical types. You have ([_1]) and ([_2])',
+        'BETWEEN searches must be between identical types. You have ([_1]) and ([_2])',
+        'BETWEEN searches must be between identical types. You have ([_1]) and ([_2])',
 
         'BETWEEN searches should have two terms. You have [_1] term(s).',
         'BETWEEN searches should have two terms. You have [_1] term(s).',
@@ -119,8 +120,8 @@ our %Lexicon;
         'PANIC: ANY search data is not an array ref. This should never happen.',
         'PANIC: ANY search data is not an array ref. This should never happen.',
 
-'PANIC: BETWEEN search data is not an array ref. This should never happen.',
-'PANIC: BETWEEN search data is not an array ref. This should never happen.',
+        'PANIC: BETWEEN search data is not an array ref. This should never happen.',
+        'PANIC: BETWEEN search data is not an array ref. This should never happen.',
 
         'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
         'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',

@@ -144,12 +144,14 @@ sub load_classes {
         local *__ANON__ = '__ANON__find_classes';
         return if /\.svn/;
         return unless /\.pm$/;
-        return if /#/; # Ignore old backup files.
+        return if /#/;    # Ignore old backup files.
         return if first { $File::Find::name =~ m/$_/ } @skippers;
-        my $class = $self->file_to_mod($lib_dir, $File::Find::name);
+        my $class = $self->file_to_mod( $lib_dir, $File::Find::name );
         eval "require $class" or die $@;
+
+        # Keep the class if it isa Kinetic and is not abstract.
         unshift @classes, $class->my_class
-            if UNIVERSAL::isa($class, 'Kinetic');
+            if $class->isa('Kinetic') && !$class->my_class->abstract;
     };
 
     find({ wanted => $find_classes, no_chdir => 1 }, $dir);

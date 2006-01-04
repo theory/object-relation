@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use diagnostics;
 
-use Test::More tests => 443;
+use Test::More tests => 447;
 use Test::NoWarnings; # Adds an extra test.
 use File::Spec;
 use File::Find;

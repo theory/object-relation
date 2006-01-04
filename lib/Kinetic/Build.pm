@@ -524,7 +524,7 @@ sub ACTION_install {
     $kbs->build;
 
     # Create any base objects.
-    $self->init_kinetic;
+    $self->init_app;
 
     return $self;
 }
@@ -747,9 +747,9 @@ sub get_reply {
 
 ##############################################################################
 
-=head3 init_kinetic
+=head3 init_app
 
-  $build->init_kinetic;
+  $build->init_app;
 
 This method is called by the C<install> action to initialize Kinetic objects
 in the newly installed Kinetic data store. Currently, this means simply
@@ -758,15 +758,25 @@ future.
 
 =cut
 
-sub init_kinetic {
+sub init_app {
     my $self = shift;
-    require Kinetic::Party::User;
-    Kinetic::Party::User->new(
-        last_name  => 'User',
-        first_name => 'Admin',
-        username   => $self->admin_username,
-        password   => $self->admin_password,
+
+    # Set up the version info for this app.
+    require Kinetic::VersionInfo;
+    Kinetic::VersionInfo->new(
+        app_name => $self->module_name,
+        version  => version->new($self->dist_version),
     )->save;
+
+    if ($self->module_name eq 'Kinetic') {
+        require Kinetic::Party::User;
+        Kinetic::Party::User->new(
+            last_name  => 'User',
+            first_name => 'Admin',
+            username   => $self->admin_username,
+            password   => $self->admin_password,
+        )->save;
+    }
     return $self;
 }
 

@@ -28,6 +28,7 @@ use OSSP::uuid;
 use Data::Types;
 use Kinetic::DateTime;
 use Kinetic::Util::Exceptions qw(throw_invalid);
+use version;
 
 =head1 Name
 
@@ -188,6 +189,22 @@ Kinetic::Meta::Type->add(
         throw_invalid(['Cannot assign permanent state'])
           if $_[0] == Kinetic::Util::State->PERMANENT;
     }
+);
+
+##############################################################################
+
+=item version
+
+A L<version|version> object.
+
+=cut
+
+Kinetic::Meta::Type->add(
+    key   => 'version',
+    name  => 'Version',
+    raw   => sub { ref $_[0] ? shift->stringify : shift },
+    bake  => sub { version->new(shift) },
+    check => 'version',
 );
 
 =back

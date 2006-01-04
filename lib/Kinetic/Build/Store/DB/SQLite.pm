@@ -302,9 +302,9 @@ sub test_build {
 
 =head3 _build
 
-  $kdb->_build($dsn, $method, $dir, @args);
+  $kdb->_build($dsn, $dir, $method, @args);
 
-Called by C<build> and C<test_build>. See those methods to understand their
+Called by C<build> and C<test_build>. See those methods to understand its
 behavior.
 
 =cut

@@ -51,5 +51,19 @@ sub test_password : Test(12) {
     ok !$user->compare_password('bad'), 'A bad password still should not';
 }
 
+sub test_admin : Test(5) {
+    my $self = shift;
+    return 'Not testing Data Stores' unless $self->dev_testing;
+
+    # We should have a default admin user.
+    ok my $admin = Kinetic::Party::User->lookup(username => 'admin'),
+        'The admin user should exist';
+    is $admin->username,   'admin', 'Its username should be "admin"';
+    is $admin->last_name,  'User',  'Its last name should be "User"';
+    is $admin->first_name, 'Admin', 'Its first name should be "Admin"';
+    ok $admin->compare_password('change me now!'),
+        'Its password should be "change me now!"';
+}
+
 1;
 __END__

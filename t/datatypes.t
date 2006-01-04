@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 39;
+use Test::More tests => 47;
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Util::Functions qw(:uuid);
 
@@ -51,7 +51,15 @@ BEGIN {
                             context  => Class::Meta::CLASS,
                             required => 1,
                           ),
-        "Add datetime attribute" );
+        "Add class attribute" );
+
+    # Add a version attribute.
+    ok( $cm->add_attribute( name     => 'version',
+                            view     => Class::Meta::PUBLIC,
+                            type     => 'version',
+                            required => 1,
+                          ),
+        "Add version attribute" );
 
 
     ok($cm->build, "Build class" );
@@ -84,7 +92,7 @@ like $err->error, qr/Attribute .uuid. can be set only once/,
 # Test state accessor.
 is $t->state, Kinetic::Util::State->ACTIVE, "State should be active by default";
 
-# Make sure that automatic bakeing works.
+# Make sure that automatic baking works.
 $t->{state} = Kinetic::Util::State->INACTIVE->value; # Don't try this at home!
 isa_ok($t->state, 'Kinetic::Util::State');
 is $t->state, Kinetic::Util::State->INACTIVE, "It should be the proper value.";
@@ -112,7 +120,7 @@ ok( ! $t->bool, "Check false bool" );
 # Test DateTime accessor.
 is( $t->datetime, undef, 'Check for no DateTime' );
 
-# Make sure that automatic bakeing works.
+# Make sure that automatic baking works.
 my $date = '2005-03-23T19:30:05.1234';
 $t->{datetime} = $date; # Don't try this at home!
 isa_ok($t->datetime, 'Kinetic::DateTime');
@@ -137,4 +145,25 @@ is $t->string, undef, "The object should see the undef, too";
 ok( Kinetic::TestTypes->string('bub'), "Set the string" );
 is( Kinetic::TestTypes->string, 'bub', 'The attribute should be set' );
 is $t->string, 'bub', "The object should see the same value";
+
+
+# Test Version accessor.
+is( $t->version, undef, 'Check for no Version' );
+
+# Make sure that automatic baking works.
+my $version = '1.10.3';
+$t->{version} = $version; # Don't try this at home!
+isa_ok($t->version, 'version');
+
+# Try assigning a Kinetic::Version object.
+$version = version->new('4.3');
+ok( $t->version($version), 'Add Version object' );
+is overload::StrVal($t->version), overload::StrVal($version),
+    'Version object should be the same';
+
+is $t->my_class->attributes('version')->raw($t), $version->stringify,
+    'Make sure the raw value is stringified';
+eval { $t->version('foo') };
+ok $err = $@, "Caught bad Version exception";
+isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
 

@@ -164,6 +164,48 @@ my %builders = (
             }
         },
     },
+    version => {
+        get => sub {
+            my $name = shift;
+            return sub {
+                # XXX Turn off this error in certain modes?
+                throw_read_only(['Cannot assign to read-only attribute "[_1]"',
+                                 $name])
+                  if @_ > 1;
+                # Do we need to inflate the Version object?
+                $_[0]->{$name} = version->new($_[0]->{$name})
+                    if defined $_[0]->{$name} and not ref $_[0]->{$name};
+                return $_[0]->{$name};
+            };
+        },
+        getset => sub {
+            my ($attr, $name, @checks) = @_;
+            if ($attr->persistent) {
+                return sub {
+                    my $self = shift;
+                    $self->{$name} = version->new($self->{$name})
+                        if defined $self->{$name} && !ref $self->{$name};
+                    return $self->{$name} unless @_;
+                    # Check the value passed in.
+                    $_->($_[0], $name, $self) for @checks;
+                    # Assign the value.
+                    return _set($self, $name, shift);
+                };
+            } else {
+                return sub {
+                    my $self = shift;
+                    $self->{$name} = version->new($self->{$name})
+                        if defined $self->{$name} && !ref $self->{$name};
+                    return $self->{$name} unless @_;
+                    # Check the value passed in.
+                    $_->($_[0], $name, $self) for @checks;
+                    # Assign the value.
+                    $self->{$name} = shift;
+                    return $self;
+                };
+            }
+        },
+    },
     datetime => {
         get => sub {
             my $name = shift;

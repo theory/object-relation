@@ -34,8 +34,8 @@ isa_ok $sg, 'Kinetic::Build::Schema::DB::Pg';
 
 ok $sg->load_classes('t/sample/lib'), "Load classes";
 is_deeply [ map { $_->key } $sg->classes ],
-  [qw(simple one composed comp_comp two extend relation)],
-  "classes() returns classes in their proper dependency order";
+    [qw(simple one composed comp_comp two extend relation)],
+    "classes() returns classes in their proper dependency order";
 
 for my $class ( $sg->classes ) {
     ok $class->is_a('Kinetic'), $class->package . ' is a Kinetic';

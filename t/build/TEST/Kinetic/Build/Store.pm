@@ -5,6 +5,7 @@ package TEST::Kinetic::Build::Store;
 use strict;
 use warnings;
 use base 'TEST::Class::Kinetic';
+use TEST::Kinetic::Build;
 use Test::More;
 use Test::Exception;
 use aliased 'Test::MockModule';
@@ -74,7 +75,7 @@ sub test_instance : Test(32) {
                          do => sub { ok 1, "validate() should execute rules";}
                      }
                  });
-    ok $kbs->validate, "validate() shoud work";
+    ok $kbs->validate, 'validate() should work';
 
     # Try is_required_version().
     $store->mock(min_version => 1 );

@@ -1018,7 +1018,7 @@ sub test_db_helpers : Test(21) {
       "A non-existant user should not be a super user";
 }
 
-sub test_build_meths : Test(20) {
+sub test_build_meths : Test(24) {
     my $self = shift;
     return "Not testing PostgreSQL" unless $self->supported('pg');
     my $class = $self->test_class;
@@ -1115,20 +1115,26 @@ sub test_build_meths : Test(20) {
     # Test build_db.
     $pg->mock(_dbh => $self->{dbh}); # Don't use the template!
     ok $kbs->build_db, "Build the database";
-    my @views = qw'simple one two composed comp_comp';
-    for my $view (@views) {
+
+    for my $view ( Kinetic::Meta->keys ) {
+        my $class = Kinetic::Meta->for_key($view);
+        my ($expect, $not) = $class->abstract
+            ? ([], ' not')
+            : ([[1]], '');
         is_deeply $self->{dbh}->selectall_arrayref("
             SELECT 1
             FROM   pg_catalog.pg_class c
             WHERE  c.relname = ? and c.relkind = 'v'
             ", {}, $view
-        ), [[1]], "View $view should exist";
+        ), $expect, "View $view should$not exist";
     }
 
     # Test granting permissions.
     my @checks;
     my @params;
-    for my $view (@views) {
+    for my $view ( Kinetic::Meta->keys ) {
+        my $class = Kinetic::Meta->for_key($view);
+        next if $class->abstract;
         for my $perm (qw(SELECT UPDATE INSERT DELETE)) {
             push @checks, 'has_table_privilege(?, ?, ?)';
             push @params, $self->{conf}{pg}{db_user}, $view, $perm;

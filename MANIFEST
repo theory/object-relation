@@ -2,6 +2,7 @@ Build.PL
 catalyst/cgi.pl
 catalyst/create.pl
 catalyst/fastcgi.pl
+catalyst/registry.pl
 catalyst/server.pl
 catalyst/test.pl
 Changes
@@ -69,6 +70,8 @@ lib/Kinetic/UI/Catalyst/V/TT.pm
 lib/Kinetic/UI/REST.pm
 lib/Kinetic/UI/REST/Dispatch.pm
 lib/Kinetic/UI/TT/Plugin/Renderer.pm
+lib/Kinetic/Util/Auth.pm
+lib/Kinetic/Util/Auth/Kinetic.pm
 lib/Kinetic/Util/Cache.pm
 lib/Kinetic/Util/Collection.pm
 lib/Kinetic/Util/Config.pm
@@ -82,6 +85,7 @@ lib/Kinetic/Util/Language/en.pm
 lib/Kinetic/Util/Language/en_uk.pm
 lib/Kinetic/Util/Language/en_us.pm
 lib/Kinetic/Util/State.pm
+lib/Kinetic/VersionInfo.pm
 lib/Kinetic/View/XSLT.pm
 lib/Kinetic/XML.pm
 lib/Kinetic/XML/Meta.pm
@@ -208,6 +212,7 @@ t/pod_coverage.t
 t/relationships.t
 t/request.t
 t/sample/conf/kinetic.conf
+t/sample/lib/TestApp/Abstract.pm
 t/sample/lib/TestApp/CompComp.pm
 t/sample/lib/TestApp/Composed.pm
 t/sample/lib/TestApp/Extend.pm
@@ -249,6 +254,8 @@ t/system/TEST/Kinetic.pm
 t/system/TEST/Kinetic/Party.pm
 t/system/TEST/Kinetic/Party/Person.pm
 t/system/TEST/Kinetic/Party/User.pm
+t/system/TEST/Kinetic/Util/Auth.pm
+t/system/TEST/Kinetic/VersionInfo.pm
 t/test_setup.t
 t/tt_renderer.t
 t/util.t

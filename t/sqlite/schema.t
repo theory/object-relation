@@ -31,7 +31,7 @@ is_deeply [ map { $_->key } $sg->classes ],
   "classes() returns classes in their proper dependency order";
 
 for my $class ($sg->classes) {
-    ok $class->is_a('Kinetic'), "Class is a Kinetic";
+    ok $class->is_a('Kinetic'), $class->package . ' is a Kinetic';
 }
 
 ##############################################################################
