@@ -155,7 +155,7 @@ __END__
 
 =head1 Copyright and License
 
-Copyright (c) 2004-2005 Kineticode, Inc. <info@kineticode.com>
+Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>
 
 This work is made available under the terms of Version 2 of the GNU General
 Public License. You should have received a copy of the GNU General Public
