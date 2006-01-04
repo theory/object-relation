@@ -573,7 +573,7 @@ sub build {
 
     $self->SUPER::build(@_);
 
-    my $type = Kinetic::Meta::Type->new($self->{type});
+    my $type = Kinetic::Meta::Type->new($self->type);
     # Create the attribute object raw() and bake() code references.
     if ($self->authz >= Class::Meta::READ) {
         my $get = $type->make_attr_get($self);

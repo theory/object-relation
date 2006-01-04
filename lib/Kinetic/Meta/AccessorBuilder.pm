@@ -134,56 +134,28 @@ my %builders = (
             }
         },
     },
-    state => {
-        # State is always get/set.
-        getset => sub {
-            my ($attr, $name, @checks) = @_;
-            if ($attr->persistent) {
-                return sub {
-                    my $self = shift;
-                    $self->{$name} = Kinetic::Util::State->new($self->{$name})
-                        unless ref $self->{$name};
-                    return $self->{$name} unless @_;
-                    # Check the value passed in.
-                    $_->($_[0], $name, $self) for @checks;
-                    # Assign the value.
-                    return _set($self, $name, shift);
-                };
-            } else {
-                return sub {
-                    my $self = shift;
-                    $self->{$name} = Kinetic::Util::State->new($self->{$name})
-                        unless ref $self->{$name};
-                    return $self->{$name} unless @_;
-                    # Check the value passed in.
-                    $_->($_[0], $name, $self) for @checks;
-                    # Assign the value.
-                    $self->{$name} = shift;
-                    return $self;
-                };
-            }
-        },
-    },
-    version => {
+
+    bake => {
         get => sub {
-            my $name = shift;
+            my ($name, $bake) = @_;
             return sub {
+                my $self = shift;
                 # XXX Turn off this error in certain modes?
                 throw_read_only(['Cannot assign to read-only attribute "[_1]"',
                                  $name])
                   if @_ > 1;
-                # Do we need to inflate the Version object?
-                $_[0]->{$name} = version->new($_[0]->{$name})
-                    if defined $_[0]->{$name} and not ref $_[0]->{$name};
-                return $_[0]->{$name};
+                # Do we need to inflate the object?
+                $self->{$name} = $bake->($self->{$name})
+                    if defined $self->{$name} and not ref $self->{$name};
+                return $self->{$name};
             };
         },
         getset => sub {
-            my ($attr, $name, @checks) = @_;
+            my ($attr, $name, $bake, @checks) = @_;
             if ($attr->persistent) {
                 return sub {
                     my $self = shift;
-                    $self->{$name} = version->new($self->{$name})
+                    $self->{$name} = $bake->($self->{$name})
                         if defined $self->{$name} && !ref $self->{$name};
                     return $self->{$name} unless @_;
                     # Check the value passed in.
@@ -194,7 +166,7 @@ my %builders = (
             } else {
                 return sub {
                     my $self = shift;
-                    $self->{$name} = version->new($self->{$name})
+                    $self->{$name} = $bake->($self->{$name})
                         if defined $self->{$name} && !ref $self->{$name};
                     return $self->{$name} unless @_;
                     # Check the value passed in.
@@ -206,52 +178,6 @@ my %builders = (
             }
         },
     },
-    datetime => {
-        get => sub {
-            my $name = shift;
-            return sub {
-                # XXX Turn off this error in certain modes?
-                throw_read_only(['Cannot assign to read-only attribute "[_1]"',
-                                 $name])
-                  if @_ > 1;
-                # Do we need to inflate the DateTime object?
-                $_[0]->{$name} = Kinetic::DateTime->new_from_iso8601($_[0]->{$name})
-                  if $_[0]->{$name} and not ref $_[0]->{$name};
-                return $_[0]->{$name};
-            };
-        },
-        getset => sub {
-            my ($attr, $name, @checks) = @_;
-            if ($attr->persistent) {
-                return sub {
-                    my $self = shift;
-                    # Do we need to inflate the DateTime object?
-                    $self->{$name} = Kinetic::DateTime->new_from_iso8601(
-                        $self->{$name}
-                    ) if $self->{$name} and not ref $self->{$name};
-                    return $self->{$name} unless @_;
-                    # Check the value passed in.
-                    $_->($_[0], $name, $self) for @checks;
-                    # Assign the value.
-                    return _set($self, $name, shift);
-                };
-            } else {
-                return sub {
-                    my $self = shift;
-                    # Do we need to inflate the DateTime object?
-                    $self->{$name} = Kinetic::DateTime->new_from_iso8601(
-                        $self->{$name}
-                    ) if $self->{$name} and not ref $self->{$name};
-                    return $self->{$name} unless @_;
-                    # Check the value passed in.
-                    $_->($_[0], $name, $self) for @checks;
-                    # Assign the value.
-                    $self->{$name} = shift;
-                    return $self;
-                };
-            }
-        },
-    }
 );
 
 sub build {
@@ -300,12 +226,14 @@ sub build {
     }
 
     # If we get here, it's an object attribute.
-    my $builder = $builders{$attr->type} || $builders{default};
+    my $bake    = Kinetic::Meta::Type->new($attr->type)->bake;
+    my $builder = $bake ? $builders{bake} : $builders{default};
     if ($create == Class::Meta::GET) {
         # Create GET accessor.
-        *{"${pkg}::$name"} = $builder->{get}->($name);
+        *{"${pkg}::$name"} = $builder->{get}->($name, $bake);
     } else {
         # Create GETSET accessor(s).
+        unshift @checks, $bake if $bake;
         *{"${pkg}::$name"} = $builder->{getset}->($attr, $name, @checks);
     }
 
