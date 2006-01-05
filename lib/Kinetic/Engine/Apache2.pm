@@ -107,8 +107,8 @@ sub _get_rest_object {
     $uri = $uri->canonical;
 
     $location = substr $location, 1;
-    my ($domain) = $uri =~ m{^(.+)$location};
-    return REST->new( domain => $domain, path => $location );
+    my ($base_url) = $uri =~ m{^(.+$location)};
+    return REST->new( base_url => $$base_url );
 }
 
 1;

@@ -14,10 +14,7 @@ sub new {
     if ( $value_for->{no_cache} ) {
         $CACHING = 0;
     }
-    $REST_SERVER = REST->new(
-        domain => $value_for->{domain},
-        path   => $value_for->{path}
-    );
+    $REST_SERVER = REST->new( base_url => $value_for->{base_url} );
     XSLT->cache_xslt($CACHING);
     $class->SUPER::new( @{ $value_for->{args} } );
 }

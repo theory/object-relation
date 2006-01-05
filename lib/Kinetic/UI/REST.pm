@@ -33,6 +33,7 @@ use Readonly;
 Readonly my $CHAIN => qr/,/;
 
 use Class::BuildMethods qw(
+  base_url
   cgi
   content_type
   desired_content_type
@@ -68,37 +69,28 @@ Kinetic::UI::REST - REST services provider
 
 =head3 new
 
-  my $rest = Kinetic::UI::REST->new(
-    domain => $domain,
-    path   => $path,
-  );
+  my $rest = Kinetic::UI::REST->new( base_url => $base_url );
 
 The C<new()> constructor returns a C<Kinetic::UI::REST> instance.  Note that
 this is an object that can interpret REST (REpresentational State Transfer).
 It is B<not> a server.
 
-The C<domain> and C<path> arguments are required.  They are used internally
-when building XML and examining path info.
+The C<base_url> is required.  This is used internally when identifying the
+REST query.
 
 =cut
 
 sub new {
     my $class = shift;
-    my %args  = _validate_args(@_);
-    bless {
-        cgi          => undef,
-        response     => '',
-        content_type => '',
-        domain       => $args{domain},
-        path         => $args{path},
-    } => $class;
+    my %arg_for  = _validate_args(@_);
+    my $self = bless {}, $class;
+    $self->base_url( $arg_for{base_url} );
 }
 
 sub _validate_args {
     my %arg_for = @_;
     my @errors;
-    push @errors => 'domain' unless exists $arg_for{domain};
-    push @errors => 'path'   unless exists $arg_for{path};
+    push @errors => 'base_url' unless exists $arg_for{base_url};
     if (@errors) {
         my $errors = join ' and ' => @errors;
         throw_required [
@@ -106,10 +98,6 @@ sub _validate_args {
             $errors, __PACKAGE__ . "::new"
         ];
     }
-    $arg_for{domain} .= '/' unless $arg_for{domain} =~ /\/$/;
-    $arg_for{path} .= '/'   unless $arg_for{path}   =~ /\/$/;
-    $arg_for{path} =~ s/^\///;
-
     return %arg_for;
 }
 
@@ -186,11 +174,6 @@ Returns the base url for the REST server.
 
 =cut
 
-sub base_url {
-    my $self = shift;
-    return join '' => $self->domain, $self->path;
-}
-
 sub _get_request {
     my $self = shift;
 
@@ -217,12 +200,9 @@ sub _get_request_from_path_info {
         ]
       }
       split $CHAIN, $self->path_info;
-    #use Data::Dumper;
-    #warn "Path info (@{[$self->path_info]}) Path (@{[$self->path]})\n";
-    #warn "URL is (@{[$self->cgi->url]})\n";
-    #warn Dumper($self);
-    my $request   = $links[0];
-    my @base_path = split '/' => $self->path;
+    my $request = $links[0];
+    my ($path) = $self->base_url =~ m{(?:[^:/?#]+:)?(?://[^/?#]*)?([^?#]*)};
+    my @base_path = split '/' => $path;
 
     # remove base path from request, if it's there
     for my $component (@base_path) {
@@ -353,31 +333,6 @@ sub path_info {
   my $uri = $rest->uri;
 
 =cut
-
-##############################################################################
-
-=head3 resource_path
-
-  my $resource_path = $rest->resource_path;
-
-Read only. This method returns the path info starting at the resource (assumes
-that C<< $rest->path >> should be removed from the path info).
-
-Returns the empty string if no resource path is found.
-
-=cut
-
-sub resource_path {
-    my $self          = shift;
-    my $resource_path = $self->path_info or return '';
-    my $path          = $self->path;
-
-    $resource_path =~ s/^$path//;
-    $resource_path =~ s/^\///;
-    $resource_path .= '/' unless $resource_path =~ /\/$/;
-
-    return '/' eq $resource_path ? '' : $resource_path;
-}
 
 1;
 __END__

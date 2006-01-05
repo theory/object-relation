@@ -19,7 +19,7 @@
     [% FOREACH key = c.config.classes;
          search_uri = "/search/" _ key _ "/squery/_limit/20";
     %]
-      <a href="[% Catalyst.uri_from(key) %]">[% key %]</a><br/>
+      <a href="[% c.uri_for(search_uri) %]">[% key %]</a><br/>
     [% END %]
     </div>
     [% content %]

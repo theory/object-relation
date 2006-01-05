@@ -55,12 +55,7 @@ sub setup : Test(setup) {
     }
     $test->{cgi_mock}  = $cgi_mock;
     $test->{rest_mock} = $rest_mock;
-    $test->{rest}      = REST->new(
-        domain => $DOMAIN,
-        path   => $PATH
-    );
-    $test->_path_info('');
-    $test->desired_attributes( [qw/ state name description bool /] );
+    $test->{rest}      = REST->new(base_url => "$DOMAIN$PATH");
     $test->domain($DOMAIN);
     $test->path($PATH);
 }

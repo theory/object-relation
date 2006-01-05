@@ -39,7 +39,7 @@ use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Util::State';
 
 use aliased 'TestApp::Simple::One';
-use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
+use aliased 'TestApp::Simple::Two';   # contains a TestApp::Simple::One object
 
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->any_supported(qw/pg sqlite/)
@@ -58,10 +58,8 @@ sub start_server : Test(startup) {
     my $path   = 'rest/';
 
     my $server = TEST::REST::Server->new(
-        {
-            domain => $domain,
-            path   => $path,
-            args   => [$port]
+        {   base_url => "$domain$path",
+            args     => [$port]
         }
     );
     $PID = $server->background;
@@ -114,7 +112,7 @@ sub chained_calls : Test(6) {
     $_->description( $_->name . " description" )->save foreach
       values %object_for;
 
-    my $rest = REST->new( domain => 'http://foo/', path => 'rest/server/' );
+    my $rest = REST->new( base_url => 'http://foo/rest/server/' );
     $test->domain('http://foo/');
     $test->path('rest/server/');
 
@@ -137,7 +135,8 @@ sub chained_calls : Test(6) {
       }
     ]
     END_JSON
-    is_json $rest->response, $expected, '... and it should be the correct JSON';
+    is_json $rest->response, $expected,
+      '... and it should be the correct JSON';
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $bar->my_class;
@@ -149,45 +148,20 @@ sub chained_calls : Test(6) {
       '... and it should really be the correct object';
 }
 
-sub constructor : Test(14) {
+sub constructor : Test(6) {
     my $test = shift;
     can_ok REST, 'new';
     throws_ok { REST->new }
       'Kinetic::Util::Exception::Fatal::RequiredArguments',
       '... and it should fail if domain and path are not present';
 
-    throws_ok { REST->new( domain => 'http://foo/' ) }
-      'Kinetic::Util::Exception::Fatal::RequiredArguments',
-      '... or if just domain is present';
-
-    throws_ok { REST->new( path => 'rest/' ) }
-      'Kinetic::Util::Exception::Fatal::RequiredArguments',
-      '... or if just path is present';
-
-    ok my $rest = REST->new( domain => 'http://foo/', path => 'rest/server/' ),
+    ok my $rest = REST->new( base_url => 'http://foo/rest/server/' ),
       'We should be able to create a basic REST object';
     isa_ok $rest, REST, '... and the object';
 
-    can_ok $rest, 'domain';
-    is $rest->domain, 'http://foo/',
-      '... and it should return the domain we set in the constructor';
-    $rest->domain('xxx');
-    is $rest->domain, 'http://foo/',
-      '... but we should not be able to change it';
-
-    can_ok $rest, 'path';
-    is $rest->path, 'rest/server/',
-      '... and it should return the path we set in the constructor';
-    $rest->path('xxx');
-    is $rest->path, 'rest/server/',
-      '... but we should not be able to change it';
-
-    $rest = REST->new( domain => 'http://foo', path => '/rest/server' ),
-      is $rest->domain, 'http://foo/',
-      'Domains without a trailing slash should have it appended';
-
-    is $rest->path, 'rest/server/',
-'... and paths should have leading slashes removed and trailing slashes added';
+    can_ok $rest, 'base_url';
+    is $rest->base_url, 'http://foo/rest/server/',
+      '... and it should return the correct base_url';
 }
 
 sub rest_interface_xml : Test(4) {
@@ -198,9 +172,7 @@ sub rest_interface_xml : Test(4) {
     $_->description( $_->name . " description" )->save foreach
       values %object_for;
 
-    my $rest = REST->new( domain => 'http://foo/', path => 'rest/server/' );
-    $test->domain('http://foo/');
-    $test->path('rest/server/');
+    my $rest = REST->new( base_url => 'http://foo/rest/server/' );
 
     my $cgi_mock = MockModule->new('CGI');
     $cgi_mock->mock( path_info => '/xml/one/squery/order_by/name' );
@@ -244,9 +216,7 @@ sub rest_interface : Test(32) {
     $_->description( $_->name . " description" )->save foreach
       values %object_for;
 
-    my $rest = REST->new( domain => 'http://foo/', path => 'rest/server/' );
-    $test->domain('http://foo/');
-    $test->path('rest/server/');
+    my $rest = REST->new( base_url => 'http://foo/rest/server/' );
 
     foreach my $method (qw/cgi status response content_type/) {
         can_ok $rest, $method;
@@ -402,9 +372,7 @@ sub rest_faults : Test(11) {
     $_->description( $_->name . " description" )->save foreach
       values %object_for;
 
-    my $rest = REST->new( domain => 'http://foo/', path => 'rest/server/' );
-    $test->domain('http://foo/');
-    $test->path('rest/server/');
+    my $rest = REST->new( base_url => 'http://foo/rest/server/' );
 
     my $cgi_mock = MockModule->new('CGI');
     $cgi_mock->mock( path_info => '/json/one/query' );
