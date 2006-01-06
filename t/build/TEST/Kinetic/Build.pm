@@ -147,6 +147,10 @@ sub test_props : Test(13) {
         'Which data store back end should I use?',
         ' [2]:',
         ' ',
+        "  1> apache2\n  2> catalyst\n",
+        'Which server should I use?',
+        ' [1]:',
+        ' ',
         'What password should be used for the default account?',
         ' [change me now!]:',
         ' ',
@@ -251,6 +255,7 @@ sub test_get_reply : Test(49) {
     $self->{builder} = $builder;
     is delete $self->{info},
           "Data store: pg\n"
+        . "Kinetic Server: apache2\n"
         . "Administrative User password: change me now!\n"
         . "Looking for pg_config\n"
         . "path to pg_config: /usr/local/pgsql/bin/pg_config\n",

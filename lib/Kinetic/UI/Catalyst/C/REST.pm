@@ -41,11 +41,11 @@ sub rest : Regex('^rest/(.*)') {
 
     # Hello World
     $c->response->body('Kinetic::UI::Catalyst::C::REST is on Catalyst!');
-    my $base_url = 'http://localhost:3000/rest/';
+    my $base_url = $c->uri_for('');
     my $rest = REST->new( base_url => $base_url );
     $rest->handle_request( $c->req );
+    $c->res->header( 'Content-Type' => $rest->content_type );
     $c->res->status( $rest->status );
-    $c->res->header( 'Content-Type' => 'text/plain' );
     $c->res->content_length( length $rest->response );
     $c->response->body( $rest->response );
 }

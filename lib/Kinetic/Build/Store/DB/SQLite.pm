@@ -102,8 +102,8 @@ sub dbd_class { 'DBD::SQLite' }
 
   my @rules = Kinetic::Build::Store::DB::SQLite->rules;
 
-This is an abstract method that must be overridden in a subclass. By default
-it must return arguments that the C<FSA::Rules> constructor requires.
+This method returns the rules required by the C<Kinetic::Build::Rules>
+state machine.
 
 =cut
 

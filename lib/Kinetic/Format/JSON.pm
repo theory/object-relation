@@ -20,6 +20,7 @@ package Kinetic::Format::JSON;
 
 use strict;
 use warnings;
+use Kinetic::Util::Constants '$TEXT_CT';
 use JSON ();
 use Class::Delegator
   send => [qw/objToJson jsonToObj/],
@@ -95,6 +96,21 @@ sub _init {
     $arg_for->{json} = $json;
     return $arg_for;
 }
+
+##############################################################################
+
+=head3 content_type
+
+  my $content_type = $formatter->content_type;
+
+Returns the MIME content type for the current format.
+
+=cut
+
+# XXX There also appears to be a 'text/x-json' content type, but it's not
+# standard, not is it widespread.
+
+sub content_type { $TEXT_CT }
 
 ##############################################################################
 

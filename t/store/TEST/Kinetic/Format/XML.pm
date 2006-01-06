@@ -157,4 +157,12 @@ return;
     is_deeply $two, $new_object, '... and the should return the correct object';
 }
 
+sub content_type : Test(2) {
+    my $test      = shift;
+    my $formatter = Kinetic::Format::XML->new;
+    can_ok $formatter, 'content_type';
+    is $formatter->content_type, 'text/xml',
+      '... and it should return the correct content type';
+}
+
 1

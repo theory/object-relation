@@ -12,14 +12,14 @@ use Test::More;
 use Test::Exception;
 
 use Class::Trait qw(
-    TEST::Kinetic::Traits::Store
-    TEST::Kinetic::Traits::SampleObjects
+  TEST::Kinetic::Traits::Store
+  TEST::Kinetic::Traits::SampleObjects
 );
 
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Store' => 'Store', ':all';
 use aliased 'TestApp::Simple::One';
-use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
+use aliased 'TestApp::Simple::Two';   # contains a TestApp::Simple::One object
 
 use Readonly;
 Readonly my $FORMAT => 'Kinetic::Format';
@@ -42,6 +42,18 @@ sub setup : Test(setup) {
 sub teardown : Test(teardown) {
     my $test = shift;
     $test->unmock_dbh;
+}
+
+sub content_type : Test(3) {
+    my $test = shift;
+    my $formatter = Kinetic::Format->new( { format => 'xml' } );
+    can_ok $formatter, 'content_type';
+    is $formatter->content_type, 'text/xml',
+      '... and it should return the correct content type';
+
+    $formatter = Kinetic::Format->new( { format => 'json' } );
+    is $formatter->content_type, 'text/plain',
+      '... and it should return the correct content type';
 }
 
 sub constructor : Test(5) {
@@ -93,7 +105,7 @@ sub to_and_from_hashref : Test(7) {
       '... and calling it with a valid Kinetic object should succeed';
     my %expected = (
         bool        => 1,
-        Key        => 'one',
+        Key         => 'one',
         name        => 'foo',
         description => undef,
         uuid        => $foo->uuid,
@@ -126,7 +138,7 @@ sub expand_ref : Test(9) {
       '... and calling it with a valid Kinetic object should succeed';
     my %expected = (
         bool        => 1,
-        Key        => 'one',
+        Key         => 'one',
         name        => 'foo',
         description => undef,
         uuid        => $foo->uuid,
@@ -138,25 +150,22 @@ sub expand_ref : Test(9) {
     ok $ref = $formatter->expand_ref( \@array ),
       '... and it should be able to properly expand array refs';
     my @expected = (
-        {
-            'bool'        => 1,
-            'Key'        => 'one',
+        {   'bool'        => 1,
+            'Key'         => 'one',
             'name'        => 'foo',
             'description' => undef,
             'uuid'        => $foo->uuid,
             'state'       => 1
         },
-        {
-            'bool'        => 1,
-            'Key'        => 'one',
+        {   'bool'        => 1,
+            'Key'         => 'one',
             'name'        => 'bar',
             'description' => undef,
             'uuid'        => $bar->uuid,
             'state'       => 1
         },
-        {
-            'bool'        => 1,
-            'Key'        => 'one',
+        {   'bool'        => 1,
+            'Key'         => 'one',
             'name'        => 'snorfleglitz',
             'description' => undef,
             'uuid'        => $baz->uuid,
@@ -172,7 +181,7 @@ sub expand_ref : Test(9) {
     %expected = (
         foo => {
             'bool'        => 1,
-            'Key'        => 'one',
+            'Key'         => 'one',
             'name'        => 'foo',
             'description' => undef,
             'uuid'        => $foo->uuid,
@@ -180,7 +189,7 @@ sub expand_ref : Test(9) {
         },
         bar => {
             'bool'        => 1,
-            'Key'        => 'one',
+            'Key'         => 'one',
             'name'        => 'bar',
             'description' => undef,
             'uuid'        => $bar->uuid,
@@ -188,7 +197,7 @@ sub expand_ref : Test(9) {
         },
         baz => {
             'bool'        => 1,
-            'Key'        => 'one',
+            'Key'         => 'one',
             'name'        => 'snorfleglitz',
             'description' => undef,
             'uuid'        => $baz->uuid,

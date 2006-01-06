@@ -21,6 +21,7 @@ package Kinetic::Format::XML;
 use strict;
 use warnings;
 use XML::Simple ();
+use Kinetic::Util::Constants '$XML_CT';
 
 use version;
 our $VERSION = version->new('0.0.1');
@@ -90,6 +91,18 @@ sub _init {
     $arg_for->{xml} = $xml;
     return $arg_for;
 }
+
+##############################################################################
+
+=head3 content_type
+
+  my $content_type = $formatter->content_type;
+
+Returns the MIME content type for the current format.
+
+=cut
+
+sub content_type { $XML_CT }
 
 ##############################################################################
 

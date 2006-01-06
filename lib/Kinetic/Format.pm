@@ -153,6 +153,23 @@ sub deserialize {
 
 ##############################################################################
 
+=head3 content_type
+
+  my $content_type = $formatter->content_type;
+
+This method must be overridden in a subclass.
+
+This method returns the MIME content type of the format.
+
+=cut
+
+sub content_type {
+    throw_unimplemented [ '"[_1]" must be overridden in a subclass',
+        'content_type' ];
+}
+
+##############################################################################
+
 =head3 ref_to_format
 
   my $format = $formatter->ref_to_format($reference);

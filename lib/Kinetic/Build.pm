@@ -37,6 +37,11 @@ my %STORES = (
     sqlite => 'Kinetic::Build::Store::DB::SQLite',
 );
 
+my %SERVERS = (
+    apache2  => '',
+    catalyst => '',
+);
+
 =head1 Name
 
 Kinetic::Build - Kinetic application installer
@@ -235,6 +240,30 @@ __PACKAGE__->add_property(
     default => 'sqlite',
     options => [ sort keys %STORES ],
     message => 'Which data store back end should I use?'
+);
+
+##############################################################################
+
+=head3 server
+
+  my $server = $build->server;
+  $build->server($server);
+
+The type of server to be used for the application.  Possible values are
+"apache2" and "catalyst".  Defaults to "apache2".
+
+Though apache2 uses Catalyst internally, choosing "catalyst" for the server
+allows C<bin/kineticd> to use the Catalyst test server for development
+purposes.
+
+=cut
+
+__PACKAGE__->add_property(
+    name    => 'server',
+    label   => 'Kinetic Server',
+    default => 'apache2',
+    options => [ sort keys %SERVERS ],
+    message => 'Which server should I use?'
 );
 
 ##############################################################################
@@ -599,7 +628,7 @@ sub process_conf_files {
                     }
                 }
             }
-            elsif ( $STORES{$lc_section} ) {
+            elsif ( exists $STORES{$lc_section} ) {
 
                 # It's a section for another data store. Remove it.
                 delete $conf{$section};
@@ -615,6 +644,12 @@ sub process_conf_files {
                     # Insert the section contents using the *_config method.
                     $conf{$section} = $settings;
                 }
+            }
+
+            if ( exists $SERVERS{$lc_section} && $lc_section ne $self->server ) {
+                
+                # It's a section for a server we haven't chosen.
+                delete $conf{$section};
             }
         }
         # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804

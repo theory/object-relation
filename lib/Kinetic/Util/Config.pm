@@ -35,7 +35,7 @@ Kinetic::Util::Config - Kinetic application configuration
 
 In kinetic.conf:
 
-  [apache]
+  [apache2]
   httpd : /usr/local/apache/bin/httpd
   conf  : /usr/local/kinetic/conf/httpd.conf
   port  : 80
@@ -60,8 +60,8 @@ In a Kinetic class:
 
 In another Kinetic class:
 
-  use Kinetic::Util::Config qw(:apache);
-  system(APACHE_BIN);
+  use Kinetic::Util::Config qw(:apache2);
+  system(APACHE2_HTTPD);
 
 To get all constants:
 

@@ -11,8 +11,8 @@ use Test::JSON;
 use Test::More;
 use Test::Exception;
 use Class::Trait qw(
-    TEST::Kinetic::Traits::Store
-    TEST::Kinetic::Traits::SampleObjects
+  TEST::Kinetic::Traits::Store
+  TEST::Kinetic::Traits::SampleObjects
 );
 
 use Kinetic::Util::Constants qw/$UUID_RE/;
@@ -21,7 +21,7 @@ use aliased 'Test::MockModule';
 use aliased 'Kinetic::Store' => 'Store', ':all';
 use aliased 'Kinetic::DateTime';
 use aliased 'TestApp::Simple::One';
-use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
+use aliased 'TestApp::Simple::Two';   # contains a TestApp::Simple::One object
 
 use Readonly;
 Readonly my $JSON => 'Kinetic::Format::JSON';
@@ -56,7 +56,7 @@ sub serialize : Test(7) {
     my $test = shift;
     my $formatter = $JSON->new( { pretty => 1, indent => 2 } );
     my ( $foo, $bar, $baz ) = $test->test_objects;
-    $foo->_save_prep; # Force UUID generation.
+    $foo->_save_prep;    # Force UUID generation.
     can_ok $formatter, 'serialize';
     ok my $json = $formatter->serialize($foo),
       '... and serializing an object should succeed';
@@ -77,7 +77,7 @@ sub serialize : Test(7) {
     # test contained object serialization
 
     my $two = Two->new;
-    $two->_save_prep; # Force UUID generation.
+    $two->_save_prep;    # Force UUID generation.
     $two->name('june17');
     $two->date(
         DateTime->new(
@@ -162,7 +162,16 @@ sub deserialize : Test(5) {
         delete $_->{id};
         delete $_->one->{id};
     }
-    is_deeply $two, $new_object, '... and the should return the correct object';
+    is_deeply $two, $new_object,
+      '... and the should return the correct object';
+}
+
+sub content_type : Test(2) {
+    my $test      = shift;
+    my $formatter = $JSON->new;
+    can_ok $formatter, 'content_type';
+    is $formatter->content_type, 'text/plain',
+      '... and it should return the correct content type';
 }
 
 1

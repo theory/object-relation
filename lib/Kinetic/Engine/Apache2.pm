@@ -72,7 +72,7 @@ use Apache2::Const -compile => qw(OK);
             $rest = _get_rest_object($r);
         }
         $rest->handle_request( CGI->new($r) );
-        $r->content_type('text/plain');
+        $r->content_type( $rest->content_type );
         $r->print( $rest->response );
 
         return Apache2::Const::OK;
@@ -80,6 +80,7 @@ use Apache2::Const -compile => qw(OK);
 }
 
 sub _get_rest_object {
+
     # XXX much of this is cribbed from Catalyst::Engine::Apache
     my $r = shift;
     my $secure = ( ( $ENV{HTTPS} && uc $ENV{HTTPS} eq 'ON' )
@@ -108,7 +109,7 @@ sub _get_rest_object {
 
     $location = substr $location, 1;
     my ($base_url) = $uri =~ m{^(.+$location)};
-    return REST->new( base_url => $$base_url );
+    return REST->new( base_url => $base_url );
 }
 
 1;

@@ -202,7 +202,7 @@ sub _get_request_from_path_info {
       split $CHAIN, $self->path_info;
     my $request = $links[0];
     my ($path) = $self->base_url =~ m{(?:[^:/?#]+:)?(?://[^/?#]*)?([^?#]*)};
-    my @base_path = split '/' => $path;
+    my @base_path = grep { /\S/ } split '/' => $path;
 
     # remove base path from request, if it's there
     for my $component (@base_path) {

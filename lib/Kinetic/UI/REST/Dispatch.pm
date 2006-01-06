@@ -188,7 +188,8 @@ sub _handle_single_request {
         return $self->_not_implemented($method);
     }
     my $response = $self->formatter->ref_to_format($results);
-    return $self->rest->response($response);
+    return $self->rest->content_type( $self->formatter->content_type )
+      ->response($response);
 }
 
 sub _handle_chain {
@@ -201,7 +202,7 @@ sub _handle_chain {
     if ( 'new' ne $method && 'squery' ne $method && 'lookup' ne $method ) {
         return $rest->status($HTTP_NOT_IMPLEMENTED)->response(
             $self->language->maketext(
-'The first method in a chain must return objects. You used "[_1]"',
+                'The first method in a chain must return objects. You used "[_1]"',
                 $method,
             )
         );
@@ -224,7 +225,8 @@ sub _handle_chain {
         }
     }
     my $response = $self->formatter->ref_to_format( \@objects );
-    $self->rest->status($HTTP_OK)->response($response);
+    $self->rest->status($HTTP_OK)
+      ->content_type( $self->formatter->content_type )->response($response);
     return $self;
 }
 
