@@ -4,8 +4,8 @@
 
 use strict;
 use warnings;
-use Test::More qw/no_plan/;
-#use Test::More tests => 17;
+#use Test::More qw/no_plan/;
+use Test::More tests => 17;
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Build::Test (auth => { protocol => [qw(Default LDAP)] });
 use File::Spec;
