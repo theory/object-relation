@@ -38,8 +38,8 @@ my %STORES = (
 );
 
 my %SERVERS = (
-    apache2  => '',
-    catalyst => '',
+    apache => 'Kinetic::Engine::Apache2',
+    simple => 'Kinetic::Engine::Catalyst',
 );
 
 =head1 Name
@@ -250,18 +250,16 @@ __PACKAGE__->add_property(
   $build->server($server);
 
 The type of server to be used for the application.  Possible values are
-"apache2" and "catalyst".  Defaults to "apache2".
+"apache" and "simple".  Defaults to "apache".
 
-Though apache2 uses Catalyst internally, choosing "catalyst" for the server
-allows C<bin/kineticd> to use the Catalyst test server for development
-purposes.
+The "simple" server is merely a test server for easy development.
 
 =cut
 
 __PACKAGE__->add_property(
     name    => 'server',
     label   => 'Kinetic Server',
-    default => 'apache2',
+    default => 'apache',
     options => [ sort keys %SERVERS ],
     message => 'Which server should I use?'
 );
@@ -628,13 +626,12 @@ sub process_conf_files {
                     }
                 }
             }
-            elsif ( exists $STORES{$lc_section} ) {
+            elsif ( $STORES{$lc_section} ) {
 
                 # It's a section for another data store. Remove it.
                 delete $conf{$section};
             }
-            elsif ( my $method
-                = $self->can( $prefix . $lc_section . '_config' )
+            elsif ( my $method = $self->can( $prefix . $lc_section . '_config' )
                 || $self->can( $lc_section . '_config' ) )
             {
 
@@ -646,10 +643,13 @@ sub process_conf_files {
                 }
             }
 
-            if ( exists $SERVERS{$lc_section} && $lc_section ne $self->server ) {
+            if ( $SERVERS{$lc_section} && $lc_section ne $self->server ) {
                 
                 # It's a section for a server we haven't chosen.
                 delete $conf{$section};
+            }
+            elsif ($lc_section eq $self->server) {
+                $conf{server} = {class => $SERVERS{$lc_section}};
             }
         }
         # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804

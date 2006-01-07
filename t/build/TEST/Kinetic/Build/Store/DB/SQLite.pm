@@ -83,7 +83,10 @@ sub test_rules : Test(35) {
       "as should the test DSN";
 
     # Check the configs.
-    $mb->mock( store => 'sqlite' );
+    $mb->mock( store  => 'sqlite' );
+
+    # XXX we mock the server as otherwise we'll have an "undefined" warning
+    $mb->mock( server => 'apache' );
     is_deeply $kbs->config, { file => $db_file },
       "... and the configuration should be set";
     is_deeply $kbs->test_config, { file => $test_file },

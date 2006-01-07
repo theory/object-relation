@@ -1,0 +1,23 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use lib 'lib/';
+use Kinetic::Util::Config qw(:all);
+
+#use Devel::Symdump;
+#my $symbols   = Devel::Symdump->new('main');
+#my @functions = $symbols->functions();
+#use Data::Dumper::Simple;
+#print Dumper @functions;
+
+# XXX This is ugly
+if (exists &SIMPLE_HOST) {
+    require Kinetic::Engine::Catalyst;
+    Kinetic::Engine::Catalyst::run(
+        SIMPLE_PORT, 
+        SIMPLE_HOST, 
+        { restart => SIMPLE_RESTART }
+    );
+}

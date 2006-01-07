@@ -4,7 +4,8 @@
 
 use strict;
 use warnings;
-use Test::More tests => 17;
+use Test::More qw/no_plan/;
+#use Test::More tests => 17;
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Build::Test (auth => { protocol => [qw(Default LDAP)] });
 use File::Spec;
@@ -32,16 +33,16 @@ ALL: { # 3 tests.
     package Kinetic::Util::Config::TestAll;
     use Kinetic::Util::Config qw(:all);
     use Test::More;
-    ok(APACHE2_USER, "Got apache2_user" );
+    ok(APACHE_USER, "Got apache_user" );
     ok(STORE_CLASS, "Got store_class" );
     ok($stores{&STORE_CLASS}, "Got store_class value" );
 }
 
-APACHE2: { # 2 tests.
+APACHE: { # 2 tests.
     package Kinetic::Util::Config::TestApache;
-    use Kinetic::Util::Config qw(:apache2);
+    use Kinetic::Util::Config qw(:apache);
     use Test::More;
-    ok(APACHE2_USER, "Got apache2_user" );
+    ok(APACHE_USER, "Got apache_user" );
     eval "STORE_CLASS";
     ok($@, "Got error trying to access store_class");
 }
@@ -52,8 +53,8 @@ STORE: { # 3 tests.
     use Test::More;
     ok(STORE_CLASS, "Got store_class" );
     ok($stores{&STORE_CLASS}, "Got store_class value" );
-    eval "APACHE2_USER";
-    ok($@, "Got error trying to access apache2_user");
+    eval "APACHE_USER";
+    ok($@, "Got error trying to access apache_user");
 }
 
 USER: { # 2 tests.
@@ -71,8 +72,8 @@ NOIMPORT: { # 2 tests.
     use Test::More;
     eval "STORE_CLASS";
     ok($@, "Got error trying to access store_class");
-    eval "APACHE2_USER";
-    ok($@, "Got error trying to access apache2_user");
+    eval "APACHE_USER";
+    ok($@, "Got error trying to access apache_user");
 }
 
 AUTH: { # 3 tests.
