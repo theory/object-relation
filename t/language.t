@@ -4,9 +4,9 @@
 
 use strict;
 use warnings;
-use diagnostics;
 
-use Test::More tests => 447;
+use Kinetic::Build::Test;
+use Test::More tests => 455;
 use Test::NoWarnings; # Adds an extra test.
 use File::Spec;
 use File::Find;

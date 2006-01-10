@@ -7,7 +7,7 @@ use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
 
 #use Test::More 'no_plan';
-use Test::More tests => 100;
+use Test::More tests => 113;
 use Test::NoWarnings; # Adds an extra test.
 use Test::Differences;
 
@@ -34,7 +34,7 @@ isa_ok $sg, 'Kinetic::Build::Schema::DB::Pg';
 
 ok $sg->load_classes('t/sample/lib'), "Load classes";
 is_deeply [ map { $_->key } $sg->classes ],
-    [qw(simple one composed comp_comp two extend relation)],
+    [qw(simple one composed comp_comp two extend relation types_test)],
     "classes() returns classes in their proper dependency order";
 
 for my $class ( $sg->classes ) {
@@ -786,7 +786,7 @@ eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($comp_comp) ) ),
 # Grab the extends class.
 ok my $extend = Kinetic::Meta->for_key('extend'), "Get extend class";
 is $extend->key, 'extend', "... Extend class has key 'extend'";
-is $extend->table, '_extend', "... CompComp class has table '_extend'";
+is $extend->table, '_extend', "... Extend class has table '_extend'";
 
 # Check that the CREATE SEQUENCE statement is correct.
 $seq = "CREATE SEQUENCE seq_extend;\n";
@@ -919,3 +919,103 @@ eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($extend) ) ),
   ),
   "... Schema class generates complete schema";
 
+##############################################################################
+# Grab the types_test class.
+ok my $types_test = Kinetic::Meta->for_key('types_test'), "Get types_test class";
+is $types_test->key, 'types_test', "... Types_Test class has key 'types_test'";
+is $types_test->table, '_types_test', "... Types_Test class has table '_types_test'";
+
+# Check that the CREATE SEQUENCE statement is correct.
+$seq = "CREATE SEQUENCE seq_types_test;\n";
+is $sg->sequence_for_class($types_test), $seq,
+    '... Schema class generates CREATE SEQUENCE statement';
+
+# Check that the CREATE TABLE statement is correct.
+$table = q{CREATE TABLE _types_test (
+    id INTEGER NOT NULL DEFAULT NEXTVAL('seq_types_test'),
+    uuid UUID NOT NULL DEFAULT UUID_V4(),
+    state STATE NOT NULL DEFAULT 1,
+    version TEXT NOT NULL,
+    duration INTERVAL NOT NULL
+);
+};
+eq_or_diff $sg->table_for_class($types_test), $table,
+  "... Schema class generates CREATE TABLE statement";
+
+# Check that the CREATE INDEX statements are correct.
+$indexes = q{CREATE UNIQUE INDEX idx_types_test_uuid ON _types_test (uuid);
+CREATE INDEX idx_types_test_state ON _types_test (state);
+CREATE INDEX idx_types_test_duration ON _types_test (duration);
+};
+
+eq_or_diff $sg->indexes_for_class($types_test), $indexes,
+  "... Schema class generates CREATE INDEX statements";
+
+# Check that the constraint and foreign key triggers are correct.
+$constraints = q{ALTER TABLE _types_test
+  ADD CONSTRAINT pk_types_test_id PRIMARY KEY (id);
+
+CREATE FUNCTION types_test_uuid_once() RETURNS trigger AS '
+  BEGIN
+    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
+        THEN RAISE EXCEPTION ''value of "uuid" cannot be changed'';
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER types_test_uuid_once BEFORE UPDATE ON _types_test
+FOR EACH ROW EXECUTE PROCEDURE types_test_uuid_once();
+};
+
+eq_or_diff join("\n", $sg->constraints_for_class($types_test)), $constraints,
+  "... Schema class generates CONSTRAINT statement";
+
+# Check that the CREATE VIEW statement is correct.
+$view = q{CREATE VIEW types_test AS
+  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.version AS version, _types_test.duration AS duration
+  FROM   _types_test;
+};
+eq_or_diff $sg->view_for_class($types_test), $view,
+  "... Schema class generates CREATE VIEW statement";
+
+# Check that the INSERT rule/trigger is correct.
+$insert = q{CREATE RULE insert_types_test AS
+ON INSERT TO types_test DO INSTEAD (
+  INSERT INTO _types_test (id, uuid, state, version, duration)
+  VALUES (NEXTVAL('seq_types_test'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.version, NEW.duration);
+);
+};
+eq_or_diff $sg->insert_for_class($types_test), $insert,
+  "... Schema class generates view INSERT rule";
+
+# Check that the UPDATE rule/trigger is correct.
+$update = q{CREATE RULE update_types_test AS
+ON UPDATE TO types_test DO INSTEAD (
+  UPDATE _types_test
+  SET    state = NEW.state, version = NEW.version, duration = NEW.duration
+  WHERE  id = OLD.id;
+);
+};
+eq_or_diff $sg->update_for_class($types_test), $update,
+  "... Schema class generates view UPDATE rule";
+
+# Check that the DELETE rule/trigger is correct.
+$delete = q{CREATE RULE delete_types_test AS
+ON DELETE TO types_test DO INSTEAD (
+  DELETE FROM _types_test
+  WHERE  id = OLD.id;
+);
+};
+eq_or_diff $sg->delete_for_class($types_test), $delete,
+  "... Schema class generates view DELETE rule";
+
+# Check that a complete schema is properly generated.
+eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($types_test) ) ),
+  left_justify(
+    join (
+        "\n", $seq, $table, $indexes, $constraints, $view, $insert, $update,
+        $delete
+    )
+  ),
+  "... Schema class generates complete schema";

@@ -514,9 +514,10 @@ sub relationship { shift->{relationship} }
 This method returns the raw value of an attribute. This value will most often
 be the same as that returned by C<get()>, but when the attribute fetched is an
 object, it might return a raw value suitable for serialization or storage in a
-database. For example, if the attribute was a C<DateTime> object, the C<get()>
-metod will return the object, but the C<raw()> method might return an ISO-8601
-formatted string using the UTC time zone, instead.
+database. For example, if the attribute was a
+L<Kinetic::DateTime|Kinetic::DateTime> object, the C<get()> metod will return
+the object, but the C<raw()> method might return an ISO-8601 formatted string
+using the UTC time zone, instead.
 
 =cut
 
@@ -524,6 +525,33 @@ sub raw {
     my $self = shift;
     my $code = $self->{_raw} or $self->class->handle_error(
         sprintf 'Cannot get raw value for attribute "%s"', $self->name
+    );
+    goto &$code;
+}
+
+##############################################################################
+
+=head3 straw
+
+  my $store_raw_value = $attr->straw($thingy);
+
+This method returns the raw value of an attribute properly formatted for
+serialization to the current data store. This value will most often be the
+same as that returned by C<raw()>, but different data stores require different
+formats, C<straw()> will return the representation appropriate for the current
+data store. For example, if the attribute was a
+L<Kinetic::DataType::Duration|Kinetic::DataType::Duration> object, C<get()>
+would of course return the object, C<raw()> would return an ISO-8601 string
+representation, and C<straw()> would return one string representation for the
+PostgreSQL data store, and a 0-padded ISO-8601 string for all other data
+stores.
+
+=cut
+
+sub straw {
+    my $self = shift;
+    my $code = $self->{_straw} or $self->class->handle_error(
+        sprintf 'Cannot get store raw value for attribute "%s"', $self->name
     );
     goto &$code;
 }
@@ -554,7 +582,7 @@ sub bake {
 =head3 build
 
 This private method overrides the parent C<build()> method in order to set up
-the C<raw()> accessor interface.
+the C<raw()> and C<straw()> accessor values.
 
 =cut
 
@@ -581,6 +609,11 @@ sub build {
             $self->{_raw} = sub { $raw->($get->(shift)) };
         } else {
             $self->{_raw} = $get;
+        }
+        if (my $straw = $type->straw) {
+            $self->{_straw} = sub { $straw->($get->(shift)) };
+        } else {
+            $self->{_straw} = $self->{_raw};
         }
 
         if ($self->authz >= Class::Meta::WRITE) {

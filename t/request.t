@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 
+use Kinetic::Build::Test;
 use Test::More qw/no_plan/;
 use Test::Exception;
 use aliased 'Test::MockModule';

@@ -3,6 +3,7 @@
 # $Id$
 
 use strict;
+use Kinetic::Build::Test;
 use Test::More tests => 61;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.

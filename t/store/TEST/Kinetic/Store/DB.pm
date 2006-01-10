@@ -22,6 +22,7 @@ use aliased 'TestApp::Simple::Two';
 use aliased 'TestApp::Extend';
 use aliased 'TestApp::Relation';
 use aliased 'TestApp::Composed';
+use aliased 'TestApp::TypesTest';
 
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->any_supported(qw/pg sqlite/)
@@ -1100,6 +1101,66 @@ sub test_fk_update : Test(9) {
         '... And it should throw an error for an invalid foreign key';
     like $@, $self->update_fk_regex('one_id', 'two', 'simple_two'),
         '... Which should have the proper error message';
+}
+
+sub test_types : Test(31) {
+    my $self = shift;
+    return 'Skip test_fk_update for abstract class'
+        unless $self->_should_run;
+    ok my $types_test = TypesTest->new, 'Create new types_test object';
+
+    # Set up the version attribute.
+    is $types_test->version, undef,          'The version should be undef';
+    ok my $version = version->new('1.12.3'), 'Create a version object';
+    ok $types_test->version($version),       'Set the version';
+    isa_ok $types_test->version, 'version',  'It';
+    is $types_test->version, $version,       'It should be properly set';
+
+    # Set up the duration attribute.
+    is $types_test->duration, undef, 'The duration should be undef';
+    ok my $du = Kinetic::DataType::Duration->new(
+        years  => 2,
+        months => 3,
+        hours  => 4,
+    ), 'Create a duration object';
+    ok $types_test->duration($du), 'Set the duration';
+    isa_ok $types_test->duration,  'Kinetic::DataType::Duration', 'It';
+    is $types_test->duration, $du, 'It should be properly set';
+
+    # Save the object.
+    ok $types_test->save, 'Save the types_test object';
+    ok $types_test = TypesTest->lookup( uuid => $types_test->uuid ),
+        'Look up the types_test object';
+
+    # Check the looked-up values.
+    isa_ok $types_test->version, 'version', 'version';
+    is $types_test->version, $version,      'It should be properly set';
+    isa_ok $types_test->duration,  'Kinetic::DataType::Duration', 'duration';
+    is $types_test->duration, $du, 'It should be properly set';
+
+    # Change the version object.
+    ok $version = version->new('3.40'),     'Create new version object';
+    ok $types_test->version($version),      'Set the version';
+    isa_ok $types_test->version, 'version', 'It';
+    is $types_test->version, $version,      'It should be properly set';
+
+    # Change the duration object.
+    ok $du = Kinetic::DataType::Duration->new( hours  => 4 ),
+        'Create a duration object';
+    ok $types_test->duration($du), 'Set the duration';
+    isa_ok $types_test->duration,  'Kinetic::DataType::Duration', 'It';
+    is $types_test->duration, $du, 'It should be properly set';
+
+    # Save it again.
+    ok $types_test->save, 'Save TypesTest object again';
+    ok $types_test = TypesTest->lookup( uuid => $types_test->uuid ),
+        'Look up the types_test object again';
+
+    # Check the looked-up values.
+    isa_ok $types_test->version, 'version', 'version';
+    is $types_test->version, $version,      'It should be properly set';
+    isa_ok $types_test->duration,  'Kinetic::DataType::Duration', 'duration';
+    is $types_test->duration, $du, 'It should be properly set';
 }
 
 1;

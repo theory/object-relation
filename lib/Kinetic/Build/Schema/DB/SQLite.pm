@@ -76,7 +76,8 @@ my %types = (
     whole    => 'INTEGER',
     state    => 'INTEGER',
     datetime => 'DATETIME',
-    version  => 'TEXT COLLATE nocase',
+    version  => 'TEXT',
+    duration => 'TEXT',
 );
 
 sub column_type {

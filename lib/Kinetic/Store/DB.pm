@@ -754,7 +754,7 @@ sub _insert {
     foreach my $attr ( $self->{search_class}->persistent_attributes ) {
         next if $attr->name eq 'id';
         push @cols => $attr->_view_column;
-        push @vals => $attr->raw($object);
+        push @vals => $attr->straw($object);
         throw_invalid([ 'Attribute "[_1]" must be defined', $attr->name ])
             if $attr->required && !defined $attr->get($object);
     }
@@ -862,7 +862,7 @@ sub _update {
     my (@cols, @vals);
     foreach my $attr ( $self->{search_class}->attributes(@mods) ) {
         push @cols => $attr->_view_column;
-        push @vals => $attr->raw($object);
+        push @vals => $attr->straw($object);
     }
 
     my $columns = join ', ' => map { "$_ = ?" } @cols;

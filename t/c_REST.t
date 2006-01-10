@@ -1,12 +1,15 @@
-#!perl
+#!/usr/bin/perl -w
 
+# $Id: basic.t 2441 2005-12-24 00:39:59Z theory $
+
+use strict;
+use Kinetic::Build::Test;
 use Test::More tests => 5;
-use Test::NoWarnings; # Adds an extra test.
+use Test::NoWarnings;    # Adds an extra test.
 use Test::Output;
 
 BEGIN {
-    # XXX Catalyst tests must not be run from the t/ directory
-    use_ok( Catalyst::Test, 'Kinetic::UI::Catalyst' ) or die;
+    use_ok( 'Catalyst::Test', 'Kinetic::UI::Catalyst' ) or die;
     use_ok('Kinetic::UI::Catalyst::C::REST') or die;
 }
 

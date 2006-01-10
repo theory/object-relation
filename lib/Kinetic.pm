@@ -22,13 +22,12 @@ use 5.008003;
 use strict;
 use version;
 use encoding 'utf8';
+binmode STDERR, ':utf8';
 use Kinetic::Meta;
 use Kinetic::Meta::Widget;
 use Kinetic::Store;
 use Kinetic::Util::Functions qw(:uuid);
 use Kinetic::Util::State qw(:all);
-binmode STDOUT, ':utf8';
-binmode STDERR, ':utf8';
 
 our $VERSION = version->new('0.0.1');
 

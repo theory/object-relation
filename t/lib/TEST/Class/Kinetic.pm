@@ -31,6 +31,12 @@ use Config::Std; # Avoid warnings.
 use Test::NoWarnings ();
 use aliased 'Test::MockModule';
 
+BEGIN {
+    # Tell Test::Builder to use the utf8 layer for its file handles.
+    my $tb = Test::Builder->new;
+    binmode $tb->$_, ':utf8' for qw(output failure_output todo_output);
+}
+
 __PACKAGE__->runtests unless caller;
 
 =head1 Name

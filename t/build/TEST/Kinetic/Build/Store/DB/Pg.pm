@@ -570,7 +570,7 @@ sub test_rules : Test(161) {
 # Check schema permissions
 # Done
 
-sub test_validate_user_db : Test(31) {
+sub test_validate_user_db : Test(33) {
     my $self = shift;
     my $class = $self->test_class;
     # Supply username and password when prompted, database exists and has
@@ -660,7 +660,7 @@ sub test_validate_user_db : Test(31) {
 # Check user
 # Done
 
-sub test_validate_super_user : Test(31) {
+sub test_validate_super_user : Test(33) {
     my $self = shift;
     my $class = $self->test_class;
     # Supply username and password when prompted, database exists and has
@@ -753,7 +753,7 @@ sub test_validate_super_user : Test(31) {
 # Check user
 # Done
 
-sub test_validate_super_user_arg : Test(31) {
+sub test_validate_super_user_arg : Test(33) {
     my $self = shift;
     my $class = $self->test_class;
     # Supply username and password when prompted, database exists and has
@@ -1019,7 +1019,7 @@ sub test_db_helpers : Test(21) {
       "A non-existant user should not be a super user";
 }
 
-sub test_build_meths : Test(24) {
+sub test_build_meths : Test(25) {
     my $self = shift;
     return "Not testing PostgreSQL" unless $self->supported('pg');
     my $class = $self->test_class;

@@ -3,10 +3,10 @@
 # $Id$
 
 use strict;
-use Test::More tests => 47;
+use Test::More tests => 58;
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Util::Functions qw(:uuid);
-
+use Kinetic::Util::Config qw(STORE_CLASS);
 
 package Kinetic::TestTypes;
 use strict;
@@ -17,6 +17,7 @@ BEGIN {
     # We need to load Kinetic first, or else things just won't work!
     use_ok('Kinetic') or die;
     use_ok('Kinetic::Meta::DataTypes') or die;
+    use_ok('Kinetic::DataType::Duration') or die;
 }
 
 BEGIN {
@@ -43,6 +44,13 @@ BEGIN {
                             required => 1,
                           ),
         "Add datetime attribute" );
+
+    # Add a Duration attribute.
+    ok( $cm->add_attribute( name     => 'duration',
+                            view     => Class::Meta::PUBLIC,
+                            type     => 'duration',
+                          ),
+        "Add duration attribute" );
 
     # Add a class attribute.
     ok( $cm->add_attribute( name     => 'string',
@@ -137,6 +145,36 @@ is $t->my_class->attributes('datetime')->raw($t),
   "Make sure the raw value is a UTC string";
 eval { $t->datetime('foo') };
 ok $err = $@, "Caught bad DateTime exception";
+isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
+
+# Test Duration accessor.
+is( $t->duration, undef, 'Check for no Duration' );
+
+# Make sure that automatic baking works.
+my $duration = '@ 4541 years 4 mons 4 days 17 mins 31 secs';
+$t->{duration} = $duration; # Don't try this at home!
+isa_ok($t->duration, 'Kinetic::DataType::Duration');
+isa_ok($t->duration, 'DateTime::Duration');
+
+# Try assigning a Kinetic::Duration object.
+$duration = Kinetic::DataType::Duration->new(
+    days    => 2,
+    hours   => -23,
+    minutes => -59
+);
+ok( $t->duration($duration), "Add Duration object" );
+is ref $t->duration, ref $duration, 'Duration object should be the same';
+
+is $t->my_class->attributes('duration')->raw($t),
+    'P0Y0M2DT-23H-59M0S',
+    "Make sure the raw value is properly formatted";
+my $straw = STORE_CLASS eq 'Kinetic::Store::DB::Pg'
+    ? '0 years 0 mons 2 days -23 hours -59 mins 0 secs'
+    : 'P00000Y00M02DT-23H-59M00S';
+is $t->my_class->attributes('duration')->straw($t), $straw,
+    "Make sure the straw value is properly formatted";
+eval { $t->duration('foo') };
+ok $err = $@, "Caught bad Duration exception";
 isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
 
 # Test the class attribute.

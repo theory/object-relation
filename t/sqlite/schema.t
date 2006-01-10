@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
 #use Test::More 'no_plan';
-use Test::More tests => 93;
+use Test::More tests => 105;
 use Test::NoWarnings; # Adds an extra test.
 use Test::Differences;
 
@@ -27,7 +27,7 @@ isa_ok $sg, 'Kinetic::Build::Schema::DB::SQLite';
 
 ok $sg->load_classes('t/sample/lib'), "Load classes";
 is_deeply [ map { $_->key } $sg->classes ],
-  [qw(simple one composed comp_comp two extend relation)],
+  [qw(simple one composed comp_comp two extend relation types_test)],
   "classes() returns classes in their proper dependency order";
 
 for my $class ($sg->classes) {
@@ -1008,3 +1008,103 @@ eq_or_diff join("\n", $sg->schema_for_class($extend)),
   join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
   "... Schema class generates complete schema";
 
+##############################################################################
+# Grab the types_test class.
+ok my $types_test = Kinetic::Meta->for_key('types_test'), "Get types_test class";
+is $types_test->key, 'types_test', "... Types_Test class has key 'types_test'";
+is $types_test->table, '_types_test', "... Types_Test class has table '_types_test'";
+
+# Check that the CREATE TABLE statement is correct.
+$table = q{CREATE TABLE _types_test (
+    id INTEGER NOT NULL PRIMARY KEY,
+    uuid TEXT NOT NULL,
+    state INTEGER NOT NULL DEFAULT 1,
+    version TEXT NOT NULL,
+    duration TEXT NOT NULL
+);
+};
+eq_or_diff $sg->table_for_class($types_test), $table,
+  "... Schema class generates CREATE TABLE statement";
+
+# Check that the CREATE INDEX statements are correct.
+$indexes = q{CREATE UNIQUE INDEX idx_types_test_uuid ON _types_test (uuid);
+CREATE INDEX idx_types_test_state ON _types_test (state);
+CREATE INDEX idx_types_test_duration ON _types_test (duration);
+};
+
+eq_or_diff $sg->indexes_for_class($types_test), $indexes,
+  "... Schema class generates CREATE INDEX statements";
+
+# Check that the constraint and foreign key triggers are correct.
+$constraints = q{CREATE TRIGGER cki_types_test_state
+BEFORE INSERT ON _types_test
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
+END;
+
+CREATE TRIGGER cku_types_test_state
+BEFORE UPDATE OF state ON _types_test
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
+END;
+
+CREATE TRIGGER ck_types_test_uuid_once
+BEFORE UPDATE ON _types_test
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
+    WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
+END;
+};
+
+eq_or_diff join("\n", $sg->constraints_for_class($types_test)), $constraints,
+  "... Schema class generates CONSTRAINT statement";
+
+# Check that the CREATE VIEW statement is correct.
+$view = q{CREATE VIEW types_test AS
+  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.version AS version, _types_test.duration AS duration
+  FROM   _types_test;
+};
+eq_or_diff $sg->view_for_class($types_test), $view,
+  "... Schema class generates CREATE VIEW statement";
+
+# Check that the INSERT rule/trigger is correct.
+$insert = q{CREATE TRIGGER insert_types_test
+INSTEAD OF INSERT ON types_test
+FOR EACH ROW BEGIN
+  INSERT INTO _types_test (uuid, state, version, duration)
+  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.version, NEW.duration);
+END;
+};
+eq_or_diff $sg->insert_for_class($types_test), $insert,
+  "... Schema class generates view INSERT rule";
+
+# Check that the UPDATE rule/trigger is correct.
+$update = q{CREATE TRIGGER update_types_test
+INSTEAD OF UPDATE ON types_test
+FOR EACH ROW BEGIN
+  UPDATE _types_test
+  SET    state = NEW.state, version = NEW.version, duration = NEW.duration
+  WHERE  id = OLD.id;
+END;
+};
+eq_or_diff $sg->update_for_class($types_test), $update,
+  "... Schema class generates view UPDATE rule";
+
+# Check that the DELETE rule/trigger is correct.
+$delete = q{CREATE TRIGGER delete_types_test
+INSTEAD OF DELETE ON types_test
+FOR EACH ROW BEGIN
+  DELETE FROM _types_test
+  WHERE  id = OLD.id;
+END;
+};
+
+eq_or_diff $sg->delete_for_class($types_test), $delete,
+  "... Schema class generates view DELETE rule";
+
+# Check that a complete schema is properly generated.
+eq_or_diff join("\n", $sg->schema_for_class($types_test)),
+  join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
+  "... Schema class generates complete schema";

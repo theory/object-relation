@@ -269,6 +269,12 @@ our %Lexicon;
         'The "[_1]" configuration section needs a "[_2]" setting',
         'The “[_1]” configuration section needs a “[_2]” setting',
 
+        'Invalid duration string: "[_1]"',
+        'Invalid duration string: “[_1]”',
+
+        'No duration string passed to bake()',
+        'No duration string passed to bake()',
+
         # Kinetic::Meta::Class error.
         'No direct attribute "[_1]" to sort by',
         'No direct attribute “[_1]” to sort by',
@@ -316,15 +322,15 @@ our %Lexicon;
 
         'Prefix' => 'Prefix',
         q{The prefix to the person's name},
-'The prefix to the person’s name, such as “Mr.”, “Ms.”, “Dr.”, etc.',
+        'The prefix to the person’s name, such as “Mr.”, “Ms.”, “Dr.”, etc.',
 
         'Suffix' => 'Suffix',
         q{The suffix to the person's name},
-'The suffix to the person’s name, such as “JD”, “PhD”, “MD”, etc.',
+        'The suffix to the person’s name, such as “JD”, “PhD”, “MD”, etc.',
 
         'Generation' => 'Generation',
         q{The generation of the person's name},
-'The generation to the person’s name, such as “Jr.”, “III”, etc.',
+        'The generation to the person’s name, such as “Jr.”, “III”, etc.',
 
         'strfname_format' => '%p% f% M% l% g%, s',
 

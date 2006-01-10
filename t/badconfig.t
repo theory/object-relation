@@ -11,7 +11,7 @@ use File::Copy;
 
 BEGIN {
     my $fn = $ENV{KINETIC_CONF} . '.tmp';
-  SKIP: {
+    SKIP: {
         skip "Cannot copy $ENV{KINETIC_CONF}", 2
           unless copy $ENV{KINETIC_CONF}, $fn;
 

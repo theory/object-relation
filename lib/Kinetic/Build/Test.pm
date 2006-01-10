@@ -9,6 +9,7 @@ our $VERSION = version->new('0.0.1');
 
 use warnings;
 use File::Spec;
+use Test::Builder;
 
 =head1 Name
 
@@ -63,6 +64,10 @@ BEGIN {
       ? $conf_file
       : File::Spec->catfile(qw(conf kinetic.conf));
     $conf_file = $ENV{KINETIC_CONF};
+
+    # Tell Test::Builder to use the utf8 layer for its file handles.
+    my $builder = Test::Builder->new;
+    binmode $builder->$_, ':utf8' for qw(output failure_output todo_output);
 }
 
 sub import {

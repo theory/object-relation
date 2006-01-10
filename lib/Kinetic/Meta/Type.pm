@@ -38,6 +38,7 @@ Kinetic::Meta::Type - Kinetic Data type validation and accessor building
       name    => "State",
       builder => 'Kinetic::Meta::AccessorBuilder',
       raw     => sub { shift->value },
+      straw   => sub { shift->store_value },
       check   => sub {
           UNIVERSAL::isa($_[0], 'Kinetic::Util::State')
               or throw_invalid(['Value "[_1]" is not a valid [_2] object',
@@ -49,19 +50,9 @@ Kinetic::Meta::Type - Kinetic Data type validation and accessor building
 
 =head1 Description
 
-This class subclasses L<Class::Meta::Type|Class::Meta::Type> to provide an
-additional accessor, C<raw>. This attribute can optionally be set via the call
-to C<new()>. It is a code reference that returns the raw value of an attribute
-as opposed to the standard value. The raw value is a value suitable for
-serializing to a database.
-
-The code reference should simply expect the value returned by the C<get>
-accessor as its sole argument. It can then take whatever steps are necssary to
-return a serializable value. For example, if for a C<DateTime> data type, we
-might want to get back a string in ISO-8601 format in the UTC time zone. The
-raw code reference to do so might look like this:
-
-  sub { shift->clone->set_time_zone('UTC')->iso8601 }
+This class subclasses L<Class::Meta::Type|Class::Meta::Type> to provide
+additional attributes. These attributes can optionally be set via the call to
+C<new()>, and may be fetched via their accessors.
 
 =head1 Dynamic APIs
 
@@ -123,9 +114,41 @@ sub import {
 Returns a code reference to get the raw value of a type. Used internally by
 L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>.
 
+The code reference should simply expect the value returned by the C<get>
+accessor as its sole argument. It can then take whatever steps are necssary to
+return a serializable value. For example, if for a
+L<Kinetic::DateTime|Kinetic::DateTime> data type, we might want to get back a
+string in ISO-8601 format in the UTC time zone. The raw code reference to do
+so might look like this:
+
+  sub { shift->clone->set_time_zone('UTC')->iso8601 }
+
 =cut
 
 sub raw { shift->{raw} }
+
+##############################################################################
+
+=head3 straw
+
+  my $code = $type->straw;
+
+Returns a code reference to get the store raw value of a type. Used internally
+by L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>. In general, it will
+exactly the same as C<raw()>, but may occaisionally be different, as when
+different data stores require different raw values for a particular data type.
+
+For the L<Kinetic::DataType::Duration|Kinetic::DataType::Duration> type, for
+example, C<raw()> would return an ISO-8601 string representation, while
+C<straw()> would return one string representation for the PostgreSQL data
+store, and a 0-padded ISO-8601 string for all other data stores.
+
+As with the C<raw()> code reference. The straw code reference should expect
+the value returned from an attribute's C<get()> method.
+
+=cut
+
+sub straw { shift->{straw} }
 
 ##############################################################################
 

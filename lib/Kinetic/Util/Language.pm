@@ -24,6 +24,8 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use encoding 'utf8';
+binmode STDERR, ':utf8';
+
 use base qw(Locale::Maketext);
 
 =encoding utf8

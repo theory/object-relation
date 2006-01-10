@@ -93,6 +93,7 @@ my %types = (
     state    => 'STATE',
     datetime => 'TIMESTAMP',
     version  => 'TEXT',
+    duration => 'INTERVAL',
 );
 
 sub column_type {

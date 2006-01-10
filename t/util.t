@@ -3,6 +3,7 @@
 # $Id: meta.t 2238 2005-11-19 07:33:20Z theory $
 
 use strict;
+use Kinetic::Build::Test;
 use Test::More tests => 12;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.

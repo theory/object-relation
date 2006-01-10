@@ -117,14 +117,14 @@ sub new_from_iso8601 {
 Given an ISO8601 date string, returns a hashref with the date parts as values
 to the keys.  Keys are:
 
-    year 
-    month 
-    day 
-    hour 
-    minute 
-    second 
+    year
+    month
+    day
+    hour
+    minute
+    second
     nanosecond
-    
+
 Note that C<nanosecond> will not be a key in the hashref unless it is
 specifically included in the ISO date string.
 
