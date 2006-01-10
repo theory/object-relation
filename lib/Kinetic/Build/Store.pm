@@ -25,7 +25,6 @@ our $VERSION = version->new('0.0.1');
 
 use Kinetic::Build;
 use FSA::Rules;
-use version;
 my %private;
 
 =head1 Name

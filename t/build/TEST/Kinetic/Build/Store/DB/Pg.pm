@@ -670,6 +670,7 @@ sub test_validate_super_user : Test(31) {
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
     $mb->mock(check_store => 1);
+    $mb->mock(server => 'simple');
     my $builder = $self->new_builder;
     $self->{builder} = $builder;
     $mb->mock(resume => $builder);

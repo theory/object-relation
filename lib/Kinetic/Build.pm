@@ -38,8 +38,8 @@ my %STORES = (
 );
 
 my %SERVERS = (
-    apache => 'Kinetic::Engine::Apache2',
-    simple => 'Kinetic::Engine::Catalyst',
+    apache => 'Kinetic::Build::Engine::Apache',
+    simple => 'Kinetic::Build::Engine::Catalyst',
 );
 
 =head1 Name
@@ -156,6 +156,7 @@ sub new {
     }
 
     $self->check_store;
+    $self->check_server;
     return $self;
 }
 
@@ -180,6 +181,11 @@ sub resume {
         my $build_store_class = $STORES{$store}
           or $self->_fatal_error("I'm not familiar with the $store data store");
         eval "require $build_store_class" or $self->_fatal_error($@);
+    }
+    if (my $server = $self->server) {
+        my $build_server_class = $SERVERS{$server}
+          or $self->_fatal_error("I'm not familiar with the $server server");
+        eval "require $build_server_class" or $self->_fatal_error($@);
     }
     return $self;
 }
@@ -585,6 +591,32 @@ sub check_store {
 
 ##############################################################################
 
+=head3 check_server
+
+  $build->check_server;
+
+This method assembles and validates the information necessary to run the
+selected server.
+
+=cut
+
+sub check_server {
+    my $self = shift;
+    return $self if $self->notes('build_server');
+
+    # check the specific server
+    my $build_server_class = $SERVERS{$self->server}
+      or $self->_fatal_error(
+        "I'm not familiar with the ". $self->server . " server");
+    eval "require $build_server_class" or $self->_fatal_error($@);
+    my $build_server = $build_server_class->new($self);
+    $build_server->validate;
+    $self->notes(build_server => $build_server);
+    return $self;
+}
+
+##############################################################################
+
 =head3 process_conf_files
 
 This method is called during the C<build> action to copy the configuration
@@ -643,15 +675,19 @@ sub process_conf_files {
                 }
             }
 
-            if ( $SERVERS{$lc_section} && $lc_section ne $self->server ) {
-                
-                # It's a section for a server we haven't chosen.
-                delete $conf{$section};
-            }
-            elsif ($lc_section eq $self->server) {
-                $conf{server} = {class => $SERVERS{$lc_section}};
+            if ( $SERVERS{$lc_section} ) {
+                if ( $lc_section eq $self->server ) {
+                    my $server = $self->notes('build_server');
+                    $server->add_server_config_to_conf(\%conf);
+                }
+                else {
+                    
+                    # It's a section for a server we haven't chosen.
+                    delete $conf{$section};
+                }
             }
         }
+
         # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
         Config::Std::Hash::write_config(%conf);
     }

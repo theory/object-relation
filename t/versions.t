@@ -12,8 +12,10 @@ if ($@) {
     plan skip_all => "Test::Pod::Coverage required for testing versions";
 }
 else {
+    # Not loading Kinetic::Engine:: modules as they often require constants
+    # which will not always be available
     @modules =
-      grep { ! /Apache/ }        # can't load them because of Apache constants
+      grep { ! /Kinetic::Engine/ } 
       grep { $_ ne 'Kinetic' } Test::Pod::Coverage::all_modules();
     plan tests => @modules + 1;
 }

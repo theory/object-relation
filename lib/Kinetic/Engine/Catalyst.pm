@@ -23,6 +23,7 @@ use warnings;
 
 use version;
 our $VERSION = version->new('0.0.1');
+use Kinetic::Util::Config qw(:all);
 
 BEGIN {
     # XXX This must be set *before* you use the Catalyst UI.  Otherwise, the
@@ -31,29 +32,7 @@ BEGIN {
 }
 
 use aliased 'Kinetic::UI::Catalyst';
-
-##############################################################################
-
-=head2 run
-
-  Kinetic::Engine::Catalyst::run($port, $host, \%optional_args);
-
-This function starts the Catalyst test server.  The port and host are
-required.  The optional args, at this time, only accepts a C<restart>
-parameter.  If true, any detected change to the Perl libraries will cause the
-Catalyst test server to restart.
-
-Note that if the server restarts, it will lose any environment variables
-specificed on the command line.
-
-=cut
-
-sub run {
-    my ( $port, $host, $optional ) = @_;
-    $optional ||= {};
-
-    Catalyst->run( $port, $host, $optional );
-}
+Catalyst->run( SIMPLE_PORT, SIMPLE_HOST, { restart => SIMPLE_RESTART } );
 
 1;
 

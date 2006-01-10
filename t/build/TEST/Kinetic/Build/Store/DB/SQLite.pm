@@ -44,6 +44,24 @@ sub test_rules : Test(35) {
     $self->{builder} = $builder;
     $mb->mock( resume           => $builder );
     $mb->mock( _app_info_params => sub { } );
+    $mb->mock( server => 'apache' );
+
+    # XXX We mock up the apache build stuff lest we get tons of uninit
+    # warnings from Test::NoWarnings
+    my %apache_notes = (
+         rest        => '/kinetic/rest',
+         static      => '/',
+         httpd       => '/some/path/to/httpd',
+         port        => 80,
+         conf        => '/usr/local/kinetic/conf/httpd.conf',
+         group       => 'nobody',
+         user        => 'nobody',
+         root        => '/kinetic',
+         server_name => 'localhost',
+    );
+    $builder->notes( 
+        build_server => bless(\%apache_notes, 'Kinetic::Build::Engine::Apache')
+    );
 
     # Construct the object.
     ok my $kbs = $class->new, "Create new $class object";
@@ -85,8 +103,6 @@ sub test_rules : Test(35) {
     # Check the configs.
     $mb->mock( store  => 'sqlite' );
 
-    # XXX we mock the server as otherwise we'll have an "undefined" warning
-    $mb->mock( server => 'apache' );
     is_deeply $kbs->config, { file => $db_file },
       "... and the configuration should be set";
     is_deeply $kbs->test_config, { file => $test_file },

@@ -26,8 +26,24 @@ our $VERSION = version->new('0.0.1');
 
 use CGI;
 CGI->compile;
+use Template;
+
+use Apache2::CmdParms   ();
+use Apache2::Module     ();
+use Apache2::RequestRec ();
+use Apache2::RequestIO  ();
+use Apache2::Const -compile => qw(OK);
+use Apache2::ServerUtil ();
+
 use aliased 'Kinetic::UI::Catalyst';
 use aliased 'Kinetic::UI::REST';
+
+use Kinetic::Util::Config qw(:all);
+
+my $conf = __PACKAGE__->_apache_conf_template;
+
+# XXX Houston, we have a segfault
+Apache2::ServerUtil->server->add_config( [ split /\n/, $conf ] );
 
 ##############################################################################
 
@@ -57,11 +73,6 @@ sub handler {
 The Kinetic REST handler.  See C<Kinetic::UI::REST>.
 
 =cut
-
-use Apache2::RequestRec ();
-use Apache2::RequestIO  ();
-
-use Apache2::Const -compile => qw(OK);
 
 {
     my $rest;
@@ -110,6 +121,50 @@ sub _get_rest_object {
     $location = substr $location, 1;
     my ($base_url) = $uri =~ m{^(.+$location)};
     return REST->new( base_url => $base_url );
+}
+
+sub _apache_conf_template {
+    my $self = shift;
+    my %data = (
+        server_name   => APACHE_SERVER_NAME,
+        server_rest   => APACHE_REST,
+        server_root   => APACHE_ROOT,
+        server_static => APACHE_STATIC,
+    );
+    my $config_template = <<'    END_CONF';
+<VirtualHost *>
+    ServerName   [% server_name %]
+
+    # XXX Hard-coded for now while I try to debug things
+    DocumentRoot /Users/curtispoe/work/svn.kineticode.com/trunk/Kinetic/root
+
+    # kinetic catalyst app
+    <Location [% server_root %]>
+        SetHandler          modperl
+        PerlResponseHandler Kinetic::Engine::Apache2
+        Order allow,deny
+        Allow from all
+    </Location>
+    
+    # static files
+    <Location [% server_static %]>
+        Order allow,deny
+        Allow from all
+    </Location>
+
+    # REST 
+    <Location [% server_rest %]>
+        SetHandler          modperl
+        PerlResponseHandler Kinetic::Engine::Apache2::rest
+    </Location>
+</VirtualHost>
+    END_CONF
+
+    my $tt     = Template->new;
+    my $output = '';
+    $tt->process( \$config_template, \%data, \$output )
+      or die $tt->error;
+    return $output;
 }
 
 1;
