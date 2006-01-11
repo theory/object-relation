@@ -100,7 +100,7 @@ provides:
   Kinetic::Build::Test:
     file: lib/Kinetic/Build/Test.pm
     version: v0.0.1
-  Kinetic::DateTime:
+  Kinetic::DataType::DateTime:
     file: lib/Kinetic/DateTime.pm
     version: v0.0.1
   Kinetic::Meta:

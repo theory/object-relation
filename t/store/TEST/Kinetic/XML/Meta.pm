@@ -15,7 +15,7 @@ use Kinetic::Util::Language::en_us;
 
 use Encode qw(is_utf8);
 
-use aliased 'Kinetic::DateTime';
+use aliased 'Kinetic::DataType::DateTime';
 use aliased 'Test::MockModule';
 
 use aliased 'TestApp::Simple';

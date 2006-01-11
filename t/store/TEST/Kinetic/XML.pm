@@ -18,7 +18,7 @@ use Class::Trait qw(TEST::Kinetic::Traits::Store);
 use Class::Trait qw(TEST::Kinetic::Traits::SampleObjects);
 use Kinetic::Meta;
 use Kinetic::Util::Language::en;
-use aliased 'Kinetic::DateTime';
+use aliased 'Kinetic::DataType::DateTime';
 use aliased 'Test::MockModule';
 
 use aliased 'TestApp::Simple::One';

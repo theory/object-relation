@@ -11,7 +11,7 @@ use Test::Exception;
 use lib 'lib', '../lib';
 
 use aliased 'Kinetic::Store::Search';
-use aliased 'Kinetic::DateTime::Incomplete';
+use aliased 'Kinetic::DataType::DateTime::Incomplete';
 
 use Kinetic::Store qw/:all/;
 use Kinetic::Store::Lexer::String qw/string_lexer_stream/;

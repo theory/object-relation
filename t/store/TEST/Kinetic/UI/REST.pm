@@ -33,8 +33,8 @@ use aliased 'Test::MockModule';
 use aliased 'Kinetic::Store' => 'Store', ':all';
 
 use aliased 'Kinetic::UI::REST';
-use aliased 'Kinetic::DateTime';
-use aliased 'Kinetic::DateTime::Incomplete';
+use aliased 'Kinetic::DataType::DateTime';
+use aliased 'Kinetic::DataType::DateTime::Incomplete';
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Util::State';
 

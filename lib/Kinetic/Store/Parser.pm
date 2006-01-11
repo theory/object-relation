@@ -41,7 +41,7 @@ use Exporter::Tidy default => ['parse'];
 use HOP::Stream qw/drop list_to_stream/;
 use HOP::Parser qw/:all/;
 
-use Kinetic::DateTime::Incomplete qw/is_incomplete_iso8601/;
+use Kinetic::DataType::DateTime::Incomplete qw/is_incomplete_iso8601/;
 use Kinetic::Store::Search;
 use Kinetic::Util::Constants qw/:data_store/;
 use Kinetic::Util::Exceptions qw/panic throw_search/;
@@ -422,7 +422,7 @@ sub _make_search {
 sub _normalize_value {
     my $value = shift;
     if ( is_incomplete_iso8601($value) ) {
-        $value = Kinetic::DateTime::Incomplete->new_from_iso8601($value);
+        $value = Kinetic::DataType::DateTime::Incomplete->bake($value);
     }
     return $value;
 }

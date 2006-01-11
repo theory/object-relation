@@ -19,7 +19,7 @@ use Kinetic::Util::Constants qw/$UUID_RE/;
 
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Store' => 'Store', ':all';
-use aliased 'Kinetic::DateTime';
+use aliased 'Kinetic::DataType::DateTime';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';   # contains a TestApp::Simple::One object
 

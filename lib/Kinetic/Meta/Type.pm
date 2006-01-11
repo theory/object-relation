@@ -117,7 +117,7 @@ L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>.
 The code reference should simply expect the value returned by the C<get>
 accessor as its sole argument. It can then take whatever steps are necssary to
 return a serializable value. For example, if for a
-L<Kinetic::DateTime|Kinetic::DateTime> data type, we might want to get back a
+L<Kinetic::DataType::DateTime|Kinetic::DataType::DateTime> data type, we might want to get back a
 string in ISO-8601 format in the UTC time zone. The raw code reference to do
 so might look like this:
 

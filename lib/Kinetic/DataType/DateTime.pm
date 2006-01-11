@@ -1,4 +1,4 @@
-package Kinetic::DateTime;
+package Kinetic::DataType::DateTime;
 
 # $Id$
 
@@ -22,7 +22,7 @@ use strict;
 use base 'DateTime';
 use DateTime::TimeZone;
 use DateTime::Format::Strptime;
-
+use Kinetic::Meta::Type;
 use Exporter::Tidy other => ['is_iso8601'];
 
 use version;
@@ -30,27 +30,39 @@ our $VERSION = version->new('0.0.1');
 
 =head1 Name
 
-Kinetic::DateTime - Kinetic DateTime objects
+Kinetic::DataType::DateTime - Kinetic DateTime objects
 
 =head1 Synopsis
 
-  my $dt = Kinetic::DateTime->new(
-    year   => 1964,
-    month  => 10,
-    day    => 16,
-    hour   => 16,
-    minute => 12,
-    second => 47,
+  my $dt = Kinetic::DataType::DateTime->new(
+      year   => 1964,
+      month  => 10,
+      day    => 16,
+      hour   => 16,
+      minute => 12,
+      second => 47,
   );
 
 =head1 Description
 
 This module subclasses the L<DateTime|DateTime> module to offer DateTime
 objects to Kinetic applications. The only way in which it differs from
-DateTime is that all new Kinetic::DateTime objects are in the "UTC" time zone
-unless another time zone is specified.
+DateTime is that all new Kinetic::DataType::DateTime objects are in the "UTC"
+time zone unless another time zone is specified.
 
 =cut
+
+my $utc = DateTime::TimeZone::UTC->new;
+Kinetic::Meta::Type->add(
+    key     => 'datetime',
+    name    => 'DateTime',
+    raw     => sub { ref $_[0]
+                       ? shift->clone->set_time_zone($utc)->iso8601
+                       : shift
+                   },
+    bake    => sub { Kinetic::DataType::DateTime->bake(shift) },
+    check   => __PACKAGE__,
+);
 
 ##############################################################################
 # Constructors.
@@ -62,7 +74,7 @@ unless another time zone is specified.
 
 =head3 new
 
-  my $dt = Kinetic::DateTime->new(
+  my $dt = Kinetic::DataType::DateTime->new(
     year   => 1964,
     month  => 10,
     day    => 16,
@@ -78,15 +90,13 @@ the time zone will be UTC.
 
 ##############################################################################
 
-=head3 new_from_iso8601
+=head3 bake
 
-  my $dt = Kinetic::DateTime->new_from_iso8601('1964-10-16T16:12:47.0');
+  my $dt = Kinetic::DataType::DateTime->bake('1964-10-16T16:12:47.0');
 
-Same as C<new> but takes an iso8601 date string as the argument.
+Same as C<new> but takes an ISO-8601 date string as the argument.
 
 =cut
-
-my $utc = DateTime::TimeZone::UTC->new;
 
 #my $formatter = DateTime::Format::Strptime->new(pattern => '%Y-%m-%dT%H:%M:%S.%1N%z');
 my $formatter =
@@ -101,7 +111,7 @@ sub new {
     );
 }
 
-sub new_from_iso8601 {
+sub bake {
     my ( $class, $iso8601_date_string ) = @_;
     return unless $iso8601_date_string;
     my $args = $class->parse_iso8601_date($iso8601_date_string);
@@ -110,12 +120,14 @@ sub new_from_iso8601 {
 
 ##############################################################################
 
+=head2 Class Methods
+
 =head3 parse_iso8601_date
 
-  my $date_href = $date->parse_iso8601_date;
+  my $date_href = Kinetic::DataType::DateTime->parse_iso8601_date($string);
 
 Given an ISO8601 date string, returns a hashref with the date parts as values
-to the keys.  Keys are:
+to the keys. Keys are:
 
     year
     month
@@ -151,27 +163,11 @@ sub parse_iso8601_date {
     return \%args;
 }
 
-=head3 is_iso8601
-
-  use Kinetic::DateTime qw/is_iso8601/;
-  if (is_iso8601('1964-10-16T16:12:47.0')) {
-    ...
-  }
-
-Returns a true or false value depending upon whether or not the supplied
-string matches an ISO 8601 datetime string.  This is a function, not a 
-method.
-
-Nanoseconds are optional.  Currently ignores timezone.
-
-=cut
-
-sub is_iso8601 {
-    my $date = shift;
-    return $date =~ /^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?$/;
-}
-
 ##############################################################################
+
+=head1 Instance Interface
+
+=head2 Instance Methods
 
 =head3 raw
 
@@ -184,6 +180,31 @@ Return the ISO8601 value of the datetime object.
 sub raw {
     my $self = shift;
     return "$self";
+}
+
+##############################################################################
+
+=head1 Functional Interface.
+
+=head2 Exportable Functions
+
+=head3 is_iso8601
+
+  use Kinetic::DataType::DateTime qw/is_iso8601/;
+  if (is_iso8601('1964-10-16T16:12:47.0')) {
+    ...
+  }
+
+Returns a true or false value depending upon whether or not the supplied
+string matches an ISO 8601 datetime string. This is a function, not a method.
+
+Nanoseconds are optional. Currently ignores timezone.
+
+=cut
+
+sub is_iso8601 {
+    shift
+        =~ /^\d\d\d\d-[0123]\d-[0123]\dT[012]\d:[012345]\d:[012345]\d(?:\.\d+)?$/;
 }
 
 1;

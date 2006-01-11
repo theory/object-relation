@@ -49,7 +49,7 @@ use Kinetic::Util::Constants qw/:data_store/;
 
 use aliased 'Kinetic::Meta' => 'Meta', qw/:with_dbstore_api/;
 use aliased 'Kinetic::Util::Iterator';
-use aliased 'Kinetic::DateTime::Incomplete';
+use aliased 'Kinetic::DataType::DateTime::Incomplete';
 use aliased 'Kinetic::Store::Search';
 use aliased 'Kinetic::Util::State';
 

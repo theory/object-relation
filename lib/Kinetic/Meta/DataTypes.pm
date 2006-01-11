@@ -26,7 +26,6 @@ our $VERSION = version->new('0.0.1');
 use Kinetic::Meta::Type;
 use OSSP::uuid;
 use Data::Types;
-use Kinetic::DateTime;
 use Kinetic::Util::Exceptions qw(throw_invalid);
 use version;
 
@@ -134,26 +133,6 @@ A boolean value.
 =cut
 
 use Class::Meta::Types::Boolean;
-
-##############################################################################
-
-=item datetime
-
-A Kinetic::DateTime object.
-
-=cut
-
-my $utc = DateTime::TimeZone::UTC->new;
-Kinetic::Meta::Type->add(
-    key     => 'datetime',
-    name    => 'DateTime',
-    raw     => sub { ref $_[0]
-                       ? shift->clone->set_time_zone($utc)->iso8601
-                       : shift
-                   },
-    bake    => sub { Kinetic::DateTime->new_from_iso8601(shift) },
-    check   => 'Kinetic::DateTime',
-);
 
 ##############################################################################
 

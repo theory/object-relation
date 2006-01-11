@@ -10,8 +10,8 @@ use Test::NoWarnings; # Adds an extra test.
 
 my $CLASS;
 BEGIN {
-    $CLASS = 'Kinetic::DateTime::Incomplete'; 
-    use_ok $CLASS, 'is_incomplete_iso8601' or die 
+    $CLASS = 'Kinetic::DataType::DateTime::Incomplete';
+    use_ok $CLASS, 'is_incomplete_iso8601' or die
 };
 
 can_ok $CLASS, 'now';
@@ -95,8 +95,8 @@ ok is_incomplete_iso8601('1964-xx-16Txx:12:47'),
 ok ! is_incomplete_iso8601('19xx-10-16 17:12:47'),
     '... but it will not match partially replaced date segment';
 
-can_ok $CLASS, 'new_from_iso8601';
-ok $date = $CLASS->new_from_iso8601('xxxx-07-14Txx:xx:xx'),
+can_ok $CLASS, 'bake';
+ok $date = $CLASS->bake('xxxx-07-14Txx:xx:xx'),
     'Declaring Bastille Day should work correctly';
 foreach my $segment (qw/year hour minute second/) {
     ok ! defined $date->$segment, "... $segment should not be defined if it wasn't declared";

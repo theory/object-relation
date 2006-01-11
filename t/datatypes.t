@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 58;
+use Test::More tests => 59;
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Util::Functions qw(:uuid);
 use Kinetic::Util::Config qw(STORE_CLASS);
@@ -16,7 +16,8 @@ BEGIN {
     Test::More->import;
     # We need to load Kinetic first, or else things just won't work!
     use_ok('Kinetic') or die;
-    use_ok('Kinetic::Meta::DataTypes') or die;
+    use_ok('Kinetic::Meta::DataTypes')    or die;
+    use_ok('Kinetic::DataType::DateTime') or die;
     use_ok('Kinetic::DataType::Duration') or die;
 }
 
@@ -131,11 +132,11 @@ is( $t->datetime, undef, 'Check for no DateTime' );
 # Make sure that automatic baking works.
 my $date = '2005-03-23T19:30:05.1234';
 $t->{datetime} = $date; # Don't try this at home!
-isa_ok($t->datetime, 'Kinetic::DateTime');
+isa_ok($t->datetime, 'Kinetic::DataType::DateTime');
 isa_ok($t->datetime, 'DateTime');
 
-# Try assigning a Kinetic::DateTime object.
-my $dt = Kinetic::DateTime->now->set_time_zone('America/Los_Angeles');
+# Try assigning a Kinetic::DataType::DateTime object.
+my $dt = Kinetic::DataType::DateTime->now->set_time_zone('America/Los_Angeles');
 ok( $t->datetime($dt), "Add DateTime object" );
 is overload::StrVal($t->datetime), overload::StrVal($dt),
   "DateTime object should be the same";

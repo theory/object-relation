@@ -204,8 +204,8 @@ sub test_config_action : Test(4) {
          catdir(qw'lib Kinetic Util');
     my $default = '/usr/local/kinetic/conf/kinetic.conf';
 
-    my $config = catfile qw'lib Kinetic Util Config.pm';
-    file_contents_like $config, qr"\s+|| '$default';",
+    my $config = catfile qw(lib Kinetic Util Config.pm);
+    file_contents_like $config, qr/\s+|| '$default';/,
       qq{Config.pm should point to "$default" by default};
 
     my $builder;

@@ -9,7 +9,7 @@ use lib 't/lib/', 'lib', 't/sample/lib';
 use Kinetic::Meta;
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';
-use aliased 'Kinetic::DateTime';
+use aliased 'Kinetic::DataType::DateTime';
 use aliased 'Kinetic::Store';
 use TEST::REST::Server;
 

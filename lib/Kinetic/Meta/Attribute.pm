@@ -515,7 +515,7 @@ This method returns the raw value of an attribute. This value will most often
 be the same as that returned by C<get()>, but when the attribute fetched is an
 object, it might return a raw value suitable for serialization or storage in a
 database. For example, if the attribute was a
-L<Kinetic::DateTime|Kinetic::DateTime> object, the C<get()> metod will return
+L<Kinetic::DataType::DateTime|Kinetic::DataType::DateTime> object, the C<get()> metod will return
 the object, but the C<raw()> method might return an ISO-8601 formatted string
 using the UTC time zone, instead.
 

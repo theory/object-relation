@@ -1,4 +1,4 @@
-package Kinetic::DateTime::Incomplete;
+package Kinetic::DataType::DateTime::Incomplete;
 
 # $Id: DateTime.pm 1253 2005-02-11 02:35:40Z theory $
 
@@ -24,17 +24,17 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use base 'DateTime::Incomplete';
-use Kinetic::DateTime;
+use Kinetic::DataType::DateTime;
 use DateTime::TimeZone;
 use Exporter::Tidy other => ['is_incomplete_iso8601'];
 
 =head1 Name
 
-Kinetic::DateTime::Incomplete - Incomplete Kinetic DateTime objects
+Kinetic::DataType::DateTime::Incomplete - Incomplete Kinetic DateTime objects
 
 =head1 Synopsis
 
-  my $dt = Kinetic::DateTime::Incomplete->new(
+  my $dt = Kinetic::DataType::DateTime::Incomplete->new(
     month  => 10,
     day    => 16,
   );
@@ -43,7 +43,7 @@ Kinetic::DateTime::Incomplete - Incomplete Kinetic DateTime objects
 
 This module subclasses the L<DateTime::Incomplete|DateTime::Incomplete> module
 to offer DateTime::Incomplete objects to Kinetic applications. The only way in
-which it differs from DateTime::Incomplete is that all new Kinetic::DateTime
+which it differs from DateTime::Incomplete is that all new Kinetic::DataType::DateTime
 objects are in the "UTC" time zone unless another time zone is specified and it
 knows to properly stringify itself when accessed by
 L<Kinetic::Store|Kinetic::Store>.
@@ -60,12 +60,12 @@ L<Kinetic::Store|Kinetic::Store>.
 
 =head3 new
 
-  my $dt = Kinetic::DateTime::Incomplete->new(
+  my $dt = Kinetic::DataType::DateTime::Incomplete->new(
     month  => 10,
     day    => 16,
   );
 
-Constructs and returns a new Kinetic::DateTime::Incomplete object. Unless a
+Constructs and returns a new Kinetic::DataType::DateTime::Incomplete object. Unless a
 time zone is specified, the time zone will be UTC.
 
 =cut
@@ -76,18 +76,18 @@ sub new { shift->SUPER::new(time_zone => $utc, @_) }
 
 ##############################################################################
 
-=head3 new_from_iso8601
+=head3 bake
 
-  my $dt = Kinetic::DateTime->new_from_iso8601('1964-10-16T16:12:47.0');
+  my $dt = Kinetic::DataType::DateTime->bake('1964-10-16T16:12:47.0');
 
 Same as C<new> but takes an incomplete iso8601 date string as the argument.
 
 =cut
 
-sub new_from_iso8601 {
+sub bake {
     my ($class, $iso8601_date_string) = @_;
     return unless $iso8601_date_string;
-    my $args = Kinetic::DateTime->parse_iso8601_date($iso8601_date_string);
+    my $args = Kinetic::DataType::DateTime->parse_iso8601_date($iso8601_date_string);
     my %args;
     while (my ($key, $value) = each %$args) {
         next if $value =~ /x/;
@@ -136,7 +136,7 @@ sub contiguous {
 
 =head3 is_incomplete_iso8601
 
-  use Kinetic::DateTime::Incomplete qw/is_incomplete_iso8601/;
+  use Kinetic::DataType::DateTime::Incomplete qw/is_incomplete_iso8601/;
   if (is_incomplete_iso8601('1964-xx-16T16:12:47.0')) {
     ...
   }
@@ -173,18 +173,18 @@ sub is_incomplete_iso8601 {
     return $date =~ /^
         (?:\d\d\d\d|xxxx)  # year
         -
-        (?:\d\d|xx)        # month
+        (?:[0123]\d|xx)    # month
         -
-        (?:\d\d|xx)        # day
+        (?:[0123]\d|xx)    # day
         T
-        (?:\d\d|xx)        # hour
+        (?:[012]\d|xx)     # hour
         :
-        (?:\d\d|xx)        # minute
+        (?:[012345]\d|xx)  # minute
         :
-        (?:\d\d|xx)        # seconds
+        (?:[012345]\d|xx)  # seconds
         (?:\.\d+)?         # optional nanoseconds
     $/x;
-}    
+}
 
 ##############################################################################
 
@@ -213,7 +213,7 @@ component separators and undefined components are ommitted.  All components
 except year are zero padded to 2 characters.  The year is zero padded with
 four characters.
 
-  '19970623' eq Kinetic::DateTime::Incomplete->new(
+  '19970623' eq Kinetic::DataType::DateTime::Incomplete->new(
     year  => 1997,
     month => 6,
     hour  => 23

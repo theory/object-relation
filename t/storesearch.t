@@ -9,7 +9,7 @@ use Test::More tests => 61;
 use Test::NoWarnings; # Adds an extra test.
 use Test::Exception;
 
-use aliased 'Kinetic::DateTime::Incomplete';
+use aliased 'Kinetic::DataType::DateTime::Incomplete';
 my $CLASS;
 BEGIN {
     $CLASS = 'Kinetic::Store::Search'; 
