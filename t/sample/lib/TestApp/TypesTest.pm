@@ -28,6 +28,13 @@ BEGIN {
         )
     );
 
+    $km->add_attribute(
+        name        => 'operator',
+        label       => 'Operator',
+        type        => 'operator',
+        required    => 1,
+    );
+
     $km->build;
 }
 

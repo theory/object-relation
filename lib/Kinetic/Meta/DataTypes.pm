@@ -158,6 +158,53 @@ Kinetic::Meta::Type->add(
     check => 'version',
 );
 
+##############################################################################
+
+=item operator
+
+Operator strings. Allowable operators are:
+
+=over
+
+=item ==
+
+=item >=
+
+=item <=
+
+=item !=
+
+=item eq
+
+=item ne
+
+=item gt
+
+=item lt
+
+=item ge
+
+=item le
+
+=item =~
+
+=item !~
+
+=back
+
+=cut
+
+my %ops = ( map { $_ => undef } qw(== >= <= != eq ne gt lt ge le =~ !~) );
+
+Kinetic::Meta::Type->add(
+    key   => 'operator',
+    name  => 'Operator',
+    check => sub {
+        throw_invalid( [ 'Value "[_1]" is not a valid operator', $_[0] ] )
+            unless exists $ops{ $_[0] };
+    },
+);
+
 =back
 
 =cut

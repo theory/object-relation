@@ -94,6 +94,7 @@ my %types = (
     datetime => 'TIMESTAMP',
     version  => 'TEXT',
     duration => 'INTERVAL',
+    operator => 'TEXT',
 );
 
 sub column_type {

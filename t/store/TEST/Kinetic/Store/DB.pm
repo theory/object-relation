@@ -1103,7 +1103,7 @@ sub test_fk_update : Test(9) {
         '... Which should have the proper error message';
 }
 
-sub test_types : Test(31) {
+sub test_types : Test(38) {
     my $self = shift;
     return 'Skip test_fk_update for abstract class'
         unless $self->_should_run;
@@ -1127,6 +1127,11 @@ sub test_types : Test(31) {
     isa_ok $types_test->duration,  'Kinetic::DataType::Duration', 'It';
     is $types_test->duration, $du, 'It should be properly set';
 
+    # Set up the operator attribute.
+    is $types_test->operator, undef, 'The operator should be undef';
+    ok $types_test->operator('eq'),  'Set the operator';
+    is $types_test->operator, 'eq',  'It should be properly set';
+
     # Save the object.
     ok $types_test->save, 'Save the types_test object';
     ok $types_test = TypesTest->lookup( uuid => $types_test->uuid ),
@@ -1137,6 +1142,7 @@ sub test_types : Test(31) {
     is $types_test->version, $version,      'It should be properly set';
     isa_ok $types_test->duration,  'Kinetic::DataType::Duration', 'duration';
     is $types_test->duration, $du, 'It should be properly set';
+    is $types_test->operator, 'eq','Operator should be properly set';
 
     # Change the version object.
     ok $version = version->new('3.40'),     'Create new version object';
@@ -1151,6 +1157,10 @@ sub test_types : Test(31) {
     isa_ok $types_test->duration,  'Kinetic::DataType::Duration', 'It';
     is $types_test->duration, $du, 'It should be properly set';
 
+    # Change the operator.
+    ok $types_test->operator('ne'),  'Set the operator to a new value';
+    is $types_test->operator, 'ne',  'It should be properly set';
+
     # Save it again.
     ok $types_test->save, 'Save TypesTest object again';
     ok $types_test = TypesTest->lookup( uuid => $types_test->uuid ),
@@ -1161,6 +1171,7 @@ sub test_types : Test(31) {
     is $types_test->version, $version,      'It should be properly set';
     isa_ok $types_test->duration,  'Kinetic::DataType::Duration', 'duration';
     is $types_test->duration, $du, 'It should be properly set';
+    is $types_test->operator, 'ne','Operator should be properly set';
 }
 
 1;

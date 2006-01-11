@@ -152,6 +152,9 @@ our %Lexicon;
         'Value "[_1]" is not a UUID',
         'Value “[_1]” is not a UUID',
 
+        'Value "[_1]" is not a valid operator',
+        'Value “[_1]” is not a valid operator',
+
         'Could not determine widget type handler for "[_1]"',
         'Could not determine widget type handler for “[_1]”',
 
@@ -257,7 +260,6 @@ our %Lexicon;
         '[_1] can either extend or mediate another class, but not both',
 
         # Kinetic Attribute labels and tips.
-        'UUID' => 'UUID',
         'The globally unique identifier for this object',
         'The globally unique identifier for this object',
 
@@ -269,9 +271,18 @@ our %Lexicon;
         'The description of this object',
         'The description of this object',
 
+        'The state of this object',
+        'The state of this object',
+
+        # Data types.
+        'UUID' => 'UUID',
         'State' => 'State',
-        'The state of this object',
-        'The state of this object',
+        'String' => 'String',
+        'Whole Number' => 'Whole Number',
+        'Version' => 'Version',
+        'Operator' => 'Operator',
+        'Duration' => 'Duration',
+        'DateTime' => 'Date and Time',
 
         # Kinetic::Party::Person labels and tips.
         'Last Name' => 'Last Name',

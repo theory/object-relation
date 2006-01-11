@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use diagnostics;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
-use Test::More tests => 197;
+use Test::More tests => 200;
 use Test::NoWarnings; # Adds an extra test.
 
 {

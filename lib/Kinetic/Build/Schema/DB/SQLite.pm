@@ -78,6 +78,7 @@ my %types = (
     datetime => 'DATETIME',
     version  => 'TEXT',
     duration => 'TEXT',
+    operator => 'TEXT',
 );
 
 sub column_type {

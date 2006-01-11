@@ -936,7 +936,8 @@ $table = q{CREATE TABLE _types_test (
     uuid UUID NOT NULL DEFAULT UUID_V4(),
     state STATE NOT NULL DEFAULT 1,
     version TEXT NOT NULL,
-    duration INTERVAL NOT NULL
+    duration INTERVAL NOT NULL,
+    operator TEXT NOT NULL
 );
 };
 eq_or_diff $sg->table_for_class($types_test), $table,
@@ -973,7 +974,7 @@ eq_or_diff join("\n", $sg->constraints_for_class($types_test)), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW types_test AS
-  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.version AS version, _types_test.duration AS duration
+  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator
   FROM   _types_test;
 };
 eq_or_diff $sg->view_for_class($types_test), $view,
@@ -982,8 +983,8 @@ eq_or_diff $sg->view_for_class($types_test), $view,
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_types_test AS
 ON INSERT TO types_test DO INSTEAD (
-  INSERT INTO _types_test (id, uuid, state, version, duration)
-  VALUES (NEXTVAL('seq_types_test'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.version, NEW.duration);
+  INSERT INTO _types_test (id, uuid, state, version, duration, operator)
+  VALUES (NEXTVAL('seq_types_test'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.version, NEW.duration, NEW.operator);
 );
 };
 eq_or_diff $sg->insert_for_class($types_test), $insert,
@@ -993,7 +994,7 @@ eq_or_diff $sg->insert_for_class($types_test), $insert,
 $update = q{CREATE RULE update_types_test AS
 ON UPDATE TO types_test DO INSTEAD (
   UPDATE _types_test
-  SET    state = NEW.state, version = NEW.version, duration = NEW.duration
+  SET    state = NEW.state, version = NEW.version, duration = NEW.duration, operator = NEW.operator
   WHERE  id = OLD.id;
 );
 };

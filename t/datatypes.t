@@ -3,7 +3,8 @@
 # $Id$
 
 use strict;
-use Test::More tests => 59;
+#use Test::More tests => 59;
+use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Util::Functions qw(:uuid);
 use Kinetic::Util::Config qw(STORE_CLASS);
@@ -52,6 +53,13 @@ BEGIN {
                             type     => 'duration',
                           ),
         "Add duration attribute" );
+
+    # Add a Operator attribute.
+    ok( $cm->add_attribute( name     => 'operator',
+                            view     => Class::Meta::PUBLIC,
+                            type     => 'operator',
+                          ),
+        "Add operator attribute" );
 
     # Add a class attribute.
     ok( $cm->add_attribute( name     => 'string',
@@ -185,7 +193,6 @@ ok( Kinetic::TestTypes->string('bub'), "Set the string" );
 is( Kinetic::TestTypes->string, 'bub', 'The attribute should be set' );
 is $t->string, 'bub', "The object should see the same value";
 
-
 # Test Version accessor.
 is( $t->version, undef, 'Check for no Version' );
 
@@ -205,4 +212,19 @@ is $t->my_class->attributes('version')->raw($t), $version->stringify,
 eval { $t->version('foo') };
 ok $err = $@, "Caught bad Version exception";
 isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
+
+# Test Operator accessor.
+is( $t->operator, undef, 'Check for no Operator' );
+
+my $op = '==';
+# Try assigning a Kinetic::Operator object.
+ok $t->operator($op), 'Set operator';
+is $t->operator, $op, 'It should be set';
+is $t->my_class->attributes('operator')->get($t), $op,
+    'It should be accessable via the attribute object';
+eval { $t->operator('foo') };
+ok $err = $@, "Caught bad Operator exception";
+isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
+is $err->error, "Value \x{201c}foo\x{201d} is not a valid operator",
+    'It should have the proper error message';
 
