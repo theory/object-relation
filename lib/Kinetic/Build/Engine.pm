@@ -25,7 +25,7 @@ our $VERSION = version->new('0.0.1');
 
 =head1 Name
 
-Kinetic::Build::Engine - Kinetic server builder
+Kinetic::Build::Engine - Kinetic engine builder
 
 =head1 Synopsis
 
@@ -47,15 +47,15 @@ This is the base class for building Kinetic engines.
 
 =head2 Class Methods
 
-=head3 server_class
+=head3 engine_class
 
-  my $server_class = Kinetic::Build::Engine->server_class;
+  my $engine_class = Kinetic::Build::Engine->engine_class;
 
-Returns the engine class necessary to run the server;.
+Returns the engine class necessary to run the engine.
 
 =cut
 
-sub server_class { die "server_class() must be overridden in the subclass" }
+sub engine_class { die "engine_class() must be overridden in the subclass" }
 
 ##############################################################################
 # Constructors.
@@ -104,20 +104,20 @@ sub builder { $private{shift()}->{builder} ||= Kinetic::Build->resume }
 
 ##############################################################################
 
-=head3 add_server_config_to_conf
+=head3 add_engine_config_to_conf
 
-  $server->add_server_config_to_conf(\%conf);
+  $engine->add_engine_config_to_conf(\%conf);
 
 Takes the config hash from C<Kinetic::Build> and adds the necessary
-configuration information to run the selected server.
+configuration information to run the selected engine.
 
 =cut
 
-sub add_server_config_to_conf {
+sub add_engine_config_to_conf {
     my ( $self, $conf ) = @_;
     my @conf = $self->conf_sections;
-    @{ $conf->{ $self->conf_server } }{@conf} = @{$self}{@conf};
-    $conf->{server} = { class => $self->server_class };
+    @{ $conf->{ $self->conf_engine } }{@conf} = @{$self}{@conf};
+    $conf->{engine} = { class => $self->engine_class };
     return $self;
 }
 
@@ -127,7 +127,7 @@ sub add_server_config_to_conf {
 
   $kbs->validate;
 
-This method will validate the server. 
+This method will validate the engine. 
 
 =cut
 

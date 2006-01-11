@@ -37,7 +37,7 @@ my %STORES = (
     sqlite => 'Kinetic::Build::Store::DB::SQLite',
 );
 
-my %SERVERS = (
+my %ENGINES = (
     apache => 'Kinetic::Build::Engine::Apache',
     simple => 'Kinetic::Build::Engine::Catalyst',
 );
@@ -156,7 +156,7 @@ sub new {
     }
 
     $self->check_store;
-    $self->check_server;
+    $self->check_engine;
     return $self;
 }
 
@@ -182,10 +182,10 @@ sub resume {
           or $self->_fatal_error("I'm not familiar with the $store data store");
         eval "require $build_store_class" or $self->_fatal_error($@);
     }
-    if (my $server = $self->server) {
-        my $build_server_class = $SERVERS{$server}
-          or $self->_fatal_error("I'm not familiar with the $server server");
-        eval "require $build_server_class" or $self->_fatal_error($@);
+    if (my $engine = $self->engine) {
+        my $build_engine_class = $ENGINES{$engine}
+          or $self->_fatal_error("I'm not familiar with the $engine engine");
+        eval "require $build_engine_class" or $self->_fatal_error($@);
     }
     return $self;
 }
@@ -250,24 +250,24 @@ __PACKAGE__->add_property(
 
 ##############################################################################
 
-=head3 server
+=head3 engine
 
-  my $server = $build->server;
-  $build->server($server);
+  my $engine = $build->engine;
+  $build->engine($engine);
 
-The type of server to be used for the application.  Possible values are
+The type of engine to be used for the application.  Possible values are
 "apache" and "simple".  Defaults to "apache".
 
-The "simple" server is merely a test server for easy development.
+The "simple" engine is merely a test engine for easy development.
 
 =cut
 
 __PACKAGE__->add_property(
-    name    => 'server',
-    label   => 'Kinetic Server',
+    name    => 'engine',
+    label   => 'Kinetic engine',
     default => 'apache',
-    options => [ sort keys %SERVERS ],
-    message => 'Which server should I use?'
+    options => [ sort keys %ENGINES ],
+    message => 'Which engine should I use?'
 );
 
 ##############################################################################
@@ -577,41 +577,24 @@ the call to C<perl Build.PL>.
 
 sub check_store {
     my $self = shift;
-    return $self if $self->notes('build_store');
-    # Check the specific store.
-    my $build_store_class = $STORES{$self->store}
-      or $self->_fatal_error("I'm not familiar with the " . $self->store
-                             . ' data store');
-    eval "require $build_store_class" or $self->_fatal_error($@);
-    my $build_store = $build_store_class->new($self);
-    $build_store->validate;
-    $self->notes(build_store => $build_store);
+    $self->_check_build_component('store', \%STORES);
     return $self;
 }
 
 ##############################################################################
 
-=head3 check_server
+=head3 check_engine
 
-  $build->check_server;
+  $build->check_engine;
 
 This method assembles and validates the information necessary to run the
-selected server.
+selected engine.
 
 =cut
 
-sub check_server {
+sub check_engine {
     my $self = shift;
-    return $self if $self->notes('build_server');
-
-    # check the specific server
-    my $build_server_class = $SERVERS{$self->server}
-      or $self->_fatal_error(
-        "I'm not familiar with the ". $self->server . " server");
-    eval "require $build_server_class" or $self->_fatal_error($@);
-    my $build_server = $build_server_class->new($self);
-    $build_server->validate;
-    $self->notes(build_server => $build_server);
+    $self->_check_build_component('engine', \%ENGINES);
     return $self;
 }
 
@@ -675,14 +658,14 @@ sub process_conf_files {
                 }
             }
 
-            if ( $SERVERS{$lc_section} ) {
-                if ( $lc_section eq $self->server ) {
-                    my $server = $self->notes('build_server');
-                    $server->add_server_config_to_conf(\%conf);
+            if ( $ENGINES{$lc_section} ) {
+                if ( $lc_section eq $self->engine ) {
+                    my $engine = $self->notes('build_engine');
+                    $engine->add_engine_config_to_conf(\%conf);
                 }
                 else {
 
-                    # It's a section for a server we haven't chosen.
+                    # It's a section for a engine we haven't chosen.
                     delete $conf{$section};
                 }
             }
@@ -909,6 +892,36 @@ sub _copy_to {
         }
     }
     return @ret;
+}
+
+##############################################################################
+
+=head3 _check_build_component
+
+  $build->_check_build_component($component, \%build_classes);
+
+Given a compent type and hash ref for the current component selected and the
+build classes for it, this method attempts to use the correct build class,
+instantiate and instance of it and call its C<validate()> method.
+
+Current supported build components are C<store> and C<engine> and their
+respective C<%STORES> and C<%ENGINES> build class hashes.
+
+=cut
+
+sub _check_build_component {
+    my ($self, $component, $class_for) = @_;
+    return $self if $self->notes("build_$component");
+
+    # Check the specific component.
+    my $build_component_class = $class_for->{$self->$component}
+      or $self->_fatal_error("I'm not familiar with the " . $self->$component
+                             . " $component");
+    eval "require $build_component_class" or $self->_fatal_error($@);
+    my $build_component = $build_component_class->new($self);
+    $build_component->validate;
+    $self->notes("build_$component" => $build_component);
+    return $self;
 }
 
 ##############################################################################

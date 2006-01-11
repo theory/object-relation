@@ -28,10 +28,6 @@ use CGI;
 CGI->compile;
 use Template;
 
-use Apache2::CmdParms   ();
-use Apache2::Module     ();
-use Apache2::RequestRec ();
-use Apache2::RequestIO  ();
 use Apache2::Const -compile => qw(OK);
 use Apache2::ServerUtil ();
 
@@ -126,38 +122,30 @@ sub _get_rest_object {
 sub _apache_conf_template {
     my $self = shift;
     my %data = (
-        server_name   => APACHE_SERVER_NAME,
         server_rest   => APACHE_REST,
         server_root   => APACHE_ROOT,
         server_static => APACHE_STATIC,
     );
     my $config_template = <<'    END_CONF';
-<VirtualHost *>
-    ServerName   [% server_name %]
+DocumentRoot /Users/curtispoe/work/svn.kineticode.com/trunk/Kinetic/root
+<Location [% server_root %]>
+    SetHandler          modperl
+    PerlResponseHandler Kinetic::Engine::Apache2
+    Order allow,deny
+    Allow from all
+</Location>
 
-    # XXX Hard-coded for now while I try to debug things
-    DocumentRoot /Users/curtispoe/work/svn.kineticode.com/trunk/Kinetic/root
+# static files
+<Location [% server_static %]>
+    Order allow,deny
+    Allow from all
+</Location>
 
-    # kinetic catalyst app
-    <Location [% server_root %]>
-        SetHandler          modperl
-        PerlResponseHandler Kinetic::Engine::Apache2
-        Order allow,deny
-        Allow from all
-    </Location>
-    
-    # static files
-    <Location [% server_static %]>
-        Order allow,deny
-        Allow from all
-    </Location>
-
-    # REST 
-    <Location [% server_rest %]>
-        SetHandler          modperl
-        PerlResponseHandler Kinetic::Engine::Apache2::rest
-    </Location>
-</VirtualHost>
+# REST 
+<Location [% server_rest %]>
+    SetHandler          modperl
+    PerlResponseHandler Kinetic::Engine::Apache2::rest
+</Location>
     END_CONF
 
     my $tt     = Template->new;

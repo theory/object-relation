@@ -35,27 +35,23 @@ See L<Kinetic::Build::Engine|Kinetic::Build::Engine>.
 
 =head1 Description
 
-This module inherits from Kinetic::Build::Engine to build an Apache server.
+This module inherits from Kinetic::Build::Engine to build an Apache engine.
 Its interface is defined entirely by Kinetic::Build::Engine. The command-line
 options it adds are:
 
 =over
 
-=item group
-
-=item host
+=item httpd_group
 
 =item httpd
 
-=item port
+=item httpd_port
+
+=item httpd_user
 
 =item rest_root
 
-=item restart
-
-=item server_root
-
-=item user
+=item engine_root
 
 =back
 
@@ -69,15 +65,15 @@ options it adds are:
 
 =head2 Class Methods
 
-=head3 server_class
+=head3 engine_class
 
-  my $server_class = Kinetic::Build::Engine::Apache->server_class;
+  my $engine_class = Kinetic::Build::Engine::Apache->engine_class;
   
-Returns the server class which C<bin/kineticd> will use to start the server.
+Returns the engine class which C<bin/kineticd> will use to start the engine.
 
 =cut
 
-sub server_class {'Kinetic::Engine::Apache2'}
+sub engine_class {'Kinetic::Engine::Apache2'}
 
 ##############################################################################
 
@@ -90,7 +86,7 @@ This method validates the requirements necessary to run the selected engine.
 =cut
 
 # * httpd: /usr/local/apache/bin/httpd
-# * server name
+# * engine name
 
 # XXX Eventually we'll convert this to FSA::Rules.  At this time we're not
 # doing this as there is no App::Info module for Apache2
@@ -99,45 +95,26 @@ sub validate {
     my $self    = shift;
     my $builder = $self->builder;
 
-    while ( !$self->{httpd} ) {
-        $self->{httpd} = $builder->args('httpd')
-          || $builder->get_reply(
-            name    => 'httpd',
-            message =>
-              'Please enter the httpd executable for the apache server',
-            label   => 'Server httpd',
-            default => '/usr/local/apache/bin/httpd'
-          );
-        if ( !-f $self->{httpd} ) {
-            warn "($self->{httpd}) does not appear to exist\n";
-            delete $self->{httpd};
-        }
-    }
-    $self->{server_name} = $builder->args('server_name')
+    $self->_set_httpd;
+
+    $self->{httpd_port} = $builder->args('httpd_port')
       || $builder->get_reply(
-        name    => 'server_name',
-        message => 'Please enter the server name to run the server as',
-        label   => 'Server server_name',
-        default => 'localhost' # XXX We'll need to revisit this
-      );
-    $self->{port} = $builder->args('port')
-      || $builder->get_reply(
-        name    => 'port',
-        message => 'Please enter the port to run the server on',
+        name    => 'httpd_port',
+        message => 'Please enter the port to run the engine on',
         label   => 'Server port',
         default => 80
       );
-    $self->{user} = $builder->args('user')
+    $self->{httpd_user} = $builder->args('httpd_user')
       || $builder->get_reply(
-        name    => 'user',
-        message => 'Please enter the user to run the server as',
+        name    => 'httpd_user',
+        message => 'Please enter the user to run the engine as',
         label   => 'Server user',
         default => 'nobody'
       );
-    $self->{group} = $builder->args('group')
+    $self->{httpd_group} = $builder->args('httpd_group')
       || $builder->get_reply(
-        name    => 'group',
-        message => 'Please enter the group to run the server as',
+        name    => 'httpd_group',
+        message => 'Please enter the group to run the engine as',
         label   => 'Server group',
         default => 'nobody'
       );
@@ -168,15 +145,15 @@ sub validate {
 
 ##############################################################################
 
-=head3 conf_server
+=head3 conf_engine
 
-  my $server_type = Kinetic::Build::Engine::Catalyst->conf_server;
+  my $engine_type = Kinetic::Build::Engine::Catalyst->conf_engine;
 
-Returns the server type corresponding to the config file section ('simple');
+Returns the engine type corresponding to the config file section ('simple');
 
 =cut
 
-sub conf_server {'apache'}
+sub conf_engine {'apache'}
 
 ##############################################################################
 
@@ -185,30 +162,42 @@ sub conf_server {'apache'}
   my @conf_sections = Kinetic::Build::Engine::Catalyst->conf_sections;
 
 Returns the configuration sections to be copied to the config file
-C<conf_server> section.
+C<conf_engine> section.
 
 =cut
 
 sub conf_sections {
     qw/
-      group
+      httpd_group
       httpd
-      port
+      httpd_port
       rest
       root
-      server_name
       static
-      user
+      httpd_user
       /;
 }
 
-##############################################################################
-# Instance Methods.
-##############################################################################
+sub _set_httpd {
+    my $self    = shift;
+    my $builder = $self->builder;
 
-=head1 Instance Interface
-
-=head2 Instance Accessors
+    while ( !$self->{httpd} ) {
+        $self->{httpd} = $builder->args('httpd')
+          || $builder->get_reply(
+            name    => 'httpd',
+            message =>
+              'Please enter the httpd executable for the apache server',
+            label   => 'Server httpd',
+            default => '/usr/local/apache/bin/httpd'
+          );
+        if ( !-f $self->{httpd} ) {
+            warn "($self->{httpd}) does not appear to exist\n";
+            delete $self->{httpd};
+        }
+    }
+    return $self;
+}
 
 1;
 __END__

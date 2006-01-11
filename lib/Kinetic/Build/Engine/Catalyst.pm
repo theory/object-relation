@@ -35,7 +35,7 @@ See L<Kinetic::Build::Engine|Kinetic::Build::Engine>.
 
 =head1 Description
 
-This module inherits from Kinetic::Build::Engine to build a Catalyst server.
+This module inherits from Kinetic::Build::Engine to build a Catalyst engine.
 Its interface is defined entirely by Kinetic::Build::Engine. The command-line
 options it adds are:
 
@@ -59,15 +59,15 @@ options it adds are:
 
 =head2 Class Methods
 
-=head3 server_class
+=head3 engine_class
 
-  my $server_class = Kinetic::Build::Engine::Catalyst->server_class;
+  my $engine_class = Kinetic::Build::Engine::Catalyst->engine_class;
   
-Returns the server class which C<bin/kineticd> will use to start the server.
+Returns the engine class which C<bin/kineticd> will use to start the engine.
 
 =cut
 
-sub server_class {'Kinetic::Engine::Catalyst'}
+sub engine_class {'Kinetic::Engine::Catalyst'}
 
 ##############################################################################
 
@@ -93,7 +93,7 @@ sub validate {
     $self->{host} = $builder->args('host')
       || $builder->get_reply(
         name    => 'host',
-        message => 'Please enter the hostname for the server',
+        message => 'Please enter the hostname for the engine',
         label   => 'Server host',
         default => 'localhost'
       );
@@ -101,7 +101,7 @@ sub validate {
       || $builder->get_reply(
         name    => 'restart',
         message =>
-          'Should the server automatically restart if .pm files change?',
+          'Should the engine automatically restart if .pm files change?',
         label   => 'Server restart',
         default => 'no'
       );
@@ -113,15 +113,15 @@ sub validate {
 
 ##############################################################################
 
-=head3 conf_server
+=head3 conf_engine
 
-  my $server_type = Kinetic::Build::Engine::Catalyst->conf_server;
+  my $engine_type = Kinetic::Build::Engine::Catalyst->conf_engine;
 
-Returns the server type corresponding to the config file section ('simple');
+Returns the engine type corresponding to the config file section ('simple');
 
 =cut
 
-sub conf_server {'simple'}
+sub conf_engine {'simple'}
 
 ##############################################################################
 
@@ -130,7 +130,7 @@ sub conf_server {'simple'}
   my @conf_sections = Kinetic::Build::Engine::Catalyst->conf_sections;
 
 Returns the configuration sections to be copied to the config file
-C<conf_server> section.
+C<conf_engine> section.
 
 =cut
 

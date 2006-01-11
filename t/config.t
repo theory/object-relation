@@ -34,7 +34,7 @@ ALL: { # 3 tests.
     package Kinetic::Util::Config::TestAll;
     use Kinetic::Util::Config qw(:all);
     use Test::More;
-    ok(APACHE_USER, "Got apache_user" );
+    ok(APACHE_HTTPD_USER, "Got apache_user" );
     ok(STORE_CLASS, "Got store_class" );
     ok($stores{&STORE_CLASS}, "Got store_class value" );
 }
@@ -43,7 +43,7 @@ APACHE: { # 2 tests.
     package Kinetic::Util::Config::TestApache;
     use Kinetic::Util::Config qw(:apache);
     use Test::More;
-    ok(APACHE_USER, "Got apache_user" );
+    ok(APACHE_HTTPD_USER, "Got apache_user" );
     eval "STORE_CLASS";
     ok($@, "Got error trying to access store_class");
 }
@@ -54,7 +54,7 @@ STORE: { # 3 tests.
     use Test::More;
     ok(STORE_CLASS, "Got store_class" );
     ok($stores{&STORE_CLASS}, "Got store_class value" );
-    eval "APACHE_USER";
+    eval "APACHE_HTTPD_USER";
     ok($@, "Got error trying to access apache_user");
 }
 
@@ -73,7 +73,7 @@ NOIMPORT: { # 2 tests.
     use Test::More;
     eval "STORE_CLASS";
     ok($@, "Got error trying to access store_class");
-    eval "APACHE_USER";
+    eval "APACHE_HTTPD_USER";
     ok($@, "Got error trying to access apache_user");
 }
 

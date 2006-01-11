@@ -670,7 +670,7 @@ sub test_validate_super_user : Test(33) {
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
     $mb->mock(check_store => 1);
-    $mb->mock(server => 'simple');
+    $mb->mock(engine => 'simple');
     my $builder = $self->new_builder;
     $self->{builder} = $builder;
     $mb->mock(resume => $builder);
@@ -996,6 +996,7 @@ sub test_db_helpers : Test(21) {
       '_get_template_db_name should return the name provided by get_reply';
     is $kbs->{template_db_name}, 'mytemplate',
       "And now it should be stored in the object";
+    $mb->unmock('get_reply');
 
     # Test _user_exists.
     ok $kbs->_user_exists($self->{conf}{pg}{db_super_user}),

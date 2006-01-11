@@ -133,29 +133,49 @@ sub test_props : Test(13) {
     file_not_exists_ok 'blib', 'Build lib should be gone';
 
     # Don't accept defaults; we should be prompted for stuff.
-# XXX
-return;
     my @msgs;
     $mb->mock(_readline => '1');
     $mb->mock(_prompt => sub { shift; push @msgs, @_; });
+    my $apache_build = MockModule->new('Kinetic::Build::Engine::Apache');
+    $apache_build->mock(
+        _set_httpd => sub { shift->{httpd} = '/usr/bin/apache/httpd' }
+    );
     my $store = MockModule->new('Kinetic::Build::Store::DB::Pg');
     $store->mock(validate => 1);
     $store->mock(info_class => 'TEST::Kinetic::TestInfo');
     $mb->mock(_is_tty => 1);
     $builder = $self->new_builder(accept_defaults => 0);
-    diag join '|', @msgs;
+
     is_deeply \@msgs, [
         "  1> pg\n  2> sqlite\n",
         'Which data store back end should I use?',
         ' [2]:',
         ' ',
         "  1> apache\n  2> simple\n",
-        'Which server should I use?',
+        'Which engine should I use?',
         ' [1]:',
         ' ',
         'What password should be used for the default account?',
         ' [change me now!]:',
         ' ',
+        'Please enter the port to run the engine on',
+        ' [80]:',
+        ' ',
+        'Please enter the user to run the engine as',
+        ' [nobody]:',
+        ' ',
+        'Please enter the group to run the engine as',
+        ' [nobody]:',
+        ' ',
+        'Please enter the kinetic app root path',
+        ' [/kinetic]:',
+        ' ',
+        'Please enter the kinetic app rest path',
+        ' [/kinetic/rest]:',
+        ' ',
+        'Please enter the kinetic app static files path',
+        ' [/]:',
+        ' '
     ], 'We should be prompted for the data store and other stuff';
 
     is $builder->store, 'pg', 'Data store should now be "pg"';
@@ -171,7 +191,7 @@ sub test_check_store : Test(6) {
     $mb->mock(resume => sub { $builder });
     $mb->mock(check_manifest => sub { return });
     throws_ok { $self->new_builder(store => 'foo') }
-      qr"I'm not familiar with the foo data store",
+      qr"I'm not familiar with the foo store",
       "We should get an error for a bogus data store";
 
     # We can make sure thing work with the default SQLite store.
@@ -257,12 +277,11 @@ sub test_get_reply : Test(49) {
     $self->{builder} = $builder;
     my $expected = <<'    END_INFO';
 Data store: pg
-Kinetic Server: apache
+Kinetic engine: apache
 Administrative User password: change me now!
 Looking for pg_config
 path to pg_config: /usr/local/pgsql/bin/pg_config
 Server httpd: /usr/local/apache/bin/httpd
-Server server_name: localhost
 Server port: 80
 Server user: nobody
 Server group: nobody
