@@ -137,10 +137,10 @@ sub build_db {
     eval "use $schema_class";
     require Carp && Carp::croak $@ if $@;
 
-    my $sg = $schema_class->new;
+    my $sg      = $schema_class->new;
     my $builder = $self->builder;
     my $regexen = $builder->schema_skipper;
-    $regexen = [$regexen] unless ref $regexen eq 'ARRAY';
+    $regexen    = [$regexen] unless ref $regexen eq 'ARRAY';
     $sg->load_classes($builder->source_dir, @$regexen);
 
     my $dbh = $self->_dbh;
@@ -148,10 +148,10 @@ sub build_db {
 
     eval {
         $dbh->do($_) foreach
-          $sg->begin_schema,
-          $sg->setup_code,
-          (map { $sg->schema_for_class($_) } $sg->classes),
-          $sg->end_schema;
+            $sg->begin_schema,
+            $sg->setup_code,
+            (map { $sg->schema_for_class($_) } $sg->classes),
+            $sg->end_schema;
         $dbh->commit;
     };
     if (my $err = $@) {

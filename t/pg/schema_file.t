@@ -54,7 +54,7 @@ test_contains_order(\@schema, @class_keys);
 
 ##############################################################################
 # Cleanup our mess.
-END { unlink $file }
+#END { unlink $file }
 
 sub test_contains {
     my ($contents, $find) = @_;

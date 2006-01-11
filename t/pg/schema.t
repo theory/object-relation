@@ -43,11 +43,19 @@ for my $class ( $sg->classes ) {
 
 ##############################################################################
 # Check Setup SQL.
-is $sg->setup_code, 'CREATE DOMAIN state AS SMALLINT NOT NULL DEFAULT 1
+is join( "\n", $sg->setup_code),
+    q{CREATE DOMAIN state AS SMALLINT NOT NULL DEFAULT 1
 CONSTRAINT ck_state CHECK (
    VALUE BETWEEN -1 AND 2
 );
-', "Pg setup SQL has state domain";
+
+CREATE DOMAIN operator AS TEXT
+CONSTRAINT ck_operator CHECK (
+   VALUE IN('==', '!=', 'eq', 'ne', '=~', '!~', '>', '<', '>=', '<=', 'gt',
+            'lt', 'ge', 'le')
+);
+},
+ "Pg setup SQL has state domain";
 
 ##############################################################################
 # Grab the simple class.
@@ -937,7 +945,7 @@ $table = q{CREATE TABLE _types_test (
     state STATE NOT NULL DEFAULT 1,
     version TEXT NOT NULL,
     duration INTERVAL NOT NULL,
-    operator TEXT NOT NULL
+    operator OPERATOR NOT NULL
 );
 };
 eq_or_diff $sg->table_for_class($types_test), $table,

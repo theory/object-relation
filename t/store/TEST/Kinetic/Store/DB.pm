@@ -1103,7 +1103,7 @@ sub test_fk_update : Test(9) {
         '... Which should have the proper error message';
 }
 
-sub test_types : Test(38) {
+sub test_types : Test(42) {
     my $self = shift;
     return 'Skip test_fk_update for abstract class'
         unless $self->_should_run;
@@ -1172,6 +1172,19 @@ sub test_types : Test(38) {
     isa_ok $types_test->duration,  'Kinetic::DataType::Duration', 'duration';
     is $types_test->duration, $du, 'It should be properly set';
     is $types_test->operator, 'ne','Operator should be properly set';
+
+    # Make sure that invalid operators are not allowed.
+    ok $types_test->operator('lt'), 'Change the operator';
+    $types_test->{operator} = 'foo'; # XXX Don't do this at home!
+    is $types_test->operator, 'foo', 'Check for bogus operator';
+
+    return 'Domain constraints ignored in PREPAREd statements'
+        if $self->supported('pg') && $self->dbh->{pg_server_version} <= 80102;
+    throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
+         '... Saving it with a bogus operator should fail';
+    like $@,
+        qr/value for domain operator violates check constraint "ck_operator"/,
+        '... And it should fail with the proper message';
 }
 
 1;

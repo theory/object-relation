@@ -166,10 +166,11 @@ sub constraints_for_class {
 
     # Start with any state, boolean, once, and unique triggers.
     my @cons = (
-        $self->state_trigger(    $class ),
-        $self->boolean_triggers( $class ),
-        $self->once_triggers(    $class ),
-        $self->unique_triggers(  $class ),
+        $self->state_trigger(     $class ),
+        $self->boolean_triggers(  $class ),
+        $self->once_triggers(     $class ),
+        $self->unique_triggers(   $class ),
+        $self->operator_triggers( $class ),
    );
 
     # Add FK constraint for subclases from id column to the parent table.
@@ -402,6 +403,54 @@ sub unique_triggers {
               . "           ) > 1;\n"
               . "END;\n";
         }
+    }
+    return @trigs;
+}
+
+##############################################################################
+
+=head3 operator_triggers
+
+  my @operator_triggers = $kbs->operator_triggers($class);
+
+Returns SQLite triggers to validate that the value of a operator column in the
+table representing the contents of the class represented by the
+Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
+does not have a operator attribute (because it inherits the operator from a concrete
+parent class), C<operator_trigger()> will return an empty list.
+
+Called by C<constraints_for_class()>.
+
+=cut
+
+sub operator_triggers {
+    my ($self, $class) = @_;
+    my @operators = grep { $_->type eq 'operator'} $class->table_attributes
+      or return;
+    my $table = $class->table;
+    my $key = $class->key;
+    my @trigs;
+    for my $attr (@operators) {
+        my $col = $attr->column;
+        push @trigs,
+            "CREATE TRIGGER cki_$key\_$col\n"
+          . "BEFORE INSERT ON $table\n"
+          . "FOR EACH ROW BEGIN\n"
+          . "    SELECT RAISE(ABORT, 'value for domain operator violates "
+          .                        qq{check constraint "ck_operator"')\n}
+          . "    WHERE  NEW.$col NOT IN ('==', '!=', 'eq', 'ne', '=~', '!~',\n"
+          . "                            '>', '<', '>=', '<=', 'gt', 'lt',\n"
+          . "                            'ge', 'le');\n"
+          . "END;\n",
+            "CREATE TRIGGER cku_$key\_$col\n"
+          . "BEFORE UPDATE OF $col ON $table\n"
+          . "FOR EACH ROW BEGIN\n"
+          . "    SELECT RAISE(ABORT, 'value for domain operator violates "
+          .                        qq{check constraint "ck_operator"')\n}
+          . "    WHERE  NEW.$col NOT IN ('==', '!=', 'eq', 'ne', '=~', '!~',\n"
+          . "                            '>', '<', '>=', '<=', 'gt', 'lt',\n"
+          . "                            'ge', 'le');\n"
+          . "END;\n";
     }
     return @trigs;
 }

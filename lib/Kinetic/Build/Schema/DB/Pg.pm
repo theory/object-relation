@@ -94,7 +94,7 @@ my %types = (
     datetime => 'TIMESTAMP',
     version  => 'TEXT',
     duration => 'INTERVAL',
-    operator => 'TEXT',
+    operator => 'OPERATOR',
 );
 
 sub column_type {
@@ -589,7 +589,14 @@ sub setup_code {
 CONSTRAINT ck_state CHECK (
    VALUE BETWEEN -1 AND 2
 );
-';
+',
+
+q{CREATE DOMAIN operator AS TEXT
+CONSTRAINT ck_operator CHECK (
+   VALUE IN('==', '!=', 'eq', 'ne', '=~', '!~', '>', '<', '>=', '<=', 'gt',
+            'lt', 'ge', 'le')
+);
+};
 
 }
 

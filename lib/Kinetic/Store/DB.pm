@@ -1534,7 +1534,7 @@ Returns the current database handle.
 sub _dbh {
     my $self = shift->_from_proto;
     return $self->{dbh} || $self->DBI_CLASS->connect_cached(
-        $self->_connect_args
+        $self->_connect_args,
     );
 
     # XXX Switch to this single line if connect_cached() ever stops resetting

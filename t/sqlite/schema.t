@@ -1057,6 +1057,24 @@ FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
     WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
 END;
+
+CREATE TRIGGER cki_types_test_operator
+BEFORE INSERT ON _types_test
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain operator violates check constraint "ck_operator"')
+    WHERE  NEW.operator NOT IN ('==', '!=', 'eq', 'ne', '=~', '!~',
+                            '>', '<', '>=', '<=', 'gt', 'lt',
+                            'ge', 'le');
+END;
+
+CREATE TRIGGER cku_types_test_operator
+BEFORE UPDATE OF operator ON _types_test
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain operator violates check constraint "ck_operator"')
+    WHERE  NEW.operator NOT IN ('==', '!=', 'eq', 'ne', '=~', '!~',
+                            '>', '<', '>=', '<=', 'gt', 'lt',
+                            'ge', 'le');
+END;
 };
 
 eq_or_diff join("\n", $sg->constraints_for_class($types_test)), $constraints,

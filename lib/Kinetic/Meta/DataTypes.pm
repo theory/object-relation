@@ -168,9 +168,13 @@ Operator strings. Allowable operators are:
 
 =item ==
 
-=item >=
+=item E<gt>
 
-=item <=
+=item E<lt>
+
+=item E<gt>=
+
+=item E<lt>=
 
 =item !=
 
@@ -194,7 +198,7 @@ Operator strings. Allowable operators are:
 
 =cut
 
-my %ops = ( map { $_ => undef } qw(== >= <= != eq ne gt lt ge le =~ !~) );
+my %ops = ( map { $_ => undef } qw(== > < >= <= != eq ne gt lt ge le =~ !~) );
 
 Kinetic::Meta::Type->add(
     key   => 'operator',

@@ -212,8 +212,8 @@ sub write_schema {
         print $fh $begin, "\n";
     }
     if ($params->{with_kinetic}) {
-        if (my $code = $self->setup_code) {
-            print $fh $code, "\n";
+        if (my @code = $self->setup_code) {
+            print $fh join ("\n", @code), "\n";
         }
         # XXX Add code to load the Kinetic classes here.
     }
