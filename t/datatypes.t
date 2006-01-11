@@ -99,16 +99,16 @@ like $err->error, qr/Attribute .uuid. can be set only once/,
     'It should be the correct error';
 
 # Test state accessor.
-is $t->state, Kinetic::Util::State->ACTIVE, "State should be active by default";
+is $t->state, Kinetic::DataType::State->ACTIVE, "State should be active by default";
 
 # Make sure that automatic baking works.
-$t->{state} = Kinetic::Util::State->INACTIVE->value; # Don't try this at home!
-isa_ok($t->state, 'Kinetic::Util::State');
-is $t->state, Kinetic::Util::State->INACTIVE, "It should be the proper value.";
+$t->{state} = Kinetic::DataType::State->INACTIVE->value; # Don't try this at home!
+isa_ok($t->state, 'Kinetic::DataType::State');
+is $t->state, Kinetic::DataType::State->INACTIVE, "It should be the proper value.";
 
 # Set the state directly.
-ok( $t->state(Kinetic::Util::State->ACTIVE), "Set state" );
-isa_ok( $t->state, 'Kinetic::Util::State' );
+ok( $t->state(Kinetic::DataType::State->ACTIVE), "Set state" );
+isa_ok( $t->state, 'Kinetic::DataType::State' );
 # Make sure we get its raw value.
 is $t->my_class->attributes('state')->raw($t),
   $t->state->value, "Make sure the raw value is a number";

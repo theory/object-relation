@@ -16,7 +16,7 @@ use Class::Trait qw(TEST::Kinetic::Traits::Store);
 use Class::Trait qw(TEST::Kinetic::Traits::SampleObjects);
 use Kinetic::Store qw/:all/;
 use aliased 'Kinetic::Util::Iterator';
-use aliased 'Kinetic::Util::State';
+use aliased 'Kinetic::DataType::State';
 
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object

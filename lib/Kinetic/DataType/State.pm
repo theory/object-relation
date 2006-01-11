@@ -1,4 +1,4 @@
-package Kinetic::Util::State;
+package Kinetic::DataType::State;
 
 # $Id$
 
@@ -24,30 +24,32 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use Kinetic::Util::Context;
-use overload '""'     => \&name,
-             '<=>'    => \&compare,
-             'cmp'    => \&compare,
-             'bool'   => \&is_active,
-             '0+'     => \&value,
-             fallback => 1;
+use Kinetic::Meta::Type;
+use overload
+    '""'     => \&name,
+    '<=>'    => \&compare,
+    'cmp'    => \&compare,
+    'bool'   => \&is_active,
+    '0+'     => \&value,
+    fallback => 1;
 
 =head1 Name
 
-Kinetic::Util::State - Kinetic object states
+Kinetic::DataType::State - Kinetic object states
 
 =head1 Synopsis
 
 Use class methods:
 
-  use Kinetic::Util::State;
+  use Kinetic::DataType::State;
 
-  if ($kinetic_obj->state->compare(Kinetic::Util::State->ACTIVE)) {
-      $kinetic->obj->set_state(Kinetic::Util::State->ACTIVE);
+  if ($kinetic_obj->state->compare(Kinetic::DataType::State->ACTIVE)) {
+      $kinetic->obj->set_state(Kinetic::DataType::State->ACTIVE);
   }
 
 Or use constants:
 
-  use Kinetic::Util::State qw(:all);
+  use Kinetic::DataType::State qw(:all);
 
   if ($kinetic_obj->state->compare(ACTIVE)) {
       $kinetic->obj->set_state(ACTIVE);
@@ -75,8 +77,9 @@ Stringification works, too.
 
 =head1 Description
 
-This class defines Kinetic object states. There are five different states
-for objects:
+This module creates the "state" data type for use in Kinetic attributes. This
+class defines Kinetic object states. There are five different states for
+objects:
 
 =over 4
 
@@ -120,9 +123,9 @@ versions.
 
 =back
 
-Kinetic::Util::State has constants with these names, which may be accessed
+Kinetic::DataType::State has constants with these names, which may be accessed
 as either class methods or as exportable functions. The constants return
-singleton Kinetic::Util::State objects that represent the various states.
+singleton Kinetic::DataType::State objects that represent the various states.
 These same objects are returned by the state attribute accessors of
 Kinetic.
 
@@ -148,6 +151,20 @@ sub PURGED    () { return $states[-2] }
 
 use Exporter::Tidy all => [qw(PERMANENT ACTIVE INACTIVE DELETED PURGED)];
 
+Kinetic::Meta::Type->add(
+    key     => 'state',
+    name    => 'State',
+    raw     => sub { ref $_[0] ? shift->value : shift },
+    bake    => sub { __PACKAGE__->new(shift) },
+    check   => sub {
+        UNIVERSAL::isa($_[0], __PACKAGE__)
+            or throw_invalid(['Value "[_1]" is not a valid [_2] object',
+                              $_[0], __PACKAGE__]);
+        throw_invalid(['Cannot assign permanent state'])
+          if $_[0] == PERMANENT;
+    }
+);
+
 ##############################################################################
 # Instance Methods.
 ##############################################################################
@@ -158,9 +175,9 @@ use Exporter::Tidy all => [qw(PERMANENT ACTIVE INACTIVE DELETED PURGED)];
 
 =head3 new
 
-  my $state = Kinetic::Util::State->new($value);
+  my $state = Kinetic::DataType::State->new($value);
 
-Returns a Kinetic::Util::State object corresponding to the state value
+Returns a Kinetic::DataType::State object corresponding to the state value
 passed to it.
 
 =cut
@@ -173,7 +190,7 @@ sub new { return $states[ $_[1] ] }
 
 =head2 Instance Methods
 
-Kinetic::Util::State overloads a number of Perl operators in order to ease
+Kinetic::DataType::State overloads a number of Perl operators in order to ease
 its use in various contexts. Each instance method overloads one or more
 operations.
 
@@ -316,7 +333,7 @@ sub compare { $_[0]->[0] <=> $_[1]->[0] }
 
 Outputs a localized string representation the name of the state object. This
 method overloads the double-quoted string context (C<""> for
-Kinetic::Util::State objects.
+Kinetic::DataType::State objects.
 
 =cut
 

@@ -51,7 +51,7 @@ use aliased 'Kinetic::Meta' => 'Meta', qw/:with_dbstore_api/;
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::DataType::DateTime::Incomplete';
 use aliased 'Kinetic::Store::Search';
-use aliased 'Kinetic::Util::State';
+use aliased 'Kinetic::DataType::State';
 
 my %SEARCH_TYPE_FOR = map { $_ => 1 } qw/CODE STRING XML/;
 

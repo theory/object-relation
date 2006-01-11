@@ -40,11 +40,11 @@ Kinetic::Meta::Type - Kinetic Data type validation and accessor building
       raw     => sub { shift->value },
       straw   => sub { shift->store_value },
       check   => sub {
-          UNIVERSAL::isa($_[0], 'Kinetic::Util::State')
+          UNIVERSAL::isa($_[0], 'Kinetic::DataType::State')
               or throw_invalid(['Value "[_1]" is not a valid [_2] object',
-                                $_[0], 'Kinetic::Util::State']);
+                                $_[0], 'Kinetic::DataType::State']);
           throw_invalid(['Cannot assign permanent state'])
-            if $_[0] == Kinetic::Util::State->PERMANENT;
+            if $_[0] == Kinetic::DataType::State->PERMANENT;
       }
   );
 

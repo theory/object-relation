@@ -9,23 +9,23 @@ use Test::More tests => 95;
 use Test::NoWarnings; # Adds an extra test.
 
 BEGIN {
-    use_ok('Kinetic::Util::State') or die;
+    use_ok('Kinetic::DataType::State') or die;
 }
 
 IMPORT: { # 10 tests.
-    package Kinetic::Util::State::TestImport;
-    use Kinetic::Util::State qw(:all);
+    package Kinetic::DataType::State::TestImport;
+    use Kinetic::DataType::State qw(:all);
     use Test::More;
 
     for my $state (PERMANENT, ACTIVE, INACTIVE, DELETED, PURGED) {
         ok(ref $state, "Got $state" );
-        isa_ok($state, 'Kinetic::Util::State');
+        isa_ok($state, 'Kinetic::DataType::State');
     }
 }
 
 NOIMPORT: { # 5 tests.
-    package Kinetic::Util::State::TestNoImport;
-    use Kinetic::Util::State;
+    package Kinetic::DataType::State::TestNoImport;
+    use Kinetic::DataType::State;
     use Test::More;
     for my $state qw(PERMANENT ACTIVE INACTIVE DELETED PURGED) {
         eval "my \$foo = $state;";
@@ -34,22 +34,22 @@ NOIMPORT: { # 5 tests.
 }
 
 NEW: { # 20 tests.
-    package Kinetic::Util::State::TestNew;
-    use Kinetic::Util::State;
+    package Kinetic::DataType::State::TestNew;
+    use Kinetic::DataType::State;
     use Test::More;
     for my $val (-2..2) {
-        my $state = Kinetic::Util::State->new($val);
+        my $state = Kinetic::DataType::State->new($val);
         ok(ref $state, "new($val)");
         is( $state->value, $val, "Value is $val" );
         is( int($state), $val, "Numeric context gets $val" );
-        unlike( "$state", qr/Kinetic::Util::State=ARRAY/,
+        unlike( "$state", qr/Kinetic::DataType::State=ARRAY/,
                 "Stringify $state");
     }
 }
 
 BOOL: { # 10 tests.
-    package Kinetic::Util::State::TestBool;
-    use Kinetic::Util::State qw(:all);
+    package Kinetic::DataType::State::TestBool;
+    use Kinetic::DataType::State qw(:all);
     use Test::More;
 
     ok( PERMANENT, "Permanent is true" );
@@ -65,8 +65,8 @@ BOOL: { # 10 tests.
 }
 
 COMPARE: { # 48 tests.
-    package Kinetic::Util::State::TestCompare;
-    use Kinetic::Util::State qw(:all);
+    package Kinetic::DataType::State::TestCompare;
+    use Kinetic::DataType::State qw(:all);
     use Test::More;
 
     my $state = INACTIVE;

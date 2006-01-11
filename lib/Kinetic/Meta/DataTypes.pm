@@ -40,18 +40,26 @@ Kinetic::Meta::DataTypes - Kinetic data type definition
   use base 'Kinetic';
 
   BEGIN {
-      my $cm = Kinetic::Meta->new( key => 'foo );
-      $cm->add_attribute( name => 'bar',
-                          type => 'bool' );
-     $cm->build;
+      my $km = Kinetic::Meta->new( key => 'foo' );
+      $km->add_attribute(
+          name => 'bar',
+          type => 'bool',
+      );
+      $km->build;
   }
 
 =head1 Description
 
-This module handles the definition of data types used by Kinetic. It should
-never be used directly. Consult L<Kinetic::Meta|Kinetic::Meta> and
-L<Class::Meta|Class::Meta> for details on creating new Kinetic classes with
-attributes of the types defined by this module.
+This module handles the definition of fundamental data types used by TKP. As
+these data types are loaded by TKP and are always available for use, this
+module should never be used directly. Other data types may be loaded from the
+modules in the Kinetic::DataType name space. Classes that inherit from
+L<Kinetic|Kinetic> and are defined by L<Kinetic::Meta|Kinetic::Meta> are also
+available as data types, referencable by their key names.
+
+Consult L<Kinetic::Meta|Kinetic::Meta> and L<Class::Meta|Class::Meta> for
+details on creating new Kinetic classes with attributes of the types defined
+by this module.
 
 =cut
 
@@ -133,42 +141,6 @@ A boolean value.
 =cut
 
 use Class::Meta::Types::Boolean;
-
-##############################################################################
-
-=item user
-
-A Kinetic::Party::Person::User object.
-
-=cut
-
-Kinetic::Meta::Type->add(
-    key     => 'user',
-    name    => 'User',
-    check   => 'Kinetic::Party::Person::User',
-);
-
-##############################################################################
-
-=item state
-
-A Kinetic::Util::State object.
-
-=cut
-
-Kinetic::Meta::Type->add(
-    key     => 'state',
-    name    => 'State',
-    raw     => sub { ref $_[0] ? shift->value : shift },
-    bake    => sub { Kinetic::Util::State->new(shift) },
-    check   => sub {
-        UNIVERSAL::isa($_[0], 'Kinetic::Util::State')
-            or throw_invalid(['Value "[_1]" is not a valid [_2] object',
-                              $_[0], 'Kinetic::Util::State']);
-        throw_invalid(['Cannot assign permanent state'])
-          if $_[0] == Kinetic::Util::State->PERMANENT;
-    }
-);
 
 ##############################################################################
 

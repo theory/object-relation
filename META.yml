@@ -176,7 +176,7 @@ provides:
   Kinetic::Util::Language::en_us:
     file: lib/Kinetic/Util/Language/en_us.pm
     version: v0.0.1
-  Kinetic::Util::State:
+  Kinetic::DataType::State:
     file: lib/Kinetic/Util/State.pm
     version: v0.0.1
 generated_by: Module::Build version 0.2703

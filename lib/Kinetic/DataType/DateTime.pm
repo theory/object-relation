@@ -45,10 +45,11 @@ Kinetic::DataType::DateTime - Kinetic DateTime objects
 
 =head1 Description
 
-This module subclasses the L<DateTime|DateTime> module to offer DateTime
-objects to Kinetic applications. The only way in which it differs from
-DateTime is that all new Kinetic::DataType::DateTime objects are in the "UTC"
-time zone unless another time zone is specified.
+This module creates the "datetime" data type for use in Kinetic attributes. It
+subclasses the L<DateTime|DateTime> module to offer DateTime objects to
+Kinetic applications. The only way in which it differs from DateTime is that
+all new Kinetic::DataType::DateTime objects are in the "UTC" time zone unless
+another time zone is specified.
 
 =cut
 

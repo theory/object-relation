@@ -8,13 +8,13 @@ use Kinetic::Build::Test;
 use Test::More tests => 118;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
-use Kinetic::Util::State qw(:all);
+use Kinetic::DataType::State qw(:all);
 use Kinetic::DataType::DateTime;
 
 package Kinetic::TestAccessors;
 use base 'Kinetic';
 use strict;
-use Kinetic::Util::State qw(:all);
+use Kinetic::DataType::State qw(:all);
 
 BEGIN {
     Test::More->import;

@@ -15,7 +15,7 @@ BEGIN {
     use_ok 'Kinetic::Util::Context' or die;
     use_ok 'Kinetic::Util::Language' or die;
     use_ok 'Kinetic::Util::Language::en_us' or die;
-    use_ok 'Kinetic::Util::State' or die;
+    use_ok 'Kinetic::DataType::State' or die;
 };
 
 isa_ok( $Kinetic::VERSION, 'version');
@@ -33,7 +33,7 @@ BEGIN {
 }
 
 package main;
-use Kinetic::Util::State qw(:all);
+use Kinetic::DataType::State qw(:all);
 
 # Add new strings to the lexicon.
 Kinetic::Util::Language::en_us->add_to_lexicon(

@@ -14,7 +14,7 @@ use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Meta::Attribute';
 use aliased 'Kinetic::Store' => 'DONT_USE', ':all';
 use aliased 'Kinetic::Store::DB' => 'Store';
-use aliased 'Kinetic::Util::State';
+use aliased 'Kinetic::DataType::State';
 
 use aliased 'TestApp::Simple';
 use aliased 'TestApp::Simple::One';
@@ -359,8 +359,8 @@ sub build_objects : Test(16) {
         is $object->$attr, $sql_data{$attr},
           'and basic attributes should be correct';
     }
-    isa_ok $object->state, 'Kinetic::Util::State',
-      'and Kinetic::Util::State objects should be handled correctly';
+    isa_ok $object->state, 'Kinetic::DataType::State',
+      'and Kinetic::DataType::State objects should be handled correctly';
 
     ok my $one = $object->one,
       "and we should be able to fetch the contained object";
@@ -373,8 +373,8 @@ sub build_objects : Test(16) {
       'and basic attributes should be correct';
     is $one->bool, 0, 'and basic attributes should be correct';
     is $one->state + 0, 1, 'and basic attributes should be correct';
-    isa_ok $one->state, 'Kinetic::Util::State',
-      'and Kinetic::Util::State objects should be handled correctly';
+    isa_ok $one->state, 'Kinetic::DataType::State',
+      'and Kinetic::DataType::State objects should be handled correctly';
 }
 
 sub save : Test(12) {
@@ -861,7 +861,7 @@ sub test_unique : Test(54) {
     ok $comp = Composed->lookup( uuid => $comp->uuid ),
         '... We should still be able to look up the original Composed object';
     is $comp->color, 'red', '... And its color should still be red';
-    is $comp->state, Kinetic::Util::State->DELETED, '... And it should be deleted';
+    is $comp->state, Kinetic::DataType::State->DELETED, '... And it should be deleted';
 
     # Now purge the new Composed so that we can test UPDATE.
     ok $comp3->purge, 'Purge the third Composed object';
@@ -904,7 +904,7 @@ sub test_unique : Test(54) {
     ok $two = Two->lookup( uuid => $two->uuid ),
         '... We should still be able to look up the original Two object';
     is $two->age, 37, '... And its age should still be 37';
-    is $two->state, Kinetic::Util::State->DELETED, '... And it should be deleted';
+    is $two->state, Kinetic::DataType::State->DELETED, '... And it should be deleted';
 
     # Now purge the new Two so that we can test UPDATE.
     ok $two3->purge, 'Purge the third Two object';
