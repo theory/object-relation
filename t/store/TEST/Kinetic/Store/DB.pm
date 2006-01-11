@@ -1178,6 +1178,7 @@ sub test_types : Test(42) {
     $types_test->{operator} = 'foo'; # XXX Don't do this at home!
     is $types_test->operator, 'foo', 'Check for bogus operator';
 
+    # XXX 
     return 'Domain constraints ignored in PREPAREd statements'
         if $self->supported('pg') && $self->dbh->{pg_server_version} <= 80102;
     throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
