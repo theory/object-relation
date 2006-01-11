@@ -3,7 +3,6 @@ use base qw(HTTP::Server::Simple::CGI);
 
 use Kinetic::Util::Constants qw/:http/;
 use aliased 'Kinetic::UI::REST';
-use aliased 'Kinetic::View::XSLT';
 
 my $REST_SERVER;
 
@@ -15,17 +14,15 @@ sub new {
         $CACHING = 0;
     }
     $REST_SERVER = REST->new( base_url => $value_for->{base_url} );
-    XSLT->cache_xslt($CACHING);
     $class->SUPER::new( @{ $value_for->{args} } );
 }
 
 my $DOC_ROOT      = 'WWW';
-my $STATIC        = qr/(js|css|xslt?)$/;
+my $STATIC        = qr/(js|css)$/;
 my %CONTENT_TYPES = (
     js   => 'text/javascript',
     css  => 'text/css',
     xsl  => 'text/xml',
-    xslt => 'text/xml',
 );
 
 my $STATIC_CACHE_FOR;

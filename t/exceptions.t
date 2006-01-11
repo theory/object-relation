@@ -54,7 +54,7 @@ NOIMPORT: { # 22 tests.
 
     eval {
         Kinetic::Util::Exception::Fatal->throw([
-            'File "[_1]" not found',
+            'Attribute "[_1]" is not unique',
             'booyah',
         ]);
     };
@@ -68,7 +68,7 @@ NOIMPORT: { # 22 tests.
         "is an exception" );
 
     ok $err = Kinetic::Util::Exception::Fatal->new([
-        'File "[_1]" not found',
+        'Attribute "[_1]" is not unique',
         'booyah',
     ]), 'New, unthrown exception';
     isa_ok( $err, 'Kinetic::Util::Exception' );
@@ -80,7 +80,7 @@ NOIMPORT: { # 22 tests.
         "is an exception" );
 
     ok( $err = Kinetic::Util::Exception::Fatal->new(
-        error => [ 'File "[_1]" not found', 'booyah' ],
+        error => [ 'Attribute "[_1]" is not unique', 'booyah' ],
     ), 'New, unthrown exception' );
     isa_ok( $err, 'Kinetic::Util::Exception' );
     isa_ok( $err, 'Kinetic::Util::Exception::Fatal' );
@@ -113,7 +113,7 @@ STRING: {
     use Kinetic::Util::Exceptions qw(:all);
     use Test::More;
     ok(my $err = Kinetic::Util::Exception::Fatal->new(
-        [ 'File "[_1]" not found', 'booyah' ]
+        [ 'Attribute "[_1]" is not unique', 'booyah' ]
     ), 'Get an exception object');
     is( ($err->_filtered_frames)[-1]->filename, __FILE__,
         "We should get this file in the last frame in the stack");
@@ -122,7 +122,7 @@ STRING: {
     ok my $str = "$err", "Get the stringified version";
     is $str, $err->as_string,
       "The stringified version should be the same as that returned by as_string";
-    like $str, qr{\AFile .booyah. not found}ms,
+    like $str, qr{\AAttribute \x{201c}booyah\x{201d} is not unique}ms,
       "The error message should be the first thing in the output";
     like $str, qr{^\[t/exceptions\.t:\d+\]\Z}ms,
       "The stack trace should be the last thing in the output";

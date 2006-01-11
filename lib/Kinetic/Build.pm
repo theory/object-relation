@@ -681,7 +681,7 @@ sub process_conf_files {
                     $server->add_server_config_to_conf(\%conf);
                 }
                 else {
-                    
+
                     # It's a section for a server we haven't chosen.
                     delete $conf{$section};
                 }

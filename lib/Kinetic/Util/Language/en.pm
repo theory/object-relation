@@ -173,9 +173,6 @@ our %Lexicon;
         'Localization for "[_1]" not found',
         'Localization for “[_1]” not found',
 
-        'File "[_1]" not found',
-        'File “[_1]” not found',
-
         'Cannot assign to read-only attribute "[_1]"',
         'Cannot assign to read-only attribute “[_1]”',
 
@@ -188,9 +185,6 @@ our %Lexicon;
         'Argument "[_1]" is not a valid [_2] object',
         'Argument “[_1]” is not a valid [_2] object',
 
-        'Argument "[_1]" is not a valid [_2] class',
-        'Argument “[_1]” is not a valid [_2] class',
-
         'Value "[_1]" is not a string',
         'Value “[_1]” is not a string',
 
@@ -200,26 +194,11 @@ our %Lexicon;
         'Cannot assign permanent state',
         'Cannot assign permanent state',
 
-        'Cannot open file "[_1]": [_2]',
-        'Cannot open file “[_1]”: [_2]',
-
         'Required argument "[_1]" to [_2] not found',
         'Required argument “[_1]” to [_2] not found',
 
-        'Required attribute "[_1]" not set',
-        'Required attribute “[_1]” not set',
-
-        'XML must have a version number.',
-        'XML must have a version number.',
-
         'I could not find the class for key "[_1]"',
         'I could not find the class for key “[_1]”',
-
-        'You must supply a name for the "[_1]"',
-        'You must supply a name for the “[_1]”',
-
-        'Writing XML failed: [_1]',
-        'Writing XML failed: [_1]',
 
         'No such attribute "[_1]" for [_2]',
         'No such attribute “[_1]” for [_2]',
@@ -229,9 +208,6 @@ our %Lexicon;
 
         'Error saving to data store: [_1]',
         'Error saving to data store: [_1]',
-
-        'I could not find uuid "[_1]" in data store for the [_2] class',
-        'I could not find UUID “[_1]” in the data store for the [_2] class',
 
         'I could not load the class "[_1]": [_2]',
         'I could not load the class “[_1]”: [_2]',
@@ -247,12 +223,6 @@ our %Lexicon;
 
         'Unknown attributes to [_1]: [_2]',
         'Unknown attributes to [_1]: [_2]',
-
-        'Bad type for [_1].  Should be [_2].',
-        'Bad type for [_1]. Should be [_2].',
-
-        'Unknown stylesheet requested: [_1]',
-        'Unknown stylesheet requested: [_1]',
 
         'Invalid method "[_1]"',
         'Invalid method “[_1]”',
