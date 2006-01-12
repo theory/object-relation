@@ -1103,7 +1103,7 @@ sub test_fk_update : Test(9) {
         '... Which should have the proper error message';
 }
 
-sub test_types : Test(51) {
+sub test_types : Test(58) {
     my $self = shift;
     return 'Skip test_fk_update for abstract class'
         unless $self->_should_run;
@@ -1189,6 +1189,7 @@ sub test_types : Test(51) {
     # Make sure that invalid operators are not allowed.
     my $attr_mock = MockModule->new('Kinetic::Meta::Attribute');
     $attr_mock->mock(store_raw => 'foo');
+    my $orig_straw = $attr_mock->original('store_raw');
     ok $types_test->operator('lt'), 'Change the operator';
 
     SKIP: {
@@ -1196,26 +1197,72 @@ sub test_types : Test(51) {
         skip 'Domain constraints ignored in PREPAREd statements', 2
             if $self->supported('pg')
             && $self->dbh->{pg_server_version} <= 80102;
-        skip '', 0;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus operator should fail';
         like $@,
-            qr/value for domain operator violates check constraint "ck_operator"/,
+            qr/value for domain "?operator"? violates check constraint "ck_operator"/,
             '... And it should fail with the proper message';
     }
+
+    # The errors abort the txn, so need a new object to test updates against.
+    $attr_mock->unmock_all;
+    ok $types_test = TypesTest->new(
+        version    => $version,
+        duration   => $du,
+        operator   => 'eq',
+        media_type => $mt,
+    ), 'Create another types test object';
+    eval { ok $types_test->save, 'Save it'; };
 
     # Make sure that invalid media_types are not allowed.
     $mt = Kinetic::DataType::MediaType->new('text/xml');
     ok $types_test->media_type($mt), 'Change the media_type';
-    my @vals = qw(eq foo);
-    $attr_mock->mock(store_raw => sub { shift @vals });
+    $attr_mock->mock(store_raw => sub {
+        return 'foo' if $_[0]->name eq 'media_type';
+        return $orig_straw->(@_)
+    });
 
     SKIP: {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 2
             if $self->supported('pg')
             && $self->dbh->{pg_server_version} <= 80102;
-        skip '', 0;
+        throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
+            '... Saving it with a bogus media_type should fail';
+        like $@,
+            qr/value for domain media_type violates check constraint "ck_media_type"/,
+            '... And it should fail with the proper message';
+    }
+
+    # Make sure that invalid operators are excluded on INSERTs, too.
+    ok $types_test = TypesTest->new(
+        version    => $version,
+        duration   => $du,
+        operator   => 'eq',
+        media_type => $mt,
+    ), 'Create another types test object';
+
+    $attr_mock->mock(store_raw => sub {
+        return 'foo' if $_[0]->name eq 'operator';
+        return $orig_straw->(@_)
+    });
+
+    SKIP: {
+        # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
+        skip 'Domain constraints ignored in PREPAREd statements', 4
+            if $self->supported('pg')
+            && $self->dbh->{pg_server_version} <= 80102;
+        throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
+            '... Saving it with a bogus operator should fail';
+        like $@,
+            qr/value for domain "?operator"? violates check constraint "ck_operator"/,
+            '... And it should fail with the proper message';
+
+        $attr_mock->mock(store_raw => sub {
+            return 'foo' if $_[0]->name eq 'media_type';
+            return $orig_straw->(@_)
+        });
+
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus media_type should fail';
         like $@,
