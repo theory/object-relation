@@ -4,21 +4,155 @@ use strict;
 use warnings;
 
 use lib 'lib/';
-use Kinetic::Util::Config qw(:all);
+use Getopt::Long;
+use File::Pid;
+use File::Spec ();
+use aliased 'Proc::Background';
 
-#use Devel::Symdump;
-#my $symbols   = Devel::Symdump->new('main');
-#my @functions = $symbols->functions();
-#use Data::Dumper::Simple;
-#print Dumper @functions;
+my ( $debug, $verbose, $help, $conf );
+
+BEGIN {
+    GetOptions(
+        'debug'   => \$debug,
+        'verbose' => \$verbose,
+        'help|?'  => \$help,
+        'conf=s'  => \$conf,
+    );
+
+    if ($help) {
+        eval "use Pod::Usage 1.12";
+        if ( my $error = $@ ) {
+            die
+              "Pod::Usage 1.12 or better must be available for help: $error";
+        }
+        pod2usage( { -verbose => 2 } );
+        exit;
+    }
+
+    if ( defined $conf ) {
+        $ENV{KINETIC_CONF} = $conf;
+    }
+    $conf = $ENV{KINETIC_CONF} || '';
+    unless ( -f $conf ) {
+        die "Could not find conf file '$conf'";
+    }
+}
+
+use Kinetic::Util::Config qw(:all);
+use Readonly;
+Readonly my $LOG_DIR   => File::Spec->catfile( KINETIC_ROOT, 'logs' );
+Readonly my $PID_FILE  => File::Spec->catfile( $LOG_DIR,     'kinetic.pid' );
+Readonly my $ERROR_LOG => File::Spec->catfile( $LOG_DIR,     'error_log' );
+
+if ($debug) {
+    eval { require Devel::Symdump };
+    if ( my $error = $@ ) {
+        warn "Devel::Symdump required for debug: $error";
+    }
+    else {
+        my $symbols  = Devel::Symdump->new('main');
+        my $length   = 0;
+        my %value_of = do {
+            no strict 'refs';
+            map {
+                s/^main:://;
+                $length = length($_) if length($_) > $length;
+                $_ => &$_;
+              }
+              grep {/^main::[:[:upper:]_]+$/} $symbols->functions();
+        };
+        foreach my $constant ( sort keys %value_of ) {
+            printf "%-${length}s => %s\n", $constant, $value_of{$constant};
+        }
+    }
+    print "\nUsing config file '$conf'\n";
+}
+
+my $pidfile = File::Pid->new( { file => $PID_FILE } );
 
 my $pack = __PACKAGE__;
+my $lib  = File::Spec->catfile( KINETIC_ROOT, 'lib' );
+
+my $command = lc shift @ARGV || do {
+    warn "You must specify stop, start, or restart";
+    exit 1;
+};
+
 if ( $pack->can('SIMPLE_HOST') ) {
-    my $server = SERVER_CLASS;
-    eval "require $server" or die "Could not run $server: $@";
+
+    if ( 'start' eq $command ) {
+
+        # start the server
+        if ( $pidfile->running ) {
+            die "Process is already running as pid @{[$pidfile->pid]}\n";
+        }
+        else {
+            print "starting catalyst\n" if $verbose;
+            my $process
+              = Background->new( $^X, "-I$lib", '-MKinetic::Engine::Catalyst',
+                '-e 1' );
+            if ( $process->alive ) {
+                $pidfile->pid( $process->pid );
+                $pidfile->write or die "Could not write pid: $!";
+            }
+            else {
+                die "Could not start process: $?";
+            }
+        }
+    }
+    elsif ( 'stop' eq $command ) {
+
+        # stop the server
+        unless ( $pidfile->running ) {
+            warn "The kinetic server does not appear to be running";
+            exit;
+        }
+        my $pid = $pidfile->pid;
+        if ( kill 15, $pid ) {
+            $pidfile->remove;
+        }
+        else {
+            die "Could not stop pid $pid";
+        }
+    }
 }
 elsif ( $pack->can('APACHE_USER') ) {
-    my @args = ( APACHE_HTTPD, 'graceful' );
+    print "starting apache '" . &APACHE_HTTPD . "\n" if $verbose;
+    my @args = ( &APACHE_HTTPD, 'graceful' );
     system(@args) == 0
       or die "system @args failed: $?";
 }
+else {
+    die "Could not determine which server to run.  Exiting.";
+}
+
+__DATA__
+
+=head1 NAME 
+
+kinetic --  Start the Kinetic engine
+
+=head1 SYNOPSIS
+
+kineticd [-hdvr] [--stop] [--start] [-c conf_file] [start|stop|restart]
+
+Options:
+
+ -h, --help     Print this page and exit.
+ -?             Same as --help
+ -d, --debug    Print Kinetic::Util::Config constants and their values
+ -v, --verbose  Print out which engine is being started
+ -c, --conf     Use the specified config file instead of $ENV{KINETIC_CONF}
+
+Command (one of the following commands must be supplied):
+
+ stop         Stop the engine
+ start        Start the engine
+ restart      Restart the engine
+
+=head1 DESCRIPTION
+
+C<kineticd> starts the Kinetic engine.  The C<KINETIC_CONF> environment
+variable should point to the location of the desired Kinetic configuration
+file.  If not, you may specify C<--conf /path/to/my/conf_file> to supply (or
+override) this value.

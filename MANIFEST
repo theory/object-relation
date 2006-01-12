@@ -19,7 +19,7 @@ examples/rest_test.pl
 lib/Kinetic.pm
 lib/Kinetic/Build.pm
 lib/Kinetic/Build/Engine.pm
-lib/Kinetic/Build/Engine/Apache.pm
+lib/Kinetic/Build/Engine/Apache2.pm
 lib/Kinetic/Build/Engine/Catalyst.pm
 lib/Kinetic/Build/Rules.pm
 lib/Kinetic/Build/Schema.pm

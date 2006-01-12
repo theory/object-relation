@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Cwd;
+use Kinetic::Util::Config qw(KINETIC_ROOT);
 use File::Spec::Functions qw(catdir);
 
 use aliased 'Kinetic::Build::Schema';
@@ -11,15 +12,13 @@ use aliased 'Kinetic::Build::Schema';
 use version;
 our $VERSION = version->new('0.0.1');
 
-my ( $schema, $root );
+my ( $schema );
 
 BEGIN {
 
-    $root = $ENV{KINETIC_ROOT} || getcwd();
-
-    # XXX this needs to be externally configurable
+    # XXX We'll pull this out into an engine class eventually
     $schema = Schema->new;
-    $schema->load_classes( catdir( $root, 't/sample/lib' ) );
+    $schema->load_classes( catdir( KINETIC_ROOT, 't/sample/lib' ) );
 }
 
 #

@@ -136,7 +136,7 @@ sub test_props : Test(13) {
     my @msgs;
     $mb->mock(_readline => '1');
     $mb->mock(_prompt => sub { shift; push @msgs, @_; });
-    my $apache_build = MockModule->new('Kinetic::Build::Engine::Apache');
+    my $apache_build = MockModule->new('Kinetic::Build::Engine::Apache2');
     $apache_build->mock(
         _set_httpd => sub { shift->{httpd} = '/usr/bin/apache/httpd' }
     );

@@ -60,7 +60,7 @@ sub test_rules : Test(37) {
          server_name => 'localhost',
     );
     $builder->notes( 
-        build_server => bless(\%apache_notes, 'Kinetic::Build::Engine::Apache')
+        build_server => bless(\%apache_notes, 'Kinetic::Build::Engine::Apache2')
     );
 
     # Construct the object.

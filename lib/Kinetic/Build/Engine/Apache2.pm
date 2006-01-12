@@ -1,4 +1,4 @@
-package Kinetic::Build::Engine::Apache;
+package Kinetic::Build::Engine::Apache2;
 
 # $Id: SQLite.pm 2493 2006-01-06 01:58:37Z curtis $
 
@@ -27,7 +27,7 @@ use base 'Kinetic::Build::Engine';
 
 =head1 Name
 
-Kinetic::Build::Engine::Apache - Kinetic Apache engine builder
+Kinetic::Build::Engine::Apache2 - Kinetic Apache2 engine builder
 
 =head1 Synopsis
 
@@ -35,19 +35,19 @@ See L<Kinetic::Build::Engine|Kinetic::Build::Engine>.
 
 =head1 Description
 
-This module inherits from Kinetic::Build::Engine to build an Apache engine.
+This module inherits from Kinetic::Build::Engine to build an Apache2 engine.
 Its interface is defined entirely by Kinetic::Build::Engine. The command-line
 options it adds are:
 
 =over
 
-=item httpd_group
+=item group
 
 =item httpd
 
-=item httpd_port
+=item port
 
-=item httpd_user
+=item user
 
 =item rest_root
 
@@ -67,7 +67,7 @@ options it adds are:
 
 =head3 engine_class
 
-  my $engine_class = Kinetic::Build::Engine::Apache->engine_class;
+  my $engine_class = Kinetic::Build::Engine::Apache2->engine_class;
   
 Returns the engine class which C<bin/kineticd> will use to start the engine.
 
@@ -79,14 +79,11 @@ sub engine_class {'Kinetic::Engine::Apache2'}
 
 =head3 validate
 
-  Kinetic::Build::Engine::Apache->validate;
+  Kinetic::Build::Engine::Apache2->validate;
 
 This method validates the requirements necessary to run the selected engine.
 
 =cut
-
-# * httpd: /usr/local/apache/bin/httpd
-# * engine name
 
 # XXX Eventually we'll convert this to FSA::Rules.  At this time we're not
 # doing this as there is no App::Info module for Apache2
@@ -97,23 +94,23 @@ sub validate {
 
     $self->_set_httpd;
 
-    $self->{httpd_port} = $builder->args('httpd_port')
+    $self->{port} = $builder->args('port')
       || $builder->get_reply(
-        name    => 'httpd_port',
+        name    => 'port',
         message => 'Please enter the port to run the engine on',
         label   => 'Server port',
         default => 80
       );
-    $self->{httpd_user} = $builder->args('httpd_user')
+    $self->{user} = $builder->args('user')
       || $builder->get_reply(
-        name    => 'httpd_user',
+        name    => 'user',
         message => 'Please enter the user to run the engine as',
         label   => 'Server user',
         default => 'nobody'
       );
-    $self->{httpd_group} = $builder->args('httpd_group')
+    $self->{group} = $builder->args('group')
       || $builder->get_reply(
-        name    => 'httpd_group',
+        name    => 'group',
         message => 'Please enter the group to run the engine as',
         label   => 'Server group',
         default => 'nobody'
@@ -168,13 +165,13 @@ C<conf_engine> section.
 
 sub conf_sections {
     qw/
-      httpd_group
+      group
       httpd
-      httpd_port
+      port
       rest
       root
       static
-      httpd_user
+      user
       /;
 }
 

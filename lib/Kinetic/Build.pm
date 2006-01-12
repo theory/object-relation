@@ -21,6 +21,7 @@ package Kinetic::Build;
 use strict;
 use 5.008003;
 use base 'Module::Build';
+use Cwd 'getcwd';
 use DBI;
 use File::Spec;
 use File::Path ();
@@ -38,7 +39,7 @@ my %STORES = (
 );
 
 my %ENGINES = (
-    apache => 'Kinetic::Build::Engine::Apache',
+    apache => 'Kinetic::Build::Engine::Apache2',
     simple => 'Kinetic::Build::Engine::Catalyst',
 );
 
@@ -616,17 +617,21 @@ sub process_conf_files {
     return unless %$files;
 
     for my $conf_file ($self->_copy_to($files, $self->blib, 't')) {
+
+        # Load the configuration.
+        # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
+        Config::Std::Hash::read_config($conf_file => my %conf);
+
         my $prefix = '';
         if ($conf_file =~ /^blib/) {
             $self->notes(build_conf_file => $ENV{KINETIC_CONF} = $conf_file);
         } else {
             $self->notes(test_conf_file => $conf_file);
             $prefix = 'test_';
-        }
 
-        # Load the configuration.
-        # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
-        Config::Std::Hash::read_config($conf_file => my %conf);
+            # KINETIC_ROOT is different for tests than it is for installation
+            $conf{kinetic}{root} = getcwd();
+        }
 
         for my $section ( keys %conf ) {
             my $lc_section = lc $section;
