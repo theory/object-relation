@@ -2,6 +2,7 @@ package TestApp::TypesTest;
 use base 'Kinetic';
 use Kinetic::Util::Language::en_us;
 use Kinetic::DataType::Duration;
+use Kinetic::DataType::MediaType;
 
 BEGIN {
     my $km = Kinetic::Meta->new(
@@ -32,6 +33,13 @@ BEGIN {
         name        => 'operator',
         label       => 'Operator',
         type        => 'operator',
+        required    => 1,
+    );
+
+    $km->add_attribute(
+        name        => 'media_type',
+        label       => 'Media Type',
+        type        => 'media_type',
         required    => 1,
     );
 

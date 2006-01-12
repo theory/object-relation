@@ -70,15 +70,16 @@ dynamic).
 =cut
 
 my %types = (
-    string   => 'TEXT COLLATE nocase',
-    uuid     => 'TEXT',
-    boolean  => 'SMALLINT',
-    whole    => 'INTEGER',
-    state    => 'INTEGER',
-    datetime => 'DATETIME',
-    version  => 'TEXT',
-    duration => 'TEXT',
-    operator => 'TEXT',
+    string     => 'TEXT COLLATE nocase',
+    uuid       => 'TEXT',
+    boolean    => 'SMALLINT',
+    whole      => 'INTEGER',
+    state      => 'INTEGER',
+    datetime   => 'DATETIME',
+    version    => 'TEXT',
+    duration   => 'TEXT',
+    operator   => 'TEXT',
+    media_type => 'TEXT',
 );
 
 sub column_type {
@@ -166,11 +167,12 @@ sub constraints_for_class {
 
     # Start with any state, boolean, once, and unique triggers.
     my @cons = (
-        $self->state_trigger(     $class ),
-        $self->boolean_triggers(  $class ),
-        $self->once_triggers(     $class ),
-        $self->unique_triggers(   $class ),
-        $self->operator_triggers( $class ),
+        $self->state_trigger(      $class ),
+        $self->boolean_triggers(   $class ),
+        $self->once_triggers(      $class ),
+        $self->unique_triggers(    $class ),
+        $self->operator_triggers(  $class ),
+        $self->media_type_triggers( $class ),
    );
 
     # Add FK constraint for subclases from id column to the parent table.
@@ -254,21 +256,22 @@ sub boolean_triggers {
     my $key = $class->key;
     my @trigs;
     for my $attr (@bools) {
-        my $col = $attr->column;
+        my $col  = $attr->column;
+        my $null = $attr->required ? '' : "NEW.$col IS NOT NULL AND ";
         push @trigs,
             "CREATE TRIGGER cki_$key\_$col\n"
           . "BEFORE INSERT ON $table\n"
           . "FOR EACH ROW BEGIN\n"
           . "    SELECT RAISE(ABORT, 'value for domain boolean violates "
           .                        qq{check constraint "ck_boolean"')\n}
-          . "    WHERE  NEW.$col NOT IN (1, 0);\n"
+          . "    WHERE  ${null}NEW.$col NOT IN (1, 0);\n"
           . "END;\n",
             "CREATE TRIGGER cku_$key\_$col\n"
           . "BEFORE UPDATE OF $col ON $table\n"
           . "FOR EACH ROW BEGIN\n"
           . "    SELECT RAISE(ABORT, 'value for domain boolean violates "
           .                        qq{check constraint "ck_boolean"')\n}
-          . "    WHERE  NEW.$col NOT IN (1, 0);\n"
+          . "    WHERE  ${null}NEW.$col NOT IN (1, 0);\n"
           . "END;\n";
     }
     return @trigs;
@@ -431,25 +434,71 @@ sub operator_triggers {
     my $key = $class->key;
     my @trigs;
     for my $attr (@operators) {
-        my $col = $attr->column;
+        my $col  = $attr->column;
+        my $null = $attr->required ? '' : "NEW.$col IS NOT NULL AND ";
         push @trigs,
             "CREATE TRIGGER cki_$key\_$col\n"
           . "BEFORE INSERT ON $table\n"
           . "FOR EACH ROW BEGIN\n"
           . "    SELECT RAISE(ABORT, 'value for domain operator violates "
           .                        qq{check constraint "ck_operator"')\n}
-          . "    WHERE  NEW.$col NOT IN ('==', '!=', 'eq', 'ne', '=~', '!~',\n"
-          . "                            '>', '<', '>=', '<=', 'gt', 'lt',\n"
-          . "                            'ge', 'le');\n"
+          . "    WHERE  ${null}NEW.$col NOT IN (\n"
+          . "               '==', '!=', 'eq', 'ne', '=~', '!~', '>', '<',\n"
+          . "               '>=', '<=', 'gt', 'lt', 'ge', 'le');\n"
           . "END;\n",
             "CREATE TRIGGER cku_$key\_$col\n"
           . "BEFORE UPDATE OF $col ON $table\n"
           . "FOR EACH ROW BEGIN\n"
           . "    SELECT RAISE(ABORT, 'value for domain operator violates "
           .                        qq{check constraint "ck_operator"')\n}
-          . "    WHERE  NEW.$col NOT IN ('==', '!=', 'eq', 'ne', '=~', '!~',\n"
-          . "                            '>', '<', '>=', '<=', 'gt', 'lt',\n"
-          . "                            'ge', 'le');\n"
+          . "    WHERE  ${null}NEW.$col NOT IN (\n"
+          . "               '==', '!=', 'eq', 'ne', '=~', '!~', '>', '<',\n"
+          . "               '>=', '<=', 'gt', 'lt', 'ge', 'le');\n"
+          . "END;\n";
+    }
+    return @trigs;
+}
+
+##############################################################################
+
+=head3 media_type_triggers
+
+  my @media_type_triggers = $kbs->media_type_triggers($class);
+
+Returns SQLite triggers to validate that the value of a media_type column in
+the table representing the contents of the class represented by the
+Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
+does not have a media_type attribute (because it inherits the media_type from
+a concrete parent class), C<media_type_trigger()> will return an empty list.
+
+Called by C<constraints_for_class()>.
+
+=cut
+
+sub media_type_triggers {
+    my ($self, $class) = @_;
+    my @media_types = grep { $_->type eq 'media_type'} $class->table_attributes
+      or return;
+    my $table = $class->table;
+    my $key = $class->key;
+    my @trigs;
+    for my $attr (@media_types) {
+        my $col = $attr->column;
+        my $null = $attr->required ? '' : "NEW.$col IS NOT NULL AND ";
+        push @trigs,
+            "CREATE TRIGGER cki_$key\_$col\n"
+          . "BEFORE INSERT ON $table\n"
+          . "FOR EACH ROW BEGIN\n"
+          . "    SELECT RAISE(ABORT, 'value for domain media_type violates "
+          .                        qq{check constraint "ck_media_type"')\n}
+          . "    WHERE  ${null}NEW.$col NOT LIKE '_%/_%';\n"
+          . "END;\n",
+            "CREATE TRIGGER cku_$key\_$col\n"
+          . "BEFORE UPDATE OF $col ON $table\n"
+          . "FOR EACH ROW BEGIN\n"
+          . "    SELECT RAISE(ABORT, 'value for domain media_type violates "
+          .                        qq{check constraint "ck_media_type"')\n}
+          . "    WHERE  ${null}NEW.$col NOT LIKE '_%/_%';\n"
           . "END;\n";
     }
     return @trigs;

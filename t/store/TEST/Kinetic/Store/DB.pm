@@ -1103,7 +1103,7 @@ sub test_fk_update : Test(9) {
         '... Which should have the proper error message';
 }
 
-sub test_types : Test(42) {
+sub test_types : Test(51) {
     my $self = shift;
     return 'Skip test_fk_update for abstract class'
         unless $self->_should_run;
@@ -1132,6 +1132,12 @@ sub test_types : Test(42) {
     ok $types_test->operator('eq'),  'Set the operator';
     is $types_test->operator, 'eq',  'It should be properly set';
 
+    # Set up the media_type attribute.
+    my $mt = Kinetic::DataType::MediaType->new('text/plain');
+    is $types_test->media_type, undef, 'The media_type should be undef';
+    ok $types_test->media_type($mt),  'Set the media_type';
+    is $types_test->media_type, $mt,  'It should be properly set';
+
     # Save the object.
     ok $types_test->save, 'Save the types_test object';
     ok $types_test = TypesTest->lookup( uuid => $types_test->uuid ),
@@ -1140,9 +1146,10 @@ sub test_types : Test(42) {
     # Check the looked-up values.
     isa_ok $types_test->version, 'version', 'version';
     is $types_test->version, $version,      'It should be properly set';
-    isa_ok $types_test->duration,  'Kinetic::DataType::Duration', 'duration';
-    is $types_test->duration, $du, 'It should be properly set';
-    is $types_test->operator, 'eq','Operator should be properly set';
+    isa_ok $types_test->duration,    'Kinetic::DataType::Duration', 'duration';
+    is $types_test->duration, $du,   'It should be properly set';
+    is $types_test->operator, 'eq',  'Operator should be properly set';
+    is $types_test->media_type, $mt, 'Media type should be properly set';
 
     # Change the version object.
     ok $version = version->new('3.40'),     'Create new version object';
@@ -1161,6 +1168,11 @@ sub test_types : Test(42) {
     ok $types_test->operator('ne'),  'Set the operator to a new value';
     is $types_test->operator, 'ne',  'It should be properly set';
 
+    # Change the media_type.
+    $mt = Kinetic::DataType::MediaType->new('text/html');
+    ok $types_test->media_type($mt),  'Set the media_type to a new value';
+    is $types_test->media_type, $mt,  'It should be properly set';
+
     # Save it again.
     ok $types_test->save, 'Save TypesTest object again';
     ok $types_test = TypesTest->lookup( uuid => $types_test->uuid ),
@@ -1172,20 +1184,44 @@ sub test_types : Test(42) {
     isa_ok $types_test->duration,  'Kinetic::DataType::Duration', 'duration';
     is $types_test->duration, $du, 'It should be properly set';
     is $types_test->operator, 'ne','Operator should be properly set';
+    is $types_test->media_type, $mt, 'Media type should be properly set';
 
     # Make sure that invalid operators are not allowed.
+    my $attr_mock = MockModule->new('Kinetic::Meta::Attribute');
+    $attr_mock->mock(straw => 'foo');
     ok $types_test->operator('lt'), 'Change the operator';
-    $types_test->{operator} = 'foo'; # XXX Don't do this at home!
-    is $types_test->operator, 'foo', 'Check for bogus operator';
 
-    # XXX 
-    return 'Domain constraints ignored in PREPAREd statements'
-        if $self->supported('pg') && $self->dbh->{pg_server_version} <= 80102;
-    throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
-         '... Saving it with a bogus operator should fail';
-    like $@,
-        qr/value for domain operator violates check constraint "ck_operator"/,
-        '... And it should fail with the proper message';
+    SKIP: {
+        # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
+        skip 'Domain constraints ignored in PREPAREd statements', 2
+            if $self->supported('pg')
+            && $self->dbh->{pg_server_version} <= 80102;
+        skip '', 0;
+        throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
+            '... Saving it with a bogus operator should fail';
+        like $@,
+            qr/value for domain operator violates check constraint "ck_operator"/,
+            '... And it should fail with the proper message';
+    }
+
+    # Make sure that invalid media_types are not allowed.
+    $mt = Kinetic::DataType::MediaType->new('text/xml');
+    ok $types_test->media_type($mt), 'Change the media_type';
+    my @vals = qw(eq foo);
+    $attr_mock->mock(straw => sub { shift @vals });
+
+    SKIP: {
+        # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
+        skip 'Domain constraints ignored in PREPAREd statements', 2
+            if $self->supported('pg')
+            && $self->dbh->{pg_server_version} <= 80102;
+        skip '', 0;
+        throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
+            '... Saving it with a bogus media_type should fail';
+        like $@,
+            qr/value for domain media_type violates check constraint "ck_media_type"/,
+            '... And it should fail with the proper message';
+    }
 }
 
 1;

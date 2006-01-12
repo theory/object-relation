@@ -86,15 +86,16 @@ C<setup_code()>).
 =cut
 
 my %types = (
-    string   => 'TEXT',
-    uuid     => 'UUID',
-    boolean  => 'BOOLEAN',
-    whole    => 'INTEGER',
-    state    => 'STATE',
-    datetime => 'TIMESTAMP',
-    version  => 'TEXT',
-    duration => 'INTERVAL',
-    operator => 'OPERATOR',
+    string     => 'TEXT',
+    uuid       => 'UUID',
+    boolean    => 'BOOLEAN',
+    whole      => 'INTEGER',
+    state      => 'STATE',
+    datetime   => 'TIMESTAMP',
+    version    => 'TEXT',
+    duration   => 'INTERVAL',
+    operator   => 'OPERATOR',
+    media_type => 'MEDIA_TYPE',
 );
 
 sub column_type {
@@ -585,16 +586,22 @@ tables.
 
 sub setup_code {
 
-'CREATE DOMAIN state AS SMALLINT NOT NULL DEFAULT 1
+q{CREATE DOMAIN state AS SMALLINT NOT NULL DEFAULT 1
 CONSTRAINT ck_state CHECK (
    VALUE BETWEEN -1 AND 2
 );
-',
+},
 
 q{CREATE DOMAIN operator AS TEXT
 CONSTRAINT ck_operator CHECK (
    VALUE IN('==', '!=', 'eq', 'ne', '=~', '!~', '>', '<', '>=', '<=', 'gt',
             'lt', 'ge', 'le')
+);
+},
+
+q{CREATE DOMAIN media_type AS TEXT
+CONSTRAINT ck_media_type CHECK (
+   VALUE ~ '^\\\\w+/\\\\w+$'
 );
 };
 

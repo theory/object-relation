@@ -37,7 +37,7 @@ Kinetic::Meta::Type - Kinetic Data type validation and accessor building
       key     => "state",
       name    => "State",
       builder => 'Kinetic::Meta::AccessorBuilder',
-      raw     => sub { shift->value },
+      raw     => sub { ref $_[0] ? shift->value : shift },
       straw   => sub { shift->store_value },
       check   => sub {
           UNIVERSAL::isa($_[0], 'Kinetic::DataType::State')

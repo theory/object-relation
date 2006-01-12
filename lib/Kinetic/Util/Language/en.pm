@@ -155,6 +155,9 @@ our %Lexicon;
         'Value "[_1]" is not a valid operator',
         'Value “[_1]” is not a valid operator',
 
+        'Value "[_1]" is not a valid media type',
+        'Value “[_1]” is not a valid media type',
+
         'Could not determine widget type handler for "[_1]"',
         'Could not determine widget type handler for “[_1]”',
 
@@ -283,6 +286,7 @@ our %Lexicon;
         'Operator' => 'Operator',
         'Duration' => 'Duration',
         'DateTime' => 'Date and Time',
+        'Media Type' => 'Media Type',
 
         # Kinetic::Party::Person labels and tips.
         'Last Name' => 'Last Name',

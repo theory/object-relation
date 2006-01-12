@@ -1,6 +1,6 @@
 package Kinetic::DataType::Duration;
 
-# $Id: DateTime.pm 2488 2006-01-04 05:17:14Z theory $
+# $Id: Duration.pm 2488 2006-01-04 05:17:14Z theory $
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

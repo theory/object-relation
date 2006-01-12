@@ -55,6 +55,7 @@ my $build = Kinetic::Build->new(
         'List::Util'                 => 0,
         'Locale::Maketext'           => 1.09,
         'MIME::Base64'               => 0,
+        'MIME::Types'                => 1.14,
         'OSSP::uuid'                 => 0,      # XXX Not on CPAN!
         'Params::Validate'           => 0.78,
         'Proc::Background'           => 1.08,

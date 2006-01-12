@@ -1021,7 +1021,8 @@ $table = q{CREATE TABLE _types_test (
     state INTEGER NOT NULL DEFAULT 1,
     version TEXT NOT NULL,
     duration TEXT NOT NULL,
-    operator TEXT NOT NULL
+    operator TEXT NOT NULL,
+    media_type TEXT NOT NULL
 );
 };
 eq_or_diff $sg->table_for_class($types_test), $table,
@@ -1062,18 +1063,32 @@ CREATE TRIGGER cki_types_test_operator
 BEFORE INSERT ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain operator violates check constraint "ck_operator"')
-    WHERE  NEW.operator NOT IN ('==', '!=', 'eq', 'ne', '=~', '!~',
-                            '>', '<', '>=', '<=', 'gt', 'lt',
-                            'ge', 'le');
+    WHERE  NEW.operator NOT IN (
+               '==', '!=', 'eq', 'ne', '=~', '!~', '>', '<',
+               '>=', '<=', 'gt', 'lt', 'ge', 'le');
 END;
 
 CREATE TRIGGER cku_types_test_operator
 BEFORE UPDATE OF operator ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain operator violates check constraint "ck_operator"')
-    WHERE  NEW.operator NOT IN ('==', '!=', 'eq', 'ne', '=~', '!~',
-                            '>', '<', '>=', '<=', 'gt', 'lt',
-                            'ge', 'le');
+    WHERE  NEW.operator NOT IN (
+               '==', '!=', 'eq', 'ne', '=~', '!~', '>', '<',
+               '>=', '<=', 'gt', 'lt', 'ge', 'le');
+END;
+
+CREATE TRIGGER cki_types_test_media_type
+BEFORE INSERT ON _types_test
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain media_type violates check constraint "ck_media_type"')
+    WHERE  NEW.media_type NOT LIKE '_%/_%';
+END;
+
+CREATE TRIGGER cku_types_test_media_type
+BEFORE UPDATE OF media_type ON _types_test
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain media_type violates check constraint "ck_media_type"')
+    WHERE  NEW.media_type NOT LIKE '_%/_%';
 END;
 };
 
@@ -1082,7 +1097,7 @@ eq_or_diff join("\n", $sg->constraints_for_class($types_test)), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW types_test AS
-  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator
+  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator, _types_test.media_type AS media_type
   FROM   _types_test;
 };
 eq_or_diff $sg->view_for_class($types_test), $view,
@@ -1092,8 +1107,8 @@ eq_or_diff $sg->view_for_class($types_test), $view,
 $insert = q{CREATE TRIGGER insert_types_test
 INSTEAD OF INSERT ON types_test
 FOR EACH ROW BEGIN
-  INSERT INTO _types_test (uuid, state, version, duration, operator)
-  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.version, NEW.duration, NEW.operator);
+  INSERT INTO _types_test (uuid, state, version, duration, operator, media_type)
+  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.version, NEW.duration, NEW.operator, NEW.media_type);
 END;
 };
 eq_or_diff $sg->insert_for_class($types_test), $insert,
@@ -1104,7 +1119,7 @@ $update = q{CREATE TRIGGER update_types_test
 INSTEAD OF UPDATE ON types_test
 FOR EACH ROW BEGIN
   UPDATE _types_test
-  SET    state = NEW.state, version = NEW.version, duration = NEW.duration, operator = NEW.operator
+  SET    state = NEW.state, version = NEW.version, duration = NEW.duration, operator = NEW.operator, media_type = NEW.media_type
   WHERE  id = OLD.id;
 END;
 };

@@ -3,8 +3,8 @@
 # $Id$
 
 use strict;
-#use Test::More tests => 59;
-use Test::More 'no_plan';
+use Test::More tests => 77;
+#use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Util::Functions qw(:uuid);
 use Kinetic::Util::Config qw(STORE_CLASS);
@@ -17,9 +17,10 @@ BEGIN {
     Test::More->import;
     # We need to load Kinetic first, or else things just won't work!
     use_ok('Kinetic') or die;
-    use_ok('Kinetic::Meta::DataTypes')    or die;
-    use_ok('Kinetic::DataType::DateTime') or die;
-    use_ok('Kinetic::DataType::Duration') or die;
+    use_ok('Kinetic::Meta::DataTypes')     or die;
+    use_ok('Kinetic::DataType::DateTime')  or die;
+    use_ok('Kinetic::DataType::Duration')  or die;
+    use_ok('Kinetic::DataType::MediaType') or die;
 }
 
 BEGIN {
@@ -60,6 +61,13 @@ BEGIN {
                             type     => 'operator',
                           ),
         "Add operator attribute" );
+
+    # Add a Media Type attribute.
+    ok( $cm->add_attribute( name     => 'media_type',
+                            view     => Class::Meta::PUBLIC,
+                            type     => 'media_type',
+                          ),
+        "Add media_type attribute" );
 
     # Add a class attribute.
     ok( $cm->add_attribute( name     => 'string',
@@ -226,5 +234,24 @@ eval { $t->operator('foo') };
 ok $err = $@, "Caught bad Operator exception";
 isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
 is $err->error, "Value \x{201c}foo\x{201d} is not a valid operator",
+    'It should have the proper error message';
+
+# Test Media Type accessor.
+is( $t->media_type, undef, 'Check for no Media Type' );
+
+my $mt = Kinetic::DataType::MediaType->bake('text/plain');
+# Try assigning a Kinetic::Media_Type object.
+ok $t->media_type($mt), 'Set media_type';
+is $t->media_type, $mt, 'It should be set';
+is overload::StrVal($t->media_type), overload::StrVal($mt),
+    'It should be the same object';
+is $t->my_class->attributes('media_type')->get($t), $mt,
+    'It should be accessable via the attribute object';
+
+eval { $t->media_type('foo') };
+ok $err = $@, "Caught bad Media_Type exception";
+isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
+is $err->error,
+    "Value \x{201c}foo\x{201d} is not a valid Kinetic::DataType::MediaType object",
     'It should have the proper error message';
 
