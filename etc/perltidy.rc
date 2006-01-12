@@ -11,4 +11,5 @@
 -bbt=1 # medium block brace tightness
 -nsfs  # no space before semicolons
 -nolq  # don't outdent long quoted strings
+-nola  # don't outdent labels
 -wbb="% + - * / x != == >= <= =~ < > | & >= < = **= += *= &= <<= &&= -= /= |= >>= ||= .= %= ^= x=" # break before all operators
