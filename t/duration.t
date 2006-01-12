@@ -309,7 +309,7 @@ for my $compare (
     # Try Pg format.
     my $du = $CLASS->bake($pg);
     ok !$CLASS->compare($du, $obj), qq{Parse "$pg"};
-    is $du->straw, $pg_raw, qq{Raw pg "$pg_raw"};
+    is $du->store_raw, $pg_raw, qq{Raw pg "$pg_raw"};
 
     # Try ISO-8601 format.
     $du = $CLASS->bake($iso);

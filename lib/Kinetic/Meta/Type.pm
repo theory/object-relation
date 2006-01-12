@@ -38,7 +38,7 @@ Kinetic::Meta::Type - Kinetic Data type validation and accessor building
       name    => "State",
       builder => 'Kinetic::Meta::AccessorBuilder',
       raw     => sub { ref $_[0] ? shift->value : shift },
-      straw   => sub { shift->store_value },
+      store_raw   => sub { shift->store_value },
       check   => sub {
           UNIVERSAL::isa($_[0], 'Kinetic::DataType::State')
               or throw_invalid(['Value "[_1]" is not a valid [_2] object',
@@ -129,9 +129,9 @@ sub raw { shift->{raw} }
 
 ##############################################################################
 
-=head3 straw
+=head3 store_raw
 
-  my $code = $type->straw;
+  my $code = $type->store_raw;
 
 Returns a code reference to get the store raw value of a type. Used internally
 by L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>. In general, it will
@@ -140,15 +140,15 @@ different data stores require different raw values for a particular data type.
 
 For the L<Kinetic::DataType::Duration|Kinetic::DataType::Duration> type, for
 example, C<raw()> would return an ISO-8601 string representation, while
-C<straw()> would return one string representation for the PostgreSQL data
+C<store_raw()> would return one string representation for the PostgreSQL data
 store, and a 0-padded ISO-8601 string for all other data stores.
 
-As with the C<raw()> code reference. The straw code reference should expect
+As with the C<raw()> code reference. The store_raw code reference should expect
 the value returned from an attribute's C<get()> method.
 
 =cut
 
-sub straw { shift->{straw} }
+sub store_raw { shift->{store_raw} }
 
 ##############################################################################
 

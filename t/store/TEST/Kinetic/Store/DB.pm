@@ -1188,7 +1188,7 @@ sub test_types : Test(51) {
 
     # Make sure that invalid operators are not allowed.
     my $attr_mock = MockModule->new('Kinetic::Meta::Attribute');
-    $attr_mock->mock(straw => 'foo');
+    $attr_mock->mock(store_raw => 'foo');
     ok $types_test->operator('lt'), 'Change the operator';
 
     SKIP: {
@@ -1208,7 +1208,7 @@ sub test_types : Test(51) {
     $mt = Kinetic::DataType::MediaType->new('text/xml');
     ok $types_test->media_type($mt), 'Change the media_type';
     my @vals = qw(eq foo);
-    $attr_mock->mock(straw => sub { shift @vals });
+    $attr_mock->mock(store_raw => sub { shift @vals });
 
     SKIP: {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php

@@ -531,26 +531,26 @@ sub raw {
 
 ##############################################################################
 
-=head3 straw
+=head3 store_raw
 
-  my $store_raw_value = $attr->straw($thingy);
+  my $store_raw_value = $attr->store_raw($thingy);
 
 This method returns the raw value of an attribute properly formatted for
 serialization to the current data store. This value will most often be the
 same as that returned by C<raw()>, but different data stores require different
-formats, C<straw()> will return the representation appropriate for the current
+formats, C<store_raw()> will return the representation appropriate for the current
 data store. For example, if the attribute was a
 L<Kinetic::DataType::Duration|Kinetic::DataType::Duration> object, C<get()>
 would of course return the object, C<raw()> would return an ISO-8601 string
-representation, and C<straw()> would return one string representation for the
+representation, and C<store_raw()> would return one string representation for the
 PostgreSQL data store, and a 0-padded ISO-8601 string for all other data
 stores.
 
 =cut
 
-sub straw {
+sub store_raw {
     my $self = shift;
-    my $code = $self->{_straw} or $self->class->handle_error(
+    my $code = $self->{_store_raw} or $self->class->handle_error(
         sprintf 'Cannot get store raw value for attribute "%s"', $self->name
     );
     goto &$code;
@@ -582,7 +582,7 @@ sub bake {
 =head3 build
 
 This private method overrides the parent C<build()> method in order to set up
-the C<raw()> and C<straw()> accessor values.
+the C<raw()> and C<store_raw()> accessor values.
 
 =cut
 
@@ -610,10 +610,10 @@ sub build {
         } else {
             $self->{_raw} = $get;
         }
-        if (my $straw = $type->straw) {
-            $self->{_straw} = sub { $straw->($get->(shift)) };
+        if (my $store_raw = $type->store_raw) {
+            $self->{_store_raw} = sub { $store_raw->($get->(shift)) };
         } else {
-            $self->{_straw} = $self->{_raw};
+            $self->{_store_raw} = $self->{_raw};
         }
 
         if ($self->authz >= Class::Meta::WRITE) {

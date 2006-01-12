@@ -243,7 +243,7 @@ for my $compare (
 ) {
     my ($iso_raw, $iso_padded, $obj) = @$compare;
     my $du = $CLASS->bake($iso_raw);
-    is $du->straw, $iso_padded,         qq{Padded iso is "$iso_padded"};
+    is $du->store_raw, $iso_padded,         qq{Padded iso is "$iso_padded"};
     is $CLASS->bake($iso_padded), $obj, qq{Parse         "$iso_padded"};
 }
 

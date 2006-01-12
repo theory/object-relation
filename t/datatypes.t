@@ -185,11 +185,11 @@ is ref $t->duration, ref $duration, 'Duration object should be the same';
 is $t->my_class->attributes('duration')->raw($t),
     'P0Y0M2DT-23H-59M0S',
     "Make sure the raw value is properly formatted";
-my $straw = STORE_CLASS eq 'Kinetic::Store::DB::Pg'
+my $store_raw = STORE_CLASS eq 'Kinetic::Store::DB::Pg'
     ? '0 years 0 mons 2 days -23 hours -59 mins 0 secs'
     : 'P00000Y00M02DT-23H-59M00S';
-is $t->my_class->attributes('duration')->straw($t), $straw,
-    "Make sure the straw value is properly formatted";
+is $t->my_class->attributes('duration')->store_raw($t), $store_raw,
+    "Make sure the store_raw value is properly formatted";
 eval { $t->duration('foo') };
 ok $err = $@, "Caught bad Duration exception";
 isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
