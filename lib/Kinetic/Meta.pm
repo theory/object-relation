@@ -12,7 +12,11 @@ use Kinetic::Meta::DataTypes;
 use Kinetic::Meta::Attribute;
 use Kinetic::Meta::Class;
 use Kinetic::Meta::Method;
-use Kinetic::Util::Exceptions qw(throw_exlib throw_invalid_class);
+use Kinetic::Util::Exceptions qw(
+    throw_exlib
+    throw_invalid_class
+    throw_invalid_attr
+);
 use Class::Meta::Types::String;    # Move to DataTypes.
 
 =head1 Name
@@ -271,6 +275,32 @@ sub for_key {
     throw_invalid_class [
         'I could not find the class for key "[_1]"',
         $key
+    ];
+}
+
+##############################################################################
+
+=head3 attr_for_key
+
+  my $attribute = Kinetic::Meta->attr_for_key('foo.bar');
+
+This method returns a L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>
+object for a given class key and attribute. The class key and attribute name
+are separated by a dot (".") in the argument. In this above example, the
+attribute "bar" would be returned for the class with the key "foo".
+
+=cut
+
+sub attr_for_key {
+    my $pkg = shift;
+    my ($key, $attr_name) = split /\./ => shift;
+    if (my $attr = $pkg->for_key($key)->attributes($attr_name)) {
+        return $attr;
+    }
+    throw_invalid_attr [
+        'I could not find the attribute "[_1]" in class "[_2]"',
+        $attr_name,
+        $key,
     ];
 }
 

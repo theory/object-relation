@@ -206,6 +206,9 @@ our %Lexicon;
         'I could not find the class for key "[_1]"',
         'I could not find the class for key “[_1]”',
 
+        'I could not find the attribute "[_1]" in class "[_2]"',
+        'I could not find the attribute “[_1]” in class “[_2]”',
+
         'No such attribute "[_1]" for [_2]',
         'No such attribute “[_1]” for [_2]',
 

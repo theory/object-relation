@@ -284,6 +284,21 @@ use Exception::Class(
     },
 );
 
+=item Kinetic::Util::Exception::Fatal::InvalidAttribute
+
+Invalid attribute exception. Thrown if an incorrect attribute is encountered.
+Alias: C<throw_invalid_attr>.
+
+=cut
+
+use Exception::Class(
+    'Kinetic::Util::Exception::Fatal::InvalidAttribute' => {
+        description => 'Invalid attribute',
+        isa         => 'Kinetic::Util::Exception::Fatal',
+        alias       => 'throw_invalid_attr',
+    },
+);
+
 =item Kinetic::Util::Exception::Fatal::UnknownClass
 
 Unknown class exception. Thrown if an unknown class is encountered.
@@ -424,8 +439,8 @@ use Exporter::Tidy all => [qw(
     panic isa_kinetic_exception isa_exception throw_exlib throw_fatal
     throw_invalid throw_read_only throw_lang throw_stat throw_io throw_error
     throw_auth throw_required throw_xml throw_unknown_class throw_config
-    throw_invalid_class throw_not_found throw_unsupported throw_unimplemented
-    throw_search throw_attribute sig_handlers
+    throw_invalid_class throw_invalid_attr throw_not_found throw_unsupported
+    throw_unimplemented throw_search throw_attribute sig_handlers
 )];
 
 ##############################################################################

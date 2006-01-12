@@ -4,7 +4,7 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 215;
+use Test::More tests => 223;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use lib '/Users/david/dev/Kineticode/trunk/Class-Meta/lib';
@@ -233,6 +233,20 @@ is $err->error,
     "I could not find the class for key \x{201c}_no_such_thing\x{201d}",
     'We should have received the proper error message';
 
+ok my $attr = Kinetic::Meta->attr_for_key('thingy.foo'),
+    'Get an attribute via attr_for_key()';
+isa_ok $attr, 'Kinetic::Meta::Attribute';
+isa_ok $attr, 'Class::Meta::Attribute';
+eval { Kinetic::Meta->attr_for_key('thingy._no_such_thing') };
+
+ok $err = $@, 'Caught attr_for_key() exception';
+isa_ok $err, 'Kinetic::Util::Exception';
+isa_ok $err, 'Kinetic::Util::Exception::Fatal';
+isa_ok $err, 'Kinetic::Util::Exception::Fatal::InvalidAttribute';
+is $err->error,
+    "I could not find the attribute \x{201c}_no_such_thing\x{201d} in class \x{201c}thingy\x{201d}",
+    'We should have received the proper error message';
+
 is $class->key, 'thingy', 'Check key';
 is $class->package, 'MyTestThingy', 'Check package';
 is $class->name, 'Thingy', 'Check name';
@@ -252,7 +266,7 @@ is_deeply [$class->direct_attributes], [$class->attributes('id'), $class->attrib
 is_deeply [$class->persistent_attributes], [$class->attributes('id'), $class->attributes],
     'By default, persistent_attributes should return all attributes';
 
-ok my $attr = $class->attributes('foo'), "Get foo attribute";
+ok $attr = $class->attributes('foo'), "Get foo attribute";
 isa_ok $attr, 'Kinetic::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
 is $attr->name, 'foo', "Check attr name";
