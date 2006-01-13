@@ -68,12 +68,12 @@ functionality of this module.
 
 # Create the data type.
 Kinetic::Meta::Type->add(
-    key     => 'duration',
-    name    => 'Duration',
-    raw     => sub { ref $_[0] ? shift->raw   : shift },
-    store_raw   => sub { ref $_[0] ? shift->store_raw : shift },
-    bake    => sub { __PACKAGE__->bake(shift) },
-    check   => __PACKAGE__,
+    key       => 'duration',
+    name      => 'Duration',
+    raw       => sub { ref $_[0] ? shift->raw : shift },
+    store_raw => sub { ref $_[0] ? shift->store_raw : shift },
+    bake      => sub { __PACKAGE__->bake(shift) },
+    check     => __PACKAGE__,
 );
 
 ##############################################################################

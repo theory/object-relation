@@ -57,11 +57,12 @@ my $utc = DateTime::TimeZone::UTC->new;
 Kinetic::Meta::Type->add(
     key     => 'datetime',
     name    => 'DateTime',
-    raw     => sub { ref $_[0]
-                       ? shift->clone->set_time_zone($utc)->iso8601
-                       : shift
-                   },
-    bake    => sub { Kinetic::DataType::DateTime->bake(shift) },
+    raw     => sub {
+        ref $_[0]
+            ? shift->clone->set_time_zone($utc)->iso8601
+            : shift;
+    },
+    bake    => sub { __PACKAGE__->bake(shift) },
     check   => __PACKAGE__,
 );
 
