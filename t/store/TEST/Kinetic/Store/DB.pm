@@ -515,6 +515,33 @@ sub update : Test(7) {
     is $one->{id}, 42, 'and the private id should not be changed';
 }
 
+sub query_match : Test(6) {
+    my $test = shift;
+    return 'Skip query_match for abstract class' unless $test->_should_run;
+    my ($foo, $bar, $baz) = $test->test_objects;
+    my $store = Kinetic::Store->new;
+    my $iterator = $store->query( $foo->my_class,
+        name => MATCH '^(f|ba)',
+        { order_by => 'name' }
+    );
+    my @items = $test->_all_items($iterator);
+    is @items, 2, 'Searches should accept regular expressions';
+    is_deeply \@items, [$bar, $foo], 'and should include the correct items';
+
+    $iterator = $store->query( $foo->my_class,
+        name => NOT MATCH '^(f|ba)',
+        { order_by => 'name' }
+    );
+    @items = $test->_all_items($iterator);
+    is @items, 1, 'and regexes should return the correct number of items';
+    is_deeply \@items, [$baz], 'and should include the correct items';
+
+    $iterator = $store->query($foo->my_class, name => MATCH 'z$');
+    @items = $test->_all_items($iterator);
+    is @items, 1, 'and regexes should return the correct number of items';
+    is_deeply \@items, [$baz], 'and should include the correct items';
+}
+
 sub constraints : Test(4) {
     can_ok Store, '_constraints';
     is Store->_constraints( { order_by => 'name' } ), ' ORDER BY name',

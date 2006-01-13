@@ -31,15 +31,6 @@ sub full_text_search : Test(1) {
         'SQLite should die if a full text search is attempted';
 }
 
-sub query_match : Test(1) {
-    my $test = shift;
-    my ($foo, $bar, $baz) = $test->test_objects;
-    my $store = Kinetic::Store->new;
-    throws_ok {$store->query( $foo->my_class, name => MATCH '(a|b)%' ) }
-        'Kinetic::Util::Exception::Fatal::Unsupported',
-        'SQLite should croak() if a MATCH search is attempted';
-}
-
 sub test_boolean : Test(6) {
     my $self = shift;
     return unless $self->_should_run;

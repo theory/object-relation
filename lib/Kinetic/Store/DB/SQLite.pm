@@ -116,19 +116,23 @@ sub _full_text_search {
 
 ##############################################################################
 
-=head3 _comparison_handler
+=head3 _MATCH_SEARCH
 
-  my $op = $store->_comparison_handler($key);
+  my $op = $store->_MATCH_SEARCH($key);
 
-Works like C<Kinetic::Store::DB::_comparison_handler> but it throws an
-exception if a C<MATCH> handler is requested.  This is because regular
-expressions are not supported on SQLite.
+Works like C<Kinetic::Store::DB::_MATCH_SEARCH> but supports full Perl regular
+expressions via the SQLite C<REGEXP> operator. As the regular expresisons are
+compiled with the C<ixms> modifiers, they are always case-insensitive,
+and C<^> matches the beginning of the whole string, and C<$> matches the end
+of the whole string.
 
 =cut
 
 sub _MATCH_SEARCH {
-    throw_unsupported [ "MATCH:  [_1] does not support regular expressions",
-        __PACKAGE__ ];
+    my ( $self, $search ) = @_;
+    my $col = $search->column;
+    my $not = $search->negated ? ' NOT' : '';
+    return ( "$col$not REGEXP ?", [ $search->data ] );
 }
 
 ##############################################################################
@@ -239,7 +243,7 @@ sub connected {
         'create_function'
     );
 
-    # Add regexp() function for use by REGEPX operator. See
+    # Add regexp() function for use by REGEXP operator. See
     # http://www.justatheory.com/computers/databases/sqlite/add_regexen.html
     $dbh->func('regexp', 2, sub {
         my ($regex, $string) = @_;

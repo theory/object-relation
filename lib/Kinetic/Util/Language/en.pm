@@ -96,9 +96,6 @@ our %Lexicon;
         '[_1] does not support full-text searches',
         '[_1] does not support full-text searches',
 
-        'MATCH:  [_1] does not support regular expressions',
-        'MATCH: [_1] does not support regular expressions',
-
         'You cannot do GT or LT type searches with non-contiguous dates',
         'You cannot do GT or LT type searches with non-contiguous dates',
 

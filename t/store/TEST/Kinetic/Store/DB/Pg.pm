@@ -57,30 +57,4 @@ sub full_text_search : Test(1) {
     }
 }
 
-sub query_match : Test(6) {
-    my $test = shift;
-    my ($foo, $bar, $baz) = $test->test_objects;
-    my $store = Kinetic::Store->new;
-    my $iterator = $store->query( $foo->my_class, 
-        name => MATCH '^(f|ba)',
-        { order_by => 'name' }
-    );
-    my @items = $test->_all_items($iterator);
-    is @items, 2, 'Searches should accept regular expressions';
-    is_deeply \@items, [$bar, $foo], 'and should include the correct items';
-
-    $iterator = $store->query( $foo->my_class, 
-        name => NOT MATCH '^(f|ba)',
-        { order_by => 'name' }
-    );
-    @items = $test->_all_items($iterator);
-    is @items, 1, 'and regexes should return the correct number of items';
-    is_deeply \@items, [$baz], 'and should include the correct items';
-
-    $iterator = $store->query($foo->my_class, name => MATCH 'z$');
-    @items = $test->_all_items($iterator);
-    is @items, 1, 'and regexes should return the correct number of items';
-    is_deeply \@items, [$baz], 'and should include the correct items';
-}
-
 1;
