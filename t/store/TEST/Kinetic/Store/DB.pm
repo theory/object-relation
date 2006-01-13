@@ -1211,7 +1211,7 @@ sub test_types : Test(74) {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 2
             if $self->supported('pg')
-            && $self->dbh->{pg_server_version} <= 80101;
+            && $self->dbh->{pg_server_version} <= 80102;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus operator should fail';
         like $@,
@@ -1241,7 +1241,7 @@ sub test_types : Test(74) {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 2
             if $self->supported('pg')
-            && $self->dbh->{pg_server_version} <= 80101;
+            && $self->dbh->{pg_server_version} <= 80102;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus media_type should fail';
         like $@,
@@ -1271,7 +1271,7 @@ sub test_types : Test(74) {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 2
             if $self->supported('pg')
-            && $self->dbh->{pg_server_version} <= 80101;
+            && $self->dbh->{pg_server_version} <= 80102;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus attribute should fail';
         like $@,
@@ -1296,7 +1296,7 @@ sub test_types : Test(74) {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 4
             if $self->supported('pg')
-            && $self->dbh->{pg_server_version} <= 80101;
+            && $self->dbh->{pg_server_version} <= 80102;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus operator should fail';
         like $@,
