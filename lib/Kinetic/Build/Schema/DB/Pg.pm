@@ -96,6 +96,7 @@ my %types = (
     duration   => 'INTERVAL',
     operator   => 'OPERATOR',
     media_type => 'MEDIA_TYPE',
+    attribute  => 'ATTRIBUTE',
 );
 
 sub column_type {
@@ -602,6 +603,13 @@ CONSTRAINT ck_operator CHECK (
 q{CREATE DOMAIN media_type AS TEXT
 CONSTRAINT ck_media_type CHECK (
    VALUE ~ '^\\\\w+/\\\\w+$'
+);
+},
+
+# Create a table for classes, attributes and use a FK? Shouldn't be necessary.
+q{CREATE DOMAIN attribute AS TEXT
+CONSTRAINT ck_attribute CHECK (
+   VALUE ~ '^\\\\w+\\\\.\\\\w+$'
 );
 };
 

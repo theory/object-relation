@@ -59,6 +59,11 @@ CREATE DOMAIN media_type AS TEXT
 CONSTRAINT ck_media_type CHECK (
    VALUE ~ '^\\\\w+/\\\\w+$'
 );
+
+CREATE DOMAIN attribute AS TEXT
+CONSTRAINT ck_attribute CHECK (
+   VALUE ~ '^\\\\w+\\\\.\\\\w+$'
+);
 },
  "Pg setup SQL has state domain";
 
@@ -951,7 +956,8 @@ $table = q{CREATE TABLE _types_test (
     version TEXT NOT NULL,
     duration INTERVAL NOT NULL,
     operator OPERATOR NOT NULL,
-    media_type MEDIA_TYPE NOT NULL
+    media_type MEDIA_TYPE NOT NULL,
+    attribute ATTRIBUTE
 );
 };
 eq_or_diff $sg->table_for_class($types_test), $table,
@@ -988,7 +994,7 @@ eq_or_diff join("\n", $sg->constraints_for_class($types_test)), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW types_test AS
-  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator, _types_test.media_type AS media_type
+  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator, _types_test.media_type AS media_type, _types_test.attribute AS attribute
   FROM   _types_test;
 };
 eq_or_diff $sg->view_for_class($types_test), $view,
@@ -997,8 +1003,8 @@ eq_or_diff $sg->view_for_class($types_test), $view,
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_types_test AS
 ON INSERT TO types_test DO INSTEAD (
-  INSERT INTO _types_test (id, uuid, state, version, duration, operator, media_type)
-  VALUES (NEXTVAL('seq_types_test'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.version, NEW.duration, NEW.operator, NEW.media_type);
+  INSERT INTO _types_test (id, uuid, state, version, duration, operator, media_type, attribute)
+  VALUES (NEXTVAL('seq_types_test'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.version, NEW.duration, NEW.operator, NEW.media_type, NEW.attribute);
 );
 };
 eq_or_diff $sg->insert_for_class($types_test), $insert,
@@ -1008,7 +1014,7 @@ eq_or_diff $sg->insert_for_class($types_test), $insert,
 $update = q{CREATE RULE update_types_test AS
 ON UPDATE TO types_test DO INSTEAD (
   UPDATE _types_test
-  SET    state = NEW.state, version = NEW.version, duration = NEW.duration, operator = NEW.operator, media_type = NEW.media_type
+  SET    state = NEW.state, version = NEW.version, duration = NEW.duration, operator = NEW.operator, media_type = NEW.media_type, attribute = NEW.attribute
   WHERE  id = OLD.id;
 );
 };

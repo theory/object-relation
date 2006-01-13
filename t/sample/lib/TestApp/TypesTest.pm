@@ -43,6 +43,12 @@ BEGIN {
         required    => 1,
     );
 
+    $km->add_attribute(
+        name        => 'attribute',
+        label       => 'Attribute',
+        type        => 'attribute',
+    );
+
     $km->build;
 }
 

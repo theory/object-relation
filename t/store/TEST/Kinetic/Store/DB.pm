@@ -1103,7 +1103,7 @@ sub test_fk_update : Test(9) {
         '... Which should have the proper error message';
 }
 
-sub test_types : Test(58) {
+sub test_types : Test(74) {
     my $self = shift;
     return 'Skip test_fk_update for abstract class'
         unless $self->_should_run;
@@ -1138,6 +1138,14 @@ sub test_types : Test(58) {
     ok $types_test->media_type($mt),  'Set the media_type';
     is $types_test->media_type, $mt,  'It should be properly set';
 
+    # Set up the attribute attribute.
+    ok my $attr = Kinetic::Meta->attr_for_key('simple.name'),
+        'Get an attribute object';
+    is $types_test->attribute, undef, 'The attribute should be undef';
+    ok $types_test->attribute($attr), 'Set the attribute';
+    is $types_test->attribute, $attr, 'It should be properly set';
+    isa_ok $types_test->attribute, 'Kinetic::Meta::Attribute',  'It';
+
     # Save the object.
     ok $types_test->save, 'Save the types_test object';
     ok $types_test = TypesTest->lookup( uuid => $types_test->uuid ),
@@ -1145,11 +1153,12 @@ sub test_types : Test(58) {
 
     # Check the looked-up values.
     isa_ok $types_test->version, 'version', 'version';
-    is $types_test->version, $version,      'It should be properly set';
-    isa_ok $types_test->duration,    'Kinetic::DataType::Duration', 'duration';
-    is $types_test->duration, $du,   'It should be properly set';
-    is $types_test->operator, 'eq',  'Operator should be properly set';
-    is $types_test->media_type, $mt, 'Media type should be properly set';
+    is $types_test->version, $version, 'It should be properly set';
+    isa_ok $types_test->duration,      'Kinetic::DataType::Duration', 'duration';
+    is $types_test->duration, $du,     'It should be properly set';
+    is $types_test->operator, 'eq',    'Operator should be properly set';
+    is $types_test->media_type, $mt,   'Media type should be properly set';
+    is $types_test->attribute, $attr,  'Attribute should be properly set';
 
     # Change the version object.
     ok $version = version->new('3.40'),     'Create new version object';
@@ -1173,6 +1182,11 @@ sub test_types : Test(58) {
     ok $types_test->media_type($mt),  'Set the media_type to a new value';
     is $types_test->media_type, $mt,  'It should be properly set';
 
+    # Change the attribute.
+    $attr = Kinetic::Meta->attr_for_key('simple.description');
+    ok $types_test->attribute($attr),  'Set the attribute to a new value';
+    is $types_test->attribute, $attr,  'It should be properly set';
+
     # Save it again.
     ok $types_test->save, 'Save TypesTest object again';
     ok $types_test = TypesTest->lookup( uuid => $types_test->uuid ),
@@ -1185,6 +1199,7 @@ sub test_types : Test(58) {
     is $types_test->duration, $du, 'It should be properly set';
     is $types_test->operator, 'ne','Operator should be properly set';
     is $types_test->media_type, $mt, 'Media type should be properly set';
+    is $types_test->attribute, $attr,  'Attribute should be properly set';
 
     # Make sure that invalid operators are not allowed.
     my $attr_mock = MockModule->new('Kinetic::Meta::Attribute');
@@ -1196,7 +1211,7 @@ sub test_types : Test(58) {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 2
             if $self->supported('pg')
-            && $self->dbh->{pg_server_version} <= 80102;
+            && $self->dbh->{pg_server_version} <= 80101;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus operator should fail';
         like $@,
@@ -1212,7 +1227,7 @@ sub test_types : Test(58) {
         operator   => 'eq',
         media_type => $mt,
     ), 'Create another types test object';
-    eval { ok $types_test->save, 'Save it'; };
+    ok $types_test->save, 'Save it';
 
     # Make sure that invalid media_types are not allowed.
     $mt = Kinetic::DataType::MediaType->new('text/xml');
@@ -1226,11 +1241,41 @@ sub test_types : Test(58) {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 2
             if $self->supported('pg')
-            && $self->dbh->{pg_server_version} <= 80102;
+            && $self->dbh->{pg_server_version} <= 80101;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus media_type should fail';
         like $@,
             qr/value for domain media_type violates check constraint "ck_media_type"/,
+            '... And it should fail with the proper message';
+    }
+
+    # The errors abort the txn, so need a new object to test updates against.
+    $attr_mock->unmock_all;
+    ok $types_test = TypesTest->new(
+        version    => $version,
+        duration   => $du,
+        operator   => 'eq',
+        media_type => $mt,
+    ), 'Create another types test object';
+    ok $types_test->save, 'Save it';
+
+    # Make sure that invalid attributes are not allowed.
+    $attr = Kinetic::Meta->attr_for_key('simple.name');
+    ok $types_test->attribute($attr), 'Change the attribute';
+    $attr_mock->mock(store_raw => sub {
+        return 'foo' if $_[0]->name eq 'attribute';
+        return $orig_straw->(@_)
+    });
+
+    SKIP: {
+        # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
+        skip 'Domain constraints ignored in PREPAREd statements', 2
+            if $self->supported('pg')
+            && $self->dbh->{pg_server_version} <= 80101;
+        throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
+            '... Saving it with a bogus attribute should fail';
+        like $@,
+            qr/value for domain attribute violates check constraint "ck_attribute"/,
             '... And it should fail with the proper message';
     }
 
@@ -1251,7 +1296,7 @@ sub test_types : Test(58) {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 4
             if $self->supported('pg')
-            && $self->dbh->{pg_server_version} <= 80102;
+            && $self->dbh->{pg_server_version} <= 80101;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus operator should fail';
         like $@,
@@ -1267,6 +1312,17 @@ sub test_types : Test(58) {
             '... Saving it with a bogus media_type should fail';
         like $@,
             qr/value for domain media_type violates check constraint "ck_media_type"/,
+            '... And it should fail with the proper message';
+
+        $attr_mock->mock(store_raw => sub {
+            return 'foo' if $_[0]->name eq 'attribute';
+            return $orig_straw->(@_)
+        });
+
+        throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
+            '... Saving it with a bogus attribute should fail';
+        like $@,
+            qr/value for domain attribute violates check constraint "ck_attribute"/,
             '... And it should fail with the proper message';
     }
 }

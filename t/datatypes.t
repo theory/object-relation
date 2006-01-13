@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 77;
+use Test::More tests => 85;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Util::Functions qw(:uuid);
@@ -68,6 +68,13 @@ BEGIN {
                             type     => 'media_type',
                           ),
         "Add media_type attribute" );
+
+    # Add a Attribute attribute.
+    ok( $cm->add_attribute( name     => 'attribute',
+                            view     => Class::Meta::PUBLIC,
+                            type     => 'attribute',
+                          ),
+        "Add attribute attribute" );
 
     # Add a class attribute.
     ok( $cm->add_attribute( name     => 'string',
@@ -254,4 +261,25 @@ isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
 is $err->error,
     "Value \x{201c}foo\x{201d} is not a valid Kinetic::DataType::MediaType object",
     'It should have the proper error message';
+
+# Test Attribute accessor.
+is( $t->attribute, undef, 'Check for no Attribute' );
+
+# Make sure that automatic baking works.
+my $attribute = 'types.bool';
+$t->{attribute} = $attribute; # Don't try this at home!
+isa_ok($t->attribute, 'Kinetic::Meta::Attribute');
+
+# Try assigning a Kinetic::Attribute object.
+$attribute = Kinetic::TestTypes->my_class->attributes('bool');
+ok( $t->attribute($attribute), 'Add Attribute object' );
+is $t->attribute, $attribute,
+    'Attribute object should be the same';
+
+is $t->my_class->attributes('attribute')->raw($t),
+    $attribute->class->key . '.' . $attribute->name,
+    'Make sure the raw value is stringified';
+eval { $t->attribute('foo') };
+ok $err = $@, "Caught bad Attribute exception";
+isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
 

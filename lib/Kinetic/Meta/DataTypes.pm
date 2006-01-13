@@ -209,6 +209,22 @@ Kinetic::Meta::Type->add(
     },
 );
 
+##############################################################################
+
+=item attribute
+
+L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute> objects.
+
+=cut
+
+Kinetic::Meta::Type->add(
+    key   => 'attribute',
+    name  => 'Attribute',
+    raw   => sub { ref $_[0] ? $_[0]->class->key . '.' . $_[0]->name : shift },
+    bake  => sub { Kinetic::Meta->attr_for_key(shift) },
+    check => 'Kinetic::Meta::Attribute',
+);
+
 =back
 
 =cut
