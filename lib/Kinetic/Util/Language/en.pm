@@ -138,9 +138,48 @@ our %Lexicon;
         'No resource available to handle “[_1]”',
     );
 
+    my %kineticd = (
+        '[_1] [_2] or better not available for [_3]: [_4]',
+        '[_1] [_2] or better not available for [_3]: [_4]',
+
+        'Could not find conf file "[_1]"',
+        'Could not find conf file “[_1]”',
+
+        'Using config file "[_1]"',
+        'Using config file “[_1]”',
+
+        'Using lib "[_1]"',
+        'Using lib “[_1]”',
+
+        'You must specify stop, start, or restart',
+        'You must specify stop, start, or restart',
+
+        'Process is already running as pid "[_1]"',
+        'Process is already running as pid “[_1]”',
+
+        'Starting [_1] with args "[_2]"',
+        'Starting [_1] with args “[_2]”',
+
+        'Could not write pid "[_1]" to pidfile: [_2]',
+        'Could not write pid “[_1]” to pidfile: [_2]',
+
+        'Could not start process: [_1]',
+        'Could not start process: [_1]',
+
+        'Could not stop pid "[_1]": [_2]',
+        'Could not stop pid “[_1]”: [_2]',
+
+        'The Kinetic server did not appear to be running',
+        'The Kinetic server did not appear to be running',
+
+        'Could not determine which server to run',
+        'Could not determine which server to run',
+    );
+
     %Lexicon = (
         %classes,
         %kinetic_object_states,
+        %kineticd,
         %lexer_parser_messages,
         %search_messages,
         %rest_messages,

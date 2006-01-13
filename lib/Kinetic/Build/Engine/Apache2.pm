@@ -93,6 +93,7 @@ sub validate {
     my $builder = $self->builder;
 
     $self->_set_httpd;
+    $self->_set_httpd_conf;
 
     $self->{port} = $builder->args('port')
       || $builder->get_reply(
@@ -167,6 +168,7 @@ sub conf_sections {
     qw/
       group
       httpd
+      httpd_conf
       port
       rest
       root
@@ -191,6 +193,27 @@ sub _set_httpd {
         if ( !-f $self->{httpd} ) {
             warn "($self->{httpd}) does not appear to exist\n";
             delete $self->{httpd};
+        }
+    }
+    return $self;
+}
+
+sub _set_httpd_conf {
+    my $self    = shift;
+    my $builder = $self->builder;
+
+    while ( !$self->{httpd_conf} ) {
+        $self->{httpd_conf} = $builder->args('httpd_conf')
+          || $builder->get_reply(
+            name    => 'httpd_conf',
+            message =>
+              'Please enter the httpd.conf for the apache server',
+            label   => 'Server httpd_conf',
+            default => '/usr/local/apache/conf/httpd.conf'
+          );
+        if ( !-f $self->{httpd_conf} ) {
+            warn "($self->{httpd_conf}) does not appear to exist\n";
+            delete $self->{httpd_conf};
         }
     }
     return $self;

@@ -8,23 +8,35 @@ use Getopt::Long;
 use File::Pid;
 use File::Spec ();
 use aliased 'Proc::Background';
+use Kinetic::Util::Exceptions qw/throw_fatal/;
+use Kinetic::Util::Language;
+my $LANG = Kinetic::Util::Language->get_handle;
+Kinetic::Util::Context->language($LANG);
+my ( $debug, $VERBOSE, $help, $conf );
 
-my ( $debug, $verbose, $help, $conf );
+sub try_to_use {
+    my ( $module, $version, $reason ) = @_;
+    eval "use $module $version";
+    if ( my $error = $@ ) {
+        throw_fatal [ '[_1] [_2] or better not available for [_3]: [_4]',
+            $module, $version, $reason, $error ];
+    }
+}
+
+sub localize {
+    return $LANG->maketext(@_) . "\n";
+}
 
 BEGIN {
     GetOptions(
         'debug'   => \$debug,
-        'verbose' => \$verbose,
+        'verbose' => \$VERBOSE,
         'help|?'  => \$help,
         'conf=s'  => \$conf,
     );
 
     if ($help) {
-        eval "use Pod::Usage 1.12";
-        if ( my $error = $@ ) {
-            die
-              "Pod::Usage 1.12 or better must be available for help: $error";
-        }
+        try_to_use( 'Pod::Usage', 1.12, 'help' );
         pod2usage( { -verbose => 2 } );
         exit;
     }
@@ -34,10 +46,13 @@ BEGIN {
     }
     $conf = $ENV{KINETIC_CONF} || '';
     unless ( -f $conf ) {
-        die "Could not find conf file '$conf'";
+
+        # XXX this won't be needed for production
+        throw_fatal [ 'Could not find conf file "[_1]"', $conf ];
     }
 }
 
+$ENV{KINETIC_CONF} = $conf;
 use Kinetic::Util::Config qw(:all);
 use Readonly;
 Readonly my $LOG_DIR   => File::Spec->catfile( KINETIC_ROOT, 'logs' );
@@ -45,96 +60,114 @@ Readonly my $PID_FILE  => File::Spec->catfile( $LOG_DIR,     'kinetic.pid' );
 Readonly my $ERROR_LOG => File::Spec->catfile( $LOG_DIR,     'error_log' );
 
 if ($debug) {
-    eval { require Devel::Symdump };
-    if ( my $error = $@ ) {
-        warn "Devel::Symdump required for debug: $error";
+    try_to_use( 'Devel::Symdump', 2, 'debug' );
+    my $symbols  = Devel::Symdump->new('main');
+    my $length   = 0;
+    my %value_of = do {
+        no strict 'refs';
+        map {
+            s/^main:://;
+            $length = length($_) if length($_) > $length;
+            $_ => &$_;
+          }
+          grep {/^main::[:[:upper:]_]+$/} $symbols->functions();
+    };
+    foreach my $constant ( sort keys %value_of ) {
+
+        # nothing to localize
+        printf "%-${length}s => %s\n", $constant, $value_of{$constant};
     }
-    else {
-        my $symbols  = Devel::Symdump->new('main');
-        my $length   = 0;
-        my %value_of = do {
-            no strict 'refs';
-            map {
-                s/^main:://;
-                $length = length($_) if length($_) > $length;
-                $_ => &$_;
-              }
-              grep {/^main::[:[:upper:]_]+$/} $symbols->functions();
-        };
-        foreach my $constant ( sort keys %value_of ) {
-            printf "%-${length}s => %s\n", $constant, $value_of{$constant};
-        }
-    }
-    print "\nUsing config file '$conf'\n";
+    print localize( 'Using config file "[_1]"', $conf );
 }
 
 my $pidfile = File::Pid->new( { file => $PID_FILE } );
 
 my $pack = __PACKAGE__;
-my $lib  = File::Spec->catfile( KINETIC_ROOT, 'lib' );
+Readonly my $LIB => File::Spec->catfile( KINETIC_ROOT, 'lib' );
+print localize( 'Using lib "[_1]"', $LIB ) if $debug;
 
-my $command = lc shift @ARGV || do {
-    warn "You must specify stop, start, or restart";
-    exit 1;
-};
+my $command = lc shift @ARGV || '';
+unless ( $command =~ /^stop|start|restart$/ ) {
+    die localize("You must specify stop, start, or restart");
+}
 
-if ( $pack->can('SIMPLE_HOST') ) {
+if ( 'start' eq $command ) {
+    start($pidfile);
+}
+elsif ( 'stop' eq $command ) {
+    stop($pidfile);
+}
+elsif ( 'restart' eq $command ) {
+    stop($pidfile);
+    start($pidfile);
+}
+else {
+    die "Unknown command '$command'\n";
+}
 
-    if ( 'start' eq $command ) {
+sub start {
+    my $pidfile = shift;
+    if ( $pidfile->running ) {
+        die localize( 'Process is already running as pid "[_1]"',
+            $pidfile->pid );
+    }
+    else {
+        my ($engine, @args);
 
-        # start the server
-        if ( $pidfile->running ) {
-            die "Process is already running as pid @{[$pidfile->pid]}\n";
+        # figure out which server to start
+        if ( $pack->can('SIMPLE_HOST') ) {
+            $engine = 'catalyst';
+            @args = ( $^X, "-I$LIB", '-M' . &ENGINE_CLASS, '-e 1' );
+        }
+        elsif ( $pack->can('APACHE_HTTPD') ) {
+            $engine = 'apache';
+            @args = ( &APACHE_HTTPD, 'graceful');#, '-f' . &APACHE_HTTPD_CONF );
         }
         else {
-            print "starting catalyst\n" if $verbose;
-            my $process
-              = Background->new( $^X, "-I$lib", '-MKinetic::Engine::Catalyst',
-                '-e 1' );
-            if ( $process->alive ) {
-                $pidfile->pid( $process->pid );
-                $pidfile->write or die "Could not write pid: $!";
-            }
-            else {
-                die "Could not start process: $?";
-            }
+            die localize("Could not determine which server to run");
+        }
+
+        # start it
+        print localize( 'Starting [_1] with args "[_2]"', $engine, "@args" )
+            if $VERBOSE;
+        my $process = Background->new(@args);
+        if ( $process->alive ) {
+            $pidfile->pid( $process->pid );
+            $pidfile->write
+              or die localize( 'Could not write pid "[_1]" to pidfile: [_2]',
+                $process->pid, $! );
+        }
+        else {
+            die localize( "Could not start process: [_1]", $? );
         }
     }
-    elsif ( 'stop' eq $command ) {
+}
 
-        # stop the server
-        unless ( $pidfile->running ) {
-            warn "The kinetic server does not appear to be running";
-            exit;
-        }
+sub stop {
+    my $pidfile = shift;
+    if ( $pidfile->running ) {
         my $pid = $pidfile->pid;
         if ( kill 15, $pid ) {
             $pidfile->remove;
         }
         else {
-            die "Could not stop pid $pid";
+            die localize( 'Could not stop pid "[_1]": [_2]', $pid, $? );
         }
     }
-}
-elsif ( $pack->can('APACHE_USER') ) {
-    print "starting apache '" . &APACHE_HTTPD . "\n" if $verbose;
-    my @args = ( &APACHE_HTTPD, 'graceful' );
-    system(@args) == 0
-      or die "system @args failed: $?";
-}
-else {
-    die "Could not determine which server to run.  Exiting.";
+    else {
+        warn localize("The Kinetic server did not appear to be running");
+    }
 }
 
 __DATA__
 
 =head1 NAME 
 
-kinetic --  Start the Kinetic engine
+kineticd --  Start the Kinetic engine
 
 =head1 SYNOPSIS
 
-kineticd [-hdvr] [--stop] [--start] [-c conf_file] [start|stop|restart]
+kineticd [-hdvr] [-c conf_file] [start|stop|restart]
 
 Options:
 
@@ -155,4 +188,8 @@ Command (one of the following commands must be supplied):
 C<kineticd> starts the Kinetic engine.  The C<KINETIC_CONF> environment
 variable should point to the location of the desired Kinetic configuration
 file.  If not, you may specify C<--conf /path/to/my/conf_file> to supply (or
-override) this value.
+override) this value.  
+
+Note that once installed, C<KINETIC_CONF> will probably not need to be set,
+nor will the C<--conf> option be necessary unless you wish a different
+configuration file than the installed one.

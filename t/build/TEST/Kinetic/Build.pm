@@ -140,6 +140,11 @@ sub test_props : Test(13) {
     $apache_build->mock(
         _set_httpd => sub { shift->{httpd} = '/usr/bin/apache/httpd' }
     );
+    $apache_build->mock(
+        _set_httpd_conf => sub { 
+            shift->{httpd} = '/usr/bin/apache/conf/httpd.conf';
+        }
+    );
     my $store = MockModule->new('Kinetic::Build::Store::DB::Pg');
     $store->mock(validate => 1);
     $store->mock(info_class => 'TEST::Kinetic::TestInfo');
@@ -282,6 +287,7 @@ Administrative User password: change me now!
 Looking for pg_config
 path to pg_config: /usr/local/pgsql/bin/pg_config
 Server httpd: /usr/local/apache/bin/httpd
+Server httpd_conf: /usr/local/apache/conf/httpd.conf
 Server port: 80
 Server user: nobody
 Server group: nobody

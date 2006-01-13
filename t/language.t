@@ -6,7 +6,7 @@ use strict;
 use warnings;
 
 use Kinetic::Build::Test;
-use Test::More tests => 455;
+use Test::More tests => 503;
 use Test::NoWarnings; # Adds an extra test.
 use File::Spec;
 use File::Find;
@@ -48,6 +48,9 @@ BEGIN {
         return if $File::Find::name =~ /Language[^.]/;    # Ignore l10n libs.
         push @libs, $File::Find::name;
     };
+
+    # XXX We special case this as $find_libs doesn't handle this too well
+    push @libs, 'bin/kineticd';
 
     # Find all of the language classes and make sure that they load.
     find( $find_libs, File::Spec->catdir('lib') );
