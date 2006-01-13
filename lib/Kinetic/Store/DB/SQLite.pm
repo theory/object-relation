@@ -230,6 +230,7 @@ use base 'DBI::db';
 
 sub connected {
     my $dbh = shift;
+
     # Add UUID_V4() function.
     $dbh->func(
         'UUID_V4',
@@ -237,6 +238,13 @@ sub connected {
         \&Kinetic::Util::Functions::create_uuid,
         'create_function'
     );
+
+    # Add regexp() function for use by REGEPX operator. See
+    # http://www.justatheory.com/computers/databases/sqlite/add_regexen.html
+    $dbh->func('regexp', 2, sub {
+        my ($regex, $string) = @_;
+        return $string =~ /$regex/ixms;
+    }, 'create_function');
 }
 
 1;

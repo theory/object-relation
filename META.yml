@@ -19,12 +19,13 @@ requires:
   DBD::SQLite: 1.09
   DBI: 1.43
   Data::Pageset: 1.01
-  DateTime: 0.24
+  DateTime: 0.3
   DateTime::Format::Strptime: 1.0601
   DateTime::Incomplete: 0.02
   Exception::Class: 1.12
   Exception::Class::DBI: 0.92
   Exporter::Tidy: 0.06
+  File::Pid: 1.01
   HOP::Lexer: 0.01
   HOP::Parser: 0.01
   HOP::Stream: 0.01
@@ -33,8 +34,10 @@ requires:
   List::Util: 0
   Locale::Maketext: 1.09
   MIME::Base64: 0
+  MIME::Types: 1.14
   OSSP::uuid: 0
   Params::Validate: 0.78
+  Proc::Background: 1.08
   Readonly: 0
   Regexp::Common: 2.119
   WWW::REST: 0.01
@@ -84,8 +87,8 @@ provides:
   Kinetic::Build::Engine:
     file: lib/Kinetic/Build/Engine.pm
     version: v0.0.1
-  Kinetic::Build::Engine::Apache:
-    file: lib/Kinetic/Build/Engine/Apache.pm
+  Kinetic::Build::Engine::Apache2:
+    file: lib/Kinetic/Build/Engine/Apache2.pm
     version: v0.0.1
   Kinetic::Build::Engine::Catalyst:
     file: lib/Kinetic/Build/Engine/Catalyst.pm
@@ -132,6 +135,9 @@ provides:
     version: v0.0.1
   Kinetic::DataType::Duration:
     file: lib/Kinetic/DataType/Duration.pm
+    version: v0.0.1
+  Kinetic::DataType::MediaType:
+    file: lib/Kinetic/DataType/MediaType.pm
     version: v0.0.1
   Kinetic::DataType::State:
     file: lib/Kinetic/DataType/State.pm

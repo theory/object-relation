@@ -31,9 +31,11 @@ lib/Kinetic/Build/Store/DB.pm
 lib/Kinetic/Build/Store/DB/Pg.pm
 lib/Kinetic/Build/Store/DB/SQLite.pm
 lib/Kinetic/Build/Test.pm
+lib/Kinetic/DataType.pod
 lib/Kinetic/DataType/DateTime.pm
 lib/Kinetic/DataType/DateTime/Incomplete.pm
 lib/Kinetic/DataType/Duration.pm
+lib/Kinetic/DataType/MediaType.pm
 lib/Kinetic/DataType/State.pm
 lib/Kinetic/Engine.pm
 lib/Kinetic/Engine/Apache2.pm
@@ -207,6 +209,7 @@ t/lib/TEST/Kinetic/Traits/JSON.pm
 t/lib/TEST/Kinetic/Traits/SampleObjects.pm
 t/lib/TEST/Kinetic/Traits/Store.pm
 t/lib/TEST/REST/Server.pm
+t/media_type.t
 t/meta.t
 t/mysql/schema.t
 t/noconfig.t

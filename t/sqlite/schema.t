@@ -1078,28 +1078,28 @@ CREATE TRIGGER cki_types_test_media_type
 BEFORE INSERT ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain media_type violates check constraint "ck_media_type"')
-    WHERE  NEW.media_type NOT LIKE '_%/_%';
+    WHERE  NEW.media_type NOT REGEXP '^\\w+/\\w+$';
 END;
 
 CREATE TRIGGER cku_types_test_media_type
 BEFORE UPDATE OF media_type ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain media_type violates check constraint "ck_media_type"')
-    WHERE  NEW.media_type NOT LIKE '_%/_%';
+    WHERE  NEW.media_type NOT REGEXP '^\\w+/\\w+$';
 END;
 
 CREATE TRIGGER cki_types_test_attribute
 BEFORE INSERT ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain attribute violates check constraint "ck_attribute"')
-    WHERE  NEW.attribute IS NOT NULL AND NEW.attribute NOT LIKE '_%._%';
+    WHERE  NEW.attribute IS NOT NULL AND NEW.attribute NOT REGEXP '^\\w+\.\\w+$';
 END;
 
 CREATE TRIGGER cku_types_test_attribute
 BEFORE UPDATE OF attribute ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain attribute violates check constraint "ck_attribute"')
-    WHERE  NEW.attribute IS NOT NULL AND NEW.attribute NOT LIKE '_%._%';
+    WHERE  NEW.attribute IS NOT NULL AND NEW.attribute NOT REGEXP '^\\w+\.\\w+$';
 END;
 };
 

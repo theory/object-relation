@@ -410,7 +410,11 @@ Called by C<constraints_for_class()>.
 
 sub media_type_triggers {
     my ($self, $class) = @_;
-    $self->_domain_triggers($class, media_type => q{NOT LIKE '_%/_%'});
+    $self->_domain_triggers(
+        $class,
+        'media_type',
+        q{NOT REGEXP '^\\w+/\\w+$'}
+    );
 }
 
 ##############################################################################
@@ -431,7 +435,11 @@ Called by C<constraints_for_class()>.
 
 sub attribute_triggers {
     my ($self, $class) = @_;
-    $self->_domain_triggers($class, attribute => q{NOT LIKE '_%._%'});
+    $self->_domain_triggers(
+        $class,
+        'attribute',
+        q{NOT REGEXP '^\\w+\.\\w+$'}
+    );
 }
 
 ##############################################################################
