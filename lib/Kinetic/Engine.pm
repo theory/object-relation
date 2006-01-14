@@ -21,56 +21,17 @@ package Kinetic::Engine;
 use strict;
 use warnings;
 use Class::BuildMethods qw/handler/;
+use File::Spec;
+use Kinetic::Util::Config 'KINETIC_ROOT';
+use Kinetic::Build::Schema;
 
 use version;
 our $VERSION = version->new('0.0.1');
 
-# XXX Currently there is no implementation here.  This is merely a stub so
-# that the common request object can be tested
-
-##############################################################################
-
-=head3 new
-
- my $engine = Kinetic::Engine->new; 
-
-Returns a new Kinetic::Engine object.  This class is actually a factory which
-will return an object corresponding to the appropriate subclass for Catalyst,
-Apache, SOAP, etc.
-
-=cut
-
-sub new {
-    my $class = shift;
-    bless {}, $class;
+BEGIN {
+    my $schema = Kinetic::Build::Schema->new;
+    $schema->load_classes( File::Spec->catdir( KINETIC_ROOT, 't/sample/lib' ) );
 }
-
-##############################################################################
-
-=head3 type
-
-  my $type = $engine->type;
-
-Returns the primary class of the type of server interface being used.
-Examples include C<Apache2::Request> and C<CGI>.
-
-=cut
-
-sub type {
-    my $self = shift;
-    return $self->{type};
-}
-
-##############################################################################
-
-=head3 handler
-
-  my $handler = $engine->handler;
-  $engine->handler($request);
-
-Getter/setter for request object for the current server.
-
-=cut
 
 1;
 

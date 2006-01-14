@@ -34,6 +34,7 @@ use Apache2::ServerUtil ();
 use aliased 'Kinetic::UI::Catalyst';
 use aliased 'Kinetic::UI::REST';
 
+use Kinetic::Engine; # loads the modules
 use Kinetic::Util::Config qw(:all);
 
 my $conf = __PACKAGE__->_apache_conf_template;

@@ -4,13 +4,14 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 5;
+use Test::More tests => 6;
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Output;
 
 BEGIN {
 
     # XXX Catalyst tests must not be run from the t/ directory
+    use_ok('Kinetic::UI::Catalyst') or die;
     use_ok( 'Catalyst::Test', 'Kinetic::UI::Catalyst' ) or die;
     use_ok('Kinetic::UI::Catalyst::C::Search') or die;
 }

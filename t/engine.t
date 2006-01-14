@@ -12,6 +12,7 @@ my $ENGINE;
 BEGIN {
     chdir 't' if -d 't';
     use lib '../lib';
+    $ENV{KINETIC_CONF} = 'conf/kinetic.conf';
     $ENGINE = 'Kinetic::Engine';
     use_ok $ENGINE or die;
 }

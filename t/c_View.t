@@ -4,12 +4,13 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 5;
+use Test::More tests => 6;
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Output;
 use Config::Std;         # Avoid warnings;
 
 BEGIN {
+    use_ok('Kinetic::UI::Catalyst') or die;
     use_ok( 'Catalyst::Test', 'Kinetic::UI::Catalyst' ) or die;
     use_ok('Kinetic::UI::Catalyst::C::View') or die;
 }

@@ -51,6 +51,7 @@ my $build = Kinetic::Build->new(
         'HOP::Parser'                => 0.01,
         'HOP::Stream'                => 0.01,
         'JSON'                       => 1.00,
+        'LockFile::Simple'           => 0.205,
         'Lingua::Strfname'           => 0.10,
         'List::Util'                 => 0,
         'Locale::Maketext'           => 1.09,

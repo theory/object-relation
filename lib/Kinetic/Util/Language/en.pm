@@ -171,6 +171,12 @@ our %Lexicon;
 
         'Could not determine which server to run',
         'Could not determine which server to run',
+
+        "Could not determine pid directory",
+        "Could not determine pid directory",
+
+        "Could not find pid directory at [_1]",
+        "Could not find pid directory at [_1]",
     );
 
     %Lexicon = (
@@ -203,9 +209,6 @@ our %Lexicon;
         'Unknown render mode "[_1]"',
         'Unknown render mode “[_1]”',
 
-        'Unknown Kinetic::Engine type "[_1]"',
-        'Unknown Kinetic::Engine type “[_1]”',
-
         'Invalid keys passed to constructor: "[_1]"',
         'Invalid keys passed to constructor: “[_1]”',
 
@@ -220,9 +223,6 @@ our %Lexicon;
 
         'Argument "[_1]" is not a code reference',
         'Argument “[_1]” is not a code reference',
-
-        'Argument "[_1]" is not an array reference',
-        'Argument “[_1]” is not an array reference',
 
         'Argument "[_1]" is not a valid [_2] object',
         'Argument “[_1]” is not a valid [_2] object',

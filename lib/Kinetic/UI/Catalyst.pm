@@ -4,22 +4,13 @@ use strict;
 use warnings;
 
 use Cwd;
+use Kinetic::Meta;
 use Kinetic::Util::Config qw(KINETIC_ROOT);
+use Kinetic::UI::Catalyst::Log;
 use File::Spec::Functions qw(catdir);
-
-use aliased 'Kinetic::Build::Schema';
 
 use version;
 our $VERSION = version->new('0.0.1');
-
-my ( $schema );
-
-BEGIN {
-
-    # XXX We'll pull this out into an engine class eventually
-    $schema = Schema->new;
-    $schema->load_classes( catdir( KINETIC_ROOT, 't/sample/lib' ) );
-}
 
 #
 # Set flags and add plugins for the application
@@ -67,6 +58,7 @@ __PACKAGE__->config(
     }
 );
 
+__PACKAGE__->log(Kinetic::UI::Catalyst::Log->new);
 __PACKAGE__->setup;
 
 =head1 NAME

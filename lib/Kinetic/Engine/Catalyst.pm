@@ -24,6 +24,7 @@ use warnings;
 use version;
 our $VERSION = version->new('0.0.1');
 use Kinetic::Util::Config qw(:all);
+use Kinetic::Engine;
 
 BEGIN {
     # XXX This must be set *before* you use the Catalyst UI.  Otherwise, the

@@ -1,6 +1,12 @@
-package Kinetic::Engine::Request::Apache;
+package Kinetic::UI::Catalyst::Log;
 
-# $Id: Apache.pm 2414 2005-12-22 07:21:05Z theory $
+use strict;
+use warnings;
+use File::Spec;
+use Kinetic::Util::Config 'KINETIC_ROOT';
+use LockFile::Simple;
+
+# $Id: Kinetic.pm 2508 2006-01-11 01:54:06Z theory $
 
 # CONTRIBUTION SUBMISSION POLICY:
 #
@@ -20,29 +26,60 @@ package Kinetic::Engine::Request::Apache;
 
 use strict;
 use warnings;
-use base 'Kinetic::Engine::Request';
 
 use version;
 our $VERSION = version->new('0.0.1');
 
-# XXX Currently there is no implementation here.  This is merely a stub so
-# that the common request object can be tested
+use base 'Catalyst::Log';
 
-##############################################################################
+=head1 NAME
 
-=head3 new
+Kinetic::UI:::Catalyst::Log - Control where Catalyst sends the logfile info.
 
- my $engine = Kinetic::Engine::Request::Apache->new; 
+=head1 SYNOPSIS
 
-Returns a new Kinetic::Engine::Request object.  This class is actually a factory which
-will return an object corresponding to the appropriate subclass for Catalyst,
-Apache, SOAP, etc.
+ # In your Catalyst application:
+ __PACKAGE__->log( Kinetic::UI::Catalyst::Log->new );
+ __PACKAGE__->setup;
+
+=head1 DESCRIPTION
+
+No user serviceable parts (yet).  This class merely controls where the
+Catalyst log information gets sent.
 
 =cut
 
-sub new {
-    my $class = shift;
-    bless {}, $class;
+my $ERROR_LOG = File::Spec->catfile( KINETIC_ROOT, 'logs', 'error_log' );
+my $LOCK_MGR = LockFile::Simple->make(
+    -max   => 5,
+    -delay => 1,
+);
+
+sub _flush {
+    my $self = shift;
+    if ( $self->abort || !$self->body ) {
+        $self->abort(undef);
+    }
+    else {
+        $self->_send_to_log( $self->body );
+    }
+    $self->body(undef);
+}
+
+# XXX Should I just open the file and leave it open?
+sub _send_to_log {
+    my $self = shift;
+    if ( $ENV{HARNESS_ACTIVE} ) {
+        print STDERR @_;
+    }
+    else {
+        $LOCK_MGR->trylock($ERROR_LOG);
+        local *LOG;
+        open LOG, '>>', $ERROR_LOG
+        or die "Cannot open $ERROR_LOG for appending: $!";
+        print LOG @_;
+        close LOG;
+    }
 }
 
 1;
@@ -50,6 +87,17 @@ sub new {
 __END__
 
 ##############################################################################
+
+=head1 See Also
+
+=over 4
+
+=item L<Kinetic::Meta|Kinetic::Meta>
+
+This module provides the interface for the Kinetic class automation and
+introspection defined here.
+
+=back
 
 =head1 Copyright and License
 
