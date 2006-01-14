@@ -143,6 +143,9 @@ sub start {
         my $process = Background->new(@args);
         if ( $process->alive ) {
             $pidfile->pid( $process->pid );
+
+            # if we try to write to the apache pidfile, apache receives a
+            # SIGTERM and quits
             unless ( $pack->can('APACHE_HTTPD') ) {
                 $pidfile->write
                   or die localize(

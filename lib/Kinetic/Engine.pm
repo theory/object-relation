@@ -29,6 +29,9 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 BEGIN {
+
+    # XXX be sure to pull out the hardcoded path when we know what to do with
+    # it.
     my $schema = Kinetic::Build::Schema->new;
     $schema->load_classes( File::Spec->catdir( KINETIC_ROOT, 't/sample/lib' ) );
 }
