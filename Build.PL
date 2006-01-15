@@ -25,7 +25,6 @@ my $build = Kinetic::Build->new(
     dist_author          => 'Kineticode, Inc. <info@kineticode.com>',
     recursive_test_files => 1,
     schema_skipper       => $skipper,
-    script_files         => [ "bin/kineticd" ],
     requires             => {
         'aliased'                    => 0.11,
         'Array::AsHash'              => 0.12,

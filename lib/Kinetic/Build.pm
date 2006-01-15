@@ -711,7 +711,70 @@ configuration file names for processing and copying.
 
 =cut
 
-sub find_conf_files  { shift->_find_files_in_dir('conf') }
+sub find_conf_files   { shift->_find_files_in_dir('conf') }
+
+##############################################################################
+
+=head3 find_script_files
+
+Called by C<process_script_files()>, this method returns a hash reference of
+all of the files in the F<bin> directory for processing and copying.
+
+=cut
+
+sub find_script_files { shift->_find_files_in_dir('bin') }
+
+##############################################################################
+
+=head3 fix_shebang_line
+
+  $builder->fix_shegang_line(@files);
+
+This method overrides that in the parent class in order to also process all of
+the script files and change any lines containing
+
+  use lib 'lib'
+
+To instead point to the library directory in which the module files will be
+installed, e.g., F</usr/local/kinetic/lib>. It then calls the parent method in
+order to fix the shebang lines, too.
+
+=cut
+
+sub fix_shebang_line {
+    my $self = shift;
+    my $lib  = File::Spec->catdir($self->install_base, 'lib');
+
+    for my $file (@_) {
+        $self->log_verbose(
+            qq{Changing "use lib 'lib'" in $file to "use lib '$lib'\n"}
+        );
+
+        open my $fixin, '<', $file  or die "Can't process '$file': $!";
+        open my $fixout, '>', "$file.new" or die "Can't open '$file.new': $!";
+        local $/ = "\n";
+
+        while (<$fixin>) {
+            s/use\s+lib\s+'lib'/use lib '$lib'/xms;
+            print $fixout $_;
+        }
+
+        close $fixin;
+        close $fixout;
+
+        rename $file, "$file.bak"
+            or die "Can't rename $file to $file.bak: $!";
+
+        rename("$file.new", $file)
+            or die "Can't rename $file.new to $file: $!";
+
+        unlink "$file.bak" or $self->log_warn(
+            "Couldn't clean up $file.bak, leaving it there\n"
+        );
+    }
+
+    return $self->SUPER::fix_shebang_line(@_);
+}
 
 ##############################################################################
 
