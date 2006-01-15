@@ -90,6 +90,59 @@ sub atest_process_conf_files : Test(14) {
     file_not_exists_ok 'blib', 'Build lib should be gone';
 }
 
+sub test_bin_files : Test(8) {
+    my $self    = shift;
+    my $class   = $self->test_class;
+    my $bscript = 'blib/script/somescript';
+
+    file_exists_ok 'bin/somescript', 'We should have a bin file';
+
+    # There should be no blib directory.
+    file_not_exists_ok $bscript, 'We should start with no blib script file';
+
+    # We can make sure things work with the default SQLite store.
+    my $info = MockModule->new('App::Info::RDBMS::SQLite');
+    $info->mock(installed => 1);
+    $info->mock(version => '3.2.2');
+
+    # I mock thee, builder!
+    my $builder;
+    my $mb = MockModule->new($class);
+    $mb->mock(resume => sub { $builder });
+    $mb->mock(ACTION_docs => 0);
+    $mb->mock(store => 'sqlite');
+    $mb->mock(store_config => { class => '' });
+    $builder = $self->new_builder;
+    $self->{builder} = $builder;
+
+    # Building should create these things.
+    is $builder->dispatch('build'), $builder, "Run the build action";
+    diag `pwd`;
+    file_exists_ok $bscript, 'Now there should be a blib script file';
+
+    # Check the bin file to be installed.
+    my $lib  = File::Spec->catdir($builder->install_base, 'lib');
+    file_contents_like $bscript, qr/use lib '$lib';/,
+        '... The "use lib" line should be set properly';
+
+    my $config = $builder->config;
+    if ($config->{sharpbang} =~ /^\s*\#\!/) {
+        my $interpreter = $builder->perl;
+        file_contents_like $bscript, qr/\Q$config->{sharpbang}$interpreter/,
+            '... And the shebang line should be properly set';
+
+        file_contents_like $bscript, qr/eval 'exec \Q$interpreter/,
+            'And the eval exec line should be in place';
+    } else {
+        pass 'Shebang line irrelevant';
+        pass 'eval exec line irrelevant';
+    }
+
+    # Make sure we clean up our mess.
+    $builder->dispatch('clean');
+    file_not_exists_ok 'blib', 'Build lib should be gone';
+}
+
 sub test_props : Test(13) {
     my $self = shift;
     my $class = $self->test_class;
