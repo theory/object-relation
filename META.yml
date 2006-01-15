@@ -33,6 +33,7 @@ requires:
   Lingua::Strfname: 0.1
   List::Util: 0
   Locale::Maketext: 1.09
+  LockFile::Simple: 0.205
   MIME::Base64: 0
   MIME::Types: 1.14
   OSSP::uuid: 0
@@ -151,18 +152,6 @@ provides:
   Kinetic::Engine::Catalyst:
     file: lib/Kinetic/Engine/Catalyst.pm
     version: v0.0.1
-  Kinetic::Engine::Request:
-    file: lib/Kinetic/Engine/Request.pm
-    version: v0.0.1
-  Kinetic::Engine::Request::Apache:
-    file: lib/Kinetic/Engine/Request/Apache.pm
-    version: v0.0.1
-  Kinetic::Engine::Request::Apache2:
-    file: lib/Kinetic/Engine/Request/Apache2.pm
-    version: v0.0.1
-  Kinetic::Engine::Request::CGI:
-    file: lib/Kinetic/Engine/Request/CGI.pm
-    version: v0.0.1
   Kinetic::Format:
     file: lib/Kinetic/Format.pm
     version: v0.0.1
@@ -261,6 +250,9 @@ provides:
     version: v0.0.1
   Kinetic::UI::Catalyst::C::View:
     file: lib/Kinetic/UI/Catalyst/C/View.pm
+    version: v0.0.1
+  Kinetic::UI::Catalyst::Log:
+    file: lib/Kinetic/UI/Catalyst/Log.pm
     version: v0.0.1
   Kinetic::UI::Catalyst::V::TT:
     file: lib/Kinetic/UI/Catalyst/V/TT.pm

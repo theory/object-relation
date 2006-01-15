@@ -40,10 +40,6 @@ lib/Kinetic/DataType/State.pm
 lib/Kinetic/Engine.pm
 lib/Kinetic/Engine/Apache2.pm
 lib/Kinetic/Engine/Catalyst.pm
-lib/Kinetic/Engine/Request.pm
-lib/Kinetic/Engine/Request/Apache.pm
-lib/Kinetic/Engine/Request/Apache2.pm
-lib/Kinetic/Engine/Request/CGI.pm
 lib/Kinetic/Format.pm
 lib/Kinetic/Format/JSON.pm
 lib/Kinetic/Format/XML.pm
@@ -78,6 +74,7 @@ lib/Kinetic/UI/Catalyst/C/REST.pm
 lib/Kinetic/UI/Catalyst/C/Search.pm
 lib/Kinetic/UI/Catalyst/C/Users.pm
 lib/Kinetic/UI/Catalyst/C/View.pm
+lib/Kinetic/UI/Catalyst/Log.pm
 lib/Kinetic/UI/Catalyst/V/TT.pm
 lib/Kinetic/UI/REST.pm
 lib/Kinetic/UI/REST/Dispatch.pm
@@ -220,7 +217,6 @@ t/pg/schema_file.t
 t/pod.t
 t/pod_coverage.t
 t/relationships.t
-t/request.t
 t/sample/conf/kinetic.conf
 t/sample/lib/TestApp/Abstract.pm
 t/sample/lib/TestApp/CompComp.pm
