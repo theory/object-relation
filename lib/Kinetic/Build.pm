@@ -24,9 +24,10 @@ use base 'Module::Build';
 use Cwd 'getcwd';
 use DBI;
 use File::Spec;
-use File::Path ();
-use File::Copy ();
+use File::Path  ();
+use File::Copy  ();
 use Config::Std ();
+
 # Be sure to load exceptions early.
 use Kinetic::Util::Exceptions;
 
@@ -101,16 +102,20 @@ parameters rather than using Module::Build's default arguments.
 =cut
 
 my @prompts;
+
 sub add_property {
     my $class = shift;
-    if (@_ > 2) {
+    if ( @_ > 2 ) {
+
         # This is a property that we may want to prompt for.
         my %params = @_;
         $class->SUPER::add_property(
             $params{name} => delete $params{default}
         );
         push @prompts, \%params if keys %params > 1;
-    } else {
+    }
+    else {
+
         # This is just a standard Module::Build property.
         $class->SUPER::add_property(@_);
     }
@@ -134,15 +139,16 @@ such as data store information.
 sub new {
     my $self = do {
         shift->SUPER::new(
+
             # Set up new default values for parent class properties.
-            install_base => File::Spec->catdir(
-                $Config::Config{installprefix}, 'kinetic'
-            ), @_ # User-set properties.
+            install_base => File::Spec->catdir( 
+                $Config::Config{installprefix}, 'kinetic' 
+            ), @_    # User-set properties.
         );
     };
 
     # Prevent installation into lib/perl5. We just want lib'.
-    $self->install_path->{lib}  ||= $self->install_base . '/lib';
+    $self->install_path->{lib} ||= $self->install_base . '/lib';
 
     # Add config file element and install path.
     $self->add_build_element('conf');
@@ -153,7 +159,7 @@ sub new {
     # Prompts.
     for my $prompt (@prompts) {
         my $prop = $prompt->{name};
-        $self->$prop($self->get_reply(%$prompt, default => $self->$prop));
+        $self->$prop( $self->get_reply( %$prompt, default => $self->$prop ) );
     }
 
     $self->check_store;
@@ -175,15 +181,16 @@ file.
 
 sub resume {
     my $self = shift->SUPER::resume(@_);
-    if (my $conf = $self->notes('build_conf_file')) {
+    if ( my $conf = $self->notes('build_conf_file') ) {
         $ENV{KINETIC_CONF} ||= $conf;
     }
-    if (my $store = $self->store) {
+    if ( my $store = $self->store ) {
         my $build_store_class = $STORES{$store}
-          or $self->_fatal_error("I'm not familiar with the $store data store");
+          or
+          $self->_fatal_error("I'm not familiar with the $store data store");
         eval "require $build_store_class" or $self->_fatal_error($@);
     }
-    if (my $engine = $self->engine) {
+    if ( my $engine = $self->engine ) {
         my $build_engine_class = $ENGINES{$engine}
           or $self->_fatal_error("I'm not familiar with the $engine engine");
         eval "require $build_engine_class" or $self->_fatal_error($@);
@@ -205,7 +212,7 @@ action. This is a read-only class method.
 
 =cut
 
-use constant test_data_dir => File::Spec->catdir('t', 'data');
+use constant test_data_dir => File::Spec->catdir( 't', 'data' );
 
 ##############################################################################
 
@@ -296,7 +303,7 @@ The directory where the Kinetic Store libraries will be found.
 
 =cut
 
-__PACKAGE__->add_property(source_dir => 'lib');
+__PACKAGE__->add_property( source_dir => 'lib' );
 
 ##############################################################################
 
@@ -337,7 +344,7 @@ The name of the configuration file. Defaults to F<kinetic.conf>.
 
 =cut
 
-__PACKAGE__->add_property(conf_file => 'kinetic.conf');
+__PACKAGE__->add_property( conf_file => 'kinetic.conf' );
 
 ##############################################################################
 
@@ -354,7 +361,7 @@ false value by default.
 
 =cut
 
-__PACKAGE__->add_property(dev_tests => 0);
+__PACKAGE__->add_property( dev_tests => 0 );
 
 ##############################################################################
 
@@ -368,7 +375,7 @@ installations. Defaults to "admin".
 
 =cut
 
-__PACKAGE__->add_property(admin_username => 'admin');
+__PACKAGE__->add_property( admin_username => 'admin' );
 
 ##############################################################################
 
@@ -414,7 +421,8 @@ sub ACTION_config {
     # Find Kinetic::Util::Config and hard-code the path to the
     # configuration file.
     my @path = qw(lib Kinetic Util Config.pm);
-    my $old = File::Spec->catfile($self->blib, @path);
+    my $old  = File::Spec->catfile( $self->blib, @path );
+
     # Just return if there is no configuration file.
     # XXX Can this burn us?
     return $self unless -e $old;
@@ -422,14 +430,14 @@ sub ACTION_config {
     # Find Kinetic::Util::Config in lib and just return if it
     # hasn't changed.
     my $lib = File::Spec->catfile(@path);
-    return $self if $self->up_to_date($lib, $old);
+    return $self if $self->up_to_date( $lib, $old );
 
     # Figure out where we're going to install this beast.
     $path[-1] .= '.new';
-    my $new = File::Spec->catfile($self->blib, @path);
-    my $base = $self->install_base;
+    my $new     = File::Spec->catfile( $self->blib, @path );
+    my $base    = $self->install_base;
     my $default = '/usr/local/kinetic/conf/kinetic.conf';
-    my $config = File::Spec->catfile($base, qw(conf kinetic.conf));
+    my $config  = File::Spec->catfile( $base, qw(conf kinetic.conf) );
 
     # Just return if the default is legit.
     return if $base eq $default;
@@ -526,6 +534,7 @@ options.
 
 sub ACTION_help {
     my $self = shift;
+
     # XXX To be done. The way Module::Build implements this method rather
     # sucks (it expects its own specific POD format), so we'll likely have to
     # hack our own. :-( We'll also want to add something to pull in options
@@ -578,7 +587,7 @@ the call to C<perl Build.PL>.
 
 sub check_store {
     my $self = shift;
-    $self->_check_build_component('store', \%STORES);
+    $self->_check_build_component( 'store', \%STORES );
     return $self;
 }
 
@@ -595,7 +604,7 @@ selected engine.
 
 sub check_engine {
     my $self = shift;
-    $self->_check_build_component('engine', \%ENGINES);
+    $self->_check_build_component( 'engine', \%ENGINES );
     return $self;
 }
 
@@ -616,17 +625,18 @@ sub process_conf_files {
     my $files = $self->find_conf_files;
     return unless %$files;
 
-    for my $conf_file ($self->_copy_to($files, $self->blib, 't')) {
+    for my $conf_file ( $self->_copy_to( $files, $self->blib, 't' ) ) {
 
         # Load the configuration.
         # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
-        Config::Std::Hash::read_config($conf_file => my %conf);
+        Config::Std::Hash::read_config( $conf_file => my %conf );
 
         my $prefix = '';
-        if ($conf_file =~ /^blib/) {
-            $self->notes(build_conf_file => $ENV{KINETIC_CONF} = $conf_file);
-        } else {
-            $self->notes(test_conf_file => $conf_file);
+        if ( $conf_file =~ /^blib/ ) {
+            $self->notes( build_conf_file => $ENV{KINETIC_CONF} = $conf_file );
+        }
+        else {
+            $self->notes( test_conf_file => $conf_file );
             $prefix = 'test_';
 
             # KINETIC_ROOT is different for tests than it is for installation
@@ -651,9 +661,11 @@ sub process_conf_files {
                 # It's a section for another data store. Remove it.
                 delete $conf{$section};
             }
-            elsif ( my $method = $self->can( $prefix . $lc_section . '_config' )
-                || $self->can( $lc_section . '_config' ) )
-            {
+            elsif ( 
+                 my $method = $self->can( $prefix . $lc_section . '_config' )
+                   || 
+                 $self->can( $lc_section . '_config' )
+            ) {
 
                 # There's a configuration method for it in this class.
                 if ( my $settings = $self->$method ) {
@@ -666,7 +678,7 @@ sub process_conf_files {
             if ( $ENGINES{$lc_section} ) {
                 if ( $lc_section eq $self->engine ) {
                     my $engine = $self->notes('build_engine');
-                    $engine->add_engine_config_to_conf(\%conf);
+                    $engine->add_engine_config_to_conf( \%conf );
                 }
                 else {
 
@@ -693,13 +705,14 @@ in the section, configuring the "class" directive.
 =cut
 
 sub store_config {
-    my $self = shift;
-    my $build_store_class = $STORES{$self->store}
-      or $self->_fatal_error("I'm not familiar with the " . $self->store
-                             . ' data store');
+    my $self              = shift;
+    my $build_store_class = $STORES{ $self->store }
+      or $self->_fatal_error(
+        "I'm not familiar with the " . $self->store . ' data store' 
+    );
     eval "require $build_store_class" or $self->_fatal_error($@);
     my $store_class = $build_store_class->store_class;
-    return {class => $store_class};
+    return { class => $store_class };
 }
 
 ##############################################################################
@@ -711,7 +724,7 @@ configuration file names for processing and copying.
 
 =cut
 
-sub find_conf_files   { shift->_find_files_in_dir('conf') }
+sub find_conf_files { shift->_find_files_in_dir('conf') }
 
 ##############################################################################
 
@@ -743,14 +756,13 @@ order to fix the shebang lines, too.
 
 sub fix_shebang_line {
     my $self = shift;
-    my $lib  = File::Spec->catdir($self->install_base, 'lib');
+    my $lib  = File::Spec->catdir( $self->install_base, 'lib' );
 
     for my $file (@_) {
         $self->log_verbose(
-            qq{Changing "use lib 'lib'" in $file to "use lib '$lib'\n"}
-        );
+            qq{Changing "use lib 'lib'" in $file to "use lib '$lib'\n"} );
 
-        open my $fixin, '<', $file  or die "Can't process '$file': $!";
+        open my $fixin,  '<', $file       or die "Can't process '$file': $!";
         open my $fixout, '>', "$file.new" or die "Can't open '$file.new': $!";
         local $/ = "\n";
 
@@ -763,14 +775,14 @@ sub fix_shebang_line {
         close $fixout;
 
         rename $file, "$file.bak"
-            or die "Can't rename $file to $file.bak: $!";
+          or die "Can't rename $file to $file.bak: $!";
 
-        rename("$file.new", $file)
-            or die "Can't rename $file.new to $file: $!";
+        rename( "$file.new", $file )
+          or die "Can't rename $file.new to $file: $!";
 
-        unlink "$file.bak" or $self->log_warn(
-            "Couldn't clean up $file.bak, leaving it there\n"
-        );
+        unlink "$file.bak"
+          or $self->log_warn(
+            "Couldn't clean up $file.bak, leaving it there\n" );
     }
 
     return $self->SUPER::fix_shebang_line(@_);
@@ -828,36 +840,39 @@ might pass a code reference like C<sub { /^\d+$/ }>.
 =cut
 
 sub get_reply {
-    my ($self, %params) = @_;
+    my ( $self, %params ) = @_;
     my $def_label = $params{default};
 
-    my $val = $self->_get_option($params{name});
+    my $val = $self->_get_option( $params{name} );
 
-    if (defined $val) {
+    if ( defined $val ) {
         $params{default} = $val;
-    } elsif ($self->_is_tty && ! $self->accept_defaults) {
-        if (my $opts = $params{options}) {
+    }
+    elsif ( $self->_is_tty && !$self->accept_defaults ) {
+        if ( my $opts = $params{options} ) {
             my $i;
-            $self->_prompt(join "\n", map({
+            $self->_prompt( join "\n", map( {
                 $i++;
                 $def_label = $i if $_ eq $params{default};
                 sprintf "%3s> %-s", $i, $_;
-            } @$opts), "");
+            } @$opts ), "");
             $params{callback} = sub { /^\d+$/ && $_ <= @$opts };
         }
         $def_label = defined $def_label ? " [$def_label]:" : '';
-        $self->_prompt($params{message}, $def_label, ' ');
-      LOOP: {
+        $self->_prompt( $params{message}, $def_label, ' ' );
+        LOOP: {
             my $ans = $self->_readline;
             return $params{default} unless $ans && $ans ne '';
-            if (my $code = $params{callback}) {
+            if ( my $code = $params{callback} ) {
                 local $_ = $ans;
-                $self->_prompt("\nInvalid selection, please try again$def_label "),
+                $self->_prompt(
+                    "\nInvalid selection, please try again$def_label "
+                ),
                   redo LOOP
                   unless $code->($ans);
             }
             return $ans unless $params{options};
-            return $params{options}->[$ans-1];
+            return $params{options}->[ $ans - 1 ];
         }
     }
 
@@ -887,10 +902,10 @@ sub init_app {
     require Kinetic::VersionInfo;
     Kinetic::VersionInfo->new(
         app_name => $self->module_name,
-        version  => version->new($self->dist_version),
+        version  => version->new( $self->dist_version ),
     )->save;
 
-    if ($self->module_name eq 'Kinetic') {
+    if ( $self->module_name eq 'Kinetic' ) {
         require Kinetic::Party::User;
         Kinetic::Party::User->new(
             last_name  => 'User',
@@ -922,7 +937,7 @@ all we do is C<croak()> bold-faced red text.
 sub _fatal_error {
     my $class = shift;
     require Term::ANSIColor;
-    if (ref $_[0]) {
+    if ( ref $_[0] ) {
         print STDERR Term::ANSIColor::BOLD(), Term::ANSIColor::RED(),
           shift->as_string, Term::ANSIColor::RESET();
         exit 1;
@@ -946,15 +961,15 @@ directories specified in C<@dirs>. Returns a list of the new files.
 =cut
 
 sub _copy_to {
-    my $self = shift;
+    my $self  = shift;
     my $files = shift;
     return unless %$files;
     my @ret;
-    while (my ($file, $dest) = each %$files) {
+    while ( my ( $file, $dest ) = each %$files ) {
         for my $dir (@_) {
             my $file = $self->copy_if_modified(
                 from => $file,
-                to   => File::Spec->catfile($dir, $dest)
+                to   => File::Spec->catfile( $dir, $dest )
             );
             push @ret, $file if defined $file;
         }
@@ -978,17 +993,18 @@ respective C<%STORES> and C<%ENGINES> build class hashes.
 =cut
 
 sub _check_build_component {
-    my ($self, $component, $class_for) = @_;
+    my ( $self, $component, $class_for ) = @_;
     return $self if $self->notes("build_$component");
 
     # Check the specific component.
-    my $build_component_class = $class_for->{$self->$component}
-      or $self->_fatal_error("I'm not familiar with the " . $self->$component
-                             . " $component");
+    my $build_component_class = $class_for->{ $self->$component }
+      or $self->_fatal_error(
+        "I'm not familiar with the " . $self->$component . " $component"
+      );
     eval "require $build_component_class" or $self->_fatal_error($@);
     my $build_component = $build_component_class->new($self);
     $build_component->validate;
-    $self->notes("build_$component" => $build_component);
+    $self->notes( "build_$component" => $build_component );
     return $self;
 }
 
@@ -1003,7 +1019,7 @@ Returns a list of params required for the C<App::Info> object.
 =cut
 
 sub _app_info_params {
-    my $self = shift;
+    my $self     = shift;
     my $prompter = Kinetic::Build::PromptHandler->new($self);
 
     my @params = (
@@ -1012,7 +1028,7 @@ sub _app_info_params {
         on_confirm => $prompter,
     );
 
-    unless ($self->quiet) {
+    unless ( $self->quiet ) {
         push @params, on_info => Kinetic::Build::PrintHandler->new($self);
     }
 
@@ -1032,10 +1048,10 @@ C<_find_file_by_type()> method.
 =cut
 
 sub _find_files_in_dir {
-    my ($self, $dir) = @_;
-    return { map {$_, $_}
+    my ( $self, $dir ) = @_;
+    return { map { $_, $_ }
              map $self->localize_file_path($_),
-             @{ $self->rscan_dir($dir, sub { -f && !/\.svn/ }) } };
+             @{ $self->rscan_dir( $dir, sub { -f && !/\.svn/ } ) } };
 }
 
 ##############################################################################
@@ -1073,10 +1089,11 @@ returning the input.
 
 sub _readline {
     my $self = shift;
-    my $ans = <STDIN>;
-    if (defined $ans) {
+    my $ans  = <STDIN>;
+    if ( defined $ans ) {
         chomp $ans;
-    } else { # user hit ctrl-D
+    }
+    else {    # user hit ctrl-D
         $self->_prompt("\n");
     }
     return $ans;
@@ -1094,10 +1111,13 @@ suitable for output to a configuration file.
 
 =cut
 
+# XXX remove?
 sub _serialize_conf_hash {
-    my ($self, $conf) = @_;
-    map { "    $_ => "
-          . (defined $conf->{$_} ? "'$conf->{$_}'" : 'undef') . ",\n"
+    my ( $self, $conf ) = @_;
+    map {
+        "    $_ => "
+        . ( defined $conf->{$_} ? "'$conf->{$_}'" : 'undef' ) 
+        . ",\n"
     } sort keys %$conf;
 }
 
@@ -1113,7 +1133,7 @@ Returns true if code is being run from a terminal.
 
 sub _is_tty {
     my $self = shift;
-    $self->{tty} = -t STDIN && (-t STDOUT || !(-f STDOUT || -c STDOUT))
+    $self->{tty} = -t STDIN && ( -t STDOUT || !( -f STDOUT || -c STDOUT ) )
       unless exists $self->{tty};
     return $self->{tty};
 }
@@ -1141,12 +1161,13 @@ looks for the option with the equivalent of the following method calls:
 =cut
 
 sub _get_option {
-    my ($self, $key) = @_;
+    my ( $self, $key ) = @_;
     return unless defined $key;
+
     # Allow both dashed and underscored options.
-    (my $alt = $key) =~ tr/-/_/;
+    ( my $alt = $key ) =~ tr/-/_/;
     for my $meth (qw(runtime_params args)) {
-        for my $arg ($key, $alt) {
+        for my $arg ( $key, $alt ) {
             my $val = $self->$meth($arg);
             return $val if defined $val;
         }
@@ -1169,30 +1190,32 @@ package Kinetic::Build::PrintHandler;
 use base 'Kinetic::Build::AppInfoHandler';
 
 sub handler {
-    my ($self, $req) = @_;
-    $self->{builder}->log_info($req->message, "\n");
+    my ( $self, $req ) = @_;
+    $self->{builder}->log_info( $req->message, "\n" );
 }
 
 package Kinetic::Build::CroakHandler;
 use base 'Kinetic::Build::AppInfoHandler';
 
 sub handler {
-    my ($self, $req) = @_;
-    $self->{builder}->_fatal_error($req->message);
+    my ( $self, $req ) = @_;
+    $self->{builder}->_fatal_error( $req->message );
 }
 
 package Kinetic::Build::PromptHandler;
 use base 'Kinetic::Build::AppInfoHandler';
 
 sub handler {
-    my ($self, $req) = @_;
-    (my $name = lc $req->key) =~ s/\s+/-/g;
-    $req->value($self->{builder}->get_reply(
-        name    => $name,
-        label   => $req->key,
-        message => $req->message,
-        default => $req->value
-    ));
+    my ( $self, $req ) = @_;
+    ( my $name = lc $req->key ) =~ s/\s+/-/g;
+    $req->value(
+        $self->{builder}->get_reply(
+            name    => $name,
+            label   => $req->key,
+            message => $req->message,
+            default => $req->value
+        )
+    );
     return $self;
 }
 
