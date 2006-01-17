@@ -27,11 +27,10 @@ use Kinetic::Meta;
 use Kinetic::Meta::Class::Schema;
 use Kinetic::Meta::Attribute::Schema;
 use Kinetic::Util::Config qw(:store);
-use File::Find;
+use Kinetic::Util::Functions ();
 use File::Spec;
 use File::Path;
 use Carp;
-use List::Util qw(first);
 
 Kinetic::Meta->class_class('Kinetic::Meta::Class::Schema');
 Kinetic::Meta->attribute_class('Kinetic::Meta::Attribute::Schema');
@@ -137,38 +136,10 @@ inherit from C<Kinetic>.
 
 sub load_classes {
     my ($self, $lib_dir, @skippers) = @_;
-    my $dir = File::Spec->catdir(split m{/}, $lib_dir);
-    unshift @INC, $dir;
-    my @classes;
-    my $find_classes = sub {
-        local *__ANON__ = '__ANON__find_classes';
-        return if /\.svn/;
-        return unless /\.pm$/;
-        return if /#/;    # Ignore old backup files.
-        return if first { $File::Find::name =~ m/$_/ } @skippers;
-        my $class = $self->file_to_mod( $lib_dir, $File::Find::name );
-        eval "require $class" or die $@;
-
-        # Keep the class if it isa Kinetic and is not abstract.
-        unshift @classes, $class->my_class
-            if $class->isa('Kinetic') && !$class->my_class->abstract;
-    };
-
-    find({ wanted => $find_classes, no_chdir => 1 }, $dir);
-    shift @INC;
-
-    # Store classes according to dependency order.
-    my (@sorted, %seen);
-    for my $class (
-        map  { $_->[1] }
-        sort { $a->[0] cmp $b->[0] }
-        map  { [$_->key => $_ ] } @classes
-    ) {
-        push @sorted, $self->_sort_class(\%seen, $class)
-          unless $seen{$class->key}++;
-    }
-
-    $self->{classes} = \@sorted;
+    $self->{classes} = Kinetic::Util::Functions::load_classes(
+         $lib_dir,
+         @skippers
+    );
     return $self;
 }
 
@@ -284,75 +255,10 @@ subclasses.
 
 # Must be implemented in subclasses.
 
-##############################################################################
-
-=head3 file_to_mod
-
-  my $module = $sg->file_to_mod($search_dir, $file);
-
-Converts a file name to a Perl module name. The file name may be an absolute or
-relative file name ending in F<.pm>.  C<file_to_mod()> will walk through both
-the C<$search_dir> directories and the C<$file> directories and remove matching
-elements of each from C<$file>.
-
-=cut
-
-sub file_to_mod {
-    my ($self, $search_dir, $file) = @_;
-    $file =~ s/\.pm$// or croak "$file is not a Perl module";
-    my (@dirs)      = File::Spec->splitdir($file);
-    my @search_dirs = split /\// => $search_dir;
-    while (defined $search_dirs[0] and $search_dirs[0] eq $dirs[0]) {
-        shift @search_dirs;
-        shift @dirs;
-    }
-    join '::', @dirs;
-}
-
-##############################################################################
-
-=begin private
-
-=head1 Private Methods
-
-=head2 Private Instance Methods
-
-=head3 _sort_class
-
-  my @classes = $schema->_sort_class(\%seen, $class);
-
-Returns the Kinetic::Meta::Class::Schema object passed in, as well as any
-other classes that are dependencies of the class. Dependencies are returned
-before the classes that depend on them. This method is called recursively, so
-it's important to pass a hash reference to keep track of all the classes seen
-to prevent duplicates. This method is used by C<load_classes()>.
-
-=cut
-
-sub _sort_class {
-    my ($self, $seen, $class) = @_;
-    my @sorted;
-    # Grab all parent classes.
-    if (my $parent = $class->parent) {
-        push @sorted, $self->_sort_class($seen, $parent)
-          unless $seen->{$parent->key}++;
-    }
-
-    # Grab all referenced classes.
-    for my $attr ($class->table_attributes) {
-        my $ref = $attr->references or next;
-        push @sorted, $self->_sort_class($seen, $ref)
-          unless $seen->{$ref->key}++;
-    }
-    return @sorted, $class;
-}
-
 1;
 __END__
 
 ##############################################################################
-
-=end private
 
 =head1 Copyright and License
 

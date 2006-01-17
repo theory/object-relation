@@ -48,17 +48,12 @@ BEGIN {
         $ENV{KINETIC_CONF} = $CONF;
     }
     $CONF = $ENV{KINETIC_CONF} || '';
-    unless ( -f $CONF ) {
-
-        # XXX this won't be needed for production
-        throw_fatal [ 'Could not find conf file "[_1]"', $CONF ];
-    }
 }
 
 $ENV{KINETIC_CONF} = $CONF;
 use Kinetic::Util::Config qw(:all);
 use Readonly;
-Readonly my $LOG_DIR => File::Spec->catfile( KINETIC_ROOT, 'logs' );
+Readonly my $LOG_DIR   => File::Spec->catfile( KINETIC_ROOT, 'logs' );
 Readonly my $ERROR_LOG => File::Spec->catfile( $LOG_DIR, 'error_log' );
 
 if ($DEBUG) {
@@ -88,9 +83,10 @@ my $pack = __PACKAGE__;
 Readonly my $LIB => File::Spec->catfile( KINETIC_ROOT, 'lib' );
 
 if ($DEBUG) {
-    print localize( 'Using lib "[_1]"', $LIB );
-    print qq'Using pid file "@{[$pidfile->file]}"\n';
-    print qq'I think the pid is "@{[$pidfile->pid]}"\n' if $pidfile->running;
+    print localize( 'Using lib "[_1]"',        $LIB );
+    print localize( 'Using pid file "[_1]"',   $pidfile->file );
+    print localize( 'I think the pid is [_1]', $pidfile->pid )
+      if $pidfile->running;
 }
 
 my $command = lc shift @ARGV || '';

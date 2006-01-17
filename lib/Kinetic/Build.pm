@@ -1101,28 +1101,6 @@ sub _readline {
 
 ##############################################################################
 
-=head3 _serialize_conf_hash
-
-  my @config_lines = $build->_serialize_conf_hash($hashref);
-
-Converts the contents of a hash reference returned by a config method (such as
-C<store_config()> or the C<config()> method in Kinetic::Store) to lines
-suitable for output to a configuration file.
-
-=cut
-
-# XXX remove?
-sub _serialize_conf_hash {
-    my ( $self, $conf ) = @_;
-    map {
-        "    $_ => "
-        . ( defined $conf->{$_} ? "'$conf->{$_}'" : 'undef' ) 
-        . ",\n"
-    } sort keys %$conf;
-}
-
-##############################################################################
-
 =head3 _is_tty
 
   if ($build->_is_tty) { ... }

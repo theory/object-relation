@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use File::Spec;
 use Kinetic::Util::Config 'KINETIC_ROOT';
+use Kinetic::Util::Exceptions 'throw_stat';
 use LockFile::Simple;
 
 # $Id: Kinetic.pm 2508 2006-01-11 01:54:06Z theory $
@@ -74,30 +75,19 @@ sub _send_to_log {
     }
     else {
         $LOCK_MGR->trylock($ERROR_LOG);
-        local *LOG;
-        open LOG, '>>', $ERROR_LOG
-        or die "Cannot open $ERROR_LOG for appending: $!";
-        print LOG @_;
-        close LOG;
+        open my $log, '>>', $ERROR_LOG
+          or throw_stat [
+            'Could not open file "[_1]" for [_2]: [_3]',
+            $ERROR_LOG, 'appending', $!
+          ];
+        print $log @_;
+        close $log;
     }
 }
 
 1;
 
 __END__
-
-##############################################################################
-
-=head1 See Also
-
-=over 4
-
-=item L<Kinetic::Meta|Kinetic::Meta>
-
-This module provides the interface for the Kinetic class automation and
-introspection defined here.
-
-=back
 
 =head1 Copyright and License
 

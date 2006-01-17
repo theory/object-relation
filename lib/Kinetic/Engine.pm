@@ -23,17 +23,13 @@ use warnings;
 use Class::BuildMethods qw/handler/;
 use File::Spec;
 use Kinetic::Util::Config 'KINETIC_ROOT';
-use Kinetic::Build::Schema;
+use Kinetic::Util::Functions 'load_store';
 
 use version;
 our $VERSION = version->new('0.0.1');
 
 BEGIN {
-
-    # XXX be sure to pull out the hardcoded path when we know what to do with
-    # it.
-    my $schema = Kinetic::Build::Schema->new;
-    $schema->load_classes( File::Spec->catdir( KINETIC_ROOT, 't/sample/lib' ) );
+    load_store( File::Spec->catdir( KINETIC_ROOT, 't/sample/lib' ) );
 }
 
 1;

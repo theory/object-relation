@@ -23,6 +23,11 @@ use version;
 our $VERSION = version->new('0.0.1');
 use OSSP::uuid;
 use MIME::Base64;
+use File::Find;
+use File::Spec;
+use List::Util qw(first);
+use Kinetic::Util::Exceptions qw/throw_fatal/;
+use Kinetic::Util::Config qw/STORE_CLASS/;
 
 =head1 Name
 
@@ -45,6 +50,11 @@ use Exporter::Tidy
         uuid_to_bin
         uuid_to_hex
         uuid_to_b64
+    )],
+    class => [qw(
+        file_to_mod
+        load_classes
+        load_store
     )],
 ;
 
@@ -98,10 +108,156 @@ sub uuid_to_b64 {
     encode_base64(uuid_to_bin(shift));
 }
 
+##############################################################################
+
+=head2 Class handling functions
+
+The following functions are generic utilities for handling classes.
+
+=cut
+
+=head3 file_to_mod
+
+  my $module = file_to_mod($search_dir, $file);
+
+Converts a file name to a Perl module name. The file name may be an absolute or
+relative file name ending in F<.pm>.  C<file_to_mod()> will walk through both
+the C<$search_dir> directories and the C<$file> directories and remove matching
+elements of each from C<$file>.
+
+=cut
+
+sub file_to_mod {
+    my ($search_dir, $file) = @_;
+    $file =~ s/\.pm$// or throw_fatal [ "[_1] is not a Perl module", $file ];
+    my (@dirs)      = File::Spec->splitdir($file);
+    my @search_dirs = split /\// => $search_dir;
+    while (defined $search_dirs[0] and $search_dirs[0] eq $dirs[0]) {
+        shift @search_dirs;
+        shift @dirs;
+    }
+    join '::', @dirs;
+}
+
+=head3 load_classes
+
+  my $classes = load_classes($dir);
+  my $classes = load_classes($dir, $regex);
+  my $classes = load_classes($dir, @regexen);
+
+Loads all of the Kinetic::Meta classes found in the specified directory and
+its subdirectories. Use Unix-style directory naming for the $dir argument;
+C<load_classes()> will automatically convert the directory path to the
+appropriate format for the current operating system. All Perl module files
+found in the directory or its subdirectories will be loaded, excepting those
+that match one of the regular expressions passed in the $schema_skippers array
+reference argument. C<load_classes()> will only store a the
+L<Kinetic::Meta::Class|Kinetic::Meta::Class> object for those modules that
+inherit from C<Kinetic>.
+
+Returns an array reference of the classes loaded.
+
+=cut
+
+sub load_classes {
+    my ($lib_dir, @skippers) = @_;
+    my $dir = File::Spec->catdir(split m{/}, $lib_dir);
+    unshift @INC, $dir;
+    my @classes;
+    my $find_classes = sub {
+        local *__ANON__ = '__ANON__find_classes';
+        return if /\.svn/;
+        return unless /\.pm$/;
+        return if /#/;    # Ignore old backup files.
+        return if first { $File::Find::name =~ m/$_/ } @skippers;
+        my $class = file_to_mod( $lib_dir, $File::Find::name );
+        eval "require $class" or die $@;
+
+        # Keep the class if it isa Kinetic and is not abstract.
+        unshift @classes, $class->my_class
+            if $class->isa('Kinetic') && !$class->my_class->abstract;
+    };
+
+    find({ wanted => $find_classes, no_chdir => 1 }, $dir);
+    shift @INC;
+
+    # Store classes according to dependency order.
+    my (@sorted, %seen);
+    for my $class (
+        map  { $_->[1] }
+        sort { $a->[0] cmp $b->[0] }
+        map  { [$_->key => $_ ] } @classes
+    ) {
+        push @sorted, _sort_class(\%seen, $class)
+          unless $seen{$class->key}++;
+    }
+
+    return \@sorted;
+}
+
+=head3 load_store
+
+  my $store = load_store($dir);
+  my $store = load_store($dir, $regex);
+  my $store = load_store($dir, @regexen);
+
+Behaves like C<load_classes> but ensures that the appropriate data store class
+is loaded first.
+
+=cut
+
+sub load_store {
+    my ($lib_dir, @skippers) = @_;
+    my $class = STORE_CLASS;
+    eval "require $class" or die $@;
+    load_classes( $lib_dir, @skippers );
+}
+
+##############################################################################
+
+=begin private
+
+=head1 Private functions
+
+=head2 Private functions (not exported)
+
+=head3 _sort_class
+
+  my @classes = _sort_class(\%seen, $class);
+
+Returns the Kinetic::Meta::Class::Schema object passed in, as well as any
+other classes that are dependencies of the class. Dependencies are returned
+before the classes that depend on them. This method is called recursively, so
+it's important to pass a hash reference to keep track of all the classes seen
+to prevent duplicates. This function is used by C<load_classes()>.
+
+=cut
+
+sub _sort_class {
+    my ($seen, $class) = @_;
+    my @sorted;
+    # Grab all parent classes.
+    if (my $parent = $class->parent) {
+        push @sorted, _sort_class($seen, $parent)
+          unless $seen->{$parent->key}++;
+    }
+
+    # Grab all referenced classes.
+    for my $attr ($class->table_attributes) {
+        my $ref = $attr->references or next;
+        push @sorted, _sort_class($seen, $ref)
+          unless $seen->{$ref->key}++;
+    }
+    return @sorted, $class;
+}
+
 1;
+
 __END__
 
 ##############################################################################
+
+=end private
 
 =head1 Copyright and License
 

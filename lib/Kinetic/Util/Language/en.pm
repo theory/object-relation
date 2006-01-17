@@ -139,9 +139,6 @@ our %Lexicon;
         '[_1] [_2] or better not available for [_3]: [_4]',
         '[_1] [_2] or better not available for [_3]: [_4]',
 
-        'Could not find conf file "[_1]"',
-        'Could not find conf file “[_1]”',
-
         'Using config file "[_1]"',
         'Using config file “[_1]”',
 
@@ -177,6 +174,12 @@ our %Lexicon;
 
         "Could not find pid directory at [_1]",
         "Could not find pid directory at [_1]",
+
+        'Using pid file "[_1]"',
+        'Using pid file “[_1]”',
+
+        'I think the pid is [_1]',
+        'I think the pid is [_1]',
     );
 
     %Lexicon = (
@@ -188,6 +191,12 @@ our %Lexicon;
         %rest_messages,
 
         # Exceptions.
+         'Could not open file "[_1]" for [_2]: [_3]',
+         'Could not open file “[_1]” for [_2]: [_3]',
+
+         '[_1] is not a Perl module',
+         '[_1] is not a Perl module',
+        
         'Value "[_1]" is not a valid [_2] object',
         'Value “[_1]” is not a valid [_2] object',
 
