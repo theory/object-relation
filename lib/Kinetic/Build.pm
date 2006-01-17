@@ -780,9 +780,6 @@ sub fix_shebang_line {
         rename "$file.new", $file
             or die "Can't rename $file.new to $file: $!";
 
-        rename "$file.new", $file
-          or die "Can't rename $file.new to $file: $!";
-
         unlink "$file.bak"
           or $self->log_warn(
             "Couldn't clean up $file.bak, leaving it there\n" );
