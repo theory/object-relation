@@ -777,7 +777,10 @@ sub fix_shebang_line {
         rename $file, "$file.bak"
           or die "Can't rename $file to $file.bak: $!";
 
-        rename( "$file.new", $file )
+        rename "$file.new", $file
+            or die "Can't rename $file.new to $file: $!";
+
+        rename "$file.new", $file
           or die "Can't rename $file.new to $file: $!";
 
         unlink "$file.bak"
