@@ -5,14 +5,12 @@ use warnings;
 
 use lib 'lib';
 use Getopt::Long;
-use File::Pid;
 use File::Spec ();
-use aliased 'Proc::Background';
 use Kinetic::Util::Exceptions qw/throw_fatal/;
 use Kinetic::Util::Language;
 my $LANG = Kinetic::Util::Language->get_handle;
 Kinetic::Util::Context->language($LANG);
-my ( $DEBUG, $VERBOSE, $HELP, $CONF, $PIDFILE );
+my ( $DEBUG, $VERBOSE, $HELP, $CONF );
 
 sub try_to_use {
     my ( $module, $version, $reason ) = @_;
@@ -35,7 +33,6 @@ BEGIN {
         'verbose'   => \$VERBOSE,
         'help|?'    => \$HELP,
         'conf=s'    => \$CONF,
-        'pidfile=s' => \$PIDFILE,
     );
 
     if ($HELP) {
@@ -52,9 +49,6 @@ BEGIN {
 
 $ENV{KINETIC_CONF} = $CONF;
 use Kinetic::Util::Config qw(:all);
-use Readonly;
-Readonly my $LOG_DIR   => File::Spec->catfile( KINETIC_ROOT, 'logs' );
-Readonly my $ERROR_LOG => File::Spec->catfile( $LOG_DIR, 'error_log' );
 
 if ($DEBUG) {
     try_to_use( 'Devel::Symdump', 2, 'debug' );
@@ -77,148 +71,15 @@ if ($DEBUG) {
     print localize( 'Using config file "[_1]"', $CONF );
 }
 
-my $pidfile = File::Pid->new( { file => get_pid_file_location() } );
-
-my $pack = __PACKAGE__;
-Readonly my $LIB => File::Spec->catfile( KINETIC_ROOT, 'lib' );
-
-if ($DEBUG) {
-    print localize( 'Using lib "[_1]"',        $LIB );
-    print localize( 'Using pid file "[_1]"',   $pidfile->file );
-    print localize( 'I think the pid is [_1]', $pidfile->pid )
-      if $pidfile->running;
-}
-
 my $command = lc shift @ARGV || '';
 unless ( $command =~ /^stop|start|restart$/ ) {
     die localize("You must specify stop, start, or restart");
 }
 
-if ( 'start' eq $command ) {
-    start($pidfile);
-}
-elsif ( 'stop' eq $command ) {
-    stop($pidfile);
-}
-elsif ( 'restart' eq $command ) {
-    stop($pidfile);
-    start($pidfile);
-}
-else {
-    die "Unknown command '$command'\n";
-}
+my $engine = ENGINE_CLASS;
+try_to_use( $engine, 0, 'loading engine' );
+$engine->$command;
 
-sub start {
-    my $pidfile = shift;
-    if ( $pidfile->running ) {
-        die localize(
-            'Process is already running as pid "[_1]"',
-            $pidfile->pid
-        );
-    }
-    else {
-        my ( $engine, @args );
-
-        # figure out which server to start
-        if ( $pack->can('SIMPLE_HOST') ) {
-            $engine = 'catalyst';
-            @args = ( $^X, "-I$LIB", '-M' . &ENGINE_CLASS, '-e 1' );
-        }
-        elsif ( $pack->can('APACHE_HTTPD') ) {
-            $engine = 'apache';
-            @args
-              = ( &APACHE_HTTPD, 'start' );    #, '-f' . &APACHE_HTTPD_CONF );
-        }
-        else {
-            die localize("Could not determine which server to run");
-        }
-
-        # start it
-        print localize( 'Starting [_1] with args "[_2]"', $engine, "@args" )
-          if $VERBOSE;
-        my $process = Background->new(@args);
-        if ( $process->alive ) {
-            $pidfile->pid( $process->pid );
-
-            # if we try to write to the apache pidfile, apache receives a
-            # SIGTERM and quits
-            unless ( $pack->can('APACHE_HTTPD') ) {
-                $pidfile->write
-                  or die localize(
-                    'Could not write pid "[_1]" to pidfile: [_2]',
-                    $process->pid, $!
-                  );
-            }
-        }
-        else {
-            die localize( "Could not start process: [_1]", $? );
-        }
-    }
-}
-
-sub stop {
-    my $pidfile = shift;
-    if ( $pidfile->running ) {
-        my $pid = $pidfile->pid;
-        if ( kill 15, $pid ) {
-            $pidfile->remove;
-        }
-        else {
-            die localize( 'Could not stop pid "[_1]": [_2]', $pid, $? );
-        }
-    }
-    else {
-        warn localize("The Kinetic server did not appear to be running");
-    }
-}
-
-sub get_pid_file_location {
-    return $PIDFILE if defined $PIDFILE;
-    if ( __PACKAGE__->can('SIMPLE_HOST') ) {
-        return File::Spec->catfile( $LOG_DIR, 'kinetic.pid' );
-    }
-    elsif ( __PACKAGE__->can('APACHE_HTTPD') ) {
-        my $pid_file;
-
-        # Get the Apache PID file location from httpd.conf.
-        local *HC;
-        open HC, &APACHE_HTTPD_CONF
-          or die "Cannot open @{[&APACHE_HTTPD_CONF]}: $!\n";
-        while (<HC>) {
-
-            # Ignore comments.
-            chomp;       # no newline
-            s/#.*//;     # no comments
-            s/^\s+//;    # no leading white
-            s/\s+$//;    # no trailing white
-            next unless length;               # anything left?
-            next unless /^PidFile\s+(.*)/i;
-            $pid_file = $1;
-            last;
-        }
-        close HC;
-        unless ($pid_file) {
-
-            # couldn't figure out the pid file, so we are going to try
-            # and figure it out from standard apache locations
-            my ($log_dir) = &APACHE_HTTPD_CONF =~ /^(.*?)conf/;
-            unless ( defined $log_dir ) {
-                die localize("Could not determine pid directory");
-            }
-            my $pid_dir = File::Spec->catdir( $log_dir, 'logs' );
-            unless ( -d $pid_dir ) {
-                die localize(
-                    "Could not find pid directory at [_1]",
-                    $pid_dir
-                );
-            }
-            return File::Spec->catdir( $pid_dir, 'httpd.pid' );
-        }
-    }
-    else {
-        die localize("Could not determine which server to run");
-    }
-}
 __DATA__
 
 =head1 NAME 
@@ -236,7 +97,6 @@ Options:
  -d, --debug    Print Kinetic::Util::Config constants and their values
  -v, --verbose  Print out which engine is being started
  -c, --conf     Use the specified config file instead of $ENV{KINETIC_CONF}
- -p, --pidfile  Location of the pid file
 
 Command (one of the following commands must be supplied):
 
@@ -263,11 +123,5 @@ configuration file than the installed one.
 
 This should point to the value of the C<kinetic.conf> file.  Usually this is
 only needed in testing if the C<KINETIC_CONF> environment variable is not set.
-
-=item * -p, --pidfile
-
-Ordinarily, C<kineticd> will have no problem finding the pid file for the
-server it will start.  However, if the pidfile location cannot be determined,
-use this option to specify its location.
 
 =back

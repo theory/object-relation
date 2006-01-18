@@ -1,4 +1,4 @@
-package Kinetic::Engine;
+package Kinetic::Engine::Catalyst::Config;
 
 # $Id: Engine.pm 2414 2005-12-22 07:21:05Z theory $
 
@@ -20,15 +20,20 @@ package Kinetic::Engine;
 
 use strict;
 use warnings;
-use Class::BuildMethods qw/handler/;
-use File::Spec;
-use Kinetic::Util::Config 'KINETIC_ROOT';
-use Kinetic::Util::Functions 'load_store';
 
 use version;
 our $VERSION = version->new('0.0.1');
+use Kinetic::Util::Config qw(:all);
+use Kinetic::Engine;
 
-load_store( File::Spec->catdir( KINETIC_ROOT, 't/sample/lib' ) );
+BEGIN {
+    # XXX This must be set *before* you use the Catalyst UI.  Otherwise, the
+    # run() method will exit immediately.
+    $ENV{CATALYST_ENGINE} ||= 'HTTP';
+}
+
+use aliased 'Kinetic::UI::Catalyst';
+Catalyst->run( SIMPLE_PORT, SIMPLE_HOST, { restart => SIMPLE_RESTART } );
 
 1;
 

@@ -142,44 +142,17 @@ our %Lexicon;
         'Using config file "[_1]"',
         'Using config file “[_1]”',
 
-        'Using lib "[_1]"',
-        'Using lib “[_1]”',
-
         'You must specify stop, start, or restart',
         'You must specify stop, start, or restart',
-
-        'Process is already running as pid "[_1]"',
-        'Process is already running as pid “[_1]”',
-
-        'Starting [_1] with args "[_2]"',
-        'Starting [_1] with args “[_2]”',
-
-        'Could not write pid "[_1]" to pidfile: [_2]',
-        'Could not write pid “[_1]” to pidfile: [_2]',
 
         'Could not start process: [_1]',
         'Could not start process: [_1]',
 
-        'Could not stop pid "[_1]": [_2]',
-        'Could not stop pid “[_1]”: [_2]',
+        'Could not stop process "[_1]": [_2]',
+        'Could not stop process “[_1]”: [_2]',
 
         'The Kinetic server did not appear to be running',
         'The Kinetic server did not appear to be running',
-
-        'Could not determine which server to run',
-        'Could not determine which server to run',
-
-        "Could not determine pid directory",
-        "Could not determine pid directory",
-
-        "Could not find pid directory at [_1]",
-        "Could not find pid directory at [_1]",
-
-        'Using pid file "[_1]"',
-        'Using pid file “[_1]”',
-
-        'I think the pid is [_1]',
-        'I think the pid is [_1]',
     );
 
     %Lexicon = (

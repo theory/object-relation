@@ -22,9 +22,6 @@ use strict;
 use warnings;
 use Kinetic::Util::Constants '$TEXT_CT';
 use JSON ();
-use Class::Delegator
-  send => [qw/objToJson jsonToObj/],
-  to   => '{json}';
 
 use version;
 our $VERSION = version->new('0.0.1');
@@ -125,7 +122,7 @@ Converts an arbitrary reference to its JSON equivalent.
 sub ref_to_format {
     my ( $self, $ref ) = @_;
     $ref = $self->expand_ref($ref);
-    return $self->objToJson($ref);
+    return $self->{json}->objToJson($ref);
 }
 
 ##############################################################################
@@ -138,7 +135,7 @@ Converts JSON to its equivalent Perl reference.
 
 =cut
 
-sub format_to_ref { shift->jsonToObj(@_) }
+sub format_to_ref { shift->{json}->jsonToObj(@_) }
 
 1;
 

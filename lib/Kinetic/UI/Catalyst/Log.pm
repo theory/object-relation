@@ -3,7 +3,7 @@ package Kinetic::UI::Catalyst::Log;
 use strict;
 use warnings;
 use File::Spec;
-use Kinetic::Util::Config 'KINETIC_ROOT';
+use Kinetic::Util::Config ':all';
 use Kinetic::Util::Exceptions 'throw_stat';
 use LockFile::Simple;
 
@@ -49,6 +49,26 @@ No user serviceable parts (yet).  This class merely controls where the
 Catalyst log information gets sent.
 
 =cut
+
+##############################################################################
+
+=head3 new
+
+  Kinetic::UI::Catalyst::Log->new;
+
+Returns a new log object for Catalyst.  If we're running under Apache, we go
+ahead and use the default Apache error log.  Otherwise, log output redirected
+to C<logs/error_log>.
+
+=cut
+
+sub new {
+    my $class = shift;
+    if ( $class->can('APACHE_HTTPD') ) {
+        return Catalyst::Log->new;
+    }
+    return $class->SUPER::new;
+}
 
 my $ERROR_LOG = File::Spec->catfile( KINETIC_ROOT, 'logs', 'error_log' );
 my $LOCK_MGR = LockFile::Simple->make(

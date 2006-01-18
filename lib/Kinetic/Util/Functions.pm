@@ -56,6 +56,9 @@ use Exporter::Tidy
         load_classes
         load_store
     )],
+    build => [qw(
+        load_build_classes
+    )]
 ;
 
 ##############################################################################
@@ -112,7 +115,10 @@ sub uuid_to_b64 {
 
 =head2 Class handling functions
 
-The following functions are generic utilities for handling classes.
+The following functions are generic utilities for handling classes.  They can
+be imported individually or with the C<:class> tag.
+
+ use Kinetic::Util::Functions ':class';
 
 =cut
 
@@ -180,13 +186,31 @@ sub load_classes {
 
     find({ wanted => $find_classes, no_chdir => 1 }, $dir);
     shift @INC;
+    return \@classes;
+}
 
+##############################################################################
+
+=head3 load_build_classes 
+
+  my $classes = load_build_classes($dir);
+  my $classes = load_build_classes($dir, $regex);
+  my $classes = load_build_classes($dir, @regexen);
+
+Same as C<load_classes()>, but returns the class in the order necessary for
+building.  This function should B<not> be called except at build time.
+
+=cut
+
+sub load_build_classes {
+    my ($lib_dir, @skippers) = @_;
+    my $classes = load_classes(@_);
     # Store classes according to dependency order.
     my (@sorted, %seen);
     for my $class (
         map  { $_->[1] }
         sort { $a->[0] cmp $b->[0] }
-        map  { [$_->key => $_ ] } @classes
+        map  { [$_->key => $_ ] } @$classes
     ) {
         push @sorted, _sort_class(\%seen, $class)
           unless $seen{$class->key}++;

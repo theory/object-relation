@@ -27,7 +27,7 @@ use Kinetic::Meta;
 use Kinetic::Meta::Class::Schema;
 use Kinetic::Meta::Attribute::Schema;
 use Kinetic::Util::Config qw(:store);
-use Kinetic::Util::Functions ();
+use Kinetic::Util::Functions qw(:build);
 use File::Spec;
 use File::Path;
 use Carp;
@@ -136,10 +136,7 @@ inherit from C<Kinetic>.
 
 sub load_classes {
     my ($self, $lib_dir, @skippers) = @_;
-    $self->{classes} = Kinetic::Util::Functions::load_classes(
-         $lib_dir,
-         @skippers
-    );
+    $self->{classes} = load_build_classes( $lib_dir, @skippers );
     return $self;
 }
 

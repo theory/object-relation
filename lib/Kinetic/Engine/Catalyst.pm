@@ -23,17 +23,123 @@ use warnings;
 
 use version;
 our $VERSION = version->new('0.0.1');
-use Kinetic::Util::Config qw(:all);
-use Kinetic::Engine;
+use aliased 'Proc::Background';
 
-BEGIN {
-    # XXX This must be set *before* you use the Catalyst UI.  Otherwise, the
-    # run() method will exit immediately.
-    $ENV{CATALYST_ENGINE} ||= 'HTTP';
+use Kinetic::Util::Config qw(:all);
+use Kinetic::Util::Language;
+use Kinetic::Util::Exceptions;
+use Kinetic::Engine;
+use File::Pid;
+use File::Spec;
+
+use Exporter::Tidy manage => [qw( start stop restart )];
+
+use Readonly;
+Readonly my $LOG_DIR  => File::Spec->catfile( KINETIC_ROOT, 'logs' );
+Readonly my $PID_FILE => File::Spec->catfile( $LOG_DIR,     'kinetic.pid' );
+Readonly my $LIB      => File::Spec->catfile( KINETIC_ROOT, 'lib' );
+
+my $LANG = Kinetic::Util::Language->get_handle;
+Kinetic::Util::Context->language($LANG);
+
+##############################################################################
+
+=head1 NAME
+
+Kinetic::Engine::Catalyst 
+
+=head1 DESCRIPTION
+
+This class controls starting, stopping, and restarting the Catalyst engine.
+
+=head1 ENGINE INTERFACE
+
+=head2 Class methods
+
+=head3 start
+
+  Kinetic::Engine::Catalyst->start;
+
+Starts the Catalyst engine in a background process.
+
+=cut
+
+sub start {
+    my $class = shift;
+    my $pidfile = File::Pid->new( { file => $PID_FILE } );
+    if ( _is_running($pidfile) ) {
+
+        # XXX localize after testing
+        warn "Catalyst already running";
+        return;
+    }
+
+    my $process = Background->new(
+        $^X,
+        "-I$LIB",
+        '-MKinetic::Engine::Catalyst::Config',
+        '-e 1'
+    );
+    if ( $process->alive ) {
+        $pidfile->pid( $process->pid );
+        $pidfile->write;
+    }
+    else {
+        die _localize( "Could not start process: [_1]", $? );
+    }
 }
 
-use aliased 'Kinetic::UI::Catalyst';
-Catalyst->run( SIMPLE_PORT, SIMPLE_HOST, { restart => SIMPLE_RESTART } );
+##############################################################################
+
+=head3 stop
+
+  Kinetic::Engine::Catalyst->stop;
+
+Stops the Catalyst engine.
+
+=cut
+
+sub stop {
+    my $class = shift;
+    my $pidfile = File::Pid->new( { file => $PID_FILE } );
+    if ( _is_running($pidfile) ) {
+        my $pid = $pidfile->pid;
+        if ( kill 15, $pid ) {
+            $pidfile->remove;
+        }
+        else {
+            die _localize( 'Could not stop process "[_1]": [_2]', $pid, $? );
+        }
+    }
+    else {
+        warn _localize("The Kinetic server did not appear to be running");
+    }
+}
+
+##############################################################################
+
+=head3 restart
+
+  Kinetic::Engine::Catalyst->restart;
+
+Restarts the Catalyst engine.
+
+=cut
+
+sub restart {
+    my $class = shift;
+    $class->stop;
+    $class->start;
+}
+
+sub _localize {
+    return $LANG->maketext(@_) . "\n";
+}
+
+sub _is_running {
+    local $^W;    # force File::Pid to not issue warnings if PID is not found
+    return shift->running;
+}
 
 1;
 

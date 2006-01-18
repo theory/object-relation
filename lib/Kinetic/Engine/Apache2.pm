@@ -24,136 +24,103 @@ use warnings;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use CGI;
-CGI->compile;
-use Template;
+use aliased 'Proc::Background';
 
-use Apache2::Const -compile => qw(OK);
-use Apache2::ServerUtil ();
-
-use aliased 'Kinetic::UI::Catalyst';
-use aliased 'Kinetic::UI::REST';
-
-use Kinetic::Engine; # loads the modules
 use Kinetic::Util::Config qw(:all);
+use Kinetic::Util::Language;
+use Kinetic::Util::Exceptions;
+use File::Pid;
+use File::Spec;
 
-my $conf = __PACKAGE__->_apache_conf_template;
+use Exporter::Tidy manage => [qw( start stop restart )];
 
-# XXX Houston, we have a segfault
-Apache2::ServerUtil->server->add_config( [ split /\n/, $conf ] );
+use Readonly;
+Readonly my $LOG_DIR  => File::Spec->catfile( KINETIC_ROOT, 'logs' );
+Readonly my $PID_FILE => File::Spec->catfile( $LOG_DIR,     'kinetic.pid' );
+Readonly my $LIB      => File::Spec->catfile( KINETIC_ROOT, 'lib' );
 
-##############################################################################
-
-=head2 handler
-
-  Kinetic::Engine::Apache2::handler($r);
-
-Kinetic <mod_perl> 2.0 handler.
-
-=cut
-
-# XXX There are plenty of Apache constants which we do not handle because
-# Catalyst handles them for us by detecting the environment it runs under.
-# I am not yet sure how REST will handle this.
-
-sub handler {
-    my $r = shift;
-    return Catalyst->handle_request($r);
-}
+my $LANG = Kinetic::Util::Language->get_handle;
+Kinetic::Util::Context->language($LANG);
 
 ##############################################################################
 
-=head2 rest
+=head1 NAME
 
-  Kinetic::Engine::Apache2::rest($r);
+Kinetic::Engine::Apache2 
 
-The Kinetic REST handler.  See C<Kinetic::UI::REST>.
+=head1 DESCRIPTION
+
+This class controls starting, stopping, and restarting the Apache2 engine.
+
+=head1 ENGINE INTERFACE
+
+=head2 Class methods
+
+=head3 start
+
+  Kinetic::Engine::Apache2->start;
+
+Starts the Apache2 engine in a background process.
 
 =cut
 
-{
-    my $rest;
-
-    sub rest {
-        my $r = shift;
-        unless ( defined $rest ) {
-            $rest = _get_rest_object($r);
-        }
-        $rest->handle_request( CGI->new($r) );
-        $r->content_type( $rest->content_type );
-        $r->print( $rest->response );
-
-        return Apache2::Const::OK;
-    }
-}
-
-sub _get_rest_object {
-
-    # XXX much of this is cribbed from Catalyst::Engine::Apache
-    my $r = shift;
-    my $secure = ( ( $ENV{HTTPS} && uc $ENV{HTTPS} eq 'ON' )
-          || ( 443 == $r->get_server_port ) ) ? 1 : 0;
-    my $scheme = $secure ? 'https' : 'http';
-    my $host = $r->hostname || 'localhost';
-    my $port = $r->get_server_port;
-
-    my $base_path = '';
-
-    # Are we running in a non-root Location block?
-    my $location = $r->location;
-    if ( $location && $location ne '/' ) {
-        $base_path = $location;
-    }
-    my $uri = URI->new;
-    $uri->scheme($scheme);
-    $uri->host($host);
-    $uri->port($port);
-    $uri->path( $r->uri );
-    my $query_string = $r->args;
-    $uri->query($query_string);
-
-    # sanitize the URI
-    $uri = $uri->canonical;
-
-    $location = substr $location, 1;
-    my ($base_url) = $uri =~ m{^(.+$location)};
-    return REST->new( base_url => $base_url );
-}
-
-sub _apache_conf_template {
-    my $self = shift;
-    my %data = (
-        server_rest   => APACHE_REST,
-        server_root   => APACHE_ROOT,
-        server_static => APACHE_STATIC,
+sub start {
+    my $class = shift;
+    my $process = Background->new(
+        APACHE_HTTPD,
+        'start',
+        # '-f' . APACHE_HTTPD_CONF
     );
-    my $config_template = <<'    END_CONF';
-DocumentRoot /Users/curtispoe/work/svn.kineticode.com/trunk/Kinetic/root
-<Location [% server_root %]>
-    SetHandler          modperl
-    PerlResponseHandler Kinetic::Engine::Apache2
-    Order allow,deny
-    Allow from all
-</Location>
+    #unless ( $process->alive ) {
+    #    die _localize( "Could not start process: [_1]", $? );
+    #}
+}
 
-# static files
-<Location [% server_static %]>
-    Order allow,deny
-    Allow from all
-</Location>
+##############################################################################
 
-# REST 
-<Location [% server_rest %]>
-    SetHandler          modperl
-    PerlResponseHandler Kinetic::Engine::Apache2::rest
-</Location>
-    END_CONF
+=head3 stop
 
-    my $tt     = Template->new;
-    my $output = '';
-    $tt->process( \$config_template, \%data, \$output )
-      or die $tt->error;
-    return $output;
+  Kinetic::Engine::Apache2->stop;
+
+Stops the Apache2 engine.
+
+=cut
+
+sub stop {
+    my $class = shift;
+    my $process = Background->new(
+        APACHE_HTTPD,
+        'stop',
+        # '-f' . APACHE_HTTPD_CONF
+    );
+}
+
+##############################################################################
+
+=head3 restart
+
+  Kinetic::Engine::Apache2->restart;
+
+Restarts the Apache2 engine.
+
+=cut
+
+sub restart {
+    my $class = shift;
+    my $process = Background->new(
+        APACHE_HTTPD,
+        'graceful',
+        # '-f' . APACHE_HTTPD_CONF
+    );
+}
+
+sub _localize {
+    return $LANG->maketext(@_) . "\n";
+}
+
+sub _is_running {
+    local $^W;    # force File::Pid to not issue warnings if PID is not found
+    return shift->running;
 }
 
 1;

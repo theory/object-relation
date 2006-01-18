@@ -24,6 +24,6 @@
     </div>
     [% content %]
     [% USE Dumper %]
-    <span style="color:red"><pre>[% Dumper.dump_html(debug) %]</pre></span>
+    <span style="color:red"><pre>[% Dumper.dump_html(c.config) %]</pre></span>
   </body>
 </html>
