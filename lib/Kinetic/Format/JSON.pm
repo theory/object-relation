@@ -21,7 +21,7 @@ package Kinetic::Format::JSON;
 use strict;
 use warnings;
 use Kinetic::Util::Constants '$TEXT_CT';
-use JSON ();
+use JSON::Syck;
 
 use version;
 our $VERSION = version->new('0.0.1');
@@ -87,10 +87,10 @@ ensures a more compact JSON representation, thus saving bandwidth.
 sub _init {
     my ( $class, $arg_for ) = @_;
     $arg_for ||= {};
-    my $json = JSON->new(%$arg_for);
-    $json->unmapping(1)
-      ;    # return 'null' as undef instead of a JSON::NotString object
-    $arg_for->{json} = $json;
+    #my $json = JSON::Syck->new;
+    #$json->unmapping(1) # XXX
+    #  ;    # return 'null' as undef instead of a JSON::NotString object
+    #$arg_for->{json} = $json;
     return $arg_for;
 }
 
@@ -122,7 +122,7 @@ Converts an arbitrary reference to its JSON equivalent.
 sub ref_to_format {
     my ( $self, $ref ) = @_;
     $ref = $self->expand_ref($ref);
-    return $self->{json}->objToJson($ref);
+    return JSON::Syck::Dump($ref);
 }
 
 ##############################################################################
@@ -135,7 +135,10 @@ Converts JSON to its equivalent Perl reference.
 
 =cut
 
-sub format_to_ref { shift->{json}->jsonToObj(@_) }
+sub format_to_ref { 
+    my ($self, $json) = @_;
+    return JSON::Syck::Load($json);
+}
 
 1;
 

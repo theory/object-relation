@@ -7,6 +7,7 @@ use Cwd;
 use Kinetic::Meta;
 use Kinetic::Util::Config qw(KINETIC_ROOT);
 use Kinetic::UI::Catalyst::Log;
+use Kinetic::Engine;   # XXX why here rather than in the Engine classes?
 use File::Spec::Functions qw(catdir);
 
 use version;

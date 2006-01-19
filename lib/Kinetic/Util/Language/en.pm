@@ -145,6 +145,9 @@ our %Lexicon;
         'You must specify stop, start, or restart',
         'You must specify stop, start, or restart',
 
+        "system([_1]) failed: [_2]",
+        "system([_1]) failed: [_2]",
+
         'Could not start process: [_1]',
         'Could not start process: [_1]',
 
@@ -164,11 +167,11 @@ our %Lexicon;
         %rest_messages,
 
         # Exceptions.
-         'Could not open file "[_1]" for [_2]: [_3]',
-         'Could not open file “[_1]” for [_2]: [_3]',
+        'Could not open file "[_1]" for [_2]: [_3]',
+        'Could not open file “[_1]” for [_2]: [_3]',
 
-         '[_1] is not a Perl module',
-         '[_1] is not a Perl module',
+        '[_1] is not a Perl module',
+        '[_1] is not a Perl module',
         
         'Value "[_1]" is not a valid [_2] object',
         'Value “[_1]” is not a valid [_2] object',

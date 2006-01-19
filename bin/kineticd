@@ -76,17 +76,16 @@ unless ( $command =~ /^stop|start|restart$/ ) {
     die localize("You must specify stop, start, or restart");
 }
 
-my $engine = ENGINE_CLASS;
-try_to_use( $engine, 0, 'loading engine' );
-$engine->$command;
+try_to_use( ENGINE_CLASS, 0, 'loading engine' );
+ENGINE_CLASS->$command;
 
 __DATA__
 
-=head1 NAME 
+=head1 Name 
 
 kineticd --  Start the Kinetic engine
 
-=head1 SYNOPSIS
+=head1 Synopsis
 
 kineticd [-hdvrp] [-c conf_file] [start|stop|restart]
 
@@ -104,7 +103,7 @@ Command (one of the following commands must be supplied):
  start        Start the engine
  restart      Restart the engine
 
-=head1 DESCRIPTION
+=head1 Description
 
 C<kineticd> starts the Kinetic engine.  The C<KINETIC_CONF> environment
 variable should point to the location of the desired Kinetic configuration
@@ -115,7 +114,7 @@ Note that once installed, C<KINETIC_CONF> will probably not need to be set,
 nor will the C<--conf> option be necessary unless you wish a different
 configuration file than the installed one.
 
-=head1 COMMAND LINE OPTIONS
+=head1 Command Line Options
 
 =over 4
 

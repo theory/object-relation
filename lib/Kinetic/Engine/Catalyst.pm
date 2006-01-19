@@ -32,8 +32,6 @@ use Kinetic::Engine;
 use File::Pid;
 use File::Spec;
 
-use Exporter::Tidy manage => [qw( start stop restart )];
-
 use Readonly;
 Readonly my $LOG_DIR  => File::Spec->catfile( KINETIC_ROOT, 'logs' );
 Readonly my $PID_FILE => File::Spec->catfile( $LOG_DIR,     'kinetic.pid' );

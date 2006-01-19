@@ -27,7 +27,7 @@ use Kinetic::Meta;
 use Kinetic::Meta::Class::Schema;
 use Kinetic::Meta::Attribute::Schema;
 use Kinetic::Util::Config qw(:store);
-use Kinetic::Util::Functions qw(:build);
+use Kinetic::Util::Functions;
 use File::Spec;
 use File::Path;
 use Carp;
@@ -136,7 +136,19 @@ inherit from C<Kinetic>.
 
 sub load_classes {
     my ($self, $lib_dir, @skippers) = @_;
-    $self->{classes} = load_build_classes( $lib_dir, @skippers );
+    my $classes = Kinetic::Util::Functions::load_classes($lib_dir, @skippers);
+    # Store classes according to dependency order.
+    my (@sorted, %seen);
+    for my $class (
+        map  { $_->[1] }
+        sort { $a->[0] cmp $b->[0] }
+        map  { [$_->key => $_ ] } @$classes
+    ) {
+        push @sorted, $self->_sort_class(\%seen, $class)
+          unless $seen{$class->key}++;
+    }
+
+    $self->{classes} = \@sorted;
     return $self;
 }
 
@@ -252,10 +264,50 @@ subclasses.
 
 # Must be implemented in subclasses.
 
+##############################################################################
+
+=begin private
+
+=head1 Private functions
+
+=head2 Private functions (not exported)
+
+=head3 _sort_class
+
+  my @classes = $sg->_sort_class(\%seen, $class);
+
+Returns the Kinetic::Meta::Class::Schema object passed in, as well as any
+other classes that are dependencies of the class. Dependencies are returned
+before the classes that depend on them. This method is called recursively, so
+it's important to pass a hash reference to keep track of all the classes seen
+to prevent duplicates. This function is used by C<load_classes()>.
+
+=cut
+
+sub _sort_class {
+    my ($self, $seen, $class) = @_;
+    my @sorted;
+    # Grab all parent classes.
+    if (my $parent = $class->parent) {
+        push @sorted, $self->_sort_class($seen, $parent)
+          unless $seen->{$parent->key}++;
+    }
+
+    # Grab all referenced classes.
+    for my $attr ($class->table_attributes) {
+        my $ref = $attr->references or next;
+        push @sorted, $self->_sort_class($seen, $ref)
+          unless $seen->{$ref->key}++;
+    }
+    return @sorted, $class;
+}
+
 1;
 __END__
 
 ##############################################################################
+
+=end private
 
 =head1 Copyright and License
 

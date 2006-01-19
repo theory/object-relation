@@ -743,7 +743,7 @@ to the object hash.
 
 Please note that the C<id> is only used for internal bookkeepping.  The
 objects themselves are unaware of their C<id> and this should not be use
-externally for any purpose.
+externally for B<any> purpose.
 
 =cut
 
@@ -759,7 +759,7 @@ sub _insert {
             if $attr->required && !defined $attr->get($object);
     }
 
-    my $columns = join ', ' => @cols;
+    my $columns      = join ', ' => @cols;
     my $placeholders = join ', ' => ('?') x @cols;
     my $sql = "INSERT INTO $self->{view} ($columns) VALUES ($placeholders)";
     $self->_prepare_method($CACHED);

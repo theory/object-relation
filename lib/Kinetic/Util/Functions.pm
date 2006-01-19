@@ -56,9 +56,6 @@ use Exporter::Tidy
         load_classes
         load_store
     )],
-    build => [qw(
-        load_build_classes
-    )]
 ;
 
 ##############################################################################
@@ -189,36 +186,6 @@ sub load_classes {
     return \@classes;
 }
 
-##############################################################################
-
-=head3 load_build_classes 
-
-  my $classes = load_build_classes($dir);
-  my $classes = load_build_classes($dir, $regex);
-  my $classes = load_build_classes($dir, @regexen);
-
-Same as C<load_classes()>, but returns the class in the order necessary for
-building.  This function should B<not> be called except at build time.
-
-=cut
-
-sub load_build_classes {
-    my ($lib_dir, @skippers) = @_;
-    my $classes = load_classes(@_);
-    # Store classes according to dependency order.
-    my (@sorted, %seen);
-    for my $class (
-        map  { $_->[1] }
-        sort { $a->[0] cmp $b->[0] }
-        map  { [$_->key => $_ ] } @$classes
-    ) {
-        push @sorted, _sort_class(\%seen, $class)
-          unless $seen{$class->key}++;
-    }
-
-    return \@sorted;
-}
-
 =head3 load_store
 
   my $store = load_store($dir);
@@ -237,51 +204,11 @@ sub load_store {
     load_classes( $lib_dir, @skippers );
 }
 
-##############################################################################
-
-=begin private
-
-=head1 Private functions
-
-=head2 Private functions (not exported)
-
-=head3 _sort_class
-
-  my @classes = _sort_class(\%seen, $class);
-
-Returns the Kinetic::Meta::Class::Schema object passed in, as well as any
-other classes that are dependencies of the class. Dependencies are returned
-before the classes that depend on them. This method is called recursively, so
-it's important to pass a hash reference to keep track of all the classes seen
-to prevent duplicates. This function is used by C<load_classes()>.
-
-=cut
-
-sub _sort_class {
-    my ($seen, $class) = @_;
-    my @sorted;
-    # Grab all parent classes.
-    if (my $parent = $class->parent) {
-        push @sorted, _sort_class($seen, $parent)
-          unless $seen->{$parent->key}++;
-    }
-
-    # Grab all referenced classes.
-    for my $attr ($class->table_attributes) {
-        my $ref = $attr->references or next;
-        push @sorted, _sort_class($seen, $ref)
-          unless $seen->{$ref->key}++;
-    }
-    return @sorted, $class;
-}
-
 1;
 
 __END__
 
 ##############################################################################
-
-=end private
 
 =head1 Copyright and License
 

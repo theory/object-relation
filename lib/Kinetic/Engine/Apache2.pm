@@ -24,23 +24,28 @@ use warnings;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use aliased 'Proc::Background';
+use Kinetic::Util::Config qw(APACHE_HTTPD);
+use Kinetic::Util::Exceptions 'throw_fatal';
 
-use Kinetic::Util::Config qw(:all);
-use Kinetic::Util::Language;
-use Kinetic::Util::Exceptions;
-use File::Pid;
-use File::Spec;
+{
+    my %commands = (
+        start   => 'start',
+        stop    => 'stop',
+        restart => 'graceful',
+    );
 
-use Exporter::Tidy manage => [qw( start stop restart )];
-
-use Readonly;
-Readonly my $LOG_DIR  => File::Spec->catfile( KINETIC_ROOT, 'logs' );
-Readonly my $PID_FILE => File::Spec->catfile( $LOG_DIR,     'kinetic.pid' );
-Readonly my $LIB      => File::Spec->catfile( KINETIC_ROOT, 'lib' );
-
-my $LANG = Kinetic::Util::Language->get_handle;
-Kinetic::Util::Context->language($LANG);
+    while ( my ( $arg, $command ) = each %commands ) {
+        no strict 'refs';
+        *$arg = sub {
+            my $class = shift;
+            my @args = ( APACHE_HTTPD, $command );# '-f' . APACHE_HTTPD_CONF
+            system(@args) == 0 or throw_fatal [
+                 "system([_1]) failed: [_2]",
+                 join(', ', @args), $?
+              ];
+        };
+    }
+}
 
 ##############################################################################
 
@@ -62,40 +67,11 @@ This class controls starting, stopping, and restarting the Apache2 engine.
 
 Starts the Apache2 engine in a background process.
 
-=cut
-
-sub start {
-    my $class = shift;
-    my $process = Background->new(
-        APACHE_HTTPD,
-        'start',
-        # '-f' . APACHE_HTTPD_CONF
-    );
-    #unless ( $process->alive ) {
-    #    die _localize( "Could not start process: [_1]", $? );
-    #}
-}
-
-##############################################################################
-
 =head3 stop
 
   Kinetic::Engine::Apache2->stop;
 
 Stops the Apache2 engine.
-
-=cut
-
-sub stop {
-    my $class = shift;
-    my $process = Background->new(
-        APACHE_HTTPD,
-        'stop',
-        # '-f' . APACHE_HTTPD_CONF
-    );
-}
-
-##############################################################################
 
 =head3 restart
 
@@ -104,24 +80,6 @@ sub stop {
 Restarts the Apache2 engine.
 
 =cut
-
-sub restart {
-    my $class = shift;
-    my $process = Background->new(
-        APACHE_HTTPD,
-        'graceful',
-        # '-f' . APACHE_HTTPD_CONF
-    );
-}
-
-sub _localize {
-    return $LANG->maketext(@_) . "\n";
-}
-
-sub _is_running {
-    local $^W;    # force File::Pid to not issue warnings if PID is not found
-    return shift->running;
-}
 
 1;
 

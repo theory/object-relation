@@ -553,6 +553,14 @@ __END__
 
 ##############################################################################
 
+=head1 OBJECT DESTRUCTION
+
+Internally, when an object goes out of scope, C<Kinetic> does a bit of
+housekeeping to clean up some data it tracks.  If you provide your own DESTROY
+method, but sure to the parent destroy method when you're done:
+
+  $self->SUPER::DESTROY;
+
 =head1 See Also
 
 =over 4
