@@ -26,21 +26,55 @@ our $VERSION = version->new('0.0.1');
 
 use CGI;
 CGI->compile;
-use Template;
 
 use Apache2::Const -compile => qw(OK);
 use Apache2::ServerUtil ();
 
+use Kinetic::Util::Config qw(:all);
+
+BEGIN {
+    sub _apache_conf_template {
+        my $self          = shift;
+        my $server_rest   = APACHE_REST;
+        my $server_root   = APACHE_ROOT;
+        my $server_static = APACHE_STATIC;
+        my $kinetic_root  = KINETIC_ROOT;
+
+        # XXX this has no effect :(  Will research
+        return <<"        END_CONF";
+    DocumentRoot $kinetic_root/root
+
+    <Location $server_root>
+        SetHandler          modperl
+        PerlResponseHandler Kinetic::Engine::Apache2::Config
+        Order allow,deny
+        Allow from all
+    </Location>
+
+    # static files
+    <Location $server_static>
+        Order allow,deny
+        Allow from all
+    </Location>
+
+    # REST 
+    <Location $server_rest>
+        SetHandler          modperl
+        PerlResponseHandler Kinetic::Engine::Apache2::Config::rest
+    </Location>
+        END_CONF
+    }
+    my $conf = __PACKAGE__->_apache_conf_template;
+    Apache2::ServerUtil->server->add_config( [ split /\n/, $conf ] );
+}
+
+# XXX Important:  server->add_config must be called *before* the Kinetic app
+# modules are loaded.  For some reason, we're having problems with Class::Meta
+# getting loaded twice, wiping out whatever value Kinetic::Meta->keys returns.
+use Kinetic::Engine; # loads the modules
 use aliased 'Kinetic::UI::Catalyst';
 use aliased 'Kinetic::UI::REST';
 
-#use Kinetic::Engine; # loads the modules
-use Kinetic::Util::Config qw(:all);
-
-my $conf = __PACKAGE__->_apache_conf_template;
-
-# XXX Houston, we have a segfault
-Apache2::ServerUtil->server->add_config( [ split /\n/, $conf ] );
 
 ##############################################################################
 
@@ -120,41 +154,6 @@ sub _get_rest_object {
     return REST->new( base_url => $base_url );
 }
 
-sub _apache_conf_template {
-    my $self = shift;
-    my %data = (
-        server_rest   => APACHE_REST,
-        server_root   => APACHE_ROOT,
-        server_static => APACHE_STATIC,
-    );
-    my $config_template = <<'    END_CONF';
-DocumentRoot /Users/curtispoe/work/svn.kineticode.com/trunk/Kinetic/root
-<Location [% server_root %]>
-    SetHandler          modperl
-    PerlResponseHandler Kinetic::Engine::Apache2::Config
-    Order allow,deny
-    Allow from all
-</Location>
-
-# static files
-<Location [% server_static %]>
-    Order allow,deny
-    Allow from all
-</Location>
-
-# REST 
-<Location [% server_rest %]>
-    SetHandler          modperl
-    PerlResponseHandler Kinetic::Engine::Apache2::Config::rest
-</Location>
-    END_CONF
-
-    my $tt     = Template->new;
-    my $output = '';
-    $tt->process( \$config_template, \%data, \$output )
-      or die $tt->error;
-    return $output;
-}
 
 1;
 

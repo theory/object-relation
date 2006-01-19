@@ -56,41 +56,15 @@ this class.
 =head3 new
 
   my $xml = Kinetic::Format::JSON->new;
-  # or
-  my $xml = Kinetic::Format::JSON->new({
-    pretty => 1,
-    indent => 2,
-  });
 
-Creates and returns a new JSON format  object.  It optionally takes a
-L<Kinetic|Kinetic> object as an argument.  This is equivalent to:
-
-If preferred, a hashref may be passed as an argument.  Keys are:
-
-=over 4
-
-=item * pretty
-
-Whether to use newlines between JSON elements.
-
-=item * indent
-
-Indentation level (in spaces) for nested JSON elements.
-
-=back
-
-As a general rule, you will want to call C<new> without arguments.  This
-ensures a more compact JSON representation, thus saving bandwidth.
+Creates and returns a new JSON format  object. 
 
 =cut
 
 sub _init {
     my ( $class, $arg_for ) = @_;
+    # basically a no-op for JSON, but _init needs to return a ref to bless.
     $arg_for ||= {};
-    #my $json = JSON::Syck->new;
-    #$json->unmapping(1) # XXX
-    #  ;    # return 'null' as undef instead of a JSON::NotString object
-    #$arg_for->{json} = $json;
     return $arg_for;
 }
 

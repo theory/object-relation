@@ -24,7 +24,7 @@ use warnings;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use Kinetic::Util::Config qw(APACHE_HTTPD);
+use Kinetic::Util::Config qw(APACHE_HTTPD APACHE_HTTPD_CONF);
 use Kinetic::Util::Exceptions 'throw_fatal';
 
 {
@@ -33,15 +33,19 @@ use Kinetic::Util::Exceptions 'throw_fatal';
         stop    => 'stop',
         restart => 'graceful',
     );
-
     while ( my ( $arg, $command ) = each %commands ) {
         no strict 'refs';
         *$arg = sub {
             my $class = shift;
-            my @args = ( APACHE_HTTPD, $command );# '-f' . APACHE_HTTPD_CONF
-            system(@args) == 0 or throw_fatal [
-                 "system([_1]) failed: [_2]",
-                 join(', ', @args), $?
+            my @args  = (
+                APACHE_HTTPD,
+                "-k", $command,            # start, stop, or graceful
+                "-f", APACHE_HTTPD_CONF    # httpd.conf
+            );
+            system(@args) == 0
+              or throw_fatal [
+                "system([_1]) failed: [_2]",
+                join( ', ', @args ), $?
               ];
         };
     }

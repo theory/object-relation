@@ -10,7 +10,7 @@ Changes
 conf/kinetic.conf
 etc/ascii-treeview.xsl
 etc/Data-UUID-Tiger.patch
-etc/perltidy.rc
+etc/perltidyrc
 etc/versions.pl
 etc/xslt
 examples/create_test_data.pl
