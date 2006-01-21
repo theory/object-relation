@@ -29,7 +29,7 @@ sub atest_process_conf_files : Test(14) {
 
     file_exists_ok 'conf/kinetic.conf', "We should have a default config file";
 
-    # There should be no blib direcory or t/conf directories.
+    # There should be no blib directory or t/conf directories.
     file_not_exists_ok 'blib/conf/kinetic.conf',
       "We should start with no blib config file";
     file_not_exists_ok 't/conf/kinetic.conf',
@@ -63,11 +63,8 @@ sub atest_process_conf_files : Test(14) {
     my $db_file = catfile $builder->install_base, 'store', 'kinetic.db';
     file_contents_like 'blib/conf/kinetic.conf', qr/file\s*:\s*$db_file/,
       '... The database file name should be set properly';
-    TODO: {
-        local $TODO = 'Need file_contents_unlike()';
-        file_contents_like 'blib/conf/kinetic.conf', qr/\s*[pg]\s*\n/,
-            '... The PostgreSQL section should be commented out';
-    }
+    file_contents_unlike 'blib/conf/kinetic.conf', qr/\s*[pg]\s*\n/,
+        '... The PostgreSQL section should be commented out';
     file_contents_like 'blib/conf/kinetic.conf',
       qr/\n\s*\[store\]\s*\n\s*class\s*:\s*\n/,
       '... The store should point to the correct data store';
@@ -76,11 +73,8 @@ sub atest_process_conf_files : Test(14) {
     my $test_file = catfile $builder->base_dir, 't', 'data', 'kinetic.db';
     file_contents_like 't/conf/kinetic.conf', qr/file\s*:\s*$test_file/,
       '... The test database file name should be set properly';
-    TODO: {
-        local $TODO = 'Need file_contents_unlike()';
-        file_contents_like 'blib/conf/kinetic.conf', qr/\s*[pg]\s*\n/,
-            '... The PostgreSQL section should be commented out';
-    }
+    file_contents_unlike 'blib/conf/kinetic.conf', qr/\s*[pg]\s*\n/,
+        '... The PostgreSQL section should be commented out';
     file_contents_like 't/conf/kinetic.conf',
       qr/\n\s*\[store\]\s*\n\s*class\s*:\s*\n/,
       '... The store should point to the correct data store in the test conf';
