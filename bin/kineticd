@@ -72,7 +72,7 @@ if ($DEBUG) {
 }
 
 my $command = lc shift @ARGV || '';
-unless ( $command =~ /^stop|start|restart$/ ) {
+unless ( $command =~ /^(?:stop|start|restart)$/ ) {
     die localize("You must specify stop, start, or restart");
 }
 
