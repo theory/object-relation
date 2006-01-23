@@ -78,7 +78,7 @@ sub serialize : Test(7) {
         {
             "Key"         : "one",
             "bool"        : 1,
-            "description" : "",
+            "description" : null,
             "name"        : "foo",
             "state"       : 1,
             "uuid"        : "XXX"
@@ -110,7 +110,7 @@ sub serialize : Test(7) {
           "bool"        : 1,
           "name"        : "foo",
           "uuid"        : "XXX",
-          "description" : "",
+          "description" : null,
           "state"       : 1,
           "Key"         : "one"
       },
@@ -118,8 +118,8 @@ sub serialize : Test(7) {
       "name"        : "june17",
       "Key"         : "two",
       "uuid"        : "XXX",
-      "description" : "",
-      "age"         : "",
+      "description" : null,
+      "age"         : null,
       "state"       : 1
     }
     END_EXPECTED
