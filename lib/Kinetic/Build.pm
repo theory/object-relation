@@ -27,6 +27,7 @@ use File::Spec;
 use File::Path  ();
 use File::Copy  ();
 use Config::Std ();
+use Scalar::Util 'blessed';
 
 # Be sure to load exceptions early.
 use Kinetic::Util::Exceptions;
@@ -42,6 +43,12 @@ my %STORES = (
 my %ENGINES = (
     apache => 'Kinetic::Build::Engine::Apache2',
     simple => 'Kinetic::Build::Engine::Catalyst',
+);
+
+# XXX it's possible we'll expand this in the future
+my %CACHES = (
+    memcached => 'Kinetic::Build::Cache::Memcached',
+    file      => 'Kinetic::Build::Cache::File',
 );
 
 =head1 Name
@@ -164,6 +171,7 @@ sub new {
 
     $self->check_store;
     $self->check_engine;
+    $self->check_cache;
     return $self;
 }
 
@@ -184,16 +192,20 @@ sub resume {
     if ( my $conf = $self->notes('build_conf_file') ) {
         $ENV{KINETIC_CONF} ||= $conf;
     }
-    if ( my $store = $self->store ) {
-        my $build_store_class = $STORES{$store}
-          or
-          $self->_fatal_error("I'm not familiar with the $store data store");
-        eval "require $build_store_class" or $self->_fatal_error($@);
-    }
-    if ( my $engine = $self->engine ) {
-        my $build_engine_class = $ENGINES{$engine}
-          or $self->_fatal_error("I'm not familiar with the $engine engine");
-        eval "require $build_engine_class" or $self->_fatal_error($@);
+    $self->_reload( 'store',  \%STORES );
+    $self->_reload( 'engine', \%ENGINES );
+    $self->_reload( 'cache',  \%CACHES );
+    return $self;
+}
+
+sub _reload {
+    my ( $self, $component, $class_for ) = @_;
+    if ( my $component_type = $self->$component ) {
+        my $build_class = $class_for->{$component_type}
+          or $self->_fatal_error(
+             "I'm not familiar with the $component_type $component"
+          );
+        eval "require $build_class" or $self->_fatal_error($@);
     }
     return $self;
 }
@@ -276,6 +288,26 @@ __PACKAGE__->add_property(
     default => 'apache',
     options => [ sort keys %ENGINES ],
     message => 'Which engine should I use?'
+);
+
+=head3 cache
+
+  my $cache = $build->engine;
+  $build->cache($engine);
+
+The type of cache to be used for the application.  Possible values are
+"memcached" and "file".  Defaults to "memcached".
+
+The "file" cache is merely a test cache for easy development.
+
+=cut
+
+__PACKAGE__->add_property(
+    name    => 'cache',
+    label   => 'Kinetic cache',
+    default => 'memcached',
+    options => [ sort keys %CACHES ],
+    message => 'Which session cache should I use?'
 );
 
 ##############################################################################
@@ -610,6 +642,23 @@ sub check_engine {
 
 ##############################################################################
 
+=head3 check_cache
+
+  $build->check_cache;
+
+This method assembles and validates the information necessary to run the
+selected cache.
+
+=cut
+
+sub check_cache {
+    my $self = shift;
+    $self->_check_build_component( 'cache', \%CACHES );
+    return $self;
+}
+
+##############################################################################
+
 =head3 process_conf_files
 
 This method is called during the C<build> action to copy the configuration
@@ -678,11 +727,22 @@ sub process_conf_files {
             if ( $ENGINES{$lc_section} ) {
                 if ( $lc_section eq $self->engine ) {
                     my $engine = $self->notes('build_engine');
-                    $engine->add_engine_config_to_conf( \%conf );
+                    $engine->add_to_config( \%conf );
                 }
                 else {
 
                     # It's a section for a engine we haven't chosen.
+                    delete $conf{$section};
+                }
+            }
+            if ( $CACHES{$lc_section} ) {
+                if ( $lc_section eq $self->cache ) {
+                    my $cache = $self->notes('build_cache');
+                    $cache->add_to_config( \%conf );
+                }
+                else {
+
+                    # It's a section for a cache we haven't chosen.
                     delete $conf{$section};
                 }
             }
@@ -937,14 +997,22 @@ all we do is C<croak()> bold-faced red text.
 sub _fatal_error {
     my $class = shift;
     require Term::ANSIColor;
-    if ( ref $_[0] ) {
-        print STDERR Term::ANSIColor::BOLD(), Term::ANSIColor::RED(),
-          shift->as_string, Term::ANSIColor::RESET();
+    if ( blessed($_[0]) && $_[0]->can('as_string') ) {
+        my $error = shift;
+        print STDERR $class->_bold_red($error->as_string);
         exit 1;
     }
     require Carp;
-    Carp::croak Term::ANSIColor::BOLD(), Term::ANSIColor::RED(), @_,
-      Term::ANSIColor::RESET();
+    Carp::croak $class->_bold_red(@_);
+}
+
+sub _bold_red {
+    my $proto = shift;
+    return
+        Term::ANSIColor::BOLD(),
+        Term::ANSIColor::RED(),
+        @_,
+        Term::ANSIColor::RESET();
 }
 
 ##############################################################################

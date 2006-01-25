@@ -6,7 +6,8 @@ use warnings;
 use Cwd;
 use Kinetic::Meta;
 use Kinetic::Util::Config qw(KINETIC_ROOT);
-use Kinetic::UI::Catalyst::Log;
+use aliased 'Kinetic::UI::Catalyst::Log';
+use aliased 'Kinetic::UI::Catalyst::Cache';
 use File::Spec::Functions qw(catdir);
 
 use version;
@@ -19,26 +20,28 @@ our $VERSION = version->new('0.0.1');
 # Static::Simple: will serve static files from the applications root directory
 #
 
-my @DEBUG;
+my ($cache, @IMPORT);
 
 BEGIN {
     unless ( $ENV{HARNESS_ACTIVE} ) {
 
         # Don't display debugging information when running tests
         # We'll eventually want to have finer-grained control over this
-        @DEBUG = '-Debug';
+        @IMPORT = '-Debug';
     }
+    push @IMPORT => qw/
+        Authentication
+        Authentication::Store::Minimal
+        Authentication::Credential::Password
+        Session
+        Session::State::Cookie
+        Static::Simple
+    /;
+    $cache = Cache->new;
+    push @IMPORT, $cache->session_class;
 }
 
-use Catalyst @DEBUG, qw/
-  Authentication
-  Authentication::Store::Minimal
-  Authentication::Credential::Password
-  Session
-  Session::Store::File
-  Session::State::Cookie
-  Static::Simple
-  /;
+use Catalyst @IMPORT;
 
 __PACKAGE__->config(
     name    => 'Kinetic Catalyst Interface',
@@ -55,10 +58,11 @@ __PACKAGE__->config(
             ovid   => { password => 'divo' },
             theory => { password => 'theory' }
         }
-    }
+    },
+    $cache->config,
 );
 
-__PACKAGE__->log(Kinetic::UI::Catalyst::Log->new);
+__PACKAGE__->log(Log->new);
 __PACKAGE__->setup;
 
 =head1 NAME

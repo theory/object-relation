@@ -1,6 +1,6 @@
-package Kinetic::Build::Engine;
+package Kinetic::Build::Cache;
 
-# $Id: Store.pm 2488 2006-01-04 05:17:14Z theory $
+# $Id: SQLite.pm 2493 2006-01-06 01:58:37Z curtis $
 
 # CONTRIBUTION SUBMISSION POLICY:
 #
@@ -25,37 +25,18 @@ our $VERSION = version->new('0.0.1');
 
 =head1 Name
 
-Kinetic::Build::Engine - Kinetic engine builder
+Kinetic::Build::Cache - Kinetic cache builder
 
 =head1 Synopsis
 
-  use Kinetic::Build::Engine;
-  my $kbe = Kinetic::Build::Engine->new;
-  $kbe->build;
+This module merely collects the basic information regarding the addresses to
+use for C<memcached>.
 
 =head1 Description
 
-This is the base class for building Kinetic engines.
+XXX
 
 =cut
-
-##############################################################################
-# Class Methods.
-##############################################################################
-
-=head1 Class Interface
-
-=head2 Class Methods
-
-=head3 engine_class
-
-  my $engine_class = Kinetic::Build::Engine->engine_class;
-
-Returns the engine class necessary to run the engine.
-
-=cut
-
-sub engine_class { die "engine_class() must be overridden in the subclass" }
 
 ##############################################################################
 # Constructors.
@@ -65,14 +46,12 @@ sub engine_class { die "engine_class() must be overridden in the subclass" }
 
 =head3 new
 
-  my $kbs = Kinetic::Build::Engine->new;
-  my $kbs = Kinetic::Build::Engine->new($builder);
+  my $kbs = Kinetic::Build::Cache->new;
+  my $kbs = Kinetic::Build::Cache->new($builder);
 
-Creates and returns a new Engine builder object. Pass in the Kinetic::Build
-object being used to validate the engine. If no Kinetic::Build object is
+Creates and returns a new Cache builder object. Pass in the Kinetic::Build
+object being used to validate the cache. If no Kinetic::Build object is
 passed, one will be instantiated by a call to C<< Kinetic::Build->resume >>.
-This is a factory constructor; it will return the subclass appropriate to the
-currently selected store class as configured in F<kinetic.conf>.
 
 =cut
 
@@ -90,6 +69,14 @@ sub new {
 }
 
 ##############################################################################
+# Class Methods.
+##############################################################################
+
+=head1 Instance Interface
+
+=head2 Instance Methods
+
+##############################################################################
 
 =head3 builder
 
@@ -103,25 +90,6 @@ sub builder { $private{shift()}->{builder} ||= Kinetic::Build->resume }
 
 ##############################################################################
 
-=head3 add_to_config
-
-  $engine->add_to_config(\%conf);
-
-Takes the config hash from C<Kinetic::Build> and adds the necessary
-configuration information to run the selected engine.
-
-=cut
-
-sub add_to_config {
-    my ( $self, $conf ) = @_;
-    my @conf = $self->conf_sections;
-    @{ $conf->{ $self->conf_engine } }{@conf} = @{$self}{@conf};
-    $conf->{engine} = { class => $self->engine_class };
-    return $self;
-}
-
-##############################################################################
-
 =head3 validate
 
   $kbs->validate;
@@ -132,15 +100,25 @@ This method will validate the engine.
 
 sub validate { die "validate() must be overridden in a subclass" }
 
-sub DESTROY {
-    my $self = shift;
-    delete $private{$self};
+##############################################################################
+
+=head3 add_to_config
+
+  $cache->add_to_config(\%conf);
+
+Takes the config hash from C<Kinetic::Build> and adds the necessary
+configuration information to use the selected session cache.
+
+=cut
+
+sub add_to_config {
+    my ( $self, $conf ) = @_;
+    $conf->{cache} = { class => $self->cache_class };
+    return $self;
 }
 
 1;
 __END__
-
-##############################################################################
 
 =head1 Copyright and License
 
@@ -158,3 +136,4 @@ A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
 details.
 
 =cut
+

@@ -12,7 +12,7 @@ my %catalyst => (
     'Catalyst::Plugin::Authentication::Store::Minimal'       => 0,
     'Catalyst::Plugin::Authentication::Credential::Password' => 0,
     'Catalyst::Plugin::Session'                              => 0,
-    'Catalyst::Plugin::Session::Store::File'                 => 0,
+    'Catalyst::Plugin::Session::Store::Memcached'            => 0.02,
     'Catalyst::Plugin::Session::State::Cookie'               => 0,
     'Catalyst::Plugin::Static::Simple'                       => 0,
 );

@@ -395,6 +395,11 @@ sub del_actions {
     return $self;
 }
 
+sub DESTROY {
+    my $self = shift;
+    delete $private{$self};
+}
+
 1;
 __END__
 

@@ -95,27 +95,6 @@ sub validate {
     $self->_set_httpd;
     $self->_set_httpd_conf;
 
-    $self->{port} = $builder->args('port')
-      || $builder->get_reply(
-        name    => 'port',
-        message => 'Please enter the port to run the engine on',
-        label   => 'Server port',
-        default => 80
-      );
-    $self->{user} = $builder->args('user')
-      || $builder->get_reply(
-        name    => 'user',
-        message => 'Please enter the user to run the engine as',
-        label   => 'Server user',
-        default => 'nobody'
-      );
-    $self->{group} = $builder->args('group')
-      || $builder->get_reply(
-        name    => 'group',
-        message => 'Please enter the group to run the engine as',
-        label   => 'Server group',
-        default => 'nobody'
-      );
     $self->{root} = $builder->args('root')
       || $builder->get_reply(
         name    => 'root',
