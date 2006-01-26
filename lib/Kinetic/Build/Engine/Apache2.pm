@@ -41,13 +41,7 @@ options it adds are:
 
 =over
 
-=item group
-
 =item httpd
-
-=item port
-
-=item user
 
 =item rest_root
 
@@ -145,14 +139,11 @@ C<conf_engine> section.
 
 sub conf_sections {
     qw/
-      group
       httpd
       httpd_conf
-      port
       rest
       root
       static
-      user
       /;
 }
 

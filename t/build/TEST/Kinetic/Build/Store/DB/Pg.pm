@@ -671,6 +671,7 @@ sub test_validate_super_user : Test(33) {
     $mb->mock(check_manifest => sub { return });
     $mb->mock(check_store => 1);
     $mb->mock(engine => 'simple');
+    $mb->mock(cache => 'memcached');
     my $builder = $self->new_builder;
     $self->{builder} = $builder;
     $mb->mock(resume => $builder);

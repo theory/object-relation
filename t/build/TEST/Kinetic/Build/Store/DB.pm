@@ -187,13 +187,20 @@ sub test_rules : Test(27) {
 
 sub new_builder {
     my $self = shift;
-    return $self->{builder} = Build->new(
-        dist_name       => 'Testing::Kinetic',
-        dist_version    => '1.0',
-        quiet           => 1,
-        accept_defaults => 1,
-        @_,
-    );
+    my $builder = eval { 
+        $self->{builder} = Build->new(
+            dist_name       => 'Testing::Kinetic',
+            dist_version    => '1.0',
+            quiet           => 1,
+            accept_defaults => 1,
+            @_,
+        )
+    };
+    if (my $error = $@) {
+         require Carp;
+         Carp::confess($error);
+    }
+    return $builder;
 }
 
 1;

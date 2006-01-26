@@ -39,7 +39,7 @@ sub test_rules : Test(37) {
 
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
-    $mb->mock( check_manifest => sub {return} );
+    $mb->mock( check_manifest  => sub {return} );
     my $builder = $self->new_builder;
     $self->{builder} = $builder;
     $mb->mock( resume           => $builder );
@@ -52,10 +52,7 @@ sub test_rules : Test(37) {
          rest        => '/kinetic/rest',
          static      => '/',
          httpd       => '/some/path/to/httpd',
-         port        => 80,
          conf        => '/usr/local/kinetic/conf/httpd.conf',
-         group       => 'nobody',
-         user        => 'nobody',
          root        => '/kinetic',
          server_name => 'localhost',
     );

@@ -290,9 +290,11 @@ __PACKAGE__->add_property(
     message => 'Which engine should I use?'
 );
 
+##############################################################################
+
 =head3 cache
 
-  my $cache = $build->engine;
+  my $cache = $build->cache;
   $build->cache($engine);
 
 The type of cache to be used for the application.  Possible values are
@@ -748,7 +750,6 @@ sub process_conf_files {
             }
         }
 
-        delete $conf{''}; # XXX where is this coming from?
         # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
         Config::Std::Hash::write_config(%conf);
     }
