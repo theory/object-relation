@@ -207,20 +207,12 @@ sub test_props : Test(13) {
         'Which engine should I use?',
         ' [1]:',
         ' ',
+        "  1> file\n  2> memcached\n",
         'Which session cache should I use?',
         ' [2]:',
         ' ',
         'What password should be used for the default account?',
         ' [change me now!]:',
-        ' ',
-        'Please enter the port to run the engine on',
-        ' [80]:',
-        ' ',
-        'Please enter the user to run the engine as',
-        ' [nobody]:',
-        ' ',
-        'Please enter the group to run the engine as',
-        ' [nobody]:',
         ' ',
         'Please enter the kinetic app root path',
         ' [/kinetic]:',
@@ -333,14 +325,12 @@ sub test_get_reply : Test(49) {
     my $expected = <<'    END_INFO';
 Data store: pg
 Kinetic engine: apache
+Kinetic cache: memcached
 Administrative User password: change me now!
 Looking for pg_config
 path to pg_config: /usr/local/pgsql/bin/pg_config
 Server httpd: /usr/local/apache/bin/httpd
 Server httpd_conf: /usr/local/apache/conf/httpd.conf
-Server port: 80
-Server user: nobody
-Server group: nobody
 Server kinetic_root: /kinetic
 Server kinetic_rest: /kinetic/rest
 Server kinetic_static: /

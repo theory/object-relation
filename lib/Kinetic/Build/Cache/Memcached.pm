@@ -48,8 +48,8 @@ See L<Kinetic::Build::Cache|Kinetic::Build::Cache>.
 
 =head3 new
 
-  my $kbs = Kinetic::Build::Cache->new;
-  my $kbs = Kinetic::Build::Cache->new($builder);
+  my $kbc = Kinetic::Build::Cache->new;
+  my $kbc = Kinetic::Build::Cache->new($builder);
 
 Creates and returns a new Cache builder object. Pass in the Kinetic::Build
 object being used to validate the cache. If no Kinetic::Build object is
@@ -69,7 +69,7 @@ passed, one will be instantiated by a call to C<< Kinetic::Build->resume >>.
 
 =head3 validate
 
-  Kinetic::Build::Cache->validate;
+  $kbc->validate;
 
 This method collects the various addresses and ports on which C<memcached>
 runs.
@@ -120,6 +120,16 @@ sub validate {
     $self->{memcached} = [ keys %memcached ];
     return $self;
 }
+
+##############################################################################
+
+=head3 add_to_config
+
+ $kbc->add_to_conf(\%config); 
+
+Adds the cache configuration information to the build config hash.
+
+=cut
 
 sub add_to_config {
     my ( $self, $conf ) = @_;

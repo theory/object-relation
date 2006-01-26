@@ -17,26 +17,25 @@ Kinetic::UI::Catalyst::Cache::File - File based session configuration
 
 =head1 DESCRIPTION
 
-Returns the session file configuration for Catalyst.  This is not a Catalyst
-component.  This is a helper module called once at compile time.
+See L<Kinetic::UI::Catalyst::Cache|Kinetic::UI::Catalyst::Cache>.
 
-=head1 METHODS
+=head1 OVERRIDDEN METHODS
 
-=head2 config
+This methods are described in 
+L<Kinetic::UI::Catalyst::Cache|Kinetic::UI::Catalyst::Cache>.  The are listed
+her to shut up the pod coverage tests.
+
+=over 4
+
+=item * C<config>
+
+=item * C<session_class>
+
+=back
 
 =cut
 
 sub config { return () }
-
-##############################################################################
-
-=head3 session_class
-
-  my $session_class = Kinetic::UI::Catalyst::Cache::File->session_class;
-
-Returns the Catalyst plugin class which handles sessions.
-
-=cut
 
 sub session_class { 'Session::Store::File' }
 

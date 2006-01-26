@@ -15,7 +15,9 @@ Kinetic::UI::Catalyst::Cache - Catalyst caching for the Kinetic Platform
 
 =head1 SYNOPSIS
 
-  my $cache = Kinetic::UI::Catalyst::Cache->new;
+  my $cache         = Kinetic::UI::Catalyst::Cache->new;
+  my $session_class = $cache->session_class;
+  my $config        = $cache->config;
 
 =head1 DESCRIPTION
 
@@ -24,6 +26,11 @@ Returns a cache configuration object for managing sessions in Catalyst.
 =head1 METHODS
 
 =head2 new
+
+  my $cache = Kinetic::UI::Catalyst::Cache->new;
+
+Returns a new cache object for whatever caching style was selected by the
+user.
 
 =cut
 
@@ -39,6 +46,17 @@ sub new {
     bless {}, $cache_class;
 }
 
+##############################################################################
+
+=head3 config
+
+  my $config = $cache->config;
+
+Returns the configuration information needed for the
+L<Kinetic::UI::Catalyst|Kinetic::UI::Catalyst> configuration.
+
+=cut
+
 sub config {
     throw_unimplemented [
         '"[_1]" must be overridden in a subclass',
@@ -52,7 +70,7 @@ sub config {
 
   my $session_class = $cache->session_class;
 
-Returns the Catalyst plugin class which handles sessions.
+Returns the name of the Catalyst plugin class which handles sessions.
 
 =cut
 

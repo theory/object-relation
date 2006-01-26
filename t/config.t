@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Kinetic::Build::Test;
 #use Test::More qw/no_plan/;
-use Test::More tests => 18;
+use Test::More tests => 16;
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Build::Test (auth => { protocol => [qw(Default LDAP)] });
 use File::Spec;
@@ -35,7 +35,6 @@ ALL: { # 3 tests.
     use Kinetic::Util::Config qw(:all);
     use Test::More;
     use Cwd 'getcwd';
-    ok(APACHE_USER, "Got apache_user" );
     ok(STORE_CLASS, "Got store_class" );
     ok($stores{&STORE_CLASS}, "Got store_class value" );
     is(KINETIC_ROOT, getcwd(), 'Got the correct kinetic_root');
@@ -45,7 +44,6 @@ APACHE: { # 2 tests.
     package Kinetic::Util::Config::TestApache;
     use Kinetic::Util::Config qw(:apache);
     use Test::More;
-    ok(APACHE_USER, "Got apache_user" );
     eval "STORE_CLASS";
     ok($@, "Got error trying to access store_class");
 }

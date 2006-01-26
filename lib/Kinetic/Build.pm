@@ -748,6 +748,7 @@ sub process_conf_files {
             }
         }
 
+        delete $conf{''}; # XXX where is this coming from?
         # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
         Config::Std::Hash::write_config(%conf);
     }

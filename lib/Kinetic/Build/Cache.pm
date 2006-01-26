@@ -104,10 +104,9 @@ sub validate { die "validate() must be overridden in a subclass" }
 
 =head3 add_to_config
 
-  $cache->add_to_config(\%conf);
+ $kbc->add_to_conf(\%config); 
 
-Takes the config hash from C<Kinetic::Build> and adds the necessary
-configuration information to use the selected session cache.
+Adds the cache configuration information to the build config hash.
 
 =cut
 
