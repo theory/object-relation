@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Kinetic::Build::Test;
 #use Test::More qw/no_plan/;
-use Test::More tests => 16;
+use Test::More tests => 22;
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Build::Test (auth => { protocol => [qw(Default LDAP)] });
 use File::Spec;
@@ -40,12 +40,31 @@ ALL: { # 3 tests.
     is(KINETIC_ROOT, getcwd(), 'Got the correct kinetic_root');
 }
 
-APACHE: { # 2 tests.
+APACHE: { # 1 tests.
     package Kinetic::Util::Config::TestApache;
-    use Kinetic::Util::Config qw(:apache);
     use Test::More;
-    eval "STORE_CLASS";
-    ok($@, "Got error trying to access store_class");
+    eval "use Kinetic::Util::Config qw(:apache)";
+    SKIP: {
+        skip 'User did not choose Apache2 engine', 3, if $@;
+        eval "STORE_CLASS";
+        ok($@, "Got error trying to access store_class");
+        ok(exists &APACHE_HTTPD, 'httpd exists');
+        ok(exists &APACHE_HTTPD_CONF, 'httpd_conf exists');
+    }
+}
+
+SIMPLE: { # 3 tests.
+    package Kinetic::Util::Config::TestSimple;
+    use Test::More;
+    eval "use Kinetic::Util::Config qw(:simple)";
+    SKIP: {
+        skip 'User did not choose simple engine', 4, if $@;
+        eval "STORE_CLASS";
+        ok($@, "Got error trying to access store_class");
+        ok(exists &SIMPLE_PORT,    'simple port exists');
+        ok(exists &SIMPLE_HOST,    'simple host exists');
+        ok(exists &SIMPLE_RESTART, 'simple restart exists');
+    }
 }
 
 STORE: { # 3 tests.

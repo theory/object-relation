@@ -307,7 +307,7 @@ The "file" cache is merely a test cache for easy development.
 __PACKAGE__->add_property(
     name    => 'cache',
     label   => 'Kinetic cache',
-    default => 'memcached',
+    default => 'file',
     options => [ sort keys %CACHES ],
     message => 'Which session cache should I use?'
 );

@@ -97,7 +97,6 @@ sub validate {
     );
     my %port = (
         name    => 'port',
-        message => 'Please enter the port for this address',
         label   => 'memcached port',
         default => '11211',
     );

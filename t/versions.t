@@ -30,8 +30,8 @@ SKIP: {
     foreach my $module (@modules) {
         eval "require $module";
         if ( my $error = $@ ) {
-            if ( $error =~ /Unknown tag/ )
-            {    # we probably have the wrong db class
+            if ( $error =~ /Unknown (?:tag|symbol)/ )
+            {    # we probably have the wrong db or cache class
               SKIP: {
                     skip "Wrong data store for $module", 1;
                 }

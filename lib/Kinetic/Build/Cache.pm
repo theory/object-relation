@@ -102,6 +102,18 @@ sub validate { die "validate() must be overridden in a subclass" }
 
 ##############################################################################
 
+=head3 cache_class
+
+  $kbs->cache_class;
+
+This method returns the engine class responsible for managing the cache.
+
+=cut
+
+sub cache_class { die "cache_class() must be overridden in a subclass" }
+
+##############################################################################
+
 =head3 add_to_config
 
  $kbc->add_to_conf(\%config); 

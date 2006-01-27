@@ -209,7 +209,7 @@ sub test_props : Test(13) {
         ' ',
         "  1> file\n  2> memcached\n",
         'Which session cache should I use?',
-        ' [2]:',
+        ' [1]:',
         ' ',
         'What password should be used for the default account?',
         ' [change me now!]:',
@@ -325,7 +325,7 @@ sub test_get_reply : Test(49) {
     my $expected = <<'    END_INFO';
 Data store: pg
 Kinetic engine: apache
-Kinetic cache: memcached
+Kinetic cache: file
 Administrative User password: change me now!
 Looking for pg_config
 path to pg_config: /usr/local/pgsql/bin/pg_config
