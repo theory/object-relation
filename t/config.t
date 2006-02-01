@@ -40,7 +40,7 @@ ALL: { # 3 tests.
     is(KINETIC_ROOT, getcwd(), 'Got the correct kinetic_root');
 }
 
-APACHE: { # 1 tests.
+APACHE: { # 3 tests.
     package Kinetic::Util::Config::TestApache;
     use Test::More;
     eval "use Kinetic::Util::Config qw(:apache)";
@@ -53,7 +53,7 @@ APACHE: { # 1 tests.
     }
 }
 
-SIMPLE: { # 3 tests.
+SIMPLE: { # 4 tests.
     package Kinetic::Util::Config::TestSimple;
     use Test::More;
     eval "use Kinetic::Util::Config qw(:simple)";

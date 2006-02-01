@@ -6,7 +6,6 @@ our @REQUIRES = qw(desired_attributes);
 
 use strict;
 use warnings;
-use Array::AsHash;
 use HTML::Entities qw(encode_entities);
 use Kinetic::Util::Constants qw(:rest);    # form params
 
@@ -141,37 +140,5 @@ sub url {
     }
     return $test->domain . $test->path;
 }
-
-##############################################################################
-
-=head3 normalize_search_args
-
-  $args = $test->normalize_search_args($args);
-
-This method, taking an C<Array::AsHash> object, will clone the object and set
-the args in the method expected by the REST dispatch class for searches.
-
-=cut
-
-sub normalize_search_args {
-    my ( $test, $args ) = @_;
-    $args = defined $args ? $args->clone : Array::AsHash->new;
-    $args->default( $SEARCH_TYPE, '', $LIMIT_PARAM, 20, $OFFSET_PARAM, 0, );
-    if ( $args->exists($ORDER_BY_PARAM) ) {
-        $args->default( $SORT_PARAM, 'ASC' );
-    }
-    $args = Array::AsHash->new(
-        {
-            array => [
-                $args->get_pairs(
-                    $SEARCH_TYPE,    $LIMIT_PARAM, $OFFSET_PARAM,
-                    $ORDER_BY_PARAM, $SORT_PARAM
-                )
-            ]
-        }
-    );
-    return $args;
-}
-
 
 1;

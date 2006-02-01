@@ -20,6 +20,7 @@ package Kinetic::Build::Cache::Memcached;
 
 use strict;
 
+use Regexp::Common qw/net/;
 use version;
 our $VERSION = version->new('0.0.1');
 
@@ -71,8 +72,8 @@ passed, one will be instantiated by a call to C<< Kinetic::Build->resume >>.
 
   $kbc->validate;
 
-This method collects the various addresses and ports on which C<memcached>
-runs.
+This method collects the various address/port combinations on which
+C<memcached> runs.
 
 =cut
 
@@ -80,41 +81,42 @@ sub validate {
     my $self    = shift;
     my $builder = $self->builder;
 
-    if ($builder->accept_defaults) {
+    if ( $builder->accept_defaults ) {
 
         # If we don't add this, the build will hang.
         # If they didn't accept defaults, don't assume the IP address of a
         # memcached server because there could be multiple servers and we want
         # them to be able to choose.
-        $self->{memcached} = [ '127.0.0.1:11211' ];
+        $self->{memcached} = ['127.0.0.1:11211'];
         return $self;
     }
 
     my %address = (
         name    => 'address',
-        message => 'Please enter an IP address for memcached',
-        label   => 'memcached address',
-    );
-    my %port = (
-        name    => 'port',
-        label   => 'memcached port',
-        default => '11211',
+        message =>
+          'Please enter an IP/port in form "$IP:$port" for memcached',
+        label => 'memcached address',
     );
 
     my %memcached;
     while (1) {
         my $address = $builder->get_reply(%address);
-        unless ($address) {
+        if ($address) {
+            unless ( $address =~ /^$RE{net}{IPv4}:\d+$/ ) {
+                print STDERR $builder->_bold_red(
+                    qq{memcached address must be in the form "\$ip_address:\$port"\n}
+                );
+                next;
+            }
+        }
+        else {
             last if keys %memcached;    # we have at least one server
             print STDERR $builder->_bold_red(
-              "You must enter at least one IP address of a memcached server\n"
+                "You must enter at least one IP address of a memcached server\n"
             );
             next;
         }
-        $port{message} = "Please enter the port for $address";
-        my $port         = $builder->get_reply(%port);
-        my $address_port = "${address}:$port";
-        $memcached{$address_port} = 1;
+        $memcached{$address} = 1;
     }
     $self->{memcached} = [ keys %memcached ];
     return $self;
@@ -147,7 +149,7 @@ Returns the caching class used by the servers.
 
 =cut
 
-sub cache_class { 'Kinetic::UI::Catalyst::Cache::Memcached' }
+sub cache_class {'Kinetic::UI::Catalyst::Cache::Memcached'}
 
 1;
 __END__

@@ -28,15 +28,12 @@ my $build = Kinetic::Build->new(
     schema_skipper       => $skipper,
     requires             => {
         'aliased'                    => 0.11,
-        'Array::AsHash'              => 0.12,
         %catalyst,
         'Class::BuildMethods'        => 0.10,
-        'Class::Delegator'           => 0.04,
         'Class::Meta'                => 0.52,
         'Class::Meta::Declare'       => 0.02,
         'Clone'                      => 0.15,
         'Config::Std'                => '0.0.2',
-        'Data::Pageset'              => 1.01,
         'DateTime'                   => 0.30,
         'DateTime::Format::Strptime' => 1.0601,
         'DateTime::Incomplete'       => 0.02,
@@ -58,27 +55,21 @@ my $build = Kinetic::Build->new(
         'MIME::Base64'               => 0,
         'MIME::Types'                => 1.14,
         'OSSP::uuid'                 => 0,      # XXX Not on CPAN!
-        'Params::Validate'           => 0.78,
         'Proc::Background'           => 1.08,
         'Readonly'                   => 0,
         'Regexp::Common'             => 2.119,
         'version'                    => 0.420,
         'Widget::Meta'               => 0.03,
         'WWW::REST'                  => 0.01,
-        'XML::Genx::Simple'          => 0.14,
-        'XML::LibXML'                => 1.58,
-        'XML::LibXSLT'               => 1.57,
         'XML::Simple'                => 2.13,
     },
     build_requires       => {
-        'Apache::FakeRequest'       => 1.00,
         'App::Info'                 => 0.42,
         'CGI'                       => 3.11,
         'Class::Trait'              => 0.11,
         'FSA::Rules'                => 0.21,
         'HTTP::Server::Simple'      => 0.13,
         'Module::Build'             => 0.26,
-        'Pod::Man'                  => 2.04,    # Supports =encoding
         'Test::Class'               => 0.10,
         'Test::Differences'         => 0.47,
         'Test::Exception'           => 0.21,
@@ -91,10 +82,7 @@ my $build = Kinetic::Build->new(
         'Test::Output'              => 0.07,
         'Test::Pod'                 => 1.06,    # recommended, not required.
         'Test::Pod::Coverage'       => 0.08,    # recommended, not required.
-        'Test::WWW::Mechanize'      => 1.06,
         'Test::XML'                 => 0.07,
-        'WWW::Mechanize'            => 1.16,    # force the faster Mechanize
-        'XML::XPath'                => 1.13,
     },
 );
 
