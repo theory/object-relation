@@ -12,6 +12,7 @@ use Data::Dumper;
 my $CLASS;
 
 BEGIN {
+    use lib 'lib';
     $CLASS = 'Kinetic::UI::Email::Workflow::Lexer';
     use_ok $CLASS, or die;
 }
@@ -20,70 +21,223 @@ can_ok $CLASS, 'new';
 ok my $email = $CLASS->new, '... and calling it should succeed';
 isa_ok $email, $CLASS, '... and the object it returns';
 
+#
+# Incomplete stages
+#
+
 my $text = <<'END_EMAIL';
-    [ ] Forward to Gayle  {33333}
+    [ ] {Assign Writer(s)}
 END_EMAIL
 
 can_ok $email, 'lex';
 ok my $result = $email->lex($text),
-  '... and lexing valid data should succeed';
+  '... and lexing an incomplete stage should succeed';
 my $expected = [
-    [ LBRACKET => '[' ],
-    [ RBRACKET => ']' ],
-    [ WORD     => 'Forward' ],
-    [ WORD     => 'to' ],
-    [ WORD     => 'Gayle' ],
-    [ JOBID    => '33333' ]
+    [ PERFORM => 0 ],
+    [ ACTION  => 'complete' ],
+    [ STAGE   => 'Assign Writer(s)' ],
 ];
-
-is_deeply $result, $expected, '... and it should return the correct tokens';
-
-$text = <<'END_EMAIL';
-    [ ] "Forward to Gayle"  {33333}
-END_EMAIL
-ok $result = $email->lex($text),
-  'We should be able to lex descriptions in quotes';
-$expected = [
-    [ LBRACKET => '[' ],
-    [ RBRACKET => ']' ],
-    [ WORD     => '"Forward to Gayle"' ],
-    [ JOBID    => '33333' ]
-];
-
-is_deeply $result, $expected, '... and it should return the correct tokens';
-
-$text = <<'END_EMAIL';
-    [ ] "Forward [some stuff] to Gayle"  {33333}
-END_EMAIL
-$result   = $email->lex($text);
-$expected = [
-    [ LBRACKET => '[' ],
-    [ RBRACKET => ']' ],
-    [ WORD     => '"Forward [some stuff] to Gayle"' ],
-    [ JOBID    => '33333' ]
-];
-
 is_deeply $result, $expected,
-  '... even if we have brackets in the description';
+  '... and we should be able to lex a basic stage';
+
+#
+# Complete stages.  This is implicitly equivalent to the command:
+#   [X] Complete {Assign Writer(s)}
+# However, there will be no need for "Complete" in the email
+#
 
 $text = <<'END_EMAIL';
-    [ ] Review document 
-         {22222}
-    [X] "Forward [some stuff] to Gayle"  {33333}
+    [X ] {Assign Writer(s)}
 END_EMAIL
 
-$expected = [
-    [ LBRACKET => '[' ],
-    [ RBRACKET => ']' ],
-    [ WORD     => 'Review' ],
-    [ WORD     => 'document' ],
-    [ JOBID    => '22222' ],
-    [ LBRACKET => '[' ],
-    [ WORD     => 'X' ],
-    [ RBRACKET => ']' ],
-    [ WORD     => '"Forward [some stuff] to Gayle"' ],
-    [ JOBID    => '33333' ],
-];
+ok $result = $email->lex($text), 'Lexing a complete stage should succeed';
 
-$result = $email->lex($text);
-is_deeply $result, $expected, 'We should be able to lex multiple tasks';
+$expected = [
+    [ PERFORM => 1 ],
+    [ ACTION  => 'complete' ],
+    [ STAGE   => 'Assign Writer(s)' ],
+];
+is_deeply $result, $expected, '... and return the correct results';
+
+$text = <<'END_EMAIL';
+    [ done ] {Assign Writer(s)}
+END_EMAIL
+
+ok $result = $email->lex($text), 'Lexing a complete stage should succeed';
+
+$expected = [
+    [ PERFORM => 1 ],
+    [ ACTION  => 'complete' ],
+    [ STAGE   => 'Assign Writer(s)' ],
+];
+is_deeply $result, $expected, '... and return the correct results';
+
+#
+# Incomplete commands
+#
+
+$text = <<'END_EMAIL';
+    [ ] Return { Assign Writer(s) }
+END_EMAIL
+
+ok $result = $email->lex($text),
+  'Lexing an incomplete command should succeed';
+
+$expected = [
+    [ PERFORM => 0 ],
+    [ ACTION  => 'return' ],
+    [ STAGE   => 'Assign Writer(s)' ],
+];
+is_deeply $result, $expected, '... and return the correct results';
+
+#
+# Complete commands
+#
+
+$text = <<'END_EMAIL';
+    [ . ] Return { Assign Writer(s) }
+END_EMAIL
+
+ok $result = $email->lex($text), 'Lexing a complete command should succeed';
+
+$expected = [
+    [ PERFORM => 1 ],
+    [ ACTION  => 'return' ],
+    [ STAGE   => 'Assign Writer(s)' ],
+];
+is_deeply $result, $expected, '... and return the correct results';
+
+#
+# Multiple commands
+#
+
+# Conflicts such as "complete $stage" and "return $stage" will be handled in
+# the parser.
+
+$text = <<'END_EMAIL';
+    [ $] {Assign Writer(s)}
+
+    [  ] Return { Assign Writer(s) }
+
+    [ X] Verbose email
+    [X] Help
+END_EMAIL
+
+ok $result = $email->lex($text), 'Lexing a complete command should succeed';
+
+$expected = [
+    [ PERFORM => 1 ],
+    [ ACTION  => 'complete' ],
+    [ STAGE   => 'Assign Writer(s)' ],
+    [ PERFORM => 0 ],
+    [ ACTION  => 'return' ],
+    [ STAGE   => 'Assign Writer(s)' ],
+    [ PERFORM => 1 ],
+    [ ACTION  => 'verbose email' ],
+    [ PERFORM => 1 ],
+    [ ACTION  => 'help' ],
+];
+is_deeply $result, $expected, '... and return the correct results';
+
+# Conflicts such as "complete $stage" and "return $stage" will be handled in
+# the parser.
+
+$text = <<'END_EMAIL';
+>    [ $] {Assign Writer(s)}
+>
+>    [  ] Return { Assign Writer(s) }
+>
+>    [ X] Verbose email
+>    [X] Help
+END_EMAIL
+
+ok $result = $email->lex($text),
+  'Lexing a a normal email body should succeed';
+
+$expected = [
+    [ PERFORM => 1 ],
+    [ ACTION  => 'complete' ],
+    [ STAGE   => 'Assign Writer(s)' ],
+    [ PERFORM => 0 ],
+    [ ACTION  => 'return' ],
+    [ STAGE   => 'Assign Writer(s)' ],
+    [ PERFORM => 1 ],
+    [ ACTION  => 'verbose email' ],
+    [ PERFORM => 1 ],
+    [ ACTION  => 'help' ],
+];
+is_deeply $result, $expected, '... and return the correct results';
+
+$text = <<'END_EMAIL';
+> chromatic has finished "Assign Writer(s)".  You've been assigned to "Write
+> Story".
+> 
+> This task is due on Tuesday, February 14, 2005.  When you have completed this
+> task, please check the "Write Story" box and the task will be sent to "Copy
+> Edit Story".
+>    [ $] {Assign Writer(s)}
+>
+>    [  ] Return { Assign Writer(s) }
+>
+>    [ X] Verbose email
+>    [X] Help
+END_EMAIL
+
+ok $result = $email->lex($text),
+  'Lexing a a normal email body should succeed';
+
+$expected = [
+    [ PERFORM => 1 ],
+    [ ACTION  => 'complete' ],
+    [ STAGE   => 'Assign Writer(s)' ],
+    [ PERFORM => 0 ],
+    [ ACTION  => 'return' ],
+    [ STAGE   => 'Assign Writer(s)' ],
+    [ PERFORM => 1 ],
+    [ ACTION  => 'verbose email' ],
+    [ PERFORM => 1 ],
+    [ ACTION  => 'help' ],
+];
+is_deeply $result, $expected, '... and return the correct results';
+
+sub email_for {
+    my $type = shift;
+    my %email_for;
+    $email_for{compact} = <<'END_EMAIL';
+chromatic has finished "Assign Writer(s)".  You've been assigned to "Write
+Story".
+
+This task is due on Tuesday, February 14, 2005.  When you have completed this
+task, please check the "Write Story" box and the task will be sent to "Copy
+Edit Story".
+
+[ ] "Write Story"
+
+If you would like to add any notes to this task, please enter them below:
+
+Enter any notes between these lines:
+==========================================
+
+
+==========================================
+
+
+If you do not wish to accept this task, please check the box below and enter
+an explanation below:
+
+[ ] Return "Write Story"
+
+Enter the reason between these lines:
+===========================================
+
+
+===========================================
+
+[ ] Verbose email
+
+[ ] Help
+
+Web interface:  http://ora.workflow.com/new_story/oo_blunders/
+END_EMAIL
+    return $email_for{$type} || die "Cannot find email for $type";
+}

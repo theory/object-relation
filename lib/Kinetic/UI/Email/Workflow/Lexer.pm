@@ -21,30 +21,45 @@ package Kinetic::UI::Email::Workflow::Lexer;
 use strict;
 use warnings;
 use HOP::Lexer 'string_lexer';
-use Regexp::Common;
 
 use version;
 our $VERSION = version->new('0.0.1');
 
-my $_job_id = sub {
+sub _trim {
+    my $value = shift;
+    $value =~ s/^\s+//;
+    $value =~ s/\s+$//;
+    return $value;
+}
+
+my $_stage = sub {
     my ( $label, $value ) = @_;
-    $value =~ s/^{\s*//;
-    $value =~ s/\s*}$//;
+    $value =~ s/^{//;
+    $value =~ s/}$//;
+    $value = _trim($value);
     return [ $label, $value ];
 };
 
-# XXX Right now this is very naive, but we'll keep tweaking as we go along.
-# Further, due to how JOBID is contructed, any JOBED embedded in a task
-# description will be parsed first.  We may be doing too much here and it will
-# have to be pushed back to the parser.  We'll see.
-my @TOKENS = (
-    [ 'JOBID', qr/{\s*\d+\s*}/, $_job_id ],
+my $_completed = sub {
+    my ( $label, $value ) = @_;
+    $value =~ s/^\[//;
+    $value =~ s/\]$//;
+    $value = _trim($value);
+    return [ $label, ( $value ? 1 : 0 ) ];
+};
 
-    # XXX precedence: quoted must be first
-    [ 'WORD',     qr/(?:$RE{quoted}|[^\s\[\]])+/ ],
-    [ 'RBRACKET', '\]' ],
-    [ 'LBRACKET', '\[' ],
-    [ 'SPACE', qr/\s*/, sub { } ],
+my $_action = sub {
+    my ( $label, $value ) = @_;
+    return [ $label, lc _trim($value) ];
+};
+
+# XXX Right now this is very naive, but we'll keep tweaking as we go along.
+
+my @TOKENS = (
+    [ STAGE   => qr/{[^}]+}/,                         $_stage ],
+    [ PERFORM => qr/\[\s*[[:print:]]+\s*\]/,          $_completed ],
+    [ ACTION  => qr/[[:word:]]+[[:space:][:word:]]*/, $_action ],
+    [ SPACE   => qr/\s+/,                             sub { } ],
 );
 
 =head1 Name
@@ -101,9 +116,43 @@ sub lex {
     my @result;
     my $lexer = string_lexer( $text, @TOKENS );
     while ( my $token = $lexer->() ) {
+
+        # XXX the following line discards any data we cannot lex.  This allows
+        # us to ignore the "autoquote" stuff in email:
+        # > [x] {Assign Writer}
+        # However, this may prove problematic for those folks whose email
+        # clients use strange autoquote characters.  We may have to revisit
+        # this.
+        # XXX create a [ JUNK => $data ] token?
+        next unless ref $token;
+        if ( _is_action($token) ) {
+            next if ! @result || @result && ! _is_perform( $result[-1] );
+        }
         push @result => $token;
+
+        # [ ] {Some Stage} implicitly becomes:
+        # [ ] Complete {Some Stage}
+        # This makes parsing simpler by forcing a standard token series:
+        #   PERFORM, ACTION, STAGE
+        if ( _is_perform($token) ) {
+            my $next_token = $lexer->('peek');
+            next unless ref $next_token;
+            push @result => [ ACTION => 'complete' ]
+              if _is_stage($next_token);
+        }
     }
     return \@result;
+}
+
+BEGIN {
+    foreach my $type (qw/PERFORM ACTION STAGE/) {
+        my $sub = "_is_" . lc $type;
+        no strict 'refs';
+        *$sub = sub {
+            my $token = shift;
+            return ref $token && $type eq $token->[0];
+        };
+    }
 }
 
 1;
