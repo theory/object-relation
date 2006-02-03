@@ -111,7 +111,6 @@ sub test_bin_files : Test(8) {
 
     # Building should create these things.
     is $builder->dispatch('build'), $builder, "Run the build action";
-    diag `pwd`;
     file_exists_ok $bscript, 'Now there should be a blib script file';
 
     # Check the bin file to be installed.
