@@ -131,11 +131,22 @@ sub rules {
             ],
         },
         check_version => {
-            do => sub { shift->result($self->is_required_version) },
+            do => sub {
+                my $state = shift;
+                return $state->result(1) if $self->is_required_version;
+                $state->result(0);
+                my $req = version->new($self->min_version);
+                my $got = version->new($self->info->version);
+                my $exe = $self->info->executable;
+                $state->message(
+                    "I require SQLite $req but found $exe, which is $got.\n"
+                  . 'Use --path-to-sqlite to specify a different SQLite '
+                  . 'executable'
+                );
+            },
             rules  => [
                 fail => {
                     rule    => $fail,
-                    message => 'SQLite is not the minimum required version',
                 },
                 file_name => {
                     rule    => $succeed,

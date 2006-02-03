@@ -187,20 +187,16 @@ sub test_rules : Test(27) {
 
 sub new_builder {
     my $self = shift;
-    my $builder = eval { 
-        $self->{builder} = Build->new(
-            dist_name       => 'Testing::Kinetic',
-            dist_version    => '1.0',
-            quiet           => 1,
-            accept_defaults => 1,
-            @_,
-        )
+    local $SIG{__DIE__} = sub {
+        Kinetic::Util::Exception::ExternalLib->throw(shift);
     };
-    if (my $error = $@) {
-         require Carp;
-         Carp::confess($error);
-    }
-    return $builder;
+    return $self->{builder} = Build->new(
+        dist_name       => 'Testing::Kinetic',
+        dist_version    => '1.0',
+        quiet           => 1,
+        accept_defaults => 1,
+        @_,
+    )
 }
 
 1;

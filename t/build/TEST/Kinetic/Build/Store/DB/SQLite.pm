@@ -56,7 +56,7 @@ sub test_rules : Test(37) {
          root        => '/kinetic',
          server_name => 'localhost',
     );
-    $builder->notes( 
+    $builder->notes(
         build_server => bless(\%apache_notes, 'Kinetic::Build::Engine::Apache2')
     );
 
@@ -69,13 +69,14 @@ sub test_rules : Test(37) {
     my $info = MockModule->new( $class->info_class );
     $info->mock( installed => 0 );
     throws_ok { $kbs->validate } qr/SQLite does not appear to be installed/,
-      '... and it should die if SQLite is not installed';
+        '... and it should die if SQLite is not installed';
 
     # Test when SQLite is not the correct version.
     $info->mock( installed => 1 );
     $info->mock( version   => '2.0' );
+    my $sqlite_path = $kbs->info->executable;
     throws_ok { $kbs->validate }
-      qr/SQLite is not the minimum required version/,
+        qr/I require SQLite v[.\d]+ but found $sqlite_path, which is v?[.\d]+\.\nUse --path-to-sqlite to specify a different SQLite executable/,
       '... or if SQLite is not the minumum supported version';
 
     # Test when everything is cool.

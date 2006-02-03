@@ -54,7 +54,9 @@ sub test_rules : Test(161) {
 
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
-    $mb->mock(check_manifest => sub { return });
+    $mb->mock( check_manifest => undef );
+    $mb->mock( check_store    => undef );
+
     my $builder = $self->new_builder;
     $self->{builder} = $builder;
     $mb->mock(resume => $builder);

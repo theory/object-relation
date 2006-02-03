@@ -148,8 +148,8 @@ sub new {
         shift->SUPER::new(
 
             # Set up new default values for parent class properties.
-            install_base => File::Spec->catdir( 
-                $Config::Config{installprefix}, 'kinetic' 
+            install_base => File::Spec->catdir(
+                $Config::Config{installprefix}, 'kinetic'
             ), @_    # User-set properties.
         );
     };
