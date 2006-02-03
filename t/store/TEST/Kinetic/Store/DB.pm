@@ -1130,7 +1130,7 @@ sub test_fk_update : Test(9) {
         '... Which should have the proper error message';
 }
 
-sub test_types : Test(74) {
+sub test_types : Test(81) {
     my $self = shift;
     return 'Skip test_fk_update for abstract class'
         unless $self->_should_run;
@@ -1306,7 +1306,36 @@ sub test_types : Test(74) {
             '... And it should fail with the proper message';
     }
 
-    # Make sure that invalid operators are excluded on INSERTs, too.
+    # The errors abort the txn, so need a new object to test updates against.
+    $attr_mock->unmock_all;
+    ok $types_test = TypesTest->new(
+        version    => $version,
+        duration   => $du,
+        operator   => 'eq',
+        media_type => $mt,
+    ), 'Create another types test object';
+    ok $types_test->save, 'Save it';
+
+    # Make sure that invalid version are not allowed.
+    ok $types_test->version(version->new('12.5')), 'Change the version';
+    $attr_mock->mock(store_raw => sub {
+        return 'foo' if $_[0]->name eq 'version';
+        return $orig_straw->(@_)
+    });
+
+    SKIP: {
+        # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
+        skip 'Domain constraints ignored in PREPAREd statements', 2
+            if $self->supported('pg')
+            && $self->dbh->{pg_server_version} <= 80102;
+        throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
+            '... Saving it with a bogus version should fail';
+        like $@,
+            qr/value for domain "?version"? violates check constraint "ck_version"/,
+            '... And it should fail with the proper message';
+    }
+
+    # Make sure that invalid values are excluded on INSERTs, too.
     ok $types_test = TypesTest->new(
         version    => $version,
         duration   => $du,
@@ -1350,6 +1379,17 @@ sub test_types : Test(74) {
             '... Saving it with a bogus attribute should fail';
         like $@,
             qr/value for domain attribute violates check constraint "ck_attribute"/,
+            '... And it should fail with the proper message';
+
+        $attr_mock->mock(store_raw => sub {
+            return 'foo' if $_[0]->name eq 'version';
+            return $orig_straw->(@_)
+        });
+
+        throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
+            '... Saving it with a bogus version should fail';
+        like $@,
+            qr/value for domain version violates check constraint "ck_version"/,
             '... And it should fail with the proper message';
     }
 }

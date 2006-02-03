@@ -374,7 +374,7 @@ L<Kinetic::Build::Schema::DB::Pg|Kinetic::Build::Schema::DB::Pg>:
 
   CREATE DOMAIN version AS TEXT
   CONSTRAINT ck_version CHECK (
-     VALUE !~ '[\d._]'
+     VALUE ~ '[\d._]'
   );
 
 We have now created a new data type that allows only numbers, dots, and
@@ -391,11 +391,12 @@ new triggers method, here it would be C<version_triggers()>, that calls the
 private C<_domain_triggers()> method to define the triggers. The arguments to
 C<_domain_triggers()> are simple: The class for which the table triggers will
 be created, the name of the domain, and the right-hand side of a SQL C<WHERE>
-expression. Our C<version_triggers()> method looks like this:
+expression that will trigger an exception when it evaluates to true. Our
+C<version_triggers()> method looks like this:
 
   sub version_triggers {
       my ($self, $class) = @_;
-      $self->_domain_triggers($class, version => 'NOT REGEXP '[\d._]');
+      $self->_domain_triggers($class, version => q{NOT REGEXP '[\d._]'});
   }
 
 The C<_domain_triggers()> method will create and return the actual C<TRIGGER>

@@ -64,6 +64,11 @@ CREATE DOMAIN attribute AS TEXT
 CONSTRAINT ck_attribute CHECK (
    VALUE ~ '^\\\\w+\\\\.\\\\w+$'
 );
+
+CREATE DOMAIN version AS TEXT
+  CONSTRAINT ck_version CHECK (
+     VALUE ~ '[\d._]'
+  );
 },
  "Pg setup SQL has state domain";
 
@@ -953,7 +958,7 @@ $table = q{CREATE TABLE _types_test (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_types_test'),
     uuid UUID NOT NULL DEFAULT UUID_V4(),
     state STATE NOT NULL DEFAULT 1,
-    version TEXT NOT NULL,
+    version VERSION NOT NULL,
     duration INTERVAL NOT NULL,
     operator OPERATOR NOT NULL,
     media_type MEDIA_TYPE NOT NULL,

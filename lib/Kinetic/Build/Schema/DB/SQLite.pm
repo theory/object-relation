@@ -174,6 +174,7 @@ sub constraints_for_class {
         $self->operator_triggers(   $class ),
         $self->media_type_triggers( $class ),
         $self->attribute_triggers(  $class ),
+        $self->version_triggers(    $class ),
    );
 
     # Add FK constraint for subclases from id column to the parent table.
@@ -440,6 +441,27 @@ sub attribute_triggers {
         'attribute',
         q{NOT REGEXP '^\\w+\.\\w+$'}
     );
+}
+
+##############################################################################
+
+=head3 version_triggers
+
+  my @version_triggers = $kbs->version_triggers($class);
+
+Returns SQLite triggers to validate that the value of a version column in the
+table representing the contents of the class represented by the
+Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
+does not have a version attribute (because it inherits the version from a
+concrete parent class), C<version_trigger()> will return an empty list.
+
+Called by C<constraints_for_class()>.
+
+=cut
+
+sub version_triggers {
+    my ($self, $class) = @_;
+    $self->_domain_triggers($class, version => q{NOT REGEXP '[\d._]'});
 }
 
 ##############################################################################

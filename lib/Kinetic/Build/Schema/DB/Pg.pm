@@ -92,7 +92,7 @@ my %types = (
     whole      => 'INTEGER',
     state      => 'STATE',
     datetime   => 'TIMESTAMP',
-    version    => 'TEXT',
+    version    => 'VERSION',
     duration   => 'INTERVAL',
     operator   => 'OPERATOR',
     media_type => 'MEDIA_TYPE',
@@ -611,7 +611,13 @@ q{CREATE DOMAIN attribute AS TEXT
 CONSTRAINT ck_attribute CHECK (
    VALUE ~ '^\\\\w+\\\\.\\\\w+$'
 );
-};
+},
+
+q{CREATE DOMAIN version AS TEXT
+  CONSTRAINT ck_version CHECK (
+     VALUE ~ '[\d._]'
+  );
+},
 
 }
 

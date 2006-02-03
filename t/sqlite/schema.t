@@ -1101,6 +1101,20 @@ FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain attribute violates check constraint "ck_attribute"')
     WHERE  NEW.attribute IS NOT NULL AND NEW.attribute NOT REGEXP '^\\w+\.\\w+$';
 END;
+
+CREATE TRIGGER cki_types_test_version
+BEFORE INSERT ON _types_test
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain version violates check constraint "ck_version"')
+    WHERE  NEW.version NOT REGEXP '[\d._]';
+END;
+
+CREATE TRIGGER cku_types_test_version
+BEFORE UPDATE OF version ON _types_test
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain version violates check constraint "ck_version"')
+    WHERE  NEW.version NOT REGEXP '[\d._]';
+END;
 };
 
 eq_or_diff join("\n", $sg->constraints_for_class($types_test)), $constraints,
