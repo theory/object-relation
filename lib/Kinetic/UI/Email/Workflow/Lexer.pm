@@ -21,112 +21,143 @@ package Kinetic::UI::Email::Workflow::Lexer;
 use strict;
 use warnings;
 use HOP::Lexer 'string_lexer';
+use Exporter::Tidy lex => ['lex'];
 
 use version;
 our $VERSION = version->new('0.0.1');
 
-sub _trim {
+sub _trim($) {
+    return $_[0] =~ s/\A \s* | \s* \z//gxm if not defined wantarray;
     my $value = shift;
-    $value =~ s/^\s+//;
-    $value =~ s/\s+$//;
+    $value =~ s/\A \s* | \s* \z//gxm;
     return $value;
 }
 
 my $_stage = sub {
     my ( $label, $value ) = @_;
-    $value =~ s/^{//;
-    $value =~ s/}$//;
-    $value = _trim($value);
-    return [ $label, $value ];
+    $value =~ s/\A { | } \z//gxm;
+    return [ $label, _trim $value ];
 };
 
 my $_completed = sub {
     my ( $label, $value ) = @_;
-    $value =~ s/^\[//;
-    $value =~ s/\]$//;
-    $value = _trim($value);
-    return [ $label, ( $value ? 1 : 0 ) ];
+    $value =~ s/\A \[ | \] \z//gxm;
+    return [ $label, ( _trim $value ? 1 : 0 ) ];
 };
 
 my $_action = sub {
     my ( $label, $value ) = @_;
-    return [ $label, lc _trim($value) ];
+    return [ $label, lc _trim $value ];
 };
 
-# XXX Right now this is very naive, but we'll keep tweaking as we go along.
+my $note_separator = qr/={5,}/;
+my $_note = sub {
+    my ( $label, $value ) = @_;
+    $value =~ s/^$note_separator//;
+    $value =~ s/$note_separator$//;
+    $value = _strip_email_quotes($value);
+    _trim $value;
+    return unless $value;
+    return [ $label, $value ];
+};
 
-my @TOKENS = (
-    [ STAGE   => qr/{[^}]+}/,                         $_stage ],
-    [ PERFORM => qr/\[\s*[[:print:]]+\s*\]/,          $_completed ],
-    [ ACTION  => qr/[[:word:]]+[[:space:][:word:]]*/, $_action ],
-    [ SPACE   => qr/\s+/,                             sub { } ],
-);
+{
+
+    # We suppress the uninit warnings becuase the BEGIN block needs the token
+    # labels, but the other values are not yet defined.  That's OK because it
+    # doesn't need those other values.
+    no warnings 'uninitialized';
+
+    sub _tokens {
+        [ NOTE    => qr/$note_separator.+?$note_separator/s,        $_note ],
+        [ STAGE   => qr/{[^}]+}/,                   $_stage ],
+        [ PERFORM => qr/\[[[:print:]]+?\]/,         $_completed ],
+        [ ACTION  => qr/[[:word:]]+[ \t[:word:]]*/, $_action ], # no newlines
+        [ SPACE   => qr/\s+/,                       sub { } ],;
+    }
+}
+
+BEGIN {
+
+    # This creates subs for things like "_is_note($token)", which is merely a
+    # helper subroutine which identifies a token type.
+    foreach my $type ( map { $_->[0] } _tokens() ) {
+        my $sub = "_is_" . lc $type;
+        no strict 'refs';
+        *$sub = sub {
+            my $token = shift;
+            return ref $token && $type eq $token->[0];
+        };
+    }
+}
 
 =head1 Name
 
-Kinetic::UI::Email::Workflow::Lexer - The workflow email lexers
+Kinetic::UI::Email::Workflow::Lexer - The Workflow email lexer
 
 =head1 Synopsis
 
- my $lexer = Kinetic::UI::Email::Workflow::Lexer->new;
- $lexer->lex($email_body);
+ use Kinetic::UI::Email::Workflow::Lexer qw/lex/;
+ my $tokens = lex($email_body);
 
 =head1 Description
 
-This class is for lexing the Kinetic Workflow app data into tokens which
+This module is for lexing the Kinetic Workflow app data into tokens which
 L<Kinetic::UI::Email::Workflow::Parser|Kinetic::UI::Emai::Workflow::Parser>
 can understand.
 
 =cut
 
 ##############################################################################
-# Constructors
-##############################################################################
 
-=head2 Constructors
-
-=head3 new
-
- my $lexer = Kinetic::UI::Email::Workflow::Lexer->new;
-
-Creates and returns a new lexer object.
-
-=cut
-
-sub new {
-    my ($class) = @_;
-    bless {}, $class;
-}
-
-##############################################################################
-
-=head2 Instance interface
+=head2 Functions
 
 =head3 lex
 
-  my $token = $lexer->lex($text);
+  my $token = lex($text);
 
-Given the email body text, this methods returns the tokens suitable for the
+Given the email body text, this subroutine returns tokens suitable for the
 parser to parse.
 
 =cut
 
+
+# Craftily lifted from Text::AutoFormat
+my $quotechar     = qq{[!#%=|:]};
+my $quotechunk    = qq{(?:$quotechar(?![a-z])|(?:[a-z]\\w*)?>+)};
+my $quoter        = qq{(?:(?i)(?:$quotechunk(?:[ \\t]*$quotechunk)*))};
+my $leading_quote = qr/\A([ \t]*)($quoter?)([ \t]*)/;
+
+sub _strip_email_quotes {
+    my $data = shift;
+    my @lines = split /\n/, $data;
+    foreach (@lines) {
+
+        # this line allows the "note" separator (==========) to remain intact.
+        next if /$leading_quote$note_separator\s*\z/;
+        s/$leading_quote//;
+    }
+    return join "\n", @lines;
+}
+
 sub lex {
-    my ( $self, $text ) = @_;
+    my ( $text ) = @_;
+    $text = _strip_email_quotes($text);
+
+    my $lexer = string_lexer( $text, _tokens() );
     my @result;
-    my $lexer = string_lexer( $text, @TOKENS );
     while ( my $token = $lexer->() ) {
 
         # XXX the following line discards any data we cannot lex.  This allows
-        # us to ignore the "autoquote" stuff in email:
-        # > [x] {Assign Writer}
-        # However, this may prove problematic for those folks whose email
-        # clients use strange autoquote characters.  We may have to revisit
-        # this.
+        # us to ignore the Da"autoquote" stuff in email or superfluous
+        # sentenctes.
+        #
+        #   > [x] {Assign Writer}
+        #
         # XXX create a [ JUNK => $data ] token?
         next unless ref $token;
         if ( _is_action($token) ) {
-            next if ! @result || @result && ! _is_perform( $result[-1] );
+            next if !@result || @result && !_is_perform( $result[-1] );
         }
         push @result => $token;
 
@@ -144,19 +175,128 @@ sub lex {
     return \@result;
 }
 
-BEGIN {
-    foreach my $type (qw/PERFORM ACTION STAGE/) {
-        my $sub = "_is_" . lc $type;
-        no strict 'refs';
-        *$sub = sub {
-            my $token = shift;
-            return ref $token && $type eq $token->[0];
-        };
-    }
-}
-
 1;
 __END__
+
+=head1 EMAIL FORMAT
+
+The email format for the Workflow application is fairly straightforward.
+There are several items which the lexer can recognize and turn into tokens.
+All text which is not recognized is discarded.
+
+Each "job" representing an instance of a workflow is divided into "stages" or
+"tasks".
+A stage in a job might look like this in email:
+
+ [ ] {Write Story}
+
+All stages will have curly brackets around them, thus, stage names cannot have
+curly brackets in them.
+
+For someone to mark this stage as "complete", they merely need to type some
+printable, non-whitespace character in the box.  Extraneous whitespace does
+not matter and all of the following are equivalent:
+
+ [ x ] {Write Story}
+ [X]      { Write Story }
+ [.]      {Write Story}
+ [ done ] {Write Story}
+
+The lexer will recognize that this is a completed stage.
+
+Some stages might have particular actions associated with them, such as
+"return".  This would occur if a person assigned a task does not wish to
+accept it (for example, if they'll be out of the office or it was assigned to
+them in error.  All emails should have a "return" action available:
+
+ [ ] Return {Write Story}
+
+That that box is "checked", the task is not accepted and should be returned
+to the person assigning the task.
+
+Other commands not associated with stages are:
+
+ [ ] Verbose email
+ [ ] Compact email
+ [ ] Help
+
+The first two commands are mutually exclusive.  These commands toggle the
+user's preference for very descriptive emails or brief emails.  The "Help"
+command should trigger a one-time email to the user explaining how to use the
+Workflow email system.
+
+After commands associated with stages, any sections delimited with five or
+more "equals" signs (C<=====>) will be notes attached to that command.  Empty
+notes will not be included in the lexed stream of tokens.  Any note will be
+associated with the previous command.
+
+=head1 EXAMPLE
+
+Assuming that an editor has assigned a "Write Story" task to a potential
+writer, a compact email similar to the following might be sent out:
+
+ To:       oo_blunders+new_story@example.workflow.com
+ CC:
+ From:     bob@example.com
+ Date:     Wed, 1 Feb 2006 14:55:05 -0500
+ Subject:  Write Story "Object Oriented Blunders"
+ 
+ You've been assigned "Write Story".  This task is due on Tuesday, February
+ 14, 2005.
+ 
+ [ ] {Write Story}
+ 
+ Notes:
+ ==========================================
+ 
+ 
+ ==========================================
+ 
+ [ ] Return {Write Story}
+ 
+ Reason for Return:
+ ==========================================
+ 
+ 
+ ==========================================
+ 
+ [ ] Verbose email
+ 
+ [ ] Help
+
+Assuming that the writer who receives the story does not wish to accept it,
+she might reply as follows:
+
+ > To:       oo_blunders+new_story@example.workflow.com
+ > CC:
+ > From:     alice@example.com
+ > Date:     Wed, 1 Feb 2006 14:55:05 -0500
+ > Subject:  Write Story "Object Oriented Blunders"
+ > 
+ > You've been assigned "Write Story".  This task is due on Tuesday, February
+ > 14, 2005.
+ > 
+ > [ ] {Write Story}
+ > 
+ > Notes:
+ > ==========================================
+ > 
+ > 
+ > ==========================================
+ > 
+ > [X ] Return {Write Story}
+ > 
+ > Reason for Return:
+ > ==========================================
+ > Charlie was supposed to write this, not me.
+ > 
+ > ==========================================
+ > 
+ > If you would like more verbose emails, please check the box below:
+ > 
+ > [ ] Verbose email
+ > 
+ > [ ] Help
 
 =head1 Copyright and License
 
