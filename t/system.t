@@ -25,6 +25,13 @@ END {
     # Run complementary teardown scripts.
     return if $ENV{NOSETUP};
     $ENV{KINETIC_CONF} = $conf;
+
+    # Disconnect!
+    my $store = Kinetic::Store->new;
+    if (my $dbh = $store->{dbh}) {
+        $dbh->disconnect;
+    }
+
     for my $script (@scripts) {
         my $teardown = "${script}_teardown.pl";
         next unless -e $teardown;
@@ -38,10 +45,5 @@ use lib 't/sample/lib', 't/system', 't/lib';
 # Run the tests.
 use TEST::Class::Kinetic catdir 't', 'system', 'TEST';
 TEST::Class::Kinetic->runall;
-# Disconnect!
-my $store = Kinetic::Store->new;
-if (my $dbh = $store->_dbh) {
-    $dbh->disconnect;
-}
 
 __END__
