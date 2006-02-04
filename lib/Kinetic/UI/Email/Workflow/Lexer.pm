@@ -27,21 +27,28 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 sub _trim($) {
-    return $_[0] =~ s/\A \s* | \s* \z//gxm if not defined wantarray;
+    if (! defined wantarray) {
+        $_[0] =~ s/\A\s+//;
+        $_[0] =~ s/\s+\z//;
+        return;
+    }
     my $value = shift;
-    $value =~ s/\A \s* | \s* \z//gxm;
+    $value =~ s/\A\s+//;
+    $value =~ s/\s+\z//;
     return $value;
 }
 
 my $_stage = sub {
     my ( $label, $value ) = @_;
-    $value =~ s/\A { | } \z//gxm;
+    $value =~ s/\A{//;
+    $value =~ s/}\z//;
     return [ $label, _trim $value ];
 };
 
 my $_completed = sub {
     my ( $label, $value ) = @_;
-    $value =~ s/\A \[ | \] \z//gxm;
+    $value =~ s/\A\[//;
+    $value =~ s/\]\z//;
     return [ $label, ( _trim $value ? 1 : 0 ) ];
 };
 
@@ -53,8 +60,8 @@ my $_action = sub {
 my $note_separator = qr/={5,}/;
 my $_note = sub {
     my ( $label, $value ) = @_;
-    $value =~ s/^$note_separator//;
-    $value =~ s/$note_separator$//;
+    $value =~ s/\A$note_separator//;
+    $value =~ s/$note_separator\z//;
     $value = _strip_email_quotes($value);
     _trim $value;
     return unless $value;
@@ -69,11 +76,11 @@ my $_note = sub {
     no warnings 'uninitialized';
 
     sub _tokens {
-        [ NOTE    => qr/$note_separator.+?$note_separator/s,        $_note ],
-        [ STAGE   => qr/{[^}]+}/,                   $_stage ],
-        [ PERFORM => qr/\[[[:print:]]+?\]/,         $_completed ],
-        [ ACTION  => qr/[[:word:]]+[ \t[:word:]]*/, $_action ], # no newlines
-        [ SPACE   => qr/\s+/,                       sub { } ],;
+        [ NOTE    => qr/$note_separator.+?$note_separator/s, $_note ],
+        [ STAGE   => qr/{[^}]+}/,                            $_stage ],
+        [ PERFORM => qr/\[[[:print:]]+?\]/,                  $_completed ],
+        [ ACTION  => qr/[[:word:]]+[ \t[:word:]]*/,          $_action ], # no newlines
+        [ SPACE   => qr/[[:space:]]+/,                       sub { } ];
     }
 }
 
@@ -106,13 +113,11 @@ This module is for lexing the Kinetic Workflow app data into tokens which
 L<Kinetic::UI::Email::Workflow::Parser|Kinetic::UI::Emai::Workflow::Parser>
 can understand.
 
-=cut
+=head1 Interface
 
-##############################################################################
+=head2 Exportable Functions
 
-=head2 Functions
-
-=head3 lex
+=head3 C<lex>
 
   my $token = lex($text);
 
@@ -149,7 +154,7 @@ sub lex {
     while ( my $token = $lexer->() ) {
 
         # XXX the following line discards any data we cannot lex.  This allows
-        # us to ignore the Da"autoquote" stuff in email or superfluous
+        # us to ignore the the "autoquote" stuff in email or superfluous
         # sentenctes.
         #
         #   > [x] {Assign Writer}
@@ -178,7 +183,7 @@ sub lex {
 1;
 __END__
 
-=head1 EMAIL FORMAT
+=head1 Email Format
 
 The email format for the Workflow application is fairly straightforward.
 There are several items which the lexer can recognize and turn into tokens.
@@ -207,12 +212,12 @@ The lexer will recognize that this is a completed stage.
 Some stages might have particular actions associated with them, such as
 "return".  This would occur if a person assigned a task does not wish to
 accept it (for example, if they'll be out of the office or it was assigned to
-them in error.  All emails should have a "return" action available:
+them in error).  All emails should have a "return" action available:
 
  [ ] Return {Write Story}
 
-That that box is "checked", the task is not accepted and should be returned
-to the person assigning the task.
+If that box is "checked", the task is not accepted and should be returned to
+the person assigning the task.
 
 Other commands not associated with stages are:
 
@@ -230,7 +235,7 @@ more "equals" signs (C<=====>) will be notes attached to that command.  Empty
 notes will not be included in the lexed stream of tokens.  Any note will be
 associated with the previous command.
 
-=head1 EXAMPLE
+=head1 Example
 
 Assuming that an editor has assigned a "Write Story" task to a potential
 writer, a compact email similar to the following might be sent out:
@@ -288,7 +293,7 @@ she might reply as follows:
  > 
  > Reason for Return:
  > ==========================================
- > Charlie was supposed to write this, not me.
+ > Charlie was supposed to write this, not I.
  > 
  > ==========================================
  > 

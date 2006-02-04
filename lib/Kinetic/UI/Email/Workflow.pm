@@ -20,10 +20,12 @@ package Kinetic::UI::Email::Workflow;
 
 use strict;
 use warnings;
-use HOP::Lexer 'string_lexer';
 
 use version;
 our $VERSION = version->new('0.0.1');
+
+use Kinetic::UI::Email::Workflow::Lexer qw/lex/;
+use Kinetic::UI::Email::Workflow::Parser qw/parse/;
 
 =head1 Name
 
@@ -31,8 +33,12 @@ Kinetic::UI::Email::Workflow - The workflow email UI
 
 =head1 Synopsis
 
- my $lexer = Kinetic::UI::Email::Workflow->new;
- XXX ...
+ my $wf = Kinetic::UI::Email::Workflow->new( {
+     workflow => $workflow,
+     job      => $job,
+     user     => $user,
+ } );
+ $wf->handle($email_body);
 
 =head1 Description
 
@@ -48,15 +54,74 @@ XXX
 
 =head3 new
 
- my $lexer = Kinetic::UI::Email::Workflow->new;
+ my $wf = Kinetic::UI::Email::Workflow->new( {
+     workflow => $workflow,
+     job      => $job,
+     user     => $user,
+ } );
 
 Creates and returns a new workflow email UI object.
 
 =cut
 
 sub new {
-    my ($class) = @_;
-    bless {}, $class;
+    my ( $class, $args ) = @_;
+    bless $args, $class;
+}
+
+##############################################################################
+
+=head3 workflow
+
+ my $current_wf = $wf->workflow;
+
+Returns the current workflow.
+
+=head3 job
+
+ my $job = $wf->job;
+
+Returns the current job for this workflow.
+
+=head3 user
+
+ my $user = $wf->user;
+
+Returns the user for the current workflow stage.
+
+=cut
+
+sub workflow { shift->{workflow} }
+sub job      { shift->{job} }
+sub user     { shift->{user} }
+
+##############################################################################
+
+=head3 handle
+
+  $wf->handle($email_body);
+
+Given the body of the email, this method parses the workflow commands from the
+body and attempts to execute the correct actions.
+
+=cut
+
+# should probably have a human readable error message, too
+sub handle {
+    my ( $self, $body ) = @_;
+    my $commands = parse( lex($body) );
+    if (@$commands) {
+        foreach my $command (@$commands) {
+
+            # do something
+        }
+        return 1;
+    }
+    else {
+
+        # we couldn't parse any commands.  Let 'em know that
+        return;
+    }
 }
 
 1;
