@@ -131,7 +131,7 @@ sub rules {
         my $state = shift;
         $state->message(
             'I cannot connect to the PostgreSQL server via "'
-            . join('", or "', @{$state->{dsn}}) . '"'
+            . join('" or "', @{$state->{dsn}}) . '"'
           );
     };
 

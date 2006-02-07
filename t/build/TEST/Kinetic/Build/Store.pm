@@ -70,7 +70,10 @@ sub test_instance : Test(32) {
     # Try validate().
     $store->mock(rules => sub {
                      Done => {
-                         do => sub { ok 1, "validate() should execute rules";}
+                         do => sub {
+                             ok 1, "validate() should execute rules";
+                             shift->done(1);
+                         }
                      }
                  });
     ok $kbs->validate, 'validate() should work';

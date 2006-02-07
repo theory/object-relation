@@ -93,7 +93,7 @@ sub test_rules : Test(161) {
 
     # Test behavior of it's the wrong version of PostgreSQL.
     $info->mock(version => '2.0');
-    throws_ok { $fsa->switch } qr'PostgreSQL is the wrong version',
+    throws_ok { $fsa->switch } qr/PostgreSQL is the wrong version/,
       'It should die with the wrong version';
 
     # Set up the proper version number.
@@ -131,7 +131,7 @@ sub test_rules : Test(161) {
     is $kbs->db_name, '', "DB Name should be empty";
     # This switch should fail.
     throws_ok { $fsa->switch }
-      qr'I need the database name to configure PostgreSQL',
+      qr/I need the database name to configure PostgreSQL/,
       "We should get a failure with an empty database name";
 
     # Set up server info with a different host name.
@@ -184,7 +184,7 @@ sub test_rules : Test(161) {
       'Template DB name should be "template1"';
 
     throws_ok { $fsa->switch }
-      qr'I cannot connect to the PostgreSQL server via "dbi:Pg:dbname=fooness" or "dbi:Pg:dbname=template1"',
+        qr/I cannot connect to the PostgreSQL server via "dbi:Pg:dbname=fooness" or "dbi:Pg:dbname=template1"/,
       "We should get a failure to connect to the server";
 
     # Success will trigger the do action for the Check database state, so set
@@ -198,7 +198,7 @@ sub test_rules : Test(161) {
     ok $fsa->reset->curr_state('Connect super user'),
       'Set up to connect super user';
     throws_ok { $fsa->switch }
-      qr'Connected to server via "dbi:Pg:dbname=fooness", but "postgres" is not a super user',
+      qr/Connected to server via "dbi:Pg:dbname=fooness", but "postgres" is not a super user/,
       'An attempt to swtich states should fail if the user is not a super user';
 
     # Try again with _connect() returning a database handle for
@@ -392,7 +392,7 @@ sub test_rules : Test(161) {
     $createlang = 0;
     ok $fsa->reset->curr_state('Find createlang'),
       'Reset to "Find createlang"';
-    throws_ok { $fsa->switch } qr'Cannot find createlang',
+    throws_ok { $fsa->switch } qr/Cannot find createlang/,
       'We should die if we cannot find createlang';
     is_deeply [$kbs->actions],  [], 'Actions should be empty';
 
@@ -531,7 +531,7 @@ sub test_rules : Test(161) {
     ok $fsa->reset->curr_state('Get super user'),
       'Reset to "Get super user"';
     throws_ok { $fsa->switch }
-      qr'I need the super user name to configure PostgreSQL',
+      qr/I need the super user name to configure PostgreSQL/,
       'Switch out of "Get super user"';
     is $fsa->curr_state->name, 'Fail',
       'We should have switched to "Connect super user"';

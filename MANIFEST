@@ -8,13 +8,11 @@ catalyst/server.pl
 catalyst/test.pl
 Changes
 conf/kinetic.conf
-etc/ascii-treeview.xsl
 etc/Data-UUID-Tiger.patch
 etc/perltidyrc
 etc/unused_modules.pl
 etc/unused_subs.pl
 etc/versions.pl
-etc/xslt
 examples/create_test_data.pl
 examples/httpd.conf
 examples/kinetic.conf
@@ -291,6 +289,3 @@ www/templates/tt/search.tt
 www/templates/tt/shared/crud.tt
 www/templates/tt/shared/main.tt
 www/templates/tt/view.tt
-www/xslt/instance.xsl
-www/xslt/resources.xsl
-www/xslt/search.xsl
