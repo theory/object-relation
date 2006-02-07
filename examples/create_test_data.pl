@@ -70,44 +70,21 @@ print "Creating $instances 'Two' objects for paging tests ...\n\n";
 }
 
 __END__
-print "Hit <RETURN> to delete test data\n";
-<STDIN>;
 
-my $store = Store->new;
-my $dbh   = $store->_dbh;
-print "Deleting objects in database\n";
-foreach my $key ( Kinetic::Meta->keys ) {
-    next if Kinetic::Meta->for_key($key)->abstract;
-    eval { $dbh->do("DELETE FROM $key") };
-    warn "Could not delete records from $key: $@" if $@;
-}
-
-__END__
-
-=head1 REST Server test
+=head1 create_test_data.pl
 
 Test the Kinetic Rest Server
 
 =head1 SYNOPSIS
 
- rest_server.pl [options]
+ create_test_data.pl [options]
 
 Options:
 
- -p, --port=$num       Specify a port number to run the server on.  Default 
-                       is port 9000.
  -i, --instances=$num  The number of test 'Two' object instances to create for
                        paging tests.  Default is 20.
- -n, --no-cache        CSS, Javascript, images and XSLT will not be cached if
-                       this option is set.  Useful for debugging.
 
 =head1 NOTES
 
 This script assumes that an B<empty> Kinetic data store has been set up.  It
-will attempt to connect to the data store and add some objects to it.  Then it
-will launch a test web server on port 9000 (you may specify an optional port
-number on the command line).  Access the server by opening a browser and using
-the url C<http://localhost:$port/>.
-
-The script will hang, prompting you to hit <RETURN>.  When you do, the server
-will be shut down and B<all> records deleted from the data store.
+will attempt to connect to the data store and add some objects to it.
