@@ -53,6 +53,12 @@ workflow email getting flagged as spam.  Alternatively, in case you start
 receiving spam to workflow email addresses, you'll have to tweak your spam
 tools to handle this.
 
+In actuality, this plugin is implemented as a trait to allow the methods to be
+shoved in a class and be easy to test, but still allow the qpstmpd plugin
+model to be used.  The plugin then looks like this:
+
+ use Class::Trait 'Kinetic::UI::Email::Workflow::Qpsmtpd';
+
 =head1 Methods
 
 =head2 C<qpstmpd> methods
