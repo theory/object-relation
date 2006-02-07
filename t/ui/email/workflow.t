@@ -9,38 +9,83 @@ use Test::More 'no_plan';
 
 use Test::NoWarnings;    # Adds an extra test.
 
-my $CLASS;
+my $WORKFLOW;
 
 BEGIN {
-    $CLASS = 'Kinetic::UI::Email::Workflow';
-    use_ok $CLASS or die;
+    $WORKFLOW = 'Kinetic::UI::Email::Workflow';
+    use_ok $WORKFLOW or die;
 }
 
-can_ok $CLASS, 'new';
-ok my $wf = $CLASS->new(
-    {   workflow => 'some_wf',
+can_ok $WORKFLOW, 'new';
+ok my $wf = $WORKFLOW->new(
+    {   key_name => 'some_wf',
         job      => 'some_job',
         user     => 'user@some.email.com',
+        org      => 'some_org',
     }
   ),
   '... and we should be able to create a new workflow object';
-isa_ok $wf, $CLASS, '... and the object it returns';
+isa_ok $wf, $WORKFLOW, '... and the object it returns';
 
 can_ok $wf, 'workflow';
 is $wf->workflow, 'some_wf', '... and it should return the correct workflow';
 can_ok $wf, 'job';
 is $wf->job, 'some_job',
   '... and it should return the correct job in the workflow';
+can_ok $wf, 'org';
+is $wf->org, 'some_org',
+  '... and it should return the correct organization in the workflow';
+can_ok $wf, 'user';
+is $wf->user, 'user@some.email.com',
+  '... and it should return the correct user';
+
+ok $wf = $WORKFLOW->new(
+    'user@some.email.com',
+    'some_job+some_wf@some_org.workflow.com'
+  ),
+  'We should be able to create a new workflow object from email addresses';
+isa_ok $wf, $WORKFLOW, '... and the object it returns';
+
+can_ok $wf, 'workflow';
+is $wf->workflow, 'some_wf', '... and it should return the correct workflow';
+can_ok $wf, 'job';
+is $wf->job, 'some_job',
+  '... and it should return the correct job in the workflow';
+can_ok $wf, 'org';
+is $wf->org, 'some_org',
+  '... and it should return the correct organization in the workflow';
 can_ok $wf, 'user';
 is $wf->user, 'user@some.email.com',
   '... and it should return the correct user';
 
 can_ok $wf, 'handle';
 my $result = $wf->handle('> [ ] {Did not check the box}');
-ok ! $result, '... and the email body had no actionable commands';
+ok !$result, '... and the email body had no actionable commands';
 
 $result = $wf->handle('> [ X] {Did check the box}');
 ok $result, '... and the email body did have an actionable command';
+
+can_ok $WORKFLOW, 'host';
+ok my $host = $WORKFLOW->host, '... and calling it should succeed';
+
+can_ok $WORKFLOW, 'is_workflow_address';
+ok !$WORKFLOW->is_workflow_address('not@home.com'),
+  '... and non-workflow addresses should return false';
+
+# missing workflow
+ok !$WORKFLOW->is_workflow_address( 'job+@some_org.' . $host ),
+  '... and workflow addresses without a workflow should fail';
+
+# missing job
+ok !$WORKFLOW->is_workflow_address( '+wf@some_org.' . $host ),
+  '... and workflow addresses without a job should fail';
+
+# missing job
+ok !$WORKFLOW->is_workflow_address( 'job+wf@' . $host ),
+  '... and workflow addresses without an organization should fail';
+
+ok $WORKFLOW->is_workflow_address( 'job+wf@some_org.' . $host ),
+  '... and workflow addresses should return true';
 __END__
 #
 # Incomplete stages

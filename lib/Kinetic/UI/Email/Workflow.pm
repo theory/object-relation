@@ -34,10 +34,13 @@ Kinetic::UI::Email::Workflow - The workflow email UI
 =head1 Synopsis
 
  my $wf = Kinetic::UI::Email::Workflow->new( {
-     workflow => $workflow,
+     key_name => $workflow,
      job      => $job,
      user     => $user,
+     org      => $organization,
  } );
+ # or 
+ my $wf = Kinetic::UI::Email::Workflow->new($from, $to);
  $wf->handle($email_body);
 
 =head1 Description
@@ -55,18 +58,106 @@ XXX
 =head3 new
 
  my $wf = Kinetic::UI::Email::Workflow->new( {
-     workflow => $workflow,
+     key_name => $workflow,
      job      => $job,
      user     => $user,
+     org      => $organization,
  } );
+ # or 
+ my $wf = Kinetic::UI::Email::Workflow->new($from, $to);
 
 Creates and returns a new workflow email UI object.
+
+If supplied an email address instead of a hashref of components, the
+constructor will return false if the email address doesn't match:
+
+ $job+$workflow@$organization.$host
 
 =cut
 
 sub new {
-    my ( $class, $args ) = @_;
-    bless $args, $class;
+    my $class = shift;
+    my $self  = $class->_init(@_);
+    return bless $self, $class;
+}
+
+sub _init {
+    my ( $class, @args ) = @_;
+    my $hash;
+    if ( 'HASH' eq ref $args[0] ) {
+        $hash = shift @args;
+    }
+    else {
+        my ( $from, $to ) = @args;
+        my $info = $class->_break_down_address($to) || return;
+        $hash = {
+            job      => $info->[0],
+            key_name => $info->[1],
+            org      => $info->[2],
+            user     => $from
+        };
+    }
+    my @keys = qw/job key_name org user/;
+    my @errors;
+    foreach my $key (@keys) {
+        push @errors, $key unless exists $hash->{$key};
+    }
+    die "Missing keys (@errors)" if @errors;
+    return $hash;
+}
+
+##############################################################################
+
+=head3 host
+
+  my $host = Kinetic::UI::Email::Workflow->host;
+
+Returns the host of the Workflow site.
+
+=cut
+
+# XXX temporary
+sub host {'workflow.com'}
+
+sub _break_down_address {
+    my ( $class, $address ) = @_;
+    my $host = $class->host;
+
+    # $job+$workflow@$org.$host
+    if ($address =~ m{\A
+            ([^\+]+)                    # job
+            \+
+            ([^@]+)                     # workflow
+            \@
+            ([^\.]+)                    # organization
+            \.
+            \Q$host\E
+        \z}x
+      )
+    {
+        return [ $1, $2, $3 ];
+    }
+    return;
+}
+
+##############################################################################
+
+=head3 C<is_workflow_address>
+
+  if (Kinetic::UI::Email::Workflow->is_workflow_address($address)) {
+    ...
+  }
+
+This class method, when called with a string as the argument, will return true
+if the string is a valid Workflow email address.
+
+=cut
+
+sub is_workflow_address {
+    my ( $class, $address ) = @_;
+
+    # $job+$workflow@$org.$host
+    return $class->_break_down_address($address);
 }
 
 ##############################################################################
@@ -75,7 +166,7 @@ sub new {
 
  my $current_wf = $wf->workflow;
 
-Returns the current workflow.
+Returns the current workflow keyname.
 
 =head3 job
 
@@ -89,11 +180,18 @@ Returns the current job for this workflow.
 
 Returns the user for the current workflow stage.
 
+=head3 org
+
+ my $org = $wf->org;
+
+Returns the organization which owns the current workflow.
+
 =cut
 
-sub workflow { shift->{workflow} }
+sub workflow { shift->{key_name} }
 sub job      { shift->{job} }
 sub user     { shift->{user} }
+sub org      { shift->{org} }
 
 ##############################################################################
 
@@ -112,6 +210,8 @@ sub handle {
     my $commands = parse( lex($body) );
     if (@$commands) {
         foreach my $command (@$commands) {
+
+            my ( $process, $action, $stage, $note ) = @$command;
 
             # do something
         }
