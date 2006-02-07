@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: tt_renderer.t 1829 2005-07-02 01:53:14Z curtis $
+# $Id$
 
 use strict;
 use warnings;

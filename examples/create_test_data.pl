@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: rest_test.pl 1388 2005-03-17 05:53:43Z theory $
+# $Id$
 
 use strict;
 use warnings;

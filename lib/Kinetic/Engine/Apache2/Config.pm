@@ -1,6 +1,6 @@
 package Kinetic::Engine::Apache2::Config;
 
-# $Id: Engine.pm 2414 2005-12-22 07:21:05Z theory $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

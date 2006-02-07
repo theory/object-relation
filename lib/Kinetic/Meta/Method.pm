@@ -1,6 +1,6 @@
 package Kinetic::Meta::Method;
 
-# $Id: Method.pm 2393 2005-12-16 02:01:44Z theory $
+# $Id$
 
 use strict;
 

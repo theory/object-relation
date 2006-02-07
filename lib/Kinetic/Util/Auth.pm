@@ -1,6 +1,6 @@
 package Kinetic::Util::Auth;
 
-# $Id: Auth.pm 2265 2005-12-02 02:27:48Z curtis $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

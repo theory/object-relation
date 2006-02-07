@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: datetime.t 2506 2006-01-11 00:05:35Z theory $
+# $Id$
 
 use strict;
 

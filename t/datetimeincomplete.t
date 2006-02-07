@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: datetime.t 894 2004-12-04 02:48:49Z curtis $
+# $Id$
 
 use strict;
 use Kinetic::Build::Test;

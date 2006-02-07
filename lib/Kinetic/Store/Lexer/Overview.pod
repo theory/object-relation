@@ -1,4 +1,4 @@
-# $Id: Lexer.pm 1979 2005-08-16 01:15:04Z curtis $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

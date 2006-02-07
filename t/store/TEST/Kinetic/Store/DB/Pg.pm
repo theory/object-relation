@@ -1,6 +1,6 @@
 package TEST::Kinetic::Store::DB::Pg;
 
-# $Id: Pg.pm 1099 2005-01-12 06:17:57Z theory $
+# $Id$
 
 use strict;
 use warnings;

@@ -1,6 +1,6 @@
 package TEST::Kinetic::Format::XML;
 
-# $Id: XML.pm 1094 2005-01-11 19:09:08Z curtis $
+# $Id$
 
 use strict;
 use warnings;

@@ -7,7 +7,7 @@ use Kinetic::Util::Config ':all';
 use Kinetic::Util::Exceptions 'throw_stat';
 use LockFile::Simple;
 
-# $Id: Kinetic.pm 2508 2006-01-11 01:54:06Z theory $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

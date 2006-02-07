@@ -1,6 +1,6 @@
 package Kinetic::Build::Setup;
 
-# $Id: Setup.pm 2552 2006-01-25 02:11:54Z curtis $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

@@ -1,6 +1,6 @@
 package TEST::Kinetic::VersionInfo;
 
-# $Id: VersionInfo.pm 2231 2005-11-18 01:08:12Z theory $
+# $Id$
 
 use strict;
 use warnings;

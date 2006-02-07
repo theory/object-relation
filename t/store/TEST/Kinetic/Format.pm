@@ -1,6 +1,6 @@
 package TEST::Kinetic::Format;
 
-# $Id: JSON.pm 1094 2005-01-11 19:09:08Z curtis $
+# $Id$
 
 use strict;
 use warnings;

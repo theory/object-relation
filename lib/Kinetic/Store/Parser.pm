@@ -1,6 +1,6 @@
 package Kinetic::Store::Parser;
 
-# $Id: Store.pm 1671 2005-05-10 00:24:33Z curtis $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

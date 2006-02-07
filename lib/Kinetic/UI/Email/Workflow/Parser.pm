@@ -1,6 +1,6 @@
 package Kinetic::UI::Email::Workflow::Parser;
 
-# $Id: Kinetic.pm 2542 2006-01-19 01:38:21Z curtis $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

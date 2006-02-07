@@ -1,6 +1,6 @@
 package Kinetic::DataType::DateTime::Incomplete;
 
-# $Id: DateTime.pm 1253 2005-02-11 02:35:40Z theory $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

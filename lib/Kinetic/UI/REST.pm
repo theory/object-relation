@@ -1,6 +1,6 @@
 package Kinetic::UI::REST;
 
-# $Id: REST.pm 1544 2005-04-16 01:13:51Z theory $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

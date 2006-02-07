@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: basic.t 2441 2005-12-24 00:39:59Z theory $
+# $Id$
 
 use strict;
 use Kinetic::Build::Test;

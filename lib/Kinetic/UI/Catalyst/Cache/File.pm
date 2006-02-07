@@ -1,6 +1,6 @@
 package Kinetic::UI::Catalyst::Cache::File;
 
-# $Id: somefile 924 2004-12-14 02:11:38Z curtis $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

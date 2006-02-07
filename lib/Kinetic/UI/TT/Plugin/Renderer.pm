@@ -1,6 +1,6 @@
 package Kinetic::UI::TT::Plugin::Renderer;
 
-# $Id: JSON.pm 2190 2005-11-08 02:05:10Z curtis $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

@@ -1,6 +1,6 @@
 package Kinetic::Build::Cache::File;
 
-# $Id: SQLite.pm 2493 2006-01-06 01:58:37Z curtis $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

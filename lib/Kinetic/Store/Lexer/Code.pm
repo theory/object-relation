@@ -1,6 +1,6 @@
 package Kinetic::Store::Lexer::Code;
 
-# $Id: Code.pm 1364 2005-03-08 03:53:03Z curtis $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

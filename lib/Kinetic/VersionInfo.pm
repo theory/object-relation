@@ -1,6 +1,6 @@
 package Kinetic::VersionInfo;
 
-# $Id: DateTime.pm 2191 2005-11-08 04:17:02Z theory $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

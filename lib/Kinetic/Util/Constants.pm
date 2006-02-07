@@ -1,6 +1,6 @@
 package Kinetic::Util::Constants;
 
-# $Id: Constants.pm 1818 2005-06-29 03:35:14Z curtis $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: meta.t 2238 2005-11-19 07:33:20Z theory $
+# $Id$
 
 use strict;
 use Kinetic::Build::Test;
