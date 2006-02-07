@@ -58,7 +58,10 @@ such as "DBD::Pg" or "DBD::SQLite". Must be overridden in subclasses.
 
 =cut
 
-sub dbd_class { require Carp && Carp::croak "dbd_class() must be overridden in the subclass" }
+sub dbd_class {
+    require Carp
+        && Carp::croak "dbd_class() must be overridden in the subclass";
+}
 
 ##############################################################################
 

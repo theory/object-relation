@@ -625,9 +625,9 @@ sub test_validate_user_db : Test(33) {
         db_pass => '__kinetic_test__',
         host    => '',
         port    => '',
-        db_super_user => undef,
-        db_super_pass => undef,
-        template_db_name => undef,
+        db_super_user => '',
+        db_super_pass => '',
+        template_db_name => '',
         dsn     => 'dbi:Pg:dbname=__kinetic_test__',
     }, "As should the test configuration.";
 
@@ -816,7 +816,7 @@ sub test_validate_super_user_arg : Test(33) {
         port    => '',
         db_super_user => 'postgres',
         db_super_pass => 'postgres',
-        template_db_name => undef,
+        template_db_name => '',
         dsn     => 'dbi:Pg:dbname=__kinetic_test__',
     }, "As should the test configuration.";
 
@@ -1262,7 +1262,7 @@ sub _run_build_tests {
     $pg->unmock('_dbh');
 
     # Now test creating the new database.
-    ok $kbs->build;
+    ok $kbs->setup, 'Setup the database';
 
     # Grab the database handle and check it out.
     $self->{dbh} = $kbs->_dbh;
@@ -1287,7 +1287,7 @@ sub _run_build_tests {
     $pg->unmock('_dbh');
 
     # Run the test build.
-    ok $kbs->test_build;
+    ok $kbs->test_setup, 'Setup test database';
     $self->{dbh} = $kbs->_dbh;
     for my $class ($sg->classes) {
         my $view = $class->key;

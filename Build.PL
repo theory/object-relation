@@ -64,7 +64,7 @@ my $build = Kinetic::Build->new(
         'XML::Simple'                => 2.13,
     },
     build_requires       => {
-        'App::Info'                 => 0.42,
+        'App::Info'                 => 0.48,
         'CGI'                       => 3.11,
         'Class::Trait'              => 0.11,
         'FSA::Rules'                => 0.21,

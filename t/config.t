@@ -48,8 +48,8 @@ APACHE: { # 3 tests.
         skip 'User did not choose Apache2 engine', 3, if $@;
         eval "STORE_CLASS";
         ok($@, "Got error trying to access store_class");
-        ok(exists &APACHE_HTTPD, 'httpd exists');
-        ok(exists &APACHE_HTTPD_CONF, 'httpd_conf exists');
+        ok(exists &APACHE_HTTPD, 'APACHE_HTTPD exists');
+        ok(exists &APACHE_CONF, 'APACHE_CONF exists');
     }
 }
 

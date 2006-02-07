@@ -40,6 +40,12 @@ sub test_rules : Test(37) {
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
     $mb->mock( check_manifest  => sub {return} );
+
+    # Override info class to keep things quiet.
+    my $info = MockModule->new( $class->info_class );
+    $info->mock(installed => 1);
+    $info->mock(version => '3.2.0');
+
     my $builder = $self->new_builder;
     $self->{builder} = $builder;
     $mb->mock( resume           => $builder );
@@ -66,7 +72,6 @@ sub test_rules : Test(37) {
     $builder->notes( build_store => $kbs );
 
     # Test behavior if SQLite is not installed
-    my $info = MockModule->new( $class->info_class );
     $info->mock( installed => 0 );
     throws_ok { $kbs->validate } qr/SQLite does not appear to be installed/,
         '... and it should die if SQLite is not installed';
@@ -116,7 +121,7 @@ sub test_rules : Test(37) {
 
     file_not_exists_ok $test_file,
       "The test database file should not yet exist";
-    ok $kbs->test_build, "Build the test database";
+    ok $kbs->test_setup, "Build the test database";
     file_exists_ok $test_file, "The test database file should now exist";
 
     # Make sure that the views were created.
@@ -145,7 +150,7 @@ sub test_rules : Test(37) {
     unlink $test_file;
     $self->mkpath('store');
     file_not_exists_ok $db_file, "The database file should not yet exist";
-    ok $kbs->build, "Build the database";
+    ok $kbs->setup, "Build the database";
     file_exists_ok $db_file, "The database file should now exist";
 
     # Make sure that the views were created.

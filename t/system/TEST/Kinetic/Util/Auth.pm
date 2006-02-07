@@ -2,7 +2,7 @@ package TEST::Kinetic::Util::Auth;
 
 use strict;
 use warnings;
-use base 'TEST::Class::Kinetic';
+use base 'TEST::Kinetic';
 use Test::More;
 use Test::Exception;
 use aliased 'Kinetic::Party::User';

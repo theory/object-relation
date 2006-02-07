@@ -78,8 +78,8 @@ options it adds are:
 
   my $info_class = Kinetic::Build::Store::DB::Pg->info_class
 
-This abstract class method returns the name of the C<App::Info> class for the
-data store. Must be overridden in subclasses.
+Returns the name of the C<App::Info> class that detects the presences of
+SQLite, L<App::Info::RDBMS::PostgreSQL|App::Info::RDBMS::PostgreSQL>.
 
 =cut
 
@@ -91,19 +91,20 @@ sub info_class { 'App::Info::RDBMS::PostgreSQL' }
 
   my $version = Kinetic::Build::Store::DB::Pg->min_version
 
-This abstract class method returns the minimum required version number of the
-data store application. Must be overridden in subclasses.
+Returns the minimum required version number of PostgreSQL that must be
+installed.
 
 =cut
 
 sub min_version { '7.4.5' }
 
+##############################################################################
+
 =head3 dbd_class
 
   my $dbd_class = Kinetic::Build::Store::DB::Pg->dbd_class;
 
-This abstract class method returns the name of the DBI database driver class,
-such as "DBD::Pg" or "DBD::Pg". Must be overridden in subclasses.
+Returns the name of the DBI database driver class, L<DBD::Pg|DBD::Pg>.
 
 =cut
 
@@ -115,8 +116,10 @@ sub dbd_class { 'DBD::Pg' }
 
   my @rules = Kinetic::Build::Store::DB::SQLite->rules;
 
-This is an abstract method that must be overridden in a subclass. By default
-it must return arguments that the C<FSA::Rules> constructor requires.
+Returns a list of arguments to be passed to an L<FSA::Rules|FSA::Rules>
+constructor. These arguments are rules that will be used to validate the
+installation of PostgreSQL and to collect information to configure it for
+use by TKP.
 
 =cut
 
@@ -1033,45 +1036,46 @@ sub test_config {
         db_pass => $self->test_db_pass,
         host    => $self->db_host,
         port    => $self->db_port,
-        dsn     => $self->_dsn($self->test_db_name),
+        dsn     => $self->_dsn( $self->test_db_name ),
+
         # Well need these during tests.
-        db_super_user => $self->db_super_user,
-        db_super_pass => $self->db_super_pass,
-        template_db_name => $self->template_db_name,
+        db_super_user    => $self->db_super_user    || '',
+        db_super_pass    => $self->db_super_pass    || '',
+        template_db_name => $self->template_db_name || '',
     };
 }
 
 ##############################################################################
 
-=head3 build
+=head3 setup
 
-  $kbs->build;
+  $kbs->setup;
 
 Builds a data store. This implementation overrides the parent version to set
 up a database name, username, and password to be used in the action methods.
 
 =cut
 
-sub build {
+sub setup {
     my $self = shift;
     $self->_build_db_name($self->db_name);
     $self->_build_db_user($self->db_user);
     $self->_build_db_user($self->db_pass);
-    $self->SUPER::build(@_);
+    $self->SUPER::setup(@_);
 }
 
 ##############################################################################
 
-=head3 test_build
+=head3 test_setup
 
-  $kbs->test_build;
+  $kbs->test_setup;
 
 Builds a test data store. This implementation overrides the parent version to
 up a database name, username, and password to be used in the action methods.
 
 =cut
 
-sub test_build {
+sub test_setup {
     my $self = shift;
     $self->_build_db_name($self->test_db_name);
     $self->_build_db_user($self->test_db_user);
@@ -1201,7 +1205,7 @@ This method tells whether the given database exists.
 
 sub _db_exists {
     my ($self, $db_name) = @_;
-    $db_name ||= $self->build->db_name;
+    $db_name ||= $self->setup->db_name;
     $self->_pg_says_true(
         "SELECT datname FROM pg_catalog.pg_database WHERE datname = ?",
         $db_name
@@ -1289,7 +1293,7 @@ sub _try_connect {
     $state->{dsn} = [$self->_dsn($self->db_name)];
     my $dbh = $self->_connect( $state->{dsn}[0], $user, $pass);
     unless ($dbh) {
-        my $tdb = $self->_get_template_db_name;# Try the template database.
+        my $tdb = $self->_get_template_db_name; # Try the template database.
         push @{$state->{dsn}}, $self->_dsn($tdb);
         $dbh = $self->_connect( $state->{dsn}[-1], $user, $pass);
     }

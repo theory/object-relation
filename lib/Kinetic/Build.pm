@@ -45,7 +45,6 @@ my %ENGINES = (
     simple => 'Kinetic::Build::Engine::Catalyst',
 );
 
-# XXX it's possible we'll expand this in the future
 my %CACHES = (
     memcached => 'Kinetic::Build::Cache::Memcached',
     file      => 'Kinetic::Build::Cache::File',
@@ -596,9 +595,11 @@ sub ACTION_install {
     my $self = shift;
     $self->SUPER::ACTION_install(@_);
 
-    # Build the data store.
-    my $kbs = $self->notes('build_store');
-    $kbs->build;
+    # Set up external dependencies.
+    for my $depend (qw(store engine cache)) {
+        my $setup = $self->notes("build_$depend");
+        $setup->setup;
+    }
 
     # Create any base objects.
     $self->init_app;
@@ -699,7 +700,7 @@ sub process_conf_files {
             if ( $lc_section eq $self->store ) {
 
                 # It's the configuration section for the data store.
-                # Let the store builder set up the configuration.
+                # Let the store setup class set up the configuration.
                 my $store = $self->notes('build_store');
                 if ( my $method = $store->can( $prefix . 'config' ) ) {
                     if ( my $settings = $store->$method ) {
@@ -712,9 +713,9 @@ sub process_conf_files {
                 # It's a section for another data store. Remove it.
                 delete $conf{$section};
             }
-            elsif ( 
+            elsif (
                  my $method = $self->can( $prefix . $lc_section . '_config' )
-                   || 
+                   ||
                  $self->can( $lc_section . '_config' )
             ) {
 

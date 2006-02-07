@@ -44,10 +44,12 @@ BEGIN {
     if ( defined $CONF ) {
         $ENV{KINETIC_CONF} = $CONF;
     }
-    $CONF = $ENV{KINETIC_CONF} || '';
+
+    else {
+        $CONF = $ENV{KINETIC_CONF} || '';
+    }
 }
 
-$ENV{KINETIC_CONF} = $CONF;
 use Kinetic::Util::Config qw(:all);
 
 if ($DEBUG) {

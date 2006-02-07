@@ -74,6 +74,28 @@ sub unmock_dbh {
 
 ##############################################################################
 
+=head3 unmock_dbh
+
+sub shutdown_dbh : Test(shutdown) {
+    shift->disconnect_dbh;
+}
+
+Designed to be called in a shutdown test method, this method checks to see if
+C<dbh()> returns a database handle, and if it does, it disconnects it. This is
+important, so that all connections to the database can be disconnected before
+dropping the database.
+
+=cut
+
+sub disconnect_dbh {
+    my $self = shift;
+    my $dbh  = $self->dbh or return $self;
+    $dbh->disconnect;
+    return $self;
+}
+
+##############################################################################
+
 =head3 desired_attributes
 
   $test->desired_attributes(\@attribute_names);

@@ -141,6 +141,7 @@ sub test_props : Test(13) {
     my $class = $self->test_class;
     my $mb = MockModule->new($class);
     $mb->mock(check_manifest => sub { return });
+    $mb->mock( engine => 'simple' );
 
     # We can make sure things work with the default SQLite store.
     my $info = MockModule->new('App::Info::RDBMS::SQLite');
@@ -204,7 +205,7 @@ sub test_props : Test(13) {
         ' ',
         "  1> apache\n  2> simple\n",
         'Which engine should I use?',
-        ' [1]:',
+        ' [2]:',
         ' ',
         "  1> file\n  2> memcached\n",
         'Which session cache should I use?',
@@ -213,14 +214,14 @@ sub test_props : Test(13) {
         'What password should be used for the default account?',
         ' [change me now!]:',
         ' ',
-        'Please enter the kinetic app root path',
-        ' [/kinetic]:',
+        'Please enter the port to run the server on',
+        ' [3000]:',
         ' ',
-        'Please enter the kinetic app rest path',
-        ' [/kinetic/rest]:',
+        'Please enter the hostname for the engine',
+        ' [localhost]:',
         ' ',
-        'Please enter the kinetic app static files path',
-        ' [/]:',
+        'Should the engine automatically restart if .pm files change?',
+        ' [no]:',
         ' '
     ], 'We should be prompted for the data store and other stuff';
 
@@ -323,16 +324,14 @@ sub test_get_reply : Test(49) {
     $self->{builder} = $builder;
     my $expected = <<'    END_INFO';
 Data store: pg
-Kinetic engine: apache
+Kinetic engine: simple
 Kinetic cache: file
 Administrative User password: change me now!
 Looking for pg_config
 path to pg_config: /usr/local/pgsql/bin/pg_config
-Server httpd: /usr/local/apache/bin/httpd
-Server httpd_conf: /usr/local/apache/conf/httpd.conf
-Server kinetic_root: /kinetic
-Server kinetic_rest: /kinetic/rest
-Server kinetic_static: /
+Server port: 3000
+Server host: localhost
+Server restart: no
     END_INFO
     is delete $self->{info}, $expected,
       "Should have data store set by command-line option";
@@ -595,6 +594,7 @@ sub new_builder {
         dist_version    => '1.0',
         quiet           => 1,
         accept_defaults => 1,
+        engine          => 'simple',
         @_,
     );
     return $self->{builder};

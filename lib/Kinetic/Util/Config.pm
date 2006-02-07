@@ -89,7 +89,7 @@ the configuration file:
 BEGIN {
     # Load the configuration file. It's hard-coded; if it ever changes,
     # it should also be changed in inst/lib/Kinetic/Build.pm.
-    my $conf_file = delete $ENV{KINETIC_CONF}
+    my $conf_file = $ENV{KINETIC_CONF}
       || '/usr/local/kinetic/conf/kinetic.conf';
     die "No such configuration file '$conf_file'" unless -f $conf_file;
     read_config($conf_file => my %conf);

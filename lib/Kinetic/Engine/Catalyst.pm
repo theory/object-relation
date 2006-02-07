@@ -25,7 +25,7 @@ use version;
 our $VERSION = version->new('0.0.1');
 use aliased 'Proc::Background';
 
-use Kinetic::Util::Config qw(:all);
+use Kinetic::Util::Config qw(:kinetic);
 use Kinetic::Util::Language;
 use Kinetic::Util::Exceptions;
 use Kinetic::Engine;
@@ -44,7 +44,7 @@ Kinetic::Util::Context->language($LANG);
 
 =head1 NAME
 
-Kinetic::Engine::Catalyst 
+Kinetic::Engine::Catalyst
 
 =head1 DESCRIPTION
 

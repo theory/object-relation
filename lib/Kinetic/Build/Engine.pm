@@ -22,6 +22,7 @@ use strict;
 
 use version;
 our $VERSION = version->new('0.0.1');
+use base 'Kinetic::Build::Setup';
 
 =head1 Name
 
@@ -31,75 +32,62 @@ Kinetic::Build::Engine - Kinetic engine builder
 
   use Kinetic::Build::Engine;
   my $kbe = Kinetic::Build::Engine->new;
-  $kbe->build;
+  $kbe->setup;
 
 =head1 Description
 
-This is the base class for building Kinetic engines.
+This is the base class for setting up Kinetic engines. It inherits from
+L<Kinetic::Build::Setup|Kinetic::Build::Setup>.
 
 =cut
 
 ##############################################################################
-# Class Methods.
-##############################################################################
-
-=head1 Class Interface
-
-=head2 Class Methods
-
-=head3 engine_class
-
-  my $engine_class = Kinetic::Build::Engine->engine_class;
-
-Returns the engine class necessary to run the engine.
-
-=cut
-
-sub engine_class { die "engine_class() must be overridden in the subclass" }
 
 ##############################################################################
 # Constructors.
 ##############################################################################
 
+=head1 Interface
+
 =head2 Constructors
 
 =head3 new
 
-  my $kbs = Kinetic::Build::Engine->new;
-  my $kbs = Kinetic::Build::Engine->new($builder);
+  my $kbe = Kinetic::Build::Engine->new;
+  my $kbe = Kinetic::Build::Engine->new($builder);
 
-Creates and returns a new Engine builder object. Pass in the Kinetic::Build
-object being used to validate the engine. If no Kinetic::Build object is
-passed, one will be instantiated by a call to C<< Kinetic::Build->resume >>.
-This is a factory constructor; it will return the subclass appropriate to the
-currently selected store class as configured in F<kinetic.conf>.
+This constructor overrides the one inherited from
+L<Kinetic::Build::Setup|Kinetic::Build::Setup> to set the C<base_uri>
+attribute to its default value, '/'.
 
 =cut
 
-my %private;
 sub new {
-    my $class = shift;
-    my $builder = shift || eval { Kinetic::Build->resume }
-      or die "Cannot resume build: $@";
-
-    my $self = bless {actions => []} => $class;
-    $private{$self} = {
-        builder => $builder,
-    };
+    my $self = shift->SUPER::new(@_);
+    $self->{base_uri} = '/';
     return $self;
 }
 
 ##############################################################################
 
-=head3 builder
+=head2 Instance Methods
 
-  my $builder = $kbs->builder;
+=head3 base_uri
 
-Returns the C<Kinetic::Build> object used to determine build properties.
+  my $base_uri = $kbe->base_uri;
+  $kbe->base_uri($base_uri);
+
+Returns the base URI to be used for all Kinetic applications. Must be set by a
+subclass during the execution of C<validate()>.
 
 =cut
 
-sub builder { $private{shift()}->{builder} ||= Kinetic::Build->resume }
+sub base_uri {
+    my $self = shift;
+    return $self->{base_uri} unless @_;
+    $self->{base_uri} = shift;
+    return $self;
+}
 
 ##############################################################################
 
@@ -117,24 +105,8 @@ sub add_to_config {
     my @conf = $self->conf_sections;
     @{ $conf->{ $self->conf_engine } }{@conf} = @{$self}{@conf};
     $conf->{engine} = { class => $self->engine_class };
+    $conf->{kinetic}{base_uri} = $self->base_uri;
     return $self;
-}
-
-##############################################################################
-
-=head3 validate
-
-  $kbs->validate;
-
-This method will validate the engine. 
-
-=cut
-
-sub validate { die "validate() must be overridden in a subclass" }
-
-sub DESTROY {
-    my $self = shift;
-    delete $private{$self};
 }
 
 1;

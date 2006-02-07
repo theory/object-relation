@@ -24,7 +24,7 @@ use warnings;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use Kinetic::Util::Config qw(APACHE_HTTPD APACHE_HTTPD_CONF);
+use Kinetic::Util::Config qw(:apache);
 use Kinetic::Util::Exceptions 'throw_fatal';
 
 {
@@ -39,8 +39,8 @@ use Kinetic::Util::Exceptions 'throw_fatal';
             my $class = shift;
             my @args  = (
                 APACHE_HTTPD,
-                "-k", $command,            # start, stop, or graceful
-                "-f", APACHE_HTTPD_CONF    # httpd.conf
+                '-k', $command,    # start, stop, or graceful
+                '-f', APACHE_CONF, # httpd.conf
             );
             system(@args) == 0
               or throw_fatal [
@@ -55,7 +55,7 @@ use Kinetic::Util::Exceptions 'throw_fatal';
 
 =head1 NAME
 
-Kinetic::Engine::Apache2 
+Kinetic::Engine::Apache2
 
 =head1 DESCRIPTION
 

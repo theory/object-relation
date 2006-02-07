@@ -67,6 +67,10 @@ sub teardown : Test(teardown) {
     delete( $test->{rest_mock} )->unmock_all;
 }
 
+sub shutdown_dbh : Test(shutdown) {
+    shift->disconnect_dbh;
+}
+
 sub _path_info {
     my $test = shift;
     return $test->{path_info} unless @_;

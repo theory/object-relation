@@ -65,8 +65,8 @@ command-line options it adds are:
 
   my $info_class = Kinetic::Build::Store::DB::SQLite->info_class
 
-This abstract class method returns the name of the C<App::Info> class for the
-data store. Must be overridden in subclasses.
+Returns the name of the C<App::Info> class that detects the presences of
+SQLite, L<App::Info::RDBMS::SQLite|App::Info::RDBMS::SQLite>.
 
 =cut
 
@@ -78,19 +78,19 @@ sub info_class { 'App::Info::RDBMS::SQLite' }
 
   my $version = Kinetic::Build::Store::DB::SQLite->min_version
 
-This abstract class method returns the minimum required version number of the
-data store application. Must be overridden in subclasses.
+Returns the minimum required version number of SQLite that must be installed.
 
 =cut
 
 sub min_version { '3.2.0' }
 
+##############################################################################
+
 =head3 dbd_class
 
   my $dbd_class = Kinetic::Build::Store::DB::SQLite->dbd_class;
 
-This abstract class method returns the name of the DBI database driver class,
-such as "DBD::Pg" or "DBD::SQLite". Must be overridden in subclasses.
+Returns the name of the DBI database driver class, L<DBD::SQLite|DBD::SQLite>.
 
 =cut
 
@@ -102,8 +102,10 @@ sub dbd_class { 'DBD::SQLite' }
 
   my @rules = Kinetic::Build::Store::DB::SQLite->rules;
 
-This method returns the rules required by the C<Kinetic::Build::Rules>
-state machine.
+Returns a list of arguments to be passed to an L<FSA::Rules|FSA::Rules>
+constructor. These arguments are rules that will be used to validate the
+installation of SQLite and to collect information to configure it for use by
+TKP.
 
 =cut
 
@@ -273,34 +275,38 @@ sub test_config { {file => shift->_test_path } }
 
 ##############################################################################
 
-=head3 build
+=head3 setup
 
-  $kbs->build;
+  $kbs->setup;
 
-Builds data store. This implementation overrides the parent version to set up
-a database handle for use during the build.
+Build data store. This implementation overrides the parent version to set up
+a database handle for use during the setup.
 
 =cut
 
-sub build {
+sub setup {
     my $self = shift;
-    return $self->_build($self->dsn, $self->_dir, 'SUPER::build', @_);
+    return $self->_setup($self->dsn, $self->_dir, 'SUPER::setup', @_);
 }
 
 ##############################################################################
 
-=head3 test_build
+=head3 test_setup
 
-  $kbs->test_build;
+  $kbs->test_setup;
 
 Builds a test data store. This implementation overrides the parent version to
-set up a database handle for use during the build.
+set up a database handle for use during the setup.
 
 =cut
 
-sub test_build {
+sub test_setup {
     my $self = shift;
-    return $self->_build($self->test_dsn, $self->_test_dir, 'SUPER::test_build', @_);
+    return $self->_setup(
+        $self->test_dsn,
+        $self->_test_dir,
+        'SUPER::test_setup', @_
+    );
 }
 
 ##############################################################################
@@ -311,16 +317,16 @@ sub test_build {
 
 =head2 Private Instance Methods
 
-=head3 _build
+=head3 _setup
 
-  $kdb->_build($dsn, $dir, $method, @args);
+  $kdb->_setup($dsn, $dir, $method, @args);
 
-Called by C<build> and C<test_build>. See those methods to understand its
+Called by C<setup> and C<test_setup>. See those methods to understand its
 behavior.
 
 =cut
 
-sub _build {
+sub _setup {
     my ($self, $dsn, $dir, $method, @args) = @_;
     File::Path::mkpath $dir, 1;
 

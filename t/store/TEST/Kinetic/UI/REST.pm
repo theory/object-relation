@@ -102,6 +102,10 @@ sub teardown : Test(teardown) {
     shift->clear_database;
 }
 
+sub shutdown_dbh : Test(shutdown) {
+    shift->disconnect_dbh;
+}
+
 sub server { shift->{REST} }
 
 sub chained_calls : Test(6) {

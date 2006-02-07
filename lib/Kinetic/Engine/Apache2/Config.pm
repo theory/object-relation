@@ -27,24 +27,22 @@ our $VERSION = version->new('0.0.1');
 use CGI;
 CGI->compile;
 
+use Kinetic::Util::Config qw(:kinetic);
 use Apache2::Const -compile => qw(OK);
 use Apache2::ServerUtil ();
+use File::Spec::Functions qw(catdir);
 
-use Kinetic::Util::Config qw(:all);
 
 BEGIN {
     sub _apache_conf_template {
-        my $self          = shift;
-        my $server_rest   = APACHE_REST;
-        my $server_root   = APACHE_ROOT;
-        my $server_static = APACHE_STATIC;
-        my $kinetic_root  = KINETIC_ROOT;
+        my $self       = shift;
+        my $doc_root   = catdir(KINETIC_ROOT, 'root');
+        my $base_uri   = KINETIC_BASE_URI;
 
-        # XXX this has no effect :(  Will research
         return <<"        END_CONF";
-    DocumentRoot $kinetic_root/root
+    DocumentRoot $doc_root
 
-    <Location $server_root>
+    <Location $base_uri>
         SetHandler          modperl
         PerlResponseHandler Kinetic::Engine::Apache2::Config
         Order allow,deny
@@ -52,13 +50,13 @@ BEGIN {
     </Location>
 
     # static files
-    <Location $server_static>
+    <Location $base_uri/ui>
         Order allow,deny
         Allow from all
     </Location>
 
-    # REST 
-    <Location $server_rest>
+    # REST
+    <Location $base_uri/rest>
         SetHandler          modperl
         PerlResponseHandler Kinetic::Engine::Apache2::Config::rest
     </Location>

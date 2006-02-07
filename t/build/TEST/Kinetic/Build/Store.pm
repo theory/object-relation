@@ -23,7 +23,7 @@ sub teardown_builder : Test(teardown) {
 sub test_interface : Test(17) {
     my $self = shift;
     my $class = $self->test_class;
-    for my $method (qw'new builder build test_build info_class info rules
+    for my $method (qw'new builder setup test_setup info_class info rules
                        validate config test_config min_version max_version
                        schema_class is_required_version store_class
                        resume test_cleanup',
@@ -40,9 +40,7 @@ sub test_class_methods : Test(6) {
     (my $schema_class = $class) =~ s/Store/Schema/;
     is $class->schema_class, $schema_class, "Schema class should correct";
     is $class->max_version, 0, 'max_version should default to 0';
-    throws_ok { $class->info_class }
-      qr'info_class\(\) must be overridden in the subclass',
-      'info_class() needs to be overridden';
+    is $class->info_class, undef, 'info_class() should default to undef';
     throws_ok { $class->min_version }
       qr'min_version\(\) must be overridden in the subclass',
       'min_version() needs to be overridden';
@@ -126,9 +124,9 @@ sub test_instance : Test(32) {
         $store->mock(config => sub {
             ok 1, "Config should be called by $meth() actions"
         });
-        ok $kbs->build, 'Build should return true';
-        $meth = 'test_build';
-        ok $kbs->test_build, 'test_build should return true';
+        ok $kbs->setup, 'Setup should return true';
+        $meth = 'test_setup';
+        ok $kbs->test_setup, 'setup_build should return true';
     }
 
     is $kbs->test_cleanup, $kbs, 'test_cleanup should just return';
