@@ -276,7 +276,6 @@ t/system/TEST/Kinetic/Util/Auth.pm
 t/system/TEST/Kinetic/VersionInfo.pm
 t/test_setup.t
 t/tt_renderer.t
-t/ui/email/workflow/email.t
 t/ui/email/workflow/lexer.t
 t/ui/email/workflow/parser.t
 t/util.t

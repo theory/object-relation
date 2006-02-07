@@ -182,6 +182,7 @@ sub rules {
         Done => {
             do => sub {
                 $self->add_actions('build_db');
+                shift->done(1);
             }
         },
         fail => {

@@ -256,7 +256,9 @@ sub rules {
         # then insert our simple configuration.
         Done => {
             do => sub {
-                shift->message('Apache 2 configuration detected');
+                my $state = shift;
+                $state->message('Apache 2 configuration detected');
+                $state->done(1);
             }
         },
         fail => {

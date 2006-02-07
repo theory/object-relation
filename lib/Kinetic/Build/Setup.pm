@@ -103,7 +103,10 @@ sub max_version { 0 }
   my @rules = Kinetic::Build::Setup->rules;
 
 This is an abstract method that must be overridden in a subclass. By default
-it must return arguments that the C<FSA::Rules> constructor requires.
+it must return arguments that the C<FSA::Rules> constructor requires. These
+rules must also set the FSA::Rules C<done> attribute to indicate when they
+have finished running, otherwise a call to C<validate()> might never exit.
+Or else throw an exception, of course, if something goes wrong.
 
 =cut
 
@@ -190,8 +193,7 @@ need to override the C<validate()> method.
 sub validate {
     my $self = shift;
     my $machine = FSA::Rules->new($self->rules);
-    $machine->start;
-    $machine->switch until $machine->at('Done');
+    $machine->run;
     return $self;
 }
 

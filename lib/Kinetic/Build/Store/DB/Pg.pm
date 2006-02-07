@@ -131,7 +131,7 @@ sub rules {
         my $state = shift;
         $state->message(
             'I cannot connect to the PostgreSQL server via "'
-            . join('" or "', @{$state->{dsn}}) . '"'
+            . join('", or "', @{$state->{dsn}}) . '"'
           );
     };
 
@@ -139,8 +139,8 @@ sub rules {
         my $state = shift;
         return unless $self->_dbh;
         $state->message(
-            "Connected to server via \"$state->{dsn}[-1]\"; "
-              . "checking for database"
+            qq{Connected to server via "$state->{dsn}[-1]"; }
+            . "checking for database"
           );
         return $state;
     };
@@ -621,11 +621,13 @@ sub rules {
 
         Done => {
             do => sub {
+                my $state = shift;
                 $self->add_actions('build_db');
                 # The super user must grant permissions to the database user
                 # to access the objects in the database.
                 $self->add_actions('grant_permissions')
                   if $self->db_super_user;
+                $state->done(1);
             }
         },
     );
