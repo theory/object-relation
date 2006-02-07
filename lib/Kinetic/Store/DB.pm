@@ -118,7 +118,7 @@ sub save {
 
         # someone has started a transaction externally
         eval { $self->_save(@_) };
-        if (my $err = $@) {
+        if ( my $err = $@ ) {
             $err->rethrow if isa_exception($err);
             throw_fatal [ 'Error saving to data store: [_1]', $err ];
         }
@@ -250,13 +250,15 @@ sub lookup {
     throw_attribute [
         'No such attribute "[_1]" for [_2]', $attr_key,
         $search_class->package
-    ] unless $attr;
+      ]
+      unless $attr;
 
     throw_attribute [ 'Attribute "[_1]" is not unique', $attr_key ]
-        unless $attr->unique;
+      unless $attr->unique;
 
     $self->_prepare_method($CACHED);
-    $self->{searching_on_state} = 1; # Always allow lookup() to find deleted objects.
+    $self->{searching_on_state}
+      = 1;    # Always allow lookup() to find deleted objects.
     $self->_should_create_iterator(0);
 
     local $self->{search_class} = $search_class;
@@ -344,8 +346,8 @@ sub query_uuids {
     $self->_should_create_iterator(0);
     local $self->{search_class} = $search_class;
     $self->_set_search_data;
-    my ( $sql, $bind_params ) =
-      $self->_get_select_sql_and_bind_params( "uuid", \@search_params );
+    my ( $sql, $bind_params )
+      = $self->_get_select_sql_and_bind_params( "uuid", \@search_params );
     my $uuids = $self->_dbh->selectcol_arrayref( $sql, undef, @$bind_params );
     return wantarray ? @$uuids : $uuids;
 }
@@ -374,8 +376,8 @@ sub count {
     $self->_prepare_method($PREPARE);
     local $self->{search_class} = $search_class;
     $self->_set_search_data;
-    my ( $sql, $bind_params ) =
-      $self->_get_select_sql_and_bind_params( 'count(*)', \@search_params );
+    my ( $sql, $bind_params )
+      = $self->_get_select_sql_and_bind_params( 'count(*)', \@search_params );
     my ($count) = $self->_dbh->selectrow_array( $sql, undef, @$bind_params );
     return $count;
 }
@@ -453,13 +455,17 @@ search.
 =cut
 
 sub _eq_date_handler {
-    throw_unimplemented [ '"[_1]" must be overridden in a subclass',
-        '_eq_date_format' ];
+    throw_unimplemented [
+        '"[_1]" must be overridden in a subclass',
+        '_eq_date_format'
+    ];
 }
 
 sub _gt_lt_date_handler {
-    throw_unimplemented [ '"[_1]" must be overridden in a subclass',
-        '_gt_lt_date_handler' ];
+    throw_unimplemented [
+        '"[_1]" must be overridden in a subclass',
+        '_gt_lt_date_handler'
+    ];
 }
 
 sub _between_date_handler {
@@ -475,13 +481,17 @@ sub _between_date_handler {
 }
 
 sub _between_date_sql {
-    throw_unimplemented [ '"[_1]" must be overridden in a subclass',
-        '_between_date_sql' ];
+    throw_unimplemented [
+        '"[_1]" must be overridden in a subclass',
+        '_between_date_sql'
+    ];
 }
 
 sub _any_date_handler {
-    throw_unimplemented [ '"[_1]" must be overridden in a subclass',
-        '_any_date_handler' ];
+    throw_unimplemented [
+        '"[_1]" must be overridden in a subclass',
+        '_any_date_handler'
+    ];
 }
 
 sub _get_select_sql_and_bind_params {
@@ -489,8 +499,8 @@ sub _get_select_sql_and_bind_params {
     my $constraints = pop @$search_request
       if 'HASH' eq ref $search_request->[-1];
     my $view = $self->search_class->key;
-    my ( $where_clause, $bind_params ) =
-      $self->_make_where_clause($search_request);
+    my ( $where_clause, $bind_params )
+      = $self->_make_where_clause($search_request);
     $where_clause = "WHERE $where_clause" if $where_clause;
     my $sql = "SELECT $columns FROM $view $where_clause";
     $sql .= $self->_constraints($constraints) if $constraints;
@@ -526,8 +536,8 @@ sub _save {
     $self->_save_contained($object);
 
     return $object->id
-        ? $self->_update($object)
-        : $self->_insert($object);
+      ? $self->_update($object)
+      : $self->_insert($object);
 }
 
 ##############################################################################
@@ -545,14 +555,14 @@ handled in the normal save for $object as executed by C<_save()>.
 =cut
 
 sub _save_contained {
-    my ($self, $object) = @_;
+    my ( $self, $object ) = @_;
     my $class = $object->my_class;
 
-    if (my $extended = $class->extends || $class->mediates) {
+    if ( my $extended = $class->extends || $class->mediates ) {
+
         # Recurse to save the references in all extendeds, first.
         $self->_save_contained(
-            $class->attributes($extended->key)->get($object)
-        );
+            $class->attributes( $extended->key )->get($object) );
     }
 
     $self->_save($_) for map { $_->get($object) || () } grep {
@@ -583,7 +593,7 @@ sub _delete {
     my $sql = "DELETE FROM $self->{view} WHERE id = ?";
     $self->_prepare_method($CACHED);
     $self->_do_sql( $sql, [$id] );
-    return $object->_clear_modified
+    return $object->_clear_modified;
 }
 
 ##############################################################################
@@ -604,16 +614,16 @@ sub _query {
     $self->_set_search_type( \@search_params );
     if ( $self->{search_type} eq 'CODE' ) {
 
-        # XXX we're going to temporarily disable full text searches unless it's
-        # a code search. We need to figure out the exact semantics of the
-        # others
+       # XXX we're going to temporarily disable full text searches unless it's
+       # a code search. We need to figure out the exact semantics of the
+       # others
         return $self->_full_text_search(@search_params)
           if 1 == @search_params && !ref $search_params[0];
     }
     $self->_set_search_data;
     my $columns = join ', ' => $self->_search_data_columns;
-    my ( $sql, $bind_params ) =
-      $self->_get_select_sql_and_bind_params( $columns, \@search_params );
+    my ( $sql, $bind_params )
+      = $self->_get_select_sql_and_bind_params( $columns, \@search_params );
     return $self->_get_sql_results( $sql, $bind_params );
 }
 
@@ -749,14 +759,15 @@ externally for B<any> purpose.
 
 sub _insert {
     my ( $self, $object ) = @_;
+
     # INSERT all attributes.
-    my (@cols, @vals);
+    my ( @cols, @vals );
     foreach my $attr ( $self->{search_class}->persistent_attributes ) {
         next if $attr->name eq 'id';
         push @cols => $attr->_view_column;
         push @vals => $attr->store_raw($object);
-        throw_invalid([ 'Attribute "[_1]" must be defined', $attr->name ])
-            if $attr->required && !defined $attr->get($object);
+        throw_invalid( [ 'Attribute "[_1]" must be defined', $attr->name ] )
+          if $attr->required && !defined $attr->get($object);
     }
 
     my $columns      = join ', ' => @cols;
@@ -781,14 +792,13 @@ each object.
 =cut
 
 sub _set_ids {
-    my ($self, $object) = @_;
+    my ( $self, $object ) = @_;
     my $class = $object->my_class;
 
-    if (my $extended = $class->extends || $class->mediates) {
+    if ( my $extended = $class->extends || $class->mediates ) {
+
         # Recurse to get the IDs in all extendeds.
-        $self->_set_ids(
-            $class->attributes($extended->key)->get($object)
-        );
+        $self->_set_ids( $class->attributes( $extended->key )->get($object) );
     }
 
     $object->_clear_modified;
@@ -808,14 +818,14 @@ the extended object extends or mediates, etc.
 =cut
 
 sub _clear_mods {
-    my ($self, $object) = @_;
+    my ( $self, $object ) = @_;
     my $class = $object->my_class;
 
-    if (my $extended = $class->extends || $class->mediates) {
+    if ( my $extended = $class->extends || $class->mediates ) {
+
         # Recurse to clear the list of modified attributes in all extendeds.
         $self->_clear_mods(
-            $class->attributes($extended->key)->get($object)
-        );
+            $class->attributes( $extended->key )->get($object) );
     }
 
     $object->_clear_modified;
@@ -857,15 +867,16 @@ Creates and executes an C<UPDATE> sql statement for the given object.
 
 sub _update {
     my ( $self, $object ) = @_;
+
     # UPDATE only modified attributes.
     my @mods = $object->_get_modified or return $self;
-    my (@cols, @vals);
+    my ( @cols, @vals );
     foreach my $attr ( $self->{search_class}->attributes(@mods) ) {
         push @cols => $attr->_view_column;
         push @vals => $attr->store_raw($object);
     }
 
-    my $columns = join ', ' => map { "$_ = ?" } @cols;
+    my $columns = join ', ' => map {"$_ = ?"} @cols;
     push @vals => $object->id;
     my $sql = "UPDATE $self->{view} SET $columns WHERE id = ?";
     $self->_prepare_method($CACHED);
@@ -888,6 +899,7 @@ sub _do_sql {
     my ( $self, $sql, $bind_params ) = @_;
     my $dbi_method = $self->_prepare_method;
     my $sth        = $self->_dbh->$dbi_method($sql);
+
     # The warning has been suppressed due to "use of unitialized value in
     # subroutine entry" warnings from DBD::SQLite.
     no warnings 'uninitialized';
@@ -961,7 +973,7 @@ sub _get_sql_results {
 
     if ( $self->_should_create_iterator ) {
         my $search_class = $self->{search_class};
-        my $iterator = Iterator->new(
+        my $iterator     = Iterator->new(
             sub {
                 my $result = $self->_fetchrow_hashref($sth) or return;
                 local $self->{search_class} = $search_class;
@@ -1049,8 +1061,8 @@ sub _build_object_from_hashref {
                 delete $objects_for{$package}{$key};
                 my $contained_package = $contained->package;
                 my $view              = $contained->key;
-                $objects_for{$package}{$view} =
-                  $objects_for{$contained_package};
+                $objects_for{$package}{$view}
+                  = $objects_for{$contained_package};
             }
         }
     }
@@ -1098,12 +1110,12 @@ sub _set_search_data {
                     my $view_column = "$prefix$column";
                     $packages{$package}{columns}{$view_column} = $column;
 
-                    if ( my $class = $attr->references) {
+                    if ( my $class = $attr->references ) {
                         push @classes_to_process => {
                             class  => $class,
                             prefix => $prefix
-                                ? $prefix . $class->key . $OBJECT_DELIMITER
-                                : $class->key . $OBJECT_DELIMITER
+                            ? $prefix . $class->key . $OBJECT_DELIMITER
+                            : $class->key . $OBJECT_DELIMITER
                         };
 
                         $packages{$package}{contains}{$column} = $class;
@@ -1223,15 +1235,14 @@ sub _make_where_clause {
 
         # unless explicitly set elsewhere, the default search type is CODE
         $self->{search_type} ||= 'CODE';
-        my $stream =
-          $self->{search_type} eq
+        my $stream = $self->{search_type} eq
           'CODE'    # XXX we may need to clean this up later
           ? code_lexer_stream($search_request)
           : string_lexer_stream( $search_request->[0] );
         my $ir = parse( $stream, $self );
         $self->{searching_on_state} ||= 0;
-        my ( $where_clause, $bind_params ) =
-          $self->_convert_ir_to_where_clause($ir);
+        my ( $where_clause, $bind_params )
+          = $self->_convert_ir_to_where_clause($ir);
         $where_clause = "" if '()' eq $where_clause;
 
         unless ( $self->{searching_on_state} ) {
@@ -1254,12 +1265,12 @@ sub _convert_ir_to_where_clause {
         unless ( ref $term ) {    # Currently, this means its 'OR'
             pop @where if 'AND' eq $where[-1];
             push @where => $term;
-            my ( $token, $bind ) =
-              $self->_convert_ir_to_where_clause( shift @$ir );
+            my ( $token, $bind )
+              = $self->_convert_ir_to_where_clause( shift @$ir );
             push @where => $token;
             push @bind  => @$bind;
 
-            # (LOWER(name) = LOWER(?) OR (LOWER(desc) = LOWER(?) AND this = ?))
+           # (LOWER(name) = LOWER(?) OR (LOWER(desc) = LOWER(?) AND this = ?))
         }
         elsif ( Search eq ref $term ) {
             my $search_method = $term->search_method;
@@ -1281,7 +1292,8 @@ sub _convert_ir_to_where_clause {
         }
         else {
             panic
-              'Failed to convert IR to where clause.  This should not happen.',;
+              'Failed to convert IR to where clause.  This should not happen.'
+              ,;
         }
         unless ( $where[-1] =~ $GROUP_OP ) {
             push @where => 'AND';
@@ -1293,7 +1305,7 @@ sub _convert_ir_to_where_clause {
     pop @where
       if defined $where[-1]
       && $where[-1] =~ $GROUP_OP;
-    return '(' . join ( ' ' => @where ) . ')', \@bind;
+    return '(' . join( ' ' => @where ) . ')', \@bind;
 }
 
 ##############################################################################
@@ -1383,18 +1395,18 @@ L<Kinetic::Store::Seach|Kinetic::Store::Search>.
 =cut
 
 sub _ANY_SEARCH {
-    my ( $self,    $search )       = @_;
-    my ( $negated, $value )        = ( $search->negated, $search->data );
-    my ( $column,  $place_holder ) =
-      $self->_handle_case_sensitivity( $search->column );
+    my ( $self, $search ) = @_;
+    my ( $negated, $value ) = ( $search->negated, $search->data );
+    my ( $column, $place_holder )
+      = $self->_handle_case_sensitivity( $search->column );
     my $place_holders = join ', ' => ($place_holder) x @$value;
     return ( "$column $negated IN ($place_holders)", $value );
 }
 
 sub _EQ_SEARCH {
-    my ( $self,   $search )       = @_;
-    my ( $column, $place_holder ) =
-      $self->_handle_case_sensitivity( $search->column );
+    my ( $self, $search ) = @_;
+    my ( $column, $place_holder )
+      = $self->_handle_case_sensitivity( $search->column );
     my $operator = $search->operator;
     return ( "$column $operator $place_holder", [ $search->data ] );
 }
@@ -1409,33 +1421,35 @@ sub _GT_LT_SEARCH {
     my ( $self, $search ) = @_;
     my $value    = $search->data;
     my $operator = $search->operator;
-    my ( $column, $place_holder ) =
-      $self->_handle_case_sensitivity( $search->column );
+    my ( $column, $place_holder )
+      = $self->_handle_case_sensitivity( $search->column );
     return ( "$column $operator $place_holder", [$value] );
 }
 
 sub _BETWEEN_SEARCH {
-    my ( $self,    $search )       = @_;
-    my ( $negated, $operator )     = ( $search->negated, $search->operator );
-    my ( $column,  $place_holder ) =
-      $self->_handle_case_sensitivity( $search->column );
-    return ( "$column $negated $operator $place_holder AND $place_holder",
-        $search->data );
+    my ( $self, $search ) = @_;
+    my ( $negated, $operator ) = ( $search->negated, $search->operator );
+    my ( $column, $place_holder )
+      = $self->_handle_case_sensitivity( $search->column );
+    return (
+        "$column $negated $operator $place_holder AND $place_holder",
+        $search->data
+    );
 }
 
 sub _MATCH_SEARCH {
-    my ( $self,   $search )       = @_;
-    my ( $column, $place_holder ) =
-      $self->_handle_case_sensitivity( $search->column );
+    my ( $self, $search ) = @_;
+    my ( $column, $place_holder )
+      = $self->_handle_case_sensitivity( $search->column );
     my $operator = $search->negated ? '!~*' : '~*';
     return ( "$column $operator $place_holder", [ $search->data ] );
 }
 
 sub _LIKE_SEARCH {
-    my ( $self,    $search )       = @_;
-    my ( $negated, $operator )     = ( $search->negated, $search->operator );
-    my ( $column,  $place_holder ) =
-      $self->_handle_case_sensitivity( $search->column );
+    my ( $self, $search ) = @_;
+    my ( $negated, $operator ) = ( $search->negated, $search->operator );
+    my ( $column, $place_holder )
+      = $self->_handle_case_sensitivity( $search->column );
     return ( "$column $negated $operator $place_holder", [ $search->data ] );
 }
 
@@ -1554,8 +1568,10 @@ C<DBI|DBI> connect args for the current store.
 =cut
 
 sub _connect_args {
-    throw_unimplemented [ '"[_1]" must be overridden in a subclass',
-        '_connect_args' ];
+    throw_unimplemented [
+        '"[_1]" must be overridden in a subclass',
+        '_connect_args'
+    ];
 }
 
 ##############################################################################
