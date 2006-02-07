@@ -22,6 +22,7 @@ use strict;
 
 use version;
 our $VERSION = version->new('0.0.1');
+use base 'Kinetic::Build::Setup';
 
 =head1 Name
 
@@ -29,76 +30,16 @@ Kinetic::Build::Cache - Kinetic cache builder
 
 =head1 Synopsis
 
-This module merely collects the basic information regarding the addresses to
-use for C<memcached>.
+  use Kinetic::Build::Cache;
+  my $kbc = Kinetic::Build::Cache->new;
+  $kbc->setup;
 
 =head1 Description
 
-XXX
+This module is the abstract base class for collecting information for the
+Kinetic caching engine.
 
 =cut
-
-##############################################################################
-# Constructors.
-##############################################################################
-
-=head2 Constructors
-
-=head3 new
-
-  my $kbs = Kinetic::Build::Cache->new;
-  my $kbs = Kinetic::Build::Cache->new($builder);
-
-Creates and returns a new Cache builder object. Pass in the Kinetic::Build
-object being used to validate the cache. If no Kinetic::Build object is
-passed, one will be instantiated by a call to C<< Kinetic::Build->resume >>.
-
-=cut
-
-my %private;
-sub new {
-    my $class = shift;
-    my $builder = shift || eval { Kinetic::Build->resume }
-      or die "Cannot resume build: $@";
-
-    my $self = bless {actions => []} => $class;
-    $private{$self} = {
-        builder => $builder,
-    };
-    return $self;
-}
-
-##############################################################################
-# Class Methods.
-##############################################################################
-
-=head1 Instance Interface
-
-=head2 Instance Methods
-
-##############################################################################
-
-=head3 builder
-
-  my $builder = $kbs->builder;
-
-Returns the C<Kinetic::Build> object used to determine build properties.
-
-=cut
-
-sub builder { $private{shift()}->{builder} ||= Kinetic::Build->resume }
-
-##############################################################################
-
-=head3 validate
-
-  $kbs->validate;
-
-This method will validate the engine. 
-
-=cut
-
-sub validate { die "validate() must be overridden in a subclass" }
 
 ##############################################################################
 
@@ -116,9 +57,11 @@ sub cache_class { die "cache_class() must be overridden in a subclass" }
 
 =head3 add_to_config
 
- $kbc->add_to_conf(\%config); 
+ $kbc->add_to_conf(\%config);
 
-Adds the cache configuration information to the build config hash.
+Adds the cache configuration information to the build config hash. Called
+during the build to set up the caching configuration directives to be used by
+the Kinetic caching architetcure at run time.
 
 =cut
 

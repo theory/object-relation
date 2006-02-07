@@ -28,12 +28,13 @@ use base 'Kinetic::Build::Cache';
 
 =head1 Name
 
-Kinetic::Build::Cache::Memcached - Kinetic cache builder
+Kinetic::Build::Cache::Memcached - Kinetic Memcached cache builder
 
 =head1 Synopsis
 
-This module merely collects the basic information regarding the addresses to
-use for C<memcached>.
+  use Kinetic::Build::Cache::Memcached;
+  my $kbc = Kinetic::Build::Cache::Memcached->new;
+  $kbc->setup;
 
 =head1 Description
 
@@ -42,31 +43,28 @@ See L<Kinetic::Build::Cache|Kinetic::Build::Cache>.
 =cut
 
 ##############################################################################
-# Constructors.
-##############################################################################
 
-=head2 Constructors
+=head1 Class Interface
 
-=head3 new
+=head2 Class Method
 
-  my $kbc = Kinetic::Build::Cache->new;
-  my $kbc = Kinetic::Build::Cache->new($builder);
+=head3 cache_class
 
-Creates and returns a new Cache builder object. Pass in the Kinetic::Build
-object being used to validate the cache. If no Kinetic::Build object is
-passed, one will be instantiated by a call to C<< Kinetic::Build->resume >>.
+  my $cache = Kinetic::Build::Cache->cache_class;
+
+Returns the package name of the Kinetic caching class to be used for caching.
 
 =cut
 
-##############################################################################
-# Class Methods.
+# XXX Generalize for other than Catalyst.
+
+sub cache_class { 'Kinetic::UI::Catalyst::Cache::Memcached' }
+
 ##############################################################################
 
 =head1 Instance Interface
 
 =head2 Instance Methods
-
-##############################################################################
 
 =head3 validate
 
@@ -126,9 +124,10 @@ sub validate {
 
 =head3 add_to_config
 
- $kbc->add_to_conf(\%config); 
+ $kbc->add_to_conf(\%config);
 
-Adds the cache configuration information to the build config hash.
+Adds the cache configuration information to the build config hash. It
+overrides the parent implementation to add the memcached address information.
 
 =cut
 
@@ -138,18 +137,6 @@ sub add_to_config {
     $conf->{memcached} = { addresses => $self->{memcached} };
     return $self;
 }
-
-##############################################################################
-
-=head3 cache_class
-
-  my $cache = Kinetic::Build::Cache->cache_class;
-
-Returns the caching class used by the servers.
-
-=cut
-
-sub cache_class {'Kinetic::UI::Catalyst::Cache::Memcached'}
 
 1;
 __END__

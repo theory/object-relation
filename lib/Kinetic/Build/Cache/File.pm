@@ -27,12 +27,13 @@ use base 'Kinetic::Build::Cache';
 
 =head1 Name
 
-Kinetic::Build::Cache::File - Kinetic cache builder
+Kinetic::Build::Cache::File - Kinetic file cache builder
 
 =head1 Synopsis
 
-This module merely collects the basic information regarding the addresses to
-use for C<memcached>.
+  use Kinetic::Build::Cache::File;
+  my $kbc = Kinetic::Build::Cache::File->new;
+  $kbc->setup;
 
 =head1 Description
 
@@ -41,38 +42,35 @@ See L<Kinetic::Build::Cache|Kinetic::Build::Cache>.
 =cut
 
 ##############################################################################
-# Constructors.
-##############################################################################
 
-=head2 Constructors
+=head1 Class Interface
 
-=head3 new
+=head2 Class Method
 
-  my $kbs = Kinetic::Build::Cache->new;
-  my $kbs = Kinetic::Build::Cache->new($builder);
+=head3 cache_class
 
-Creates and returns a new Cache builder object. Pass in the Kinetic::Build
-object being used to validate the cache. If no Kinetic::Build object is
-passed, one will be instantiated by a call to C<< Kinetic::Build->resume >>.
+  my $cache = Kinetic::Build::Cache->cache_class;
+
+Returns the package name of the Kinetic caching class to be used for caching.
 
 =cut
 
-##############################################################################
-# Class Methods.
+# XXX Generalize for other than Catalyst.
+
+sub cache_class { 'Kinetic::UI::Catalyst::Cache::File' }
+
 ##############################################################################
 
 =head1 Instance Interface
 
-=head2 Instance Methods
-
-##############################################################################
+=head2 Instance Method
 
 =head3 validate
 
   Kinetic::Build::Cache->validate;
 
-This method collects the various addresses and ports on which C<memcached>
-runs.
+This method overrides the parent implementation to simply return true, since
+no data needs to be collected for file caching.
 
 =cut
 
@@ -80,18 +78,6 @@ sub validate {
     # Well, that was easy ...
     return shift;
 }
-
-##############################################################################
-
-=head3 cache_class
-
-  my $cache = Kinetic::Build::Cache->cache_class;
-
-Returns the caching class used by the servers.
-
-=cut
-
-sub cache_class { 'Kinetic::UI::Catalyst::Cache::File' }
 
 1;
 __END__
