@@ -28,6 +28,8 @@ use File::Path  ();
 use File::Copy  ();
 use Config::Std ();
 use Scalar::Util 'blessed';
+use Term::ANSIColor;
+
 
 # Be sure to load exceptions early.
 use Kinetic::Util::Exceptions;
@@ -823,7 +825,8 @@ sub fix_shebang_line {
 
     for my $file (@_) {
         $self->log_verbose(
-            qq{Changing "use lib 'lib'" in $file to "use lib '$lib'\n"} );
+            qq{Changing "use lib 'lib'" in $file to "use lib '$lib'"}
+        );
 
         open my $fixin,  '<', $file       or die "Can't process '$file': $!";
         open my $fixout, '>', "$file.new" or die "Can't open '$file.new': $!";
@@ -982,6 +985,30 @@ sub init_app {
 
 ##############################################################################
 
+=head3 log_verbose
+
+  $build->log_verbose(@messages);
+
+Use this method to output messages when the C<verbose> attribute is set to
+true. It overrides the parent implementation to change the output of the
+messages to boldfaced yellow and to append a newline character if there isn't
+one.
+
+=cut
+
+sub log_verbose {
+    my $self = shift;
+    $self->SUPER::log_verbose(
+        Term::ANSIColor::BOLD(),
+        Term::ANSIColor::YELLOW(),
+        @_,
+        ( $_[-1] =~ /\n\Z/ ? '' : "\n"),
+        Term::ANSIColor::RESET(),
+    );
+}
+
+##############################################################################
+
 =begin private
 
 =head1 Private Methods
@@ -999,7 +1026,6 @@ all we do is C<croak()> bold-faced red text.
 
 sub _fatal_error {
     my $class = shift;
-    require Term::ANSIColor;
     if ( blessed($_[0]) && $_[0]->can('as_string') ) {
         my $error = shift;
         print STDERR $class->_bold_red($error->as_string);

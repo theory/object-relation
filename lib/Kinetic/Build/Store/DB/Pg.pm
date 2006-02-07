@@ -130,7 +130,7 @@ sub rules {
         return if $self->_dbh;
         my $state = shift;
         $state->message(
-            'I cannot connect to the PostgreSQL server via "'
+            'Cannot connect to the PostgreSQL server via "'
             . join('" or "', @{$state->{dsn}}) . '"'
           );
     };
@@ -325,9 +325,10 @@ sub rules {
                         return if $self->db_super_user;
                         # Note need to create database.
                         $self->add_actions('create_db');
+                        my $db = $self->db_name;
                         $state->message(
-                            'Database "' . $self->db_name
-                            . '" does not exist; checking permissions to create it'
+                            qq{Database "$db" does not exist;\n}
+                            . 'Checking permissions to create it'
                         );
                     },
                 },
@@ -339,10 +340,10 @@ sub rules {
                         return unless $self->db_super_user;
                         # Note need to create database.
                         $self->add_actions('create_db');
+                        my $db = $self->db_name;
                         $state->message(
-                            'Database "' . $self->db_name
-                              . '" does not exist but will be created; checking '
-                              . 'template database for PL/pgSQL'
+                            qq{Database "$db" does not exist but will be }
+                            . "created;\nchecking template database for PL/pgSQL"
                           );
                     },
                 }
@@ -502,7 +503,7 @@ sub rules {
                 'Get super user' => sub {
                     my $state = shift;
                     $no_connect->($state);
-                    $state->message($state->message . '; prompting for super user');
+                    $state->message('Prompting for super user');
                 },
             ]
         },

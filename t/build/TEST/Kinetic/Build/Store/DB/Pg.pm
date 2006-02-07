@@ -184,7 +184,7 @@ sub test_rules : Test(161) {
       'Template DB name should be "template1"';
 
     throws_ok { $fsa->switch }
-        qr/I cannot connect to the PostgreSQL server via "dbi:Pg:dbname=fooness" or "dbi:Pg:dbname=template1"/,
+        qr/Cannot connect to the PostgreSQL server via "dbi:Pg:dbname=fooness" or "dbi:Pg:dbname=template1"/,
       "We should get a failure to connect to the server";
 
     # Success will trigger the do action for the Check database state, so set
@@ -252,8 +252,8 @@ sub test_rules : Test(161) {
     is $fsa->curr_state->name, 'Check template plpgsql',
       'We should now be in the "Check template plpgsql" state';
     is $fsa->prev_state->message,
-      'Database "fooness" does not exist but will be created; checking '
-      . 'template database for PL/pgSQL',
+        qq{Database "fooness" does not exist but will be created;\n}
+        . 'checking template database for PL/pgSQL',
       'Message should reflect success';
     is_deeply [$kbs->actions],  ['create_db'],
       'Actions should have create_db';
@@ -267,7 +267,8 @@ sub test_rules : Test(161) {
     is $fsa->curr_state->name, 'Check create permissions',
       'We should now be in the "Check create permissions" state';
     is $fsa->prev_state->message,
-      'Database "fooness" does not exist; checking permissions to create it',
+        qq{Database "fooness" does not exist;\n}
+        . 'Checking permissions to create it',
       'Message should reflect success';
     is_deeply [$kbs->actions],  ['create_db'],
       'Actions should have create_db';
@@ -434,10 +435,8 @@ sub test_rules : Test(161) {
     ok $fsa->switch, 'Switch out of "Connect user"';
     is $fsa->curr_state->name, 'Get super user',
       'We should have switched to "Get super user"';
-    is $fsa->prev_state->message,
-      'I cannot connect to the PostgreSQL server via "dbi:Pg:dbname=fooness" '
-      . 'or "dbi:Pg:dbname=template1"; prompting for super user',
-        "Message should reflect failure and need for super user";
+    is $fsa->prev_state->message, 'Prompting for super user',
+        'Message should reflect need for super user';
 
     # Success will trigger the do action for the Check database state, so set
     # it up to succeed.

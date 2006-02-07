@@ -125,7 +125,7 @@ sub rules {
             rules => [
                 fail => {
                     rule    => $fail,
-                    message => 'Apache 2 does not appear to be installed',
+                    message => 'Apache does not appear to be installed',
                 },
                 check_version => {
                     rule    => $succeed,
@@ -143,7 +143,7 @@ sub rules {
                 my $exe = $self->info->executable;
                 $state->message(
                     "I require Apache $req but found $exe, which is $got.\n"
-                  . 'Use --path-to-httpd to specify a different Apache 2 '
+                  . 'Use --path-to-httpd to specify a different Apache '
                   . 'executable'
                 );
             },
@@ -153,7 +153,7 @@ sub rules {
                 },
                 check_mod_perl => {
                     rule    => $succeed,
-                    message => 'Apache 2 is the minimum required version',
+                    message => 'Apache is the minimum required version',
                 }
             ],
         },
@@ -257,7 +257,7 @@ sub rules {
         Done => {
             do => sub {
                 my $state = shift;
-                $state->message('Apache 2 configuration detected');
+                $state->message('Apache detection complete');
                 $state->done(1);
             }
         },

@@ -105,8 +105,8 @@ sub max_version { 0 }
 This is an abstract method that must be overridden in a subclass. By default
 it must return arguments that the C<FSA::Rules> constructor requires. These
 rules must also set the FSA::Rules C<done> attribute to indicate when they
-have finished running, otherwise a call to C<validate()> might never exit.
-Or else throw an exception, of course, if something goes wrong.
+have finished running, otherwise a call to C<validate()> might never exit. Or
+else throw an exception, of course, if something goes wrong.
 
 =cut
 
@@ -184,16 +184,38 @@ sub info { $private{shift()}->{info} }
 This method will validate the setup rules. Returns true if the dependency can
 be used. Otherwise it will C<croak()>.
 
-Internally this method calls C<rules()>. See that method for details. If you
-do not wish to use L<FSA::Rules|FSA::Rules> for rules validation, you will
-need to override the C<validate()> method.
+Internally this method calls C<rules()> to get a list of rules to pass to
+L<FSA::Rules|FSA::Rules>; see that method for details. All messages added to
+states in the rule actions will be sent to the terminal when the Module::Build
+C<verbose> option has been set to true and the C<quiet> option is false. If
+you do not wish to use FSA::Rules for rules validation, you will need to
+override the C<validate()> method.
 
 =cut
 
+STATE: {
+    package Kinetic::Build::Setup::State;
+    use base 'FSA::State';
+    my $builder;
+    sub builder {
+        $builder = pop;
+    }
+    sub message {
+        my $self = shift;
+        $builder->log_verbose(@_) if @_;
+        return $self->SUPER::message(@_);
+    }
+}
+
 sub validate {
     my $self = shift;
-    my $machine = FSA::Rules->new($self->rules);
+    Kinetic::Build::Setup::State->builder($self->builder);
+    my $machine = FSA::Rules->new(
+        { state_class => 'Kinetic::Build::Setup::State' },
+        $self->rules
+    );
     $machine->run;
+    Kinetic::Build::Setup::State->builder(undef);
     return $self;
 }
 
