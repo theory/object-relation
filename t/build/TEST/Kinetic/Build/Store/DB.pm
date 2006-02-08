@@ -14,15 +14,11 @@ use Test::File;
 use File::Spec::Functions;
 
 __PACKAGE__->runtests unless caller;
-sub test_interface : Test(+5) {
-    shift->SUPER::test_interface(qw(
-        dsn test_dsn create_dsn dbd_class dsn_dbd
-    ));
-}
 
-sub test_db_class_methods : Test(2) {
+sub test_db_class_methods : Test(3) {
     my $self = shift;
     my $class = $self->test_class;
+    can_ok $class, qw(dsn test_dsn create_dsn dbd_class dsn_dbd);
     if ($class eq 'Kinetic::Build::Store::DB') {
         throws_ok { $class->dbd_class }
           qr'dbd_class\(\) must be overridden in the subclass',

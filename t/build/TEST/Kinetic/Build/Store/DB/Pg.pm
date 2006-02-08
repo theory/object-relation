@@ -571,7 +571,7 @@ sub test_rules : Test(161) {
 # Check schema permissions
 # Done
 
-sub test_validate_user_db : Test(33) {
+sub test_validate_user_db : Test(35) {
     my $self = shift;
     my $class = $self->test_class;
     # Supply username and password when prompted, database exists and has
@@ -580,7 +580,7 @@ sub test_validate_user_db : Test(33) {
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
-    my $builder = $self->new_builder;
+    my $builder = $self->new_builder( store => 'pg' );
     $self->{builder} = $builder;
     $builder->source_dir('lib');
     $mb->mock(resume => $builder);
@@ -618,27 +618,35 @@ sub test_validate_user_db : Test(33) {
     $kbs->_dbh(undef); # Prevent ugly deaths during cleanup.
 
     # Test config.
-    is_deeply $kbs->test_config, {
-        db_name => '__kinetic_test__',
-        db_user => '__kinetic_test__',
-        db_pass => '__kinetic_test__',
-        host    => '',
-        port    => '',
-        db_super_user => '',
-        db_super_pass => '',
-        template_db_name => '',
-        dsn     => 'dbi:Pg:dbname=__kinetic_test__',
-    }, "As should the test configuration.";
+    my %conf;
+    ok $kbs->add_to_test_config(\%conf);
+    is_deeply \%conf, {
+        pg => {
+            db_name          => '__kinetic_test__',
+            db_user          => '__kinetic_test__',
+            db_pass          => '__kinetic_test__',
+            host             => '',
+            port             => '',
+            db_super_user    => '',
+            db_super_pass    => '',
+            template_db_name => '',
+            dsn              => 'dbi:Pg:dbname=__kinetic_test__',
+            }
+    }, 'The test configuration should be set up properly';
 
     $mb->mock(store => 'pg');
-    is_deeply $kbs->config, {
-        db_name => 'kinetic',
-        db_user => 'kinetic',
-        db_pass => 'asdfasdf',
-        host    => '',
-        port    => '',
-        dsn     => 'dbi:Pg:dbname=kinetic',
-    }, "The configuration should be set up properly.";
+    %conf = ();
+    ok $kbs->add_to_config(\%conf);
+    is_deeply \%conf, {
+        pg => {
+            db_name => 'kinetic',
+            db_user => 'kinetic',
+            db_pass => 'asdfasdf',
+            host    => '',
+            port    => '',
+            dsn     => 'dbi:Pg:dbname=kinetic',
+        },
+    }, 'As should the production configuration.';
 
     # Test the actions.
     return $self->_run_build_tests($kbs, $pg);
@@ -661,7 +669,7 @@ sub test_validate_user_db : Test(33) {
 # Check user
 # Done
 
-sub test_validate_super_user : Test(33) {
+sub test_validate_super_user : Test(35) {
     my $self = shift;
     my $class = $self->test_class;
     # Supply username and password when prompted, database exists and has
@@ -715,27 +723,35 @@ sub test_validate_super_user : Test(33) {
     $kbs->_dbh(undef); # Prevent ugly deaths during cleanup.
 
     # Test config.
-    is_deeply $kbs->test_config, {
-        db_name => '__kinetic_test__',
-        db_user => '__kinetic_test__',
-        db_pass => '__kinetic_test__',
-        host    => 'pgme',
-        port    => '5433',
-        db_super_user => 'postgres',
-        db_super_pass => 'postgres',
-        template_db_name => 'template1',
-        dsn     => 'dbi:Pg:dbname=__kinetic_test__;host=pgme;port=5433',
-    }, "As should the test configuration.";
+    my %conf;
+    ok $kbs->add_to_test_config(\%conf);
+    is_deeply \%conf, {
+        pg => {
+            db_name          => '__kinetic_test__',
+            db_user          => '__kinetic_test__',
+            db_pass          => '__kinetic_test__',
+            host             => 'pgme',
+            port             => '5433',
+            db_super_user    => 'postgres',
+            db_super_pass    => 'postgres',
+            template_db_name => 'template1',
+            dsn => 'dbi:Pg:dbname=__kinetic_test__;host=pgme;port=5433',
+        },
+    }, 'The test configuration should be set up properly';
 
     $mb->mock(store => 'pg');
-    is_deeply $kbs->config, {
-        db_name => 'kinetic',
-        db_user => 'kinetic',
-        db_pass => 'asdfasdf',
-        host    => 'pgme',
-        port    => '5433',
-        dsn     => 'dbi:Pg:dbname=kinetic;host=pgme;port=5433',
-    }, "The configuration should be set up properly.";
+    %conf = ();
+    ok $kbs->add_to_config(\%conf);
+    is_deeply \%conf, {
+        pg => {
+            db_name => 'kinetic',
+            db_user => 'kinetic',
+            db_pass => 'asdfasdf',
+            host    => 'pgme',
+            port    => '5433',
+            dsn     => 'dbi:Pg:dbname=kinetic;host=pgme;port=5433',
+        },
+    }, 'As should the production configuration.';
 
     # Test the actions.
     $info->unmock_all;
@@ -755,7 +771,7 @@ sub test_validate_super_user : Test(33) {
 # Check user
 # Done
 
-sub test_validate_super_user_arg : Test(33) {
+sub test_validate_super_user_arg : Test(35) {
     my $self = shift;
     my $class = $self->test_class;
     # Supply username and password when prompted, database exists and has
@@ -807,27 +823,35 @@ sub test_validate_super_user_arg : Test(33) {
     $kbs->_dbh(undef); # Prevent ugly deaths during cleanup.
 
     # Test config.
-    is_deeply $kbs->test_config, {
-        db_name => '__kinetic_test__',
-        db_user => '__kinetic_test__',
-        db_pass => '__kinetic_test__',
-        host    => '',
-        port    => '',
-        db_super_user => 'postgres',
-        db_super_pass => 'postgres',
-        template_db_name => '',
-        dsn     => 'dbi:Pg:dbname=__kinetic_test__',
-    }, "As should the test configuration.";
+    my %conf;
+    ok $kbs->add_to_test_config(\%conf);
+    is_deeply \%conf, {
+        pg => {
+            db_name          => '__kinetic_test__',
+            db_user          => '__kinetic_test__',
+            db_pass          => '__kinetic_test__',
+            host             => '',
+            port             => '',
+            db_super_user    => 'postgres',
+            db_super_pass    => 'postgres',
+            template_db_name => '',
+            dsn              => 'dbi:Pg:dbname=__kinetic_test__',
+        },
+    }, 'The test configuration should be set up properly';
 
     $mb->mock(store => 'pg');
-    is_deeply $kbs->config, {
-        db_name => 'howdy',
-        db_user => 'howdy',
-        db_pass => 'asdfasdf',
-        host    => '',
-        port    => '',
-        dsn     => 'dbi:Pg:dbname=howdy',
-    }, "The configuration should be set up properly.";
+    %conf = ();
+    ok $kbs->add_to_config(\%conf);
+    is_deeply \%conf, {
+        pg => {
+            db_name => 'howdy',
+            db_user => 'howdy',
+            db_pass => 'asdfasdf',
+            host    => '',
+            port    => '',
+            dsn     => 'dbi:Pg:dbname=howdy',
+            },
+    }, 'As should the production configuration.';
 
     # Test the actions.
     $info->unmock_all;

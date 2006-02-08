@@ -685,13 +685,13 @@ sub process_conf_files {
         # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
         Config::Std::Hash::read_config( $conf_file => my %conf );
 
-        my $prefix = '';
+        my $test = '';
         if ( $conf_file =~ /^blib/ ) {
             $self->notes( build_conf_file => $ENV{KINETIC_CONF} = $conf_file );
         }
         else {
             $self->notes( test_conf_file => $conf_file );
-            $prefix = 'test_';
+            $test = 'test_';
 
             # KINETIC_ROOT is different for tests than it is for installation
             $conf{kinetic}{root} = getcwd();
@@ -699,16 +699,13 @@ sub process_conf_files {
 
         for my $section ( keys %conf ) {
             my $lc_section = lc $section;
+            my $config_meth = "add_to_${test}config";
             if ( $lc_section eq $self->store ) {
 
                 # It's the configuration section for the data store.
                 # Let the store setup class set up the configuration.
                 my $store = $self->notes('build_store');
-                if ( my $method = $store->can( $prefix . 'config' ) ) {
-                    if ( my $settings = $store->$method ) {
-                        $conf{$section} = $settings;
-                    }
-                }
+                $store->$config_meth(\%conf);
             }
             elsif ( $STORES{$lc_section} ) {
 
@@ -716,7 +713,7 @@ sub process_conf_files {
                 delete $conf{$section};
             }
             elsif (
-                 my $method = $self->can( $prefix . $lc_section . '_config' )
+                 my $method = $self->can( $test . $lc_section . '_config' )
                    ||
                  $self->can( $lc_section . '_config' )
             ) {
@@ -732,7 +729,7 @@ sub process_conf_files {
             if ( $ENGINES{$lc_section} ) {
                 if ( $lc_section eq $self->engine ) {
                     my $engine = $self->notes('build_engine');
-                    $engine->add_to_config( \%conf );
+                    $engine->$config_meth( \%conf );
                 }
                 else {
 
@@ -743,7 +740,7 @@ sub process_conf_files {
             if ( $CACHES{$lc_section} ) {
                 if ( $lc_section eq $self->cache ) {
                     my $cache = $self->notes('build_cache');
-                    $cache->add_to_config( \%conf );
+                    $cache->$config_meth( \%conf );
                 }
                 else {
 

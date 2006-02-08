@@ -33,7 +33,7 @@ sub test_class_methods : Test(8) {
     ok $class->rules, "We should get some rules";
 }
 
-sub test_rules : Test(37) {
+sub test_rules : Test(39) {
     my $self  = shift;
     my $class = $self->test_class;
 
@@ -106,9 +106,14 @@ sub test_rules : Test(37) {
     # Check the configs.
     $mb->mock( store  => 'sqlite' );
 
-    is_deeply $kbs->config, { file => $db_file },
+    my %conf;
+    ok $kbs->add_to_config(\%conf);
+    is_deeply \%conf, { sqlite => { file => $db_file } },
       "... and the configuration should be set";
-    is_deeply $kbs->test_config, { file => $test_file },
+
+    %conf = ();
+    ok $kbs->add_to_test_config(\%conf);
+    is_deeply \%conf, { sqlite => { file => $test_file } },
       "... as should the test configuration";
 
     # Just skip the remaining tests if we can't test against a live database.

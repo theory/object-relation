@@ -62,6 +62,9 @@ attribute to its default value, '/'.
 
 =cut
 
+# XXX This shouldn't be necessary, actually. Apache should be able to
+# figure it out.
+
 sub new {
     my $self = shift->SUPER::new(@_);
     $self->{base_uri} = '/';

@@ -225,6 +225,8 @@ sub rules {
             ],
         },
         base_uri => {
+            # XXX This shouldn't be necessary, actually. Apache2::Config
+            # should be able to figure it out.
             do => sub {
                 my $state   = shift;
                 my $builder = $self->builder;

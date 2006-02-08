@@ -992,21 +992,20 @@ sub grant_permissions {
 
 ##############################################################################
 
-=head3 config
+=head3 add_to_config
 
-  my $config = $kbs->config;
+  $kbs->add_to_config(\%conf);
 
-Returns a hash reference to be used in the configuration file's "pg" block.
-Called during the build to set up the PostgreSQL store configuration
-directives to be used by the Kinetic store at run time. Returns C<undef> if
-the data store selected during the build is not PostgreSQL.
+This method adds the PostgreSQL configuration data to the hash reference
+passed as its sole argument. This configuration data will be written to the
+F<kinetic.conf> file. Called during the build to set up the PostgreSQL store
+configuration directives to be used by the Kinetic store at run time.
 
 =cut
 
-sub config {
-    my $self = shift;
-    return unless $self->builder->store eq 'pg';
-    return {
+sub add_to_config {
+    my ($self, $config) = @_;
+    $config->{pg} = {
         db_name => $self->db_name,
         db_user => $self->db_user,
         db_pass => $self->db_pass,
@@ -1014,26 +1013,25 @@ sub config {
         port    => $self->db_port,
         dsn     => $self->_dsn($self->db_name),
     };
+    return $self;
 }
 
 ##############################################################################
 
-=head3 test_config
+=head3 add_to_test_config
 
-  my $test_config = $kbs->test_config;
+  $kbs->add_to_test_config(\%conf);
 
-Returns a hash reference to be used in the test configuration file's "pg"
-block. Called during the build to set up the PostgreSQL store configuration
-directives to be used during testing, it configures the "db_name", "db_user",
-and "db_pass" directives, which are each set to the temporary value
-"__kinetic_test__"; and "host", and "port" directives as specified via the
-"db_host" and "db_port" attributes (set during the evaluation of rules).
+This method is identical to C<add_to_config()>, except that it adds
+configuration data specific to testing to the configuration hash. It expects
+to be called by Kinetic::Build to create the F<kinetic.conf> file specifically
+for testing.
 
 =cut
 
-sub test_config {
-    my $self = shift;
-    return {
+sub add_to_test_config {
+    my ($self, $config) = @_;
+    $config->{pg} = {
         db_name => $self->test_db_name,
         db_user => $self->test_db_user,
         db_pass => $self->test_db_pass,
@@ -1046,6 +1044,7 @@ sub test_config {
         db_super_pass    => $self->db_super_pass    || '',
         template_db_name => $self->template_db_name || '',
     };
+    return $self;
 }
 
 ##############################################################################

@@ -243,36 +243,42 @@ sub test_dsn {
 
 ##############################################################################
 
-=head3 config
+=head3 add_to_config
 
-  my $config = $kbs->config;
+  $kbs->add_to_config(\%conf);
 
-Returns a hash reference to be used in the configuration file's "sqlite"
-block. Called during the build to set up the SQLite store configuration
-directives to be used by the Kinetic store at run time. Returns C<undef> if
-the data store selected during the build is not SQLite.
+This method adds the SQLite configuration data to the hash reference passed as
+its sole argument. This configuration data will be written to the
+F<kinetic.conf> file. Called during the build to set up the SQLite store
+configuration directives to be used by the Kinetic store at run time.
 
 =cut
 
-sub config {
-    my $self = shift;
+sub add_to_config {
+    my ($self, $config) = @_;
     return unless $self->builder->store eq 'sqlite';
-    return {file => $self->_path };
+    $config->{sqlite} = { file => $self->_path };
+    return $self;
 }
 
 ##############################################################################
 
-=head3 test_config
+=head3 add_to_test_config
 
-  my $test_config = $kbs->test_config;
+  $kbs->add_to_test_config(\%conf);
 
-Returns a hash reference to be used in the test configuration file's "sqlite"
-block. Called during the build to set up the SQLite store configuration
-directives to be used during testing.
+This method is identical to C<add_to_config()>, except that it adds
+configuration data specific to testing to the configuration hash. It expects
+to be called by Kinetic::Build to create the F<kinetic.conf> file specifically
+for testing.
 
 =cut
 
-sub test_config { {file => shift->_test_path } }
+sub add_to_test_config {
+    my ($self, $config) = @_;
+    $config->{sqlite} = { file => shift->_test_path };
+    return $self;
+}
 
 ##############################################################################
 

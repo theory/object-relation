@@ -34,8 +34,8 @@ Kinetic::Build::Setup - Kinetic external dependency detection and setup
 =head1 Synopsis
 
   use Kinetic::Build::Setup;
-  my $kbs = Kinetic::Build::Setup->new;
-  $kbs->setup;
+  my $setup = Kinetic::Build::Setup->new;
+  $setup->setup;
 
 =head1 Description
 
@@ -80,7 +80,7 @@ external dependency to be set up. Must be overridden in subclasses.
 
 =cut
 
-sub min_version { die "min_version() must be overridden in the subclass" }
+sub min_version { die 'min_version() must be overridden in the subclass' }
 
 ##############################################################################
 
@@ -120,8 +120,8 @@ sub rules { die "rules() must be overridden in the subclass" }
 
 =head3 new
 
-  my $kbs = Kinetic::Build::Setup->new;
-  my $kbs = Kinetic::Build::Setup->new($builder);
+  my $setup = Kinetic::Build::Setup->new;
+  my $setup = Kinetic::Build::Setup->new($builder);
 
 Creates and returns a new Setup object. Pass in the Kinetic::Build object that
 is managing the installation. If no Kinetic::Build object is passed, one will
@@ -155,7 +155,7 @@ sub new {
 
 =head3 builder
 
-  my $builder = $kbs->builder;
+  my $builder = $setup->builder;
 
 Returns the C<Kinetic::Build> object used to determine build properties.
 
@@ -167,7 +167,7 @@ sub builder { $private{shift()}->{builder} ||= Kinetic::Build->resume }
 
 =head3 info
 
-  my $info = $kbs->info;
+  my $info = $setup->info;
 
 Returns the C<App::Info> object for the data setup.
 
@@ -179,7 +179,7 @@ sub info { $private{shift()}->{info} }
 
 =head3 validate
 
-  $kbs->validate;
+  $setup->validate;
 
 This method will validate the setup rules. Returns true if the dependency can
 be used. Otherwise it will C<croak()>.
@@ -223,7 +223,7 @@ sub validate {
 
 =head3 is_required_version
 
-  print "Is required version" if $kbs->is_required_version;
+  print "Is required version" if $setup->is_required_version;
 
 This is a common helper method that uses the C<App::Info> object returned from
 C<info()> and the C<version> module to determine if the external dependency is
@@ -247,40 +247,42 @@ sub is_required_version {
 
 ##############################################################################
 
-=head3 config
+=head3 add_to_config
 
-  my @config = $kbs->config;
+  $setup->add_to_config(\%config);
 
 This abstract method is the interface for a setup class to set up its
-configuration file directives. It functions just like the C<*_config> methods
-in C<Kinetic::Build>, but is specific to a data store. It must be overridden
-in a subclass.
+configuration file directives. A reference to the hash that will be used to
+write the config file is passed as the sole argument. C<add_to_config()> must
+be overridden in a subclass.
 
 =cut
 
-sub config { die "config() must be overridden in the subclass" }
+sub add_to_config { shift }
 
 ##############################################################################
 
-=head3 test_config
+=head3 add_to_test_config
 
-  my @test_config = $kbs->test_config;
+  $setup->add_to_test_config(\%config);
 
-This abstract method is the interface for a setup class to set up its testing
-configuration file directives. It functions just like the C<*_config> methods
-in C<Kinetic::Build>, but is specific to a data store and to the running of
-tests. It should therefore set up for a data store that will not be used in
-production. It must be overridden in a subclass.
+This method is identical to C<add_to_config()>, and in fact simply dispatches
+to C<add_to_config()>, but is called by Kinetic::Build when it is outputting
+configuration file to be used during testing. Suclasses may wish to override
+it in order to output different configuration data for testing.
 
 =cut
 
-sub test_config { die "test_config() must be overridden in the subclass" }
+sub add_to_test_config {
+    my ($self, $conf) = @_;
+    $self->add_to_config($conf);
+}
 
 ##############################################################################
 
 =head3 setup
 
-  $kbs->setup;
+  $setup->setup;
 
 This method will build call each of the methods returned from the C<actions()>
 method to set up an external dependency for TKP. If the dependency is to be
@@ -298,7 +300,7 @@ sub setup {
 
 =head3 test_setup
 
-  $kbs->test_setup;
+  $setup->test_setup;
 
 This method will temporarily set up the dependency for testing. This
 implementation is merely an alias for the C<setup()> method. Subclasses may
@@ -312,7 +314,7 @@ override it to add test-specific functionality.
 
 =head3 test_cleanup
 
-  $kbs->test_cleanup;
+  $setup->test_cleanup;
 
 This method will cleanup a temporary setup created by the C<test_setup()>
 meethod.
@@ -328,7 +330,7 @@ sub test_cleanup { shift }
 
 =head3 resume
 
-  $kbs->resume($builder);
+  $setup->resume($builder);
 
 Resumes the state of the Kinetic::Build::Setup object after it has been
 retreived from a serialized state. Pass a Kinetic::Build object to set the
@@ -346,7 +348,7 @@ sub resume {
 
 =head3 actions
 
-  my @ations = $kbs->actions;
+  my @ations = $setup->actions;
 
 Returns a list of the actions set up for the build by calls to the
 C<add_actions()> method. Used internally by C<setup()> to set up a dependency.
@@ -362,7 +364,7 @@ sub actions {
 
 =head3 add_actions
 
-  $kbs->add_actions(@actions);
+  $setup->add_actions(@actions);
 
 Adds actions to the list of actions returned by C<actions()>. Used by the
 rules specified by C<rules()> to set up actions later called by C<setup()> to
@@ -380,7 +382,7 @@ sub add_actions {
 
 =head3 del_actions
 
-  $kbs->del_actions(@actions);
+  $setup->del_actions(@actions);
 
 Removes actions from the list of actions returned by C<actions()>. Used by the
 rules specified by C<rules()> to prevent actions from being called by
@@ -394,6 +396,18 @@ sub del_actions {
     $self->{actions} = [ grep { ! exists $delete{$_} } @{$self->{actions} } ];
     return $self;
 }
+
+##############################################################################
+
+=head3 DESTROY
+
+This method cleans up the object from memory when there are no more references
+from it. In general you don't need to worry about this method at all, unless
+you're implementing your own C<DESTORY()> method in a subclass of
+Kinetic::Build::Setup, in which case you should be sure to call
+C<SUPER::DESTROY()> in order to avoid a memory leak.
+
+=cut
 
 sub DESTROY {
     my $self = shift;
