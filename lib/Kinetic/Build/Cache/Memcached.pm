@@ -46,19 +46,29 @@ See L<Kinetic::Build::Cache|Kinetic::Build::Cache>.
 
 =head1 Class Interface
 
-=head2 Class Method
+=head2 Class Methods
 
-=head3 cache_class
+=head3 catalyst_cache_class
 
-  my $cache = Kinetic::Build::Cache->cache_class;
+  my $cache = Kinetic::Build::Cache->catalyst_cache_class;
 
 Returns the package name of the Kinetic caching class to be used for caching.
 
 =cut
 
-# XXX Generalize for other than Catalyst.
+sub catalyst_cache_class {'Kinetic::UI::Catalyst::Cache::Memcached'}
 
-sub cache_class { 'Kinetic::UI::Catalyst::Cache::Memcached' }
+##############################################################################
+
+=head3 kinetic_cache_class
+
+  my $cache = Kinetic::Build::Cache->kinetic_cache_class;
+
+Returns the package name of the Kinetic caching class to be used for caching.
+
+=cut
+
+sub kinetic_cache_class {'Kinetic::Util::Cache::Memcached'}
 
 ##############################################################################
 
@@ -124,7 +134,7 @@ sub validate {
 
 =head3 add_to_config
 
- $kbc->add_to_conf(\%config);
+ $kbc->add_to_config(\%config);
 
 Adds the cache configuration information to the build config hash. It
 overrides the parent implementation to add the memcached address information.

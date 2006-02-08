@@ -45,19 +45,29 @@ See L<Kinetic::Build::Cache|Kinetic::Build::Cache>.
 
 =head1 Class Interface
 
-=head2 Class Method
+=head2 Class Methods
 
-=head3 cache_class
+=head3 catalyst_cache_class
 
-  my $cache = Kinetic::Build::Cache->cache_class;
+  my $cache = Kinetic::Build::Cache->catalyst_cache_class;
 
 Returns the package name of the Kinetic caching class to be used for caching.
 
 =cut
 
-# XXX Generalize for other than Catalyst.
+sub catalyst_cache_class {'Kinetic::UI::Catalyst::Cache::File'}
 
-sub cache_class { 'Kinetic::UI::Catalyst::Cache::File' }
+##############################################################################
+
+=head3 kinetic_cache_class
+
+  my $cache = Kinetic::Build::Cache->kinetic_cache_class;
+
+Returns the package name of the Kinetic caching class to be used for caching.
+
+=cut
+
+sub kinetic_cache_class {'Kinetic::Util::Cache::File'}
 
 ##############################################################################
 
@@ -75,8 +85,47 @@ no data needs to be collected for file caching.
 =cut
 
 sub validate {
-    # Well, that was easy ...
-    return shift;
+    my $self    = shift;
+    my $builder = $self->builder;
+
+    my $root = $builder->get_reply(
+        name    => 'cache_root',
+        message => 'Please enter the root directory for caching',
+        label   => 'Cache root',
+        default => '/tmp/session',
+    );
+    $self->{cache_root} = $root;
+
+    my $expires = $builder->get_reply(
+        name    => 'cache_expires',
+        message => 'Please enter cache expiration time in seconds',
+        label   => 'Cache expiration time',
+        default => 3600,
+    );
+    $self->{cache_expires} = $expires;
+    return $self;
+}
+
+##############################################################################
+
+=head3 add_to_config
+
+ $kbc->add_to_config(\%config);
+
+Adds the cache configuration information to the build config hash. It
+overrides the parent implementation to add the file cache expiration time and
+root directory.
+
+=cut
+
+sub add_to_config {
+    my ( $self, $conf ) = @_;
+    $self->SUPER::add_to_config($conf);
+    $conf->{cache_file} = {
+        root    => $self->{cache_root},
+        expires => $self->{cache_expires},
+    };
+    return $self;
 }
 
 1;

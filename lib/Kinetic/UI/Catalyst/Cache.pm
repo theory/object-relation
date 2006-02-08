@@ -21,7 +21,7 @@ package Kinetic::UI::Catalyst::Cache;
 use strict;
 use warnings;
 
-use Kinetic::Util::Config qw(CACHE_CLASS);
+use Kinetic::Util::Config qw(CACHE_CATALYST);
 use Kinetic::Util::Exceptions qw/throw_unknown_class throw_unimplemented/;
 
 use version;
@@ -54,7 +54,7 @@ user.
 
 sub new {
     my $class       = shift;
-    my $cache_class = CACHE_CLASS;
+    my $cache_class = CACHE_CATALYST;
     eval "require $cache_class"
       or throw_unknown_class [
         'I could not load the class "[_1]": [_2]',

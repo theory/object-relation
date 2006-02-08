@@ -1,6 +1,6 @@
-package Kinetic::Build::Cache;
+package Kinetic::Util::Cache::File;
 
-# $Id$
+# $Id: Cache.pm 2488 2006-01-04 05:17:14Z theory $
 
 # CONTRIBUTION SUBMISSION POLICY:
 #
@@ -22,78 +22,41 @@ use strict;
 
 use version;
 our $VERSION = version->new('0.0.1');
-use base 'Kinetic::Build::Setup';
 
 =head1 Name
 
-Kinetic::Build::Cache - Kinetic cache builder
+Kinetic::Util::Cache::File - Kinetic caching
 
 =head1 Synopsis
 
-  use Kinetic::Build::Cache;
-  my $kbc = Kinetic::Build::Cache->new;
-  $kbc->setup;
+  use Kinetic::Util::Cache::File;
+
+  my $cache = Kinetic::Util::Cache::File->new;
+  $cache->set($uuid, $object);
+  $cache->add($uuid, $object);
+  $object = $cache->get($uuid);
 
 =head1 Description
 
-This module is the abstract base class for collecting information for the
-Kinetic caching engine.
+This class provides an interface for caching data in Kinetic, regardless of
+the underlying caching mechanism chosen.
 
 =cut
-
-##############################################################################
-
-=head3 catalyst_cache_class
-
-  $kbs->catalyst_cache_class;
-
-This method returns the engine class responsible for managing the Catalyst UI
-class.
-
-=cut
-
-sub catalyst_cache_class {
-    die "catalyst_cache_class() must be overridden in a subclass";
-}
-
-##############################################################################
-
-=head3 kinetic_cache_class
-
-  $kbs->kinetic_cache_class;
-
-This method returns the engine class responsible for managing the Catalyst UI
-class.
-
-=cut
-
-sub kinetic_cache_class {
-    die "kinetic_cache_class() must be overridden in a subclass";
-}
-
-##############################################################################
-
-=head3 add_to_config
-
- $kbc->add_to_conf(\%config);
-
-Adds the cache configuration information to the build config hash. Called
-during the build to set up the caching configuration directives to be used by
-the Kinetic caching architecture at run time.
-
-=cut
-
-sub add_to_config {
-    my ( $self, $conf ) = @_;
-    $conf->{cache} = { 
-        catalyst => $self->catalyst_cache_class,
-        kinetic  => $self->kinetic_cache_class,
-    };
-    return $self;
-}
 
 1;
 __END__
+
+##############################################################################
+
+=head1 See Also
+
+=over 4
+
+=item L<Kinetic::Util::Context|Kinetic::Util::Context>
+
+Kinetic utility object context
+
+=back
 
 =head1 Copyright and License
 
@@ -111,4 +74,5 @@ A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
 details.
 
 =cut
+
 

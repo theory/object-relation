@@ -23,7 +23,6 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-
 =head1 Name
 
 Kinetic::Util::Cache - Kinetic caching
@@ -32,15 +31,61 @@ Kinetic::Util::Cache - Kinetic caching
 
   use Kinetic::Util::Cache;
 
-  # XXX TBD.
+  my $cache = Kinetic::Util::Cache->new;
+  $cache->set($uuid, $object);
+  $cache->add($uuid, $object);
+  $object = $cache->get($uuid);
 
 =head1 Description
 
-This class provides an interface for caching data in Kinetic.
-
-To be written.
+This class provides an interface for caching data in Kinetic, regardless of
+the underlying caching mechanism chosen.
 
 =cut
+
+
+##############################################################################
+
+=head3 set
+
+  $kbs->set($uuid, $object);
+
+Adds an object to the cache regardless of whether or not that object exists.
+
+=cut
+
+sub set {
+    die "set() must be overridden in a subclass";
+}
+
+##############################################################################
+
+=head3 add
+
+  $kbs->add($uuid, $object);
+
+Adds an object to the cache unless the object exists in the cache.  Returns a
+boolean value indicating success or failure.
+
+=cut
+
+sub add {
+    die "add() must be overridden in a subclass";
+}
+
+##############################################################################
+
+=head3 get
+
+  $kbs->get($uuid);
+
+Gets an object from the cache.
+
+=cut
+
+sub get {
+    die "get() must be overridden in a subclass";
+}
 
 1;
 __END__

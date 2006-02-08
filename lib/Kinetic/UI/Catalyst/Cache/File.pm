@@ -21,6 +21,11 @@ package Kinetic::UI::Catalyst::Cache::File;
 use strict;
 use warnings;
 
+use Kinetic::Util::Config qw(
+  CACHE_FILE_EXPIRES
+  CACHE_FILE_ROOT
+);
+
 use version;
 our $VERSION = version->new('0.0.1');
 use base 'Kinetic::UI::Catalyst::Cache';
@@ -53,9 +58,14 @@ her to shut up the pod coverage tests.
 
 =cut
 
-sub config { return () }
+sub config {
+    return session => {
+        expires => CACHE_FILE_EXPIRES,
+        storage => CACHE_FILE_ROOT,
+    };
+}
 
-sub session_class { 'Session::Store::File' }
+sub session_class {'Session::Store::File'}
 
 1;
 
@@ -75,3 +85,4 @@ A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
 details.
 
 =cut
+

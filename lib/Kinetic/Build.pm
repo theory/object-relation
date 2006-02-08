@@ -30,7 +30,6 @@ use Config::Std ();
 use Scalar::Util 'blessed';
 use Term::ANSIColor;
 
-
 # Be sure to load exceptions early.
 use Kinetic::Util::Exceptions;
 
@@ -118,8 +117,7 @@ sub add_property {
         # This is a property that we may want to prompt for.
         my %params = @_;
         $class->SUPER::add_property(
-            $params{name} => delete $params{default}
-        );
+            $params{name} => delete $params{default} );
         push @prompts, \%params if keys %params > 1;
     }
     else {
@@ -149,9 +147,9 @@ sub new {
         shift->SUPER::new(
 
             # Set up new default values for parent class properties.
-            install_base => File::Spec->catdir(
-                $Config::Config{installprefix}, 'kinetic'
-            ), @_    # User-set properties.
+            install_base =>
+              File::Spec->catdir( $Config::Config{installprefix}, 'kinetic' ),
+            @_    # User-set properties.
         );
     };
 
@@ -204,8 +202,7 @@ sub _reload {
     if ( my $component_type = $self->$component ) {
         my $build_class = $class_for->{$component_type}
           or $self->_fatal_error(
-             "I'm not familiar with the $component_type $component"
-          );
+            "I'm not familiar with the $component_type $component" );
         eval "require $build_class" or $self->_fatal_error($@);
     }
     return $self;
@@ -687,7 +684,8 @@ sub process_conf_files {
 
         my $test = '';
         if ( $conf_file =~ /^blib/ ) {
-            $self->notes( build_conf_file => $ENV{KINETIC_CONF} = $conf_file );
+            $self->notes( build_conf_file => $ENV{KINETIC_CONF}
+                  = $conf_file );
         }
         else {
             $self->notes( test_conf_file => $conf_file );
@@ -733,8 +731,8 @@ sub process_conf_files {
                 }
                 else {
 
-                    # It's a section for a engine we haven't chosen.
-                    delete $conf{$section};
+                        # It's a section for a engine we haven't chosen.
+                        delete $conf{$section};
                 }
             }
             if ( $CACHES{$lc_section} ) {
@@ -770,8 +768,7 @@ sub store_config {
     my $self              = shift;
     my $build_store_class = $STORES{ $self->store }
       or $self->_fatal_error(
-        "I'm not familiar with the " . $self->store . ' data store' 
-    );
+        "I'm not familiar with the " . $self->store . ' data store' );
     eval "require $build_store_class" or $self->_fatal_error($@);
     my $store_class = $build_store_class->store_class;
     return { class => $store_class };
@@ -822,8 +819,7 @@ sub fix_shebang_line {
 
     for my $file (@_) {
         $self->log_verbose(
-            qq{Changing "use lib 'lib'" in $file to "use lib '$lib'"}
-        );
+            qq{Changing "use lib 'lib'" in $file to "use lib '$lib'"} );
 
         open my $fixin,  '<', $file       or die "Can't process '$file': $!";
         open my $fixout, '>', "$file.new" or die "Can't open '$file.new': $!";
@@ -841,11 +837,11 @@ sub fix_shebang_line {
           or die "Can't rename $file to $file.bak: $!";
 
         rename "$file.new", $file
-            or die "Can't rename $file.new to $file: $!";
+          or die "Can't rename $file.new to $file: $!";
 
         unlink "$file.bak"
-          or $self->log_warn(
-            "Couldn't clean up $file.bak, leaving it there\n" );
+          or
+          $self->log_warn("Couldn't clean up $file.bak, leaving it there\n");
     }
 
     return $self->SUPER::fix_shebang_line(@_);
@@ -914,11 +910,14 @@ sub get_reply {
     elsif ( $self->_is_tty && !$self->accept_defaults ) {
         if ( my $opts = $params{options} ) {
             my $i;
-            $self->_prompt( join "\n", map( {
-                $i++;
-                $def_label = $i if $_ eq $params{default};
-                sprintf "%3s> %-s", $i, $_;
-            } @$opts ), "");
+            $self->_prompt(
+                join "\n",
+                map( {  $i++;
+                          $def_label = $i if $_ eq $params{default};
+                          sprintf "%3s> %-s", $i, $_;
+                    } @$opts ),
+                ""
+            );
             $params{callback} = sub { /^\d+$/ && $_ <= @$opts };
         }
         $def_label = defined $def_label ? " [$def_label]:" : '';
@@ -929,8 +928,7 @@ sub get_reply {
             if ( my $code = $params{callback} ) {
                 local $_ = $ans;
                 $self->_prompt(
-                    "\nInvalid selection, please try again$def_label "
-                ),
+                    "\nInvalid selection, please try again$def_label " ),
                   redo LOOP
                   unless $code->($ans);
             }
@@ -999,7 +997,7 @@ sub log_verbose {
         Term::ANSIColor::BOLD(),
         Term::ANSIColor::YELLOW(),
         @_,
-        ( $_[-1] =~ /\n\Z/ ? '' : "\n"),
+        ( $_[-1] =~ /\n\Z/ ? '' : "\n" ),
         Term::ANSIColor::RESET(),
     );
 }
@@ -1023,9 +1021,9 @@ all we do is C<croak()> bold-faced red text.
 
 sub _fatal_error {
     my $class = shift;
-    if ( blessed($_[0]) && $_[0]->can('as_string') ) {
+    if ( blessed( $_[0] ) && $_[0]->can('as_string') ) {
         my $error = shift;
-        print STDERR $class->_bold_red($error->as_string);
+        print STDERR $class->_bold_red( $error->as_string );
         exit 1;
     }
     require Carp;
@@ -1034,11 +1032,8 @@ sub _fatal_error {
 
 sub _bold_red {
     my $proto = shift;
-    return
-        Term::ANSIColor::BOLD(),
-        Term::ANSIColor::RED(),
-        @_,
-        Term::ANSIColor::RESET();
+    return Term::ANSIColor::BOLD(), Term::ANSIColor::RED(), @_,
+      Term::ANSIColor::RESET();
 }
 
 ##############################################################################
@@ -1093,8 +1088,7 @@ sub _check_build_component {
     # Check the specific component.
     my $build_component_class = $class_for->{ $self->$component }
       or $self->_fatal_error(
-        "I'm not familiar with the " . $self->$component . " $component"
-      );
+        "I'm not familiar with the " . $self->$component . " $component" );
     eval "require $build_component_class" or $self->_fatal_error($@);
     my $build_component = $build_component_class->new($self);
     $build_component->validate;
@@ -1143,9 +1137,11 @@ C<_find_file_by_type()> method.
 
 sub _find_files_in_dir {
     my ( $self, $dir ) = @_;
-    return { map { $_, $_ }
-             map $self->localize_file_path($_),
-             @{ $self->rscan_dir( $dir, sub { -f && !/\.svn/ } ) } };
+    return {
+        map { $_, $_ }
+          map $self->localize_file_path($_),
+        @{ $self->rscan_dir( $dir, sub { -f && !/\.svn/ } ) }
+    };
 }
 
 ##############################################################################

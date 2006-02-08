@@ -222,7 +222,13 @@ sub test_props : Test(13) {
         ' ',
         'Should the engine automatically restart if .pm files change?',
         ' [no]:',
-        ' '
+        ' ',
+        'Please enter the root directory for caching',
+        ' [/tmp/session]:',
+        ' ',
+        'Please enter cache expiration time in seconds',
+        ' [3600]:',
+        ' ',
     ], 'We should be prompted for the data store and other stuff';
 
     is $builder->store, 'pg', 'Data store should now be "pg"';
@@ -332,6 +338,8 @@ path to pg_config: /usr/local/pgsql/bin/pg_config
 Server port: 3000
 Server host: localhost
 Server restart: no
+Cache root: /tmp/session
+Cache expiration time: 3600
     END_INFO
     is delete $self->{info}, $expected,
       "Should have data store set by command-line option";
