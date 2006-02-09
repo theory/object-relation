@@ -23,6 +23,9 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
+use Kinetic::Util::Config qw(CACHE_OBJECT);
+use Kinetic::Util::Exceptions qw(throw_unknown_class throw_unimplemented);
+
 =head1 Name
 
 Kinetic::Util::Cache - Kinetic caching
@@ -43,51 +46,93 @@ the underlying caching mechanism chosen.
 
 =cut
 
+=head1 Methods
 
+=head2 new
+
+  my $cache = Kinetic::Util::Cache->new;
+
+Returns a new cache object for whatever caching style was selected by the
+user.
+
+=cut
+
+sub new {
+    my $class       = shift;
+    my $cache_class = CACHE_OBJECT;
+    eval "require $cache_class"
+      or throw_unknown_class [
+        'I could not load the class "[_1]": [_2]',
+        $cache_class,
+        $@
+      ];
+    return $cache_class->new;
+}
+
+BEGIN {
+    foreach my $method (qw/set add get empty remove/) {
+        no strict 'refs';
+        *$method = sub {
+            throw_unimplemented [
+                '"[_1]" must be overridden in a subclass',
+                $method
+            ];
+        };
+    }
+}
 ##############################################################################
 
 =head3 set
 
-  $kbs->set($uuid, $object);
+  $cache->set($uuid, $object);
 
 Adds an object to the cache regardless of whether or not that object exists.
 
 =cut
 
-sub set {
-    die "set() must be overridden in a subclass";
-}
-
 ##############################################################################
 
 =head3 add
 
-  $kbs->add($uuid, $object);
+  $cache->add($uuid, $object);
 
 Adds an object to the cache unless the object exists in the cache.  Returns a
 boolean value indicating success or failure.
 
 =cut
 
-sub add {
-    die "add() must be overridden in a subclass";
-}
-
 ##############################################################################
 
 =head3 get
 
-  $kbs->get($uuid);
+  $cache->get($uuid);
 
 Gets an object from the cache.
 
 =cut
 
-sub get {
-    die "get() must be overridden in a subclass";
-}
+##############################################################################
+
+=head3 empty
+
+  $cache->empty;
+
+Empties the cache.
+
+=cut
+
+##############################################################################
+
+=head3 remove
+
+  $cache->remove($uuid);
+
+Removes the corresponding object from the cache.
+
+=cut
 
 1;
+
 __END__
 
 ##############################################################################

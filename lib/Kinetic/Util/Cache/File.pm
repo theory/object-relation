@@ -23,6 +23,11 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
+use base 'Kinetic::Util::Cache';
+use Kinetic::Util::Config qw(:cache_file);
+
+use aliased 'Cache::FileCache';    # In the Cache::Cache distribution
+
 =head1 Name
 
 Kinetic::Util::Cache::File - Kinetic caching
@@ -39,7 +44,74 @@ Kinetic::Util::Cache::File - Kinetic caching
 =head1 Description
 
 This class provides an interface for caching data in Kinetic, regardless of
-the underlying caching mechanism chosen.
+the underlying caching mechanism chosen.  See
+L<Kinetic::Util::Cache|Kinetic::Util::Cache> for a description of the
+interface.
+
+=cut
+
+# Testing hook
+sub _expire_time_in_seconds {CACHE_FILE_EXPIRES}
+sub _cache                  { shift->{cache} }
+
+sub new {
+    my $class = shift;
+    bless {
+        cache => FileCache->new(
+            {   default_expires_in => _expire_time_in_seconds(),
+                namespace          => $class,
+            }
+        )
+    }, $class;
+}
+
+sub set {
+    my ( $self, $uuid, $object ) = @_;
+    $self->_cache->purge;    # purge expired objects
+    $self->_cache->set( $uuid, $object );
+    return $self;
+}
+
+sub add {
+    my ( $self, $uuid, $object ) = @_;
+    return if $self->_cache->get($uuid);
+    return $self->set( $uuid, $object );
+}
+
+sub get {
+    my $self = shift;
+    return $self->_cache->get(@_);
+}
+
+sub empty {
+    my $self = shift;
+    $self->_cache->Clear;
+    return $self;
+}
+
+sub remove {
+    my ( $self, $uuid ) = @_;
+    $self->_cache->remove($uuid);
+    return $self;
+}
+
+=head1 Overridden methods
+
+=over 4
+
+=item * new
+
+=item * set
+
+=item * add
+
+=item * get
+
+=item * empty
+
+=item * remove
+
+=back
 
 =cut
 
@@ -74,5 +146,4 @@ A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
 details.
 
 =cut
-
 

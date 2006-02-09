@@ -5,7 +5,6 @@
 use strict;
 
 use Test::More;
-use Test::NoWarnings;    # Adds an extra test
 
 my $QPSMTPD;
 
@@ -15,7 +14,8 @@ BEGIN {
         plan skip_all => "Qpsmtpd must be installed for the Qpsmtpd tests";
     }
     else {
-        plan 'no_plan';
+        #plan 'no_plan';
+        plan tests => 9;
     }
 
     # the following line merely verifies that it comples.  Qpsmtpd is actually
@@ -23,6 +23,8 @@ BEGIN {
     $QPSMTPD = 'Kinetic::UI::Email::Workflow::Qpsmtpd';
     use_ok $QPSMTPD or die;
 }
+
+use Test::NoWarnings;    # Adds an extra test
 
 use aliased 'Qpsmtpd::Address';
 use Class::Trait $QPSMTPD;    # heh :)

@@ -48,7 +48,7 @@ Kinetic caching engine.
   $kbs->catalyst_cache_class;
 
 This method returns the engine class responsible for managing the Catalyst UI
-class.
+cache.
 
 =cut
 
@@ -58,17 +58,17 @@ sub catalyst_cache_class {
 
 ##############################################################################
 
-=head3 kinetic_cache_class
+=head3 object_cache_class
 
-  $kbs->kinetic_cache_class;
+  $kbs->object_cache_class;
 
-This method returns the engine class responsible for managing the Catalyst UI
-class.
+This method returns the engine class responsible for managing the Kinetic
+store cache.
 
 =cut
 
-sub kinetic_cache_class {
-    die "kinetic_cache_class() must be overridden in a subclass";
+sub object_cache_class {
+    die "object_cache_class() must be overridden in a subclass";
 }
 
 ##############################################################################
@@ -87,7 +87,7 @@ sub add_to_config {
     my ( $self, $conf ) = @_;
     $conf->{cache} = { 
         catalyst => $self->catalyst_cache_class,
-        kinetic  => $self->kinetic_cache_class,
+        object   => $self->object_cache_class,
     };
     return $self;
 }

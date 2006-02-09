@@ -21,10 +21,7 @@ package Kinetic::UI::Catalyst::Cache::File;
 use strict;
 use warnings;
 
-use Kinetic::Util::Config qw(
-  CACHE_FILE_EXPIRES
-  CACHE_FILE_ROOT
-);
+use Kinetic::Util::Config qw(:cache_file);
 
 use version;
 our $VERSION = version->new('0.0.1');

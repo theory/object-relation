@@ -4,8 +4,8 @@
 
 use strict;
 
-#use Test::More tests => 12;
-use Test::More 'no_plan';
+use Test::More tests => 34;
+#use Test::More 'no_plan';
 
 use Test::NoWarnings;    # Adds an extra test.
 

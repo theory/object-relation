@@ -23,7 +23,7 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use Kinetic::Util::Cache;
+#use Kinetic::Util::Cache;
 use Kinetic::Util::Language;
 
 =head1 Name
