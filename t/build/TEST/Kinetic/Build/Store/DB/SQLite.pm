@@ -50,21 +50,6 @@ sub test_rules : Test(39) {
     $self->{builder} = $builder;
     $mb->mock( resume           => $builder );
     $mb->mock( _app_info_params => sub { } );
-    $mb->mock( server => 'apache' );
-
-    # XXX We mock up the apache build stuff lest we get tons of uninit
-    # warnings from Test::NoWarnings
-    my %apache_notes = (
-         rest        => '/kinetic/rest',
-         static      => '/',
-         httpd       => '/some/path/to/httpd',
-         conf        => '/usr/local/kinetic/conf/httpd.conf',
-         root        => '/kinetic',
-         server_name => 'localhost',
-    );
-    $builder->notes(
-        build_server => bless(\%apache_notes, 'Kinetic::Build::Engine::Apache2')
-    );
 
     # Construct the object.
     ok my $kbs = $class->new, "Create new $class object";

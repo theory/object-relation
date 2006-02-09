@@ -141,7 +141,7 @@ sub test_props : Test(13) {
     my $class = $self->test_class;
     my $mb = MockModule->new($class);
     $mb->mock(check_manifest => sub { return });
-    $mb->mock( engine => 'simple' );
+    $mb->mock( engine => 'catalyst' );
 
     # We can make sure things work with the default SQLite store.
     my $info = MockModule->new('App::Info::RDBMS::SQLite');
@@ -181,14 +181,15 @@ sub test_props : Test(13) {
 
     # Don't accept defaults; we should be prompted for stuff.
     my @msgs;
-    $mb->mock(_readline => '1');
+    my @inputs = (1, '');
+    $mb->mock(_readline => sub { shift @inputs }); # Accept defaults.
     $mb->mock(_prompt => sub { shift; push @msgs, @_; });
     my $apache_build = MockModule->new('Kinetic::Build::Engine::Apache2');
     $apache_build->mock(
         _set_httpd => sub { shift->{httpd} = '/usr/bin/apache/httpd' }
     );
     $apache_build->mock(
-        _set_httpd_conf => sub { 
+        _set_httpd_conf => sub {
             shift->{httpd} = '/usr/bin/apache/conf/httpd.conf';
         }
     );
@@ -203,7 +204,7 @@ sub test_props : Test(13) {
         'Which data store back end should I use?',
         ' [2]:',
         ' ',
-        "  1> apache\n  2> simple\n",
+        "  1> apache\n  2> catalyst\n",
         'Which engine should I use?',
         ' [2]:',
         ' ',
@@ -214,14 +215,14 @@ sub test_props : Test(13) {
         'What password should be used for the default account?',
         ' [change me now!]:',
         ' ',
-        'Please enter the port to run the server on',
+        'Please enter the port on which to run the Catalyst server',
         ' [3000]:',
         ' ',
-        'Please enter the hostname for the engine',
+        'Please enter the hostname on which the Catalyst server will run',
         ' [localhost]:',
         ' ',
-        'Should the engine automatically restart if .pm files change?',
-        ' [no]:',
+        'Should the Catalyst server automatically restart if .pm files change?',
+        ' [n]:',
         ' ',
         'Please enter the root directory for caching',
         ' [/tmp/session]:',
@@ -306,6 +307,106 @@ sub test_config_action : Test(4) {
     unlink $config or die "Unable to delete $config: $!";
 }
 
+sub test_ask_y_n : Test(34) {
+    my $self = shift;
+    my $class = $self->test_class;
+
+    my $kb = MockModule->new($class);
+    $kb->mock(check_manifest => sub { return });
+    $kb->mock(check_prereq   => sub { return });
+    my $store = MockModule->new('Kinetic::Build::Store');
+    $store->mock(validate => 1);
+    local @ARGV = qw(--store pg);
+    my $mb = MockModule->new('Module::Build');
+    $kb->mock(_prompt => sub { shift; $self->{output} .= join '', @_; });
+    $kb->mock(log_info => sub { shift; $self->{info} .= join '', @_; });
+    $kb->mock(_readline => sub {
+        chomp $self->{input}[0] if defined $self->{input}[0];
+        shift @{$self->{input}};
+    });
+
+    my %params = (
+        name    => 'ok',
+        label   => 'OK',
+        message => 'You OK?',
+        default => 1,
+    );
+
+    # Start with accept_defaults => 1, quiet => 1.
+    ok my $builder = $self->new_builder, 'Create new Build object';
+    $builder->{tty} = 1;
+    ok $builder->ask_y_n(%params), 'Test for true default';
+    is $self->{output}, undef, 'There should have been no prompt';
+    is $self->{info}, undef, 'There should be no info';
+
+    # Change default to false.
+    $params{default} = 0;
+    ok !$builder->ask_y_n(%params), 'Test for false default';
+    is $self->{output}, undef, 'There should have been no prompt';
+    is $self->{info}, undef, 'There should be no info';
+
+    # Enable info.
+    $builder->quiet(0);
+    ok !$builder->ask_y_n(%params), 'Test for false default with info';
+    is $self->{output}, undef, 'There should have been no prompt';
+    is delete $self->{info}, "OK: no\n", 'There should be info';
+
+    # Try command-line option.
+    @ARGV = qw(--store pg --ok 1);
+    ok $builder = $self->new_builder, 'Create new Build object';
+    $builder->accept_defaults(0);
+    ok $builder->ask_y_n(%params), 'Test for true command-line option';
+    is $self->{output}, undef, 'There should have been no prompt';
+    is $self->{info}, undef, 'There should be no info';
+
+    # Try false command-line option.
+    @ARGV = qw(--store pg --ok 0);
+    ok $builder = $self->new_builder, 'Create new Build object';
+    $builder->accept_defaults(0);
+    $params{default} = 1;
+    ok !$builder->ask_y_n(%params), 'Test for false command-line option';
+    is $self->{output}, undef, 'There should have been no prompt';
+    is $self->{info}, undef, 'There should be no info';
+
+    # Turn off quiet.
+    $builder->quiet(0);
+    ok !$builder->ask_y_n(%params), 'Test non-quiet command-line option';
+    is $self->{output}, undef, 'There should have been no prompt';
+    is delete $self->{info}, "OK: no\n", 'There should be info';
+
+    # Now we actually prompt.
+    local @ARGV = qw(--store pg);
+    ok $builder = $self->new_builder, 'Create new Build object';
+    $builder->accept_defaults(0);
+    $builder->quiet(0);
+    ok $builder->ask_y_n(%params), 'Test for true for answer ""';
+    is delete $self->{output}, 'You OK? [y]: ',
+        'There should have been a prompt';
+    is $self->{info}, undef, 'There should be no info';
+
+    # Now test for an answer 'y'.
+    $self->{input} = ['y'];
+    ok $builder->ask_y_n(%params), 'Test for true for answer "y"';
+    is delete $self->{output}, 'You OK? [y]: ',
+        'There should have been a prompt';
+    is $self->{info}, undef, 'There should be no info';
+
+    # Now test for answer 'No'.
+    $self->{input} = ['No'];
+    ok !$builder->ask_y_n(%params), 'Test for false for answer "No"';
+    is delete $self->{output}, 'You OK? [y]: ',
+        'There should have been a prompt';
+    is $self->{info}, undef, 'There should be no info';
+
+    # And finally, put in a bogus answer.
+    $self->{input} = ['foo', ''];
+    ok $builder->ask_y_n(%params), 'Test for bogus answer';
+    is delete $self->{output},
+        "You OK? [y]: Please answer 'y' or 'n' [y]: ",
+        'There should have been two prompts';
+    is $self->{info}, undef, 'There should be no info';
+}
+
 sub test_get_reply : Test(49) {
     my $self = shift;
     my $class = $self->test_class;
@@ -324,20 +425,19 @@ sub test_get_reply : Test(49) {
         shift @{$self->{input}};
     });
 
-
     # Start not quiet and with defaults accepted.
     my $builder = $self->new_builder(quiet => 0);
     $self->{builder} = $builder;
     my $expected = <<'    END_INFO';
 Data store: pg
-Kinetic engine: simple
+Kinetic engine: catalyst
 Kinetic cache: file
 Administrative User password: change me now!
 Looking for pg_config
 path to pg_config: /usr/local/pgsql/bin/pg_config
-Server port: 3000
-Server host: localhost
-Server restart: no
+Catalyst port: 3000
+Catalyst host: localhost
+Catalyst restart: no
 Cache root: /tmp/session
 Cache expiration time: 3600
     END_INFO
@@ -602,7 +702,7 @@ sub new_builder {
         dist_version    => '1.0',
         quiet           => 1,
         accept_defaults => 1,
-        engine          => 'simple',
+        engine          => 'catalyst',
         @_,
     );
     return $self->{builder};

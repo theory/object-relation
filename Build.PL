@@ -31,10 +31,8 @@ my $build = Kinetic::Build->new(
     requires             => {
         'aliased'                    => 0.11,
         %catalyst,
-        # XXX Change to option.
-        'Cache::Cache'               => 1.04,
-        # XXX Change to option.
-        'Cache::Memcached::Managed'  => 0.14,
+        'Cache::Cache'               => 1.04,   # XXX Change to option.
+        'Cache::Memcached::Managed'  => 0.14,   # XXX Change to option.
         'Class::BuildMethods'        => 0.10,
         'Class::Meta'                => 0.52,
         'Class::Meta::Declare'       => 0.02,

@@ -42,8 +42,8 @@ my %STORES = (
 );
 
 my %ENGINES = (
-    apache => 'Kinetic::Build::Engine::Apache2',
-    simple => 'Kinetic::Build::Engine::Catalyst',
+    apache   => 'Kinetic::Build::Engine::Apache2',
+    catalyst => 'Kinetic::Build::Engine::Catalyst',
 );
 
 my %CACHES = (
@@ -274,9 +274,9 @@ __PACKAGE__->add_property(
   $build->engine($engine);
 
 The type of engine to be used for the application.  Possible values are
-"apache" and "simple".  Defaults to "apache".
+"apache" and "catalyst".  Defaults to "apache".
 
-The "simple" engine is merely a test engine for easy development.
+The "catalyst" engine is merely a test engine for easy development.
 
 =cut
 
@@ -542,8 +542,9 @@ sub ACTION_test {
 
     # Set up a list of supported features.
     # XXX I'm sure we'll add other supported features to this list.
-    local $ENV{KINETIC_SUPPORTED} = join ' ', $self->store
-      if $self->dev_tests;
+    local $ENV{KINETIC_SUPPORTED} = join ' ', $self->store, $self->engine,
+        $self->cache
+        if $self->dev_tests;
 
     # Make it so!
     $self->SUPER::ACTION_test(@_);
@@ -891,7 +892,7 @@ An array reference of possible values from which the user can select.
 
 A code reference that validates a value input by a user. The value to be
 checked will be passed in as the first argument and will also be stored in
-C<$_>. For exammple, if you wanted to ensure that a value was an integer, you
+C<$_>. For example, if you wanted to ensure that a value was an integer, you
 might pass a code reference like C<sub { /^\d+$/ }>.
 
 =back
@@ -927,10 +928,14 @@ sub get_reply {
             return $params{default} unless $ans && $ans ne '';
             if ( my $code = $params{callback} ) {
                 local $_ = $ans;
-                $self->_prompt(
-                    "\nInvalid selection, please try again$def_label " ),
-                  redo LOOP
-                  unless $code->($ans);
+                unless ($code->($ans)) {
+                    $self->_prompt(
+                        "\nInvalid selection, please try again",
+                        $def_label,
+                        ' ',
+                    );
+                    redo LOOP
+                }
             }
             return $ans unless $params{options};
             return $params{options}->[ $ans - 1 ];
@@ -941,6 +946,58 @@ sub get_reply {
     $self->log_info("$params{label}: $params{default}\n")
       unless $self->quiet;
     return $params{default};
+}
+
+##############################################################################
+
+=head3 ask_y_n
+
+  my $value = $build->ask_y_n(%params);
+
+Use this method to ask the user a yes or no question. It always returns a
+boolean value, true for "yes" and false for "no." If an option has been passed
+to F<Build.PL> with the same name as the C<name> parameter, then the boolean
+expression of that option wil be returned. If the C<accept_defaults> option
+has been specifid or there is no TTY, then the default value will be returned.
+Otherwise, C<ask_y_n()> prompts the user, collects an answer, (any value
+starting with 'y' or 'n'), and returns the appropriate boolean value.
+
+The supported parameters are the same as for C<get_reply()>, except for the
+C<callback> parameter, which is not supported.
+
+=cut
+
+sub ask_y_n {
+    my ( $self, %params ) = @_;
+    die 'ask_y_n() called without a prompt message' unless $params{label};
+
+    # Return command-line option first.
+    my $val = $self->_get_option( $params{name} );
+    if (defined $val) {
+        $self->log_info("$params{label}: ", ($val ? 'yes' : 'no'), "\n")
+            unless $self->quiet;
+        return !!$val;
+    }
+
+    # Return the default if that's what they want.
+    $val = $params{default};
+    if ($self->accept_defaults || !$self->_is_tty) {
+        $self->log_info("$params{label}: ", ($val ? 'yes' : 'no'), "\n")
+            unless $self->quiet;
+        return !!$val;
+    }
+
+    # Prompt for the answer.
+    my $def_label = $params{default} ? ' [y]:' : ' [n]:';
+    $self->_prompt( $params{message}, $def_label, ' ' );
+    LOOP: {
+        $val = $self->_readline;
+        return $params{default} unless $val && $val ne '';
+        return 1 if $val =~ /^y/i;
+        return 0 if $val =~ /^n/i;
+        $self->_prompt("Please answer 'y' or 'n'", $def_label, ' ');
+        redo LOOP;
+    }
 }
 
 ##############################################################################

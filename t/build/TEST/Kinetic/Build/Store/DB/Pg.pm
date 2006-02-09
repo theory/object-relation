@@ -579,7 +579,9 @@ sub test_validate_user_db : Test(35) {
 
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
-    $mb->mock(check_manifest => sub { return });
+    $mb->mock( check_manifest => sub { return } );
+    $mb->mock( check_store    => undef );
+
     my $builder = $self->new_builder( store => 'pg' );
     $self->{builder} = $builder;
     $builder->source_dir('lib');
@@ -679,7 +681,7 @@ sub test_validate_super_user : Test(35) {
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
     $mb->mock(check_store => 1);
-    $mb->mock(engine => 'simple');
+    $mb->mock(engine => 'catalyst');
     $mb->mock(cache => 'memcached');
     my $builder = $self->new_builder;
     $self->{builder} = $builder;

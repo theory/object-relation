@@ -46,7 +46,7 @@ options it adds are:
 
 =item path-to-apxs
 
-=item base_uri
+=item base-uri
 
 =back
 
@@ -65,7 +65,7 @@ options it adds are:
   my $info_class = Kinetic::Build::Store::Engine::Apache2->info_class
 
 Returns the name of the C<App::Info> class that detects the presences of
-SQLite, L<App::Info::HTTPD::Apache|App::Info::HTTPD::Apache>.
+Apache, L<App::Info::HTTPD::Apache|App::Info::HTTPD::Apache>.
 
 =cut
 
@@ -75,9 +75,9 @@ sub info_class { 'App::Info::HTTPD::Apache' }
 
 =head3 min_version
 
-  my $version = Kinetic::Build::Store::DB::SQLite->min_version
+  my $version = Kinetic::Build::Engine::Apache2->min_version
 
-Returns the minimum required version number of SQLite that must be installed.
+Returns the minimum required version number of Apache that must be installed.
 
 =cut
 
@@ -99,7 +99,7 @@ sub engine_class {'Kinetic::Engine::Apache2'}
 
 =head3 rules
 
-  my @rules = Kinetic::Build::Store::DB::SQLite->rules;
+  my @rules = Kinetic::Build::Engine::Apache2->rules;
 
 This method returns the rules required by the C<Kinetic::Build::Rules>
 state machine.
@@ -140,7 +140,7 @@ sub rules {
                 $state->result(0);
                 my $req = version->new($self->min_version);
                 my $got = version->new($self->info->version);
-                my $exe = $self->info->executable;
+                my $exe = $self->info->httpd;
                 $state->message(
                     "I require Apache $req but found $exe, which is $got.\n"
                   . 'Use --path-to-httpd to specify a different Apache '
@@ -162,7 +162,7 @@ sub rules {
                 my $state = shift;
                 my $info  = $self->info;
                 unless ($info->mod_perl) {
-                    my $exe = $info->executable;
+                    my $exe = $info->httpd;
                     return $state->message(
                         "I found $exe, but it does not appear to include "
                       . "mod_perl support"
@@ -178,7 +178,7 @@ sub rules {
                 if ($@ || !$version) {
                     # Looks like there was a problem loading mod_perl.
                     return $state->message(
-                        "I could not load mod_perl2" . $@ ? ": $@" : ''
+                        'I could not load mod_perl2' . $@ ? ": $@" : ''
                     );
                 }
 
@@ -207,8 +207,8 @@ sub rules {
                 my $info    = $self->info;
                 $self->{conf} = $builder->args('httpd_conf')
                   || $builder->get_reply(
-                      name    => 'httpd_conf',
-                      message => 'Plese enter path to httpd.conf',
+                      name    => 'path-to-httpd-conf',
+                      message => 'Please enter path to httpd.conf',
                       label   => 'Path to httpd.conf',
                       default => $info->conf_file,
                 );
@@ -216,7 +216,7 @@ sub rules {
             rules => [
                 httpd_conf => {
                     rule    => sub { ! $self->conf || ! -e $self->conf },
-                    message => $self->conf . ' does not exist',
+                    message => ($self->conf || 'conf file'). ' does not exist',
                 },
                 base_uri => {
                     rule    => sub { $self->conf && -e $self->conf },
@@ -233,8 +233,8 @@ sub rules {
                 $self->base_uri(
                     $builder->args('base_uri')
                     || $builder->get_reply(
-                        name    => 'base_uri',
-                        message => 'Plese enter the root URI for TKP',
+                        name    => 'base-uri',
+                        message => 'Please enter the root URI for TKP',
                         label   => 'Kinetic Root URI',
                         default => $self->base_uri,
                     )
@@ -294,12 +294,7 @@ C<conf_engine> section.
 
 =cut
 
-sub conf_sections {
-    qw(
-        httpd
-        conf
-    );
-}
+sub conf_sections {qw( httpd conf ) }
 
 ##############################################################################
 

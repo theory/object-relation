@@ -21,7 +21,7 @@ sub test_db_class_methods : Test(3) {
     can_ok $class, qw(dsn test_dsn create_dsn dbd_class dsn_dbd);
     if ($class eq 'Kinetic::Build::Store::DB') {
         throws_ok { $class->dbd_class }
-          qr'dbd_class\(\) must be overridden in the subclass',
+          qr/dbd_class\(\) must be overridden in the subclass/,
             'dbd_class() needs to be overridden';
         my $store = MockModule->new($class);
         $store->mock(dbd_class => 'DBD::SQLite');
@@ -38,10 +38,12 @@ sub test_new : Test(4) {
     my $class = $self->test_class;
     return "Constructor must be tested in a subclass"
       if $class eq 'Kinetic::Build::Store::DB';
+
     # Fake the Kinetic::Build interface.
     my $builder = MockModule->new(Build);
     $builder->mock(resume => sub { bless {}, Build });
     $builder->mock(_app_info_params => sub { } );
+
     ok my $kbs = $class->new, "Create new $class object";
     isa_ok $kbs, $class;
     isa_ok $kbs->builder, 'Kinetic::Build';
@@ -179,21 +181,6 @@ sub test_rules : Test(27) {
     }
     $dbh->disconnect;
     unlink $db_file;
-}
-
-sub new_builder {
-    my $self = shift;
-    local $SIG{__DIE__} = sub {
-        Kinetic::Util::Exception::ExternalLib->throw(shift);
-    };
-    return $self->{builder} = Build->new(
-        dist_name       => 'Testing::Kinetic',
-        dist_version    => '1.0',
-        quiet           => 1,
-        accept_defaults => 1,
-        engine          => 'simple',
-        @_,
-    )
 }
 
 1;

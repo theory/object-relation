@@ -8,6 +8,7 @@ catalyst/server.pl
 catalyst/test.pl
 Changes
 conf/kinetic.conf
+etc/check_workflow
 etc/Data-UUID-Tiger.patch
 etc/perltidyrc
 etc/unused_modules.pl
@@ -88,12 +89,15 @@ lib/Kinetic/UI/Catalyst/V/TT.pm
 lib/Kinetic/UI/Email/Workflow.pm
 lib/Kinetic/UI/Email/Workflow/Lexer.pm
 lib/Kinetic/UI/Email/Workflow/Parser.pm
+lib/Kinetic/UI/Email/Workflow/Qpsmtpd.pm
 lib/Kinetic/UI/REST.pm
 lib/Kinetic/UI/REST/Dispatch.pm
 lib/Kinetic/UI/TT/Plugin/Renderer.pm
 lib/Kinetic/Util/Auth.pm
 lib/Kinetic/Util/Auth/Kinetic.pm
 lib/Kinetic/Util/Cache.pm
+lib/Kinetic/Util/Cache/File.pm
+lib/Kinetic/Util/Cache/Memcached.pm
 lib/Kinetic/Util/Collection.pm
 lib/Kinetic/Util/Config.pm
 lib/Kinetic/Util/Constants.pm
@@ -179,6 +183,10 @@ t/badconfig.t
 t/basic.t
 t/build.t
 t/build/TEST/Kinetic/Build.pm
+t/build/TEST/Kinetic/Build/Engine.pm
+t/build/TEST/Kinetic/Build/Engine/Apache2.pm
+t/build/TEST/Kinetic/Build/Engine/Catalyst.pm
+t/build/TEST/Kinetic/Build/Setup.pm
 t/build/TEST/Kinetic/Build/Store.pm
 t/build/TEST/Kinetic/Build/Store/DB.pm
 t/build/TEST/Kinetic/Build/Store/DB/Pg.pm
@@ -274,8 +282,10 @@ t/system/TEST/Kinetic/Util/Auth.pm
 t/system/TEST/Kinetic/VersionInfo.pm
 t/test_setup.t
 t/tt_renderer.t
+t/ui/email/workflow.t
 t/ui/email/workflow/lexer.t
 t/ui/email/workflow/parser.t
+t/ui/email/workflow/qpsmtpd.t
 t/util.t
 t/v_TT.t
 t/versions.t

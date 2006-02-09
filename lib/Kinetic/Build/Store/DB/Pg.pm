@@ -79,7 +79,7 @@ options it adds are:
   my $info_class = Kinetic::Build::Store::DB::Pg->info_class
 
 Returns the name of the C<App::Info> class that detects the presences of
-SQLite, L<App::Info::RDBMS::PostgreSQL|App::Info::RDBMS::PostgreSQL>.
+PostgreSQL, L<App::Info::RDBMS::PostgreSQL|App::Info::RDBMS::PostgreSQL>.
 
 =cut
 
@@ -114,7 +114,7 @@ sub dbd_class { 'DBD::Pg' }
 
 =head3 rules
 
-  my @rules = Kinetic::Build::Store::DB::SQLite->rules;
+  my @rules = Kinetic::Build::Store::DB::Pg->rules;
 
 Returns a list of arguments to be passed to an L<FSA::Rules|FSA::Rules>
 constructor. These arguments are rules that will be used to validate the
@@ -756,7 +756,7 @@ sub test_db_pass { '__kinetic_test__' }
 
 The super or admin database user, which will be used to create the Kinetic
 database and user if they don't already exist. The default is the typical super
-user name for the seleted data store. Not used by the SQLite data store.
+user name for the seleted data store.
 
 Defaults to postgres.
 
@@ -772,7 +772,7 @@ sub db_super_user { shift->{db_super_user} }
   $kbs->db_super_pass($db_super_pass);
 
 The password for the super or admin database user. An empty string by
-default. Not used by the SQLite data store.
+default.
 
 =cut
 
@@ -787,7 +787,7 @@ sub db_super_pass { shift->{db_super_pass} }
 
 The host name of the Kinetic database server. Null string by default, which
 generally means that the connection will be made to localhost via Unix
-sockets. Not used by the SQLite data store.
+sockets.
 
 =cut
 
@@ -802,7 +802,7 @@ sub db_host { shift->{db_host} }
 
 The port number of the Kinetic database server. Null string by default, which
 generally means that the connection will be made to the default port for the
-database. Not used by the SQLite data store.
+database.
 
 =cut
 

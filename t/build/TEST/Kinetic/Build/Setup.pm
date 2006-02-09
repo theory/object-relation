@@ -146,4 +146,19 @@ sub test_instance_interface : Test(39) {
     is $setup->builder, $build, '... And now the builder should be back';
 }
 
+sub new_builder {
+    my $self = shift;
+    local $SIG{__DIE__} = sub {
+        Kinetic::Util::Exception::ExternalLib->throw(shift);
+    };
+    return $self->{builder} = Build->new(
+        dist_name       => 'Testing::Kinetic',
+        dist_version    => '1.0',
+        quiet           => 1,
+        accept_defaults => 1,
+        engine          => 'catalyst',
+        @_,
+    )
+}
+
 1;

@@ -41,11 +41,11 @@ options it adds are:
 
 =over
 
-=item port
+=item catalyst-port
 
-=item host
+=item catalyst-host
 
-=item restart
+=item catalyst-restart
 
 =back
 
@@ -62,7 +62,7 @@ options it adds are:
 =head3 engine_class
 
   my $engine_class = Kinetic::Build::Engine::Catalyst->engine_class;
-  
+
 Returns the engine class which C<bin/kineticd> will use to start the engine.
 
 =cut
@@ -71,44 +71,54 @@ sub engine_class {'Kinetic::Engine::Catalyst'}
 
 ##############################################################################
 
-=head3 validate
+=head3 rules
 
-  Kinetic::Build::Engine::Catalyst->validate;
+  my @rules = Kinetic::Build::Engine::Catalyst->rules;
 
-This method validates the requirements necessary to run the selected engine.
+Returns a list of arguments to be passed to an L<FSA::Rules|FSA::Rules>
+constructor. These arguments are rules that will be used to validate the
+installation of Catalyst and to collect information to configure it for use by
+TKP.
 
 =cut
 
-sub validate {
-    my $self    = shift;
-    my $builder = $self->builder;
+sub rules {
+    my $self = shift;
 
-    $self->{port} = $builder->args('port')
-      || $builder->get_reply(
-        name    => 'port',
-        message => 'Please enter the port to run the server on',
-        label   => 'Server port',
-        default => 3000
-      );
-    $self->{host} = $builder->args('host')
-      || $builder->get_reply(
-        name    => 'host',
-        message => 'Please enter the hostname for the engine',
-        label   => 'Server host',
-        default => 'localhost'
-      );
-    $self->{restart} = $builder->args('restart')
-      || $builder->get_reply(
-        name    => 'restart',
-        message =>
-          'Should the engine automatically restart if .pm files change?',
-        label   => 'Server restart',
-        default => 'no'
-      );
-
-    $self->{restart} ||= 0;
-    $self->{restart} = ( 'y' eq lc substr $self->{restart}, 0, 1 ) ? 1 : 0;
-    return $self;
+    return (
+        start => {
+            do => sub {
+                my $state   = shift;
+                my $builder = $self->builder;
+                $self->{port} = $builder->args('catalyst_port')
+                    || $builder->get_reply(
+                    name    => 'catalyst-port',
+                    message => 'Please enter the port on which to run the '
+                             . 'Catalyst server',
+                    label   => 'Catalyst port',
+                    default => 3000
+                );
+                $self->{host} = $builder->args('catalyst_host')
+                    || $builder->get_reply(
+                    name    => 'catalyst-host',
+                    message => 'Please enter the hostname on which the '
+                             . 'Catalyst server will run',
+                    label   => 'Catalyst host',
+                    default => 'localhost'
+                );
+                $self->{restart} = $builder->args('catalyst_restart')
+                    || $builder->ask_y_n(
+                    name    => 'catalyst-restart',
+                    message => 'Should the Catalyst server automatically '
+                             . 'restart if .pm files change?',
+                    label   => 'Catalyst restart',
+                    default => 0,
+                );
+                $state->message('Catalyst configuration collected');
+                $state->done(1);
+            },
+        },
+    );
 }
 
 ##############################################################################
@@ -121,9 +131,7 @@ Returns the engine type corresponding to the config file section ('simple');
 
 =cut
 
-sub conf_engine {'simple'}
-
-##############################################################################
+sub conf_engine {'catalyst'}
 
 =head3 conf_sections
 
@@ -143,6 +151,44 @@ sub conf_sections {qw/port host restart/}
 =head1 Instance Interface
 
 =head2 Instance Accessors
+
+=head3 port
+
+  my $port = $catalyst->port;
+
+Returns the port number on which the Catalyst Web server should be run. Set by
+C<validate()>. Defaults to 3000.
+
+=cut
+
+sub port { shift->{port} }
+
+##############################################################################
+
+=head3 host
+
+  my $host = $catalyst->host;
+
+Returns the host name for the server on which the Catalyst Web server wiil be
+run. Set by C<validate()>. Defaults to "localhost".
+
+=cut
+
+sub host    { shift->{host} }
+
+##############################################################################
+
+=head3 restart
+
+  my $restart = $catalyst->restart;
+
+Returns true if the Catalyst Web server should automatically restart whenever
+it detects that a Perl module has been updated, and false if it should not.
+Set by C<validate()>. Defaults to false.
+
+=cut
+
+sub restart { shift->{restart} }
 
 1;
 __END__

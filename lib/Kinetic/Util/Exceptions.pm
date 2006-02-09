@@ -529,11 +529,10 @@ sub sig_handlers {
 sub _set_handlers {
     $HANDLERS = shift;
     if ($HANDLERS) {
-        $SIG{__DIE__}  = $SIG_DIE;
+        $SIG{__DIE__} = $SIG_DIE;
     }
     else {
-        local $^W;
-        undef $SIG{__DIE__};
+        $SIG{__DIE__} = undef;
     }
 }
 
