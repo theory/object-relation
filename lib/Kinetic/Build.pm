@@ -37,18 +37,18 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 my %STORES = (
-    pg     => 'Kinetic::Build::Store::DB::Pg',
-    sqlite => 'Kinetic::Build::Store::DB::SQLite',
+    pg     => 'Kinetic::Build::Setup::Store::DB::Pg',
+    sqlite => 'Kinetic::Build::Setup::Store::DB::SQLite',
 );
 
 my %ENGINES = (
-    apache   => 'Kinetic::Build::Engine::Apache2',
-    catalyst => 'Kinetic::Build::Engine::Catalyst',
+    apache   => 'Kinetic::Build::Setup::Engine::Apache2',
+    catalyst => 'Kinetic::Build::Setup::Engine::Catalyst',
 );
 
 my %CACHES = (
-    memcached => 'Kinetic::Build::Cache::Memcached',
-    file      => 'Kinetic::Build::Cache::File',
+    memcached => 'Kinetic::Build::Setup::Cache::Memcached',
+    file      => 'Kinetic::Build::Setup::Cache::File',
 );
 
 =head1 Name

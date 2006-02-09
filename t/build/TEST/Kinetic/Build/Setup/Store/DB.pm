@@ -1,10 +1,10 @@
-package TEST::Kinetic::Build::Store::DB;
+package TEST::Kinetic::Build::Setup::Store::DB;
 
 # $Id$
 
 use strict;
 use warnings;
-use base 'TEST::Kinetic::Build::Store';
+use base 'TEST::Kinetic::Build::Setup::Store';
 use Test::More;
 use Test::Exception;
 use aliased 'Test::MockModule';
@@ -19,7 +19,7 @@ sub test_db_class_methods : Test(3) {
     my $self = shift;
     my $class = $self->test_class;
     can_ok $class, qw(dsn test_dsn create_dsn dbd_class dsn_dbd);
-    if ($class eq 'Kinetic::Build::Store::DB') {
+    if ($class eq 'Kinetic::Build::Setup::Store::DB') {
         throws_ok { $class->dbd_class }
           qr/dbd_class\(\) must be overridden in the subclass/,
             'dbd_class() needs to be overridden';
@@ -37,7 +37,7 @@ sub test_new : Test(4) {
     my $self = shift;
     my $class = $self->test_class;
     return "Constructor must be tested in a subclass"
-      if $class eq 'Kinetic::Build::Store::DB';
+      if $class eq 'Kinetic::Build::Setup::Store::DB';
 
     # Fake the Kinetic::Build interface.
     my $builder = MockModule->new(Build);
@@ -66,15 +66,15 @@ sub test_db_instance_methods : Test(4) {
 
   SKIP: {
         skip "DSN methods should be tested in subclasses", 3
-          unless $class eq 'Kinetic::Build::Store::DB';
+          unless $class eq 'Kinetic::Build::Setup::Store::DB';
         throws_ok { $kbs->dsn }
-          qr'dsn\(\) must be overridden in the subclass',
+          qr/dsn\(\) must be overridden in the subclass/,
           'dsn() needs to be overridden';
         throws_ok { $kbs->test_dsn }
-          qr'test_dsn\(\) must be overridden in the subclass',
+          qr/test_dsn\(\) must be overridden in the subclass/,
           'test_dsn() needs to be overridden';
         throws_ok { $kbs->create_dsn }
-          qr'dsn\(\) must be overridden in the subclass',
+          qr/dsn\(\) must be overridden in the subclass/,
           'create_dsn should use dsn()';
     }
 }
@@ -83,7 +83,7 @@ sub test_rules : Test(27) {
     my $self = shift;
     my $class = $self->test_class;
     return "Constructor must be tested in a subclass"
-      if $class eq 'Kinetic::Build::Store::DB';
+      if $class eq 'Kinetic::Build::Setup::Store::DB';
 
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);

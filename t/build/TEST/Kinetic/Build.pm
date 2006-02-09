@@ -184,7 +184,7 @@ sub test_props : Test(13) {
     my @inputs = (1, '');
     $mb->mock(_readline => sub { shift @inputs }); # Accept defaults.
     $mb->mock(_prompt => sub { shift; push @msgs, @_; });
-    my $apache_build = MockModule->new('Kinetic::Build::Engine::Apache2');
+    my $apache_build = MockModule->new('Kinetic::Build::Setup::Engine::Apache2');
     $apache_build->mock(
         _set_httpd => sub { shift->{httpd} = '/usr/bin/apache/httpd' }
     );
@@ -193,7 +193,7 @@ sub test_props : Test(13) {
             shift->{httpd} = '/usr/bin/apache/conf/httpd.conf';
         }
     );
-    my $store = MockModule->new('Kinetic::Build::Store::DB::Pg');
+    my $store = MockModule->new('Kinetic::Build::Setup::Store::DB::Pg');
     $store->mock(validate => 1);
     $store->mock(info_class => 'TEST::Kinetic::TestInfo');
     $mb->mock(_is_tty => 1);
@@ -256,14 +256,14 @@ sub test_check_store : Test(6) {
     $builder = $self->new_builder;
     can_ok $builder, 'check_store';
     $builder->dispatch('code');
-    isa_ok $builder->notes('build_store'), 'Kinetic::Build::Store';
+    isa_ok $builder->notes('build_store'), 'Kinetic::Build::Setup::Store';
 
     # Make sure that the build action relies on check_store.
     $builder = $self->new_builder;
     $self->{builder} = $builder;
     $mb->mock('ACTION_docs' => 0);
     ok $builder->dispatch('build'), "Run build";
-    isa_ok $builder->notes('build_store'), 'Kinetic::Build::Store';
+    isa_ok $builder->notes('build_store'), 'Kinetic::Build::Setup::Store';
     $builder->dispatch('clean');
     file_not_exists_ok 'blib', 'Build lib should be gone';
 }
@@ -314,7 +314,7 @@ sub test_ask_y_n : Test(34) {
     my $kb = MockModule->new($class);
     $kb->mock(check_manifest => sub { return });
     $kb->mock(check_prereq   => sub { return });
-    my $store = MockModule->new('Kinetic::Build::Store');
+    my $store = MockModule->new('Kinetic::Build::Setup::Store');
     $store->mock(validate => 1);
     local @ARGV = qw(--store pg);
     my $mb = MockModule->new('Module::Build');
@@ -414,7 +414,7 @@ sub test_get_reply : Test(49) {
     my $kb = MockModule->new($class);
     $kb->mock(check_manifest => sub { return });
     $kb->mock(check_prereq   => sub { return });
-    my $store = MockModule->new('Kinetic::Build::Store');
+    my $store = MockModule->new('Kinetic::Build::Setup::Store');
     $store->mock(validate => 1);
     local @ARGV = qw'--store pg foo=bar';
     my $mb = MockModule->new('Module::Build');

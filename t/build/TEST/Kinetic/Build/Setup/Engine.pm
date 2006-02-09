@@ -1,4 +1,4 @@
-package TEST::Kinetic::Build::Engine;
+package TEST::Kinetic::Build::Setup::Engine;
 
 # $Id$
 

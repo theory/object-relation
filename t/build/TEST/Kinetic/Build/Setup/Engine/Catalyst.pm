@@ -1,10 +1,10 @@
-package TEST::Kinetic::Build::Engine::Catalyst;
+package TEST::Kinetic::Build::Setup::Engine::Catalyst;
 
 # $Id$
 
 use strict;
 use warnings;
-use base 'TEST::Kinetic::Build::Engine';
+use base 'TEST::Kinetic::Build::Setup::Engine';
 use TEST::Kinetic::Build;
 use Test::More;
 use aliased 'Kinetic::Build';
@@ -23,7 +23,7 @@ sub test_catalyst : Test(10) {
 
     ok my $catalyst = $class->new, "Create new $class object";
     isa_ok $catalyst, $class;
-    isa_ok $catalyst, 'Kinetic::Build::Engine';
+    isa_ok $catalyst, 'Kinetic::Build::Setup::Engine';
     isa_ok $catalyst, 'Kinetic::Build::Setup';
     isa_ok $catalyst->builder, 'Kinetic::Build';
     is $catalyst->info, undef, 'info() should be undef';

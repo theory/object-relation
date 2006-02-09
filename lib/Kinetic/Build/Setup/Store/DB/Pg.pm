@@ -1,4 +1,4 @@
-package Kinetic::Build::Store::DB::Pg;
+package Kinetic::Build::Setup::Store::DB::Pg;
 
 # $Id$
 
@@ -23,23 +23,23 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use base 'Kinetic::Build::Store::DB';
+use base 'Kinetic::Build::Setup::Store::DB';
 use Kinetic::Build;
 use App::Info::RDBMS::PostgreSQL;
 
 =head1 Name
 
-Kinetic::Build::Store::DB::Pg - Kinetic PostgreSQL data store builder
+Kinetic::Build::Setup::Store::DB::Pg - Kinetic PostgreSQL data store builder
 
 =head1 Synopsis
 
-See L<Kinetic::Build::Store|Kinetic::Build::Store>.
+See L<Kinetic::Build::Setup::Store|Kinetic::Build::Setup::Store>.
 
 =head1 Description
 
-This module inherits from Kinetic::Build::Store::DB to build a PostgreSQL data
-store. Its interface is defined entirely by Kinetic::Build::Store. Its
-interface is defined entirely by Kinetic::Build::Store. The command-line
+This module inherits from Kinetic::Build::Setup::Store::DB to build a PostgreSQL data
+store. Its interface is defined entirely by Kinetic::Build::Setup::Store. Its
+interface is defined entirely by Kinetic::Build::Setup::Store. The command-line
 options it adds are:
 
 =over
@@ -76,7 +76,7 @@ options it adds are:
 
 =head3 info_class
 
-  my $info_class = Kinetic::Build::Store::DB::Pg->info_class
+  my $info_class = Kinetic::Build::Setup::Store::DB::Pg->info_class
 
 Returns the name of the C<App::Info> class that detects the presences of
 PostgreSQL, L<App::Info::RDBMS::PostgreSQL|App::Info::RDBMS::PostgreSQL>.
@@ -89,7 +89,7 @@ sub info_class { 'App::Info::RDBMS::PostgreSQL' }
 
 =head3 min_version
 
-  my $version = Kinetic::Build::Store::DB::Pg->min_version
+  my $version = Kinetic::Build::Setup::Store::DB::Pg->min_version
 
 Returns the minimum required version number of PostgreSQL that must be
 installed.
@@ -102,7 +102,7 @@ sub min_version { '7.4.5' }
 
 =head3 dbd_class
 
-  my $dbd_class = Kinetic::Build::Store::DB::Pg->dbd_class;
+  my $dbd_class = Kinetic::Build::Setup::Store::DB::Pg->dbd_class;
 
 Returns the name of the DBI database driver class, L<DBD::Pg|DBD::Pg>.
 
@@ -114,7 +114,7 @@ sub dbd_class { 'DBD::Pg' }
 
 =head3 rules
 
-  my @rules = Kinetic::Build::Store::DB::Pg->rules;
+  my @rules = Kinetic::Build::Setup::Store::DB::Pg->rules;
 
 Returns a list of arguments to be passed to an L<FSA::Rules|FSA::Rules>
 constructor. These arguments are rules that will be used to validate the
@@ -1283,7 +1283,7 @@ sub _user_exists {
 Used by state rules, this method attempts to connect to the database server,
 first using the database name and then the template database name. Each DSN
 attemped will be stored in under the C<dsn> key in the state object. Returns
-the Kinetic::Build::Store::DB::Pg object on success and C<undef> on failure.
+the Kinetic::Build::Setup::Store::DB::Pg object on success and C<undef> on failure.
 The database handle created by the connection, if any, may be retreived by the
 C<_dbh()> method.
 

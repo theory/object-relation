@@ -1,4 +1,4 @@
-package Kinetic::Build::Cache;
+package Kinetic::Build::Setup::Store;
 
 # $Id$
 
@@ -22,78 +22,78 @@ use strict;
 
 use version;
 our $VERSION = version->new('0.0.1');
+
 use base 'Kinetic::Build::Setup';
+use Kinetic::Build;
+use FSA::Rules;
+my %private;
 
 =head1 Name
 
-Kinetic::Build::Cache - Kinetic cache builder
+Kinetic::Build::Setup::Store - Kinetic data store builder
 
 =head1 Synopsis
 
-  use Kinetic::Build::Cache;
-  my $kbc = Kinetic::Build::Cache->new;
-  $kbc->setup;
+  use Kinetic::Build::Setup::Store;
+  my $kbs = Kinetic::Build::Setup::Store->new;
+  $kbs->setup;
 
 =head1 Description
 
-This module is the abstract base class for collecting information for the
-Kinetic caching engine.
+This module builds a data store using the a schema output by
+L<Kinetic::Build::Schema|Kinetic::Build::Schema> to the a file. The data store
+will be built for the data store class specified by the C<STORE_CLASS>
+F<kinetic.conf> directive.
 
 =cut
 
 ##############################################################################
+# Class Methods.
+##############################################################################
 
-=head3 catalyst_cache_class
+=head1 Class Interface
 
-  $kbs->catalyst_cache_class;
+=head2 Class Methods
 
-This method returns the engine class responsible for managing the Catalyst UI
-cache.
+=head3 schema_class
+
+  my $schema_class = Kinetic::Build::Setup::Store->schema_class
+
+Returns the name of the Kinetic::Build::Schema subclass that can be used
+to generate the schema code to build the data store. By default, this method
+returns the same name as the name of the Kinetic::Build::Setup::Store subclass,
+but with "Store" replaced with "Schema".
 
 =cut
 
-sub catalyst_cache_class {
-    die "catalyst_cache_class() must be overridden in a subclass";
+sub schema_class {
+    (my $class = ref $_[0] ? ref shift : shift)
+      =~ s/Kinetic::Build::Setup::Store/Kinetic::Build::Schema/;
+    return $class;
 }
 
 ##############################################################################
 
-=head3 object_cache_class
+=head3 store_class
 
-  $kbs->object_cache_class;
+  my $store_class = Kinetic::Build::Setup::Store->store_class
 
-This method returns the engine class responsible for managing the Kinetic
-store cache.
-
-=cut
-
-sub object_cache_class {
-    die "object_cache_class() must be overridden in a subclass";
-}
-
-##############################################################################
-
-=head3 add_to_config
-
- $kbc->add_to_conf(\%config);
-
-Adds the cache configuration information to the build config hash. Called
-during the build to set up the caching configuration directives to be used by
-the Kinetic caching architecture at run time.
+Returns the name of the Kinetic::Store subclass that manages the interface to
+the data store for Kinetic applications. By default, this method returns the
+same name as the name of the Kinetic::Build::Setup::Store subclass, but with "Build"
+removed.
 
 =cut
 
-sub add_to_config {
-    my ( $self, $conf ) = @_;
-    $conf->{cache} = { 
-        catalyst => $self->catalyst_cache_class,
-        object   => $self->object_cache_class,
-    };
-    return $self;
+sub store_class {
+    (my $class = ref $_[0] ? ref shift : shift) =~ s/Build::Setup:://;
+    return $class;
 }
 
 1;
 __END__
+
+##############################################################################
 
 =head1 Copyright and License
 
@@ -111,4 +111,3 @@ A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
 details.
 
 =cut
-

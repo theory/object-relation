@@ -1,10 +1,10 @@
-package TEST::Kinetic::Build::Store::DB::SQLite;
+package TEST::Kinetic::Build::Setup::Store::DB::SQLite;
 
 # $Id$
 
 use strict;
 use warnings;
-use base 'TEST::Kinetic::Build::Store::DB';
+use base 'TEST::Kinetic::Build::Setup::Store::DB';
 use Test::More;
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Build';

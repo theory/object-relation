@@ -1,4 +1,4 @@
-package Kinetic::Build::Cache::Memcached;
+package Kinetic::Build::Setup::Cache::File;
 
 # $Id$
 
@@ -20,25 +20,24 @@ package Kinetic::Build::Cache::Memcached;
 
 use strict;
 
-use Regexp::Common qw/net/;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use base 'Kinetic::Build::Cache';
+use base 'Kinetic::Build::Setup::Cache';
 
 =head1 Name
 
-Kinetic::Build::Cache::Memcached - Kinetic Memcached cache builder
+Kinetic::Build::Setup::Cache::File - Kinetic file cache builder
 
 =head1 Synopsis
 
-  use Kinetic::Build::Cache::Memcached;
-  my $kbc = Kinetic::Build::Cache::Memcached->new;
+  use Kinetic::Build::Setup::Cache::File;
+  my $kbc = Kinetic::Build::Setup::Cache::File->new;
   $kbc->setup;
 
 =head1 Description
 
-See L<Kinetic::Build::Cache|Kinetic::Build::Cache>.
+See L<Kinetic::Build::Setup::Cache|Kinetic::Build::Setup::Cache>.
 
 =cut
 
@@ -50,38 +49,38 @@ See L<Kinetic::Build::Cache|Kinetic::Build::Cache>.
 
 =head3 catalyst_cache_class
 
-  my $cache = Kinetic::Build::Cache->catalyst_cache_class;
+  my $cache = Kinetic::Build::Setup::Cache->catalyst_cache_class;
 
 Returns the package name of the Kinetic caching class to be used for caching.
 
 =cut
 
-sub catalyst_cache_class {'Kinetic::UI::Catalyst::Cache::Memcached'}
+sub catalyst_cache_class {'Kinetic::UI::Catalyst::Cache::File'}
 
 ##############################################################################
 
 =head3 kinetic_cache_class
 
-  my $cache = Kinetic::Build::Cache->kinetic_cache_class;
+  my $cache = Kinetic::Build::Setup::Cache->kinetic_cache_class;
 
 Returns the package name of the Kinetic caching class to be used for caching.
 
 =cut
 
-sub kinetic_cache_class {'Kinetic::Util::Cache::Memcached'}
+sub kinetic_cache_class {'Kinetic::Util::Cache::File'}
 
 ##############################################################################
 
 =head1 Instance Interface
 
-=head2 Instance Methods
+=head2 Instance Method
 
 =head3 validate
 
-  $kbc->validate;
+  Kinetic::Build::Setup::Cache->validate;
 
-This method collects the various address/port combinations on which
-C<memcached> runs.
+This method overrides the parent implementation to simply return true, since
+no data needs to be collected for file caching.
 
 =cut
 
@@ -89,44 +88,21 @@ sub validate {
     my $self    = shift;
     my $builder = $self->builder;
 
-    if ( $builder->accept_defaults ) {
-
-        # If we don't add this, the build will hang.
-        # If they didn't accept defaults, don't assume the IP address of a
-        # memcached server because there could be multiple servers and we want
-        # them to be able to choose.
-        $self->{memcached} = ['127.0.0.1:11211'];
-        return $self;
-    }
-
-    my %address = (
-        name    => 'address',
-        message =>
-          'Please enter an IP/port in form "$IP:$port" for memcached',
-        label => 'memcached address',
+    my $root = $builder->get_reply(
+        name    => 'cache_root',
+        message => 'Please enter the root directory for caching',
+        label   => 'Cache root',
+        default => '/tmp/session',
     );
+    $self->{cache_root} = $root;
 
-    my %memcached;
-    while (1) {
-        my $address = $builder->get_reply(%address);
-        if ($address) {
-            unless ( $address =~ /^$RE{net}{IPv4}:\d+$/ ) {
-                print STDERR $builder->_bold_red(
-                    qq{memcached address must be in the form "\$ip_address:\$port"\n}
-                );
-                next;
-            }
-        }
-        else {
-            last if keys %memcached;    # we have at least one server
-            print STDERR $builder->_bold_red(
-                "You must enter at least one IP address of a memcached server\n"
-            );
-            next;
-        }
-        $memcached{$address} = 1;
-    }
-    $self->{memcached} = [ keys %memcached ];
+    my $expires = $builder->get_reply(
+        name    => 'cache_expires',
+        message => 'Please enter cache expiration time in seconds',
+        label   => 'Cache expiration time',
+        default => 3600,
+    );
+    $self->{cache_expires} = $expires;
     return $self;
 }
 
@@ -137,14 +113,18 @@ sub validate {
  $kbc->add_to_config(\%config);
 
 Adds the cache configuration information to the build config hash. It
-overrides the parent implementation to add the memcached address information.
+overrides the parent implementation to add the file cache expiration time and
+root directory.
 
 =cut
 
 sub add_to_config {
     my ( $self, $conf ) = @_;
     $self->SUPER::add_to_config($conf);
-    $conf->{memcached} = { addresses => $self->{memcached} };
+    $conf->{cache_file} = {
+        root    => $self->{cache_root},
+        expires => $self->{cache_expires},
+    };
     return $self;
 }
 
@@ -167,4 +147,3 @@ A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
 details.
 
 =cut
-

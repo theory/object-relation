@@ -85,13 +85,13 @@ provides:
     file: lib/Kinetic/Build.pm
   Kinetic::Build::CroakHandler:
     file: lib/Kinetic/Build.pm
-  Kinetic::Build::Engine:
+  Kinetic::Build::Setup::Engine:
     file: lib/Kinetic/Build/Engine.pm
     version: v0.0.1
-  Kinetic::Build::Engine::Apache2:
+  Kinetic::Build::Setup::Engine::Apache2:
     file: lib/Kinetic/Build/Engine/Apache2.pm
     version: v0.0.1
-  Kinetic::Build::Engine::Catalyst:
+  Kinetic::Build::Setup::Engine::Catalyst:
     file: lib/Kinetic/Build/Engine/Catalyst.pm
     version: v0.0.1
   Kinetic::Build::PrintHandler:
@@ -113,16 +113,16 @@ provides:
   Kinetic::Build::Schema::DB::SQLite:
     file: lib/Kinetic/Build/Schema/DB/SQLite.pm
     version: v0.0.1
-  Kinetic::Build::Store:
+  Kinetic::Build::Setup::Store:
     file: lib/Kinetic/Build/Store.pm
     version: v0.0.1
-  Kinetic::Build::Store::DB:
+  Kinetic::Build::Setup::Store::DB:
     file: lib/Kinetic/Build/Store/DB.pm
     version: v0.0.1
-  Kinetic::Build::Store::DB::Pg:
+  Kinetic::Build::Setup::Store::DB::Pg:
     file: lib/Kinetic/Build/Store/DB/Pg.pm
     version: v0.0.1
-  Kinetic::Build::Store::DB::SQLite:
+  Kinetic::Build::Setup::Store::DB::SQLite:
     file: lib/Kinetic/Build/Store/DB/SQLite.pm
     version: v0.0.1
   Kinetic::Build::Test:

@@ -1,4 +1,4 @@
-package Kinetic::Build::Store::DB;
+package Kinetic::Build::Setup::Store::DB;
 
 # $Id$
 
@@ -23,23 +23,23 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use base 'Kinetic::Build::Store';
+use base 'Kinetic::Build::Setup::Store';
 use DBI;
 my %private;
 
 =head1 Name
 
-Kinetic::Build::Store::DB - Kinetic database store builder
+Kinetic::Build::Setup::Store::DB - Kinetic database store builder
 
 =head1 Synopsis
 
-See L<Kinetic::Build::Store|Kinetic::Build::Store>.
+See L<Kinetic::Build::Setup::Store|Kinetic::Build::Setup::Store>.
 
 =head1 Description
 
-This module inherits from Kinetic::Build::Store to function as the base class
+This module inherits from Kinetic::Build::Setup::Store to function as the base class
 for all store builder classes that builds a data store in a database. Its
-interface is defined entirely by Kinetic::Build::Store.
+interface is defined entirely by Kinetic::Build::Setup::Store.
 
 =cut
 
@@ -51,7 +51,7 @@ interface is defined entirely by Kinetic::Build::Store.
 
 =head3 dbd_class
 
-  my $dbd_class = Kinetic::Build::Store::DB->dbd_class;
+  my $dbd_class = Kinetic::Build::Setup::Store::DB->dbd_class;
 
 This abstract class method returns the name of the DBI database driver class,
 such as "DBD::Pg" or "DBD::SQLite". Must be overridden in subclasses.
@@ -67,7 +67,7 @@ sub dbd_class {
 
 =head3 dsn_dbd
 
-  my $dsn_dbd = Kinetic::Build::Store::DB->dsn_dbd;
+  my $dsn_dbd = Kinetic::Build::Setup::Store::DB->dsn_dbd;
 
 Returns the part of the database driver class name suitable for use in a
 DBI DSN. By default, this method simply returns the value returned by

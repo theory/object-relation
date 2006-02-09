@@ -1,4 +1,4 @@
-package Kinetic::Build::Engine::Apache2;
+package Kinetic::Build::Setup::Engine::Apache2;
 
 # $Id$
 
@@ -23,21 +23,21 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use base 'Kinetic::Build::Engine';
+use base 'Kinetic::Build::Setup::Engine';
 use App::Info::HTTPD::Apache;
 
 =head1 Name
 
-Kinetic::Build::Engine::Apache2 - Kinetic Apache2 engine builder
+Kinetic::Build::Setup::Engine::Apache2 - Kinetic Apache2 engine builder
 
 =head1 Synopsis
 
-See L<Kinetic::Build::Engine|Kinetic::Build::Engine>.
+See L<Kinetic::Build::Setup::Engine|Kinetic::Build::Setup::Engine>.
 
 =head1 Description
 
-This module inherits from Kinetic::Build::Engine to build an Apache2 engine.
-Its interface is defined entirely by Kinetic::Build::Engine. The command-line
+This module inherits from Kinetic::Build::Setup::Engine to build an Apache2 engine.
+Its interface is defined entirely by Kinetic::Build::Setup::Engine. The command-line
 options it adds are:
 
 =over
@@ -62,7 +62,7 @@ options it adds are:
 
 =head3 info_class
 
-  my $info_class = Kinetic::Build::Store::Engine::Apache2->info_class
+  my $info_class = Kinetic::Build::Setup::Store::Engine::Apache2->info_class
 
 Returns the name of the C<App::Info> class that detects the presences of
 Apache, L<App::Info::HTTPD::Apache|App::Info::HTTPD::Apache>.
@@ -75,7 +75,7 @@ sub info_class { 'App::Info::HTTPD::Apache' }
 
 =head3 min_version
 
-  my $version = Kinetic::Build::Engine::Apache2->min_version
+  my $version = Kinetic::Build::Setup::Engine::Apache2->min_version
 
 Returns the minimum required version number of Apache that must be installed.
 
@@ -87,7 +87,7 @@ sub min_version { '2.0.54' }
 
 =head3 engine_class
 
-  my $engine_class = Kinetic::Build::Engine::Apache2->engine_class;
+  my $engine_class = Kinetic::Build::Setup::Engine::Apache2->engine_class;
 
 Returns the engine class which C<bin/kineticd> will use to start the engine.
 
@@ -99,7 +99,7 @@ sub engine_class {'Kinetic::Engine::Apache2'}
 
 =head3 rules
 
-  my @rules = Kinetic::Build::Engine::Apache2->rules;
+  my @rules = Kinetic::Build::Setup::Engine::Apache2->rules;
 
 This method returns the rules required by the C<Kinetic::Build::Rules>
 state machine.
@@ -275,7 +275,7 @@ sub rules {
 
 =head3 conf_engine
 
-  my $engine_type = Kinetic::Build::Engine::Apache2->conf_engine;
+  my $engine_type = Kinetic::Build::Setup::Engine::Apache2->conf_engine;
 
 Returns the engine type corresponding to the config file section ('simple');
 
@@ -287,7 +287,7 @@ sub conf_engine { 'apache' }
 
 =head3 conf_sections
 
-  my @conf_sections = Kinetic::Build::Engine::Apache2->conf_sections;
+  my @conf_sections = Kinetic::Build::Setup::Engine::Apache2->conf_sections;
 
 Returns the configuration sections to be copied to the config file
 C<conf_engine> section.

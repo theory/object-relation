@@ -1,4 +1,4 @@
-package Kinetic::Build::Engine::Catalyst;
+package Kinetic::Build::Setup::Engine::Catalyst;
 
 # $Id$
 
@@ -23,20 +23,20 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use base 'Kinetic::Build::Engine';
+use base 'Kinetic::Build::Setup::Engine';
 
 =head1 Name
 
-Kinetic::Build::Engine::Catalyst - Kinetic Catalyst engine builder
+Kinetic::Build::Setup::Engine::Catalyst - Kinetic Catalyst engine builder
 
 =head1 Synopsis
 
-See L<Kinetic::Build::Engine|Kinetic::Build::Engine>.
+See L<Kinetic::Build::Setup::Engine|Kinetic::Build::Setup::Engine>.
 
 =head1 Description
 
-This module inherits from Kinetic::Build::Engine to build a Catalyst engine.
-Its interface is defined entirely by Kinetic::Build::Engine. The command-line
+This module inherits from Kinetic::Build::Setup::Engine to build a Catalyst engine.
+Its interface is defined entirely by Kinetic::Build::Setup::Engine. The command-line
 options it adds are:
 
 =over
@@ -61,7 +61,7 @@ options it adds are:
 
 =head3 engine_class
 
-  my $engine_class = Kinetic::Build::Engine::Catalyst->engine_class;
+  my $engine_class = Kinetic::Build::Setup::Engine::Catalyst->engine_class;
 
 Returns the engine class which C<bin/kineticd> will use to start the engine.
 
@@ -73,7 +73,7 @@ sub engine_class {'Kinetic::Engine::Catalyst'}
 
 =head3 rules
 
-  my @rules = Kinetic::Build::Engine::Catalyst->rules;
+  my @rules = Kinetic::Build::Setup::Engine::Catalyst->rules;
 
 Returns a list of arguments to be passed to an L<FSA::Rules|FSA::Rules>
 constructor. These arguments are rules that will be used to validate the
@@ -125,7 +125,7 @@ sub rules {
 
 =head3 conf_engine
 
-  my $engine_type = Kinetic::Build::Engine::Catalyst->conf_engine;
+  my $engine_type = Kinetic::Build::Setup::Engine::Catalyst->conf_engine;
 
 Returns the engine type corresponding to the config file section ('simple');
 
@@ -135,7 +135,7 @@ sub conf_engine {'catalyst'}
 
 =head3 conf_sections
 
-  my @conf_sections = Kinetic::Build::Engine::Catalyst->conf_sections;
+  my @conf_sections = Kinetic::Build::Setup::Engine::Catalyst->conf_sections;
 
 Returns the configuration sections to be copied to the config file
 C<conf_engine> section.

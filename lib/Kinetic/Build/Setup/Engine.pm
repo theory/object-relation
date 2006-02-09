@@ -1,4 +1,4 @@
-package Kinetic::Build::Engine;
+package Kinetic::Build::Setup::Engine;
 
 # $Id$
 
@@ -26,12 +26,12 @@ use base 'Kinetic::Build::Setup';
 
 =head1 Name
 
-Kinetic::Build::Engine - Kinetic engine builder
+Kinetic::Build::Setup::Engine - Kinetic engine builder
 
 =head1 Synopsis
 
-  use Kinetic::Build::Engine;
-  my $kbe = Kinetic::Build::Engine->new;
+  use Kinetic::Build::Setup::Engine;
+  my $kbe = Kinetic::Build::Setup::Engine->new;
   $kbe->setup;
 
 =head1 Description
@@ -53,8 +53,8 @@ L<Kinetic::Build::Setup|Kinetic::Build::Setup>.
 
 =head3 new
 
-  my $kbe = Kinetic::Build::Engine->new;
-  my $kbe = Kinetic::Build::Engine->new($builder);
+  my $kbe = Kinetic::Build::Setup::Engine->new;
+  my $kbe = Kinetic::Build::Setup::Engine->new($builder);
 
 This constructor overrides the one inherited from
 L<Kinetic::Build::Setup|Kinetic::Build::Setup> to set the C<base_uri>

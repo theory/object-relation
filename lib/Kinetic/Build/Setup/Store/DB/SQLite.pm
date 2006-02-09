@@ -1,4 +1,4 @@
-package Kinetic::Build::Store::DB::SQLite;
+package Kinetic::Build::Setup::Store::DB::SQLite;
 
 # $Id$
 
@@ -23,7 +23,7 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use base 'Kinetic::Build::Store::DB';
+use base 'Kinetic::Build::Setup::Store::DB';
 use DBI;
 use Kinetic::Build;
 use App::Info::RDBMS::SQLite;
@@ -31,16 +31,16 @@ use File::Spec::Functions;
 
 =head1 Name
 
-Kinetic::Build::Store::DB::SQLite - Kinetic SQLite data store builder
+Kinetic::Build::Setup::Store::DB::SQLite - Kinetic SQLite data store builder
 
 =head1 Synopsis
 
-See L<Kinetic::Build::Store|Kinetic::Build::Store>.
+See L<Kinetic::Build::Setup::Store|Kinetic::Build::Setup::Store>.
 
 =head1 Description
 
-This module inherits from Kinetic::Build::Store::DB to build a SQLite data
-store. Its interface is defined entirely by Kinetic::Build::Store. The
+This module inherits from Kinetic::Build::Setup::Store::DB to build a SQLite data
+store. Its interface is defined entirely by Kinetic::Build::Setup::Store. The
 command-line options it adds are:
 
 =over
@@ -63,7 +63,7 @@ command-line options it adds are:
 
 =head3 info_class
 
-  my $info_class = Kinetic::Build::Store::DB::SQLite->info_class
+  my $info_class = Kinetic::Build::Setup::Store::DB::SQLite->info_class
 
 Returns the name of the C<App::Info> class that detects the presences of
 SQLite, L<App::Info::RDBMS::SQLite|App::Info::RDBMS::SQLite>.
@@ -76,7 +76,7 @@ sub info_class { 'App::Info::RDBMS::SQLite' }
 
 =head3 min_version
 
-  my $version = Kinetic::Build::Store::DB::SQLite->min_version
+  my $version = Kinetic::Build::Setup::Store::DB::SQLite->min_version
 
 Returns the minimum required version number of SQLite that must be installed.
 
@@ -88,7 +88,7 @@ sub min_version { '3.2.0' }
 
 =head3 dbd_class
 
-  my $dbd_class = Kinetic::Build::Store::DB::SQLite->dbd_class;
+  my $dbd_class = Kinetic::Build::Setup::Store::DB::SQLite->dbd_class;
 
 Returns the name of the DBI database driver class, L<DBD::SQLite|DBD::SQLite>.
 
@@ -100,7 +100,7 @@ sub dbd_class { 'DBD::SQLite' }
 
 =head3 rules
 
-  my @rules = Kinetic::Build::Store::DB::SQLite->rules;
+  my @rules = Kinetic::Build::Setup::Store::DB::SQLite->rules;
 
 Returns a list of arguments to be passed to an L<FSA::Rules|FSA::Rules>
 constructor. These arguments are rules that will be used to validate the

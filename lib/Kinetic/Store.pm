@@ -1263,19 +1263,19 @@ examples.
 
 See F<t/sqlite/schema.t> and F</pg/schema.t> for examples.
 
-=item * Create a subclass of Kinetic::Build::Store::DB
+=item * Create a subclass of Kinetic::Build::Setup::Store::DB
 
 The job of this class is to determine, at installation time, the necessary
 information to build the back end, for example the server name, password,
 database name, etc. It then takes this information and actually I<builds> the
 data store. It also builds a test data store (the build system will ask the
-Kinetic::Build::Store subclass to do this, if necsssary). See
-L<Kinetic::Build::Store::DB::Pg|Kinetic::Build::Store::DB::Pg> and
-L<Kinetic::Build::Store::DB::SQLite|Kinetic::Build::Store::DB::SQLite> for
+Kinetic::Build::Setup::Store subclass to do this, if necsssary). See
+L<Kinetic::Build::Setup::Store::DB::Pg|Kinetic::Build::Setup::Store::DB::Pg> and
+L<Kinetic::Build::Setup::Store::DB::SQLite|Kinetic::Build::Setup::Store::DB::SQLite> for
 examples. Note that this class should use FSA::Rules to gather information,
 and respect the C<--accept_defaults> and C<--quiet> C<./Build> options.
 
-=item * Add the Kinetic::Build::Store subclass to the C<%STORES> hash in Kinetic::Build.
+=item * Add the Kinetic::Build::Setup::Store subclass to the C<%STORES> hash in Kinetic::Build.
 
 This is so that the build system knows that your new store back-end exists and
 may need to be built. The key in this hash is used to identify the data store

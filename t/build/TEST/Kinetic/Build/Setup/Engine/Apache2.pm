@@ -1,10 +1,10 @@
-package TEST::Kinetic::Build::Engine::Apache2;
+package TEST::Kinetic::Build::Setup::Engine::Apache2;
 
 # $Id$
 
 use strict;
 use warnings;
-use base 'TEST::Kinetic::Build::Engine';
+use base 'TEST::Kinetic::Build::Setup::Engine';
 use TEST::Kinetic::Build;
 use Test::More;
 use aliased 'Kinetic::Build';
@@ -25,7 +25,7 @@ sub test_apache : Test(12) {
 
     ok my $apache = $class->new, "Create new $class object";
     isa_ok $apache, $class;
-    isa_ok $apache, 'Kinetic::Build::Engine';
+    isa_ok $apache, 'Kinetic::Build::Setup::Engine';
     isa_ok $apache, 'Kinetic::Build::Setup';
     isa_ok $apache->builder, 'Kinetic::Build';
 
