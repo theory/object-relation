@@ -5,6 +5,8 @@
 use strict;
 use warnings;
 use Test::More;
+use Test::NoWarnings; # Adds an extra test.
+use Class::Trait;     # Avoid warnings.
 
 eval "use Test::Pod::Coverage 0.08";
 my @modules;
@@ -15,9 +17,9 @@ else {
     # Not loading Kinetic::Engine:: modules as they often require constants
     # which will not always be available
     @modules =
-      grep { ! /Kinetic::Engine/ } 
+      grep { ! /Kinetic::Engine/ }
       grep { $_ ne 'Kinetic' } Test::Pod::Coverage::all_modules();
-    plan tests => @modules + 1;
+    plan tests => @modules + 2;
 }
 
 use Kinetic;
