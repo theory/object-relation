@@ -56,7 +56,7 @@ sub atest_process_conf_files : Test(14) {
       "Now there should be a blib config file";
     file_exists_ok 't/conf/kinetic.conf',
       "And there should be a t/conf config file";
-    is $ENV{KINETIC_CONF}, catfile(qw'blib conf kinetic.conf'),
+    is $ENV{KINETIC_CONF}, catfile(qw(blib conf kinetic.conf)),
       "The KINETIC_CONF environment variable should point to the new config file";
 
     # Check the config file to be installed.
@@ -273,9 +273,9 @@ sub test_config_action : Test(4) {
     my $class = $self->test_class;
 
     # Copy Kinetic::Util::Config to data dir (not sample!).
-    $self->mkpath(qw'lib Kinetic Util');
-    copy catfile(updir, updir, qw'lib Kinetic Util Config.pm'),
-         catdir(qw'lib Kinetic Util');
+    $self->mkpath(qw(lib Kinetic Util));
+    copy catfile(updir, updir, qw(lib Kinetic Util Config.pm)),
+         catdir(qw(lib Kinetic Util));
     my $default = '/usr/local/kinetic/conf/kinetic.conf';
 
     my $config = catfile qw(lib Kinetic Util Config.pm);
@@ -416,7 +416,7 @@ sub test_get_reply : Test(49) {
     $kb->mock(check_prereq   => sub { return });
     my $store = MockModule->new('Kinetic::Build::Setup::Store');
     $store->mock(validate => 1);
-    local @ARGV = qw'--store pg foo=bar';
+    local @ARGV = qw(--store pg foo=bar);
     my $mb = MockModule->new('Module::Build');
     $kb->mock(_prompt => sub { shift; $self->{output} .= join '', @_; });
     $kb->mock(log_info => sub { shift; $self->{info} .= join '', @_; });

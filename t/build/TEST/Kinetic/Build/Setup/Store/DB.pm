@@ -150,7 +150,7 @@ sub test_rules : Test(27) {
         HandleError    => Kinetic::Util::Exception::DBI->handler,
     });
 
-    for my $view (qw'simple one two composed comp_comp') {
+    for my $view (qw(simple one two composed comp_comp)) {
         is_deeply $dbh->selectall_arrayref(
             "SELECT 1 FROM sqlite_master WHERE type ='view' AND name = ?",
             {}, $view
@@ -173,7 +173,7 @@ sub test_rules : Test(27) {
         HandleError    => Kinetic::Util::Exception::DBI->handler,
     });
 
-    for my $view (qw'simple one two composed comp_comp') {
+    for my $view (qw(simple one two composed comp_comp)) {
         is_deeply $dbh->selectall_arrayref(
             "SELECT 1 FROM sqlite_master WHERE type ='view' AND name = ?",
             {}, $view
