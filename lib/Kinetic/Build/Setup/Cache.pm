@@ -37,38 +37,66 @@ Kinetic::Build::Setup::Cache - Kinetic cache builder
 =head1 Description
 
 This module is the abstract base class for collecting information for the
-Kinetic caching engine.
+Kinetic caching engine. It inherits from
+L<Kinetic::Build::Setup|Kinetic::Build::Setup>.
 
 =cut
 
 ##############################################################################
 
+=head1 Interface
+
+=head2 Class Methods
+
 =head3 catalyst_cache_class
 
-  $kbs->catalyst_cache_class;
+  my $catalyst_cache_class
+      = $Kinetic::Build::Setup::Cache->catalyst_cache_class;
 
 This method returns the engine class responsible for managing the Catalyst UI
-cache.
+session cache. Must be overidden by a subclass.
 
 =cut
 
 sub catalyst_cache_class {
-    die "catalyst_cache_class() must be overridden in a subclass";
+    die 'catalyst_cache_class() must be overridden in a subclass';
 }
 
 ##############################################################################
 
 =head3 object_cache_class
 
-  $kbs->object_cache_class;
+  my $object_cache_class
+      = $Kinetic::Build::Setup::Cache->object_cache_class;
 
 This method returns the engine class responsible for managing the Kinetic
-store cache.
+store cache. Must be overidden by a subclass.
 
 =cut
 
 sub object_cache_class {
-    die "object_cache_class() must be overridden in a subclass";
+    die 'object_cache_class() must be overridden in a subclass';
+}
+
+##############################################################################
+
+=head2 Instance Methods
+
+=head3 expires
+
+  my $expires = $kbc->expires;
+  $kbc->expires($expires);
+
+Returns the minimum number of seconds before items in the cache should be
+expired. Defaults to 3600.
+
+=cut
+
+sub expires {
+    my $self = shift;
+    return $self->{expires} unless @_;
+    $self->{expires} = shift;
+    return $self;
 }
 
 ##############################################################################
@@ -88,8 +116,23 @@ sub add_to_config {
     $conf->{cache} = {
         catalyst => $self->catalyst_cache_class,
         object   => $self->object_cache_class,
+        expires  => $self->expires,
     };
     return $self;
+}
+
+sub _ask_for_expires {
+    my $self = shift;
+    my $builder = $self->builder;
+    return $self->expires(
+        $builder->args('cache_expires') || $builder->get_reply(
+            name     => 'cache-expires',
+            message  => 'Please enter cache expiration time in seconds',
+            label    => 'Cache expiration time',
+            default  => 3600,
+            callback => sub { /^\d+$/ },
+        )
+    );
 }
 
 1;

@@ -11,7 +11,7 @@ use Test::Exception;
 use Test::File;
 use Test::File::Contents;
 use File::Copy;
-use File::Spec::Functions;
+use File::Spec::Functions qw(catfile updir catdir tmpdir);
 use List::MoreUtils qw(any);
 
 __PACKAGE__->runtests unless caller;
@@ -208,13 +208,6 @@ sub test_props : Test(13) {
         'Which engine should I use?',
         ' [2]:',
         ' ',
-        "  1> file\n  2> memcached\n",
-        'Which session cache should I use?',
-        ' [1]:',
-        ' ',
-        'What password should be used for the default account?',
-        ' [change me now!]:',
-        ' ',
         'Please enter the port on which to run the Catalyst server',
         ' [3000]:',
         ' ',
@@ -224,11 +217,18 @@ sub test_props : Test(13) {
         'Should the Catalyst server automatically restart if .pm files change?',
         ' [n]:',
         ' ',
+        "  1> file\n  2> memcached\n",
+        'Which session cache should I use?',
+        ' [1]:',
+        ' ',
         'Please enter the root directory for caching',
-        ' [/tmp/session]:',
+        ' [' . catdir(tmpdir(), qw(kinetic cache)) . ']:',
         ' ',
         'Please enter cache expiration time in seconds',
         ' [3600]:',
+        ' ',
+        'What password should be used for the default account?',
+        ' [change me now!]:',
         ' ',
     ], 'We should be prompted for the data store and other stuff';
 
@@ -428,18 +428,20 @@ sub test_get_reply : Test(49) {
     # Start not quiet and with defaults accepted.
     my $builder = $self->new_builder(quiet => 0);
     $self->{builder} = $builder;
-    my $expected = <<'    END_INFO';
+    my $tmpdir = catdir(tmpdir(), qw(kinetic cache));
+
+    my $expected = <<"    END_INFO";
 Data store: pg
-Kinetic engine: catalyst
-Kinetic cache: file
-Administrative User password: change me now!
 Looking for pg_config
 path to pg_config: /usr/local/pgsql/bin/pg_config
+Kinetic engine: catalyst
 Catalyst port: 3000
 Catalyst host: localhost
 Catalyst restart: no
-Cache root: /tmp/session
+Kinetic cache: file
+Cache root: $tmpdir
 Cache expiration time: 3600
+Administrative User password: change me now!
     END_INFO
     is delete $self->{info}, $expected,
       "Should have data store set by command-line option";

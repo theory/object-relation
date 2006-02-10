@@ -21,6 +21,7 @@ package Kinetic::Build::Setup::Cache::Memcached;
 use strict;
 
 use Regexp::Common qw/net/;
+use List::Util qw(first);
 use version;
 our $VERSION = version->new('0.0.1');
 
@@ -38,7 +39,18 @@ Kinetic::Build::Setup::Cache::Memcached - Kinetic Memcached cache builder
 
 =head1 Description
 
-See L<Kinetic::Build::Setup::Cache|Kinetic::Build::Setup::Cache>.
+This module inherits from Kinetic::Build::Setup::Cache to collect
+configuration information for the Kinetic Memcached caching architecture. Its
+interface is defined entirely by Kinetic::Build::Setup::Cache. The
+command-line options it adds are:
+
+=over
+
+=item memcached-address
+
+=item cache-expires
+
+=back
 
 =cut
 
@@ -50,7 +62,8 @@ See L<Kinetic::Build::Setup::Cache|Kinetic::Build::Setup::Cache>.
 
 =head3 catalyst_cache_class
 
-  my $cache = Kinetic::Build::Setup::Cache->catalyst_cache_class;
+  my $catalyst_cache_class
+      = Kinetic::Build::Setup::Cache::Memcached->catalyst_cache_class;
 
 Returns the package name of the Kinetic caching class to be used for caching.
 
@@ -60,77 +73,98 @@ sub catalyst_cache_class {'Kinetic::UI::Catalyst::Cache::Memcached'}
 
 ##############################################################################
 
-=head3 kinetic_cache_class
+=head3 object_cache_class
 
-  my $cache = Kinetic::Build::Setup::Cache->kinetic_cache_class;
+  my $object_cache_class
+      = Kinetic::Build::Setup::Cache::Memcached->object_cache_class;
 
-Returns the package name of the Kinetic caching class to be used for caching.
+Returns the package name of the Kinetic caching class to be used for object
+caching.
 
 =cut
 
-sub kinetic_cache_class {'Kinetic::Util::Cache::Memcached'}
+sub object_cache_class {'Kinetic::Util::Cache::Memcached'}
+
+##############################################################################
+
+=head3 rules
+
+  my @rules = Kinetic::Build::Setup::Cache::Memcached->rules;
+
+Returns a list of arguments to be passed to an L<FSA::Rules|FSA::Rules>
+constructor. These arguments are rules that will be used to validate
+connectivity to one or more memcached servers, and to collect information for
+the configuration of Kinetic caching.
+
+=cut
+
+sub rules {
+    my $self = shift;
+    return (
+        addresses => {
+            do => sub {
+                my $state    = shift;
+                my $builder  = $self->builder;
+                my $default  = '127.0.0.1:11211';
+                my $check_re = qr/^$RE{net}{IPv4}:\d+$/;
+
+                # Prompt for the addresses.
+                my %prompt_params = (
+                    name     => 'memcached-address',
+                    message  => 'Please enter IP:port for a memcached server',
+                    label    => 'memcached addresses',
+                    default  => $default,
+                    callback => sub { /$check_re/ },
+                );
+
+                my @addrs;
+                my $configured = $builder->accept_defaults
+                    || $builder->args( 'memcached-address' );
+                ADDR_LOOP: while (1) {
+                    if (my $addr = $builder->get_reply(%prompt_params)) {
+                        push @addrs, $addr unless first { $_ eq $addr} @addrs;
+                        last ADDR_LOOP if $configured;
+                        $prompt_params{message} =~ s/a\s+mem/another mem/;
+                        $prompt_params{default} = '';
+                        next ADDR_LOOP;
+                    }
+                    last ADDR_LOOP
+                }
+                $self->{addresses} = \@addrs;
+            },
+            rules => [
+                expires => {
+                    rule    => 1,
+                    message => 'Memcached addresses collected',
+                }
+            ],
+        },
+
+        expires => {
+            do => sub {
+                $self->_ask_for_expires;
+            },
+            rules => [
+                Done => {
+                    rule    => 1,
+                    message => 'Cache configuration collected',
+                }
+            ],
+        },
+
+        Done => {
+            do => sub {
+                shift->done(1);
+            }
+        },
+    );
+}
 
 ##############################################################################
 
 =head1 Instance Interface
 
 =head2 Instance Methods
-
-=head3 validate
-
-  $kbc->validate;
-
-This method collects the various address/port combinations on which
-C<memcached> runs.
-
-=cut
-
-sub validate {
-    my $self    = shift;
-    my $builder = $self->builder;
-
-    if ( $builder->accept_defaults ) {
-
-        # If we don't add this, the build will hang.
-        # If they didn't accept defaults, don't assume the IP address of a
-        # memcached server because there could be multiple servers and we want
-        # them to be able to choose.
-        $self->{memcached} = ['127.0.0.1:11211'];
-        return $self;
-    }
-
-    my %address = (
-        name    => 'address',
-        message =>
-          'Please enter an IP/port in form "$IP:$port" for memcached',
-        label => 'memcached address',
-    );
-
-    my %memcached;
-    while (1) {
-        my $address = $builder->get_reply(%address);
-        if ($address) {
-            unless ( $address =~ /^$RE{net}{IPv4}:\d+$/ ) {
-                print STDERR $builder->_bold_red(
-                    qq{memcached address must be in the form "\$ip_address:\$port"\n}
-                );
-                next;
-            }
-        }
-        else {
-            last if keys %memcached;    # we have at least one server
-            print STDERR $builder->_bold_red(
-                "You must enter at least one IP address of a memcached server\n"
-            );
-            next;
-        }
-        $memcached{$address} = 1;
-    }
-    $self->{memcached} = [ keys %memcached ];
-    return $self;
-}
-
-##############################################################################
 
 =head3 add_to_config
 
@@ -144,7 +178,7 @@ overrides the parent implementation to add the memcached address information.
 sub add_to_config {
     my ( $self, $conf ) = @_;
     $self->SUPER::add_to_config($conf);
-    $conf->{memcached} = { addresses => $self->{memcached} };
+    $conf->{cache}{address} = $self->{addresses};
     return $self;
 }
 

@@ -21,7 +21,7 @@ package Kinetic::UI::Catalyst::Cache::Memcached;
 use strict;
 use warnings;
 
-use Kinetic::Util::Config qw(MEMCACHED_ADDRESSES);
+use Kinetic::Util::Config qw(MEMCACHED_ADDRESS);
 
 use version;
 our $VERSION = version->new('0.0.1');
@@ -58,7 +58,7 @@ her to shut up the pod coverage tests.
 sub config {
     return session => {
         memcached_new_args => {
-            data => MEMCACHED_ADDRESSES,
+            data => [MEMCACHED_ADDRESS],
         }
     };
 }

@@ -288,8 +288,6 @@ t/ui/email/workflow/parser.t
 t/ui/email/workflow/qpsmtpd.t
 t/util.t
 t/util/cache.t
-t/util/cache/file.t
-t/util/cache/memcached.t
 t/v_TT.t
 t/versions.t
 www/css/rest.css

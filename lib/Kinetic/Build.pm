@@ -117,7 +117,8 @@ sub add_property {
         # This is a property that we may want to prompt for.
         my %params = @_;
         $class->SUPER::add_property(
-            $params{name} => delete $params{default} );
+            $params{name} => delete $params{default}
+        );
         push @prompts, \%params if keys %params > 1;
     }
     else {
@@ -166,11 +167,11 @@ sub new {
     for my $prompt (@prompts) {
         my $prop = $prompt->{name};
         $self->$prop( $self->get_reply( %$prompt, default => $self->$prop ) );
+        if (my $meth = $self->can("check_$prop")) {
+            $self->$meth;
+        }
     }
 
-    $self->check_store;
-    $self->check_engine;
-    $self->check_cache;
     return $self;
 }
 
@@ -736,16 +737,10 @@ sub process_conf_files {
                         delete $conf{$section};
                 }
             }
-            if ( $CACHES{$lc_section} ) {
-                if ( $lc_section eq $self->cache ) {
-                    my $cache = $self->notes('build_cache');
-                    $cache->$config_meth( \%conf );
-                }
-                else {
 
-                    # It's a section for a cache we haven't chosen.
-                    delete $conf{$section};
-                }
+            if ($lc_section eq 'cache') {
+                my $cache = $self->notes('build_cache');
+                $cache->$config_meth( \%conf );
             }
         }
 
@@ -913,10 +908,11 @@ sub get_reply {
             my $i;
             $self->_prompt(
                 join "\n",
-                map( {  $i++;
-                          $def_label = $i if $_ eq $params{default};
-                          sprintf "%3s> %-s", $i, $_;
-                    } @$opts ),
+                map( {
+                    $i++;
+                    $def_label = $i if $_ eq $params{default};
+                    sprintf "%3s> %-s", $i, $_;
+                } @$opts ),
                 ""
             );
             $params{callback} = sub { /^\d+$/ && $_ <= @$opts };
@@ -942,10 +938,11 @@ sub get_reply {
         }
     }
 
-    $def_label = defined $def_label ? " [$def_label]:" : '';
-    $self->log_info("$params{label}: $params{default}\n")
-      unless $self->quiet;
-    return $params{default};
+    $val = $params{default};
+    $self->log_info(
+        "$params{label}: ", ( ref $val ? join ', ', @{ $val } : $val ), "\n"
+    ) unless $self->quiet;
+    return $val;
 }
 
 ##############################################################################

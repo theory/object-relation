@@ -22,6 +22,7 @@ use strict;
 
 use version;
 our $VERSION = version->new('0.0.1');
+use File::Spec::Functions qw(tmpdir catdir);
 
 use base 'Kinetic::Build::Setup::Cache';
 
@@ -37,7 +38,18 @@ Kinetic::Build::Setup::Cache::File - Kinetic file cache builder
 
 =head1 Description
 
-See L<Kinetic::Build::Setup::Cache|Kinetic::Build::Setup::Cache>.
+This module inherits from Kinetic::Build::Setup::Cache to collect
+configuration information for the Kinetic file-based caching architecture. Its
+interface is defined entirely by Kinetic::Build::Setup::Cache. The
+command-line options it adds are:
+
+=over
+
+=item cache-root
+
+=item cache-expires
+
+=back
 
 =cut
 
@@ -49,9 +61,11 @@ See L<Kinetic::Build::Setup::Cache|Kinetic::Build::Setup::Cache>.
 
 =head3 catalyst_cache_class
 
-  my $cache = Kinetic::Build::Setup::Cache->catalyst_cache_class;
+  my $catalyst_cache_class
+      = Kinetic::Build::Setup::Cache::File->catalyst_cache_class;
 
-Returns the package name of the Kinetic caching class to be used for caching.
+Returns the package name of the Kinetic caching class to be used for catalyst
+sessions.
 
 =cut
 
@@ -59,54 +73,58 @@ sub catalyst_cache_class {'Kinetic::UI::Catalyst::Cache::File'}
 
 ##############################################################################
 
-=head3 kinetic_cache_class
+=head3 object_cache_class
 
-  my $cache = Kinetic::Build::Setup::Cache->kinetic_cache_class;
+  my $object_cache_class
+      = Kinetic::Build::Setup::Cache::File->object_cache_class;
 
-Returns the package name of the Kinetic caching class to be used for caching.
+Returns the package name of the Kinetic caching class to be used for object
+caching.
 
 =cut
 
-sub kinetic_cache_class {'Kinetic::Util::Cache::File'}
+sub object_cache_class {'Kinetic::Util::Cache::File'}
+
+##############################################################################
+
+=head3 rules
+
+  my @rules = Kinetic::Build::Setup::Cache::File->rules;
+
+Returns a list of arguments to be passed to an L<FSA::Rules|FSA::Rules>
+constructor. These arguments are rules that will be used to collect
+information for the configuration of Kinetic caching.
+
+=cut
+
+sub rules {
+    my $self = shift;
+    return (
+        start => {
+            do => sub {
+                my $state   = shift;
+                my $builder = $self->builder;
+                $self->{cache_root} = $builder->args('cache_root')
+                    || $builder->get_reply(
+                    name     => 'cache-root',
+                    message  => 'Please enter the root directory for caching',
+                    label    => 'Cache root',
+                    default  => catdir(tmpdir(), qw(kinetic cache)),
+                    callback => sub { -d },
+                );
+                $self->_ask_for_expires;
+                $state->message('Cache configuration collected');
+                $state->done(1);
+            },
+        },
+    );
+}
 
 ##############################################################################
 
 =head1 Instance Interface
 
 =head2 Instance Method
-
-=head3 validate
-
-  Kinetic::Build::Setup::Cache->validate;
-
-This method overrides the parent implementation to simply return true, since
-no data needs to be collected for file caching.
-
-=cut
-
-sub validate {
-    my $self    = shift;
-    my $builder = $self->builder;
-
-    my $root = $builder->get_reply(
-        name    => 'cache_root',
-        message => 'Please enter the root directory for caching',
-        label   => 'Cache root',
-        default => '/tmp/session',
-    );
-    $self->{cache_root} = $root;
-
-    my $expires = $builder->get_reply(
-        name    => 'cache_expires',
-        message => 'Please enter cache expiration time in seconds',
-        label   => 'Cache expiration time',
-        default => 3600,
-    );
-    $self->{cache_expires} = $expires;
-    return $self;
-}
-
-##############################################################################
 
 =head3 add_to_config
 
@@ -121,10 +139,7 @@ root directory.
 sub add_to_config {
     my ( $self, $conf ) = @_;
     $self->SUPER::add_to_config($conf);
-    $conf->{cache_file} = {
-        root    => $self->{cache_root},
-        expires => $self->{cache_expires},
-    };
+    $conf->{cache}{root} = $self->{cache_root},
     return $self;
 }
 

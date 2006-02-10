@@ -54,7 +54,7 @@ class: { # 5 tests.
     use Test::More;
     use aliased 'Kinetic::Build::Schema';
     Schema->new;
-    
+
     can_ok __PACKAGE__, 'file_to_mod';
     can_ok __PACKAGE__, 'load_store';
 

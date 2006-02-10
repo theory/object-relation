@@ -24,7 +24,7 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use base 'Kinetic::Util::Cache';
-use Kinetic::Util::Config qw(:cache_file);
+use Kinetic::Util::Config qw(:cache);
 
 use aliased 'Cache::FileCache';    # In the Cache::Cache distribution
 
@@ -56,7 +56,7 @@ sub new {
         cache => FileCache->new(
             {   default_expires_in => $class->_expire_time_in_seconds(),
                 namespace          => $class,
-                cache_root         => CACHE_FILE_ROOT,
+                cache_root         => CACHE_ROOT,
             }
         )
     }, $class;

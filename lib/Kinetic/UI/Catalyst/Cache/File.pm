@@ -21,7 +21,7 @@ package Kinetic::UI::Catalyst::Cache::File;
 use strict;
 use warnings;
 
-use Kinetic::Util::Config qw(:cache :cache_file);
+use Kinetic::Util::Config qw(:cache);
 
 use version;
 our $VERSION = version->new('0.0.1');
@@ -58,7 +58,7 @@ her to shut up the pod coverage tests.
 sub config {
     return session => {
         expires => CACHE_EXPIRES,
-        storage => CACHE_FILE_ROOT,
+        storage => CACHE_ROOT,
     };
 }
 
