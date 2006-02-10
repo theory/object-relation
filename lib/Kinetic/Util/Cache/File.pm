@@ -37,9 +37,9 @@ Kinetic::Util::Cache::File - Kinetic caching
   use Kinetic::Util::Cache::File;
 
   my $cache = Kinetic::Util::Cache::File->new;
-  $cache->set($uuid, $object);
-  $cache->add($uuid, $object);
-  $object = $cache->get($uuid);
+  $cache->set($id, $object);
+  $cache->add($id, $object);
+  $object = $cache->get($id);
 
 =head1 Description
 
@@ -50,32 +50,29 @@ interface.
 
 =cut
 
-# Testing hook
-sub _expire_time_in_seconds {CACHE_FILE_EXPIRES}
-sub _cache                  { shift->{cache} }
-
 sub new {
     my $class = shift;
     bless {
         cache => FileCache->new(
-            {   default_expires_in => _expire_time_in_seconds(),
+            {   default_expires_in => $class->_expire_time_in_seconds(),
                 namespace          => $class,
+                cache_root         => CACHE_FILE_ROOT,
             }
         )
     }, $class;
 }
 
 sub set {
-    my ( $self, $uuid, $object ) = @_;
+    my ( $self, $id, $object ) = @_;
     $self->_cache->purge;    # purge expired objects
-    $self->_cache->set( $uuid, $object );
+    $self->_cache->set( $id, $object );
     return $self;
 }
 
 sub add {
-    my ( $self, $uuid, $object ) = @_;
-    return if $self->_cache->get($uuid);
-    return $self->set( $uuid, $object );
+    my ( $self, $id, $object ) = @_;
+    return if $self->_cache->get($id);
+    return $self->set( $id, $object );
 }
 
 sub get {
@@ -83,15 +80,15 @@ sub get {
     return $self->_cache->get(@_);
 }
 
-sub empty {
+sub clear {
     my $self = shift;
-    $self->_cache->Clear;
+    $self->_cache->clear;
     return $self;
 }
 
 sub remove {
-    my ( $self, $uuid ) = @_;
-    $self->_cache->remove($uuid);
+    my ( $self, $id ) = @_;
+    $self->_cache->remove($id);
     return $self;
 }
 
@@ -107,7 +104,7 @@ sub remove {
 
 =item * get
 
-=item * empty
+=item * clear
 
 =item * remove
 

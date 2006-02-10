@@ -535,9 +535,14 @@ sub _save {
     local @{$self}{qw/columns values/};
     $self->_save_contained($object);
 
-    return $object->id
+    my $result = $object->id
       ? $self->_update($object)
       : $self->_insert($object);
+    my $cache = $self->_cache;
+    # XXX We'll want some method of disabling caching.
+    # XXX This dragged the test suite to a halt
+    #$cache->set($object->uuid, $object);
+    return $result;
 }
 
 ##############################################################################

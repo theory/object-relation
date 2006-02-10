@@ -19,6 +19,7 @@ package Kinetic::Store;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
+use aliased 'Kinetic::Util::Cache';
 use Kinetic::Util::Config qw(:store);
 use Kinetic::Util::Exceptions qw/throw_invalid_class throw_search/;
 
@@ -199,7 +200,7 @@ sub new {
             $@, ]
           if $@;
     }
-    bless {}, $class;
+    bless { cache => Cache->new }, $class;
 }
 
 ##############################################################################
@@ -451,6 +452,22 @@ sub _add_store_meta {
     my $self = shift;
     $self = $self->new unless ref $self;
     $self->_add_store_meta(@_);
+}
+
+##############################################################################
+
+=head3 _cache
+
+  my $cache = $store->_cache;
+
+Read-only method which returns the cache object.
+
+See L<Kinetic::Util::Cache|Kinetic::Util::Cache>.
+
+=cut
+
+sub _cache {
+    return shift->{cache};
 }
 
 =end private

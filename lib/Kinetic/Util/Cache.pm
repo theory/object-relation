@@ -23,7 +23,7 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use Kinetic::Util::Config qw(CACHE_OBJECT);
+use Kinetic::Util::Config qw(:cache);
 use Kinetic::Util::Exceptions qw(throw_unknown_class throw_unimplemented);
 
 =head1 Name
@@ -35,9 +35,9 @@ Kinetic::Util::Cache - Kinetic caching
   use Kinetic::Util::Cache;
 
   my $cache = Kinetic::Util::Cache->new;
-  $cache->set($uuid, $object);
-  $cache->add($uuid, $object);
-  $object = $cache->get($uuid);
+  $cache->set($id, $object);
+  $cache->add($id, $object);
+  $object = $cache->get($id);
 
 =head1 Description
 
@@ -70,7 +70,7 @@ sub new {
 }
 
 BEGIN {
-    foreach my $method (qw/set add get empty remove/) {
+    foreach my $method (qw/set add get clear remove/) {
         no strict 'refs';
         *$method = sub {
             throw_unimplemented [
@@ -80,11 +80,17 @@ BEGIN {
         };
     }
 }
+
+# Testing hook
+sub _expire_time_in_seconds {CACHE_EXPIRES}
+
+sub _cache                  { shift->{cache} }
+
 ##############################################################################
 
 =head3 set
 
-  $cache->set($uuid, $object);
+  $cache->set($id, $object);
 
 Adds an object to the cache regardless of whether or not that object exists.
 
@@ -94,7 +100,7 @@ Adds an object to the cache regardless of whether or not that object exists.
 
 =head3 add
 
-  $cache->add($uuid, $object);
+  $cache->add($id, $object);
 
 Adds an object to the cache unless the object exists in the cache.  Returns a
 boolean value indicating success or failure.
@@ -105,7 +111,7 @@ boolean value indicating success or failure.
 
 =head3 get
 
-  $cache->get($uuid);
+  $cache->get($id);
 
 Gets an object from the cache.
 
@@ -113,9 +119,9 @@ Gets an object from the cache.
 
 ##############################################################################
 
-=head3 empty
+=head3 clear
 
-  $cache->empty;
+  $cache->clear;
 
 Empties the cache.
 
@@ -125,7 +131,7 @@ Empties the cache.
 
 =head3 remove
 
-  $cache->remove($uuid);
+  $cache->remove($id);
 
 Removes the corresponding object from the cache.
 

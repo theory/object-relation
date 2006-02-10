@@ -24,6 +24,8 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use base 'Kinetic::Util::Cache';
+use Kinetic::Util::Config qw(:memcached);
+use aliased 'Cache::Memcached';
 
 =head1 Name
 
@@ -34,14 +36,102 @@ Kinetic::Util::Cache::Memcached - Kinetic caching
   use Kinetic::Util::Cache::Memcached;
 
   my $cache = Kinetic::Util::Cache::Memcached->new;
-  $cache->set($uuid, $object);
-  $cache->add($uuid, $object);
-  $object = $cache->get($uuid);
+  $cache->set($id, $object);
+  $cache->add($id, $object);
+  $object = $cache->get($id);
 
 =head1 Description
 
 This class provides an interface for caching data in Kinetic, regardless of
 the underlying caching mechanism chosen.
+
+=cut
+
+my %IDS;    # YUCK!
+my $EXPIRE;
+
+sub new {
+    my $class   = shift;
+    my $servers =
+      'ARRAY' eq ref MEMCACHED_ADDRESS
+      ? MEMCACHED_ADDRESS
+      : [MEMCACHED_ADDRESS];
+    $EXPIRE = $class->_expire_time_in_seconds;
+    bless {
+        cache => Memcached->new(
+            {   servers => $servers,
+            }
+        )
+    }, $class;
+}
+
+sub set {
+    my ( $self, $id, $object ) = @_;
+    $id = $self->_make_safe_id($id);
+    $self->_cache->set( $id, $object, $EXPIRE );
+    $IDS{$id} = 1;
+    return $self;
+}
+
+sub add {
+    my ( $self, $id, $object ) = @_;
+    $id = $self->_make_safe_id($id);
+    return if $self->get($id);
+    $IDS{$id} = 1;
+    $self->_cache->add( $id, $object, $EXPIRE );
+    return $self;
+}
+
+sub get {
+    my ( $self, $id ) = @_;
+    $id = $self->_make_safe_id($id);
+    my $object = $self->_cache->get($id);
+    return $object if $object;
+    delete $IDS{$id};
+    return;
+}
+
+sub clear {
+    my $self  = shift;
+    my $cache = $self->_cache;
+    $cache->delete($_) foreach keys %IDS;
+    %IDS = ();
+    return $self;
+}
+
+sub remove {
+    my ( $self, $id ) = @_;
+    $id = $self->_make_safe_id($id);
+    $self->_cache->delete($id);
+    delete $IDS{$id};
+    return $self;
+}
+
+sub _make_safe_id {
+    my ( $self, $id ) = @_;
+    my $class = ref $self;
+    # because methods might call one another ...
+    return $id if $id =~ /\A$class/;
+    return "$class:$id";
+}
+
+=head1 Overridden methods
+
+=over 4
+
+=item * new
+
+=item * set
+
+=item * add
+
+=item * get
+
+=item * clear
+
+=item * remove
+
+=back
 
 =cut
 
