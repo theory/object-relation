@@ -407,7 +407,7 @@ sub test_ask_y_n : Test(34) {
     is $self->{info}, undef, 'There should be no info';
 }
 
-sub test_get_reply : Test(49) {
+sub test_get_reply : Test(52) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -416,7 +416,7 @@ sub test_get_reply : Test(49) {
     $kb->mock(check_prereq   => sub { return });
     my $store = MockModule->new('Kinetic::Build::Setup::Store');
     $store->mock(validate => 1);
-    local @ARGV = qw(--store pg foo=bar);
+    local @ARGV = qw(--store pg foo=bar --hey you --hey me);
     my $mb = MockModule->new('Module::Build');
     $kb->mock(_prompt => sub { shift; $self->{output} .= join '', @_; });
     $kb->mock(log_info => sub { shift; $self->{info} .= join '', @_; });
@@ -559,6 +559,22 @@ Administrative User password: change me now!
         comment     => "No prompt for command-line arugment"
     );
 
+    # Multiple options on the command-line should give us an array.
+    $builder->quiet(0);
+    $self->try_reply(
+        $builder,
+        message     => "Hey who?",
+        label       => "Hey who",
+        name        => 'hey',
+        default     => 'them',
+        exp_message => undef,
+        exp_info    => "Hey who: you, me\n",
+        exp_value   => [qw(you me)],
+        input_value => '',
+        comment     => 'Should get array ref for multiple options',
+    );
+    $builder->quiet(1);
+
     # Try just accepting the default by inputting \n.
     $self->try_reply(
         $builder,
@@ -677,14 +693,23 @@ Administrative User password: change me now!
 
 sub try_reply {
     my ($self, $builder, %params) = @_;
-    my $exp_msg = delete $params{exp_message};
-    my $exp_info = delete $params{exp_info};
+    my $exp_msg   = delete $params{exp_message};
+    my $exp_info  = delete $params{exp_info};
     my $exp_value = delete $params{exp_value};
-    my $comment = delete $params{comment};
+    my $comment   = delete $params{comment};
+
     $self->{input} = ref $params{input_value}
       ? delete $params{input_value}
       : [ delete $params{input_value} ];
-    is $builder->get_reply(%params), $exp_value, $comment;
+
+    my $reply = $builder->get_reply(%params);
+    if (ref $exp_value) {
+        is_deeply $reply, $exp_value, $comment;
+    }
+    else {
+        is $reply, $exp_value, $comment;
+    }
+
 
     is delete $self->{output}, $exp_msg, 'Output should be ' .
       (defined $exp_msg ? qq{"$exp_msg"} : 'undef');
