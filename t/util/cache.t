@@ -10,7 +10,8 @@ use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings;    # Adds an extra test.
 
-use Kinetic::Util::Config qw/CACHE_OBJECT/;
+use Kinetic::Build::Test cache => { expires => 2 };
+use Kinetic::Util::Config qw(CACHE_OBJECT);
 my $CACHE;
 
 BEGIN {
@@ -22,7 +23,7 @@ BEGIN {
 
 my $cache = bless {}, $CACHE;
 
-foreach my $method (qw/get set add clear remove/) {
+foreach my $method (qw/get set add remove/) {
     can_ok $cache, $method;
     throws_ok { $cache->$method }
       'Kinetic::Util::Exception::Fatal::Unimplemented',
@@ -36,12 +37,24 @@ ok $cache = $CACHE->new, '... and calling it should succeed';
 isa_ok $cache, $CACHE, '... and the object it returns';
 cmp_ok ref($cache), 'ne', $CACHE, '... but it is actually a subclass';
 
+my @IDS = ();
+
+END {
+    my $cache = $CACHE->new;
+    $cache->remove($_) foreach @IDS;
+}
 {
 
     package Some::Object;
 
     my $id = 1;
-    sub new { bless { id => $id++ }, shift }
+
+    sub new {
+        my $class = shift;
+        $id++;
+        push @IDS => $id;
+        return bless { id => $id }, $class;
+    }
 
     sub uuid { shift->{id} }
 
@@ -63,18 +76,13 @@ cmp_ok ref($cache), 'ne', $CACHE, '... but it is actually a subclass';
 }
 
 $CACHE = CACHE_OBJECT;
-{
-    no warnings 'redefine';
-    no strict 'refs';
-    *{"${CACHE}::_expire_time_in_seconds"} = sub {2};
-}
 
 $cache = $CACHE->new;    # XXX reset the expire time
 
 # we need to call this first or else a full run of the test suite might
 # encounter a previously cached object.
-can_ok $cache, 'clear';
-ok $cache->clear, '... and calling it should succeed';
+#can_ok $cache, 'clear';
+#ok $cache->clear, '... and calling it should succeed';
 
 my $soldier = Some::Object->new;
 $soldier->name('Bob')->rank('Private');
@@ -101,29 +109,28 @@ ok $cache->add( $soldier2->uuid, $soldier2 ),
 is_deeply $soldier2, $cache->get( $soldier2->uuid ),
   '... and we should be able to fetch it from the cache';
 
-ok $cache->clear, 'Calling clear() after adding objects should succeed';
-ok !$cache->get( $soldier->uuid ),
-  '... and fetching objects from the cache should then fail';
+#ok $cache->clear, 'Calling clear() after adding objects should succeed';
+#ok !$cache->get( $soldier->uuid ),
+#  '... and fetching objects from the cache should then fail';
 
-ok $cache->set( $soldier->uuid, $soldier ),
-  '... and we should be able to set objects after clearing the cache';
-is_deeply $cache->get( $soldier->uuid ), $soldier, '... and fetch them again';
+#ok $cache->set( $soldier->uuid, $soldier ),
+#  '... and we should be able to set objects after clearing the cache';
+#is_deeply $cache->get( $soldier->uuid ), $soldier, '... and fetch them again';
+
+my $soldier3 = Some::Object->new;
+$cache->set($soldier3->uuid, $soldier);
 
 diag "Sleeping a bit to test cache expiration";
 
 sleep 2 * $CACHE->_expire_time_in_seconds();
-ok !$cache->get( $soldier->uuid ), '... and items should expire properly';
+ok !$cache->get( $soldier3->uuid ), '... and items should expire properly';
 
-ok $cache->set( $soldier->uuid, $soldier ),
+ok $cache->set( $soldier3->uuid, $soldier3 ),
   '... and adding it back to the cache should work';
-is_deeply $cache->get( $soldier->uuid ), $soldier,
+is_deeply $cache->get( $soldier3->uuid ), $soldier3,
   '... and we should be able to fetch it again';
 
 can_ok $cache, 'remove';
 ok $cache->remove( $soldier->uuid ),
   '... and we should be able to remove items from the cache';
 ok !$cache->get( $soldier->uuid ), '... and they should be gone';
-
-# we need this at the end to ensure that we clean up anything we've left in
-# the cache.  Otherwise, subsequent test runs could fail.
-$cache->clear;

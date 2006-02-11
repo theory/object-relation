@@ -540,7 +540,10 @@ sub _save {
       : $self->_insert($object);
     my $cache = $self->_cache;
     # XXX We'll want some method of disabling caching.
-    # XXX This dragged the test suite to a halt
+    # XXX This dragged the test suite to a halt, but only with file based
+    # caching
+    #$ENV{COUNT}++;
+    #print "# Count is $ENV{COUNT}.  Adding @{[$object->uuid]}\n";
     #$cache->set($object->uuid, $object);
     return $result;
 }

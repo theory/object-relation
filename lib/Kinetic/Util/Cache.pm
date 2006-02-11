@@ -70,7 +70,7 @@ sub new {
 }
 
 BEGIN {
-    foreach my $method (qw/set add get clear remove/) {
+    foreach my $method (qw/set add get remove/) {
         no strict 'refs';
         *$method = sub {
             throw_unimplemented [
@@ -114,16 +114,6 @@ boolean value indicating success or failure.
   $cache->get($id);
 
 Gets an object from the cache.
-
-=cut
-
-##############################################################################
-
-=head3 clear
-
-  $cache->clear;
-
-Empties the cache.
 
 =cut
 

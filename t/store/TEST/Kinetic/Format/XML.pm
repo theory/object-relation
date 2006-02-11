@@ -23,8 +23,7 @@ use aliased 'Kinetic::DataType::DateTime';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
 
-use Readonly;
-Readonly my $XML => 'Kinetic::Format::XML';
+use aliased 'Kinetic::Format::XML';
 
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->any_supported(qw/pg sqlite/)
@@ -47,9 +46,9 @@ sub teardown : Test(teardown) {
 
 sub constructor : Test(3) {
     my $test = shift;
-    can_ok $XML, 'new';
-    ok my $formatter = $XML->new, '... and calling it should succeed';
-    isa_ok $formatter, $XML, '... and the object it returns';
+    can_ok XML, 'new';
+    ok my $formatter = XML->new, '... and calling it should succeed';
+    isa_ok $formatter, XML, '... and the object it returns';
 }
 
 sub serialize : Test(7) {

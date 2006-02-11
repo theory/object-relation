@@ -80,11 +80,11 @@ sub get {
     return $self->_cache->get(@_);
 }
 
-sub clear {
-    my $self = shift;
-    $self->_cache->clear;
-    return $self;
-}
+#sub clear {
+#    my $self = shift;
+#    $self->_cache->clear;
+#    return $self;
+#}
 
 sub remove {
     my ( $self, $id ) = @_;
@@ -103,8 +103,6 @@ sub remove {
 =item * add
 
 =item * get
-
-=item * clear
 
 =item * remove
 

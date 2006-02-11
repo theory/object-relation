@@ -24,8 +24,7 @@ use aliased 'Kinetic::DataType::DateTime';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';   # contains a TestApp::Simple::One object
 
-use Readonly;
-Readonly my $JSON => 'Kinetic::Format::JSON';
+use aliased 'Kinetic::Format::JSON';
 
 BEGIN {
 
@@ -59,14 +58,14 @@ sub teardown : Test(teardown) {
 
 sub constructor : Test(3) {
     my $test = shift;
-    can_ok $JSON, 'new';
-    ok my $formatter = $JSON->new, '... and calling it should succeed';
-    isa_ok $formatter, $JSON, '... and the object it returns';
+    can_ok JSON, 'new';
+    ok my $formatter = JSON->new, '... and calling it should succeed';
+    isa_ok $formatter, JSON, '... and the object it returns';
 }
 
 sub serialize : Test(7) {
     my $test = shift;
-    my $formatter = $JSON->new( { pretty => 1, indent => 2 } );
+    my $formatter = JSON->new( { pretty => 1, indent => 2 } );
     my ( $foo, $bar, $baz ) = $test->test_objects;
     $foo->_save_prep;    # Force UUID generation.
     can_ok $formatter, 'serialize';
@@ -128,7 +127,9 @@ sub serialize : Test(7) {
 
 sub deserialize : Test(5) {
     my $test = shift;
-    my $formatter = $JSON->new( { pretty => 1, indent => 2 } );
+    #use Data::Dumper::Simple;
+    #diag Dumper($test, JSON);
+    my $formatter = JSON->new( { pretty => 1, indent => 2 } );
     my ( $foo, $bar, $baz ) = $test->test_objects;
     can_ok $formatter, 'deserialize';
     my $json = $formatter->serialize($foo);
@@ -184,7 +185,7 @@ sub deserialize : Test(5) {
 
 sub content_type : Test(2) {
     my $test      = shift;
-    my $formatter = $JSON->new;
+    my $formatter = JSON->new;
     can_ok $formatter, 'content_type';
     is $formatter->content_type, 'text/plain',
       '... and it should return the correct content type';
