@@ -104,7 +104,7 @@ sub rules {
             do => sub {
                 my $state   = shift;
                 my $builder = $self->builder;
-                $self->{cache_root} = $builder->args('cache_root')
+                $self->{root} = $builder->args('cache_root')
                     || $builder->get_reply(
                     name     => 'cache-root',
                     message  => 'Please enter the root directory for caching',
@@ -139,9 +139,21 @@ root directory.
 sub add_to_config {
     my ( $self, $conf ) = @_;
     $self->SUPER::add_to_config($conf);
-    $conf->{cache}{root} = $self->{cache_root},
+    $conf->{cache}{root} = $self->root,
     return $self;
 }
+
+##############################################################################
+
+=head3 root
+
+  my $root = $kbc->root;
+
+Returns the root directory to use for the cache files. Set by C<validadate()>.
+
+=cut
+
+sub root { shift->{root} }
 
 1;
 __END__

@@ -898,11 +898,12 @@ sub get_reply {
     my ( $self, %params ) = @_;
     my $def_label = $params{default};
 
-    my $val = $self->_get_option( $params{name} );
+    my $val = $self->_get_option( $params{name}, $params{callback} );
 
-    if ( defined $val ) {
+    if (defined $val) {
         $params{default} = $val;
     }
+
     elsif ( $self->_is_tty && !$self->accept_defaults ) {
         if ( my $opts = $params{options} ) {
             my $i;
@@ -1283,7 +1284,7 @@ looks for the option with the equivalent of the following method calls:
 =cut
 
 sub _get_option {
-    my ( $self, $key ) = @_;
+    my ( $self, $key, $callback ) = @_;
     return unless defined $key;
 
     # Allow both dashed and underscored options.
@@ -1291,7 +1292,13 @@ sub _get_option {
     for my $meth (qw(runtime_params args)) {
         for my $arg ( $key, $alt ) {
             my $val = $self->$meth($arg);
-            return $val if defined $val;
+            next unless defined $val;
+            return $val unless $callback;
+            for (ref $val ? @$val : $val) {
+                die qq{"$_" is not a valid value for --$arg}
+                    unless $callback->($val);
+            }
+            return $val;
         }
     }
     return;

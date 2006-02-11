@@ -407,7 +407,7 @@ sub test_ask_y_n : Test(34) {
     is $self->{info}, undef, 'There should be no info';
 }
 
-sub test_get_reply : Test(52) {
+sub test_get_reply : Test(53) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -601,6 +601,18 @@ Administrative User password: change me now!
         callback    => sub { $_ eq 'red' },
         comment     => "We should be able to check our answer with a callback",
     );
+
+    # Callback should trigger death for command-line options.
+    throws_ok {
+        $builder->get_reply(
+            message  => "Hey who?",
+            label    => "Hey who",
+            name     => 'hey',
+            default  => 'them',
+            callback => sub { $_ eq 'you' },
+        );
+    } qr/"me" is not a valid value for --hey/,
+        'We should get an error for a command-line option that fails the callback';
 
     # Turn quiet back off and we should still get the answer we specify.
     $builder->quiet(0);

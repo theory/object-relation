@@ -94,7 +94,7 @@ expired. Defaults to 3600.
 
 sub expires {
     my $self = shift;
-    return $self->{expires} unless @_;
+    return $self->{expires} || 3600 unless @_;
     $self->{expires} = shift;
     return $self;
 }

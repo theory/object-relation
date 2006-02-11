@@ -43,36 +43,6 @@ L<Kinetic::Build::Setup|Kinetic::Build::Setup>.
 
 ##############################################################################
 
-##############################################################################
-# Constructors.
-##############################################################################
-
-=head1 Interface
-
-=head2 Constructors
-
-=head3 new
-
-  my $kbe = Kinetic::Build::Setup::Engine->new;
-  my $kbe = Kinetic::Build::Setup::Engine->new($builder);
-
-This constructor overrides the one inherited from
-L<Kinetic::Build::Setup|Kinetic::Build::Setup> to set the C<base_uri>
-attribute to its default value, '/'.
-
-=cut
-
-# XXX This shouldn't be necessary, actually. Apache should be able to
-# figure it out.
-
-sub new {
-    my $self = shift->SUPER::new(@_);
-    $self->{base_uri} = '/';
-    return $self;
-}
-
-##############################################################################
-
 =head2 Instance Methods
 
 =head3 base_uri
@@ -87,7 +57,7 @@ subclass during the execution of C<validate()>.
 
 sub base_uri {
     my $self = shift;
-    return $self->{base_uri} unless @_;
+    return $self->{base_uri} || '/' unless @_;
     $self->{base_uri} = shift;
     return $self;
 }

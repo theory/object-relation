@@ -21,7 +21,7 @@ package Kinetic::Build::Setup::Cache::Memcached;
 use strict;
 
 use Regexp::Common qw/net/;
-use List::Util qw(first);
+use List::MoreUtils qw(any);
 use version;
 our $VERSION = version->new('0.0.1');
 
@@ -122,7 +122,11 @@ sub rules {
                     || $builder->args( 'memcached-address' );
                 ADDR_LOOP: while (1) {
                     if (my $addr = $builder->get_reply(%prompt_params)) {
-                        push @addrs, $addr unless first { $_ eq $addr} @addrs;
+                        # Can be a scalar or an array reference.
+                        $addr = [$addr] unless ref $addr;
+                        for my $ad (@$addr) {
+                            push @addrs, $ad unless any { $_ eq $ad } @addrs;
+                        }
                         last ADDR_LOOP if $configured;
                         $prompt_params{message} =~ s/a\s+mem/another mem/;
                         $prompt_params{default} = '';
@@ -178,9 +182,22 @@ overrides the parent implementation to add the memcached address information.
 sub add_to_config {
     my ( $self, $conf ) = @_;
     $self->SUPER::add_to_config($conf);
-    $conf->{cache}{address} = $self->{addresses};
+    $conf->{cache}{address} = $self->addresses;
     return $self;
 }
+
+##############################################################################
+
+=head3 addresses
+
+  my $addresses = $kbc->addresses;
+
+Returns an array reference of the addresses to put into F<kinetic.conf>
+specifying the addresses for Memcached servers.
+
+=cut
+
+sub addresses { shift->{addresses} }
 
 1;
 __END__
