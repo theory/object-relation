@@ -43,6 +43,8 @@ L<Kinetic::Build::Setup|Kinetic::Build::Setup>.
 
 ##############################################################################
 
+=head1 Interface
+
 =head2 Instance Methods
 
 =head3 base_uri
