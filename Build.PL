@@ -5,7 +5,7 @@ use Kinetic::Build;
 
 my $skipper =
   qr/^lib.Kinetic.(?:Build|DateTime|Engine|Format|Meta|Store|UI|Util|View|XML)/;
-my %catalyst => (
+my %catalyst = (
     'Catalyst'                                               => 5.61,
     'Catalyst::Engine::Apache'                               => 1.05,
     'Catalyst::Plugin::Authentication'                       => 0,
