@@ -38,7 +38,7 @@ sub test_file_cache : Test(9) {
     ok $cache->rules, 'Rules should be defined';
 }
 
-sub test_rules : Test(no_plan) {
+sub test_rules : Test(17) {
     my $self  = shift;
     my $class = $self->test_class;
 

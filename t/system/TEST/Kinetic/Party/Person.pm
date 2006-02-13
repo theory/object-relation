@@ -10,7 +10,7 @@ use Test::More;
 
 sub class_key { 'person' }
 
-sub test_name : Test(no_plan) {
+sub test_name : Test(0) {
     my $self = shift;
 }
 
