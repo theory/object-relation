@@ -83,7 +83,7 @@ ENGINE_CLASS->$command;
 
 __DATA__
 
-=head1 Name 
+=head1 Name
 
 kineticd --  Start the Kinetic engine
 
@@ -110,7 +110,7 @@ Command (one of the following commands must be supplied):
 C<kineticd> starts the Kinetic engine.  The C<KINETIC_CONF> environment
 variable should point to the location of the desired Kinetic configuration
 file.  If not, you may specify C<--conf /path/to/my/conf_file> to supply (or
-override) this value.  
+override) this value.
 
 Note that once installed, C<KINETIC_CONF> will probably not need to be set,
 nor will the C<--conf> option be necessary unless you wish a different
