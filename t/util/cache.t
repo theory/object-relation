@@ -4,9 +4,8 @@
 
 use strict;
 
-use Test::More 'no_plan';
-
-#use Test::More tests => 16;
+#use Test::More 'no_plan';
+use Test::More tests => 29;
 use Test::Exception;
 use Test::NoWarnings;    # Adds an extra test.
 
@@ -120,7 +119,8 @@ is_deeply $soldier2, $cache->get( $soldier2->uuid ),
 my $soldier3 = Some::Object->new;
 $cache->set($soldier3->uuid, $soldier);
 
-diag "Sleeping a bit to test cache expiration";
+diag "Sleeping a bit to test cache expiration"
+    if $ENV{TEST_VERBOSE};
 
 sleep 2 * $CACHE->_expire_time_in_seconds();
 ok !$cache->get( $soldier3->uuid ), '... and items should expire properly';
