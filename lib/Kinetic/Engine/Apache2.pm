@@ -42,11 +42,10 @@ use Kinetic::Util::Exceptions 'throw_fatal';
                 '-k', $command,    # start, stop, or graceful
                 '-f', APACHE_CONF, # httpd.conf
             );
-            system(@args) == 0
-              or throw_fatal [
-                "system([_1]) failed: [_2]",
-                join( ', ', @args ), $?
-              ];
+            system(@args) == 0 or throw_fatal [
+                q{system('[_1]') failed: [_2]},
+                join( q{' '}, @args ), $?
+            ];
         };
     }
 }
