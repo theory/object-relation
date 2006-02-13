@@ -52,17 +52,17 @@ APACHE: { # 3 tests.
     }
 }
 
-SIMPLE: { # 4 tests.
-    package Kinetic::Util::Config::TestSimple;
+CATALYST: { # 4 tests.
+    package Kinetic::Util::Config::TestCatalyst;
     use Test::More;
-    eval "use Kinetic::Util::Config qw(:simple)";
+    eval "use Kinetic::Util::Config qw(:catalyst)";
     SKIP: {
-        skip 'User did not choose simple engine', 4, if $@;
+        skip 'User did not choose catalyst engine', 4, if $@;
         eval "STORE_CLASS";
         ok($@, "Got error trying to access store_class");
-        ok(exists &SIMPLE_PORT,    'simple port exists');
-        ok(exists &SIMPLE_HOST,    'simple host exists');
-        ok(exists &SIMPLE_RESTART, 'simple restart exists');
+        ok(exists &CATALYST_PORT,    'catalyst port exists');
+        ok(exists &CATALYST_HOST,    'catalyst host exists');
+        ok(exists &CATALYST_RESTART, 'catalyst restart exists');
     }
 }
 
