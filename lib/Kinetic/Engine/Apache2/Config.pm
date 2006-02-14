@@ -51,8 +51,9 @@ BEGIN {
 
     # static files
     <Location ${base_uri}ui>
-        Order allow,deny
-        Allow from all
+        SetHandler default-handler
+        Order      allow,deny
+        Allow      from all
     </Location>
 
     # REST
