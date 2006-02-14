@@ -32,13 +32,6 @@ use Kinetic::Util::Exceptions qw(:all);
 use version;
 our $VERSION = version->new('0.0.1');
 
-#
-# Set flags and add plugins for the application
-#
-#         -Debug: activates the debug mode for very useful log messages
-# Static::Simple: will serve static files from the applications root directory
-#
-
 BEGIN {
     load_classes(
         KINETIC_ROOT . '/lib',
@@ -46,9 +39,15 @@ BEGIN {
     );
 }
 
+#
+# Set flags and add plugins for the application
+#
+#         -Debug: activates the debug mode for very useful log messages
+# Static::Simple: will serve static files from the applications root directory
+#
 use Catalyst
-    '-Home=' . KINETIC_ROOT, # This doesn't work quite the way you'd expect.
-    ($ENV{HARNESS_ACTIVE} ? '-Debug' : ()),
+    '-Home=' . KINETIC_ROOT, # XXX Might actually work in the future.
+#    ($ENV{HARNESS_ACTIVE} ? '-Debug' : ()),
     CACHE_CATALYST->session_class,
     qw(
         Authentication
