@@ -1,6 +1,6 @@
 package TEST::Kinetic::Build::Setup::Cache::Memcached;
 
-# $Id: Cache.pm 2604 2006-02-09 21:43:59Z theory $
+# $Id$
 
 use strict;
 use warnings;

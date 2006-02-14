@@ -1,5 +1,7 @@
 package TEST::Kinetic::Traits::Store;
 
+# $Id$
+
 use Class::Trait 'base';
 
 use strict;

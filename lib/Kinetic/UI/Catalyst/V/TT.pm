@@ -1,6 +1,6 @@
 package Kinetic::UI::Catalyst::V::TT;
 
-# $Id: Catalyst.pm 2582 2006-02-07 02:27:45Z theory $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

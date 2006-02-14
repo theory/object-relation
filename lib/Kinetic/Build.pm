@@ -21,6 +21,7 @@ package Kinetic::Build;
 use strict;
 use 5.008003;
 use base 'Module::Build';
+use Class::Trait 'Kinetic::Build::Trait';
 use Cwd 'getcwd';
 use DBI;
 use File::Spec;
@@ -53,7 +54,7 @@ my %CACHES = (
 
 =head1 Name
 
-Kinetic::Build - Kinetic application installer
+Kinetic::Build - Builds and Installs The Kinetic Platform
 
 =head1 Synopsis
 
@@ -71,14 +72,18 @@ In F<Build.PL>:
 =head1 Description
 
 This module subclasses L<Module::Build|Module::Build> to provide added
-functionality for installing Kinetic and Kinetic applications. The added
-functionality includes configuration file management, configuation file setup
-for tests, data store schema generation, and database building.
+functionality for installing Kinetic. The added functionality includes
+configuration file management, configuation file setup for tests, data store
+schema generation, and database building.
+
+This module does I<not> install Kinetic applications. That functionality is
+handled by L<Kinetic::AppBuild|Kinetic::AppBuild>.
+
+Note that this class also includes the interface defined by
+L<Kinetic::Build::Trait|Kinetic::Build::Trait>.
 
 =cut
 
-##############################################################################
-# Constructors.
 ##############################################################################
 
 =head1 Class Interface
@@ -144,15 +149,12 @@ such as data store information.
 =cut
 
 sub new {
-    my $self = do {
-        shift->SUPER::new(
-
-            # Set up new default values for parent class properties.
-            install_base =>
-              File::Spec->catdir( $Config::Config{installprefix}, 'kinetic' ),
-            @_    # User-set properties.
-        );
-    };
+    my $self = shift->SUPER::new(
+        # Set up new default values for parent class properties.
+        install_base =>
+            File::Spec->catdir( $Config::Config{installprefix}, 'kinetic' ),
+        @_    # User-set properties.
+    );
 
     # Prevent installation into lib/perl5. We just want lib'.
     $self->install_path->{lib} ||= $self->install_base . '/lib';
@@ -199,17 +201,6 @@ sub resume {
     $self->_reload( 'store',  \%STORES );
     $self->_reload( 'engine', \%ENGINES );
     $self->_reload( 'cache',  \%CACHES );
-    return $self;
-}
-
-sub _reload {
-    my ( $self, $component, $class_for ) = @_;
-    if ( my $component_type = $self->$component ) {
-        my $build_class = $class_for->{$component_type}
-          or $self->_fatal_error(
-            "I'm not familiar with the $component_type $component" );
-        eval "require $build_class" or $self->_fatal_error($@);
-    }
     return $self;
 }
 
@@ -756,26 +747,6 @@ sub process_conf_files {
 
 ##############################################################################
 
-=head3 process_www_files
-
-This method is called during the C<build> action to copy the Web interfae
-files to F<blib/www>.
-
-=cut
-
-sub process_www_files {
-    my $self  = shift;
-    my $files = $self->find_www_files;
-    while (my ($file, $dest) = each %$files) {
-        $self->copy_if_modified(
-            from => $file,
-            to => File::Spec->catfile($self->blib, $dest)
-        );
-    }
-}
-
-##############################################################################
-
 =head3 store_config
 
 This method is called by C<process_conf_files()> to populate the store
@@ -803,80 +774,7 @@ configuration file names for processing and copying.
 
 =cut
 
-sub find_conf_files { shift->_find_files_in_dir('conf') }
-
-##############################################################################
-
-=head3 find_script_files
-
-Called by C<process_script_files()>, this method returns a hash reference of
-all of the files in the F<bin> directory for processing and copying.
-
-=cut
-
-sub find_script_files { shift->_find_files_in_dir('bin') }
-
-##############################################################################
-
-=head3 find_www_files
-
-Called by C<process_www_files()>, this method returns a hash reference of all
-of the files in the F<www> directory for processing and copying.
-
-=cut
-
-sub find_www_files { shift->_find_files_in_dir('www') }
-
-##############################################################################
-
-=head3 fix_shebang_line
-
-  $builder->fix_shegang_line(@files);
-
-This method overrides that in the parent class in order to also process all of
-the script files and change any lines containing
-
-  use lib 'lib'
-
-To instead point to the library directory in which the module files will be
-installed, e.g., F</usr/local/kinetic/lib>. It then calls the parent method in
-order to fix the shebang lines, too.
-
-=cut
-
-sub fix_shebang_line {
-    my $self = shift;
-    my $lib  = File::Spec->catdir( $self->install_base, 'lib' );
-
-    for my $file (@_) {
-        $self->log_verbose(
-            qq{Changing "use lib 'lib'" in $file to "use lib '$lib'"} );
-
-        open my $fixin,  '<', $file       or die "Can't process '$file': $!";
-        open my $fixout, '>', "$file.new" or die "Can't open '$file.new': $!";
-        local $/ = "\n";
-
-        while (<$fixin>) {
-            s/use\s+lib\s+'lib'/use lib '$lib'/xms;
-            print $fixout $_;
-        }
-
-        close $fixin;
-        close $fixout;
-
-        rename $file, "$file.bak"
-          or die "Can't rename $file to $file.bak: $!";
-
-        rename "$file.new", $file
-          or die "Can't rename $file.new to $file: $!";
-
-        unlink "$file.bak"
-          or
-          $self->log_warn("Couldn't clean up $file.bak, leaving it there\n");
-    }
-
-    return $self->SUPER::fix_shebang_line(@_);
-}
+sub find_conf_files { shift->find_files_in_dir('conf') }
 
 ##############################################################################
 
@@ -1120,6 +1018,17 @@ sub _fatal_error {
     Carp::croak $class->_bold_red(@_);
 }
 
+##############################################################################
+
+=head3 _bold_red
+
+  my $emboldened = Kinetic::Build->_bold_read(@messages);
+
+Returns @messages surrounded by ANSI terminal codes that will display the
+messages in boldfaced red type.
+
+=cut
+
 sub _bold_red {
     my $proto = shift;
     return Term::ANSIColor::BOLD(), Term::ANSIColor::RED(), @_,
@@ -1211,27 +1120,6 @@ sub _app_info_params {
     }
 
     return @params;
-}
-
-##############################################################################
-
-=head3 _find_files_in_dir
-
-  $build->_find_files_in_dir($dir);
-
-Returns a hash reference of of all of the files in a directory, excluding any
-with F<.svn> in their paths. Code borrowed from Module::Buld's
-C<_find_file_by_type()> method.
-
-=cut
-
-sub _find_files_in_dir {
-    my ( $self, $dir ) = @_;
-    return {
-        map { $_, $_ }
-          map $self->localize_file_path($_),
-        @{ $self->rscan_dir( $dir, sub { -f && !/\.svn/ } ) }
-    };
 }
 
 ##############################################################################
@@ -1341,6 +1229,33 @@ sub _get_option {
 
 ##############################################################################
 
+=head3 _reload
+
+   $build->_reload( $key, \%CLASS_MAP );
+
+Called by C<resume()>, this method reloads the appropriate setup class for
+Kinetic feature. C<$key> should be the name of the build property that
+identifies the feature, such as "store" or "engine". The second argument is a
+rference to a hash where the keys identify possible values for the feature
+property, and the values are the corresponding subclasses of
+L<Kinetic::Build::Setup|Kinetic::Build::Setup> that detect and configure the
+feature.
+
+=cut
+
+sub _reload {
+    my ( $self, $component, $class_for ) = @_;
+    if ( my $component_type = $self->$component ) {
+        my $build_class = $class_for->{$component_type}
+          or $self->_fatal_error(
+            "I'm not familiar with the $component_type $component" );
+        eval "require $build_class" or $self->_fatal_error($@);
+    }
+    return $self;
+}
+
+##############################################################################
+
 package Kinetic::Build::AppInfoHandler;
 use base 'App::Info::Handler';
 
@@ -1389,6 +1304,20 @@ __END__
 ##############################################################################
 
 =end private
+
+=head1 See Also
+
+=over
+
+=item L<Kinetic::AppBuild|Kinetic::AppBuild>
+
+The Kinetic application builder and installer.
+
+=item L<Kinetic::Build::Trait|Kinetic::Build::Trait>
+
+Defines methods common to Kinetic::Build and Kinetic::AppBuild.
+
+=back
 
 =head1 Copyright and License
 

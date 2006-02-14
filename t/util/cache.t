@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: workflow.t 2582 2006-02-07 02:27:45Z theory $
+# $Id$
 
 use strict;
 use File::Path 'rmtree';

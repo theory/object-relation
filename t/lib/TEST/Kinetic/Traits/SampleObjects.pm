@@ -1,5 +1,7 @@
 package TEST::Kinetic::Traits::SampleObjects;
 
+# $Id$
+
 use strict;
 use warnings;
 
