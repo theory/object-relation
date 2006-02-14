@@ -46,21 +46,21 @@ options it adds are:
 
 =item path-to-pg_config
 
-=item db_host
+=item db-host
 
-=item db_port
+=item db-port
 
-=item db_name
+=item db-name
 
-=item db_user
+=item db-user
 
-=item db_pass
+=item db-pass
 
-=item db_super-user
+=item db-super-user
 
-=item db_super-pass
+=item db-super-pass
 
-=item template_db_name
+=item template-db-name
 
 =back
 
@@ -177,7 +177,7 @@ sub rules {
             do => sub {
                 # Get the host name.
                 $self->{db_host} = $builder->get_reply(
-                    name    => 'db_host',
+                    name    => 'db-host',
                     label   => 'PostgreSQL server hostname',
                     message => "What PostgreSQL server host name should I use?",
                     default => $ENV{PGHOST} || 'localhost',
@@ -194,7 +194,7 @@ sub rules {
                       ? '5432'
                       : 'local domain socket';
                     $self->{db_port} = $ENV{PGHOST} || $builder->get_reply(
-                        name    => 'db_port',
+                        name    => 'db-port',
                         label   => 'PostgreSQL server port',
                         message => "What TCP/IP port should I use to connect "
                                    . "to PostgreSQL?",
@@ -209,7 +209,7 @@ sub rules {
 
                 # Get the database name.
                 $self->{db_name} = $ENV{PGDATABASE} || $builder->get_reply(
-                    name     => 'db_name',
+                    name     => 'db-name',
                     label    => 'Database name',
                     message  => "What database should I use?",
                     default  => 'kinetic',
@@ -218,7 +218,7 @@ sub rules {
 
                 # Get the database user.
                 $self->{db_user} = $ENV{PGUSER} || $builder->get_reply(
-                    name    => 'db_user',
+                    name    => 'db-user',
                     label   => 'Database user name',
                     message => "What database user name should I use?",
                     default => 'kinetic',
@@ -227,7 +227,7 @@ sub rules {
 
                 # Get the database user's password.
                 $self->{db_pass} = $ENV{PGPASS} || $builder->get_reply(
-                    name    => 'db_pass',
+                    name    => 'db-pass',
                     label   => 'Database user password',
                     message => "What Database password should I use (can be "
                                . "blank)?",
@@ -271,6 +271,11 @@ sub rules {
                     },
                     message => 'Got server info and super user credentials; '
                                . 'attempting to connect',
+                },
+
+                'Get super user' => {
+                    rule => sub { $builder->dev_tests },
+                    message => 'Need super user credentials for dev tests',
                 },
 
                 'Connect user' => {
@@ -576,7 +581,7 @@ sub rules {
                 # my $default = scalar getpwuid((stat('/usr/local/pgsql/data'))[4]);
                 my $default = 'postgres';
                 $self->{db_super_user} ||= $builder->get_reply(
-                    name    => 'db_super_user',
+                    name    => 'db-super-user',
                     label   => 'PostgreSQL super user name',
                     message => "What's the username for the PostgreSQL super "
                                . "user?",
@@ -586,7 +591,7 @@ sub rules {
 
                 # Get the database user's password.
                 $self->{db_super_pass} ||= $builder->get_reply(
-                    name    => 'db_super_pass',
+                    name    => 'db-super-pass',
                     label   => 'PostgreSQL super user password',
                     message => "What's the password for the PostgreSQL super"
                                . ' user (can be blank)?',
@@ -1248,7 +1253,7 @@ the C<template_db_name()> accessor.
 sub _get_template_db_name {
     my $self = shift;
     $self->{template_db_name} ||= $self->builder->get_reply(
-        name     => 'template_db_name',
+        name     => 'template-db-name',
         label    => 'Template database name',
         message  => "What template database should I use?",
         default  => 'template1',
@@ -1294,7 +1299,7 @@ sub _try_connect {
     # Try connecting to the database first.
     $state->{dsn} = [$self->_dsn($self->db_name)];
     my $dbh = $self->_connect( $state->{dsn}[0], $user, $pass);
-    unless ($dbh) {
+    if (!$dbh || $self->builder->dev_tests) {
         my $tdb = $self->_get_template_db_name; # Try the template database.
         push @{$state->{dsn}}, $self->_dsn($tdb);
         $dbh = $self->_connect( $state->{dsn}[-1], $user, $pass);

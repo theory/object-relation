@@ -16,10 +16,10 @@
   <body>
     <div id="sidebar">
     <p>Classes:</p>
-    [% FOREACH key = c.config.classes;
-         search_uri = "/search/" _ key _ "/squery/_limit/20";
+    [% FOREACH class = c.config.classes;
+         search_uri = "/search/" _ class.key _ "/squery/_limit/20";
     %]
-      <a href="[% c.uri_for(search_uri) %]">[% key %]</a><br/>
+      <a href="[% c.uri_for(search_uri) %]">[% class.name %]</a><br/>
     [% END %]
     </div>
     [% content %]

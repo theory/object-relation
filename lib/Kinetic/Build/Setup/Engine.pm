@@ -52,8 +52,8 @@ L<Kinetic::Build::Setup|Kinetic::Build::Setup>.
   my $base_uri = $kbe->base_uri;
   $kbe->base_uri($base_uri);
 
-Returns the base URI to be used for all Kinetic applications. Must be set by a
-subclass during the execution of C<validate()>.
+Returns the base URI to be used for all Kinetic applications. May be set by a
+subclass during the execution of C<validate()>. Defaults to "/".
 
 =cut
 
@@ -61,6 +61,7 @@ sub base_uri {
     my $self = shift;
     return $self->{base_uri} || '/' unless @_;
     $self->{base_uri} = shift;
+    $self->{base_uri} .= '/' if $self->{base_uri} !~ m{/$};
     return $self;
 }
 

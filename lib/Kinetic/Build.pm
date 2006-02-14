@@ -161,6 +161,10 @@ sub new {
     $self->add_build_element('conf');
     $self->install_path->{conf} ||= $self->install_base . '/conf';
 
+    # Add www element and install path.
+    $self->add_build_element('www');
+    $self->install_path->{www} ||= $self->install_base . '/www';
+
     # Add any other elements we need here.
 
     # Prompts.
@@ -752,6 +756,26 @@ sub process_conf_files {
 
 ##############################################################################
 
+=head3 process_www_files
+
+This method is called during the C<build> action to copy the Web interfae
+files to F<blib/www>.
+
+=cut
+
+sub process_www_files {
+    my $self  = shift;
+    my $files = $self->find_www_files;
+    while (my ($file, $dest) = each %$files) {
+        $self->copy_if_modified(
+            from => $file,
+            to => File::Spec->catfile($self->blib, $dest)
+        );
+    }
+}
+
+##############################################################################
+
 =head3 store_config
 
 This method is called by C<process_conf_files()> to populate the store
@@ -791,6 +815,17 @@ all of the files in the F<bin> directory for processing and copying.
 =cut
 
 sub find_script_files { shift->_find_files_in_dir('bin') }
+
+##############################################################################
+
+=head3 find_www_files
+
+Called by C<process_www_files()>, this method returns a hash reference of all
+of the files in the F<www> directory for processing and copying.
+
+=cut
+
+sub find_www_files { shift->_find_files_in_dir('www') }
 
 ##############################################################################
 

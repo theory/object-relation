@@ -4,7 +4,7 @@ use lib 'lib';
 use Kinetic::Build;
 
 my $skipper =
-  qr/^lib.Kinetic.(?:Build|DateTime|Engine|Format|Meta|Store|UI|Util|View|XML)/;
+    qr/^lib.Kinetic.(?:Build|DataType|Engine|Format|Meta|Store|UI|Util)/;
 my %catalyst = (
     'Catalyst'                                               => 5.61,
     'Catalyst::Engine::Apache'                               => 1.05,
@@ -60,7 +60,7 @@ my $build = Kinetic::Build->new(
         'MIME::Types'                => 1.14,
         'mod_perl2'                  => '2.0.0', # XXX Change to option.
         'OSSP::uuid'                 => 0,       # XXX Not on CPAN!
-        'Proc::Background'           => 1.08,
+        'Proc::Background'           => 1.08,    # Only with Catalyst engine.
         'Readonly'                   => 0,
         'Regexp::Common'             => 2.119,
         'version'                    => 0.420,

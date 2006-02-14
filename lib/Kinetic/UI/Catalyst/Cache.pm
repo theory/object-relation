@@ -27,6 +27,14 @@ use Kinetic::Util::Exceptions qw/throw_unknown_class throw_unimplemented/;
 use version;
 our $VERSION = version->new('0.0.1');
 
+BEGIN {
+    eval 'require ' . CACHE_CATALYST or throw_unknown_class [
+        'I could not load the class "[_1]": [_2]',
+        CACHE_CATALYST,
+        $@
+    ];
+}
+
 =head1 NAME
 
 Kinetic::UI::Catalyst::Cache - Catalyst caching for the Kinetic Platform
@@ -53,15 +61,7 @@ user.
 =cut
 
 sub new {
-    my $class       = shift;
-    my $cache_class = CACHE_CATALYST;
-    eval "require $cache_class"
-      or throw_unknown_class [
-        'I could not load the class "[_1]": [_2]',
-        $cache_class,
-        $@
-      ];
-    bless {}, $cache_class;
+    return bless {}, CACHE_CATALYST;
 }
 
 ##############################################################################

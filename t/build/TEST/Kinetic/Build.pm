@@ -136,6 +136,40 @@ sub test_bin_files : Test(8) {
     file_not_exists_ok 'blib', 'Build lib should be gone';
 }
 
+sub test_www_files : Test(5) {
+    my $self  = shift;
+    my $class = $self->test_class;
+    my $bwww  = 'blib/www/test.html';
+
+    file_exists_ok 'www/test.html', 'We should have a www file';
+
+    # There should be no blib directory.
+    file_not_exists_ok $bwww, 'We should start with no blib script file';
+
+    # We can make sure things work with the default SQLite store.
+    my $info = MockModule->new('App::Info::RDBMS::SQLite');
+    $info->mock(installed => 1);
+    $info->mock(version => '3.2.2');
+
+    # I mock thee, builder!
+    my $builder;
+    my $mb = MockModule->new($class);
+    $mb->mock(resume => sub { $builder });
+    $mb->mock(ACTION_docs => 0);
+    $mb->mock(store => 'sqlite');
+    $mb->mock(store_config => { class => '' });
+    $builder = $self->new_builder;
+    $self->{builder} = $builder;
+
+    # Building should create these things.
+    is $builder->dispatch('build'), $builder, "Run the build action";
+    file_exists_ok $bwww, 'Now there should be a blib script file';
+
+    # Make sure we clean up our mess.
+    $builder->dispatch('clean');
+    file_not_exists_ok 'blib', 'Build lib should be gone';
+}
+
 sub test_props : Test(13) {
     my $self = shift;
     my $class = $self->test_class;
@@ -156,6 +190,7 @@ sub test_props : Test(13) {
     is_deeply $builder->install_path, {
         lib  => "$base/lib",
         conf => "$base/conf",
+        www  => "$base/www",
     }, 'Make sure that the install paths are set';
 
     # Make sure that we've added the "config" build element.

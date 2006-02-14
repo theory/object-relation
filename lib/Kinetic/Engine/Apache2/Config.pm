@@ -35,9 +35,9 @@ use File::Spec::Functions qw(catdir);
 
 BEGIN {
     sub _apache_conf_template {
-        my $self       = shift;
-        my $doc_root   = catdir(KINETIC_ROOT, 'root');
-        my $base_uri   = KINETIC_BASE_URI;
+        my $self     = shift;
+        my $doc_root = catdir(KINETIC_ROOT, qw(www root));
+        my $base_uri = KINETIC_BASE_URI;
 
         return <<"        END_CONF";
     DocumentRoot $doc_root
@@ -50,13 +50,13 @@ BEGIN {
     </Location>
 
     # static files
-    <Location $base_uri/ui>
+    <Location ${base_uri}ui>
         Order allow,deny
         Allow from all
     </Location>
 
     # REST
-    <Location $base_uri/rest>
+    <Location ${base_uri}rest>
         SetHandler          modperl
         PerlResponseHandler Kinetic::Engine::Apache2::Config::rest
     </Location>

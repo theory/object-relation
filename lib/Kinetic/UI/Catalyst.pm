@@ -23,10 +23,11 @@ use warnings;
 
 use Cwd;
 use Kinetic::Meta;
-use Kinetic::Util::Config qw(KINETIC_ROOT);
+use Kinetic::Util::Config qw(:kinetic :cache);
 use aliased 'Kinetic::UI::Catalyst::Log';
-use aliased 'Kinetic::UI::Catalyst::Cache';
-use File::Spec::Functions qw(catdir);
+use Kinetic::UI::Catalyst::Cache;
+use Kinetic::Util::Functions qw(:class);
+use Kinetic::Util::Exceptions qw(:all);
 
 use version;
 our $VERSION = version->new('0.0.1');
@@ -38,37 +39,40 @@ our $VERSION = version->new('0.0.1');
 # Static::Simple: will serve static files from the applications root directory
 #
 
-my ($cache, @IMPORT);
-
 BEGIN {
-    unless ( $ENV{HARNESS_ACTIVE} ) {
+    load_classes(
+        KINETIC_ROOT . '/lib',
+        qr/Kinetic.(?:Build|DataType|Engine|Format|Meta|Store|UI|Util|Version)/
+    );
+}
 
-        # Don't display debugging information when running tests
-        # We'll eventually want to have finer-grained control over this
-        @IMPORT = '-Debug';
-    }
-    push @IMPORT => qw/
+use Catalyst
+    '-Home=' . KINETIC_ROOT, # This doesn't work quite the way you'd expect.
+    ($ENV{HARNESS_ACTIVE} ? '-Debug' : ()),
+    CACHE_CATALYST->session_class,
+    qw(
         Authentication
         Authentication::Store::Minimal
         Authentication::Credential::Password
         Session
         Session::State::Cookie
         Static::Simple
-    /;
-    $cache = Cache->new;
-    push @IMPORT, $cache->session_class;
-}
+    );
 
-use Catalyst @IMPORT;
+# This *must* come first so that home is set for everything else.
+__PACKAGE__->config({
+    home => KINETIC_ROOT,
+});
 
-__PACKAGE__->config(
+__PACKAGE__->config({
     name    => 'Kinetic Catalyst Interface',
     classes => [
-        grep { !Kinetic::Meta->for_key($_)->abstract }
-          sort Kinetic::Meta->keys
+        grep { !$_->abstract }
+        map  { Kinetic::Meta->for_key($_) }
+        sort Kinetic::Meta->keys
     ],
     'V::TT' => {
-        INCLUDE_PATH => __PACKAGE__->path_to('www/templates/tt'),
+        INCLUDE_PATH => __PACKAGE__->path_to('www/views/tt'),
         PLUGIN_BASE  => 'Kinetic::UI::TT::Plugin',
     },
     authentication => {
@@ -77,31 +81,27 @@ __PACKAGE__->config(
             theory => { password => 'theory' }
         }
     },
-    $cache->config,
-);
+    CACHE_CATALYST->config,
+});
 
 __PACKAGE__->log(Log->new);
 __PACKAGE__->setup;
 
-=head1 NAME
+##############################################################################
+
+=head1 Name
 
 Kinetic::UI::Catalyst - Catalyst UI for Kinetic Platform
 
-=head1 SYNOPSIS
+=head1 Synopsis
 
-    script/server.pl
+  bin/kineticd start
 
-=head1 DESCRIPTION
+=head1 Description
 
 Catalyst based application.
 
-=head1 METHODS
-
-=head2 default
-
-=cut
-
-##############################################################################
+=head1 Methods
 
 =head2 begin
 
@@ -146,9 +146,14 @@ sub begin : Private {
     }
 }
 
-#
-# Output a friendly welcome message
-#
+##############################################################################
+
+=head2 default
+
+
+Outputs a friendly welcome message.
+
+=cut
 
 sub default : Private {
     my ( $self, $c ) = @_;
@@ -160,6 +165,7 @@ sub default : Private {
 }
 
 1;
+__END__
 
 =head1 Copyright and License
 

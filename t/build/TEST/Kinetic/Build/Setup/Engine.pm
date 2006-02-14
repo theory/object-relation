@@ -26,8 +26,8 @@ sub test_interface : Test(7) {
         'Create new engine setup object';
 
     is $engine->base_uri, '/', 'Base URI should default to "/"';
-    ok $engine->base_uri('/foo'), 'Should be able to set the base URI';
-    is $engine->base_uri, '/foo', 'Base URI should be new value';
+    ok $engine->base_uri('/foo/'), 'Should be able to set the base URI';
+    is $engine->base_uri, '/foo/', 'Base URI should be new value';
 
     # Test add_to_config.
     my $mocker = MockModule->new($class);
@@ -48,7 +48,7 @@ sub test_interface : Test(7) {
             class => 'Engine::Class',
         },
         kinetic => {
-            base_uri => '/foo',
+            base_uri => '/foo/',
         }
     }, 'Config should be properly set';
 }

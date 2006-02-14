@@ -313,6 +313,9 @@ our %Lexicon;
         'Media Type' => 'Media Type',
 
         # Kinetic::Party::Person labels and tips.
+        q{The person's full name},
+        q{The person’s full name},
+
         'Last Name' => 'Last Name',
         q{The person's last name},
         'The person’s last name',

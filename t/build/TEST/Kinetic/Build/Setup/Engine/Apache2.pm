@@ -92,7 +92,7 @@ sub test_rules : Test(44) {
     ok $apache->validate, 'Run validate() with prompts';
     is $apache->httpd, 'myhttpd', 'httpd should be "myhttpd"';
     is $apache->conf, $bin_file, 'Conf file should be "$bin_file"';
-    is $apache->base_uri, '/foo', 'Base URI should be "/foo"';
+    is $apache->base_uri, '/foo/', 'Base URI should be "/foo/"';
     is delete $self->{output}, join(
         q{},
         qq{Please enter path to httpd.conf [$conf_file]: },
@@ -118,7 +118,7 @@ sub test_rules : Test(44) {
     ok $apache->validate, 'Run validate() with \@ARGV options';
     is $apache->httpd, $bin_file, qq{httpd should be "$bin_file"};
     is $apache->conf, $conf_file, 'Conf file should be "$bin_file"';
-    is $apache->base_uri, '/bar', 'Base URI should be "/foo"';
+    is $apache->base_uri, '/bar/', 'Base URI should be "/bar/"';
     is $self->{output}, undef,' There should have been no output';
 
     # Construct a rules object.
