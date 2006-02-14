@@ -126,20 +126,6 @@ sub save : Test(10) {
     is $test->_num_recs('one'), 2, 'without the number of records changing';
 }
 
-sub caching : Test(1) {
-    my $test = shift;
-    return unless $test->_should_run;
-    return 'First pass at caching sucked horribly. Will come back to it.';
-    my $one = One->new;
-    $one->name('Ovid');
-    $one->description('test class');
-
-    my $store = Store->new;
-    $one->save;
-    my $cached_one = $store->_cache->get($one->uuid);
-    is_deeply $one, $cached_one, '... and saved objects should be cached';
-}
-
 sub search : Test(19) {
     my $test = shift;
     return unless $test->_should_run;

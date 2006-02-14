@@ -48,18 +48,16 @@ the underlying caching mechanism chosen.
 =cut
 
 my %IDS;    # YUCK!
-my $EXPIRE;
 
 sub new {
     my $class = shift;
-    $EXPIRE = $class->_expire_time_in_seconds;
     bless { cache => Memcached->new( { servers => [CACHE_ADDRESS] } ) },
       $class;
 }
 
 sub set {
     my ( $self, $id, $object ) = @_;
-    $self->_cache->set( $id, $object, $EXPIRE );
+    $self->_cache->set( $id, $object, CACHE_EXPIRES );
     $IDS{$id} = 1;
     return $self;
 }
@@ -68,7 +66,7 @@ sub add {
     my ( $self, $id, $object ) = @_;
     return if $self->get($id);
     $IDS{$id} = 1;
-    $self->_cache->add( $id, $object, $EXPIRE );
+    $self->_cache->add( $id, $object, CACHE_EXPIRES );
     return $self;
 }
 

@@ -3,14 +3,19 @@
 # $Id: workflow.t 2582 2006-02-07 02:27:45Z theory $
 
 use strict;
+use File::Path 'rmtree';
+use File::Spec::Functions 'catfile';
 
 #use Test::More 'no_plan';
-use Test::More tests => 29;
+
+use Test::More tests => 30;
 use Test::Exception;
 use Test::NoWarnings;    # Adds an extra test.
 
-use Kinetic::Build::Test cache => { expires => 2 };
-use Kinetic::Util::Config qw(CACHE_OBJECT);
+use constant CACHE_DIR => catfile(qw/t data cache/);
+use Kinetic::Build::Test cache =>
+  { expires => 2, root => CACHE_DIR };
+use Kinetic::Util::Config qw(CACHE_OBJECT_CLASS);
 my $CACHE;
 
 BEGIN {
@@ -36,11 +41,31 @@ ok $cache = $CACHE->new, '... and calling it should succeed';
 isa_ok $cache, $CACHE, '... and the object it returns';
 cmp_ok ref($cache), 'ne', $CACHE, '... but it is actually a subclass';
 
+use lib 't/sample/lib';
+SKIP: {
+    require TestApp::Simple::Two;
+    require TestApp::Simple::One;
+
+    # XXX Not deleting this as we may want it later.
+    skip "Attempting to replicate performance issues", 1 if 1;
+    for my $i ( 1 .. 1000 ) {
+        my $two = TestApp::Simple::Two->new;
+        my $one = TestApp::Simple::One->new;
+        $one->name("Divo $i");
+        $two->name("Ovid $i");
+        $two->one($one);
+        $two->save;
+        ok $cache->set( $two->uuid, $two ), "Setting object ($i)";
+    }
+}
 my @IDS = ();
 
 END {
     my $cache = $CACHE->new;
     $cache->remove($_) foreach @IDS;
+    if (-d CACHE_DIR) {
+        rmtree(CACHE_DIR) or die "Could not unlink @{[CACHE_DIR]}: $!";
+    }
 }
 {
 
@@ -74,7 +99,7 @@ END {
     sub full { return join ' ', @{ +shift }{qw/rank name/} }
 }
 
-$CACHE = CACHE_OBJECT;
+$CACHE = CACHE_OBJECT_CLASS;
 
 $cache = $CACHE->new;    # XXX reset the expire time
 
@@ -117,12 +142,12 @@ is_deeply $soldier2, $cache->get( $soldier2->uuid ),
 #is_deeply $cache->get( $soldier->uuid ), $soldier, '... and fetch them again';
 
 my $soldier3 = Some::Object->new;
-$cache->set($soldier3->uuid, $soldier);
+$cache->set( $soldier3->uuid, $soldier );
 
 diag "Sleeping a bit to test cache expiration"
-    if $ENV{TEST_VERBOSE};
+  if $ENV{TEST_VERBOSE};
 
-sleep 2 * $CACHE->_expire_time_in_seconds();
+sleep 4;    # 2 * the CACHE_EXPIRES amount
 ok !$cache->get( $soldier3->uuid ), '... and items should expire properly';
 
 ok $cache->set( $soldier3->uuid, $soldier3 ),
@@ -134,3 +159,4 @@ can_ok $cache, 'remove';
 ok $cache->remove( $soldier->uuid ),
   '... and we should be able to remove items from the cache';
 ok !$cache->get( $soldier->uuid ), '... and they should be gone';
+

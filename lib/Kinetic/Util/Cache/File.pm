@@ -54,7 +54,7 @@ sub new {
     my $class = shift;
     bless {
         cache => FileCache->new(
-            {   default_expires_in => $class->_expire_time_in_seconds(),
+            {   default_expires_in => CACHE_EXPIRES,
                 namespace          => $class,
                 cache_root         => CACHE_ROOT,
             }

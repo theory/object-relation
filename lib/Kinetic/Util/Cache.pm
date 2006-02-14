@@ -59,7 +59,7 @@ user.
 
 sub new {
     my $class       = shift;
-    my $cache_class = CACHE_OBJECT;
+    my $cache_class = CACHE_OBJECT_CLASS;
     eval "require $cache_class"
       or throw_unknown_class [
         'I could not load the class "[_1]": [_2]',
@@ -80,9 +80,6 @@ BEGIN {
         };
     }
 }
-
-# Testing hook
-sub _expire_time_in_seconds {CACHE_EXPIRES}
 
 sub _cache                  { shift->{cache} }
 

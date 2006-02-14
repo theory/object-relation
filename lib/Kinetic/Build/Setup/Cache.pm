@@ -114,9 +114,9 @@ the Kinetic caching architecture at run time.
 sub add_to_config {
     my ( $self, $conf ) = @_;
     $conf->{cache} = {
-        catalyst => $self->catalyst_cache_class,
-        object   => $self->object_cache_class,
-        expires  => $self->expires,
+        catalyst     => $self->catalyst_cache_class,
+        object_class => $self->object_cache_class,
+        expires      => $self->expires,
     };
     return $self;
 }
