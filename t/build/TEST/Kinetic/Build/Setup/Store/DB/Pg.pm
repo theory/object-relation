@@ -540,15 +540,15 @@ sub test_rules : Test(161) {
     # Test "Fail"
     $kbs->{db_super_user} = undef;
     my $error;
-    $mb->mock(_fatal_error => sub { $error = $_[1] });
+    $mb->mock(fatal_error => sub { $error = $_[1] });
     ok $fsa->reset->curr_state('Get super user'),
       'Reset to "Get super user" to test "Fail"';
     eval { $fsa->switch }; # Trigger an error;
     is $error, 'I need the super user name to configure PostgreSQL',
-      'Error should have been passed to Build->_fatal_error()';
+      'Error should have been passed to Build->fatal_error()';
     # XXX This doesn't seem to get freed up for some reason and it leads to
     # failures elsewhere. Why isn't it freed up when $mb goes out of scope?
-    $mb->unmock('_fatal_error');
+    $mb->unmock('fatal_error');
 
     ##########################################################################
     # Test "Done"

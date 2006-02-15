@@ -265,7 +265,7 @@ sub rules {
         },
         fail => {
             do => sub {
-                $self->builder->_fatal_error(shift->prev_state->message);
+                $self->builder->fatal_error(shift->prev_state->message);
             },
         },
     );

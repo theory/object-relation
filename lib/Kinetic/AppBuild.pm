@@ -19,8 +19,7 @@ package Kinetic::AppBuild;
 # contributions and any derivatives thereof.
 
 use strict;
-use base 'Module::Build';
-use Class::Trait 'Kinetic::Build::Trait';
+use base 'Kinetic::Build::Base';
 use Config::Std;
 use File::Spec;
 

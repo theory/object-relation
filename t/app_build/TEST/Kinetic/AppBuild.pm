@@ -10,6 +10,7 @@ use Test::Exception;
 use File::Spec::Functions qw(catdir updir catfile);
 use Class::Trait; # Avoid warnings.
 use Test::File;
+use aliased 'Test::MockModule';
 
 sub teardown_builder : Test(teardown) {
     my $self = shift;
@@ -21,6 +22,10 @@ sub teardown_builder : Test(teardown) {
 sub test_new : Test(6) {
     my $self  = shift;
     my $class = $self->test_class;
+
+    my $mocker = MockModule->new('Kinetic::Build::Base');
+    $mocker->mock(_check_build_component => 1);
+
     ok my $builder = $self->new_builder;
     isa_ok $builder, $class, 'The builder';
 
@@ -43,6 +48,10 @@ sub test_new : Test(6) {
 sub test_files : Test(no_plan) {
     my $self  = shift;
     my $class = $self->test_class;
+
+    my $mocker = MockModule->new('Kinetic::Build::Base');
+    $mocker->mock(_check_build_component => 1);
+
     ok my $builder = $self->new_builder;
     isa_ok $builder, $class, 'The builder';
 
@@ -69,6 +78,7 @@ sub new_builder {
         dist_version => '1.0',
         quiet        => 1,
         install_base => catdir(updir, updir),
+        accept_defaults => 1,
         @_,
     );
 }

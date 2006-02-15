@@ -622,7 +622,7 @@ sub rules {
         },
 
         Fail => {
-            do => sub { $builder->_fatal_error(shift->prev_state->message) },
+            do => sub { $builder->fatal_error(shift->prev_state->message) },
         },
 
         Done => {
