@@ -1,6 +1,6 @@
-package Kinetic::Build::Setup::Cache;
+package Kinetic::Build::Setup::Auth;
 
-# $Id$
+# $Id: Cache.pm 2622 2006-02-14 02:31:45Z curtis $
 
 # CONTRIBUTION SUBMISSION POLICY:
 #
@@ -26,18 +26,18 @@ use base 'Kinetic::Build::Setup';
 
 =head1 Name
 
-Kinetic::Build::Setup::Cache - Kinetic cache builder
+Kinetic::Build::Setup::Auth - Kinetic authorization builder
 
 =head1 Synopsis
 
-  use Kinetic::Build::Setup::Cache;
-  my $kbc = Kinetic::Build::Setup::Cache->new;
-  $kbc->setup;
+  use Kinetic::Build::Setup::Auth;
+  my $kba = Kinetic::Build::Setup::Auth->new;
+  $kba->setup;
 
 =head1 Description
 
 This module is the abstract base class for collecting information for the
-Kinetic caching engine. It inherits from
+Kinetic authorization engine. It inherits from
 L<Kinetic::Build::Setup|Kinetic::Build::Setup>.
 
 =cut
@@ -48,34 +48,18 @@ L<Kinetic::Build::Setup|Kinetic::Build::Setup>.
 
 =head2 Class Methods
 
-=head3 catalyst_cache_class
+=head3 authorization_class
 
-  my $catalyst_cache_class
-      = $Kinetic::Build::Setup::Cache->catalyst_cache_class;
+  my $authorization_class
+      = $Kinetic::Build::Setup::Auth->authorization_class;
 
-This method returns the engine class responsible for managing the Catalyst UI
-session cache. Must be overidden by a subclass.
-
-=cut
-
-sub catalyst_cache_class {
-    die 'catalyst_cache_class() must be overridden in a subclass';
-}
-
-##############################################################################
-
-=head3 object_cache_class
-
-  my $object_cache_class
-      = $Kinetic::Build::Setup::Cache->object_cache_class;
-
-This method returns the engine class responsible for managing the Kinetic
-store cache. Must be overidden by a subclass.
+This method returns the authorization class responsible for managing the
+authorization.
 
 =cut
 
-sub object_cache_class {
-    die 'object_cache_class() must be overridden in a subclass';
+sub authorization_class {
+    die 'authorization_class() must be overridden in a subclass';
 }
 
 ##############################################################################
@@ -113,10 +97,9 @@ the Kinetic caching architecture at run time.
 
 sub add_to_config {
     my ( $self, $conf ) = @_;
-    $conf->{cache} = {
-        catalyst_class => $self->catalyst_cache_class,
-        object_class   => $self->object_cache_class,
-        expires        => $self->expires,
+    $conf->{auth} = {
+        class   => $self->authorization_class,
+        expires => $self->expires,
     };
     return $self;
 }
@@ -125,10 +108,10 @@ sub _ask_for_expires {
     my $self = shift;
     my $builder = $self->builder;
     return $self->expires(
-        $builder->args('cache_expires') || $builder->get_reply(
-            name     => 'cache-expires',
-            message  => 'Please enter cache expiration time in seconds',
-            label    => 'Cache expiration time',
+        $builder->args('auth_expires') || $builder->get_reply(
+            name     => 'auth-expires',
+            message  => 'Please enter authorization expiration time in seconds',
+            label    => 'Authorization expiration time',
             default  => 3600,
             callback => sub { /^\d+$/ },
         )

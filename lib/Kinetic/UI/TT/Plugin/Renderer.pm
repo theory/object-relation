@@ -274,7 +274,7 @@ sub _render_calendar {
     my $value_for = $self->_properties;
     $value_for->{main} = <<"    END_CALENDAR";
     <input name="$value_for->{name}" id="$value_for->{name}" type="text"/>
-    <input id="$value_for->{name}_trigger" type="image" src="/images/calendar/calendar.gif"/>
+    <input id="$value_for->{name}_trigger" type="image" src="/ui/images/calendar/calendar.gif"/>
     <script type="text/javascript">
       Calendar.setup({
         inputField  : "$value_for->{name}",             // ID of the input field

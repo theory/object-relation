@@ -1,13 +1,6 @@
-package Kinetic::UI::Catalyst::Log;
+package Kinetic::Build::Setup::Auth::Kinetic;
 
-use strict;
-use warnings;
-use File::Spec;
-use Kinetic::Util::Config ':all';
-use Kinetic::Util::Exceptions 'throw_stat';
-use LockFile::Simple;
-
-# $Id$
+# $Id: Kinetic.pm 2612 2006-02-11 02:43:17Z theory $
 
 # CONTRIBUTION SUBMISSION POLICY:
 #
@@ -26,88 +19,82 @@ use LockFile::Simple;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-use warnings;
 
 use version;
 our $VERSION = version->new('0.0.1');
 
-use base 'Catalyst::Log';
+use base 'Kinetic::Build::Setup::Auth';
 
-=head1 NAME
+=head1 Name
 
-Kinetic::UI:::Catalyst::Log - Control where Catalyst sends the logfile info.
+Kinetic::Build::Setup::Auth::Kinetic - Kinetic authorization builder
 
-=head1 SYNOPSIS
+=head1 Synopsis
 
- # In your Catalyst application:
- __PACKAGE__->log( Kinetic::UI::Catalyst::Log->new );
- __PACKAGE__->setup;
+  use Kinetic::Build::Setup::Auth::Kinetic;
+  my $kbc = Kinetic::Build::Setup::Auth::Kinetic->new;
+  $kbc->setup;
 
-=head1 DESCRIPTION
+=head1 Description
 
-No user serviceable parts (yet).  This class merely controls where the
-Catalyst log information gets sent.
+This module inherits from Kinetic::Build::Setup::Auth to collect configuration
+information for the Kinetic authorization architecture. Its interface is
+defined entirely by Kinetic::Build::Setup::Auth. The command-line options it
+adds are:
+
+=over
+
+=item auth-expires
+
+=back
 
 =cut
 
 ##############################################################################
 
-=head3 new
+=head1 Class Interface
 
-  Kinetic::UI::Catalyst::Log->new;
+=head2 Class Methods
 
-Returns a new log object for Catalyst.  If we're running under Apache, we go
-ahead and use the default Apache error log.  Otherwise, log output redirected
-to C<logs/error_log>.
+=head3 authorization_class 
+
+  my $authorization_class 
+      = Kinetic::Build::Setup::Auth::Kinetic->authorization_class ;
+
+Returns the package name of the Kinetic authorization class.
 
 =cut
 
-sub new {
-    my $class = shift;
-    if ( $class->can('APACHE_HTTPD') ) {
-        return Catalyst::Log->new;
-    }
-    return $class->SUPER::new;
-}
+sub authorization_class {'Kinetic::Util::Auth::Kinetic'}
 
-my $ERROR_LOG = File::Spec->catfile( KINETIC_ROOT, 'logs', 'error_log' );
-my $LOCK_MGR = LockFile::Simple->make(
-    -max   => 5,
-    -delay => 1,
-);
+##############################################################################
 
-sub _flush {
+=head3 rules
+
+  my @rules = Kinetic::Build::Setup::Auth::Kinetic->rules;
+
+Returns a list of arguments to be passed to an L<FSA::Rules|FSA::Rules>
+constructor. These arguments are rules that will be used to collect
+information for the configuration of Kinetic authorization.
+
+=cut
+
+sub rules {
     my $self = shift;
-    if ( $self->abort || !$self->body ) {
-        $self->abort(undef);
-    }
-    else {
-        $self->_send_to_log( $self->body );
-    }
-    $self->body(undef);
-}
-
-# XXX Should I just open the file and leave it open?
-sub _send_to_log {
-    my $self = shift;
-    if ( $ENV{HARNESS_ACTIVE} ) {
-        print STDERR @_;
-    }
-    else {
-        $LOCK_MGR->trylock($ERROR_LOG);
-        open my $log, '>>', $ERROR_LOG
-          or throw_stat [
-            'Could not open file "[_1]" for [_2]: [_3]',
-            $ERROR_LOG, 'appending', $!
-          ];
-        print $log @_;
-        close $log;
-        $LOCK_MGR->unlock($ERROR_LOG);
-    }
+    return (
+        start => {
+            do => sub {
+                my $state   = shift;
+                my $builder = $self->builder;
+                $self->_ask_for_expires;
+                $state->message('Auth configuration collected');
+                $state->done(1);
+            },
+        },
+    );
 }
 
 1;
-
 __END__
 
 =head1 Copyright and License

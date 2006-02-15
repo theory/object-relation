@@ -1,6 +1,6 @@
-package Kinetic::UI::Catalyst::Cache;
+package Kinetic::UI::Catalyst::Auth;
 
-# $Id$
+# $Id: Cache.pm 2623 2006-02-14 03:24:40Z theory $
 
 # CONTRIBUTION SUBMISSION POLICY:
 #
@@ -21,14 +21,14 @@ package Kinetic::UI::Catalyst::Cache;
 use strict;
 use warnings;
 
-use Kinetic::Util::Config qw(:cache);
+use Kinetic::Util::Config qw(:auth);
 use Kinetic::Util::Exceptions qw/throw_unknown_class throw_unimplemented/;
 
 use version;
 our $VERSION = version->new('0.0.1');
 
 BEGIN {
-    eval 'require ' . CACHE_CATALYST_CLASS or throw_unknown_class [
+    eval 'require ' . AUTH_CLASS or throw_unknown_class [
         'I could not load the class "[_1]": [_2]',
         CACHE_CATALYST_CLASS,
         $@
@@ -37,69 +37,90 @@ BEGIN {
 
 =head1 NAME
 
-Kinetic::UI::Catalyst::Cache - Catalyst caching for the Kinetic Platform
+Kinetic::UI::Catalyst::Auth - Authentication and authorization
 
 =head1 SYNOPSIS
 
-  my $cache         = Kinetic::UI::Catalyst::Cache->new;
-  my $session_class = $cache->session_class;
-  my $config        = $cache->config;
+  my $auth        = Kinetic::UI::Catalyst::Auth->new;
 
 =head1 DESCRIPTION
 
-Returns a cache configuration object for managing sessions in Catalyst.
+Returns an authorization object for managing users in Catalyst.
 
 =head1 METHODS
 
 =head2 new
 
-  my $cache = Kinetic::UI::Catalyst::Cache->new;
+  my $auth = Kinetic::UI::Catalyst::Auth->new;
 
-Returns a new cache object for whatever caching style was selected by the
-user.
+Returns a new authorization object for the Kinetic::UI::Catalyst interface.
 
 =cut
 
 sub new {
-    return bless {}, CACHE_CATALYST_CLASS;
+    return bless { auth => AUTH_CLASS->new }, shift;
 }
 
-##############################################################################
+sub from_session {
+    my ( $self, $c, $id ) = @_;
 
-=head3 config
+    return $id if ref $id;
 
-  my $config = $cache->config;
-
-Returns the configuration information needed for the
-L<Kinetic::UI::Catalyst|Kinetic::UI::Catalyst> configuration.
-
-=cut
-
-sub config {
-    throw_unimplemented [
-        '"[_1]" must be overridden in a subclass',
-        'config'
-    ];
+    $self->get_user( $id );
 }
 
-##############################################################################
+sub get_user {
+    my ( $self, $id ) = @_;
 
-=head3 session_class
+    return unless exists $self->{hash}{$id};
 
-  my $session_class = $cache->session_class;
+    my $user = $self->{hash}{$id};
 
-Returns the name of the Catalyst plugin class which handles sessions.
+    if ( ref $user ) {
+        if ( Scalar::Util::blessed($user) ) {
+            $user->store( $self );
+            $user->id( $id );
+            return $user;
+        }
+        elsif ( ref $user eq "HASH" ) {
+            $user->{id} ||= $id;
+            $user->{store} ||= $self;
+            return bless $user, "Catalyst::Plugin::Authentication::User::Hash";
+        }
+        else {
+            Catalyst::Exception->throw( "The user '$id' is a reference of type "
+                  . ref($user)
+                  . " but should be a HASH" );
+        }
+    }
+    else {
+        Catalyst::Exception->throw(
+            "The user '$id' is has to be a hash reference or an object");
+    }
 
-=cut
+    return $user;
+}
 
-sub session_class { 
-    throw_unimplemented [
-        '"[_1]" must be overridden in a subclass',
-        'session_class'
-    ];
+sub user_supports {
+    my $self = shift;
+    # authorization
 }
 
 1;
+
+=head1 Provided methods (called by other methods)
+
+=over 4
+
+=item new
+
+=item from_session
+
+=item get_user
+
+=item user_supports
+
+=back
 
 =head1 Copyright and License
 

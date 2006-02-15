@@ -262,6 +262,13 @@ sub test_props : Test(13) {
         'Please enter cache expiration time in seconds',
         ' [3600]:',
         ' ',
+        "  1> kinetic\n",
+        'Which type of authorization should I use?',
+        ' [1]:',
+        ' ',
+        'Please enter authorization expiration time in seconds',
+        ' [3600]:',
+        ' ',
         'What password should be used for the default account?',
         ' [change me now!]:',
         ' ',
@@ -476,6 +483,8 @@ Catalyst restart: no
 Kinetic cache: file
 Cache root: $tmpdir
 Cache expiration time: 3600
+Kinetic authorization: kinetic
+Authorization expiration time: 3600
 Administrative User password: change me now!
     END_INFO
     is delete $self->{info}, $expected,

@@ -1,0 +1,19 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <title>[% c.config.name _ ' -- ' _ title %]</title>
+    <link rel="stylesheet" href="/ui/css/main.css">
+    [%
+    # the following need to be customizable, particularly the lang
+    # pulled from http://www.dynarch.com/projects/calendar/
+    %]
+    <style type="text/css">@import url("/ui/css/calendar-blue.css");</style>
+    <script type="text/javascript" src="/ui/js/calendar.js"></script>
+    <script type="text/javascript" src="/ui/js/lang/calendar-en.js"></script>
+    <script type="text/javascript" src="/ui/js/calendar-setup.js"></script>
+    <script type="text/javascript" src="/ui/js/Kinetic/Search.js"></script>
+  </head>
+  <body>
+    [% content %]
+  </body>
+</html>

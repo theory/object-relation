@@ -1,5 +1,5 @@
 [% 
-   WRAPPER 'shared/main.tt'
+   WRAPPER 'shared/head_body.tt'
    title = 'Please login' 
 %]
   <div class="listing">

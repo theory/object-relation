@@ -199,7 +199,7 @@ ok $html = $r->render( $attr_for{cal} ),
 $expected = <<'END_EXPECTED';
 <label for="cal">Calendar</label>
 <input name="cal" id="cal" type="text"/>
-<input id="cal_trigger" type="image" src="/images/calendar/calendar.gif"/>
+<input id="cal_trigger" type="image" src="/ui/images/calendar/calendar.gif"/>
 <script type="text/javascript"/>
 END_EXPECTED
 

@@ -64,9 +64,9 @@ sub test_interface : Test(7) {
     ok $cache->add_to_config(\%conf), 'Add to config';
     is_deeply \%conf, {
         cache => {
-            catalyst     => 'Some::Class',
-            object_class => 'Another::Class',
-            expires      => 3600,
+            catalyst_class => 'Some::Class',
+            object_class   => 'Another::Class',
+            expires        => 3600,
             $self->extra_conf,
         }
     }, 'Config should be properly set';

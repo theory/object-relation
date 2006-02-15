@@ -42,8 +42,8 @@ See L<Kinetic::UI::Catalyst::Cache|Kinetic::UI::Catalyst::Cache>.
 =head1 OVERRIDDEN METHODS
 
 This methods are described in
-L<Kinetic::UI::Catalyst::Cache|Kinetic::UI::Catalyst::Cache>. The are listed
-her to shut up the pod coverage tests.
+L<Kinetic::UI::Catalyst::Cache|Kinetic::UI::Catalyst::Cache>. They are listed
+here to shut up the pod coverage tests.
 
 =over 4
 

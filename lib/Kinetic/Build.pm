@@ -52,6 +52,10 @@ my %CACHES = (
     file      => 'Kinetic::Build::Setup::Cache::File',
 );
 
+my %AUTHS = (
+    kinetic => 'Kinetic::Build::Setup::Auth::Kinetic',
+);
+
 =head1 Name
 
 Kinetic::Build - Builds and Installs The Kinetic Platform
@@ -201,6 +205,7 @@ sub resume {
     $self->_reload( 'store',  \%STORES );
     $self->_reload( 'engine', \%ENGINES );
     $self->_reload( 'cache',  \%CACHES );
+    $self->_reload( 'auth',   \%AUTHS );
     return $self;
 }
 
@@ -304,6 +309,26 @@ __PACKAGE__->add_property(
     default => 'file',
     options => [ sort keys %CACHES ],
     message => 'Which session cache should I use?'
+);
+
+##############################################################################
+
+=head3 auth
+
+  my $auth = $build->auth;
+  $build->auth($engine);
+
+The type of authorization to be used for the application.  Currently only
+"kinetic" is supported.
+
+=cut
+
+__PACKAGE__->add_property(
+    name    => 'auth',
+    label   => 'Kinetic authorization',
+    default => 'kinetic',
+    options => [ sort keys %AUTHS ],
+    message => 'Which type of authorization should I use?'
 );
 
 ##############################################################################
@@ -539,7 +564,7 @@ sub ACTION_test {
     # Set up a list of supported features.
     # XXX I'm sure we'll add other supported features to this list.
     local $ENV{KINETIC_SUPPORTED} = join ' ', $self->store, $self->engine,
-        $self->cache
+        $self->cache, $self->auth
         if $self->dev_tests;
 
     # Make it so!
@@ -592,7 +617,7 @@ sub ACTION_install {
     $self->SUPER::ACTION_install(@_);
 
     # Set up external dependencies.
-    for my $depend (qw(store engine cache)) {
+    for my $depend (qw(store engine cache auth)) {
         my $setup = $self->notes("build_$depend");
         $setup->setup;
     }
@@ -653,6 +678,23 @@ selected cache.
 sub check_cache {
     my $self = shift;
     $self->_check_build_component( 'cache', \%CACHES );
+    return $self;
+}
+
+##############################################################################
+
+=head3 check_auth
+
+  $build->check_auth;
+
+This method assembles and validates the information necessary to run the
+selected authorization.
+
+=cut
+
+sub check_auth {
+    my $self = shift;
+    $self->_check_build_component( 'auth', \%AUTHS );
     return $self;
 }
 
@@ -736,6 +778,11 @@ sub process_conf_files {
             if ($lc_section eq 'cache') {
                 my $cache = $self->notes('build_cache');
                 $cache->$config_meth( \%conf );
+            }
+
+            if ($lc_section eq 'auth') {
+                my $auth = $self->notes('build_auth');
+                $auth->$config_meth( \%conf );
             }
         }
 

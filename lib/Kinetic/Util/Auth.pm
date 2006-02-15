@@ -29,11 +29,11 @@ use Kinetic::Util::Exceptions qw(throw_config throw_auth throw_unimplemented);
 throw_config [
     'The "[_1]" configuration section needs a "[_2]" setting',
     'auth',
-    'protocol',
-] unless AUTH_PROTOCOL;
+    'class',
+] unless AUTH_CLASS;
 
-for my $protocol (AUTH_PROTOCOL) {
-    eval 'use ' . __PACKAGE__ . "::$protocol";
+for my $class (AUTH_CLASS) {
+    eval "use $class";
 }
 
 =head1 Name
@@ -45,8 +45,7 @@ Kinetic::Util::Auth - Kinetic authentication factory class
 In F<kinetic.conf>:
 
   [auth]
-  protocol: LDAP
-  protocol: Kinetic
+  class: Kinetic::UI::Catalyst::Auth
 
 In Kinetic::Engine code:
 
@@ -109,9 +108,8 @@ authenticated the user, no more protocols will be tried.
 
 sub authenticate {
     my ( $self, $user, $pass ) = @_;
-    for my $proto (AUTH_PROTOCOL) {
-        my $subclass = __PACKAGE__ . "::$proto";
-        if ( my $ret = $subclass->_authenticate( $user, $pass ) ) {
+    for my $auth_class (AUTH_CLASS) {
+        if ( my $ret = $auth_class->_authenticate( $user, $pass ) ) {
             return $ret;
         }
     }

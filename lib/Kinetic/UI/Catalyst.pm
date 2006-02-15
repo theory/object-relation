@@ -28,13 +28,14 @@ use aliased 'Kinetic::UI::Catalyst::Log';
 use Kinetic::UI::Catalyst::Cache;
 use Kinetic::Util::Functions qw(:class);
 use Kinetic::Util::Exceptions qw(:all);
+use File::Spec::Functions ();
 
 use version;
 our $VERSION = version->new('0.0.1');
 
 BEGIN {
     load_classes(
-        KINETIC_ROOT . '/lib',
+        File::Spec::Functions::catdir( KINETIC_ROOT, 'lib' ),
         qr/Kinetic.(?:Build|DataType|Engine|Format|Meta|Store|UI|Util|Version)/
     );
 }
@@ -48,7 +49,7 @@ BEGIN {
 use Catalyst
     '-Home=' . KINETIC_ROOT, # XXX Might actually work in the future.
 #    ($ENV{HARNESS_ACTIVE} ? '-Debug' : ()),
-    CACHE_CATALYST->session_class,
+    CACHE_CATALYST_CLASS->session_class,
     qw(
         Authentication
         Authentication::Store::Minimal
@@ -65,13 +66,14 @@ __PACKAGE__->config({
 
 __PACKAGE__->config({
     name    => 'Kinetic Catalyst Interface',
+    root    => __PACKAGE__->path_to(qw/www root/),
     classes => [
         grep { !$_->abstract }
         map  { Kinetic::Meta->for_key($_) }
         sort Kinetic::Meta->keys
     ],
     'V::TT' => {
-        INCLUDE_PATH => __PACKAGE__->path_to('www/views/tt'),
+        INCLUDE_PATH => __PACKAGE__->path_to(qw/www views tt/),
         PLUGIN_BASE  => 'Kinetic::UI::TT::Plugin',
     },
     authentication => {
@@ -80,7 +82,7 @@ __PACKAGE__->config({
             theory => { password => 'theory' }
         }
     },
-    CACHE_CATALYST->config,
+    CACHE_CATALYST_CLASS->config,
 });
 
 __PACKAGE__->log(Log->new);
@@ -115,9 +117,6 @@ more information.
 sub begin : Private {
     my ( $self, $c ) = @_;
 
-    my $cwd = getcwd();
-    opendir CWD, $cwd or die "Could not open $cwd: $!";
-    my @dirs = readdir(CWD) or die "Could not readdir $cwd: $!";
     $c->stash->{debug} = {
         conf => $ENV{KINETIC_CONF},
         env  => \%ENV,
