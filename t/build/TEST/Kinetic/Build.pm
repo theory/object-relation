@@ -7,6 +7,7 @@ use warnings;
 use base 'TEST::Class::Kinetic';
 use Test::More;
 use aliased 'Test::MockModule';
+use Class::Trait; # Avoid warnings.
 use Test::Exception;
 use Test::File;
 use Test::File::Contents;
@@ -275,7 +276,7 @@ sub test_props : Test(12) {
     is $builder->store, 'pg', 'Data store should now be "pg"';
 }
 
-sub test_check_store : Test(6) {
+sub test_check_store : Test(5) {
     my $self = shift;
     my $class = $self->test_class;
 
