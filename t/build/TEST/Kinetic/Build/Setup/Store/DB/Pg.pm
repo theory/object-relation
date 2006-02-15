@@ -55,7 +55,7 @@ sub test_rules : Test(161) {
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
     $mb->mock( check_manifest => undef );
-    $mb->mock( check_store    => undef );
+    $mb->mock( _check_build_component => 1);
     $mb->mock( dev_tests      => undef );
 
     my $builder = $self->new_builder;
@@ -581,7 +581,7 @@ sub test_validate_user_db : Test(35) {
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
     $mb->mock( check_manifest => sub { return } );
-    $mb->mock( check_store    => undef );
+    $mb->mock( _check_build_component => 1);
     $mb->mock( dev_tests      => undef );
 
     my $builder = $self->new_builder( store => 'pg' );
@@ -680,7 +680,7 @@ sub test_validate_super_user : Test(35) {
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
-    $mb->mock(check_store => 1);
+    $mb->mock( _check_build_component => 1);
     $mb->mock(engine => 'catalyst');
     $mb->mock(cache => 'memcached');
     $mb->mock(dev_tests => undef );
@@ -782,7 +782,7 @@ sub test_validate_super_user_arg : Test(35) {
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
-    $mb->mock(check_store => 1);
+    $mb->mock( _check_build_component => 1);
     my $builder = $self->new_builder;
     $self->{builder} = $builder;
     $mb->mock(resume => $builder);
@@ -868,7 +868,7 @@ sub test_helpers : Test(15) {
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
-    $mb->mock(check_store => 1);
+    $mb->mock( _check_build_component => 1);
     my $builder = $self->new_builder;
     $self->{builder} = $builder;
     $mb->mock(resume => $builder);
@@ -961,7 +961,7 @@ sub test_db_helpers : Test(21) {
     # Override builder methods to keep things quiet.
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
-    $mb->mock(check_store => 1);
+    $mb->mock( _check_build_component => 1);
     my $builder = $self->new_builder;
     $self->{builder} = $builder;
     $mb->mock(resume => $builder);
@@ -1077,7 +1077,7 @@ sub test_build_meths : Test(25) {
 
     $pg->mock(validate => 1);
 
-    $mb->mock(check_store => 1);
+    $mb->mock( _check_build_component => 1);
     my $builder = $self->new_builder;
     $self->{builder} = $builder;
     $mb->mock(resume => $builder);

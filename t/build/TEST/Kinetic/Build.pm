@@ -285,8 +285,8 @@ sub test_check_store : Test(6) {
     $mb->mock(resume => sub { $builder });
     $mb->mock(check_manifest => sub { return });
     throws_ok { $self->new_builder(store => 'foo') }
-      qr"I'm not familiar with the foo store",
-      "We should get an error for a bogus data store";
+        qr/I'm not familiar with the foo store/,
+        'We should get an error for a bogus data store';
 
     # We can make sure thing work with the default SQLite store.
     my $info = MockModule->new('App::Info::RDBMS::SQLite');
@@ -294,11 +294,10 @@ sub test_check_store : Test(6) {
     $info->mock(version => '3.2.2');
 
     $builder = $self->new_builder;
-    can_ok $builder, 'check_store';
     $builder->dispatch('code');
     isa_ok $builder->notes('build_store'), 'Kinetic::Build::Setup::Store';
 
-    # Make sure that the build action relies on check_store.
+    # Make sure that the build action checks the store.
     $builder = $self->new_builder;
     $self->{builder} = $builder;
     $mb->mock('ACTION_docs' => 0);

@@ -37,24 +37,7 @@ use Kinetic::Util::Exceptions;
 use version;
 our $VERSION = version->new('0.0.1');
 
-my %STORES = (
-    pg     => 'Kinetic::Build::Setup::Store::DB::Pg',
-    sqlite => 'Kinetic::Build::Setup::Store::DB::SQLite',
-);
-
-my %ENGINES = (
-    apache   => 'Kinetic::Build::Setup::Engine::Apache2',
-    catalyst => 'Kinetic::Build::Setup::Engine::Catalyst',
-);
-
-my %CACHES = (
-    memcached => 'Kinetic::Build::Setup::Cache::Memcached',
-    file      => 'Kinetic::Build::Setup::Cache::File',
-);
-
-my %AUTHS = (
-    kinetic => 'Kinetic::Build::Setup::Auth::Kinetic',
-);
+my %SETUPS;
 
 =head1 Name
 
@@ -128,6 +111,10 @@ sub add_property {
         $class->SUPER::add_property(
             $params{name} => delete $params{default}
         );
+        if (my $setup = $params{setup}) {
+            $SETUPS{$params{name}} = $setup;
+            $params{options} ||= [ sort keys %{ $setup } ];
+        }
         push @prompts, \%params if keys %params > 1;
     }
     else {
@@ -177,8 +164,8 @@ sub new {
     for my $prompt (@prompts) {
         my $prop = $prompt->{name};
         $self->$prop( $self->get_reply( %$prompt, default => $self->$prop ) );
-        if (my $meth = $self->can("check_$prop")) {
-            $self->$meth;
+        if (my $setup = $SETUPS{$prop}) {
+            $self->_check_build_component( $prop, $setup );
         }
     }
 
@@ -202,10 +189,9 @@ sub resume {
     if ( my $conf = $self->notes('build_conf_file') ) {
         $ENV{KINETIC_CONF} ||= $conf;
     }
-    $self->_reload( 'store',  \%STORES );
-    $self->_reload( 'engine', \%ENGINES );
-    $self->_reload( 'cache',  \%CACHES );
-    $self->_reload( 'auth',   \%AUTHS );
+    while (my ($prop, $class_map) = each %SETUPS) {
+        $self->_reload( $prop => $class_map );
+    }
     return $self;
 }
 
@@ -263,8 +249,11 @@ __PACKAGE__->add_property(
     name    => 'store',
     label   => 'Data store',
     default => 'sqlite',
-    options => [ sort keys %STORES ],
-    message => 'Which data store back end should I use?'
+    message => 'Which data store back end should I use?',
+    setup   => {
+        pg     => 'Kinetic::Build::Setup::Store::DB::Pg',
+        sqlite => 'Kinetic::Build::Setup::Store::DB::SQLite',
+    },
 );
 
 ##############################################################################
@@ -285,8 +274,11 @@ __PACKAGE__->add_property(
     name    => 'engine',
     label   => 'Kinetic engine',
     default => 'apache',
-    options => [ sort keys %ENGINES ],
-    message => 'Which engine should I use?'
+    message => 'Which engine should I use?',
+    setup   => {
+        apache   => 'Kinetic::Build::Setup::Engine::Apache2',
+        catalyst => 'Kinetic::Build::Setup::Engine::Catalyst',
+    },
 );
 
 ##############################################################################
@@ -307,8 +299,11 @@ __PACKAGE__->add_property(
     name    => 'cache',
     label   => 'Kinetic cache',
     default => 'file',
-    options => [ sort keys %CACHES ],
-    message => 'Which session cache should I use?'
+    message => 'Which session cache should I use?',
+    setup   => {
+        memcached => 'Kinetic::Build::Setup::Cache::Memcached',
+        file      => 'Kinetic::Build::Setup::Cache::File',
+    },
 );
 
 ##############################################################################
@@ -327,8 +322,10 @@ __PACKAGE__->add_property(
     name    => 'auth',
     label   => 'Kinetic authorization',
     default => 'kinetic',
-    options => [ sort keys %AUTHS ],
-    message => 'Which type of authorization should I use?'
+    message => 'Which type of authorization should I use?',
+    setup => {
+        kinetic => 'Kinetic::Build::Setup::Auth::Kinetic',
+    },
 );
 
 ##############################################################################
@@ -592,7 +589,7 @@ sub ACTION_help {
     # XXX To be done. The way Module::Build implements this method rather
     # sucks (it expects its own specific POD format), so we'll likely have to
     # hack our own. :-( We'll also want to add something to pull in options
-    # specified by the classes referenced in %STORES.
+    # specified by the classes referenced in %SETUPS.
     $self->SUPER::ACTION_help(@_);
     return $self;
 }
@@ -617,9 +614,10 @@ sub ACTION_install {
     $self->SUPER::ACTION_install(@_);
 
     # Set up external dependencies.
-    for my $depend (qw(store engine cache auth)) {
-        my $setup = $self->notes("build_$depend");
-        $setup->setup;
+    for my $setup_prop (keys %SETUPS) {
+        if (my $setup = $self->notes("build_$setup_prop")) {
+            $setup->setup;
+        }
     }
 
     # Create any base objects.
@@ -631,74 +629,6 @@ sub ACTION_install {
 ##############################################################################
 
 =head2 Methods
-
-=head3 check_store
-
-This method checks for the presence of the data store using the C<check_*_>
-methods, and prompts for relevant information unless the C<accept_defaults>
-attribute has been set to a true value. Executed by C<new()> (and therefore
-the call to C<perl Build.PL>.
-
-=cut
-
-sub check_store {
-    my $self = shift;
-    $self->_check_build_component( 'store', \%STORES );
-    return $self;
-}
-
-##############################################################################
-
-=head3 check_engine
-
-  $build->check_engine;
-
-This method assembles and validates the information necessary to run the
-selected engine.
-
-=cut
-
-sub check_engine {
-    my $self = shift;
-    $self->_check_build_component( 'engine', \%ENGINES );
-    return $self;
-}
-
-##############################################################################
-
-=head3 check_cache
-
-  $build->check_cache;
-
-This method assembles and validates the information necessary to run the
-selected cache.
-
-=cut
-
-sub check_cache {
-    my $self = shift;
-    $self->_check_build_component( 'cache', \%CACHES );
-    return $self;
-}
-
-##############################################################################
-
-=head3 check_auth
-
-  $build->check_auth;
-
-This method assembles and validates the information necessary to run the
-selected authorization.
-
-=cut
-
-sub check_auth {
-    my $self = shift;
-    $self->_check_build_component( 'auth', \%AUTHS );
-    return $self;
-}
-
-##############################################################################
 
 =head3 process_conf_files
 
@@ -736,8 +666,10 @@ sub process_conf_files {
 
         # Configure from setup.
         my $config_meth = "add_to_${test}config";
-        for my $setup (qw(store engine cache auth)) {
-            $self->notes("build_$setup")->$config_meth(\%conf);
+        for my $setup_prop (keys %SETUPS) {
+            if (my $setup = $self->notes("build_$setup_prop")) {
+                $setup->$config_meth(\%conf);
+            }
         }
 
         # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804

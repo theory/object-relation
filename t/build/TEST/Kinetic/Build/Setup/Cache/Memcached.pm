@@ -45,8 +45,7 @@ sub test_rules : Test(26) {
     # Override builder methods to keep things quiet.
     my $kb = MockModule->new(Build);
     $kb->mock( check_manifest  => sub {return} );
-    $kb->mock( check_store     => 1 );
-    $kb->mock( check_engine    => 1 );
+    $kb->mock( _check_build_component => 1);
     $kb->mock(_prompt => sub { shift; $self->{output} .= join '', @_; });
 
     my $builder = $self->new_builder;
