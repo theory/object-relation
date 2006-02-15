@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 #use Test::More qw/no_plan/;
-use Test::More tests => 22;
+use Test::More tests => 17;
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Build::Test (auth => { protocol => [qw(Default LDAP)] });
 use File::Spec;
@@ -39,31 +39,13 @@ ALL: { # 3 tests.
     is(KINETIC_ROOT, getcwd(), 'Got the correct kinetic_root');
 }
 
-APACHE: { # 3 tests.
-    package Kinetic::Util::Config::TestApache;
+ENGINE: { # 3 tests.
+    package Kinetic::Util::Config::TestEngine;
     use Test::More;
-    eval "use Kinetic::Util::Config qw(:apache)";
-    SKIP: {
-        skip 'User did not choose Apache2 engine', 3, if $@;
-        eval "STORE_CLASS";
-        ok($@, "Got error trying to access store_class");
-        ok(exists &APACHE_HTTPD, 'APACHE_HTTPD exists');
-        ok(exists &APACHE_CONF, 'APACHE_CONF exists');
-    }
-}
-
-CATALYST: { # 4 tests.
-    package Kinetic::Util::Config::TestCatalyst;
-    use Test::More;
-    eval "use Kinetic::Util::Config qw(:catalyst)";
-    SKIP: {
-        skip 'User did not choose catalyst engine', 4, if $@;
-        eval "STORE_CLASS";
-        ok($@, "Got error trying to access store_class");
-        ok(exists &CATALYST_PORT,    'catalyst port exists');
-        ok(exists &CATALYST_HOST,    'catalyst host exists');
-        ok(exists &CATALYST_RESTART, 'catalyst restart exists');
-    }
+    eval "use Kinetic::Util::Config qw(:engine)";
+    eval "STORE_CLASS";
+    ok($@, "Got error trying to access store_class");
+    ok(exists &ENGINE_CLASS, 'ENGINE_CLASS exists');
 }
 
 STORE: { # 3 tests.
@@ -72,7 +54,7 @@ STORE: { # 3 tests.
     use Test::More;
     ok(STORE_CLASS, "Got store_class" );
     ok($stores{&STORE_CLASS}, "Got store_class value" );
-    eval "APACHE_USER";
+    eval "ENGINE_USER";
     ok($@, "Got error trying to access apache_user");
 }
 
@@ -91,7 +73,7 @@ NOIMPORT: { # 2 tests.
     use Test::More;
     eval "STORE_CLASS";
     ok($@, "Got error trying to access store_class");
-    eval "APACHE_USER";
+    eval "ENGINE_USER";
     ok($@, "Got error trying to access apache_user");
 }
 

@@ -734,82 +734,16 @@ sub process_conf_files {
             $conf{kinetic}{root} = getcwd();
         }
 
-        for my $section ( keys %conf ) {
-            my $lc_section = lc $section;
-            my $config_meth = "add_to_${test}config";
-            if ( $lc_section eq $self->store ) {
-
-                # It's the configuration section for the data store.
-                # Let the store setup class set up the configuration.
-                my $store = $self->notes('build_store');
-                $store->$config_meth(\%conf);
-            }
-            elsif ( $STORES{$lc_section} ) {
-
-                # It's a section for another data store. Remove it.
-                delete $conf{$section};
-            }
-            elsif (
-                 my $method = $self->can( $test . $lc_section . '_config' )
-                   ||
-                 $self->can( $lc_section . '_config' )
-            ) {
-
-                # There's a configuration method for it in this class.
-                if ( my $settings = $self->$method ) {
-
-                    # Insert the section contents using the *_config method.
-                    $conf{$section} = $settings;
-                }
-            }
-
-            if ( $ENGINES{$lc_section} ) {
-                if ( $lc_section eq $self->engine ) {
-                    my $engine = $self->notes('build_engine');
-                    $engine->$config_meth( \%conf );
-                }
-                else {
-
-                        # It's a section for a engine we haven't chosen.
-                        delete $conf{$section};
-                }
-            }
-
-            if ($lc_section eq 'cache') {
-                my $cache = $self->notes('build_cache');
-                $cache->$config_meth( \%conf );
-            }
-
-            if ($lc_section eq 'auth') {
-                my $auth = $self->notes('build_auth');
-                $auth->$config_meth( \%conf );
-            }
+        # Configure from setup.
+        my $config_meth = "add_to_${test}config";
+        for my $setup (qw(store engine cache auth)) {
+            $self->notes("build_$setup")->$config_meth(\%conf);
         }
 
         # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
         Config::Std::Hash::write_config(%conf);
     }
     return $self;
-}
-
-##############################################################################
-
-=head3 store_config
-
-This method is called by C<process_conf_files()> to populate the store
-section of the configuration files. It returns a list of lines to be included
-in the section, configuring the "class" directive.
-
-=cut
-
-sub store_config {
-    my $self              = shift;
-    my $build_store_class = $STORES{ $self->store }
-      or $self->_fatal_error(
-        "I'm not familiar with the " . $self->store . ' data store' );
-    eval "require $build_store_class" or $self->_fatal_error($@);
-    my $store_class = $build_store_class->store_class;
-    return { class => $store_class };
 }
 
 ##############################################################################

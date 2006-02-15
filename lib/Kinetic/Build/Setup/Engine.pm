@@ -79,8 +79,8 @@ configuration information to run the selected engine.
 sub add_to_config {
     my ( $self, $conf ) = @_;
     my $engine = $self->conf_engine;
-    $conf->{$engine}{$_} = $self->$_ for $self->conf_sections;
     $conf->{engine} = { class => $self->engine_class };
+    $conf->{engine}{$_} = $self->$_ for $self->conf_sections;
     $conf->{kinetic}{base_uri} = $self->base_uri;
     return $self;
 }

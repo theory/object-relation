@@ -960,9 +960,9 @@ sub test_once : Test(2) {
     my $dbh = $self->dbh;
     if (ref($self) =~ /Pg$/) {
         $dbh = DBI->connect(
-            Kinetic::Util::Config::PG_DSN(),
-            Kinetic::Util::Config::PG_DB_SUPER_USER(),
-            Kinetic::Util::Config::PG_DB_SUPER_PASS(),
+            Kinetic::Util::Config::STORE_DSN(),
+            Kinetic::Util::Config::STORE_DB_SUPER_USER(),
+            Kinetic::Util::Config::STORE_DB_SUPER_PASS(),
             {
                 RaiseError     => 0,
                 PrintError     => 0,

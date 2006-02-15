@@ -40,12 +40,10 @@ sub test_interface : Test(7) {
     $mocker->mock(bar => 'two');
     ok $engine->add_to_config(\%conf), 'Add to config';
     is_deeply \%conf, {
-        'catalyst' => {
-            foo => 'one',
-            bar => 'two',
-        },
         engine => {
             class => 'Engine::Class',
+            foo => 'one',
+            bar => 'two',
         },
         kinetic => {
             base_uri => '/foo/',

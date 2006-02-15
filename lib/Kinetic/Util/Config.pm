@@ -35,7 +35,7 @@ Kinetic::Util::Config - Kinetic application configuration
 
 In kinetic.conf:
 
-  [apache]
+  [engine]
   httpd : /usr/local/apache/bin/httpd
   conf  : /usr/local/kinetic/conf/httpd.conf
   port  : 80
@@ -44,13 +44,9 @@ In kinetic.conf:
 
   [store]
   class : Kinetic::Store::DB::Pg
-
-  [pg]
   db_name : kinetic
   db_user : kinetic
   db_pass : kinetic
-  port    :
-  host    :
   dsn     : dbi:Pg:dbname=kinetic
 
 In a Kinetic class:
@@ -60,8 +56,8 @@ In a Kinetic class:
 
 In another Kinetic class:
 
-  use Kinetic::Util::Config qw(:apache);
-  system(APACHE_HTTPD);
+  use Kinetic::Util::Config qw(:engine);
+  system(ENGINE_HTTPD);
 
 To get all constants:
 

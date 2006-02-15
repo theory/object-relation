@@ -257,7 +257,10 @@ configuration directives to be used by the Kinetic store at run time.
 sub add_to_config {
     my ($self, $config) = @_;
     return unless $self->builder->store eq 'sqlite';
-    $config->{sqlite} = { file => $self->_path };
+    $config->{store} = {
+        class => $self->store_class,
+        file  => $self->_path,
+    };
     return $self;
 }
 
@@ -276,7 +279,10 @@ for testing.
 
 sub add_to_test_config {
     my ($self, $config) = @_;
-    $config->{sqlite} = { file => shift->_test_path };
+    $config->{store} = {
+        class => $self->store_class,
+        file  => $self->_test_path,
+    };
     return $self;
 }
 

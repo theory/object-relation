@@ -625,29 +625,27 @@ sub test_validate_user_db : Test(35) {
     my %conf;
     ok $kbs->add_to_test_config(\%conf);
     is_deeply \%conf, {
-        pg => {
+        store => {
+            class            => 'Kinetic::Store::DB::Pg',
             db_name          => '__kinetic_test__',
             db_user          => '__kinetic_test__',
             db_pass          => '__kinetic_test__',
-            host             => '',
-            port             => '',
             db_super_user    => '',
             db_super_pass    => '',
             template_db_name => '',
             dsn              => 'dbi:Pg:dbname=__kinetic_test__',
-            }
+        }
     }, 'The test configuration should be set up properly';
 
     $mb->mock(store => 'pg');
     %conf = ();
     ok $kbs->add_to_config(\%conf);
     is_deeply \%conf, {
-        pg => {
+        store => {
+            class   => 'Kinetic::Store::DB::Pg',
             db_name => 'kinetic',
             db_user => 'kinetic',
             db_pass => 'asdfasdf',
-            host    => '',
-            port    => '',
             dsn     => 'dbi:Pg:dbname=kinetic',
         },
     }, 'As should the production configuration.';
@@ -732,12 +730,11 @@ sub test_validate_super_user : Test(35) {
     my %conf;
     ok $kbs->add_to_test_config(\%conf);
     is_deeply \%conf, {
-        pg => {
+        store => {
+            class            => 'Kinetic::Store::DB::Pg',
             db_name          => '__kinetic_test__',
             db_user          => '__kinetic_test__',
             db_pass          => '__kinetic_test__',
-            host             => 'pgme',
-            port             => '5433',
             db_super_user    => 'postgres',
             db_super_pass    => 'postgres',
             template_db_name => 'template1',
@@ -749,12 +746,11 @@ sub test_validate_super_user : Test(35) {
     %conf = ();
     ok $kbs->add_to_config(\%conf);
     is_deeply \%conf, {
-        pg => {
+        store => {
+            class   => 'Kinetic::Store::DB::Pg',
             db_name => 'kinetic',
             db_user => 'kinetic',
             db_pass => 'asdfasdf',
-            host    => 'pgme',
-            port    => '5433',
             dsn     => 'dbi:Pg:dbname=kinetic;host=pgme;port=5433',
         },
     }, 'As should the production configuration.';
@@ -832,12 +828,11 @@ sub test_validate_super_user_arg : Test(35) {
     my %conf;
     ok $kbs->add_to_test_config(\%conf);
     is_deeply \%conf, {
-        pg => {
+        store => {
+            class            => 'Kinetic::Store::DB::Pg',
             db_name          => '__kinetic_test__',
             db_user          => '__kinetic_test__',
             db_pass          => '__kinetic_test__',
-            host             => '',
-            port             => '',
             db_super_user    => 'postgres',
             db_super_pass    => 'postgres',
             template_db_name => '',
@@ -849,14 +844,13 @@ sub test_validate_super_user_arg : Test(35) {
     %conf = ();
     ok $kbs->add_to_config(\%conf);
     is_deeply \%conf, {
-        pg => {
+        store => {
+            class   => 'Kinetic::Store::DB::Pg',
             db_name => 'howdy',
             db_user => 'howdy',
             db_pass => 'asdfasdf',
-            host    => '',
-            port    => '',
             dsn     => 'dbi:Pg:dbname=howdy',
-            },
+        },
     }, 'As should the production configuration.';
 
     # Test the actions.
@@ -982,13 +976,13 @@ sub test_db_helpers : Test(21) {
 
     # From here on in we hit the database.
     return "Not testing PostgreSQL" unless $self->supported('pg');
-    my $dsn = 'dbi:Pg:dbname=' . $self->{conf}{pg}{template_db_name};
+    my $dsn = 'dbi:Pg:dbname=' . $self->{conf}{store}{template_db_name};
 
     # Test _connect().
     isa_ok my $dbh = $kbs->_connect(
         $dsn,
-        $self->{conf}{pg}{db_super_user},
-        $self->{conf}{pg}{db_super_pass}, {
+        $self->{conf}{store}{db_super_user},
+        $self->{conf}{store}{db_super_pass}, {
             RaiseError     => 0,
             PrintError     => 0,
             pg_enable_utf8 => 1,
@@ -1009,7 +1003,7 @@ sub test_db_helpers : Test(21) {
       "And make appropriate use of them";
 
     # Test _db_exists.
-    ok $kbs->_db_exists($self->{conf}{pg}{template_db_name}),
+    ok $kbs->_db_exists($self->{conf}{store}{template_db_name}),
       "_db_exists should return true for the template db";
     ok !$kbs->_db_exists('__an_impossible_db_name_i_hope__'),
       "_db_exists should return false for a non-existant database";
@@ -1031,13 +1025,13 @@ sub test_db_helpers : Test(21) {
     $mb->unmock('get_reply');
 
     # Test _user_exists.
-    ok $kbs->_user_exists($self->{conf}{pg}{db_super_user}),
+    ok $kbs->_user_exists($self->{conf}{store}{db_super_user}),
       "_user_exists should find the super user";
     ok !$kbs->_user_exists('__impossible_user_name_i_hope__'),
       "and shouldn't find a non-existant user";
 
     # Test _can_create_db and _has_schema_permissions.
-    $pg->mock(db_user =>$self->{conf}{pg}{db_super_user});
+    $pg->mock(db_user =>$self->{conf}{store}{db_super_user});
     ok $kbs->_can_create_db, "Super user should be able to create db";
     ok $kbs->_has_schema_permissions,
       "Super user should add objects to the db";
@@ -1046,7 +1040,7 @@ sub test_db_helpers : Test(21) {
     ok ! eval { $kbs->_has_schema_permissions },
       "Nor can he add objects to a database";
 
-    ok $kbs->_is_super_user($self->{conf}{pg}{db_super_user}),
+    ok $kbs->_is_super_user($self->{conf}{store}{db_super_user}),
       "Super user should be super user";
     ok !$kbs->_is_super_user('__impossible_user_name_i_hope__'),
       "A non-existant user should not be a super user";
@@ -1075,12 +1069,10 @@ sub test_build_meths : Test(25) {
         test_db_pass     => 'db_pass',
         test_db_name     => 'db_name',
         template_db_name => 'template_db_name',
-        db_host          => 'host',
-        db_port          => 'port',
     );
 
     while (my ($meth, $val) = each %mock) {
-        $pg->mock($meth => $self->{conf}{pg}{$val});
+        $pg->mock($meth => $self->{conf}{store}{$val});
     }
 
     $pg->mock(validate => 1);
@@ -1099,9 +1091,9 @@ sub test_build_meths : Test(25) {
     $builder->dispatch('code');
 
     isa_ok $self->{tdbh} = $kbs->_connect(
-        $kbs->_dsn($self->{conf}{pg}{template_db_name}),
-        $self->{conf}{pg}{db_super_user},
-        $self->{conf}{pg}{db_super_pass}, {
+        $kbs->_dsn($self->{conf}{store}{template_db_name}),
+        $self->{conf}{store}{db_super_user},
+        $self->{conf}{store}{db_super_pass}, {
             RaiseError     => 0,
             PrintError     => 0,
             pg_enable_utf8 => 1,
@@ -1120,9 +1112,9 @@ sub test_build_meths : Test(25) {
 
     # Connect to the new database.
     $self->{dbh} = DBI->connect_cached(
-        $kbs->_dsn($self->{conf}{pg}{db_name}),
-        $self->{conf}{pg}{db_super_user},
-        $self->{conf}{pg}{db_super_pass}, {
+        $kbs->_dsn($self->{conf}{store}{db_name}),
+        $self->{conf}{store}{db_super_user},
+        $self->{conf}{store}{db_super_pass}, {
             RaiseError     => 0,
             PrintError     => 0,
             pg_enable_utf8 => 1,
@@ -1171,7 +1163,7 @@ sub test_build_meths : Test(25) {
         next if $class->abstract;
         for my $perm (qw(SELECT UPDATE INSERT DELETE)) {
             push @checks, 'has_table_privilege(?, ?, ?)';
-            push @params, $self->{conf}{pg}{db_user}, $view, $perm;
+            push @params, $self->{conf}{store}{db_user}, $view, $perm;
         }
     }
 
@@ -1207,7 +1199,7 @@ sub db_cleanup {
         # connections even after the query returns false.
         sleep 1 while $dbh->selectrow_array(
             'SELECT 1 FROM pg_stat_activity where datname = ?',
-            undef, $self->{conf}{pg}{db_name}
+            undef, $self->{conf}{store}{db_name}
         );
         # XXX We should be able to do it without this!
         sleep 2;
@@ -1216,7 +1208,7 @@ sub db_cleanup {
             # This might fail a couple of times as we wait for the database
             # connection to really drop. It might be sometime *after* the above
             # query returns false!
-            eval { $dbh->do(qq{DROP DATABASE "$self->{conf}{pg}{db_name}"}) };
+            eval { $dbh->do(qq{DROP DATABASE "$self->{conf}{store}{db_name}"}) };
             if (my $err = $@) {
                 die $err
                   if $i >= 5 || $err !~ /is being accessed by other users/;
@@ -1225,7 +1217,7 @@ sub db_cleanup {
             last;
         }
 
-        $dbh->do(qq{DROP user "$self->{conf}{pg}{db_user}"});
+        $dbh->do(qq{DROP user "$self->{conf}{store}{db_user}"});
     }
     return $self;
 }
@@ -1250,13 +1242,17 @@ sub _run_build_tests {
         test_db_pass     => 'db_pass',
         test_db_name     => 'db_name',
         template_db_name => 'template_db_name',
-        db_host          => 'host',
-        db_port          => 'port',
     );
 
     while (my ($meth, $val) = each %mock) {
-        $pg->mock($meth => $self->{conf}{pg}{$val});
+        $pg->mock($meth => $self->{conf}{store}{$val});
     }
+
+    # Mock the host and port by pulling them from the DSN.
+    my ($host) = $self->{conf}{store}{dsn} =~ /host=([^;]+)/;
+    $pg->mock(db_host => $host);
+    my ($port) = $self->{conf}{store}{dsn} =~ /port=(\d+)/;
+    $pg->mock(db_port => $port);
 
     # Set up the template database handle.
     isa_ok $self->{tdbh} = $kbs->_connect(

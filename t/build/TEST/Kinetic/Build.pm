@@ -66,7 +66,7 @@ sub atest_process_conf_files : Test(14) {
     file_contents_unlike 'blib/conf/kinetic.conf', qr/\s*[pg]\s*\n/,
         '... The PostgreSQL section should be commented out';
     file_contents_like 'blib/conf/kinetic.conf',
-      qr/\n\s*\[store\]\s*\n\s*class\s*:\s*\n/,
+      qr/\n\s*\[store\]\s*\n\s*class\s*:\s*Kinetic::Store::DB::SQLite\s*\n/,
       '... The store should point to the correct data store';
 
     # Check the test config file.
@@ -76,7 +76,7 @@ sub atest_process_conf_files : Test(14) {
     file_contents_unlike 'blib/conf/kinetic.conf', qr/\s*[pg]\s*\n/,
         '... The PostgreSQL section should be commented out';
     file_contents_like 't/conf/kinetic.conf',
-      qr/\n\s*\[store\]\s*\n\s*class\s*:\s*\n/,
+      qr/\n\s*\[store\]\s*\n\s*class\s*:\s*Kinetic::Store::DB::SQLite\s*\n/,
       '... The store should point to the correct data store in the test conf';
 
     # Make sure we clean up our mess.
@@ -170,7 +170,7 @@ sub test_www_files : Test(5) {
     file_not_exists_ok 'blib', 'Build lib should be gone';
 }
 
-sub test_props : Test(13) {
+sub test_props : Test(12) {
     my $self = shift;
     my $class = $self->test_class;
     my $mb = MockModule->new($class);
@@ -207,8 +207,6 @@ sub test_props : Test(13) {
     is $builder->dev_tests, 0, 'Run dev tests should be disabled';
     like $builder->install_base, qr/kinetic$/,
       'The install base should end with "kinetic"';
-    is_deeply $builder->store_config, {class => 'Kinetic::Store::DB::SQLite'},
-      "The store_config method should set up the SQLite store";
 
     # Make sure we clean up our mess.
     $builder->dispatch('clean');

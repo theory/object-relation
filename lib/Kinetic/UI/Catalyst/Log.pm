@@ -64,7 +64,7 @@ to C<logs/error_log>.
 
 sub new {
     my $class = shift;
-    if ( $class->can('APACHE_HTTPD') ) {
+    if ( $class->can('ENGINE_HTTPD') ) {
         return Catalyst::Log->new;
     }
     return $class->SUPER::new;

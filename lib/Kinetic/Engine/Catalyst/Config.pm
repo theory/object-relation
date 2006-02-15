@@ -23,7 +23,7 @@ use warnings;
 
 use version;
 our $VERSION = version->new('0.0.1');
-use Kinetic::Util::Config qw(:catalyst);
+use Kinetic::Util::Config qw(:engine);
 use Kinetic::Engine;
 
 BEGIN {
@@ -33,7 +33,7 @@ BEGIN {
 }
 
 use aliased 'Kinetic::UI::Catalyst';
-Catalyst->run( CATALYST_PORT, CATALYST_HOST, { restart => CATALYST_RESTART } );
+Catalyst->run( ENGINE_PORT, ENGINE_HOST, { restart => ENGINE_RESTART } );
 
 1;
 

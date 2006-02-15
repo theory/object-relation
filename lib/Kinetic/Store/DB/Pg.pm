@@ -24,15 +24,15 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use base qw(Kinetic::Store::DB);
-use Kinetic::Util::Config qw(:pg);
+use Kinetic::Util::Config qw(:store);
 use Exception::Class::DBI;
 use Kinetic::Util::Exceptions qw(throw_unsupported);
 use List::Util qw(first);
 use overload;
 use constant _connect_args => (
-    PG_DSN,
-    PG_DB_USER,
-    PG_DB_PASS,
+    STORE_DSN,
+    STORE_DB_USER,
+    STORE_DB_PASS,
     {
         RaiseError     => 0,
         PrintError     => 0,

@@ -93,12 +93,22 @@ sub test_rules : Test(39) {
 
     my %conf;
     ok $kbs->add_to_config(\%conf);
-    is_deeply \%conf, { sqlite => { file => $db_file } },
+    is_deeply \%conf, {
+        store => {
+            class => 'Kinetic::Store::DB::SQLite',
+            file => $db_file,
+        },
+    },
       "... and the configuration should be set";
 
     %conf = ();
     ok $kbs->add_to_test_config(\%conf);
-    is_deeply \%conf, { sqlite => { file => $test_file } },
+    is_deeply \%conf, {
+        store => {
+            class => 'Kinetic::Store::DB::SQLite',
+            file => $test_file,
+        }
+    },
       "... as should the test configuration";
 
     # Just skip the remaining tests if we can't test against a live database.

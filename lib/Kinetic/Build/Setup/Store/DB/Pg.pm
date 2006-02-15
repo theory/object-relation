@@ -1010,12 +1010,11 @@ configuration directives to be used by the Kinetic store at run time.
 
 sub add_to_config {
     my ($self, $config) = @_;
-    $config->{pg} = {
+    $config->{store} = {
+        class   => $self->store_class,
         db_name => $self->db_name,
         db_user => $self->db_user,
         db_pass => $self->db_pass,
-        host    => $self->db_host,
-        port    => $self->db_port,
         dsn     => $self->_dsn($self->db_name),
     };
     return $self;
@@ -1036,15 +1035,14 @@ for testing.
 
 sub add_to_test_config {
     my ($self, $config) = @_;
-    $config->{pg} = {
+    $config->{store} = {
+        class   => $self->store_class,
         db_name => $self->test_db_name,
         db_user => $self->test_db_user,
         db_pass => $self->test_db_pass,
-        host    => $self->db_host,
-        port    => $self->db_port,
         dsn     => $self->_dsn( $self->test_db_name ),
 
-        # Well need these during tests.
+        # We'll need these during tests.
         db_super_user    => $self->db_super_user    || '',
         db_super_pass    => $self->db_super_pass    || '',
         template_db_name => $self->template_db_name || '',
