@@ -165,7 +165,8 @@ sub rules {
                       name    => 'db_filename',
                       message => 'Please enter a filename for the SQLite database',
                       label   => 'SQLite database file name',
-                      default => 'kinetic.db'
+                      default => 'kinetic.db',
+                      config_keys => [qw( store file )],
                 );
             },
             rules => [
@@ -259,7 +260,9 @@ sub add_to_config {
     return unless $self->builder->store eq 'sqlite';
     $config->{store} = {
         class => $self->store_class,
-        file  => $self->_path,
+        dsn     => $self->dsn,
+        db_user => '',
+        db_pass => '',
     };
     return $self;
 }
@@ -280,9 +283,12 @@ for testing.
 sub add_to_test_config {
     my ($self, $config) = @_;
     $config->{store} = {
-        class => $self->store_class,
-        file  => $self->_test_path,
+        class   => $self->store_class,
+        dsn     => $self->test_dsn,
+        db_user => '',
+        db_pass => '',
     };
+
     return $self;
 }
 

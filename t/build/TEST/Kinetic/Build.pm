@@ -7,6 +7,7 @@ use warnings;
 use base 'TEST::Class::Kinetic';
 use Test::More;
 use aliased 'Test::MockModule';
+use Config::Std;
 use Class::Trait; # Avoid warnings.
 use Test::Exception;
 use Test::File;
@@ -49,7 +50,6 @@ sub atest_process_conf_files : Test(14) {
     $mb->mock(store => 'sqlite');
     $mb->mock(store_config => { class => '' });
     $builder = $self->new_builder;
-    $self->{builder} = $builder;
 
     # Building should create these things.
     is $builder->dispatch('build'), $builder, "Run the build action";
@@ -62,8 +62,9 @@ sub atest_process_conf_files : Test(14) {
 
     # Check the config file to be installed.
     my $db_file = catfile $builder->install_base, 'store', 'kinetic.db';
-    file_contents_like 'blib/conf/kinetic.conf', qr/file\s*:\s*$db_file/,
-      '... The database file name should be set properly';
+    file_contents_like 'blib/conf/kinetic.conf',
+        qr/dsn\s*:\s*dbi:SQLite:dbname=$db_file/,
+      '... The DSN should be set properly';
     file_contents_unlike 'blib/conf/kinetic.conf', qr/\s*[pg]\s*\n/,
         '... The PostgreSQL section should be commented out';
     file_contents_like 'blib/conf/kinetic.conf',
@@ -72,8 +73,9 @@ sub atest_process_conf_files : Test(14) {
 
     # Check the test config file.
     my $test_file = catfile $builder->base_dir, 't', 'data', 'kinetic.db';
-    file_contents_like 't/conf/kinetic.conf', qr/file\s*:\s*$test_file/,
-      '... The test database file name should be set properly';
+    file_contents_like 't/conf/kinetic.conf',
+        qr/dsn\s*:\s*dbi:SQLite:dbname=$test_file/,
+      '... The test DSN should be set properly';
     file_contents_unlike 'blib/conf/kinetic.conf', qr/\s*[pg]\s*\n/,
         '... The PostgreSQL section should be commented out';
     file_contents_like 't/conf/kinetic.conf',
@@ -108,7 +110,6 @@ sub test_bin_files : Test(8) {
     $mb->mock(store => 'sqlite');
     $mb->mock(store_config => { class => '' });
     $builder = $self->new_builder;
-    $self->{builder} = $builder;
 
     # Building should create these things.
     is $builder->dispatch('build'), $builder, "Run the build action";
@@ -160,7 +161,6 @@ sub test_www_files : Test(5) {
     $mb->mock(store => 'sqlite');
     $mb->mock(store_config => { class => '' });
     $builder = $self->new_builder;
-    $self->{builder} = $builder;
 
     # Building should create these things.
     is $builder->dispatch('build'), $builder, "Run the build action";
@@ -184,7 +184,6 @@ sub test_props : Test(12) {
     $info->mock(version => '3.2.2');
 
     my $builder = $self->new_builder;
-    $self->{builder} = $builder;
 
     # Make sure the install paths are set.
     my $base = $builder->install_base;
@@ -203,8 +202,8 @@ sub test_props : Test(12) {
     is $builder->source_dir, 'lib', 'Default source dir should be "lib"';
     is_deeply $builder->schema_skipper, [],
         'Default schema skippers should be an empty arrayref';
-    is $builder->conf_file, 'kinetic.conf',
-      'Default conf file should be "kinetic.conf"';
+    is $builder->path_to_config, undef,
+        'The path to config option should be undef by default';
     is $builder->dev_tests, 0, 'Run dev tests should be disabled';
     like $builder->install_base, qr/kinetic$/,
       'The install base should end with "kinetic"';
@@ -300,7 +299,6 @@ sub test_check_store : Test(5) {
 
     # Make sure that the build action checks the store.
     $builder = $self->new_builder;
-    $self->{builder} = $builder;
     $mb->mock('ACTION_docs' => 0);
     ok $builder->dispatch('build'), "Run build";
     isa_ok $builder->notes('build_store'), 'Kinetic::Build::Setup::Store';
@@ -334,7 +332,6 @@ sub test_config_action : Test(4) {
     $info->mock(version => '3.2.2');
 
     $builder = $self->new_builder(install_base => $base);
-    $self->{builder} = $builder;
     can_ok $builder, 'ACTION_config';
     ok $builder->dispatch('config'),
       "We should be able to dispatch to the config action";
@@ -467,7 +464,6 @@ sub test_get_reply : Test(53) {
 
     # Start not quiet and with defaults accepted.
     my $builder = $self->new_builder(quiet => 0);
-    $self->{builder} = $builder;
     my $tmpdir = catdir(tmpdir(), qw(kinetic cache));
 
     my $expected = <<"    END_INFO";
@@ -745,6 +741,130 @@ Administrative User password: change me now!
     );
 }
 
+sub test_config_file : Test(8) {
+    my $self = shift;
+    my $class = $self->test_class;
+
+    my $kb = MockModule->new($class);
+    $kb->mock( check_manifest         => 1 );
+    $kb->mock( check_prereq           => 1 );
+    $kb->mock( _check_build_component => 1 );
+
+    ok my $builder = $self->new_builder(
+        path_to_config => 'conf/kinetic.conf',
+    ), 'Creat new builder';
+    is $builder->path_to_config, 'conf/kinetic.conf',
+        'path_to_config should be "conf/kinetic.conf"';
+
+    # Raad in the config file.
+    read_config( catfile(qw(conf kinetic.conf)) => my %conf );
+
+    # Check a few values.
+    is $builder->_get_option(
+        key => 'kinetic_root',
+        config_keys => [qw(kinetic root)],
+    ), $conf{kinetic}{root}, 'The kinetic root should be from the conf file';
+
+    is $builder->_get_option(
+        key => 'store_db_name',
+        config_keys => [qw(store db_name)],
+    ), $conf{store}{db_name}, 'The store db_name should be from the conf file';
+
+    # Try a callback.
+    is $builder->_get_option(
+        key => 'store_class',
+        config_keys => [qw(store class)],
+        callback    => sub { /^Kinetic::Store/ },
+    ), $conf{store}{class}, 'The store class should be from the conf file';
+
+    # Fail a callback.
+    throws_ok {
+        $builder->_get_option(
+            key => 'store_class',
+            config_keys => [qw(store class)],
+            callback    => sub { /^\d/ },
+        );
+    } qr/"$conf{store}{class}" is not a valid value for STORE_CLASS/,
+        'We should get an error for a config file value that fails the callback';
+
+    # Make sure that it works with get_reply, as well.
+    is $builder->get_reply(
+        name => 'store_class',
+        config_keys => [qw(store class)],
+        callback    => sub { /^Kinetic::Store/ },
+    ), $conf{store}{class},
+        'get_reply() should return the conf file store class';
+
+    # The failing callback should be passed, too.
+    throws_ok {
+        $builder->get_reply(
+            name => 'store_class',
+            config_keys => [qw(store class)],
+            callback    => sub { /^\d/ },
+        );
+    } qr/"$conf{store}{class}" is not a valid value for STORE_CLASS/,
+        'get_reply() should pass the failing callback';
+}
+
+sub test_environ : Test(7) {
+    my $self = shift;
+    my $class = $self->test_class;
+
+    my $kb = MockModule->new($class);
+    $kb->mock( check_manifest         => 1 );
+    $kb->mock( check_prereq           => 1 );
+    $kb->mock( _check_build_component => 1 );
+
+    ok my $builder = $self->new_builder, 'Create a new builder';
+
+    # Check a coupla values.
+    local $ENV{WOOT} = 'howdy';
+    is $builder->_get_option(
+        key => 'kinetic_root',
+        environ => 'WOOT',
+    ), $ENV{WOOT}, '_get_option() should get a value from the environment';
+
+    # Make sure it hasn't come from somewhere else...
+    $ENV{WOOT} = 'hlghlghlghlgh';
+    is $builder->_get_option(
+        key => 'kinetic_root',
+        environ => 'WOOT',
+    ), $ENV{WOOT}, '... and it should get a new value';
+
+    # Try it with a callback.
+    is $builder->_get_option(
+        key => 'kinetic_root',
+        environ => 'WOOT',
+        callback => sub { /^hlgh/ },
+    ), $ENV{WOOT}, '... and it should work with a callback';
+
+    throws_ok {
+        $builder->_get_option(
+            key => 'kinetic_root',
+            environ => 'WOOT',
+            callback => sub { /^hownow/ },
+        );
+    } qr/"$ENV{WOOT}" is not a valid value for the "WOOT" environment variable/,
+        'And a failing callback should die';
+
+    # Make sure that it get_reply() passes it.
+    is $builder->get_reply(
+        name => 'kinetic_root',
+        environ => 'WOOT',
+        callback => sub { /^hlgh/ },
+    ), $ENV{WOOT}, '... and it should work via get_reply()';
+
+    # And that the callback is passed, too, of course.
+    throws_ok {
+        $builder->get_reply(
+            name     => 'kinetic_root',
+            environ  => 'WOOT',
+            callback => sub { /^hownow/ },
+        );
+    } qr/"$ENV{WOOT}" is not a valid value for the "WOOT" environment variable/,
+        'And get_reply() should pass a failing callback';
+}
+
 sub try_reply {
     my ($self, $builder, %params) = @_;
     my $exp_msg   = delete $params{exp_message};
@@ -778,7 +898,7 @@ sub try_reply {
 sub new_builder {
     my $self = shift;
     my $class = $self->test_class;
-    $self->{builder} = $class->new(
+    return $self->{builder} = $class->new(
         dist_name       => 'Testing::Kinetic',
         dist_version    => '1.0',
         quiet           => 1,
@@ -786,7 +906,6 @@ sub new_builder {
         engine          => 'catalyst',
         @_,
     );
-    return $self->{builder};
 }
 
 package TEST::Kinetic::TestInfo;

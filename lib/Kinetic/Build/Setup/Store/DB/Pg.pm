@@ -177,61 +177,81 @@ sub rules {
             do => sub {
                 # Get the host name.
                 $self->{db_host} = $builder->get_reply(
-                    name    => 'db-host',
-                    label   => 'PostgreSQL server hostname',
-                    message => "What PostgreSQL server host name should I use?",
-                    default => $ENV{PGHOST} || 'localhost',
+                    name        => 'db-host',
+                    label       => 'PostgreSQL server hostname',
+                    message     => 'What PostgreSQL server host name should I use?',
+                    default     => 'localhost',
+                    environ     => 'PGHOST',
+                    config_keys => [qw(store dsn)],
+                    callback    => sub {
+                        # If a DSN from config file, extract the host name.
+                        ($_) = /host=([^;]+)/i if /^dbi:/i;
+                        return 1;
+                    },
                 );
 
                 # Just use null string if it's localhost.
                 $self->{db_host} = '' if $self->{db_host} eq 'localhost';
 
                 # Get the port number.
-                if ($ENV{PGPORT}) {
-                    $self->{db_port} = $ENV{PGPORT};
-                } else {
-                    my $def_port = defined $self->{db_host}
-                      ? '5432'
-                      : 'local domain socket';
-                    $self->{db_port} = $ENV{PGHOST} || $builder->get_reply(
-                        name    => 'db-port',
-                        label   => 'PostgreSQL server port',
-                        message => "What TCP/IP port should I use to connect "
-                                   . "to PostgreSQL?",
-                        default =>  $def_port,
-                    );
+                my $def_port = defined $self->{db_host}
+                    ? '5432'
+                    : 'local domain socket';
+                $self->{db_port} = $builder->get_reply(
+                    name        => 'db-port',
+                    label       => 'PostgreSQL server port',
+                    message     => 'What TCP/IP port should I use to '
+                                 . 'connect to PostgreSQL?',
+                    default     =>  $def_port,
+                    environ     => 'PGPORT',
+                    config_keys => [qw(store dsn)],
+                    callback => sub {
+                        ($_) = /port=(\d+)/i if /^dbi:/i;
+                        return 1;
+                    },
+                );
 
-                    # Just use null string if it's a local domain socket or 5432.
-                    $self->{db_port} = ''
-                      if $self->{db_port} eq 'local domain socket'
-                      || $self->{db_port} eq '5432';
-                }
+                # Just use null string if it's a local domain socket or 5432.
+                $self->{db_port} = ''
+                    if $self->{db_port} eq 'local domain socket'
+                    || $self->{db_port} eq '5432';
 
                 # Get the database name.
-                $self->{db_name} = $ENV{PGDATABASE} || $builder->get_reply(
-                    name     => 'db-name',
-                    label    => 'Database name',
-                    message  => "What database should I use?",
-                    default  => 'kinetic',
-                    callback => sub { $_ } # Must be a true value.
+                $self->{db_name} = $builder->get_reply(
+                    name        => 'db-name',
+                    label       => 'Database name',
+                    message     => 'What database should I use?',
+                    default     => 'kinetic',
+                    environ     => 'PGDATABASE',
+                    config_keys => [qw(store dsn)],
+                    callback => sub {
+                        # If it's a DSN, extract the database name.
+                        ($_) = /dbname=([^;]+)/i if /^dbi:/i;
+                        # It must be a true value.
+                        return $_;
+                    },
                 );
 
                 # Get the database user.
-                $self->{db_user} = $ENV{PGUSER} || $builder->get_reply(
-                    name    => 'db-user',
-                    label   => 'Database user name',
-                    message => "What database user name should I use?",
-                    default => 'kinetic',
-                    callback => sub { $_ } # Must be a true value.
+                $self->{db_user} = $builder->get_reply(
+                    name        => 'db-user',
+                    label       => 'Database user name',
+                    message     => 'What database user name should I use?',
+                    default     => 'kinetic',
+                    environ     => 'PGUSER',
+                    config_keys => [qw(store db_user)],
+                    callback    => sub { $_ } # Must be a true value.
                 );
 
                 # Get the database user's password.
-                $self->{db_pass} = $ENV{PGPASS} || $builder->get_reply(
+                $self->{db_pass} = $builder->get_reply(
                     name    => 'db-pass',
                     label   => 'Database user password',
-                    message => "What Database password should I use (can be "
-                               . "blank)?",
+                    message => 'What Database password should I use (can be '
+                               . 'blank)?',
                     default => '',
+                    environ     => 'PGPASS',
+                    config_keys => [qw(store db_pass)],
                 );
             },
 
@@ -280,7 +300,7 @@ sub rules {
 
                 'Connect user' => {
                     rule => sub { $self->db_user && $self->db_name },
-                    message => "Got server info; attempting to connect",
+                    message => 'Got server info; attempting to connect',
                 },
             ],
         },
@@ -583,9 +603,10 @@ sub rules {
                 $self->{db_super_user} ||= $builder->get_reply(
                     name    => 'db-super-user',
                     label   => 'PostgreSQL super user name',
-                    message => "What's the username for the PostgreSQL super "
-                               . "user?",
+                    message => q{What's the username for the PostgreSQL super }
+                               . 'user?',
                     default => $default,
+                    config_keys => [qw(store db_super_user)],
                     callback => sub { $_ } # Must be a true value.
                 );
 
@@ -593,9 +614,10 @@ sub rules {
                 $self->{db_super_pass} ||= $builder->get_reply(
                     name    => 'db-super-pass',
                     label   => 'PostgreSQL super user password',
-                    message => "What's the password for the PostgreSQL super"
+                    message => q{What's the password for the PostgreSQL super}
                                . ' user (can be blank)?',
                     default => '',
+                    config_keys => [qw(store db_super_pass)],
                 );
             },
             rules => [
@@ -1012,7 +1034,6 @@ sub add_to_config {
     my ($self, $config) = @_;
     $config->{store} = {
         class   => $self->store_class,
-        db_name => $self->db_name,
         db_user => $self->db_user,
         db_pass => $self->db_pass,
         dsn     => $self->_dsn($self->db_name),
@@ -1037,7 +1058,6 @@ sub add_to_test_config {
     my ($self, $config) = @_;
     $config->{store} = {
         class   => $self->store_class,
-        db_name => $self->test_db_name,
         db_user => $self->test_db_user,
         db_pass => $self->test_db_pass,
         dsn     => $self->_dsn( $self->test_db_name ),
@@ -1251,11 +1271,12 @@ the C<template_db_name()> accessor.
 sub _get_template_db_name {
     my $self = shift;
     $self->{template_db_name} ||= $self->builder->get_reply(
-        name     => 'template-db-name',
-        label    => 'Template database name',
-        message  => "What template database should I use?",
-        default  => 'template1',
-        callback => sub { $_ } # Must be a true value.
+        name        => 'template-db-name',
+        label       => 'Template database name',
+        message     => 'What template database should I use?',
+        default     => 'template1',
+        config_keys => [qw(store template_db_name)],
+        callback    => sub { $_ } # Must be a true value.
     );
 }
 

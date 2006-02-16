@@ -9,7 +9,6 @@ catalyst/test.pl
 Changes
 conf/kinetic.conf
 etc/check_workflow
-etc/Data-UUID-Tiger.patch
 etc/perltidyrc
 etc/unused_modules.pl
 etc/unused_subs.pl
@@ -19,12 +18,16 @@ examples/httpd.conf
 examples/kinetic.conf
 examples/rest_test.pl
 lib/Kinetic.pm
+lib/Kinetic/AppBuild.pm
 lib/Kinetic/Build.pm
+lib/Kinetic/Build/Base.pm
 lib/Kinetic/Build/Schema.pm
 lib/Kinetic/Build/Schema/DB.pm
 lib/Kinetic/Build/Schema/DB/Pg.pm
 lib/Kinetic/Build/Schema/DB/SQLite.pm
 lib/Kinetic/Build/Setup.pm
+lib/Kinetic/Build/Setup/Auth.pm
+lib/Kinetic/Build/Setup/Auth/Kinetic.pm
 lib/Kinetic/Build/Setup/Cache.pm
 lib/Kinetic/Build/Setup/Cache/File.pm
 lib/Kinetic/Build/Setup/Cache/Memcached.pm
@@ -115,6 +118,8 @@ MANIFEST			This list of files
 META.yml
 README
 t/accessors.t
+t/app_build.t
+t/app_build/TEST/Kinetic/AppBuild.pm
 t/badconfig.t
 t/basic.t
 t/build.t
@@ -187,6 +192,7 @@ t/sample/lib/TestApp/Simple.pm
 t/sample/lib/TestApp/Simple/One.pm
 t/sample/lib/TestApp/Simple/Two.pm
 t/sample/lib/TestApp/TypesTest.pm
+t/sample/www/test.html
 t/schema_meta.t
 t/sqlite/schema.t
 t/sqlite/schema_file.t
@@ -298,5 +304,6 @@ www/views/tt/greet.tt
 www/views/tt/login.tt
 www/views/tt/search.tt
 www/views/tt/shared/crud.tt
+www/views/tt/shared/head_body.tt
 www/views/tt/shared/main.tt
 www/views/tt/view.tt

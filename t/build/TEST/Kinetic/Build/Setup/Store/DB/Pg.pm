@@ -47,7 +47,7 @@ sub test_class_methods : Test(7) {
       'We should have the correct DSN DBD string';
 }
 
-sub test_rules : Test(161) {
+sub test_rules : Test(180) {
     my $self = shift;
     my $class = $self->test_class;
     $self->chdirs('t', 'data');
@@ -59,7 +59,6 @@ sub test_rules : Test(161) {
     $mb->mock( dev_tests      => undef );
 
     my $builder = $self->new_builder;
-    $self->{builder} = $builder;
     $mb->mock(resume => $builder);
     $mb->mock(_app_info_params => sub { } );
     my (@replies, @args);
@@ -556,6 +555,59 @@ sub test_rules : Test(161) {
     ok $fsa->reset->curr_state('Done'), 'Reset to "Done"';
     is_deeply [$kbs->actions], ['build_db'],
       'We should have the "build_db" action set up';
+
+    ##########################################################################
+    # Test environment variables.
+    $mb->unmock('get_reply');
+    ENVTEST: {
+        local $ENV{PGHOST}     = 'pghost';
+        local $ENV{PGPORT}     = '123456';
+        local $ENV{PGDATABASE} = 'pgdata';
+        local $ENV{PGUSER}     = 'pguser';
+        local $ENV{PGPASS}     = 'pgpass';
+        ok $fsa->reset->curr_state('Server info'), 'Set up Server info again';
+        is $kbs->db_host, 'pghost', 'Host should now be set from an env var';
+        is $kbs->db_port, '123456', 'Port should now be set from an env var';
+        is $kbs->db_name, 'pgdata', 'DB should now be set from an env var';
+        is $kbs->db_user, 'pguser', 'User should now be set from an env var';
+        is $kbs->db_pass, 'pgpass', 'Pass should now be set from an env var';
+        is $kbs->_dsn, 'dbi:Pg:dbname=pgdata;host=pghost;port=123456',
+            'The DSN should contain all of the environment data';
+    }
+
+    ##############################################################################
+    # Test config file.
+    my %config = (
+        db_pass          => 'dbpass',
+        db_user          => 'dbuser',
+        dsn              => 'dbi:Pg:dbname=dbname;host=dbhost;port=987654',
+        class            => 'Kinetic::Store::DB::Pg',
+        db_super_user    => 'dbsuper',
+        db_super_pass    => 'dbspass',
+        template_db_name => 'dbtmplt',
+    );
+
+    $builder->notes( _config_ => { store => \%config } );
+    ok $fsa->reset->curr_state('Server info'), 'Set up Server info again';
+    is $kbs->db_host, 'dbhost', 'Host should now be set from config file';
+    is $kbs->db_port, '987654', 'Port should now be set from config file';
+    is $kbs->db_name, 'dbname', 'DB should now be set from config file';
+    is $kbs->db_user, 'dbuser', 'User should now be set from config file';
+    is $kbs->db_pass, 'dbpass', 'Pass should now be set from config file';
+    is $kbs->_dsn, 'dbi:Pg:dbname=dbname;host=dbhost;port=987654',
+        'The DSN should contain all of the config file data';
+
+    ok $fsa->reset->curr_state('Get super user'), 'Set up Get super user';
+    is $kbs->db_super_user, 'dbsuper',
+        'Super User should now be set from config file';
+    is $kbs->db_super_pass, 'dbspass',
+        'Super Pass should now be set from config file';
+
+    delete $kbs->{template_db_name};
+    ok $kbs->_get_template_db_name, 'Set template name';
+    is $kbs->template_db_name, 'dbtmplt',
+        'Template db name should be set from the config file';
+
     $kbs->_dbh(undef); # Prevent ugly deaths during cleanup.
 }
 
@@ -585,7 +637,6 @@ sub test_validate_user_db : Test(35) {
     $mb->mock( dev_tests      => undef );
 
     my $builder = $self->new_builder( store => 'pg' );
-    $self->{builder} = $builder;
     $builder->source_dir('lib');
     $mb->mock(resume => $builder);
     $mb->mock(_app_info_params => sub { } );
@@ -627,7 +678,6 @@ sub test_validate_user_db : Test(35) {
     is_deeply \%conf, {
         store => {
             class            => 'Kinetic::Store::DB::Pg',
-            db_name          => '__kinetic_test__',
             db_user          => '__kinetic_test__',
             db_pass          => '__kinetic_test__',
             db_super_user    => '',
@@ -643,7 +693,6 @@ sub test_validate_user_db : Test(35) {
     is_deeply \%conf, {
         store => {
             class   => 'Kinetic::Store::DB::Pg',
-            db_name => 'kinetic',
             db_user => 'kinetic',
             db_pass => 'asdfasdf',
             dsn     => 'dbi:Pg:dbname=kinetic',
@@ -686,7 +735,6 @@ sub test_validate_super_user : Test(35) {
     $mb->mock(dev_tests => undef );
 
     my $builder = $self->new_builder;
-    $self->{builder} = $builder;
     $mb->mock(resume => $builder);
     $mb->mock(_app_info_params => sub { } );
     my @replies = ('pgme', '5433', 'kinetic', 'kinetic', 'asdfasdf',
@@ -732,7 +780,6 @@ sub test_validate_super_user : Test(35) {
     is_deeply \%conf, {
         store => {
             class            => 'Kinetic::Store::DB::Pg',
-            db_name          => '__kinetic_test__',
             db_user          => '__kinetic_test__',
             db_pass          => '__kinetic_test__',
             db_super_user    => 'postgres',
@@ -748,7 +795,6 @@ sub test_validate_super_user : Test(35) {
     is_deeply \%conf, {
         store => {
             class   => 'Kinetic::Store::DB::Pg',
-            db_name => 'kinetic',
             db_user => 'kinetic',
             db_pass => 'asdfasdf',
             dsn     => 'dbi:Pg:dbname=kinetic;host=pgme;port=5433',
@@ -784,7 +830,6 @@ sub test_validate_super_user_arg : Test(35) {
     $mb->mock(check_manifest => sub { return });
     $mb->mock( _check_build_component => 1);
     my $builder = $self->new_builder;
-    $self->{builder} = $builder;
     $mb->mock(resume => $builder);
     $mb->mock(_app_info_params => sub { } );
     my @replies = ('localhost', '5432', 'howdy', 'howdy', 'asdfasdf',
@@ -830,7 +875,6 @@ sub test_validate_super_user_arg : Test(35) {
     is_deeply \%conf, {
         store => {
             class            => 'Kinetic::Store::DB::Pg',
-            db_name          => '__kinetic_test__',
             db_user          => '__kinetic_test__',
             db_pass          => '__kinetic_test__',
             db_super_user    => 'postgres',
@@ -846,7 +890,6 @@ sub test_validate_super_user_arg : Test(35) {
     is_deeply \%conf, {
         store => {
             class   => 'Kinetic::Store::DB::Pg',
-            db_name => 'howdy',
             db_user => 'howdy',
             db_pass => 'asdfasdf',
             dsn     => 'dbi:Pg:dbname=howdy',
@@ -870,7 +913,6 @@ sub test_helpers : Test(15) {
     $mb->mock(check_manifest => sub { return });
     $mb->mock( _check_build_component => 1);
     my $builder = $self->new_builder;
-    $self->{builder} = $builder;
     $mb->mock(resume => $builder);
     $mb->mock(_app_info_params => sub { } );
 
@@ -963,7 +1005,6 @@ sub test_db_helpers : Test(21) {
     $mb->mock(check_manifest => sub { return });
     $mb->mock( _check_build_component => 1);
     my $builder = $self->new_builder;
-    $self->{builder} = $builder;
     $mb->mock(resume => $builder);
     $mb->mock(_app_info_params => sub { } );
 
@@ -1064,22 +1105,20 @@ sub test_build_meths : Test(25) {
         db_super_pass    => 'db_super_pass',
         db_user          => 'db_user',
         db_pass          => 'db_pass',
-        db_name          => 'db_name',
         test_db_user     => 'db_user',
         test_db_pass     => 'db_pass',
-        test_db_name     => 'db_name',
         template_db_name => 'template_db_name',
     );
 
     while (my ($meth, $val) = each %mock) {
         $pg->mock($meth => $self->{conf}{store}{$val});
     }
-
+    $pg->mock(db_name => $class->test_db_name);
+    $pg->mock(test_db_name => $class->test_db_name);
     $pg->mock(validate => 1);
 
     $mb->mock( _check_build_component => 1);
     my $builder = $self->new_builder;
-    $self->{builder} = $builder;
     $mb->mock(resume => $builder);
     $builder->source_dir('lib'); # We're in t/sample
 
@@ -1112,7 +1151,7 @@ sub test_build_meths : Test(25) {
 
     # Connect to the new database.
     $self->{dbh} = DBI->connect_cached(
-        $kbs->_dsn($self->{conf}{store}{db_name}),
+        $self->{conf}{store}{dsn},
         $self->{conf}{store}{db_super_user},
         $self->{conf}{store}{db_super_pass}, {
             RaiseError     => 0,
@@ -1197,9 +1236,10 @@ sub db_cleanup {
         # query to kill a bit of time, just to make sure that we really are
         # fully disconnted. It seems like it sometimes thinks there are still
         # connections even after the query returns false.
+        my ($db_name) = $self->{conf}{store}{dsn} =~ /dbname=([^;]+)/;
         sleep 1 while $dbh->selectrow_array(
             'SELECT 1 FROM pg_stat_activity where datname = ?',
-            undef, $self->{conf}{store}{db_name}
+            undef, $db_name
         );
         # XXX We should be able to do it without this!
         sleep 2;
@@ -1208,7 +1248,7 @@ sub db_cleanup {
             # This might fail a couple of times as we wait for the database
             # connection to really drop. It might be sometime *after* the above
             # query returns false!
-            eval { $dbh->do(qq{DROP DATABASE "$self->{conf}{store}{db_name}"}) };
+            eval { $dbh->do(qq{DROP DATABASE "$db_name"}) };
             if (my $err = $@) {
                 die $err
                   if $i >= 5 || $err !~ /is being accessed by other users/;
@@ -1237,16 +1277,16 @@ sub _run_build_tests {
         db_super_pass    => 'db_super_pass',
         db_user          => 'db_user',
         db_pass          => 'db_pass',
-        db_name          => 'db_name',
         test_db_user     => 'db_user',
         test_db_pass     => 'db_pass',
-        test_db_name     => 'db_name',
         template_db_name => 'template_db_name',
     );
 
     while (my ($meth, $val) = each %mock) {
         $pg->mock($meth => $self->{conf}{store}{$val});
     }
+    $pg->mock(db_name => $pg->get_package->test_db_name);
+    $pg->mock(test_db_name => $pg->get_package->test_db_name);
 
     # Mock the host and port by pulling them from the DSN.
     my ($host) = $self->{conf}{store}{dsn} =~ /host=([^;]+)/;

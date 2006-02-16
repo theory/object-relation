@@ -163,6 +163,14 @@ sub new {
         @_    # User-set properties.
     );
 
+    # Load the config file, if specified.
+    if (my $conf_file = $self->path_to_config) {
+        # Load the configuration.
+        # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
+        Config::Std::Hash::read_config( $conf_file => my %conf );
+        $self->notes(_config_ => \%conf);
+    }
+
     # Prevent installation into lib/perl5. We just want lib'.
     $self->install_path->{lib} ||= $self->install_base . '/lib';
 
@@ -292,16 +300,17 @@ __PACKAGE__->add_property( schema_skipper => [] );
 
 ##############################################################################
 
-=head3 conf_file
+=head3 path_to_config
 
-  my $conf_file = $build->conf_file;
-  $build->conf_file($conf_file);
+  my $path_to_config = $build->path_to_config;
+  $build->path_to_config($path_to_config);
 
-The name of the configuration file. Defaults to F<kinetic.conf>.
+The complete path to an existing configuration file. If supplied, some values
+may be pulled from this file rather than prompting the user for them.
 
 =cut
 
-__PACKAGE__->add_property( conf_file => 'kinetic.conf' );
+__PACKAGE__->add_property( 'path_to_config' );
 
 ##############################################################################
 
@@ -588,7 +597,31 @@ An array reference of possible values from which the user can select.
 A code reference that validates a value input by a user. The value to be
 checked will be passed in as the first argument and will also be stored in
 C<$_>. For example, if you wanted to ensure that a value was an integer, you
-might pass a code reference like C<sub { /^\d+$/ }>.
+might pass a code reference like C<sub { /^\d+$/ }>. Note that if the callback
+sets C<$_> to a different value, the revised value is the one that will be
+returned. This can be useful for parsing one value from another.
+
+=item config_keys
+
+An array reference with two values that will be used to look up the value in
+the configuration file specified by the C<path_to_config> property. If no
+config file has been specified, these values will not be used. Otherwise, if
+no value was found in the Module::Build runtime parameters or arguments, the
+configuration file will be consulted. The first item in the array should be
+the name of the config file label, and the second item should be the key for
+the value for that label. For example, if you wanted to get at the store class,
+it might appear in the config file like so:
+
+  [store]
+  class: Kinetic::Store::DB::Pg
+
+To retrieve that value, set the array reference to ['store', 'class'].
+
+=item environ
+
+The name of an environment variable to check for a value. Checked only after
+the Module::Build runtime parameters and argumens and the configuration file
+have failed to return a value, but before prompting the user.
 
 =back
 
@@ -598,7 +631,12 @@ sub get_reply {
     my ( $self, %params ) = @_;
     my $def_label = $params{default};
 
-    my $val = $self->_get_option( $params{name}, $params{callback} );
+    my $val = $self->_get_option(
+        key         => $params{name},
+        callback    => $params{callback},
+        config_keys => $params{config_keys},
+        environ     => $params{environ},
+    );
 
     if (defined $val) {
         $params{default} = $val;
@@ -670,7 +708,7 @@ sub ask_y_n {
     die 'ask_y_n() called without a prompt message' unless $params{label};
 
     # Return command-line option first.
-    my $val = $self->_get_option( $params{name} );
+    my $val = $self->_get_option( key => $params{name} );
     if (defined $val) {
         $self->log_info("$params{label}: ", ($val ? 'yes' : 'no'), "\n")
             unless $self->quiet;
@@ -996,27 +1034,63 @@ sub _is_tty {
 
 =head3 _get_option
 
-   my $opt = $build->_get_option($key);
+   my $opt = $build->_get_option(%params);
 
-Looks in the Module::Build runtime parameters and arguments for an option
-specified on the command-line. Options should have dashes between words (such
-as "--path-to-sqlite"), and C<_get_options()> will look for a command-line
-parameter with dashes and with underscoress. For example, this call:
+Looks in the Module::Build runtime parameters and arguments and the config
+file (if specified via the C<path_to_config> property) for an option specified
+on the command-line. The supported parameters include:
 
-  my $opt = $build->_get_option('path-to-pg_config');
+=over
+
+=item key
+
+Required. Identifies the key to use when looking up the option in the
+Module::Build runtime parameters and arguments. Options should have dashes
+between words (such as "--path-to-httpd"), and C<_get_options()> will look for
+a command-line parameter with dashes and with underscoress. For example, this
+call:
+
+  my $opt = $build->_get_option(key => 'path-to-httpd');
 
 looks for the option with the equivalent of the following method calls:
 
-  $build->runtime_params('path-to-pg_config');
-  $build->runtime_params('path_to_pg_config');
-  $build->args('path-to-pg_config');
-  $build->args('path_to_pg_config');
+  $build->runtime_params('path-to-httpd');
+  $build->runtime_params('path_to_httpd');
+  $build->args('path-to-httpd');
+  $build->args('path_to_httpd');
+
+=item callback
+
+An optional code reference that will be called once a value has been found.
+The value will be passed to the callback as its only argument, and also set to
+C<$_>. If the callback returns false, C<_get_option() will throw an exception.
+Note that if the callback sets C<$_> to a different value, the revised value
+is the one that will be returned. This can be useful for parsing one value
+from another.
+
+=item config_keys
+
+An optional two-value array reference that will be used to look up the value
+in the hash reference created by the config file specified by the
+C<path_to_config> property. The config file is consulted only after a value
+has not been found in the Module::Build runtime parameters and arugments, and
+if no such file has been specified, C<_get_option()> simply returns.
+
+=item environ
+
+The name of an environment variable that might contain the value. The
+environment is checked only after the Module::Build runtime parameters and
+arguments and the configuration file.
+
+=back
 
 =cut
 
 sub _get_option {
-    my ( $self, $key, $callback ) = @_;
+    my ($self, %params) = @_;
+    my $key = $params{key};
     return unless defined $key;
+    my $callback = $params{callback};
 
     # Allow both dashed and underscored options.
     ( my $alt = $key ) =~ tr/-/_/;
@@ -1025,14 +1099,53 @@ sub _get_option {
             my $val = $self->$meth($arg);
             next unless defined $val;
             return $val unless $callback;
-            for (ref $val ? @$val : $val) {
-                die qq{"$_" is not a valid value for --$arg}
-                    unless $callback->($val);
-            }
-            return $val;
+            return $self->_handle_callback($val, "--$arg", $callback);
         }
     }
-    return;
+
+    # If we get here, try to look it up in the configuration.
+    if (my $config_keys = $params{config_keys}) {
+        my ($label, $key) = @{ $config_keys };
+        die 'config_keys must be a two-item array refernce'
+            unless defined $label and defined $key;
+        if (my $config = $self->notes('_config_')) {
+            my $val = $config->{$label} ? $config->{$label}{$key} : undef;
+            return $self->_handle_callback($val, uc "$label\_$key", $callback)
+                if defined $val;
+        }
+    }
+
+    # If we get here, check the environment.
+    return unless $params{environ} && defined $ENV{ $params{environ} };
+    return $self->_handle_callback(
+        $ENV{ $params{environ} },
+        qq{the "$params{environ}" environment variable},
+        $callback
+    );
+
+}
+
+##############################################################################
+
+=head3 _handle_callback
+
+  my $value = $build->_handle_callback($value, $label, $callback);
+
+This method is called by C<_get_option()> to apply a callback to a value. The
+value may be an array reference of values, in which case the callback will be
+applied to each one. If any calls to the callback return false, an exception
+will be thrown, qq{"$value" is not a valid value for $label}.
+
+=cut
+
+sub _handle_callback {
+    my ($self, $val, $label, $callback) = @_;
+    return $val unless $callback;
+    for (ref $val ? @$val : $val) {
+        die qq{"$_" is not a valid value for $label}
+            unless $callback->($_);
+    }
+    return $val;
 }
 
 ##############################################################################

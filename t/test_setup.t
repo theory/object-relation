@@ -10,7 +10,7 @@ BEGIN {
     use_ok 'Kinetic::Build::Test', (
         store  => {
             class => 'Kinetic::Store::DB::SQLite',
-            file => '__test__',
+            dsn   => 'dbi:SQLite:dbname=__test__',
         },
     ) or die;
 }
@@ -18,4 +18,4 @@ BEGIN {
 BEGIN { use_ok( 'Kinetic::Util::Config', ':store' ) or die; }
 
 is STORE_CLASS, 'Kinetic::Store::DB::SQLite', 'Store class should be SQLite';
-is STORE_FILE,  '__test__',                   'Database file should be changed';
+is STORE_DSN,   'dbi:SQLite:dbname=__test__', 'DSN should be changed';

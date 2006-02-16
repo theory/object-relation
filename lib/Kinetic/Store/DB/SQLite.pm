@@ -33,7 +33,7 @@ use OSSP::uuid;
 
 use constant DBI_CLASS => 'Kinetic::Store::DB::SQLite::DBI';
 use constant _connect_args => (
-    'dbi:SQLite:dbname=' . STORE_FILE,
+    STORE_DSN,
     '', '',
     {
         RaiseError  => 0,

@@ -33,7 +33,7 @@ sub test_class_methods : Test(8) {
     ok $class->rules, "We should get some rules";
 }
 
-sub test_rules : Test(39) {
+sub test_rules : Test(42) {
     my $self  = shift;
     my $class = $self->test_class;
 
@@ -95,8 +95,10 @@ sub test_rules : Test(39) {
     ok $kbs->add_to_config(\%conf);
     is_deeply \%conf, {
         store => {
-            class => 'Kinetic::Store::DB::SQLite',
-            file => $db_file,
+            class   => 'Kinetic::Store::DB::SQLite',
+            dsn     => "dbi:SQLite:dbname=$db_file",
+            db_user => '',
+            db_pass => '',
         },
     },
       "... and the configuration should be set";
@@ -105,14 +107,25 @@ sub test_rules : Test(39) {
     ok $kbs->add_to_test_config(\%conf);
     is_deeply \%conf, {
         store => {
-            class => 'Kinetic::Store::DB::SQLite',
-            file => $test_file,
-        }
+            class   => 'Kinetic::Store::DB::SQLite',
+            dsn     => "dbi:SQLite:dbname=$test_file",
+            db_user => '',
+            db_pass => '',
+        },
     },
       "... as should the test configuration";
 
+    # Try getting the file settin from the configuration file.
+    $builder->notes( _config_ => { store => { file => 'somefile' } } );
+    $mb->unmock('get_reply');
+    ok $kbs->validate, 'Validate SQLite again';
+    is $kbs->db_file, 'somefile', 'File name should be set from config file';
+    is $kbs->dsn, 'dbi:SQLite:dbname=store/somefile',
+        'The DSN should contain the config settings';
+
     # Just skip the remaining tests if we can't test against a live database.
     return "Not testing SQLite" unless $self->supported('sqlite');
+    s/fooness/somefile/ for ($test_file, $db_file);
 
     # Try building the test database.
     $builder->source_dir('lib');
