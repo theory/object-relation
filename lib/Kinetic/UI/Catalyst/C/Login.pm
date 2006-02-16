@@ -59,7 +59,7 @@ sub login : Local {
     $c->stash->{template} = 'login.tt';
 
     $c->session->{referer} ||= $c->req->referer;
-    if ( !$c->login() ) {
+    if ( !$c->login ) {
         $c->log->debug('login failed');
         $c->stash->{message} = 'Login failed.';
         $c->forward('Kinetic::UI::Catalyst::V::TT');

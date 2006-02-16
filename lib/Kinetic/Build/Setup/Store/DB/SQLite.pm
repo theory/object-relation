@@ -43,7 +43,7 @@ This module inherits from Kinetic::Build::Setup::Store::DB to build a SQLite dat
 store. Its interface is defined entirely by Kinetic::Build::Setup::Store. The
 command-line options it adds are:
 
-=over
+=over 4
 
 =item path-to-sqlite
 

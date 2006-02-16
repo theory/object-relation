@@ -35,7 +35,7 @@ our $VERSION = version->new('0.0.1');
 
 BEGIN {
     load_classes(
-        File::Spec::Functions::catdir( KINETIC_ROOT, 'lib' ),
+        KINETIC_ROOT.'/lib',
         qr/Kinetic.(?:Build|DataType|Engine|Format|Meta|Store|UI|Util|Version)/
     );
 }
@@ -58,6 +58,7 @@ use Catalyst
         Session::State::Cookie
         Static::Simple
     );
+#use base 'Kinetic::UI::Catalyst::Auth::Credential::Password';
 
 # This *must* come first so that home is set for everything else.
 __PACKAGE__->config({
@@ -117,9 +118,16 @@ more information.
 sub begin : Private {
     my ( $self, $c ) = @_;
 
+    my $test = $c->request->param('test') || '??';
+#    unless ($test) {
+#        if ($c->stash->{test}) {
+#            $test = $c->stash->{test};
+#        }
+#    }
     $c->stash->{debug} = {
         conf => $ENV{KINETIC_CONF},
         env  => \%ENV,
+        test => 'asfasdfa',
     };
 
     # move this to its own method

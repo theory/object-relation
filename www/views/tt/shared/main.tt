@@ -11,5 +11,6 @@
     </div>
     [% content %]
     [% USE Dumper %]
+    <p>Test is "[% Dumper.dump_html(c.stash.debug) %]"</p>
     <span style="color:red"><pre>[% Dumper.dump_html(c.config) %]</pre></span>
 [% END %]
