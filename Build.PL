@@ -18,6 +18,7 @@ my %catalyst = (
     'Catalyst::Plugin::Session::Store::Memcached'            => 0.02,
     'Catalyst::Plugin::Session::State::Cookie'               => 0,
     'Catalyst::Plugin::Static::Simple'                       => 0,
+    'Test::WWW::Mechanize::Catalyst'                         => 0.35,
 );
 
 my $build = Kinetic::Build->new(

@@ -51,14 +51,11 @@ use Catalyst
 #    ($ENV{HARNESS_ACTIVE} ? '-Debug' : ()),
     CACHE_CATALYST_CLASS->session_class,
     qw(
-        Authentication
-        Authentication::Store::Minimal
-        Authentication::Credential::Password
         Session
         Session::State::Cookie
         Static::Simple
     );
-#use base 'Kinetic::UI::Catalyst::Auth::Credential::Password';
+use base 'Kinetic::UI::Catalyst::Auth';
 
 # This *must* come first so that home is set for everything else.
 __PACKAGE__->config({
@@ -119,15 +116,9 @@ sub begin : Private {
     my ( $self, $c ) = @_;
 
     my $test = $c->request->param('test') || '??';
-#    unless ($test) {
-#        if ($c->stash->{test}) {
-#            $test = $c->stash->{test};
-#        }
-#    }
     $c->stash->{debug} = {
         conf => $ENV{KINETIC_CONF},
         env  => \%ENV,
-        test => 'asfasdfa',
     };
 
     # move this to its own method

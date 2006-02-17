@@ -1,4 +1,4 @@
-package Kinetic::UI::Catalyst::Auth::Credential::Password;
+package Kinetic::UI::Catalyst::Auth;
 
 # $Id: Password.pm 2633 2006-02-15 20:21:23Z curtispoe $
 
@@ -24,13 +24,15 @@ use warnings;
 use version;
 our $VERSION = version->new('0.0.1');
 
+use aliased 'Kinetic::Util::Auth';
+
 =head1 Name
 
-Kinetic::UI::Catalyst::Auth::Credential::Password - Web password authentication
+Kinetic::UI::Catalyst::Auth - Web password authentication
 
 =head1 Synopsis
 
- use base 'Kinetic::UI::Catalyst::Auth::Credential::Password';
+ use base 'Kinetic::UI::Catalyst::Auth';
  use Kinetic::UI::Catalyst @plugins;
 
 =head1 Description
@@ -48,13 +50,19 @@ the next commit).
 =head3 login
 
   if ($c->login) {
-     ....
+     ...
+  }
+  if ($c->login($username, $password)) {
+     ...
   }
 
 This method attempts to read C<username> and C<password> fields from a form
 and authenticate them to a use with C<Kinetic::Util::Auth>.  If a user
 successfully authenticates, sets the user object for later retrieval with 
 C<< $c->user >> and returns true.  Otherwise, returns false.
+
+If preferred, a username and password may also be supplied to this method if
+the source of the information is not a form or query string.
 
 =cut
 
@@ -67,20 +75,68 @@ C<< $c->user >> and returns true.  Otherwise, returns false.
 sub login {
     my $c = shift;
 
-    my ( $user, $pass ) = $c->_get_user_pass;
-    if ( $user && ( my $user_object = Auth->authenticate( $user, $pass ) ) ) {
-        $c->set_authenticated($user_object);
-        $c->log->debug("Successfully authenticated user '$user'.")
-          if $c->debug;
-        return 1;
+    my ( $username, $password ) = @_ ? @_ : $c->_get_user_pass;
+
+    if ($username) {
+        if ( my $user = eval { Auth->authenticate( $username, $password ) } )
+        {
+            $c->user($user);
+            $c->log->debug("Successfully authenticated user '$username'.")
+              if $c->debug;
+            return 1;
+        }
+        else {
+            $c->log->debug( "Failed to authenticate user '$username'."
+                  . "Reason: 'Incorrect password'" )
+              if $c->debug;
+            return;
+        }
     }
     else {
-        $c->log->debug(
-            "Failed to authenticate user '$user'. Reason: 'Incorrect password'"
-          )
+        $c->log->debug( "Failed to authenticate user."
+              . " Reason: 'Could not determine username'" )
           if $c->debug;
         return;
     }
+}
+
+##############################################################################
+
+=head3 logout
+
+ $c->logout;
+
+This ends the current session.
+
+=cut
+
+sub logout {
+    my $c = shift;
+
+    # theoretically, this is redundant.  However, I don't know what
+    # information will be left in the session cache and I'd rather not have an
+    # inadvertent leak.
+    delete $c->session->{user};
+    $c->delete_session;
+}
+
+##############################################################################
+
+=head3 user
+
+  my $user = $c->user;
+
+Fetches the user from the session.  Returns C<undef> if there is no user.
+
+This can also be used to set the user, but setting the user should only be
+handled by C<Kinetic::UI::Catalyst::Auth>.
+
+=cut
+
+sub user {
+    my $c = shift;
+    return $c->session->{user} unless @_;
+    $c->session->{user} = shift;
 }
 
 ##############################################################################
@@ -103,7 +159,7 @@ sub _get_user_pass {
     my ( $user, $pass );
     unless ( $user = $c->request->param("username") ) {
         $c->log->debug(
-            "Can't login a user without a user object or user ID param");
+            "Can't login a user without a username");
         return;
     }
 

@@ -60,17 +60,40 @@ sub login : Local {
 
     $c->session->{referer} ||= $c->req->referer;
     if ( !$c->login ) {
-        $c->log->debug('login failed');
-        $c->stash->{message} = 'Login failed.';
+        if (! $c->session->{tried_to_login}) {
+            $c->session->{tried_to_login} = 1;
+        }
+        else {
+            $c->log->debug('login failed');
+            $c->stash->{message} = 'Login failed.';
+        }
         $c->forward('Kinetic::UI::Catalyst::V::TT');
     }
     else {
-        if ( $c->session->{referer} =~ m{login$} ) {
+        if ( $c->session->{referer} =~ m{log(?:in|out)$} ) {
             $c->session->{referer} ||= $c->req->referer;
         }
         $c->log->debug('login succeeded');
+        $c->session->{tried_to_login} = 0;
         $c->res->redirect( $c->session->{referer} );
     }
+}
+
+##############################################################################
+
+=head3 logout
+
+  $c->logout;
+
+Logs the user out of their session.
+
+=cut
+
+sub logout : Global {
+    my ( $self, $c ) = @_;
+    $c->logout;
+    $c->req->action(undef);
+    $c->forward( 'login', 'login' );
 }
 
 1;

@@ -1,6 +1,7 @@
 [% 
    WRAPPER 'shared/head_body.tt'
 %]
+    <p>[% c.user.username %] <a href="/logout">Logout</a></p>
     <div id="sidebar">
     <p>Classes:</p>
     [% FOREACH class = c.config.classes;
