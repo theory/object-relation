@@ -79,6 +79,7 @@ lib/Kinetic/Store/Parser.pm
 lib/Kinetic/Store/Parser/Overview.pod
 lib/Kinetic/Store/Search.pm
 lib/Kinetic/UI/Catalyst.pm
+lib/Kinetic/UI/Catalyst/Auth.pm
 lib/Kinetic/UI/Catalyst/C/Login.pm
 lib/Kinetic/UI/Catalyst/C/REST.pm
 lib/Kinetic/UI/Catalyst/C/Search.pm
@@ -119,12 +120,13 @@ META.yml
 README
 t/accessors.t
 t/app_build.t
-t/app_build/TEST/Kinetic/AppBuild.pm
 t/badconfig.t
 t/basic.t
 t/build.t
 t/build/TEST/Kinetic/Build.pm
 t/build/TEST/Kinetic/Build/Setup.pm
+t/build/TEST/Kinetic/Build/Setup/Auth.pm
+t/build/TEST/Kinetic/Build/Setup/Auth/Kinetic.pm
 t/build/TEST/Kinetic/Build/Setup/Cache.pm
 t/build/TEST/Kinetic/Build/Setup/Cache/File.pm
 t/build/TEST/Kinetic/Build/Setup/Cache/Memcached.pm
@@ -138,6 +140,8 @@ t/build/TEST/Kinetic/Build/Setup/Store/DB/SQLite.pm
 t/c_REST.t
 t/c_Search.t
 t/c_View.t
+t/catalyst/auth.t
+t/catalyst/session.t
 t/clone.t
 t/collection.t
 t/config.t

@@ -1,6 +1,6 @@
 package Kinetic::Build::Base;
 
-# $Id: Build.pm 2630 2006-02-15 05:42:59Z theory $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #
@@ -63,7 +63,7 @@ intended to be used directly, but by L<Kinetic::Build|Kinetic::Build> and
 L<Kinetic::AppBuild|Kinetic::AppBuild>.
 
 The functionality it adds includes setting a different default value for the
-C<install_path> property to "$Config{installprefix}/kinetic", building and
+C<install_base> property to "$Config{installprefix}/kinetic", building and
 installing the contents of a C<www> directory, and automatically adding the
 contents of a C<bin> directory to the C<script_files> property. Read on for
 more.
@@ -172,11 +172,11 @@ sub new {
     }
 
     # Prevent installation into lib/perl5. We just want lib'.
-    $self->install_path->{lib} ||= $self->install_base . '/lib';
+    $self->install_base_relpaths->{lib} = ['lib'];
 
     # Add www element and install path.
     $self->add_build_element('www');
-    $self->install_path->{www} ||= $self->install_base . '/www';
+    $self->install_base_relpaths->{www} = ['www'];
 
     # Prompts.
     for my $prompt (@prompts) {

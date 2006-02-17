@@ -69,28 +69,41 @@ appliaction.
 =cut
 
 sub new {
-    my $self = shift->SUPER::new(
-        # Set up new default values for parent class properties.
-        install_base =>
-            File::Spec->catdir( $Config::Config{installprefix}, 'kinetic' ),
-        @_    # User-set properties.
-    );
+    my ($class, @args) = @_;
+    my $self = $class->SUPER::new(@args);
 
-    # Does the base directory exist?
-    my $base = $self->install_base;
-    die qq{Directory "$base" does not exist; use --install-base to }
-        . 'specify the Kinetic base directory'
-        unless -d $base;
+    unless ($self->path_to_config) {
+        # Does the base directory exist?
+        my $base = $self->install_base;
+        die qq{Directory "$base" does not exist; use --install-base to }
+            . "specify the\nKinetic base directory; or use --path-to-config "
+            . "to point to kinetic.conf\n"
+            unless -d $base;
 
-    # Is Kinetic installed there?
-    my $kinetic_conf = File::Spec->catfile($base, 'conf', 'kinetic.conf');
-    die qq{Kinetic does not appear to be installed in "$base"; use }
-        . '--install-base to specify the Kinetic base directory'
-        unless -e $kinetic_conf;
+        # Is there a conf file there?
+        my $config_file = File::Spec->catfile($base, qw(conf kinetic.conf));
+        die qq{Kinetic does not appear to be installed in "$base"; use }
+            . "--install-base to\nspecify the Kinetic base directory or "
+            . "use --path-to-config to point to kinetic.conf\n"
+            unless -e $config_file;
 
-    # Add www element and install path.
-    $self->add_build_element('www');
-    $self->install_path->{www} ||= $self->install_base . '/www';
+        # Great, we found it! Load it up.
+        # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
+        Config::Std::Hash::read_config( $config_file => my %conf );
+        $self->notes(_config_ => \%conf);
+        # XXX Yes, I'm a very bad man.
+        $self->{properties}{path_to_config} = $config_file;
+    }
+
+    # Now determine the install prefix from the config data.
+    my $base = $self->notes('_config_')->{kinetic}{root}
+        or die 'I cannot find Kinetic. Is it installed? use --path-to-config '
+             . 'to point to its config file';
+
+    # If it's in a different place, change it.
+    # XXX Naughty, naughty, I know! But there's no other way.
+    $self->{properties}{install_base} = $base
+        if $self->install_base ne $base;
 
     return $self;
 }

@@ -76,7 +76,7 @@ sub new {
 
     # Add config file element and install path.
     $self->add_build_element('conf');
-    $self->install_path->{conf} ||= $self->install_base . '/conf';
+    $self->install_base_relpaths->{conf} = ['conf'];
 
     return $self;
 }

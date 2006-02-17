@@ -1,6 +1,6 @@
 package TEST::Kinetic::Build::Setup::Auth::Kinetic;
 
-# $Id: File.pm 2630 2006-02-15 05:42:59Z theory $
+# $Id$
 
 use strict;
 use warnings;

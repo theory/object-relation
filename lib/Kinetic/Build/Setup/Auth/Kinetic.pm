@@ -1,6 +1,6 @@
 package Kinetic::Build::Setup::Auth::Kinetic;
 
-# $Id: Kinetic.pm 2612 2006-02-11 02:43:17Z theory $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

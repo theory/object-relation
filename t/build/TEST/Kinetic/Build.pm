@@ -171,7 +171,7 @@ sub test_www_files : Test(5) {
     file_not_exists_ok 'blib', 'Build lib should be gone';
 }
 
-sub test_props : Test(12) {
+sub test_props : Test(14) {
     my $self = shift;
     my $class = $self->test_class;
     my $mb = MockModule->new($class);
@@ -187,11 +187,12 @@ sub test_props : Test(12) {
 
     # Make sure the install paths are set.
     my $base = $builder->install_base;
-    is_deeply $builder->install_path, {
-        lib  => "$base/lib",
-        conf => "$base/conf",
-        www  => "$base/www",
-    }, 'Make sure that the install paths are set';
+    is_deeply $builder->install_base_relpaths->{lib}, ['lib'],
+        'The lib install relpath should be "lib"';
+    is_deeply $builder->install_base_relpaths->{www}, ['www'],
+        'The www install relpath should be "www"';
+    is_deeply $builder->install_base_relpaths->{conf}, ['conf'],
+        'The conf install relpath should be "conf"';
 
     # Make sure that we've added the "config" build element.
     ok any( sub { $_ eq 'conf' }, @{ $builder->build_elements } ),

@@ -1,6 +1,6 @@
 package Kinetic::UI::Catalyst::Auth;
 
-# $Id: Password.pm 2633 2006-02-15 20:21:23Z curtispoe $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

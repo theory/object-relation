@@ -1,6 +1,6 @@
 package Kinetic::Build::Setup::Auth;
 
-# $Id: Cache.pm 2622 2006-02-14 02:31:45Z curtis $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

@@ -1,6 +1,6 @@
 package TEST::Kinetic::Build::Setup::Auth;
 
-# $Id: Auth.pm 2628 2006-02-15 04:34:05Z curtis $
+# $Id$
 
 use strict;
 use warnings;
