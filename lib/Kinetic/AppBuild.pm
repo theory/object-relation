@@ -62,9 +62,16 @@ library, view, and Web file installation.
 
   my $cm = Kinetic::AppBuild->new(%init);
 
-Overrides Module::Build's constructor to add Kinetic-specific build elements
-and to run methods that collect data necessary to install a Kinetic
-appliaction.
+Overrides Module::Build's constructor to require a value for the
+C<path_to_config> property. If specified, this configuration file will be used
+to determine where and how to build the Kinetic application. If it is not
+provided, C<new()> will look for F<conf/kinetic.conf> under the directory
+specified by the C<install_base> directive (which by default is set, by
+Kinetic::Build::Base, to C<$Config::Config{installprefix}/kinetic>.
+
+If the value of the "root" setting under "kinetic" will then be used to set
+the C<install_base> property so as to have the proper location for installing
+the Kinetic application.
 
 =cut
 
@@ -102,11 +109,12 @@ sub new {
 
     # If it's in a different place, change it.
     # XXX Naughty, naughty, I know! But there's no other way.
-    $self->{properties}{install_base} = $base
-        if $self->install_base ne $base;
+    $self->{properties}{install_base} = $base if $self->install_base ne $base;
 
     return $self;
 }
+
+
 
 1;
 __END__

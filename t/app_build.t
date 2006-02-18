@@ -5,8 +5,9 @@
 use warnings;
 use strict;
 #use Test::More 'no_plan';
-use Test::More tests => 22;
+use Test::More tests => 28;
 use Test::Exception;
+use Test::File;
 use aliased 'Test::MockModule';
 use File::Spec::Functions qw(catdir updir catfile curdir);
 use Kinetic::Build::Test kinetic => { root => updir };
@@ -97,43 +98,21 @@ throws_ok { new_builder() }
     'We should die if the config file is messed up';
 $ab_mocker->unmock('notes');
 
-=begin pod
+##############################################################################
+# Now let'd make sure that the build action does what we want.
+my $blib_file = 'blib/lib/TestApp/Simple.pm';
+my $bwww_file = 'blib/www/test.html';
+my $bbin_file = 'blib/script/somescript';
 
+file_not_exists_ok $blib_file, 'blib lib file should not yet exist';
+file_not_exists_ok $bwww_file, 'blib www file should not yet exist';
+file_not_exists_ok $bbin_file, 'blib bin file should not yet exist';
 
-sub test_files : Test(no_plan) {
-    my $self  = shift;
-    my $CLASS = $self->test_class;
+$builder->dispatch('build');
 
-    my $mocker = MockModule->new('Kinetic::Build::Base');
-    $mocker->mock(_check_build_component => 1);
-
-    # Start with no path to config.
-    throws_ok { $self->new_builder( install_base => 'foo') }
-        qr/Directory "foo" does not exist; use --install-base to specify the\nKinetic base directory; or use --path-to-config to point to kinetic.conf/,
-        'We should get an error for an invalid install_base';
-
-    return;
-
-
-    ok my $builder = $self->new_builder;
-    isa_ok $builder, $CLASS, 'The builder';
-
-    my $blib_file = 'blib/lib/TestApp/Simple.pm';
-    my $bwww_file = 'blib/www/test.html';
-    my $bbin_file = 'blib/script/somescript';
-
-    file_not_exists_ok $blib_file, 'blib lib file should not yet exist';
-    file_not_exists_ok $bwww_file, 'blib www file should not yet exist';
-    file_not_exists_ok $bbin_file, 'blib bin file should not yet exist';
-
-    $builder->dispatch('build');
-
-    file_exists_ok $blib_file, 'blib lib file should now exist';
-    file_exists_ok $bwww_file, 'blib www file should now exist';
-    file_exists_ok $bbin_file, 'blib bin file should now exist';
-}
-
-=cut
+file_exists_ok $blib_file, 'blib lib file should now exist';
+file_exists_ok $bwww_file, 'blib www file should now exist';
+file_exists_ok $bbin_file, 'blib bin file should now exist';
 
 sub new_builder {
     push @builders, $CLASS->new(
@@ -146,5 +125,8 @@ sub new_builder {
     );
     return $builders[-1];
 }
+
+
+
 1;
 __END__
