@@ -26,7 +26,7 @@ use DBI;
 use File::Spec;
 use File::Path  ();
 use File::Copy  ();
-use Config::Std ();
+use Config::Std { read_config => 'get_config', write_config => 'set_config' };
 use Scalar::Util 'blessed';
 use Term::ANSIColor;
 
@@ -166,8 +166,7 @@ sub new {
     # Load the config file, if specified.
     if (my $conf_file = $self->path_to_config) {
         # Load the configuration.
-        # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
-        Config::Std::Hash::read_config( $conf_file => my %conf );
+        get_config( $conf_file => my %conf );
         $self->notes(_config_ => \%conf);
     }
 
@@ -448,8 +447,7 @@ sub process_conf_files {
     for my $conf_file ( $self->_copy_to( $files, $self->blib, 't' ) ) {
 
         # Load the configuration.
-        # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
-        Config::Std::Hash::read_config( $conf_file => my %conf );
+        get_config( $conf_file => my %conf );
 
         my $test = '';
         if ( $conf_file =~ /^blib/ ) {
@@ -472,8 +470,7 @@ sub process_conf_files {
             }
         }
 
-        # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
-        Config::Std::Hash::write_config(%conf);
+        set_config(%conf);
     }
     return $self;
 }

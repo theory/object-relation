@@ -20,7 +20,7 @@ package Kinetic::AppBuild;
 
 use strict;
 use base 'Kinetic::Build::Base';
-use Config::Std;
+use Config::Std { read_config => 'get_config', write_config => 'set_config' };
 use File::Spec;
 
 use version;
@@ -95,8 +95,7 @@ sub new {
             unless -e $config_file;
 
         # Great, we found it! Load it up.
-        # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
-        Config::Std::Hash::read_config( $config_file => my %conf );
+        get_config( $config_file => my %conf );
         $self->notes(_config_ => \%conf);
         $self->path_to_config($config_file);
     }

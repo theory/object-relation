@@ -363,7 +363,7 @@ sub handle_rest_request : Test(20) {
     ok $response = $rest->response, '... and we should have a response';
     $expected = <<"    END_JSON";
       {
-        "bool" : 1,
+        "bool" : '1',
         "name" : "bar",
         "Key" : "one",
         "uuid" : "@{[$object_for{bar}->uuid]}",

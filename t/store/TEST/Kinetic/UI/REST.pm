@@ -356,7 +356,7 @@ sub rest_interface : Test(32) {
 
     $expected = <<"    END_JSON";
       {
-        "bool" : 1,
+        "bool" : '1',
         "name" : "bar",
         "Key" : "one",
         "uuid" : "@{[$object_for{bar}->uuid]}",
