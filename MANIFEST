@@ -1,11 +1,5 @@
 bin/kineticd
 Build.PL
-catalyst/cgi.pl
-catalyst/create.pl
-catalyst/fastcgi.pl
-catalyst/registry.pl
-catalyst/server.pl
-catalyst/test.pl
 Changes
 conf/kinetic.conf
 eg/httpd.conf
