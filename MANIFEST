@@ -211,6 +211,7 @@ lib/Kinetic/Util/Language/en_us.pm
 lib/Kinetic/VersionInfo.pm
 MANIFEST			This list of files
 META.yml
+qpsmtpd/check_workflow
 README
 t/accessors.t
 t/app_build.t
