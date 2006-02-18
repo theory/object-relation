@@ -24,7 +24,6 @@ my %catalyst = (
 my $build = Kinetic::Build->new(
     module_name          => 'Kinetic',
     license              => 'gpl',
-    create_makefile_pl   => 'passthrough',
     build_class          => 'Kinetic::Build',
     dist_author          => 'Kineticode, Inc. <info@kineticode.com>',
     recursive_test_files => 1,
