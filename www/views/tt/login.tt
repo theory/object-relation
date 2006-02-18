@@ -3,7 +3,7 @@
    title = 'Please login' 
 %]
   <div class="listing">
-    <form action="[% c.uri_for('login') %]" method="post">
+    <form action="[% c.uri_for('login') %]" method="post" name="login">
       <fieldset>
         <legend>Login</legend>
         <table>

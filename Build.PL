@@ -8,9 +8,6 @@ my $skipper =
 my %catalyst = (
     'Catalyst'                                               => 5.61,
     'Catalyst::Engine::Apache'                               => 1.05,
-    'Catalyst::Plugin::Authentication'                       => 0,
-    'Catalyst::Plugin::Authentication::Store::Minimal'       => 0,
-    'Catalyst::Plugin::Authentication::Credential::Password' => 0,
     'Catalyst::Plugin::Session'                              => 0,
     # XXX Change to option.
     'Catalyst::Plugin::Session::Store::File'                 => 0,

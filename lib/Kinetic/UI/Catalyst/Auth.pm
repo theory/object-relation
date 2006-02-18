@@ -157,14 +157,14 @@ error is not displayed to the end user (nor should it be).
 sub _get_user_pass {
     my $c = shift;
     my ( $user, $pass );
-    unless ( $user = $c->request->param("username") ) {
+    unless ( $user = $c->request->param('username') ) {
         $c->log->debug(
-            "Can't login a user without a username");
+            q{Can't login a user without a username});
         return;
     }
 
-    unless ( $pass = $c->request->param("password") ) {
-        $c->log->debug("Can't login a user without a password");
+    unless ( $pass = $c->request->param('password') ) {
+        $c->log->debug(q{Can't login a user without a password});
         return;
     }
     return ( $user, $pass );

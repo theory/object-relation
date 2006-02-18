@@ -1,0 +1,105 @@
+# $Id: Overview.pod 2582 2006-02-07 02:27:45Z theory $
+
+# CONTRIBUTION SUBMISSION POLICY:
+#
+# (The following paragraph is not intended to limit the rights granted to you
+# to modify and distribute this software under the terms of the GNU General
+# Public License Version 2, and is only of importance to you if you choose to
+# contribute your changes and enhancements to the community by submitting them
+# to Kineticode, Inc.)
+#
+# By intentionally submitting any modifications, corrections or
+# derivatives to this work, or any other work intended for use with the
+# Kinetic framework, to Kineticode, Inc., you confirm that you are the
+# copyright holder for those contributions and you grant Kineticode, Inc.
+# a nonexclusive, worldwide, irrevocable, royalty-free, perpetual license to
+# use, copy, create derivative works based on those contributions, and
+# sublicense and distribute those contributions and any derivatives thereof.
+
+=head1 Name
+
+Kinetic::UI::Catalyst::Plugins - Overview of Kinetic Catalyst plugins
+
+=head1 Synopsis
+
+How Catalyst plugins work.
+
+=head1 Description
+
+=head2 Using plugins
+
+Catalyst has a very curious notion of plugins.  Essentially, your application
+will inherit from most plugins it uses.  This is handled in
+C<Catalyst::setup_plugins()> with the following lines:
+
+  {
+      no strict 'refs';
+      unshift @{"$class\::ISA"}, $plugin;
+  }
+
+However, the C<$plugin> is determined by taking all names from the import list
+and prepending them with C<Catalyst::Plugin::>.  In order to use a plugin
+which does not begin with C<Catalyst::Plugin::>, you must "use base".
+
+I am working on a system whereby one can use different names, but there are
+some issues with the Catalyst architecture which are being discussed.  The
+patch has been acccepted by the Catalyst team and I committed it, but until
+the next release, it won't be available.
+
+If you absolutely can't stand inherited plugins, you can also do this:
+
+  MyApp->plugin($method_name, $plugin_package_name, @args_to_new);
+
+And then in your app:
+
+  $c->$method_name->$some_plugin_method(@some_args);
+
+This uses delegation instead of inheritance.  I only discovered that by
+reading the code.  It does not appear to be documented.
+
+=head2 Testing plugins
+
+The basic framework for testing a plugin works like this:
+
+ {
+     package MyTestApp;
+ 
+     use Catalyst @plugins_I_want_to_test;
+ 
+     use Test::More;
+ 
+     sub my_test_method : Local {
+         my ( $self, $c ) = @_;
+ 
+         isa_ok $c, $plugin_package_name;
+         can_ok $c, $some_plugin_method;
+         is $c->$some_plugin_method, $some_result, '... test message';
+         $c->res->body("ok");
+     }
+ }
+ 
+ use aliased 'Test::WWW::Mechanize::Catalyst' => 'Mech', 'MyTestApp';
+ my $mech = Mech->new;
+ $mech->get_ok( 'http://localhost/my_test_method',
+     'my_test_method should succeed' );
+
+You can see tests for C<Catalyst::Plugin::Session> for more extensive
+examples.  Theoretically, one can just use C<Catalyst::Test>, but that does
+not store cookies so if your code depends on sessions, you're out of luck.
+
+=head1 Copyright and License
+
+Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>
+
+This work is made available under the terms of Version 2 of the GNU General
+Public License. You should have received a copy of the GNU General Public
+License along with this program; if not, download it from
+L<http://www.gnu.org/licenses/gpl.txt> or write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+This work is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE. See the GNU General Public License Version 2 for more
+details.
+
+=cut

@@ -1063,10 +1063,10 @@ looks for the option with the equivalent of the following method calls:
 
 An optional code reference that will be called once a value has been found.
 The value will be passed to the callback as its only argument, and also set to
-C<$_>. If the callback returns false, C<_get_option() will throw an exception.
-Note that if the callback sets C<$_> to a different value, the revised value
-is the one that will be returned. This can be useful for parsing one value
-from another.
+C<$_>. If the callback returns false, C<_get_option()> will throw an
+exception.  Note that if the callback sets C<$_> to a different value, the
+revised value is the one that will be returned. This can be useful for parsing
+one value from another.
 
 =item config_keys
 
