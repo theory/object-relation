@@ -98,8 +98,7 @@ sub new {
         # XXX https://rt.cpan.org/NoAuth/Bug.html?id=16804
         Config::Std::Hash::read_config( $config_file => my %conf );
         $self->notes(_config_ => \%conf);
-        # XXX Yes, I'm a very bad man.
-        $self->{properties}{path_to_config} = $config_file;
+        $self->path_to_config($config_file);
     }
 
     # Now determine the install prefix from the config data.
@@ -108,8 +107,7 @@ sub new {
              . 'to point to its config file';
 
     # If it's in a different place, change it.
-    # XXX Naughty, naughty, I know! But there's no other way.
-    $self->{properties}{install_base} = $base if $self->install_base ne $base;
+    $self->install_base($base) if $self->install_base ne $base;
 
     return $self;
 }
