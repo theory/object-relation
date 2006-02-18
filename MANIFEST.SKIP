@@ -1,16 +1,33 @@
-^_build
-^Build$
-^blib
-^Makefile$
-^MakeMaker-\d
+# Avoid version control files.
+\bRCS\b
+\bCVS\b
+,v$
+\B\.svn\b
+
+# Avoid Makemaker generated and utility files.
+\bMakefile$
+\bblib
+\bMakeMaker-\d
+\bpm_to_blib$
+\bblibdirs$
+^MANIFEST\.SKIP$
+
+# Avoid Module::Build generated and utility files.
+\bBuild$
+\b_build
+
+# Avoid temp and backup files.
 ~$
-\.bak$
-\.old$
 \.tmp$
-^MANIFEST\.
-^#.*#$
-^\.#
-^App-Kinetic
-\.svn
+\.old$
+\.bak$
+\#$
+\b\.#
+
+# Avoid build files.
+^Kinetic
+
+# Avoid non-distributable stuff.
 ^t\Wdata\W
 ^t\Wconf\W
+^dev
