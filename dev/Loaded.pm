@@ -30,7 +30,7 @@ __END__
 
 =head1 Name
 
-Installed
+Loaded
 
 =head1 Synopsis
 
@@ -48,7 +48,7 @@ experimental modules or multiple versions of a module.
 Running this module on itself, for my system at the time these docs were
 written:
 
-  perl -MInstalled -e 'print Installed->versions'
+  perl -MLoaded -e 'print Loaded->versions'
   AutoLoader           5.60
   Carp                 1.04
   Config               
