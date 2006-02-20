@@ -55,6 +55,12 @@ use Catalyst
         Session::State::Cookie
         Static::Simple
     );
+
+# XXX when the next version of Catalyst comes out, we should be able to move
+# this into the import list as
+#
+#   +Kinetic::UI::Catalyst::Auth 
+#
 use base 'Kinetic::UI::Catalyst::Auth';
 
 # This *must* come first so that home is set for everything else.
@@ -73,12 +79,6 @@ __PACKAGE__->config({
     'V::TT' => {
         INCLUDE_PATH => __PACKAGE__->path_to(qw/www views tt/),
         PLUGIN_BASE  => 'Kinetic::UI::TT::Plugin',
-    },
-    authentication => {
-        users => {
-            ovid   => { password => 'divo' },
-            theory => { password => 'theory' }
-        }
     },
     CACHE_CATALYST_CLASS->config,
 });

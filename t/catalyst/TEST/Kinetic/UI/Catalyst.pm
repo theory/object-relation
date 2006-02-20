@@ -174,4 +174,79 @@ sub login_logout_roundtrip : Test(17) {
     );
 }
 
+sub mutiple_logins : Test(15) {
+    my $self = shift;
+    my $mech = Mech->new;
+    my $response;
+    my $url = 'http://localhost/search/';
+    stderr_like {
+        $mech->get_ok(
+            $url,
+            'Trying to fetch a page before we log in should succeed'
+        );
+      }
+      qr/$TIMESTAMP \[debug\] Can't login a user without a username/,
+      '... telling us that we need to login';
+    stderr_like {
+        ok $response = $mech->submit_form(
+            form_name => 'login',
+            fields    => {
+                username => 'ovid',
+                password => 'ovidius',
+            },
+          ),
+          'Submitting the form with good credentials should succeed';
+      }
+      qr/$TIMESTAMP \[debug\] login succeeded/,
+      '... and we should get a proper log message';
+
+    is $response->code, 200, '... and the request should succeed';
+
+    $mech->content_contains(
+        'Logout',
+        'We should have a logout label'
+    );
+    $mech->content_contains(
+        'ovid',
+        '... and the username of the logged in user'
+    );
+    $mech->get_ok(
+        "$url?username=theory&password=theory",
+        'Trying to force a different user should succeed'
+    );
+
+    $mech->content_contains(
+        'Logout',
+        'We should have a logout label'
+    );
+
+    # testing that only the "official" auth mechanism works
+    $mech->content_contains( '<p>ovid <a href="/logout">Logout</a></p>',
+         '... but only the old user should remain' );
+
+    stderr_like {
+        $mech->follow_link_ok(
+            { text => 'Logout' },
+            'We should be able to logout'
+        );
+      }
+      qr/$TIMESTAMP \[debug\] Can't login a user without a username/,
+      '... telling us that we need to login';
+    stderr_like {
+        ok $response = $mech->submit_form(
+            form_name => 'login',
+            fields    => {
+                username => 'theory',
+                password => 'theory',
+            },
+          ),
+          'Logging in with a different user should succeed';
+      }
+      qr/$TIMESTAMP \[debug\] login succeeded/,
+      '... and we should get a proper log message';
+
+    $mech->content_contains( '<p>theory <a href="/logout">Logout</a></p>',
+         '... with the new user being logged in' );
+}
+
 1;
