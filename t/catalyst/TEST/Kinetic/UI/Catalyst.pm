@@ -100,7 +100,7 @@ sub _test_load : Test(1) {
     use_ok $class_pkg or die;
 }
 
-sub login_logout_roundtrip : Test(19) {
+sub login_logout_roundtrip : Test(17) {
     my $self = shift;
     my $mech = Mech->new;
     stderr_like {
@@ -141,14 +141,8 @@ sub login_logout_roundtrip : Test(19) {
       }
       qr/$TIMESTAMP \[debug\] login succeeded/,
       '... and we should get a proper log message';
-    is $response->code, 302, '... but we should get a redirect';
-    is + ( my $location = $response->headers->header('Location') ),
-      'http://localhost/', '... to the correct location';
+    is $response->code, 200, '... and the request should succeed';
 
-    $mech->get_ok(
-        $location,
-        'We should be able to go to the redirect location'
-    );
     $mech->content_lacks(
         'Login failed.',
         '... and we should not get a "Login failed" message'
