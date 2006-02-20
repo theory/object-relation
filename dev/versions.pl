@@ -4,9 +4,7 @@ use strict;
 use warnings;
 
 use lib 'lib', 't/store', 't/lib', 't/sample/lib';
-use Data::Dumper; 
-use TEST::Kinetic::View::XSLT;
-use TEST::Kinetic::Interface::REST;
+use TEST::Kinetic::UI::REST;
 use TEST::Kinetic::Store;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(0) }
