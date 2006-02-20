@@ -92,27 +92,30 @@ sub rules {
                 my $builder = $self->builder;
                 $self->{port} = $builder->args('catalyst_port')
                     || $builder->get_reply(
-                    name    => 'catalyst-port',
-                    message => 'Please enter the port on which to run the '
-                             . 'Catalyst server',
-                    label   => 'Catalyst port',
-                    default => 3000
+                    name        => 'catalyst-port',
+                    message     => 'Please enter the port on which to run '
+                                 . 'the Catalyst server',
+                    label       => 'Catalyst port',
+                    default     => 3000,
+                    config_keys => [qw(engine port)],
                 );
                 $self->{host} = $builder->args('catalyst_host')
                     || $builder->get_reply(
-                    name    => 'catalyst-host',
-                    message => 'Please enter the hostname on which the '
-                             . 'Catalyst server will run',
-                    label   => 'Catalyst host',
-                    default => 'localhost'
+                    name        => 'catalyst-host',
+                    message     => 'Please enter the hostname on which the '
+                                 . 'Catalyst server will run',
+                    label       => 'Catalyst host',
+                    default     => 'localhost',
+                    config_keys => [qw(engine host)],
                 );
                 $self->{restart} = $builder->args('catalyst_restart')
                     || $builder->ask_y_n(
-                    name    => 'catalyst-restart',
-                    message => 'Should the Catalyst server automatically '
-                             . 'restart if .pm files change?',
-                    label   => 'Catalyst restart',
-                    default => 0,
+                    name        => 'catalyst-restart',
+                    message     => 'Should the Catalyst server automatically '
+                                 . 'restart if .pm files change?',
+                    label       => 'Catalyst restart',
+                    default     => 0,
+                    config_keys => [qw(engine restart)],
                 );
                 $state->message('Catalyst configuration collected');
                 $state->done(1);

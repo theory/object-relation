@@ -628,6 +628,7 @@ sub get_reply {
     my ( $self, %params ) = @_;
     my $def_label = $params{default};
 
+    # Return command-line/config file/envronment value first.
     my $val = $self->_get_option(
         key         => $params{name},
         callback    => $params{callback},
@@ -704,8 +705,14 @@ sub ask_y_n {
     my ( $self, %params ) = @_;
     die 'ask_y_n() called without a prompt message' unless $params{label};
 
-    # Return command-line option first.
-    my $val = $self->_get_option( key => $params{name} );
+    # Return command-line/config file/envronment value first.
+    my $val = $self->_get_option(
+        key         => $params{name},
+        callback    => sub { $_ = $_ ? 1 : 0; return 1; },
+        config_keys => $params{config_keys},
+        environ     => $params{environ},
+    );
+
     if (defined $val) {
         $self->log_info("$params{label}: ", ($val ? 'yes' : 'no'), "\n")
             unless $self->quiet;

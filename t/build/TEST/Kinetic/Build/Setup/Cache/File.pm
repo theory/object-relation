@@ -38,7 +38,7 @@ sub test_file_cache : Test(9) {
     ok $cache->rules, 'Rules should be defined';
 }
 
-sub test_rules : Test(17) {
+sub test_rules : Test(21) {
     my $self  = shift;
     my $class = $self->test_class;
 
@@ -64,7 +64,20 @@ sub test_rules : Test(17) {
     is $cache->root, $tmp_dir, 'Root should be default';
     is $self->{output}, undef,' There should have been no output';
 
+    # Try it with conf file settings.
+    $builder->notes(_config_ => {
+        cache => {
+            root    => 'lib',
+            expires => 543,
+        },
+    });
+    ok $cache->validate, 'Run validate() with conf data';
+    is $cache->expires, 543, 'Expires should be 543';
+    is $cache->root, 'lib', 'Root should be "lib"';
+    is $self->{output}, undef,' There should have been no output';
+
     # Try it with prompts.
+    $builder->notes( _config_ => undef );
     $builder->accept_defaults(0);
     my @input = qw(t 7200);
     $kb->mock(_readline => sub { shift @input });

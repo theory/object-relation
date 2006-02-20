@@ -56,9 +56,9 @@ adds are:
 
 =head2 Class Methods
 
-=head3 authorization_class 
+=head3 authorization_class
 
-  my $authorization_class 
+  my $authorization_class
       = Kinetic::Build::Setup::Auth::Kinetic->authorization_class ;
 
 Returns the package name of the Kinetic authorization class.

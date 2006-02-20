@@ -126,11 +126,12 @@ sub _ask_for_expires {
     my $builder = $self->builder;
     return $self->expires(
         $builder->args('cache_expires') || $builder->get_reply(
-            name     => 'cache-expires',
-            message  => 'Please enter cache expiration time in seconds',
-            label    => 'Cache expiration time',
-            default  => 3600,
-            callback => sub { /^\d+$/ },
+            name        => 'cache-expires',
+            message     => 'Please enter cache expiration time in seconds',
+            label       => 'Cache expiration time',
+            default     => 3600,
+            config_keys => [qw(cache expires)],
+            callback    => sub { /^\d+$/ },
         )
     );
 }

@@ -207,10 +207,12 @@ sub rules {
                 my $info    = $self->info;
                 $self->{conf} = $builder->args('httpd_conf')
                   || $builder->get_reply(
-                      name    => 'path-to-httpd-conf',
-                      message => 'Please enter path to httpd.conf',
-                      label   => 'Path to httpd.conf',
-                      default => $info->conf_file,
+                      name        => 'path-to-httpd-conf',
+                      message     => 'Please enter path to httpd.conf',
+                      label       => 'Path to httpd.conf',
+                      default     => $info->conf_file,
+                      config_keys => [qw(engine conf)],
+                      callback    => sub { -e },
                 );
             },
             rules => [
@@ -237,6 +239,7 @@ sub rules {
                         message => 'Please enter the root URI for TKP',
                         label   => 'Kinetic Root URI',
                         default => $self->base_uri,
+                        config_keys => [qw(kinetic base_uri)],
                     )
                 );
             },

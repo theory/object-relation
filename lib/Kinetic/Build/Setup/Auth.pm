@@ -109,11 +109,13 @@ sub _ask_for_expires {
     my $builder = $self->builder;
     return $self->expires(
         $builder->args('auth_expires') || $builder->get_reply(
-            name     => 'auth-expires',
-            message  => 'Please enter authorization expiration time in seconds',
-            label    => 'Authorization expiration time',
-            default  => 3600,
-            callback => sub { /^\d+$/ },
+            name        => 'auth-expires',
+            message     => 'Please enter authorization expiration time in '
+                         . 'seconds',
+            label       => 'Authorization expiration time',
+            default     => 3600,
+            config_keys => [qw(auth expires)],
+            callback    => sub { /^\d+$/ },
         )
     );
 }

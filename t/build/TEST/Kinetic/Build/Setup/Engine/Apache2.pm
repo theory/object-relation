@@ -42,7 +42,7 @@ sub test_apache : Test(12) {
     ok $apache->rules, 'Rules should be defined';
 }
 
-sub test_rules : Test(44) {
+sub test_rules : Test(48) {
     my $self  = shift;
     my $class = $self->test_class;
 
@@ -83,7 +83,25 @@ sub test_rules : Test(44) {
     is $apache->base_uri, '/', 'Base URI should be "/"';
     is $self->{output}, undef,' There should have been no output';
 
+    # Try it with conf file settings.
+    my $try_bin = catfile(qw(t somescript));
+    my $try_conf = catfile(qw(conf kinetic.conf));
+    $builder->notes(_config_ => {
+        kinetic => {
+            base_uri => '/foo/',
+        },
+        engine => {
+            conf  => $try_conf,
+        },
+    });
+    ok $apache->validate, 'Run validate() with conf file data';
+    is $apache->conf, $try_conf, qq{Conf file should be "$try_conf"};
+    is $apache->base_uri, '/foo/', 'Base URI should be "/foo"';
+    is $self->{output}, undef,' There should have been no output';
+
     # Try it with prompts
+    $builder->notes( _config_ => undef );
+    $apache->base_uri('/');
     $builder->accept_defaults(0);
     my $bin_file = catfile(qw(bin somescript));
     my @input = ($bin_file, '/foo');

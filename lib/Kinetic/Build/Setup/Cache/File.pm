@@ -106,11 +106,13 @@ sub rules {
                 my $builder = $self->builder;
                 $self->{root} = $builder->args('cache_root')
                     || $builder->get_reply(
-                    name     => 'cache-root',
-                    message  => 'Please enter the root directory for caching',
-                    label    => 'Cache root',
-                    default  => catdir(tmpdir(), qw(kinetic cache)),
-                    callback => sub { -d },
+                    name        => 'cache-root',
+                    message     => 'Please enter the root directory for '
+                                 . 'caching',
+                    label       => 'Cache root',
+                    default     => catdir(tmpdir(), qw(kinetic cache)),
+                    callback    => sub { -d },
+                    config_keys => [qw(cache root)],
                 );
                 $self->_ask_for_expires;
                 $state->message('Cache configuration collected');

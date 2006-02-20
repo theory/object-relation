@@ -96,7 +96,7 @@ sub new {
 
         # Great, we found it! Load it up.
         get_config( $config_file => my %conf );
-        $self->notes(_config_ => \%conf);
+        $self->notes( _config_ => \%conf );
         $self->path_to_config($config_file);
     }
 

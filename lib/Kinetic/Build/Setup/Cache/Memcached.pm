@@ -110,11 +110,13 @@ sub rules {
 
                 # Prompt for the addresses.
                 my %prompt_params = (
-                    name     => 'memcached-address',
-                    message  => 'Please enter IP:port for a memcached server',
-                    label    => 'memcached addresses',
-                    default  => $default,
-                    callback => sub { /$check_re/ },
+                    name        => 'memcached-address',
+                    message     => 'Please enter IP:port for a memcached '
+                                 . 'server',
+                    label       => 'memcached addresses',
+                    default     => $default,
+                    callback    => sub { /$check_re/ },
+                    config_keys => [qw(cache address)],
                 );
 
                 my @addrs;

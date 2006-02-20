@@ -34,7 +34,7 @@ sub test_kinetic_auth : Test(8) {
     ok $auth->rules,       'Rules should be defined';
 }
 
-sub test_rules : Test(14) {
+sub test_rules : Test(17) {
     my $self  = shift;
     my $class = $self->test_class;
 
@@ -59,7 +59,18 @@ sub test_rules : Test(14) {
     is $auth->expires, 3600, 'Expires should be 3600';
     is $self->{output}, undef, ' There should have been no output';
 
+    # Try it with conf file settings.
+    $builder->notes(_config_ => {
+        auth => {
+            expires => 654,
+        },
+    });
+    ok $auth->validate, 'Run validate() with config data';
+    is $auth->expires, 654, 'Expires should be 654';
+    is $self->{output}, undef, ' There should have been no output';
+
     # Try it with prompts.
+    $builder->notes( _config_ => undef );
     $builder->accept_defaults(0);
     my @input = qw(7200);
     $kb->mock( _readline => sub { shift @input } );

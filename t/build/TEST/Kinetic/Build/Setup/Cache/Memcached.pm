@@ -38,7 +38,7 @@ sub test_memcached_cache : Test(9) {
     ok $cache->rules, 'Rules should be defined';
 }
 
-sub test_rules : Test(26) {
+sub test_rules : Test(30) {
     my $self  = shift;
     my $class = $self->test_class;
 
@@ -64,7 +64,21 @@ sub test_rules : Test(26) {
         'Addresses should be default';
     is $self->{output}, undef,' There should have been no output';
 
+    # Try it with conf file settings.
+    $builder->notes(_config_ => {
+        cache => {
+            address => ['123.123.123.123:76','123.123.123.124:76'],
+            expires => 543,
+        },
+    });
+    ok $cache->validate, 'Run validate() with config datat';
+    is $cache->expires, 543, 'Expires should be 543';
+    is_deeply $cache->addresses, ['123.123.123.123:76','123.123.123.124:76'],
+        'Addresses should be correct';
+    is $self->{output}, undef,' There should have been no output';
+
     # Try it with prompts.
+    $builder->notes( _config_ => undef );
     $builder->accept_defaults(0);
     my @addrs = ('127.0.0.1:11211', '127.0.0.2:11212');
     my @input = (@addrs, '', 7200);

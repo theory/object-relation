@@ -35,7 +35,7 @@ sub test_catalyst : Test(10) {
     ok $catalyst->rules, 'Rules should be defined';
 }
 
-sub test_rules : Test(20) {
+sub test_rules : Test(25) {
     my $self  = shift;
     my $class = $self->test_class;
 
@@ -61,7 +61,22 @@ sub test_rules : Test(20) {
     ok !$catalyst->restart, 'Restart should be false';
     is $self->{output}, undef,' There should have been no output';
 
+    # Try it with conf file settings.
+    $builder->notes(_config_ => {
+        engine => {
+            port    => 2222,
+            host    => 'hostfoo',
+            restart => 1,
+        },
+    });
+    ok $catalyst->validate, 'Run validate()';
+    is $catalyst->port, 2222, 'Port should be 2222';
+    is $catalyst->host, 'hostfoo', 'Host should be "hostfoo"';
+    ok $catalyst->restart, 'Restart should be true';
+    is $self->{output}, undef,' There should have been no output';
+
     # Try it with prompts.
+    $builder->notes( _config_ => undef );
     $builder->accept_defaults(0);
     my @input = qw(4321 barhost y);
     $kb->mock(_readline => sub { shift @input });
