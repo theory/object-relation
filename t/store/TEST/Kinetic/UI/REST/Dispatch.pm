@@ -372,6 +372,11 @@ sub handle_rest_request : Test(20) {
       }
     END_JSON
     is_json $response, $expected, '... and it should be the correct response';
+    use lib 'dev';
+    use Loaded;
+    open my $fh, '>', 'loaded.txt' or die $!;
+    print $fh Loaded->versions;
+    close $fh;
 }
 
 1;
