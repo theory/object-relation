@@ -7,10 +7,10 @@ use warnings;
 use base 'TEST::Kinetic::Build::Setup::Store::DB';
 use Test::More;
 use aliased 'Test::MockModule';
-use aliased 'Kinetic::Build';
 use Test::Exception;
 use File::Spec::Functions;
 use Test::File;
+use constant Build => 'Kinetic::Build';
 
 __PACKAGE__->runtests unless caller;
 

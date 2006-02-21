@@ -5,14 +5,14 @@
 use warnings;
 use strict;
 #use Test::More 'no_plan';
-use Test::More tests => 28;
+use Test::More tests => 30;
 use Test::Exception;
 use Test::File;
 use aliased 'Test::MockModule';
 use File::Spec::Functions qw(catdir updir catfile curdir);
 use Kinetic::Build::Test kinetic => { root => updir };
 use Config::Std;
-#use lib '../../lib';
+use lib '../../lib';
 
 my $CLASS = 'Kinetic::AppBuild';
 my @builders;
@@ -20,9 +20,9 @@ my @builders;
 BEGIN {
     # All build tests execute in the sample directory with its
     # configuration file.
-    use_ok 'Kinetic::AppBuild' or die $@;
     chdir 't'; chdir 'sample';
-    $ENV{KINETIC_CONF} = catfile 'conf', 'kinetic.conf';
+    delete $ENV{KINETIC_CONF};
+    use_ok 'Kinetic::AppBuild' or die $@;
 }
 
 END {
@@ -114,6 +114,19 @@ file_exists_ok $blib_file, 'blib lib file should now exist';
 file_exists_ok $bwww_file, 'blib www file should now exist';
 file_exists_ok $bbin_file, 'blib bin file should now exist';
 
+##############################################################################
+# Okay, let's load stuff up from the test conf file.
+local $ENV{KINETIC_CONF} = catfile updir, qw(conf kinetic.conf);
+$kb_mocker->unmock('_check_build_component');
+ok $builder = new_builder( dev_tests => 1 ),
+    'Create new builder with dev_tests => 1';
+ok $builder->dev_tests, 'dev_tests should be true';
+
+
+
+
+
+##############################################################################
 sub new_builder {
     push @builders, $CLASS->new(
         dist_name    => 'TestApp::Simple',
@@ -125,7 +138,6 @@ sub new_builder {
     );
     return $builders[-1];
 }
-
 
 
 1;

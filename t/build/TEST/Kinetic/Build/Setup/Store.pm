@@ -9,7 +9,6 @@ use TEST::Kinetic::Build;
 use Test::More;
 use Test::Exception;
 use aliased 'Test::MockModule';
-use aliased 'Kinetic::Build';
 
 __PACKAGE__->runtests unless caller;
 

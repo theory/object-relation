@@ -29,6 +29,7 @@ use File::Copy  ();
 use Config::Std { read_config => 'get_config', write_config => 'set_config' };
 use Scalar::Util 'blessed';
 use Term::ANSIColor;
+use Class::ISA;
 
 # Be sure to load exceptions early.
 use Kinetic::Util::Exceptions;
@@ -36,7 +37,7 @@ use Kinetic::Util::Exceptions;
 use version;
 our $VERSION = version->new('0.0.1');
 
-my %SETUPS;
+my (%SETUPS_FOR);
 
 =head1 Name
 
@@ -128,7 +129,11 @@ sub add_property {
             $params{name} => delete $params{default}
         );
         if (my $setup = $params{setup}) {
-            $SETUPS{$params{name}} = $setup;
+            $SETUPS_FOR{$class} ||= {
+                map { $SETUPS_FOR{$_} ? %{ $SETUPS_FOR{$_} } : () }
+                    Class::ISA::super_path($class)
+            };
+            $SETUPS_FOR{$class}->{$params{name}} = $setup;
             $params{options} ||= [ sort keys %{ $setup } ];
         }
         push @prompts, \%params if keys %params > 1;
@@ -178,10 +183,11 @@ sub new {
     $self->install_base_relpaths->{www} = ['www'];
 
     # Prompts.
+    my $class = ref $self;
     for my $prompt (@prompts) {
         my $prop = $prompt->{name};
         $self->$prop( $self->get_reply( %$prompt, default => $self->$prop ) );
-        if (my $setup = $SETUPS{$prop}) {
+        if (my $setup = $SETUPS_FOR{$class}->{$prop}) {
             $self->_check_build_component( $prop, $setup );
         }
     }
@@ -206,8 +212,10 @@ sub resume {
     if ( my $conf = $self->notes('build_conf_file') ) {
         $ENV{KINETIC_CONF} ||= $conf;
     }
-    while (my ($prop, $class_map) = each %SETUPS) {
-        $self->_reload( $prop => $class_map );
+    if (my $setups = $SETUPS_FOR{ref $self}) {
+        while (my ($prop, $class_map) = each %{ $setups }) {
+            $self->_reload( $prop => $class_map );
+        }
     }
     return $self;
 }
@@ -247,11 +255,13 @@ The type of data store to be used for the application. Possible values are
 =cut
 
 __PACKAGE__->add_property(
-    name    => 'store',
-    label   => 'Data store',
-    default => 'sqlite',
-    message => 'Which data store back end should I use?',
-    setup   => {
+    name        => 'store',
+    label       => 'Data store',
+    default     => 'sqlite',
+    message     => 'Which data store back end should I use?',
+    config_keys => [qw(store class)],
+    callback    => sub { s/.*:://; $_ = lc; return 1; },
+    setup       => {
         pg     => 'Kinetic::Build::Setup::Store::DB::Pg',
         sqlite => 'Kinetic::Build::Setup::Store::DB::SQLite',
     },
@@ -309,7 +319,7 @@ may be pulled from this file rather than prompting the user for them.
 
 =cut
 
-__PACKAGE__->add_property( 'path_to_config' );
+__PACKAGE__->add_property( 'path_to_config' => $ENV{KINETIC_CONF} );
 
 ##############################################################################
 
@@ -356,9 +366,12 @@ sub ACTION_test {
     local $ENV{KINETIC_CONF} = $self->notes('test_conf_file');
 
     # Set up a list of supported features.
-    # XXX I'm sure we'll add other supported features to this list.
-    local $ENV{KINETIC_SUPPORTED} = join ' ', map { $self->$_ } keys %SETUPS
-        if $self->dev_tests;
+    local $ENV{KINETIC_SUPPORTED};
+    if (my $setups = $SETUPS_FOR{ref $self}) {
+        $ENV{KINETIC_SUPPORTED} = join ' ', map { $self->$_ }
+            keys %{ $setups }
+            if $self->dev_tests;
+    }
 
     # Make it so!
     $self->SUPER::ACTION_test(@_);
@@ -385,7 +398,7 @@ sub ACTION_help {
     # XXX To be done. The way Module::Build implements this method rather
     # sucks (it expects its own specific POD format), so we'll likely have to
     # hack our own. :-( We'll also want to add something to pull in options
-    # specified by the classes referenced in %SETUPS.
+    # specified by the classes referenced in %SETUPS_FOR.
     $self->SUPER::ACTION_help(@_);
     return $self;
 }
@@ -413,9 +426,11 @@ sub ACTION_install {
     $self->SUPER::ACTION_install(@_);
 
     # Set up external dependencies.
-    for my $setup_prop (keys %SETUPS) {
-        if (my $setup = $self->notes("build_$setup_prop")) {
-            $setup->setup;
+    if (my $setups = $SETUPS_FOR{ref $self}) {
+        for my $setup_prop (keys %{ $setups }) {
+            if (my $setup = $self->notes("build_$setup_prop")) {
+                $setup->setup;
+            }
         }
     }
 
@@ -464,9 +479,11 @@ sub process_conf_files {
 
         # Configure from setup.
         my $config_meth = "add_to_${test}config";
-        for my $setup_prop (keys %SETUPS) {
-            if (my $setup = $self->notes("build_$setup_prop")) {
-                $setup->$config_meth(\%conf);
+        if (my $setups = $SETUPS_FOR{ref $self}) {
+            for my $setup_prop (keys %{ $setups }) {
+                if (my $setup = $self->notes("build_$setup_prop")) {
+                    $setup->$config_meth(\%conf);
+                }
             }
         }
 
@@ -922,10 +939,8 @@ sub _copy_to {
 
 Given a compent type and hash ref for the current component selected and the
 build classes for it, this method attempts to use the correct build class,
-instantiate and instance of it and call its C<validate()> method.
-
-Current supported build components are C<store> and C<engine> and their
-respective C<%STORES> and C<%ENGINES> build class hashes.
+instantiate and instance of it and call its C<validate()> method. The
+supported build components are those stored in the C<%SETUPS_FOR> hash.
 
 =cut
 

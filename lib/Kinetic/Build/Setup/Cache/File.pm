@@ -111,7 +111,6 @@ sub rules {
                                  . 'caching',
                     label       => 'Cache root',
                     default     => catdir(tmpdir(), qw(kinetic cache)),
-                    callback    => sub { -d },
                     config_keys => [qw(cache root)],
                 );
                 $self->_ask_for_expires;

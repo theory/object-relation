@@ -7,9 +7,9 @@ use warnings;
 use base 'TEST::Kinetic::Build::Setup';
 use TEST::Kinetic::Build;
 use Test::More;
-use aliased 'Kinetic::Build';
 use aliased 'Test::MockModule';
 use Test::Exception;
+use constant Build => 'Kinetic::Build';
 
 __PACKAGE__->runtests unless caller;
 

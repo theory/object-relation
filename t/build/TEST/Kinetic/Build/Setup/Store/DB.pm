@@ -8,10 +8,10 @@ use base 'TEST::Kinetic::Build::Setup::Store';
 use Test::More;
 use Test::Exception;
 use aliased 'Test::MockModule';
-use aliased 'Kinetic::Build';
 use Test::Exception;
 use Test::File;
 use File::Spec::Functions;
+use constant Build => 'Kinetic::Build';
 
 __PACKAGE__->runtests unless caller;
 

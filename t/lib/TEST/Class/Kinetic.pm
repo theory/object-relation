@@ -239,6 +239,7 @@ sub a_test_load : Test(startup => 1) {
     my $test = shift;
     (my $class = ref $test) =~ s/^TEST:://;
     return ok 1, "TEST::Class::Kinetic loaded" if $class eq 'Class::Kinetic';
+    local $ENV{KINETIC_CONF};
     use_ok $class or die;
     $test->{test_class} = $class;
 }

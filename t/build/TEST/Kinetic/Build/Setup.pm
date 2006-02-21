@@ -9,8 +9,8 @@ use base 'TEST::Class::Kinetic';
 use Test::More;
 use Test::Exception;
 use aliased 'Test::MockModule';
-use aliased 'Kinetic::Build';
 use Test::Output;
+use constant Build => 'Kinetic::Build';
 
 __PACKAGE__->runtests unless caller;
 

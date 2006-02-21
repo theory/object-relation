@@ -114,11 +114,13 @@ The "catalyst" engine is merely a test engine for easy development.
 =cut
 
 __PACKAGE__->add_property(
-    name    => 'engine',
-    label   => 'Kinetic engine',
-    default => 'apache',
-    message => 'Which engine should I use?',
-    setup   => {
+    name        => 'engine',
+    label       => 'Kinetic engine',
+    default     => 'apache',
+    message     => 'Which engine should I use?',
+    config_keys => [qw(engine class)],
+    callback    => sub { s/.*:://; $_ = lc; return 1; },
+    setup       => {
         apache   => 'Kinetic::Build::Setup::Engine::Apache2',
         catalyst => 'Kinetic::Build::Setup::Engine::Catalyst',
     },
@@ -139,11 +141,13 @@ The "file" cache is merely a test cache for easy development.
 =cut
 
 __PACKAGE__->add_property(
-    name    => 'cache',
-    label   => 'Kinetic cache',
-    default => 'file',
-    message => 'Which session cache should I use?',
-    setup   => {
+    name        => 'cache',
+    label       => 'Kinetic cache',
+    default     => 'file',
+    message     => 'Which session cache should I use?',
+    config_keys => [qw(cache class)],
+    callback    => sub { s/.*:://; $_ = lc; return 1; },
+    setup       => {
         memcached => 'Kinetic::Build::Setup::Cache::Memcached',
         file      => 'Kinetic::Build::Setup::Cache::File',
     },
@@ -166,6 +170,8 @@ __PACKAGE__->add_property(
     label   => 'Kinetic authorization',
     default => 'kinetic',
     message => 'Which type of authorization should I use?',
+    config_keys => [qw(auth class)],
+    callback    => sub { s/.*:://; $_ = lc; return 1; },
     setup => {
         kinetic => 'Kinetic::Build::Setup::Auth::Kinetic',
     },
