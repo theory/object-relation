@@ -76,10 +76,10 @@ sub serialize : Test(7) {
     my $expected = <<'    END_EXPECTED';
         {
             "Key"         : "one",
-            "bool"        : 1,
+            "bool"        : "1",
             "description" : null,
             "name"        : "foo",
-            "state"       : 1,
+            "state"       : "1",
             "uuid"        : "XXX"
         }
     END_EXPECTED
@@ -106,11 +106,11 @@ sub serialize : Test(7) {
     $expected = <<'    END_EXPECTED';
     {
       "one" : {
-          "bool"        : 1,
+          "bool"        : "1",
           "name"        : "foo",
           "uuid"        : "XXX",
           "description" : null,
-          "state"       : 1,
+          "state"       : "1",
           "Key"         : "one"
       },
       "date"        : "1968-06-17T00:00:00",
@@ -119,7 +119,7 @@ sub serialize : Test(7) {
       "uuid"        : "XXX",
       "description" : null,
       "age"         : null,
-      "state"       : 1
+      "state"       : "1"
     }
     END_EXPECTED
     is_json $json, $expected, '... and the JSON should be the correct JSON';

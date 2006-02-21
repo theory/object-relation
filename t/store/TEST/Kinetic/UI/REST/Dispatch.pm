@@ -252,28 +252,28 @@ sub handle_rest_request : Test(20) {
     my $expected = <<"    END_JSON";
     [
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "foo",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{foo}->uuid]}",
         "description" : "foo description",
-        "state"       : 1
+        "state"       : "1"
       },
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "bar",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{bar}->uuid]}",
         "description" : "bar description",
-        "state"       : 1
+        "state"       : "1"
       },
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "snorfleglitz",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{baz}->uuid]}",
         "description" : "snorfleglitz description",
-        "state"       : 1
+        "state"       : "1"
       }
     ]
     END_JSON
@@ -290,12 +290,12 @@ sub handle_rest_request : Test(20) {
     $expected = <<"    END_JSON";
     [
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "foo",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{foo}->uuid]}",
         "description" : "foo description",
-        "state"       : 1
+        "state"       : "1"
       }
     ]
     END_JSON
@@ -308,28 +308,28 @@ sub handle_rest_request : Test(20) {
     $expected = <<"    END_JSON";
     [
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "bar",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{bar}->uuid]}",
         "description" : "bar description",
-        "state"       : 1
+        "state"       : "1"
       },
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "foo",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{foo}->uuid]}",
         "description" : "foo description",
-        "state"       : 1
+        "state"       : "1"
       },
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "snorfleglitz",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{baz}->uuid]}",
         "description" : "snorfleglitz description",
-        "state"       : 1
+        "state"       : "1"
       }
     ]
     END_JSON
@@ -363,20 +363,15 @@ sub handle_rest_request : Test(20) {
     ok $response = $rest->response, '... and we should have a response';
     $expected = <<"    END_JSON";
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "bar",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{bar}->uuid]}",
         "description" : "bar description",
-        "state"       : 1
+        "state"       : "1"
       }
     END_JSON
     is_json $response, $expected, '... and it should be the correct response';
-    use lib 'dev';
-    use Loaded;
-    open my $fh, '>', 'loaded.txt' or die $!;
-    print $fh Loaded->versions;
-    close $fh;
 }
 
 1;

@@ -229,7 +229,11 @@ sub _obj_to_hashref {
             $value_for{ $attr->name } = $self->_obj_to_hashref($contained);
         }
         else {
-            $value_for{ $attr->name } = $attr->raw($object);
+            my $value = $attr->raw($object);
+            # we're forcing string context here but if it's undef, leave it
+            # like that.
+            $value = "$value" if defined $value;
+            $value_for{ $attr->name } = $value;
         }
     }
     $value_for{$KEY} = $object->my_class->key;

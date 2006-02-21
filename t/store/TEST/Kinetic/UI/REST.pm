@@ -130,12 +130,12 @@ sub chained_calls : Test(6) {
     my $expected = <<"    END_JSON";
     [
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "rab",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{bar}->uuid]}",
         "description" : "bar description",
-        "state"       : 1
+        "state"       : "1"
       }
     ]
     END_JSON
@@ -239,28 +239,28 @@ sub rest_interface : Test(32) {
     my $expected = <<"    END_JSON";
     [
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "foo",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{foo}->uuid]}",
         "description" : "foo description",
-        "state"       : 1
+        "state"       : "1"
       },
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "bar",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{bar}->uuid]}",
         "description" : "bar description",
-        "state"       : 1
+        "state"       : "1"
       },
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "snorfleglitz",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{baz}->uuid]}",
         "description" : "snorfleglitz description",
-        "state"       : 1
+        "state"       : "1"
       }
     ]
     END_JSON
@@ -285,12 +285,12 @@ sub rest_interface : Test(32) {
     $expected = <<"    END_JSON";
     [
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "foo",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{foo}->uuid]}",
         "description" : "foo description",
-        "state"       : 1
+        "state"       : "1"
       }
     ]
     END_JSON
@@ -306,28 +306,28 @@ sub rest_interface : Test(32) {
     $expected = <<"    END_JSON";
     [
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "bar",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{bar}->uuid]}",
         "description" : "bar description",
-        "state"       : 1
+        "state"       : "1"
       },
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "foo",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{foo}->uuid]}",
         "description" : "foo description",
-        "state"       : 1
+        "state"       : "1"
       },
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "snorfleglitz",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{baz}->uuid]}",
         "description" : "snorfleglitz description",
-        "state"       : 1
+        "state"       : "1"
       }
     ]
     END_JSON
@@ -356,12 +356,12 @@ sub rest_interface : Test(32) {
 
     $expected = <<"    END_JSON";
       {
-        "bool"        : 1,
+        "bool"        : "1",
         "name"        : "bar",
         "Key"         : "one",
         "uuid"        : "@{[$object_for{bar}->uuid]}",
         "description" : "bar description",
-        "state"       : 1
+        "state"       : "1"
       }
     END_JSON
     is_json $rest->response, $expected,
