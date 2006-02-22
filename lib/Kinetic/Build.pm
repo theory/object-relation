@@ -60,29 +60,6 @@ L<Kinetic::Build::Trait|Kinetic::Build::Trait>.
 
 =head1 Class Interface
 
-=head2 Constructors
-
-=head3 new
-
-  my $cm = Kinetic::Build->new(%init);
-
-Overrides the Kinetic::Build::Base constructor to add the "conf" build
-elements.
-
-=cut
-
-sub new {
-    my $self = shift->SUPER::new(@_);
-
-    # Add config file element and install path.
-    $self->add_build_element('conf');
-    $self->install_base_relpaths->{conf} = ['conf'];
-
-    return $self;
-}
-
-##############################################################################
-
 =head2 Class Methods
 
 =head3 test_data_dir

@@ -134,6 +134,7 @@ lib/Kinetic/Build/Setup/Store/DB.pm
 lib/Kinetic/Build/Setup/Store/DB/Pg.pm
 lib/Kinetic/Build/Setup/Store/DB/SQLite.pm
 lib/Kinetic/Build/Test.pm
+lib/Kinetic/Contact.pm
 lib/Kinetic/DataType.pod
 lib/Kinetic/DataType/DateTime.pm
 lib/Kinetic/DataType/DateTime/Incomplete.pm
@@ -173,6 +174,8 @@ lib/Kinetic/Store/Lexer/String.pm
 lib/Kinetic/Store/Parser.pm
 lib/Kinetic/Store/Parser/Overview.pod
 lib/Kinetic/Store/Search.pm
+lib/Kinetic/Type.pm
+lib/Kinetic/Type/Contact.pm
 lib/Kinetic/UI/Catalyst.pm
 lib/Kinetic/UI/Catalyst/Auth.pm
 lib/Kinetic/UI/Catalyst/C/Login.pm
@@ -184,6 +187,7 @@ lib/Kinetic/UI/Catalyst/Cache.pm
 lib/Kinetic/UI/Catalyst/Cache/File.pm
 lib/Kinetic/UI/Catalyst/Cache/Memcached.pm
 lib/Kinetic/UI/Catalyst/Log.pm
+lib/Kinetic/UI/Catalyst/Plugins.pod
 lib/Kinetic/UI/Catalyst/V/TT.pm
 lib/Kinetic/UI/Email/Workflow.pm
 lib/Kinetic/UI/Email/Workflow/Lexer.pm
@@ -235,8 +239,10 @@ t/build/TEST/Kinetic/Build/Setup/Store/DB/SQLite.pm
 t/c_REST.t
 t/c_Search.t
 t/c_View.t
+t/catalyst.t
 t/catalyst/auth.t
 t/catalyst/session.t
+t/catalyst/TEST/Kinetic/UI/Catalyst.pm
 t/clone.t
 t/collection.t
 t/config.t
@@ -281,7 +287,6 @@ t/pod.t
 t/pod_coverage.t
 t/relationships.t
 t/sample/bin/somescript
-t/sample/conf/kinetic.conf
 t/sample/lib/TestApp/Abstract.pm
 t/sample/lib/TestApp/CompComp.pm
 t/sample/lib/TestApp/Composed.pm
@@ -319,9 +324,11 @@ t/system/pg_teardown.pl
 t/system/sqlite_setup.pl
 t/system/sqlite_teardown.pl
 t/system/TEST/Kinetic.pm
+t/system/TEST/Kinetic/Contact.pm
 t/system/TEST/Kinetic/Party.pm
 t/system/TEST/Kinetic/Party/Person.pm
 t/system/TEST/Kinetic/Party/User.pm
+t/system/TEST/Kinetic/Type/Contact.pm
 t/system/TEST/Kinetic/Util/Auth.pm
 t/system/TEST/Kinetic/VersionInfo.pm
 t/test_setup.t

@@ -26,6 +26,7 @@ use DBI;
 use File::Spec;
 use File::Path  ();
 use File::Copy  ();
+use List::Util 'first';
 use Config::Std { read_config => 'get_config', write_config => 'set_config' };
 use Scalar::Util 'blessed';
 use Term::ANSIColor;
@@ -181,6 +182,10 @@ sub new {
     # Add www element and install path.
     $self->add_build_element('www');
     $self->install_base_relpaths->{www} = ['www'];
+
+    # Add config file element and install path.
+    $self->add_build_element('conf');
+    $self->install_base_relpaths->{conf} = ['conf'];
 
     # Prompts.
     my $class = ref $self;
@@ -359,8 +364,6 @@ these properties were set.
 
 sub ACTION_test {
     my $self = shift;
-    $self->depends_on('code');
-    $self->depends_on('config');
 
     # Set up the test configuration file.
     local $ENV{KINETIC_CONF} = $self->notes('test_conf_file');
@@ -455,21 +458,45 @@ metadata, etc.).
 
 sub process_conf_files {
     my $self = shift;
+    return $self if $self->notes('process_conf_files');
+
     $self->add_to_cleanup('t/conf');
-    my $files = $self->find_conf_files;
-    return unless %$files;
+    my ($config, @files);
+    my $master_conf_file = $self->path_to_config;
 
-    for my $conf_file ( $self->_copy_to( $files, $self->blib, 't' ) ) {
+    # Use master file for installable confs and load its data.
+    if ($master_conf_file) {
+        @files = $self->_copy_to(
+            $self->_prep_conf_filename($master_conf_file),
+            $self->blib,
+            't'
+        );
+        $config = $self->_merge_configs($self->find_conf_files);
+    }
 
+    # Otherwise just copy the local config files.
+    else {
+        @files = $self->_copy_to( $self->find_conf_files, $self->blib, 't' );
+    }
+
+    for my $conf_file (@files) {
         # Load the configuration.
-        get_config( $conf_file => my %conf );
+        my %conf;
+        if ($config) {
+            %conf = %{ $config };
+        } else {
+            get_config( $conf_file => %conf );
+        }
 
         my $test = '';
         if ( $conf_file =~ /^blib/ ) {
-            $self->notes( build_conf_file => $ENV{KINETIC_CONF}
-                  = $conf_file );
+            # This is the config file to be installed.
+            $self->notes(
+                build_conf_file => $ENV{KINETIC_CONF} = $conf_file
+            );
         }
         else {
+            # This is the config file to use for tests.
             $self->notes( test_conf_file => $conf_file );
             $test = 'test_';
 
@@ -487,9 +514,34 @@ sub process_conf_files {
             }
         }
 
-        set_config(%conf);
+        # Save the configuration back to the file.
+        set_config(%conf => $conf_file);
     }
+
+    $self->notes(process_conf_files => 1);
     return $self;
+}
+
+sub _merge_configs {
+    my ($self, $files) = @_;
+    # Copy the configuration.
+    my %config = %{ $self->notes('_config_') };
+    my $master_conf_file = $self->path_to_config;
+    for my $conf_file ( keys %{$files} ) {
+        get_config( $conf_file => my %conf );
+        # Merge it with the master config.
+        while (my ($label, $vals) = each %conf) {
+            while (my ($key, $val) = each %$vals) {
+                # XXX Will eventually have to change to support upgrades.
+                die qq{The configuration key "$key" already exists under }
+                    . qq{the "$label" label in $master_conf_file and }
+                    . 'cannot be changed'
+                    if exists $config{$label}{$key};
+                $config{$label}{$key} = $val;
+            }
+        }
+        return \%config;
+    }
 }
 
 ##############################################################################
@@ -561,7 +613,6 @@ sub find_files_in_dir {
     my ( $self, $dir ) = @_;
     return {
         map { $_, $_ }
-          map $self->localize_file_path($_),
         @{ $self->rscan_dir( $dir, sub { -f && !/[.]svn/ } ) }
     };
 }
@@ -1192,6 +1243,27 @@ sub _reload {
         eval "require $build_class" or $self->fatal_error($@);
     }
     return $self;
+}
+
+##############################################################################
+
+=head3
+
+  my $conf_file_map = $build->_prep_conf_filename($conf_file);
+
+Called by C<process_conf_files()>, this method parses from the complete file
+path for an installed configuration file to extract its last directory and the
+file name. These will then be used to create new configuration files for
+testing and for installation.
+
+=cut
+
+sub _prep_conf_filename {
+    my ($self, $conf_file) = @_;
+    my ($vol, $dirs, $file) = File::Spec->splitpath($conf_file);
+    my $dir = first { $_ ne '' } reverse File::Spec->splitdir($dirs);
+    # Aiming for conf/kinetic.conf
+    return { $conf_file => File::Spec->catfile($dir, $file) };
 }
 
 ##############################################################################

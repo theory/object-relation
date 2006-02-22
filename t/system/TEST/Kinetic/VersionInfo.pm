@@ -20,7 +20,7 @@ sub attr_values {
 # XXX This allows $Kinetic::VERSION to work. No idea why it's necessary.
 use Kinetic;
 
-sub test_kinetic_version : Test(3) {
+sub test_kinetic_version : Test(5) {
     my $self = shift;
     return 'Not testing Data Stores' unless $self->dev_testing;
 
@@ -28,6 +28,8 @@ sub test_kinetic_version : Test(3) {
     ok my $vi = Kinetic::VersionInfo->lookup( app_name => 'Kinetic' ),
         'There should already be a Kinetic version object';
     is $vi->app_name, 'Kinetic', 'Its app_name should be "Kinetic"';
+    isa_ok $vi->version, 'version', 'Its version object';
+    isa_ok $Kinetic::VERSION, 'version', '$Kinetic::VERSION';
     is $vi->version, $Kinetic::VERSION, 'Its version number should be correct';
 }
 

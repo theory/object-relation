@@ -111,7 +111,89 @@ sub new {
     return $self;
 }
 
+##############################################################################
 
+=head2 Actions
+
+=head3 install
+
+=begin comment
+
+=head3 ACTION_install
+
+=end comment
+
+Overrides Kinetic::Install::Base's C<install> action install the data store for the
+application.
+
+=cut
+
+sub ACTION_install {
+    my $self = shift;
+    $self->depends_on('build_store');
+    $self->SUPER::ACTION_install(@_);
+    return $self;
+}
+
+##############################################################################
+
+=head3 build_store
+
+=begin comment
+
+=head3 ACTION_build_store
+
+=end comment
+
+
+
+=cut
+
+sub ACTION_build_store {
+    my $self = shift;
+    return $self;
+}
+
+##############################################################################
+
+=head3 test
+
+=begin comment
+
+=head3 ACTION_test
+
+=end comment
+
+Overrides Kinetic::Build::Base's C<test> action to set up a test data store if
+C<dev_tests> is true.
+
+=cut
+
+sub ACTION_test {
+    my $self = shift;
+    $self->depends_on('build_test_store');
+    $self->SUPER::ACTION_test(@_);
+    return $self;
+}
+
+##############################################################################
+
+=head3 build_test_store
+
+=begin comment
+
+=head3 ACTION_build_test_store
+
+=end comment
+
+
+
+=cut
+
+sub ACTION_build_test_store {
+    my $self = shift;
+    return $self;
+}
 
 1;
 __END__
