@@ -35,7 +35,7 @@ use base 'Catalyst::Log';
 
 =head1 NAME
 
-Kinetic::UI:::Catalyst::Log - Control where Catalyst sends the logfile info.
+Kinetic::UI::Catalyst::Log - Control where Catalyst sends the logfile info.
 
 =head1 SYNOPSIS
 

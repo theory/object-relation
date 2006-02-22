@@ -1,6 +1,6 @@
-package Kinetic::Party;
+package Kinetic::Contact;
 
-# $Id$
+# $Id: Contact.pm 2488 2006-01-04 05:17:14Z theory $
 
 # CONTRIBUTION SUBMISSION POLICY:
 #
@@ -23,29 +23,27 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use base qw(Kinetic);
+use base 'Kinetic';
+use Kinetic::Meta;
+use Kinetic::Meta::Widget;
+use Kinetic::Type::Contact;
 
 =head1 Name
 
-Kinetic::Party - Kinetic parties (people, organizations)
+Kinetic::Contact - Kinetic contact objects
 
 =head1 Description
 
-This class serves as the abstract base class for parties in TKP. By "party",
-we do not, unfortunately, mean that this class will serve drinks and hors
-d'oevres or get people dancing to the music. Rather, a "party" is a person or
-an organization. See the L<Kinetic::Party::Person|Kinetic::Party::Person> and
-L<Kinetic::Party::Org|Kinetic::Party::Org> subclasses for full
-implementations.
+This class represents contacts in TKP. 
 
 =cut
 
 BEGIN {
     my $km = Kinetic::Meta->new(
-        key         => 'party',
-        name        => 'Party',
-        plural_name => 'Parties',
-        abstract    => 1,
+        key         => 'contact',
+        name        => 'Contact',
+        plural_name => 'Contacts',
+        type_of     => 'contact_type',
     );
 
 ##############################################################################
@@ -54,54 +52,23 @@ BEGIN {
 
 =head1 Instance Interface
 
-In addition to the interface inherited from L<Kinetic|Kinetic>, this class
-offers a number of its own attributes.
+In addition to the interface inherited from L<Kinetic::|Kinetic> and
+L<Kinetic::Party|Kinetic::Party>, this class offers a number of its own
+attributes.
 
 =head2 Accessors
-
-=head3 name
-
-  my $name = $party->name;
-  $party->name($name);
-
-The party's name.
 
 =cut
 
     $km->add_attribute(
-        name        => 'name',
-        label       => 'Name',
+        name        => 'value', # XXX ? from the pdf
+        label       => 'Value',
         type        => 'string',
-        persistent  => 1,
         widget_meta => Kinetic::Meta::Widget->new(
             type => 'text',
+            tip  => "The value of the contact",
         )
     );
-
-=head3 contacts
-
-  my $contacts = $party->contacts;
-
-Returns a Kinetic::Util::Collection of Kinetic::Contact objects associated
-with the party. Use the collection API to add contacts to or remove contacts
-from the party.
-
-=cut
-
-# XXX Add one-to-many attributes here.
-
-##############################################################################
-
-=head3 placements
-
-  my $placements = $party->placements;
-
-Returns a Kinetic::Util::Collection of Kinetic::Placement objects associated
-with the party. Use the collection API to add places to or remove places from
-the party.
-
-=cut
-
     $km->build;
 } # BEGIN
 
@@ -109,24 +76,6 @@ the party.
 __END__
 
 ##############################################################################
-
-=head1 See Also
-
-=over 4
-
-=item L<Kinetic|Kinetic>
-
-The class from which Kinetic::Party inherits.
-
-=item L<Kinetic::Party::Person|Kinetic::Party::Person>
-
-A concrete base class that inerites from Kinetic::Party.
-
-=item L<Kinetic::Party::Org|Kinetic::Party::Org>
-
-Another concrete base class that inerites from Kinetic::Party.
-
-=back
 
 =head1 Copyright and License
 

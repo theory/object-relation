@@ -42,7 +42,7 @@ Kinetic::Build::Schema - Kinetic data store schema generation
 =head1 Synopsis
 
   use Kinetic::Build::Schema;
-  my $sg = Kinetic::::Build::Schema->new;
+  my $sg = Kinetic::Build::Schema->new;
   $sg->write_schema($file_name);
 
 =head1 Description

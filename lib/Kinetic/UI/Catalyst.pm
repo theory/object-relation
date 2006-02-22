@@ -54,14 +54,8 @@ use Catalyst
         Session
         Session::State::Cookie
         Static::Simple
+        +Kinetic::UI::Catalyst::Auth
     );
-
-# XXX when the next version of Catalyst comes out, we should be able to move
-# this into the import list as
-#
-#   +Kinetic::UI::Catalyst::Auth 
-#
-use base 'Kinetic::UI::Catalyst::Auth';
 
 # This *must* come first so that home is set for everything else.
 __PACKAGE__->config({

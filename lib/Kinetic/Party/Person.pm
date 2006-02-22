@@ -30,7 +30,7 @@ use Kinetic::Util::Config qw(:user);
 
 =head1 Name
 
-Kinetic::::Party::Person - Kinetic person objects
+Kinetic::Party::Person - Kinetic person objects
 
 =head1 Description
 
@@ -54,7 +54,7 @@ BEGIN {
 =head1 Instance Interface
 
 In addition to the interface inherited from L<Kinetic::|Kinetic> and
-L<Kinetic::::Party|Kinetic::::Party>, this class offers a number of its own
+L<Kinetic::Party|Kinetic::Party>, this class offers a number of its own
 attributes.
 
 =head2 Accessors
@@ -214,7 +214,7 @@ The generation to the person's name, such as "Jr.", "III", etc.
   $name = $person->strfname($format);
 
 Returns the person object's name as formatted according to a
-L<Linguage::Strfname|Linguage::Strfname> format. Kinetic::::Party::Person
+L<Linguage::Strfname|Linguage::Strfname> format. Kinetic::Party::Person
 defines this method as a read-only attribute.
 
 The default format is specified by the locale returned by the currently

@@ -6,7 +6,7 @@ use Kinetic::Build;
 my $skipper =
     qr/^lib.Kinetic.(?:(?:App)?Build|DataType|Engine|Format|Meta|Store|UI|Util)/;
 my %catalyst = (
-    'Catalyst'                                               => 5.61,
+    'Catalyst'                                               => 5.65,
     'Catalyst::Engine::Apache'                               => 1.05,
     'Catalyst::Plugin::Session'                              => 0,
     # XXX Change to option.

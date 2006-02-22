@@ -138,7 +138,7 @@ sub plural_name {
 
 Returns the name of the attribute to use when sorting a list of objects of
 this class. If more than one attribute has been specified for sorting, they
-can all be retreived by calling C<sort_by()> in an array context.
+can all be retrieved by calling C<sort_by()> in an list context.
 
 =cut
 

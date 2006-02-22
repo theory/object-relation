@@ -1317,7 +1317,7 @@ store API, as the sample classes exibit every relationship and data type.
 =item * Create a subclass of Kinetic::Store::DB.
 
 It should be named Kinetic::Store::DB::Oracle. See
-L<Kinetic:::Store::DB::Pg|Kinetic::Store::DB::Pg> and
+L<Kinetic::Store::DB::Pg|Kinetic::Store::DB::Pg> and
 L<Kinetic::Store::DB::SQLite|Kinetic::Store::DB::SQLite> for examples. Be sure
 to override the C<_add_store_meta()> method if you need to add data-store
 specific trusted attributes to Kinetic base class. For example,
