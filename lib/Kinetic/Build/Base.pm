@@ -822,11 +822,21 @@ the current package to the Kinetic data store.
 sub init_app {
     my $self = shift;
 
+    # Load up the app module and get its version number.
+    # XXX Unfortunately, we can't just use $self->dist_version. See
+    # http://sourceforge.net/mailarchive/forum.php?thread_id=9761816&forum_id=10905
+    my $mod = $self->module_name;
+    eval "require $mod";
+    die $@ if $@;
+    # Don't use ->VERSION because that just returns ->numify.
+    my $version = eval "\$${mod}::VERSION";
+    $version = version->new($version) unless eval { $version->isa('version') };
+
     # Set up the version info for this app.
     require Kinetic::VersionInfo;
     Kinetic::VersionInfo->new(
-        app_name => $self->module_name,
-        version  => version->new( $self->dist_version ),
+        app_name => $mod,
+        version  => $version,
     )->save;
 
     return $self;
