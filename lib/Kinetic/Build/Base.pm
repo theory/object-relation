@@ -225,8 +225,6 @@ sub resume {
     return $self;
 }
 
-##############################################################################
-
 =head1 Instance Interface
 
 =head2 Attributes
@@ -344,6 +342,48 @@ false value by default.
 __PACKAGE__->add_property( dev_tests => 0 );
 
 ##############################################################################
+
+=head3 dist_version
+
+  my $version = $build->dist_version;
+
+This method overrides that provided by Module::Build to ensure that the
+stringified representation of the version number is always used, rather than
+the numified version.
+
+Once Module::Build gains full support for version objects, this method can
+likely be removed. See
+L<http://sourceforge.net/mailarchive/forum.php?thread_id=9761816&forum_id=10905>
+for why it's currently necessary.
+
+=cut
+
+sub dist_version {
+    my $self = shift;
+    if (my $v = $self->notes('version')) {
+        return $v;
+    }
+
+    # XXX Unfortunately, we can't just use Module::Build's dist_version. So
+    # we'll assign a version object to it manullay. See:
+    # http://sourceforge.net/mailarchive/forum.php?thread_id=9761816&forum_id=10905
+    my $mod = $self->module_name;
+    my $version = $mod eq 'Kinetic'
+        ? eval '$' . __PACKAGE__ . '::VERSION'
+        : do {
+            eval "require $mod";
+            die $@ if $@;
+            # Don't use ->VERSION because that just returns ->numify.
+            my $version = eval "\$${mod}::VERSION";
+            version->new($version) unless eval { $version->isa('version') };
+        };
+    $self->notes(version => $version);
+    return $version;
+}
+
+##############################################################################
+
+=head2 Actions
 
 =head3 test
 
@@ -822,21 +862,11 @@ the current package to the Kinetic data store.
 sub init_app {
     my $self = shift;
 
-    # Load up the app module and get its version number.
-    # XXX Unfortunately, we can't just use $self->dist_version. See
-    # http://sourceforge.net/mailarchive/forum.php?thread_id=9761816&forum_id=10905
-    my $mod = $self->module_name;
-    eval "require $mod";
-    die $@ if $@;
-    # Don't use ->VERSION because that just returns ->numify.
-    my $version = eval "\$${mod}::VERSION";
-    $version = version->new($version) unless eval { $version->isa('version') };
-
     # Set up the version info for this app.
     require Kinetic::VersionInfo;
     Kinetic::VersionInfo->new(
-        app_name => $mod,
-        version  => $version,
+        app_name => $self->module_name,
+        version  => $self->dist_version,
     )->save;
 
     return $self;
