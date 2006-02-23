@@ -138,7 +138,7 @@ sub current { shift->{curr} }
       $iter->next;
   }
 
-Returns the next item to be returned by C<next()> without atually removing it
+Returns the next item to be returned by C<next()> without actually removing it
 from the list of items to be returned. The item returned by C<peek()> will be
 returned by the next call to C<next()>. After that, it will not be available
 from C<peek()> but the next item will be.
@@ -162,7 +162,7 @@ Returns a list or array reference of all of the items to be returned by the
 iterator. If C<next()> has been called prior to the call to C<all()>, then
 only the remaining items in the iterator will be returned. Use this method
 with caution, as it could cause a large number of Kinetic objects to be
-loaeed into memory at once.
+loaded into memory at once.
 
 =cut
 

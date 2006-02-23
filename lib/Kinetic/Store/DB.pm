@@ -211,7 +211,7 @@ the class being searched in the current search.  This is usually the first
 argument to the C<query> method.
 
 Generally, the programmer will know which search class she is working with,
-but if not, this method is avaible. Note that it is only available externally
+but if not, this method is available. Note that it is only available externally
 if the programmer first creates an instances of store prior to doing a search.
 
  my $store = Kinetic::Store->new;

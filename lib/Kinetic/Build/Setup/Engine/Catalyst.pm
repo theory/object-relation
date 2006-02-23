@@ -172,7 +172,7 @@ sub port { shift->{port} }
 
   my $host = $catalyst->host;
 
-Returns the host name for the server on which the Catalyst Web server wiil be
+Returns the host name for the server on which the Catalyst Web server will be
 run. Set by C<validate()>. Defaults to "localhost".
 
 =cut

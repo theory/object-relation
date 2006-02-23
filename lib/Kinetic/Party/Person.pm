@@ -218,7 +218,7 @@ L<Linguage::Strfname|Linguage::Strfname> format. Kinetic::Party::Person
 defines this method as a read-only attribute.
 
 The default format is specified by the locale returned by the currently
-selected langauge. See the L<Linguage::Strfname|Linguage::Strfname>
+selected language. See the L<Linguage::Strfname|Linguage::Strfname>
 documentation for details on its formats to pass in custom formats.
 
 =cut

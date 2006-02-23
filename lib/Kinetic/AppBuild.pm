@@ -47,7 +47,7 @@ In F<Build.PL>:
 
 This module subclasses L<Module::Build|Module::Build> to provide added
 functionality for installing Kinetic applications into an existing Kinetic
-Platform intstallation. The added functionality includes database building and
+Platform installation. The added functionality includes database building and
 library, view, and Web file installation.
 
 =cut

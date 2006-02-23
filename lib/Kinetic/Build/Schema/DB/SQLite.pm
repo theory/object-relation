@@ -155,7 +155,7 @@ Foreign key constraints to the tables for contained (referenced) objects.
 
 =item *
 
-"Unique triggers," which ensure that the value of a unique colum is indeed
+"Unique triggers," which ensure that the value of a unique column is indeed
 unique.
 
 =back
@@ -220,7 +220,7 @@ sub state_trigger {
 
 Returns the SQLite triggers to validate the values of any boolean type
 attributes in the class are stored as either 0 or 1 (zero or one) in their
-columns in the databse. If the class has no boolean attributes
+columns in the database. If the class has no boolean attributes
 C<boolean_triggers()> will return an empty list.
 
 Called by C<constraints_for_class()>.

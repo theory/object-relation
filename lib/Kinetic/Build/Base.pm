@@ -60,7 +60,7 @@ In F<Build.PL>:
 =head1 Description
 
 This module subclasses L<Module::Build|Module::Build> to provide added
-functionality for installing Kinetic and Kinetic aplications. It is not
+functionality for installing Kinetic and Kinetic applications. It is not
 intended to be used directly, but by L<Kinetic::Build|Kinetic::Build> and
 L<Kinetic::AppBuild|Kinetic::AppBuild>.
 
@@ -95,7 +95,7 @@ The supported parameters are the same as those used by C<get_reply()>, but the
 C<name>, C<label>, and C<default> parameters are required when passing
 parameters rather than using Module::Build's default arguments.
 
-There is also one addional parameter, C<setup>. The C<setup> parameter must be
+There is also one additional parameter, C<setup>. The C<setup> parameter must be
 a hash reference wherein the keys are possible values for the property, and
 the values are the package names of
 L<Kinetic::Build::Setup|Kinetic::Build::Setup> subclasses that perform
@@ -108,10 +108,10 @@ has the following C<setup>:
   }
 
 Depending on the value set for the C<store> property, the corresponding class
-will detect ans set up the appropriate external dependency.
+will detect and set up the appropriate external dependency.
 
 The keys will then be used to populate the C<options> parameter, unless it is
-manualy specified. All other parameters will be passed to the C<get_reply()>
+manually specified. All other parameters will be passed to the C<get_reply()>
 method whenever a new Module::Build object is created. Thus, for any such
 properties, if they were not set by a command-line parameter, the user will be
 prompted for input.
@@ -294,14 +294,14 @@ an array reference of regular expressions.
 L<Kinetic::Build::Schema|Kinetic::Build::Schema> will match the skipper regex
 or regexen against the file name of every Perl module file it finds in the
 C<source_dir>. Any file that matches will be not be loaded and will not result
-in the buildling of a schema for the module it represents.
+in the building of a schema for the module it represents.
 
 Use of this property should not generally be needed unless loading a
 non-schema module causes an error during C<./Build>. Such is true of some of
 the modules that come with Kinetic itself, for example.
 
 B<Note:> Remember that this regular expression I<will> be used to look at
-names on non-Unix file sysems. Design them carefully to anticipate variations
+names on non-Unix file systems. Design them carefully to anticipate variations
 in directory separators and other file system shennanigans. All file names
 will be relative to the root of your Kinetic application, e.g.,
 F<lib/Foo/Bar.pm> on Unix or F<lib\Foo\Bar.pm> on Windows.
@@ -588,7 +588,7 @@ sub _merge_configs {
 
 =head3 process_www_files
 
-This method is called during the C<build> action to copy the Web interfae
+This method is called during the C<build> action to copy the Web interface
 files to F<blib/www>.
 
 =cut
@@ -725,7 +725,7 @@ To retrieve that value, set the array reference to ['store', 'class'].
 =item environ
 
 The name of an environment variable to check for a value. Checked only after
-the Module::Build runtime parameters and argumens and the configuration file
+the Module::Build runtime parameters and arguments and the configuration file
 have failed to return a value, but before prompting the user.
 
 =back
@@ -799,10 +799,10 @@ sub get_reply {
 Use this method to ask the user a yes or no question. It always returns a
 boolean value, true for "yes" and false for "no." If an option has been passed
 to F<Build.PL> with the same name as the C<name> parameter, then the boolean
-expression of that option wil be returned. If the C<accept_defaults> option
-has been specifid or there is no TTY, then the default value will be returned.
-Otherwise, C<ask_y_n()> prompts the user, collects an answer, (any value
-starting with 'y' or 'n'), and returns the appropriate boolean value.
+expression of that option will be returned. If the C<accept_defaults> option
+has been specified or there is no TTY, then the default value will be
+returned.  Otherwise, C<ask_y_n()> prompts the user, collects an answer, (any
+value starting with 'y' or 'n'), and returns the appropriate boolean value.
 
 The supported parameters are the same as for C<get_reply()>, except for the
 C<callback> parameter, which is not supported.

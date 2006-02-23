@@ -91,7 +91,7 @@ sub dsn_dbd {
   my $dsn = $kbs->dsn;
 
 This abstract method returns the DSN to be used by the Kinetic::Store::DB
-subclass to connec to the database. Must be overridden in a subclass.
+subclass to connect to the database. Must be overridden in a subclass.
 
 =cut
 

@@ -209,7 +209,7 @@ sub defined_store_fields {
   my $sortable_string = $date->sort_string;
 
 Returns the date in a string format suitable for sorting.  There are no
-component separators and undefined components are ommitted.  All components
+component separators and undefined components are omitted.  All components
 except year are zero padded to 2 characters.  The year is zero padded with
 four characters.
 

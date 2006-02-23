@@ -49,7 +49,7 @@ Kinetic::Util::Context - Kinetic utility object context
 
 This class provides access to objects that need to be universally accessed.
 Specifically, it provides access to the currently logged-in user object, the
-system-wide shared cache, and the curent localization object. It should be
+system-wide shared cache, and the current localization object. It should be
 assumed that nothing can be done with the Kinetic API without first logging
 in as a user.
 

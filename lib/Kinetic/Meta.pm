@@ -115,7 +115,7 @@ after the C<uuid> and C<state> attributes.
 This attribute specifies a single Kinetic class name that the class extends.
 Extension is similar to inheritance, only extended class objects have their
 own UUIDs and states, and there can be multiple extending objects for a single
-extended objecct (think one person acting as several users).
+extended object (think one person acting as several users).
 
 =back
 

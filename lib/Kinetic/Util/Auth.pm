@@ -59,7 +59,7 @@ Support for protocols is implemented as subclasses that will be loaded by
 Kinetic::Util::Auth based on F<kinetic.conf> settings. There may be any number
 of supported protocols, and each will be evaluated for a call to
 C<_authenticate()> in the order defined by the C<protocol> settings in the
-C<auth> section of F<kinetic.conf>. Possible supported protcols include
+C<auth> section of F<kinetic.conf>. Possible supported protocols include
 Kinetic (TKP's internal authentication scheme), LDAP, SASL, or TrustApache.
 Check for the supported subclasses.
 

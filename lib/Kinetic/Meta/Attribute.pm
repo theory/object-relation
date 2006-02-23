@@ -103,7 +103,7 @@ behaviors:
 
 =item *
 
-Makes sure that distrinct attributes are also unique.
+Makes sure that distinct attributes are also unique.
 
 =item *
 
@@ -306,9 +306,9 @@ sub acts_as { shift->{acts_as} }
 This attribute describes the relationship of a referencing attribute and the
 class that references it. At an abstract level, there are fundamentally two
 different types of relationships: A relationship to a single object and a
-releationship to a collection of objects. However, these two broad categories
+relationship to a collection of objects. However, these two broad categories
 break down into subcategories that might affect the API of a class. For
-example, a simple "has" or "refrences" relationship is just that, simple: the
+example, a simple "has" or "references" relationship is just that, simple: the
 contained object can be fetched using the accessor, and then the attributes of
 that object can be accessed directly. An "extends" or "type_of" relationship
 is more complex. In these cases, the containing class will have extra
@@ -341,7 +341,7 @@ considered to be a part of the whole object that contains them.
 
 View triggers should detect when the has ID is NULL and do an insert when it
 is and an update when it isn't. Hrm...will need to figure out how to handle
-popuplating IDs, then...
+populating IDs, then...
 
 =item type_of
 
@@ -358,9 +358,9 @@ containing object. Given the above example, a Kinetic::Contact object has an
 attribute for the Kinetic::Type::Contact object that defines its type. The
 attributes of the type object will be available to users via read-only
 accessors (such as C<name()> or, if the contact class inherits from another
-class that defineds a C<name()> attribute, C<contact_type_name()>). In this
+class that defines a C<name()> attribute, C<contact_type_name()>). In this
 way, a user has read permission to see the attributes of the type object only
-via the read-only delegated accessors, but not necssarily to the contained
+via the read-only delegated accessors, but not necessarily to the contained
 type object itself (since permission to access that object is evaluated
 independently of the containing object).
 
@@ -387,7 +387,7 @@ A simple reference. The contained object is simply referenced by the
 containing object. For example, an element object may reference another
 element object. In other words, relationship has no inherent meaning, it
 simply I<is>. The contained object and its attributes will only be available
-via the attribute accessor method. No other accessors wiil be generated.
+via the attribute accessor method. No other accessors will be generated.
 
 =for StoreComment
 
@@ -416,7 +416,7 @@ The attributes of the contained objects will be available via read/write
 accessors in the containing class that will simply delegate to the contained
 object. Likewise, the methods of the contained objects will be available via
 delegating methods in the containing class. The naming conventions for each
-apply as described for the delgating accessors and methods in "type_of"
+apply as described for the delegating accessors and methods in "type_of"
 relationships. Thus a user will have implicit read/write access to an extended
 object via the delegated accessors and methods (assuming that she has
 read/write permission to the extending object, of course), but the user's
@@ -452,7 +452,7 @@ relationship assumes "once".
 The attributes of the contained object will be accessible via read/write
 delegation methods. Likewise, the methods of the contained objects will be
 available via delegating methods in the containing class. The naming
-conventions for each apply as described for the delgating accessors and
+conventions for each apply as described for the delegating accessors and
 methods in "type_of" relationships. The permissions evaluated for the
 contained object will implicitly be applied to the mediating object, as well,
 since it functions as an stand-in for the contained object. This design is
@@ -485,7 +485,7 @@ relating to objects or mediators.
 The containing object references a collection of contained objects. This
 relationship differs from that of "has_many" in that the "has_many" objects
 are only associated with the object that they are a part of, while the objects
-associated via a "refrences_many" relationship can be referenced by many
+associated via a "references_many" relationship can be referenced by many
 different objects. For example, a document can reference one or more
 categories. Thus, the permissions to access each of the contained objects will
 be evaluated independent of the permission granted to the containing object.
@@ -516,7 +516,7 @@ be the same as that returned by C<get()>, but when the attribute fetched is an
 object, it might return a raw value suitable for serialization or storage in a
 database. For example, if the attribute was a
 L<Kinetic::DataType::DateTime|Kinetic::DataType::DateTime> object, the
-C<get()> metod will return the object, but the C<raw()> method might return an
+C<get()> method will return the object, but the C<raw()> method might return an
 ISO-8601 formatted string using the UTC time zone, instead.
 
 =cut

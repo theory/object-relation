@@ -24,6 +24,8 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use base 'Kinetic::Type';
+use Kinetic::Meta;
+use Class::Meta::Declare ':all';
 
 =head1 Name
 
@@ -35,13 +37,6 @@ This class serves as the base class for contacts in TKP.  See the
 L<Kinetic::Contact|Kinetic::Contact> for full implementation.
 
 =cut
-
-BEGIN {
-    my $km = Kinetic::Meta->new(
-        key         => 'contact_type',
-        name        => 'Contact type',
-        plural_name => 'Contact types',
-    );
 
 ##############################################################################
 # Instance Interface.
@@ -68,19 +63,24 @@ The description of the contact.
 
 =cut
 
-    $km->add_attribute(
-        name        => 'description',
-        label       => 'Description',
-        type        => 'string',
-        widget_meta => Kinetic::Meta::Widget->new(
-            type => 'text',
-            tip  => "The description of the contact"
-        )
-    );
-
-
-    $km->build;
-} # BEGIN
+Class::Meta::Declare->new(
+    meta => [
+        use         => 'Kinetic::Meta',
+        key         => 'contact_type',
+        name        => 'Contact type',
+        plural_name => 'Contact types',
+    ],
+    attributes => [
+        description => {
+            label       => 'Description',
+            type        => $TYPE_STRING,
+            widget_meta => Kinetic::Meta::Widget->new(
+                type => 'text',
+                tip  => "The description of the contact"
+            )
+        },
+    ],
+);
 
 1;
 __END__

@@ -115,11 +115,11 @@ Returns a code reference to get the raw value of a type. Used internally by
 L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>.
 
 The code reference should simply expect the value returned by the C<get>
-accessor as its sole argument. It can then take whatever steps are necssary to
-return a serializable value. For example, if for a
-L<Kinetic::DataType::DateTime|Kinetic::DataType::DateTime> data type, we might want to get back a
-string in ISO-8601 format in the UTC time zone. The raw code reference to do
-so might look like this:
+accessor as its sole argument. It can then take whatever steps are necessary
+to return a serializable value. For example, if for a
+L<Kinetic::DataType::DateTime|Kinetic::DataType::DateTime> data type, we might
+want to get back a string in ISO-8601 format in the UTC time zone. The raw
+code reference to do so might look like this:
 
   sub { shift->clone->set_time_zone('UTC')->iso8601 }
 
@@ -135,7 +135,7 @@ sub raw { shift->{raw} }
 
 Returns a code reference to get the store raw value of a type. Used internally
 by L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>. In general, it will
-exactly the same as C<raw()>, but may occaisionally be different, as when
+exactly the same as C<raw()>, but may occasionally be different, as when
 different data stores require different raw values for a particular data type.
 
 For the L<Kinetic::DataType::Duration|Kinetic::DataType::Duration> type, for

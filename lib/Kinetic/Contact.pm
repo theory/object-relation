@@ -27,6 +27,7 @@ use base 'Kinetic';
 use Kinetic::Meta;
 use Kinetic::Meta::Widget;
 use Kinetic::Type::Contact;
+use Class::Meta::Declare ':all';
 
 =head1 Name
 
@@ -37,14 +38,6 @@ Kinetic::Contact - Kinetic contact objects
 This class represents contacts in TKP. 
 
 =cut
-
-BEGIN {
-    my $km = Kinetic::Meta->new(
-        key         => 'contact',
-        name        => 'Contact',
-        plural_name => 'Contacts',
-        type_of     => 'contact_type',
-    );
 
 ##############################################################################
 # Instance Interface.
@@ -60,17 +53,25 @@ attributes.
 
 =cut
 
-    $km->add_attribute(
-        name        => 'value', # XXX ? from the pdf
-        label       => 'Value',
-        type        => 'string',
-        widget_meta => Kinetic::Meta::Widget->new(
-            type => 'text',
-            tip  => "The value of the contact",
-        )
-    );
-    $km->build;
-} # BEGIN
+Class::Meta::Declare->new(
+    meta => [
+        use         => 'Kinetic::Meta',
+        key         => 'contact',
+        name        => 'Contact',
+        plural_name => 'Contacts',
+        type_of     => 'contact_type',
+    ],
+    attributes => [
+        value => {
+            label       => 'Value',
+            type        => $TYPE_STRING,
+            widget_meta => Kinetic::Meta::Widget->new(
+                type => 'text',
+                tip  => "The value of the contact"
+            )
+        },
+    ],
+);
 
 1;
 __END__

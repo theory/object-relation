@@ -162,7 +162,7 @@ modules need to manipulate it.
 In the Kinetic objects, contained object attributes are frequently referred
 to by C<$key . $delimiter . $attribute_name>.  Thus, an object with a key of
 I<customer> and an attribute named "last_name" might be referred to as
-I<customer.last_name>.  The C<$ATTR_DELIMITER> should be the C<$delimeter>.
+I<customer.last_name>.  The C<$ATTR_DELIMITER> should be the C<$delimiter>.
 
 =item * $CACHED
 
@@ -181,9 +181,9 @@ UUIDs.  Assumes all letters are upper case.
 =item * $OBJECT_DELIMITER
 
 In the data store, contained object fields are usually the
-L<Kinetic::Meta|Kinetic::Meta> key, followed by the object delimeter and the
+L<Kinetic::Meta|Kinetic::Meta> key, followed by the object delimiter and the
 name of the actual field.  Thus, if asking for a C<first_name> field in an
-object in a K:M class with the key C<customer> and the object delimeter is
+object in a K:M class with the key C<customer> and the object delimiter is
 C<__>, the resulting field would be C<customer__first_name>.
 
 =item * $PREPARE

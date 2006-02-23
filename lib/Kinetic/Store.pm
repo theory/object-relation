@@ -361,7 +361,7 @@ The C<count()> method will most often be called to determine how many pages to
 provide links for when paginating search results in the UI. Therefore, for
 purposes of efficiency, the result of a call to C<count()> will be cached, so
 that subsequent calls to C<count()> with the same parameters will not incur
-the database overhead. The timeout for the C<count()> cache will be setable
+the database overhead. The timeout for the C<count()> cache will be settable
 via a Kinetic::Util::Config setting.
 
 B<Throws:>
@@ -534,7 +534,7 @@ At its simplest, a search  can be a simple keyword search:
 Passing a single string as the search parameter triggers a full text search of
 all the objects of the class and returns all of the active objects that match
 the search. The full text substring search works because an XML representation
-of each Kinetic biziness objects is always kept in the data store. The
+of each Kinetic business object is always kept in the data store. The
 semantics of the search results will, however, be dependent on the full text
 indexing of the data store in question. See the relevant Kinetic::Store
 subclasses for details on their full text search implementations.
@@ -719,7 +719,7 @@ and time of 19 December 1968, at 19:42:18. Any other phony person objects with
 their C<birthday> attribute set to any other time on the same date will of
 course be excluded from the search results.
 
-Queries on partial dates can be carried ouit using DateTime::Incomplete. For
+Queries on partial dates can be carried out using DateTime::Incomplete. For
 example, if you wanted to search for all persons with a date of 19 December
 without regard to year, you can do it like this:
 
@@ -848,7 +848,7 @@ here are the details. Kinetic provides a number of unary operators to affect
 how search parameters values are treated. These are designed to give you
 greater flexibility in building your search parameters to get the objects you
 need. Most have the same names as standard Perl operators, the only difference
-beeing an initial uppercase letter. This design, we hope, makes the Kinetic
+being an initial uppercase letter. This design, we hope, makes the Kinetic
 search value operators both familiar and easy to remember.
 
 Please note that value operators can never be more than two deep.
@@ -975,7 +975,7 @@ use...
 =item LT
 
 This operator specifies a search for a value less than the value specified in
-the search parameters. So to find all pyony person objects with a favorite
+the search parameters. So to find all phony person objects with a favorite
 number less than 42, do this:
 
   my $iter = $store->query('Kinetic::Phony::Person' =>
@@ -1042,7 +1042,7 @@ so named to be syntactically familiar to Perl users.
 
 =head3 AND
 
-As we've mentioned, serach parameters are implicitly C<AND>ed when you perform
+As we've mentioned, search parameters are implicitly C<AND>ed when you perform
 a search. It is possible to also explicitly C<AND> them together using the
 C<AND> function. For example, this familiar search:
 
@@ -1172,10 +1172,10 @@ C<ANY> operator:
     last_name => ANY(qw(Wall Conway Randall Cawley Sugalski))
   );
 
-Now isn't that a lot more elegant? Now you can search for any numer of values,
-an one of which may be correct. In general, the actual search will be carried
-out exactly the same as if you'd use multiple C<OR> operators. And the great
-thing about it is that, like the C<AND> and C<OR> operators, you can use
+Now isn't that a lot more elegant? Now you can search for any number of
+values, an one of which may be correct. In general, the actual search will be
+carried out exactly the same as if you'd use multiple C<OR> operators. And the
+great thing about it is that, like the C<AND> and C<OR> operators, you can use
 C<ANY> with any of the comparison operators. C<LIKE> can be especially useful:
 
   my $iter = $store->query(
@@ -1286,7 +1286,7 @@ The job of this class is to determine, at installation time, the necessary
 information to build the back end, for example the server name, password,
 database name, etc. It then takes this information and actually I<builds> the
 data store. It also builds a test data store (the build system will ask the
-Kinetic::Build::Setup::Store subclass to do this, if necsssary). See
+Kinetic::Build::Setup::Store subclass to do this, if necessary). See
 L<Kinetic::Build::Setup::Store::DB::Pg|Kinetic::Build::Setup::Store::DB::Pg> and
 L<Kinetic::Build::Setup::Store::DB::SQLite|Kinetic::Build::Setup::Store::DB::SQLite> for
 examples. Note that this class should use FSA::Rules to gather information,
@@ -1312,7 +1312,7 @@ data store, and one to tear it down. For our Oracle example, the scripts would
 be named F<t/store/oracle_setup.pl> and F<t/store/oracle_teardown.pl>. These
 are different than the behavior of the test database created for testing
 Kinetic applications. It is designed specifically to fully test the complete
-store API, as the sample classes exibit every relationship and data type.
+store API, as the sample classes exhibit every relationship and data type.
 
 =item * Create a subclass of Kinetic::Store::DB.
 

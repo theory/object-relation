@@ -45,7 +45,7 @@ In F<Build.PL>:
 
 This module subclasses L<Module::Build|Module::Build> to provide added
 functionality for installing Kinetic. The added functionality includes
-configuration file management, configuation file setup for tests, data store
+configuration file management, configuration file setup for tests, data store
 schema generation, and database building.
 
 This module does I<not> install Kinetic applications. That functionality is

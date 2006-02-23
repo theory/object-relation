@@ -184,7 +184,7 @@ sub column_reference { return }
 
 Returns the SQL that declares an SQL index. This implementation overrides that
 in L<Kinetic::Build::Schema::DB|Kinetic::Build::Schema::DB> to change it to a
-partial unique index or to removce the C<UNIQUE> keyword if the attribute is
+partial unique index or to remove the C<UNIQUE> keyword if the attribute is
 unique but not distinct. The difference is that a unique attribute is unique
 only relative to the C<state> attribute. A unique attribute can have more than
 one instance of a given value as long as no more than one of them also has a

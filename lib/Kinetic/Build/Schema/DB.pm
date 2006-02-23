@@ -455,8 +455,8 @@ main construct to access the attributes of a class. They will often
 encapsulate inheritance relationships, so that consumer code does not have to
 be aware of the inheritance relationship of tables when selecting or modify
 the contents of an object. They will also often encapsulate the relationship
-between an object and any other objects it containts ("has-a" relationships)
-by including all of the attributes of the contained object in the view. This
+between an object and any other objects it contains ("has-a" relationships) by
+including all of the attributes of the contained object in the view. This
 approach makes selecting an object and all of its contained objects very easy
 to do in a single C<SELECT> statement.
 

@@ -54,7 +54,7 @@ L<Kinetic::Build::Setup|Kinetic::Build::Setup>.
       = $Kinetic::Build::Setup::Cache->catalyst_cache_class;
 
 This method returns the engine class responsible for managing the Catalyst UI
-session cache. Must be overidden by a subclass.
+session cache. Must be overridden by a subclass.
 
 =cut
 
@@ -70,7 +70,7 @@ sub catalyst_cache_class {
       = $Kinetic::Build::Setup::Cache->object_cache_class;
 
 This method returns the engine class responsible for managing the Kinetic
-store cache. Must be overidden by a subclass.
+store cache. Must be overridden by a subclass.
 
 =cut
 

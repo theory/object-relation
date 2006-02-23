@@ -558,7 +558,7 @@ package Kinetic::Util::Exception;
 Creates and returns a new exception object. Use this method with C<die> to
 throw exceptions yourself, or if you don't want to import any C<throw_>
 functions into your namespace. Otherwise, a C<throw_> function is generally the
-preferred way to throw an exception. Besides, it requires less typting!
+preferred way to throw an exception. Besides, it requires less typing!
 
 The base class supports only a single parameter, C<error>, for the exception
 error message. If only a single argument is passed to C<new()>, it is assumed

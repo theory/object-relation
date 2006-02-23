@@ -52,9 +52,9 @@ Kinetic::Util::Language - Kinetic localization class
 =head1 Description
 
 This class handles Kinetic localization. To add this functionality, it
-subclasses L<Locale::Maketext|Locale::Maketext> and addes a few other
-features. One of these features is that failure to find a localization string
-will result in the throwing of a Kinetic::Util::Exception::Fatal::Language
+subclasses L<Locale::Maketext|Locale::Maketext> and adds a few other features.
+One of these features is that failure to find a localization string will
+result in the throwing of a Kinetic::Util::Exception::Fatal::Language
 exception.
 
 But since the Kinetic framework is just that, a framework, this class

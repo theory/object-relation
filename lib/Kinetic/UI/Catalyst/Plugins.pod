@@ -43,8 +43,8 @@ which does not begin with C<Catalyst::Plugin::>, you must "use base".
 
 I am working on a system whereby one can use different names, but there are
 some issues with the Catalyst architecture which are being discussed.  The
-patch has been acccepted by the Catalyst team and I committed it, but until
-the next release, it won't be available.
+patch has been accepted by the Catalyst team and I committed it, but until the
+next release, it won't be available.
 
 If you absolutely can't stand inherited plugins, you can also do this:
 

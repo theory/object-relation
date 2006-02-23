@@ -224,7 +224,7 @@ sub _properties {
     [% Renderer.render(constraint, class_key) %]
   [% END %]
 
-The C<constraints> method returns an arrayref of the cosntraints observed in
+The C<constraints> method returns an arrayref of the constraints observed in
 searches.
 
 =cut
@@ -386,7 +386,7 @@ Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>
 
 This work is made available under the terms of Version 2 of the GNU General
 Public License. You should have received a copy of the GNU General Public
-License along with this pr ogram; if not, download it from
+License along with this program; if not, download it from
 L<http://www.gnu.org/licenses/gpl.txt> or write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 

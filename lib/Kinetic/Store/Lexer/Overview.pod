@@ -208,7 +208,7 @@ it pushes to tokens onto the stack:
   [ IDENTIFIER => 'name' ],
   [ OP         => '=>'   ],
 
-Then it examines more of the seach request. If what follows is a string, it
+Then it examines more of the search request. If what follows is a string, it
 merely pushes the appropriate tokens onto the stack. For example, with the
 following code search:
 
@@ -224,7 +224,7 @@ You might be aware that the above search is equivalent to this:
 
   [ name => EQ 'Ovid' ]
 
-For this example, the code lexter the following stack:
+For this example, the code lexer the following stack:
 
   [ IDENTIFIER => 'name' ],
   [ OP         => '=>'   ],
@@ -272,7 +272,7 @@ The C<LIKE> subroutine looks like this:
       };
   }
 
-The C<COMPARE> and C<VALUE> tokens are then pushed onto the stack, yeilding:
+The C<COMPARE> and C<VALUE> tokens are then pushed onto the stack, yielding:
 
   [ IDENTIFIER => 'name' ],
   [ OP         => '=>'   ],

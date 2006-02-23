@@ -120,11 +120,11 @@ The class from which Kinetic::Party inherits.
 
 =item L<Kinetic::Party::Person|Kinetic::Party::Person>
 
-A concrete base class that inerites from Kinetic::Party.
+A concrete base class that inherits from Kinetic::Party.
 
 =item L<Kinetic::Party::Org|Kinetic::Party::Org>
 
-Another concrete base class that inerites from Kinetic::Party.
+Another concrete base class that inherits from Kinetic::Party.
 
 =back
 

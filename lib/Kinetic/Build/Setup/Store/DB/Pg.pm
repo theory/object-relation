@@ -783,7 +783,7 @@ sub test_db_pass { '__kinetic_test__' }
 
 The super or admin database user, which will be used to create the Kinetic
 database and user if they don't already exist. The default is the typical super
-user name for the seleted data store.
+user name for the selected data store.
 
 Defaults to postgres.
 
@@ -874,7 +874,7 @@ sub create_db {
 
   $kbs->add_plpgsql($db_name);
 
-Given a database name, this method will attemt to add C<plpgsql> to the
+Given a database name, this method will attempt to add C<plpgsql> to the
 database. The database name defaults to the value returned by C<db_name>.
 
 =cut

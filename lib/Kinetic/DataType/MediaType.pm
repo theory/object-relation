@@ -68,7 +68,7 @@ Kinetic::Meta::Type->add(
   my $media_type = Kinetic::DataType::MediaType->new($string);
 
 Overrides the implementation of C<new()> in L<MIME::Type|MIME::Type> to
-redispatch to C<bake()> if there is only one agrument. Otherwise, it sends the
+redispatch to C<bake()> if there is only one argument. Otherwise, it sends the
 arguments off to MIME::Type's C<new()>.
 
 =cut

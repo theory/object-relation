@@ -64,7 +64,7 @@ overriding C<Kinetic::Store::DB> methods as needed.
   $store->_fetchrow_hashref($sth);
 
 This method delegates the fetchrow hashref call to the statement handle, but
-ensures that data returned is uft8.
+ensures that data returned is utf8.
 
 =cut
 
@@ -121,7 +121,7 @@ sub _full_text_search {
   my $op = $store->_MATCH_SEARCH($key);
 
 Works like C<Kinetic::Store::DB::_MATCH_SEARCH> but supports full Perl regular
-expressions via the SQLite C<REGEXP> operator. As the regular expresisons are
+expressions via the SQLite C<REGEXP> operator. As the regular expressions are
 compiled with the C<ixms> modifiers, they are always case-insensitive,
 and C<^> matches the beginning of the whole string, and C<$> matches the end
 of the whole string.

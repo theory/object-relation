@@ -227,7 +227,7 @@ sub validate {
 
 This is a common helper method that uses the C<App::Info> object returned from
 C<info()> and the C<version> module to determine if the external dependency is
-of the minumum required version and no more than the maximum required version,
+of the minimum required version and no more than the maximum required version,
 if C<max_version()> returns a true value. Returns a boolean value.
 
 If you are not using an C<App::Info> class to validate a dependency, you must
@@ -317,7 +317,7 @@ override it to add test-specific functionality.
   $setup->test_cleanup;
 
 This method will cleanup a temporary setup created by the C<test_setup()>
-meethod.
+method.
 
 This implementation is a no-op, but can be overridden in subclasses to delete
 drop a database or something similar.
@@ -333,7 +333,7 @@ sub test_cleanup { shift }
   $setup->resume($builder);
 
 Resumes the state of the Kinetic::Build::Setup object after it has been
-retreived from a serialized state. Pass a Kinetic::Build object to set the
+retrieved from a serialized state. Pass a Kinetic::Build object to set the
 C<builder> attribute.
 
 =cut

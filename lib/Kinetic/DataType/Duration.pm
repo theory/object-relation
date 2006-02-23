@@ -58,10 +58,10 @@ in overloading the comparison operators C<==> and C<eq> and in providing
 C<raw()> and C<bake()> methods for serialization and deserialization to the
 data store.
 
-A note about the comparision overloading: It uses the C<compare()> method
+A note about the comparison overloading: It uses the C<compare()> method
 inherited from L<DateTime::Duration|DateTime::Duration> and calculates the
 differences against a DateTime object for the current Date and time. Thus, the
-caveats the apply to C<comare()> apply also to the overloaded comparision
+caveats the apply to C<comare()> apply also to the overloaded comparison
 functionality of this module.
 
 =cut

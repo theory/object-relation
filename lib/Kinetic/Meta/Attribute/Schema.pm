@@ -167,7 +167,7 @@ index. The name of the index is "idx_" plus the class key plus the name of the
 attribute. Pass in a Kinetic::Meta::Class object to use its key for the class
 key part of the name. This is useful for creating indexes for classes that
 inherit from the class for which the attribute was defined, and prevents
-duplicately named indexes when more thane one class inherits from a class with
+duplicately named indexes when more than one class inherits from a class with
 an attribute requiring an index.
 
 =cut

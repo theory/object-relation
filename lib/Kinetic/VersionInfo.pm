@@ -37,11 +37,11 @@ Kinetic::VersionInfo - Version information for Kinetic Applications
 
 =head1 Description
 
-This class manaages version information for Kinetic applications as well as
-the Kinetic Platform itself. The version information is stored in the data
-store, but can be retrieved and updated for installations and upgrades. It
-inherits from L<Kinetic|Kinetic>, so it works just like any other Kinetic
-class that stores data in the data store.
+This class manages version information for Kinetic applications as well as the
+Kinetic Platform itself. The version information is stored in the data store,
+but can be retrieved and updated for installations and upgrades. It inherits
+from L<Kinetic|Kinetic>, so it works just like any other Kinetic class that
+stores data in the data store.
 
 =cut
 
