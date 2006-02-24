@@ -5,8 +5,8 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
-#use Test::More 'no_plan';
-use Test::More tests => 105;
+use Test::More 'no_plan';
+#use Test::More tests => 105;
 use Test::NoWarnings; # Adds an extra test.
 use Test::Differences;
 
@@ -27,7 +27,7 @@ isa_ok $sg, 'Kinetic::Build::Schema::DB::SQLite';
 
 ok $sg->load_classes('t/sample/lib'), "Load classes";
 is_deeply [ map { $_->key } $sg->classes ],
-  [qw(simple one composed comp_comp two extend relation types_test)],
+  [qw(simple one composed comp_comp two extend has_many relation types_test)],
   "classes() returns classes in their proper dependency order";
 
 for my $class ($sg->classes) {
@@ -581,6 +581,12 @@ eq_or_diff $sg->delete_for_class($relation), $delete,
 eq_or_diff join("\n", $sg->schema_for_class($relation)),
   join("\n", $table, $indexes, $constraints, $view, $insert, $update, $delete),
   "... Schema class generates complete schema";
+
+##############################################################################
+# Grab the has_many class.
+ok my $has_many = Kinetic::Meta->for_key('has_many'), "Get has_many class";
+is $has_many->key, 'has_many', "... HasMany class has key 'has_many'";
+is $has_many->table, '_has_many', "... HasMany class has table '_has_many'";
 
 ##############################################################################
 # Grab the composed class.
