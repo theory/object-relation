@@ -81,7 +81,9 @@ is $builder->install_destination('lib'), catdir(updir, 'lib'),
     'The lib base should be correct';
 is $builder->module_name, 'TestApp::Simple',
     'The module name should be "TestApp::Simple"';
-cmp_ok $builder->dist_version, '==', version->new('1.1.0'),
+my $dist_version = $builder->dist_version;
+$dist_version = version->new($dist_version) unless ref $dist_version;
+cmp_ok $dist_version, '==', version->new('1.1.0'),
     'The version number should be "1.1.0"';
 
 # Make sure that the config file is getting read in.
