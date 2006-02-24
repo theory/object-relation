@@ -1,0 +1,41 @@
+package TestApp::HasMany;
+use base 'Kinetic';
+use TestApp::Simple::One;
+use Kinetic::Util::Language::en_us;
+use Kinetic::Meta::Declare ':all';
+use Kinetic::Meta::Widget;
+
+Kinetic::Meta::Declare->new(
+    meta => [
+        key         => 'has_many',
+        plural_name => 'Has Manys',
+        has_many    => 'one',
+    ],
+    attributes => [
+        age => {
+            label       => 'HasMany age',
+            type        => $TYPE_WHOLE,
+            widget_meta => Kinetic::Meta::Widget->new(
+                type => 'text',
+                tip  => 'This is a tip.  This is only a tip.',
+            ),
+        },
+    ]
+);
+
+# Add new strings to the lexicon.
+Kinetic::Util::Language::en->add_to_lexicon(
+    'has_many',
+    'has_many',
+    'Has many',
+    'Has many',
+    'Has Manys',
+    'Has Manys',
+    'This is a tip.  This is only a tip.',
+    'This is a tip.  This is only a tip.',
+    'HasMany age',
+    'HasMany age',
+);
+
+1;
+__END__
