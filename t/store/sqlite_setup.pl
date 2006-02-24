@@ -10,6 +10,6 @@ use Kinetic::Build;
 
 mkpath catdir 't', 'data';
 my $build = Kinetic::Build->resume;
-my $kbs = $build->notes('build_store');
+my $kbs = $build->setup_objects('store');
 $kbs->builder->source_dir('t/sample/lib');
 $kbs->test_setup;

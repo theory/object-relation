@@ -4,8 +4,8 @@
 
 use warnings;
 use strict;
-use Test::More 'no_plan';
-#use Test::More tests => 34;
+#use Test::More 'no_plan';
+use Test::More tests => 60;
 use Test::Exception;
 use Test::File;
 use aliased 'Test::MockModule';
@@ -18,9 +18,22 @@ use DBI;
 use lib '../../lib';
 
 my $CLASS = 'Kinetic::AppBuild';
-my @builders;
+my ($MAIN_BUILD, $STORE, @builders, @ARGS);
 
 BEGIN {
+    # Omit KINETIC_CONF; the tests will set it as needed.
+    delete $ENV{KINETIC_CONF};
+    require Kinetic::Build;
+
+    # Load up current build config.
+    $MAIN_BUILD = Kinetic::Build->resume;
+    $STORE = $MAIN_BUILD->store;
+    my $args = $MAIN_BUILD->args;
+    @ARGS = (
+        @{ delete $args->{ARGV} },
+        map { ("--$_" => $args->{$_}) } keys %{ $args }
+    );
+
     # All build tests execute in the sample directory with its
     # configuration file.
     chdir 't'; chdir 'sample';
@@ -38,9 +51,6 @@ BEGIN {
     ;
     close $conf_fh;
 
-    # Omit KINETIC_CONF; the tests will set it as needed.
-    delete $ENV{KINETIC_CONF};
-
     # Start 'er up!
     use_ok 'Kinetic::AppBuild' or die $@;
 }
@@ -48,8 +58,12 @@ BEGIN {
 END {
     $_->dispatch('realclean') for @builders;
     rmtree 'conf';
+    # Return to root so Kinetic::Build::Test can restore t/conf/kinetic.conf.
     chdir updir; chdir updir;
 }
+
+is_deeply [$CLASS->setup_properties ], [qw(store)],
+    'Setup properties should be properly inherited';
 
 my $kb_mocker = MockModule->new('Kinetic::Build::Base');
 $kb_mocker->mock(_check_build_component => 1);
@@ -65,6 +79,10 @@ is $builder->install_destination('www'), catdir(updir, 'www'),
     'The www base should be correct';
 is $builder->install_destination('lib'), catdir(updir, 'lib'),
     'The lib base should be correct';
+is $builder->module_name, 'TestApp::Simple',
+    'The module name should be "TestApp::Simple"';
+cmp_ok $builder->dist_version, '==', version->new('1.1.0'),
+    'The version number should be "1.1.0"';
 
 # Make sure that the config file is getting read in.
 read_config( $config_file => my %conf);
@@ -150,19 +168,27 @@ file_exists_ok $bconf_file, 'blib conf file should now exist';
 file_exists_ok $tconf_file, 't conf file should now exist';
 
 # So make sure that the conf files have the proper data in them.
-read_config( catfile(qw(blib conf kinetic.conf)) => my %bconf );
 read_config( $config_file  => my %dconf );
+read_config( catfile(qw(blib conf kinetic.conf)) => my %bconf );
+
 # Add sample data for comparing.
 $dconf{auth}->{_sample_} = 'foo';
 $dconf{sample} = { foo => 'bar', baz => 'woo' };
+
+if ($STORE eq 'sqlite') {
+    $dconf{store}{dsn} = 'dbi:SQLite:dbname=' . catfile updir, qw(store kinetic.db);
+} elsif ($STORE eq 'pg') {
+    delete @{$dconf{store}}{qw(db_super_pass db_super_user template_db_name)};
+    @{$dconf{store}}{qw(db_user db_pass dsn)}
+        = ('kinetic', '', 'dbi:Pg:dbname=kinetic');
+}
 is_deeply \%bconf, \%dconf, 'The configuration file should be merged';
 
 # We should have test data.
 read_config( catfile(qw(t conf kinetic.conf)) => my %tconf );
 SKIP: {
     # Test the test config for at least one data store.
-    skip 'Not testing PostgreSQL', 1
-        if $tconf{store}{class} ne 'Kinetic::Store::DB::Pg';
+    skip 'Not testing PostgreSQL', 1 if $STORE ne 'pg';
     is_deeply $tconf{store}, {
         db_user          => '__kinetic_test__',
         db_pass          => '__kinetic_test__',
@@ -185,32 +211,59 @@ my $mb_mocker = MockModule->new('Module::Build');
 $mb_mocker->mock(ACTION_test => sub {
     # We'll run tests during the test action here. Sneaky, huh?
     ok 1, 'Run super test';
+    my @keys = sort Kinetic::Meta->keys;
+    is_deeply \@keys,
+        [qw(abstract comp_comp composed contact contact_type extend kinetic
+            one party person relation simple two types_test usr version_info)],
+        'Both TestApp and Kinetic classes should now be loaded';
+    ok my $dbh = dbi_connect(@{$tconf{store}}{qw(dsn db_user db_pass)}),
+        'Now we should be able to connect to the test database';
+    # Make sure that views exist for all of the keys.
+    for my $key (@keys) {
+        next if Kinetic::Meta->for_key($key)->abstract;
+        ok $dbh->selectcol_arrayref("SELECT 1 FROM $key"),
+            "The $key view should exist";
+    }
+    ok +Kinetic::Party::User->lookup(username => 'admin'),
+        'The admin user should exist';
+
+    $dbh->disconnect;
 });
 
 SKIP: {
-    skip 'Not running dev tests', 2 unless $ENV{KINETIC_SUPPORTED};
+    skip 'Not running dev tests', 20 unless $ENV{KINETIC_SUPPORTED};
 
     # We should fail to connect to the test data store.
-#    eval { DBI->connect(@{$tconf{store}}{qw(dsn db_user db_pass)}) };
-#    ok $@, 'We should fail to connect to the test database';
+    dies_ok { dbi_connect(@{$tconf{store}}{qw(dsn db_user db_pass)}) }
+        'We should not be able to connect to the test database';
 
+    $builder->install_base(catdir updir, updir);
     ok $builder->dispatch('test'), 'Dispatch to test action should return';
 
+    dies_ok { dbi_connect(@{$tconf{store}}{qw(dsn db_user db_pass)}) }
+        'And now the database should be gone again';
 }
 
 ##############################################################################
 sub new_builder {
+    local @ARGV = @ARGS;
     push @builders, $CLASS->new(
-        dist_name    => 'TestApp::Simple',
-        dist_version => '1.0',
-        quiet        => 1,
-        install_base => updir,
+        module_name     => 'TestApp::Simple',
+        quiet           => 1,
+        install_base    => updir,
         accept_defaults => 1,
+        store           => $STORE,
+        test_cleanup    => 1, # Change to 0 to leave the data store
         @_,
     );
     return $builders[-1];
 }
 
+##############################################################################
+
+sub dbi_connect {
+    DBI->connect(@_, { RaiseError => 1, PrintError => 1 })
+}
 
 1;
 __END__

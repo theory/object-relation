@@ -24,6 +24,7 @@ use warnings;
 use Cwd;
 use Kinetic::Meta;
 use Kinetic::Util::Config qw(:kinetic :cache);
+use Kinetic::Util::Constants qw(:class_exclude);
 use aliased 'Kinetic::UI::Catalyst::Log';
 use Kinetic::UI::Catalyst::Cache;
 use Kinetic::Util::Functions qw(:class);
@@ -34,10 +35,7 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 BEGIN {
-    load_classes(
-        KINETIC_ROOT.'/lib',
-        qr/Kinetic.(?:Build|DataType|Engine|Format|Meta|Store|UI|Util|Version)/
-    );
+    load_classes(  KINETIC_ROOT . '/lib', $CLASS_EXCLUDE_RE );
 }
 
 #

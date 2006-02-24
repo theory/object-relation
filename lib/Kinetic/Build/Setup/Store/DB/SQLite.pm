@@ -330,6 +330,24 @@ sub test_setup {
 
 ##############################################################################
 
+=head3 test_cleanup
+
+  $kbs->test_cleanup;
+
+Cleans up the tests data store by deleting the test data directory, as
+returned by C<< $build->test_data_dir >>, which is where the test database
+gets built.
+
+=cut
+
+sub test_cleanup {
+    my $self    = shift;
+    my $builder = $self->builder;
+    File::Path::rmtree $self->_test_dir, !$builder->quiet;
+}
+
+##############################################################################
+
 =begin private
 
 =head1 Private Interface
@@ -347,7 +365,8 @@ behavior.
 
 sub _setup {
     my ($self, $dsn, $dir, $method, @args) = @_;
-    File::Path::mkpath $dir, 1;
+    my $builder = $self->builder;
+    File::Path::mkpath $dir, !$builder->quiet;
 
     $self->_dbh(my $dbh = DBI->connect($dsn, '', '', {
         RaiseError     => 0,

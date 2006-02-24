@@ -113,6 +113,27 @@ sub new {
 
 ##############################################################################
 
+=head2 Attributes
+
+Module::Build calls these "properties". They can either be specified in
+F<Build.PL> by passing them to C<new()>, or they can be specified on the
+command line.
+
+=head3 test_cleanup
+
+  my $test_cleanup = $build->test_cleanup;
+  $build->test_cleanup($accept);
+
+Returns true if the setup classes' C<test_cleanup> methods should be called
+at the end of the C<test> action. Applies only when C<dev_tests> is true.
+Defaults to true.
+
+=cut
+
+__PACKAGE__->add_property( test_cleanup => 1 );
+
+##############################################################################
+
 =head2 Actions
 
 =head3 install
@@ -171,27 +192,45 @@ C<dev_tests> is true.
 
 sub ACTION_test {
     my $self = shift;
-    $self->depends_on('build_test_store');
-    $self->SUPER::ACTION_test(@_);
-    return $self;
-}
 
-##############################################################################
+    # Do nothing special for non-dev tests.
+    return $self->SUPER::ACTION_test(@_) unless $self->dev_tests;
 
-=head3 build_test_store
+    # Set up the test configuration file.
+    local $ENV{KINETIC_CONF} = $self->notes('test_conf_file');
 
-=begin comment
+    # Set up for the tests.
+    $_->test_setup for $self->setup_objects;
 
-=head3 ACTION_build_test_store
+    eval {
+        # Initialize the app.
+        $self->init_app( Kinetic => $VERSION );
+        $self->init_app;
 
-=end comment
+        # Create the admin user.
+        require Kinetic::Party::User;
+        Kinetic::Party::User->new(
+            last_name  => 'User',
+            first_name => 'Admin',
+            username   => 'admin',
+            password   => 'change me now!',
+        )->save;
 
+        # Run the tests.
+        $self->SUPER::ACTION_test(@_);
+    };
 
+    # Catch any exception.
+    my $err = $@;
 
-=cut
+    # Cleanup after the tests.
+    if ($self->test_cleanup) {
+        $_->test_cleanup for $self->setup_objects;
+    }
 
-sub ACTION_build_test_store {
-    my $self = shift;
+    # Die if the tests died.
+    die $err if $err;
+
     return $self;
 }
 

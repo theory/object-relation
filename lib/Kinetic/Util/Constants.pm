@@ -42,6 +42,7 @@ configuration specific.
 =cut
 
 use Readonly;
+use File::Spec;
 
 # data_store
 Readonly our $GROUP_OP         => qr/^(?:AND|OR)$/;
@@ -51,6 +52,13 @@ Readonly our $PREPARE          => 'prepare';
 Readonly our $CACHED           => 'prepare_cached';
 Readonly our $UUID_RE          =>
   qr/[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}/;
+
+# class exclusion
+SCOPE: {
+    my $sep = File::Spec->catdir('');
+    Readonly our $CLASS_EXCLUDE_RE =>
+        qr/Kinetic$sep(?:(?:App)?Build|DataType|Engine|Format|Meta|Store|UI|Util)/;
+}
 
 # HTTP content types
 Readonly our $TEXT_CT => 'text/plain';
@@ -118,6 +126,9 @@ use Exporter::Tidy http => [
       $OBJECT_DELIMITER
       $PREPARE
       /
+  ],
+  class_exclude => [
+    qw/$CLASS_EXCLUDE_RE/
   ],
   format => [
     qw/$KEY/

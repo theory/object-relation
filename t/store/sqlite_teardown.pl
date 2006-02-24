@@ -4,8 +4,8 @@
 
 use strict;
 use warnings;
+use Kinetic::Build;
 
-use File::Path;
-use File::Spec::Functions;
-
-rmtree catdir 't', 'data';
+my $build = Kinetic::Build->resume;
+my $kbs = $build->setup_objects('store');
+$kbs->test_cleanup;

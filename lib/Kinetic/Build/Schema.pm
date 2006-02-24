@@ -148,7 +148,7 @@ sub load_classes {
           unless $seen{$class->key}++;
     }
 
-    $self->{classes} = \@sorted;
+    push @{ $self->{classes} }, @sorted;
     return $self;
 }
 

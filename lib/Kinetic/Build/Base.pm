@@ -22,7 +22,6 @@ use strict;
 use 5.008003;
 use base 'Module::Build';
 use Cwd 'getcwd';
-use DBI;
 use File::Spec;
 use File::Path  ();
 use File::Copy  ();
@@ -38,7 +37,7 @@ use Kinetic::Util::Exceptions;
 use version;
 our $VERSION = version->new('0.0.1');
 
-my (%SETUPS_FOR);
+my (%SETUPS_FOR, %PROMPTS_FOR);
 
 =head1 Name
 
@@ -118,8 +117,6 @@ prompted for input.
 
 =cut
 
-my @prompts;
-
 sub add_property {
     my $class = shift;
     if ( @_ > 2 ) {
@@ -130,14 +127,11 @@ sub add_property {
             $params{name} => delete $params{default}
         );
         if (my $setup = $params{setup}) {
-            $SETUPS_FOR{$class} ||= {
-                map { $SETUPS_FOR{$_} ? %{ $SETUPS_FOR{$_} } : () }
-                    Class::ISA::super_path($class)
-            };
+            $class->setup_properties unless $SETUPS_FOR{$class};
             $SETUPS_FOR{$class}->{$params{name}} = $setup;
             $params{options} ||= [ sort keys %{ $setup } ];
         }
-        push @prompts, \%params if keys %params > 1;
+        push @{ $PROMPTS_FOR{$class} }, \%params if keys %params > 1;
     }
     else {
 
@@ -146,6 +140,20 @@ sub add_property {
     }
     return $class;
 }
+
+##############################################################################
+
+=head3 test_data_dir
+
+  my $dir = Kinetic::Build::Base->test_data_dir;
+
+Returns the name of a directory that can be used by tests for storing
+arbitrary files. The whole directory will be deleted by the C<cleanup>
+action. This is a read-only class method.
+
+=cut
+
+use constant test_data_dir => File::Spec->catdir( 't', 'data' );
 
 ##############################################################################
 
@@ -188,12 +196,14 @@ sub new {
     $self->install_base_relpaths->{conf} = ['conf'];
 
     # Prompts.
-    my $class = ref $self;
-    for my $prompt (@prompts) {
-        my $prop = $prompt->{name};
-        $self->$prop( $self->get_reply( %$prompt, default => $self->$prop ) );
-        if (my $setup = $SETUPS_FOR{$class}->{$prop}) {
-            $self->_check_build_component( $prop, $setup );
+    for my $class ( reverse Class::ISA::self_and_super_path(ref $self) ) {
+        my $prompts = $PROMPTS_FOR{$class} or next;
+        for my $prompt (@$prompts) {
+            my $prop = $prompt->{name};
+            $self->$prop( $self->get_reply( %$prompt, default => $self->$prop ) );
+            if (my $setup = $SETUPS_FOR{$class}->{$prop}) {
+                $self->_check_build_component( $prop, $setup );
+            }
         }
     }
 
@@ -224,6 +234,8 @@ sub resume {
     }
     return $self;
 }
+
+##############################################################################
 
 =head1 Instance Interface
 
@@ -359,26 +371,6 @@ for why it's currently necessary.
 =cut
 
 sub dist_version {
-    #my $self = shift;
-    #if (my $v = $self->notes('version')) {
-    #    return $v;
-    #}
-
-    ## XXX Unfortunately, we can't just use Module::Build's dist_version. So
-    ## we'll assign a version object to it manullay. See:
-    ## http://sourceforge.net/mailarchive/forum.php?thread_id=9761816&forum_id=10905
-    #my $mod = $self->module_name;
-    #my $version = $mod eq 'Kinetic'
-    #    ? eval '$' . __PACKAGE__ . '::VERSION'
-    #    : do {
-    #        eval "require $mod";
-    #        die $@ if $@;
-    #        # Don't use ->VERSION because that just returns ->numify.
-    #        my $version = eval "\$${mod}::VERSION";
-    #        version->new($version) unless eval { $version->isa('version') };
-    #    };
-    #$self->notes(version => $version);
-    #return $version;
     local *version::numify = sub { shift };
     return shift->SUPER::dist_version(@_)
 }
@@ -411,12 +403,9 @@ sub ACTION_test {
     local $ENV{KINETIC_CONF} = $self->notes('test_conf_file');
 
     # Set up a list of supported features.
-    local $ENV{KINETIC_SUPPORTED};
-    if (my $setups = $SETUPS_FOR{ref $self}) {
-        $ENV{KINETIC_SUPPORTED} = join ' ', map { $self->$_ }
-            keys %{ $setups }
-            if $self->dev_tests;
-    }
+    local $ENV{KINETIC_SUPPORTED}
+        = join ' ', map { $self->$_ } $self->setup_properties
+        if $self->dev_tests;
 
     # Make it so!
     $self->SUPER::ACTION_test(@_);
@@ -471,12 +460,8 @@ sub ACTION_install {
     $self->SUPER::ACTION_install(@_);
 
     # Set up external dependencies.
-    if (my $setups = $SETUPS_FOR{ref $self}) {
-        for my $setup_prop (keys %{ $setups }) {
-            if (my $setup = $self->notes("build_$setup_prop")) {
-                $setup->setup;
-            }
-        }
+    for my $setup ($self->setup_objects) {
+        $setup->setup;
     }
 
     # Create any base objects.
@@ -488,6 +473,49 @@ sub ACTION_install {
 ##############################################################################
 
 =head2 Methods
+
+##############################################################################
+
+=head3 setup_properties
+
+  my @setup_properties = $build->setup_properites;
+
+Returns a list of "setup properties"--that is, attributes of the class that
+were declared by a call to C<add_property()> that included a C<setup>
+parameter.
+
+=cut
+
+sub setup_properties {
+    my $self = shift;
+    my $class = ref $self || $self;
+    $SETUPS_FOR{$class} ||= {
+        map { $SETUPS_FOR{$_} ? %{ $SETUPS_FOR{$_} } : () }
+            Class::ISA::super_path($class)
+    };
+    return sort keys %{ $SETUPS_FOR{$class} };
+}
+
+##############################################################################
+
+=head3 setup_objects
+
+  my @setup_objects = $build->setup_objects;
+
+Returns a list of Kinetic::Build::Setup objects, one for each of the property
+names returned by C<setup_properties()>.
+
+=cut
+
+sub setup_objects {
+    my $self = shift;
+    return $self->notes('build_' . shift) if @_;
+    return grep { $_ }
+           map  { $self->notes("build_$_") }
+           $self->setup_properties;
+}
+
+##############################################################################
 
 =head3 process_conf_files
 
@@ -503,7 +531,7 @@ sub process_conf_files {
     return $self if $self->notes('process_conf_files');
 
     $self->add_to_cleanup('t/conf');
-    my ($config, @files);
+    my (@files, $config);
     my $master_conf_file = $self->path_to_config;
 
     # Use master file for installable confs and load its data.
@@ -513,7 +541,7 @@ sub process_conf_files {
             $self->blib,
             't'
         );
-        $config = $self->_merge_configs($self->find_conf_files);
+        $config = $self->_load_configs;
     }
 
     # Otherwise just copy the local config files.
@@ -523,12 +551,8 @@ sub process_conf_files {
 
     for my $conf_file (@files) {
         # Load the configuration.
-        my %conf;
-        if ($config) {
-            %conf = %{ $config };
-        } else {
-            get_config( $conf_file => %conf );
-        }
+        get_config( $conf_file => my %conf );
+        $self->_merge_configs(\%conf, $config) if $config;
 
         my $test = '';
         if ( $conf_file =~ /^blib/ ) {
@@ -548,12 +572,8 @@ sub process_conf_files {
 
         # Configure from setup.
         my $config_meth = "add_to_${test}config";
-        if (my $setups = $SETUPS_FOR{ref $self}) {
-            for my $setup_prop (keys %{ $setups }) {
-                if (my $setup = $self->notes("build_$setup_prop")) {
-                    $setup->$config_meth(\%conf);
-                }
-            }
+        for my $setup ($self->setup_objects) {
+            $setup->$config_meth(\%conf);
         }
 
         # Save the configuration back to the file.
@@ -562,28 +582,6 @@ sub process_conf_files {
 
     $self->notes(process_conf_files => 1);
     return $self;
-}
-
-sub _merge_configs {
-    my ($self, $files) = @_;
-    # Copy the configuration.
-    my %config = %{ $self->notes('_config_') };
-    my $master_conf_file = $self->path_to_config;
-    for my $conf_file ( keys %{$files} ) {
-        get_config( $conf_file => my %conf );
-        # Merge it with the master config.
-        while (my ($label, $vals) = each %conf) {
-            while (my ($key, $val) = each %$vals) {
-                # XXX Will eventually have to change to support upgrades.
-                die qq{The configuration key "$key" already exists under }
-                    . qq{the "$label" label in $master_conf_file and }
-                    . 'cannot be changed'
-                    if exists $config{$label}{$key};
-                $config{$label}{$key} = $val;
-            }
-        }
-        return \%config;
-    }
 }
 
 ##############################################################################
@@ -855,20 +853,27 @@ sub ask_y_n {
 =head3 init_app
 
   $build->init_app;
+  $build->init_app($app, $version);
 
 This method is called by the C<install> action to add version information for
-the current package to the Kinetic data store.
+the current package to the Kinetic data store. By default it calls
+C<module_name()> and C<dist_version()> to get the version numbers, but they
+can also be passed in explicitly (for setting up tests, for example).
 
 =cut
 
 sub init_app {
-    my $self = shift;
+    my ($self, $app, $version) = @_;
+
+    # Make sure that we have a version object.
+    $version ||= $self->dist_version;
+    $version = version->new($version) unless ref $version;
 
     # Set up the version info for this app.
     require Kinetic::VersionInfo;
     Kinetic::VersionInfo->new(
-        app_name => $self->module_name,
-        version  => $self->dist_version,
+        app_name => $app     || $self->module_name,
+        version  => $version || $self->dist_version,
     )->save;
 
     return $self;
@@ -1306,6 +1311,63 @@ sub _prep_conf_filename {
     my $dir = first { $_ ne '' } reverse File::Spec->splitdir($dirs);
     # Aiming for conf/kinetic.conf
     return { $conf_file => File::Spec->catfile($dir, $file) };
+}
+
+##############################################################################
+
+=head3 _load_configs
+
+  my $config = $self->_load_configs;
+
+This method is called by C<process_conf_files()> when C<path_to_config> has a
+path to a configuration file. What it does is to load all the local
+configuration files in F<conf/> into a a single config hash. This config hash
+will then be merged with the contents of the config file scpecified by
+C<path_to_config>.
+
+=cut
+
+sub _load_configs {
+    my $self = shift;
+    my ($first_file, @remaining_files) = sort keys %{ $self->find_conf_files };
+    return unless $first_file;
+
+    get_config( $first_file => my %config);
+
+    for my $conf_file ( @remaining_files ) {
+        get_config( $conf_file => my %file_conf );
+        $self->_merge_configs(\%config, \%file_conf, $first_file, $conf_file);
+        $first_file = $conf_file;
+    }
+    return \%config;
+}
+
+##############################################################################
+
+=head3 _merge_configs
+
+  $self->_merge_configs(\%to, \%from, $to_file, $from_file);
+
+This method merges the contents of the \%from config hash into the \%to config
+hash. If it detects any conflicts (that is, where a value in the from hash
+already exists in the to hash), it will throw an exception, using the file
+names to indicate to the user where the conflicts lie.
+
+=cut
+
+sub _merge_configs {
+    my ($self, $to, $from, $to_file, $from_file) = @_;
+
+    while (my ($label, $vals) = each %$from) {
+        while (my ($key, $val) = each %$vals) {
+            die qq{Cannot merge the configuration key "$key" under the label }
+                . qq{from $from_file because it has already been sety by }
+                . $to_file
+                if exists $to->{$label}{$key};
+            $to->{$label}{$key} = $val;
+        }
+    }
+    return $self;
 }
 
 ##############################################################################

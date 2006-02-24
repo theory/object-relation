@@ -2,9 +2,8 @@ use strict;
 use 5.008003;
 use lib 'lib';
 use Kinetic::Build;
+use Kinetic::Util::Constants ':class_exclude';
 
-my $skipper =
-    qr/^lib.Kinetic.(?:(?:App)?Build|DataType|Engine|Format|Meta|Store|UI|Util)/;
 my %catalyst = (
     'Catalyst'                                               => 5.65,
     'Catalyst::Engine::Apache'                               => 1.05,
@@ -24,7 +23,7 @@ my $build = Kinetic::Build->new(
     build_class          => 'Kinetic::Build',
     dist_author          => 'Kineticode, Inc. <info@kineticode.com>',
     recursive_test_files => 1,
-    schema_skipper       => $skipper,
+    schema_skipper       => $CLASS_EXCLUDE_RE,
     requires             => {
         'aliased'                    => 0.11,
         'Array::AsHash'              => 0.210,

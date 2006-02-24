@@ -60,22 +60,6 @@ L<Kinetic::Build::Trait|Kinetic::Build::Trait>.
 
 =head1 Class Interface
 
-=head2 Class Methods
-
-=head3 test_data_dir
-
-  my $dir = $build->test_data_dir;
-
-Returns the name of a directory that can be used by tests for storing
-arbitrary files. The whole directory will be deleted by the C<cleanup>
-action. This is a read-only class method.
-
-=cut
-
-use constant test_data_dir => File::Spec->catdir( 't', 'data' );
-
-##############################################################################
-
 =head2 Instance Methods
 
 =head3 engine

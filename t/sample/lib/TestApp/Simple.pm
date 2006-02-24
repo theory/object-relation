@@ -2,6 +2,8 @@ package TestApp::Simple;
 use base 'Kinetic';
 use Kinetic::Util::Language::en_us;
 
+our $VERSION = version->new('1.1.0');
+
 BEGIN {
     my $km = Kinetic::Meta->new(
         key         => 'simple',
@@ -42,3 +44,10 @@ Kinetic::Util::Language::en->add_to_lexicon(
 
 1;
 __END__
+
+=head1 NAME
+
+TestApp::Simple - Simple application for testing
+
+=cut
+

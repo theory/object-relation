@@ -24,6 +24,8 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use base 'Kinetic::Build::Setup::Store';
+use Kinetic::Util::Constants ':class_exclude';
+
 use DBI;
 my %private;
 
@@ -142,6 +144,14 @@ sub build_db {
 
     my $sg      = $schema_class->new;
     my $builder = $self->builder;
+
+    # Load the installed classes first.
+    if ($builder->isa('Kinetic::AppBuild')) {
+        (my $base = $builder->install_base) =~ s{/?$}{/lib};
+        $sg->load_classes($base, $CLASS_EXCLUDE_RE);
+    }
+
+    # Now load the classes to be installed.
     my $regexen = $builder->schema_skipper;
     $regexen    = [$regexen] unless ref $regexen eq 'ARRAY';
     $sg->load_classes($builder->source_dir, @$regexen);

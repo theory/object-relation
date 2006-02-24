@@ -1118,6 +1118,66 @@ sub test_setup {
 
 ##############################################################################
 
+=head3 test_cleanup
+
+  $kbs->test_cleanup;
+
+Cleans up the tests data store by disconnecting all database handles currently
+connected via DBD::Pg, waiting for the connections to be registered by
+PostgreSQL, and then dropping the test database and user. If there appear to
+be users connected to the database, C<test_cleanup> will sleep for one second
+and then try again. If there are still users connected to the database after
+five seconds, it will give up and die. But that shouldn't happen unless you
+have an I<extremely> slow system, or have connected to the test database
+yourself in another process. Either way, you'll then need to drop the test
+database and user manually.
+
+=cut
+
+sub test_cleanup {
+    my $self = shift;
+    my $db_name = $self->test_db_name;
+    my $db_user = $self->test_db_user;
+
+    # Disconnect all database handles.
+    my %drhs = DBI->installed_drivers;
+    $_->disconnect for grep { defined } values %{ $drhs{Pg}->{CachedKids} };
+    sleep 1; # Let them disconnect.
+
+    # Connect to the template database.
+    my $dbh = $self->_connect(
+        $self->_dsn($self->template_db_name),
+        $self->db_super_user,
+        $self->db_super_pass,
+    );
+
+    # We'll use this to check for connections to the database.
+    my $check_connections = sub {
+        return ($dbh->selectrow_array(
+            'SELECT 1 FROM pg_stat_activity where datname = ?',
+            undef, $db_name
+        ))[0];
+    };
+
+    # Wait for up to five seconds for all connections to close.
+    for (1..5) {
+        last unless $check_connections->();
+        sleep 1;
+    }
+
+    # If there are still connections, we can't drop the database. So bail.
+    die "Looks like someone is accessing $db_name, so I can't drop it\n"
+        if $check_connections->();
+
+    # Drop the database and user.
+    $dbh->do(qq{DROP DATABASE "$db_name"});
+    $dbh->do(qq{DROP USER "$db_user"});
+    $dbh->disconnect;
+    return $self;
+}
+
+##############################################################################
+
 =begin private
 
 =head1 Private Interface
