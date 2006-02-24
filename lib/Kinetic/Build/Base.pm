@@ -359,26 +359,28 @@ for why it's currently necessary.
 =cut
 
 sub dist_version {
-    my $self = shift;
-    if (my $v = $self->notes('version')) {
-        return $v;
-    }
+    #my $self = shift;
+    #if (my $v = $self->notes('version')) {
+    #    return $v;
+    #}
 
-    # XXX Unfortunately, we can't just use Module::Build's dist_version. So
-    # we'll assign a version object to it manullay. See:
-    # http://sourceforge.net/mailarchive/forum.php?thread_id=9761816&forum_id=10905
-    my $mod = $self->module_name;
-    my $version = $mod eq 'Kinetic'
-        ? eval '$' . __PACKAGE__ . '::VERSION'
-        : do {
-            eval "require $mod";
-            die $@ if $@;
-            # Don't use ->VERSION because that just returns ->numify.
-            my $version = eval "\$${mod}::VERSION";
-            version->new($version) unless eval { $version->isa('version') };
-        };
-    $self->notes(version => $version);
-    return $version;
+    ## XXX Unfortunately, we can't just use Module::Build's dist_version. So
+    ## we'll assign a version object to it manullay. See:
+    ## http://sourceforge.net/mailarchive/forum.php?thread_id=9761816&forum_id=10905
+    #my $mod = $self->module_name;
+    #my $version = $mod eq 'Kinetic'
+    #    ? eval '$' . __PACKAGE__ . '::VERSION'
+    #    : do {
+    #        eval "require $mod";
+    #        die $@ if $@;
+    #        # Don't use ->VERSION because that just returns ->numify.
+    #        my $version = eval "\$${mod}::VERSION";
+    #        version->new($version) unless eval { $version->isa('version') };
+    #    };
+    #$self->notes(version => $version);
+    #return $version;
+    local *version::numify = sub { shift };
+    return shift->SUPER::dist_version(@_)
 }
 
 ##############################################################################

@@ -27,6 +27,7 @@ my $build = Kinetic::Build->new(
     schema_skipper       => $skipper,
     requires             => {
         'aliased'                    => 0.11,
+        'Array::AsHash'              => 0.210,
         %catalyst,
         'Cache::Cache'               => 1.04,   # XXX Change to option.
         'Cache::Memcached::Managed'  => 0.14,   # XXX Change to option.
