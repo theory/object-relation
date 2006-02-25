@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: setup.pl 2581 2006-02-07 02:19:57Z theory $
+# $Id$
 
 use strict;
 use warnings;
