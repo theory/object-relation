@@ -1,6 +1,6 @@
 package Kinetic::Meta::Declare;
 
-# $Id: Type.pm 2488 2006-01-04 05:17:14Z theory $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

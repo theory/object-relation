@@ -1106,14 +1106,14 @@ CREATE TRIGGER cki_types_test_version
 BEFORE INSERT ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain version violates check constraint "ck_version"')
-    WHERE  NEW.version NOT REGEXP '[\d._]';
+    WHERE  NEW.version NOT REGEXP '^v?\\d[\\d._]+$';
 END;
 
 CREATE TRIGGER cku_types_test_version
 BEFORE UPDATE OF version ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain version violates check constraint "ck_version"')
-    WHERE  NEW.version NOT REGEXP '[\d._]';
+    WHERE  NEW.version NOT REGEXP '^v?\\d[\\d._]+$';
 END;
 };
 

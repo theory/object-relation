@@ -305,7 +305,7 @@ a database handle for use during the setup.
 
 sub setup {
     my $self = shift;
-    return $self->_setup($self->dsn, $self->_dir, 'SUPER::setup', @_);
+    return $self->_setup($self->dsn, $self->_dir, 'setup', @_);
 }
 
 ##############################################################################
@@ -321,11 +321,13 @@ set up a database handle for use during the setup.
 
 sub test_setup {
     my $self = shift;
-    return $self->_setup(
-        $self->test_dsn,
-        $self->_test_dir,
-        'SUPER::test_setup', @_
-    );
+    my @actions = $self->actions;
+    $self->del_actions(@actions);
+    my @tmp_act = map { s/^build_db$/build_test_db/; $_ } @actions;
+    $self->add_actions(@tmp_act);
+    $self->_setup( $self->test_dsn, $self->_test_dir, 'test_setup', @_ );
+    $self->del_actions(@tmp_act);
+    $self->add_actions(@actions);
 }
 
 ##############################################################################
@@ -373,6 +375,8 @@ sub _setup {
         PrintError     => 0,
         HandleError    => Kinetic::Util::Exception::DBI->handler,
     }));
+
+    $method = "SUPER::$method";
     $self->$method(@args);
     $dbh->disconnect;
     return $self;

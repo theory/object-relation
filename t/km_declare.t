@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: km_declare.t 2507 2006-01-11 01:12:14Z theory $
+# $Id$
 
 use strict;
 use warnings;

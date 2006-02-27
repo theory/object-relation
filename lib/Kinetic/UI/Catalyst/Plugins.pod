@@ -1,4 +1,4 @@
-# $Id: Overview.pod 2582 2006-02-07 02:27:45Z theory $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

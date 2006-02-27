@@ -1,6 +1,6 @@
 package TEST::Kinetic::TestSetup;
 
-# $Id: Kinetic.pm 2669 2006-02-21 01:08:10Z theory $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

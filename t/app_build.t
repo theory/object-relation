@@ -233,6 +233,7 @@ $mb_mocker->mock(ACTION_test => sub {
 });
 
 SKIP: {
+    # Most of the tests are in the mock ACTION_test defined above.
     skip 'Not running dev tests', 20 unless $ENV{KINETIC_SUPPORTED};
 
     # We should fail to connect to the test data store.

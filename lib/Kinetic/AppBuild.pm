@@ -144,8 +144,8 @@ __PACKAGE__->add_property( test_cleanup => 1 );
 
 =end comment
 
-Overrides Kinetic::Install::Base's C<install> action install the data store for the
-application.
+Overrides Kinetic::Install::Base's C<install> action install the data store
+for the application.
 
 =cut
 

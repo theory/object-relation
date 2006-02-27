@@ -954,24 +954,27 @@ sub create_user {
 
 Builds the database with all of the tables, sequences, indexes, views,
 triggers, etc., required to power the application. Overrides the
-implementation in the parent class to silence "NOTICE" output from PostgreSQL.
+implementation in the parent class to set up the database handle and to
+silence "NOTICE" output from PostgreSQL.
 
 =cut
 
-sub build_db {
-    my $self = shift;
-    $self->_dbh(
-        $self->_connect_user(
-            $self->_dsn( $self->_build_db_name || $self->db_name)
-        )
-    );
-    local $SIG{__WARN__} = sub {
-        my $message = shift;
-        return if $message =~ /NOTICE:/; # ignore postgres warnings
-        warn $message;
-    };
-    $self->SUPER::build_db(@_);
-}
+sub build_db { shift->_build_connect('build_db') }
+
+##############################################################################
+
+=head3 build_test_db
+
+  $kbs->build_test_db;
+
+Builds the test database with all of the tables, sequences, indexes, views,
+triggers, etc., required to power the application. Overrides the
+implementation in the parent class to set up the database handle and to
+silence "NOTICE" output from PostgreSQL.
+
+=cut
+
+sub build_test_db { shift->_build_connect('build_test_db') }
 
 ##############################################################################
 
@@ -1111,7 +1114,7 @@ sub test_setup {
     $self->create_db;
     $self->add_plpgsql if $actions{add_plpgsql};
     $self->create_user;
-    $self->build_db;
+    $self->build_test_db;
     $self->grant_permissions;
     return $self;
 }
@@ -1498,6 +1501,41 @@ sub _build_db_pass {
     my $self = shift;
     return $self->{build_db_pass} unless @_;
     return $self->{build_db_pass} = shift;
+}
+
+##############################################################################
+
+=head3 _build_connect
+
+  $kbs->_build_connect($method);
+
+This method is called by C<build_db> and C<build_test_db()>, each of which
+pass their own names as arguments. C_build_connect()> then connects to the
+appropriate database, overrides warnings so that PostgreSQL "NOTICE"s will be
+silently ignored, and then calls the appropriate parent method to actually
+create the database.
+
+=cut
+
+sub _build_connect {
+    my $self = shift;
+    my $meth = 'SUPER::' . shift;
+
+    $self->_dbh(
+        $self->_connect_user(
+            $self->_dsn( $self->_build_db_name || $self->db_name)
+        )
+    );
+
+    # Ignore PostgreSQL warnings.
+    local $SIG{__WARN__} = sub {
+        my $message = shift;
+        return if $message =~ /NOTICE:/;
+        warn $message;
+    };
+
+    $self->$meth(@_);
+
 }
 
 1;

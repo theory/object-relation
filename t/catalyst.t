@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: system.t 2569 2006-02-03 22:50:57Z theory $
+# $Id$
 
 use warnings;
 use strict;
