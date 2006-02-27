@@ -361,8 +361,8 @@ sub _add_delegates {
              default => $def,
         relationship => $rel,
         widget_meta  => Kinetic::Meta::Widget->new(
-            type => 'search',
-            tip  => $ref->{label},
+                type => 'search',
+                tip  => $ref->{label},
         ),
     );
 

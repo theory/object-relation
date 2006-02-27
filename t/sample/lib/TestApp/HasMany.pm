@@ -9,13 +9,20 @@ Kinetic::Meta::Declare->new(
     meta => [
         key         => 'has_many',
         plural_name => 'Has Manys',
-        has_many    => 'one',
     ],
     attributes => [
         age => {
             label       => 'HasMany age',
             type        => $TYPE_WHOLE,
             widget_meta => Kinetic::Meta::Widget->new(
+                type => 'text',
+                tip  => 'This is a tip.  This is only a tip.',
+            ),
+        },
+        ones => {
+            relationship => 'has_many', # can also be an array ref
+            type         => 'one',
+            widget_meta  => Kinetic::Meta::Widget->new(
                 type => 'text',
                 tip  => 'This is a tip.  This is only a tip.',
             ),
