@@ -55,7 +55,7 @@ my $table = q{CREATE TABLE _simple (
     description TEXT COLLATE nocase
 );
 };
-eq_or_diff $sg->table_for_class($simple), $table,
+eq_or_diff $sg->tables_for_class($simple), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -152,7 +152,7 @@ $table = q{CREATE TABLE simple_one (
 );
 };
 
-eq_or_diff $sg->table_for_class($one), $table,
+eq_or_diff $sg->tables_for_class($one), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -267,7 +267,7 @@ $table = q{CREATE TABLE simple_two (
 );
 };
 
-eq_or_diff $sg->table_for_class($two), $table,
+eq_or_diff $sg->tables_for_class($two), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -438,7 +438,7 @@ $table = q{CREATE TABLE _relation (
     one_id INTEGER NOT NULL REFERENCES simple_one(id) ON DELETE RESTRICT
 );
 };
-eq_or_diff $sg->table_for_class($relation), $table,
+eq_or_diff $sg->tables_for_class($relation), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -596,14 +596,16 @@ $table = q{CREATE TABLE _has_many (
     state INTEGER NOT NULL DEFAULT 1,
     age INTEGER
 );
+CREATE TABLE has_many_has_many_one (
+    has_many_id INTEGER NOT NULL PRIMARY KEY,
+    one_id INTEGER NOT NULL,
+    order INTEGER NOT NULL
+);
 };
-is $sg->table_for_class($has_many), $table,
+
+eq_or_diff $sg->tables_for_class($has_many), $table,
   '... and it should generate the correct table';
 
-#CREATE TABLE hasmany_has_many_simple_one (
-#    hasmany_id INTEGER NOT NULL,
-#    simple_on_id INTEGER NOT NULL
-#);
 $indexes = q{CREATE UNIQUE INDEX idx_has_many_uuid ON _has_many (uuid);
 CREATE INDEX idx_has_many_state ON _has_many (state);
 };
@@ -691,7 +693,7 @@ $table = q{CREATE TABLE _composed (
     color TEXT COLLATE nocase
 );
 };
-eq_or_diff $sg->table_for_class($composed), $table,
+eq_or_diff $sg->tables_for_class($composed), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -846,7 +848,7 @@ $table = q{CREATE TABLE _comp_comp (
     composed_id INTEGER NOT NULL REFERENCES _composed(id) ON DELETE RESTRICT
 );
 };
-eq_or_diff $sg->table_for_class($comp_comp), $table,
+eq_or_diff $sg->tables_for_class($comp_comp), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -974,7 +976,7 @@ $table = q{CREATE TABLE _extend (
     two_id INTEGER NOT NULL REFERENCES simple_two(id) ON DELETE CASCADE
 );
 };
-eq_or_diff $sg->table_for_class($extend), $table,
+eq_or_diff $sg->tables_for_class($extend), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -1124,7 +1126,7 @@ $table = q{CREATE TABLE _types_test (
     attribute TEXT
 );
 };
-eq_or_diff $sg->table_for_class($types_test), $table,
+eq_or_diff $sg->tables_for_class($types_test), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.

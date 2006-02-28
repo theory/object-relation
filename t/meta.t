@@ -4,10 +4,9 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 223;
+use Test::More tests => 236;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
-use lib '/Users/david/dev/Kineticode/trunk/Class-Meta/lib';
 
 package MyTestThingy;
 
@@ -30,7 +29,7 @@ BEGIN {
         'Attribute::_view_column() should not exist';
 
     # Implicitly loads database store.
-    use_ok('Kinetic');
+    use_ok('Kinetic') or die;
 
     ok defined(&Kinetic::Meta::Attribute::_column),
         'Now Attribute::_column() should exist';
@@ -109,6 +108,32 @@ BEGIN {
     ok $km->build, "Build TestFooey class";
 }
 
+package MyTestHasMany;
+BEGIN { Test::More->import; }
+
+BEGIN {
+    ok my $km = Kinetic::Meta->new(
+        key         => 'cheese_pimple',
+        name        => 'Gross',
+        plural_name => 'Cheese pimples',
+    ), "Create MyTestHasMany class";
+
+    ok $km->add_attribute(
+        name          => 'stuff',
+        type          => 'whole',
+        label         => 'Stuffs',
+    ), "Add stuff attribute";
+
+    ok $km->add_attribute(
+        name          => 'thingies',
+        type          => 'thingy',
+        label         => 'Thingies',
+        relationship  => 'has_many',
+    ), "Add thingy collection";
+
+    ok $km->build, "Build MyTestHasMany class";
+}
+
 package MyTestExtends;
 use base 'Kinetic';
 BEGIN { Test::More->import; }
@@ -179,7 +204,7 @@ BEGIN {
         'It should have the correct message';
 }
 
-package MyTest::Meta::Excptions;
+package MyTest::Meta::Exceptions;
 
 BEGIN {
     Test::More->import;
@@ -309,6 +334,28 @@ $attr = $fclass->attributes('fname');
 is_deeply [$fclass->direct_attributes], [$attr, $fclass->attributes('lname')],
   "And direct_attributes should return the non-referenced attributes";
 is $attr->relationship, undef, "The fname attribute should have no relationship";
+
+##############################################################################
+# Text has_many class.
+ok $class = MyTestHasMany->my_class, 'Get MyTestHasMany class object';
+
+is_deeply [map {$_->name} $class->attributes], [qw{ stuff thingies }],
+   '... and it should have the correct attributes';
+
+ok my $stuff = $class->attributes('stuff'),
+    '... and we should be able to fetch the stuff attribute';
+can_ok $stuff, 'collection';
+ok ! $stuff->collection, 
+  '... and collection() should return false for non-collections';
+
+ok my $thingies = $class->attributes('thingies'),
+  '... and we should be able to fetch the thingies attribute';
+
+can_ok $thingies, 'collection';
+ok my $collection = $thingies->collection, 
+  '... and it should return true for a collection';
+is $collection->package, 'MyTestThingy',
+  '... and it should return the class object for objects in the collection';
 
 ##############################################################################
 # Text extends class.

@@ -177,7 +177,10 @@ gets in the way when building schemas.
 
 =cut
 
-sub table_attributes { @{shift->{cols}} }
+sub table_attributes { 
+    my $self = shift;
+    grep { ! $_->collection } @{$self->{cols}}
+}
 
 ##############################################################################
 

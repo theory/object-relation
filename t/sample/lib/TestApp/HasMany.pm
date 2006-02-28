@@ -1,5 +1,6 @@
 package TestApp::HasMany;
 use base 'Kinetic';
+
 use TestApp::Simple::One;
 use Kinetic::Util::Language::en_us;
 use Kinetic::Meta::Declare ':all';

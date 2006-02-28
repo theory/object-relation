@@ -76,7 +76,7 @@ sub schema_for_class {
       map       { $self->$_($class) }
       qw(
       sequence_for_class
-      table_for_class
+      tables_for_class
       indexes_for_class
       constraints_for_class
       view_for_class
@@ -156,20 +156,52 @@ sub sequence_for_class { return '' }
 
 ##############################################################################
 
-=head3 table_for_class
+=head3 tables_for_class
 
-  my $table_sql = $kbs->table_for_class($class);
+  my $table_sql = $kbs->tables_for_class($class);
 
 This method takes a class object. It returns a C<CREATE TABLE> SQL statement
 for the class.
 
 =cut
 
-sub table_for_class {
+sub tables_for_class {
     my ( $self, $class ) = @_;
     my $sql = $self->start_table($class);
     $sql .= "    " . join ",\n    ", $self->columns_for_class($class);
-    return $sql . $self->end_table($class);
+    $sql .= $self->end_table($class);
+    foreach my $attribute ( $class->attributes ) {
+        next unless $attribute->collection;
+        $sql .= $self->collection_table($class, $attribute);
+    }
+    return $sql;
+}
+
+##############################################################################
+
+=head3 collection_table 
+
+  my $coll_class = $attribute->collection;
+  my $table      = $kbs->collection_table($class, $coll_class);
+
+For an attribute which represents a collection of objects, for example,
+attributes which have a C<has_many> relationship, the primary table will not
+have a column representing the attribute.  Instead, another table representing
+the relationship is created.  This method will return that table.
+
+=cut
+
+sub collection_table {
+    my ($self, $class, $attribute) = @_;;
+    my $class_key = $class->key;
+    my $coll_key  = $attribute->collection->key;
+    return <<"    END_SQL";
+CREATE TABLE ${class_key}_has_many_${coll_key} (
+    ${class_key}_id INTEGER NOT NULL PRIMARY KEY,
+    ${coll_key}_id INTEGER NOT NULL,
+    order INTEGER NOT NULL
+);
+    END_SQL
 }
 
 ##############################################################################
@@ -178,7 +210,7 @@ sub table_for_class {
 
   my $start_table_sql = $kbs->start_table($class);
 
-This method is called by C<table_for_class()> to generate the opening
+This method is called by C<tables_for_class()> to generate the opening
 statement for creating a table.
 
 =cut
@@ -195,7 +227,7 @@ sub start_table {
 
   my $end_table_sql = $kbs->end_table($class);
 
-This method is called by C<table_for_class()> to generate the closing
+This method is called by C<tables_for_class()> to generate the closing
 statement for creating a table.
 
 =cut

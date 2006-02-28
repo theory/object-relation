@@ -7,7 +7,7 @@ use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
 
 #use Test::More 'no_plan';
-use Test::More tests => 113;
+use Test::More tests => 114;
 use Test::NoWarnings; # Adds an extra test.
 use Test::Differences;
 
@@ -34,7 +34,7 @@ isa_ok $sg, 'Kinetic::Build::Schema::DB::Pg';
 
 ok $sg->load_classes('t/sample/lib'), "Load classes";
 is_deeply [ map { $_->key } $sg->classes ],
-    [qw(simple one composed comp_comp two extend relation types_test)],
+    [qw(simple one composed comp_comp two extend has_many relation types_test)],
     "classes() returns classes in their proper dependency order";
 
 for my $class ( $sg->classes ) {
@@ -92,7 +92,7 @@ my $table = q{CREATE TABLE _simple (
     description TEXT
 );
 };
-eq_or_diff $sg->table_for_class($simple), $table,
+eq_or_diff $sg->tables_for_class($simple), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -188,7 +188,7 @@ $table = q{CREATE TABLE simple_one (
     bool BOOLEAN NOT NULL DEFAULT true
 );
 };
-eq_or_diff $sg->table_for_class($one), $table,
+eq_or_diff $sg->tables_for_class($one), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -276,7 +276,7 @@ $table = q{CREATE TABLE simple_two (
     date TIMESTAMP NOT NULL
 );
 };
-eq_or_diff $sg->table_for_class($two), $table,
+eq_or_diff $sg->tables_for_class($two), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -448,7 +448,7 @@ $table = q{CREATE TABLE _relation (
     one_id INTEGER NOT NULL
 );
 };
-eq_or_diff $sg->table_for_class($relation), $table,
+eq_or_diff $sg->tables_for_class($relation), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -592,7 +592,7 @@ $table = q{CREATE TABLE _composed (
     color TEXT
 );
 };
-eq_or_diff $sg->table_for_class($composed), $table,
+eq_or_diff $sg->tables_for_class($composed), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -708,7 +708,7 @@ $table = q{CREATE TABLE _comp_comp (
     composed_id INTEGER NOT NULL
 );
 };
-eq_or_diff $sg->table_for_class($comp_comp), $table,
+eq_or_diff $sg->tables_for_class($comp_comp), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -824,7 +824,7 @@ $table = q{CREATE TABLE _extend (
     two_id INTEGER NOT NULL
 );
 };
-eq_or_diff $sg->table_for_class($extend), $table,
+eq_or_diff $sg->tables_for_class($extend), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -965,7 +965,7 @@ $table = q{CREATE TABLE _types_test (
     attribute ATTRIBUTE
 );
 };
-eq_or_diff $sg->table_for_class($types_test), $table,
+eq_or_diff $sg->tables_for_class($types_test), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.

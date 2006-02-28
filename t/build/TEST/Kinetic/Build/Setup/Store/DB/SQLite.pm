@@ -33,7 +33,7 @@ sub test_class_methods : Test(8) {
     ok $class->rules, "We should get some rules";
 }
 
-sub test_rules : Test(42) {
+sub test_rules : Test(44) {
     my $self  = shift;
     my $class = $self->test_class;
 

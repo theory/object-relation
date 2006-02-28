@@ -184,6 +184,8 @@ sub constraints_for_class {
 
     # Add foreign keys for any attributes that reference other objects.
     for my $attr ($class->ref_attributes) {
+        use Data::Dumper;
+        main::diag("asfasdfasdf"), <STDIN> if 'ones' eq $attr->name;
         next if $attr->acts_as;
         my $ref = $attr->references or next;
         push @cons, $self->_generate_fk($class, $attr, $ref);

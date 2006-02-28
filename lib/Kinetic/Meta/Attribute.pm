@@ -505,6 +505,19 @@ sub relationship { shift->{relationship} }
 
 ##############################################################################
 
+=head3 collection
+
+  my $collection = $attr->collection;
+
+If an attribute represents a collection, this method will return the class
+object for that collection.
+
+=cut
+
+sub collection { shift->{collection} }
+
+##############################################################################
+
 =head2 Instance methods
 
 =head3 raw
@@ -595,6 +608,10 @@ sub build {
     if ($self->{references} = Class::Meta->for_key($self->type)) {
         my $rel = $self->{relationship} ||= 'has';
         $self->{once} = 1 if $rel eq 'extends' || $rel eq 'mediates';
+        if ( 'has_many' eq $self->{relationship} ) {
+            $self->{collection} = $self->{references};
+            undef $self->{references};
+        }
     } else {
         $self->{relationship} = undef;
     }
@@ -628,6 +645,7 @@ sub build {
 
     return $self;
 }
+
 1;
 __END__
 
