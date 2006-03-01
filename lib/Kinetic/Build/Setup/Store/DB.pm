@@ -188,6 +188,26 @@ sub switch_to_db {
 
 ##############################################################################
 
+=head3 disconnect_all
+
+  $kbs->disconnect_all;
+
+Disconnects all cached connections to the database server (that is, created by
+calls to C<< DBI->connect_cached >> for the driver returned by C<dbd_class()>.
+Used by C<test_cleanup()> methods and in other contexts.
+
+=cut
+
+sub disconnect_all {
+    my $self = shift;
+    my %drhs = DBI->installed_drivers;
+    $_->disconnect for grep { defined }
+        values %{ $drhs{$self->dsn_dbd}->{CachedKids} };
+    return $self;
+}
+
+##############################################################################
+
 =begin private
 
 =head1 Private Interface

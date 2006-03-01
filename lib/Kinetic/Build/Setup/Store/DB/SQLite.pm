@@ -160,12 +160,11 @@ sub rules {
             do => sub {
                 my $state = shift;
                 my $builder = $self->builder;
-                $self->{db_file} = $builder->args('db_file')
-                  || $builder->get_reply(
-                      name    => 'db_filename',
+                $self->{db_file} = $builder->get_reply(
+                      name    => 'db-file',
                       message => 'Please enter a filename for the SQLite database',
                       label   => 'SQLite database file name',
-                      default => 'kinetic.db',
+                      default => $self->_path,
                       config_keys => [qw( store file )],
                 );
             },
@@ -173,6 +172,18 @@ sub rules {
                 file_name => {
                     rule    => sub { ! $self->db_file },
                     message => 'No filename for database',
+                },
+                fail => {
+                    rule => sub {
+                        my $state = shift;
+                        return unless $self->builder->isa('Kinetic::AppBuild');
+                        my $file = $self->db_file;
+                        return if -e $file;
+                        $state->message(
+                            qq{Database file "$file" does not exist}
+                        );
+                        return 1;
+                    }
                 },
                 Done => {
                     rule    => 1,
@@ -224,7 +235,7 @@ it.
 
 sub dsn {
     my $self = shift;
-    return sprintf 'dbi:%s:dbname=%s', $self->dsn_dbd, $self->_path;
+    return sprintf 'dbi:%s:dbname=%s', $self->dsn_dbd, $self->db_file;
 }
 
 ##############################################################################
@@ -336,15 +347,16 @@ sub test_setup {
 
   $kbs->test_cleanup;
 
-Cleans up the tests data store by deleting the test data directory, as
-returned by C<< $build->test_data_dir >>, which is where the test database
-gets built.
+Cleans up the tests data store by disconnecting all database connections and
+deleting the test data directory, as returned by C<< $build->test_data_dir >>,
+which is where the test database gets built.
 
 =cut
 
 sub test_cleanup {
     my $self    = shift;
     my $builder = $self->builder;
+    $self->disconnect_all;
     File::Path::rmtree $self->_test_dir, !$builder->quiet;
 }
 
@@ -371,15 +383,15 @@ sub _setup {
     File::Path::mkpath $dir, !$builder->quiet;
 
     $self->_dbh(my $dbh = DBI->connect($dsn, '', '', {
-        RaiseError     => 0,
-        PrintError     => 0,
-        HandleError    => Kinetic::Util::Exception::DBI->handler,
+        RaiseError  => 0,
+        PrintError  => 0,
+        HandleError => Kinetic::Util::Exception::DBI->handler,
     }));
 
     $method = "SUPER::$method";
     $self->$method(@args);
-    $dbh->disconnect;
-    return $self;
+
+    return $self->disconnect_all;
 }
 
 ##############################################################################
@@ -397,7 +409,7 @@ method.
 
 sub _path {
     my $self = shift;
-    return catfile $self->_dir, $self->db_file;
+    return catfile $self->_dir, 'kinetic.db';
 }
 
 ##############################################################################
@@ -428,7 +440,7 @@ directory named by the the C<test_data_dir> Kinetic::Build property.
 
 sub _test_path {
     my $self = shift;
-    return catfile $self->_test_dir, $self->db_file;
+    return catfile $self->_test_dir, 'kinetic.db';
 }
 
 ##############################################################################

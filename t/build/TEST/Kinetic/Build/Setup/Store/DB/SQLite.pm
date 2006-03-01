@@ -33,7 +33,7 @@ sub test_class_methods : Test(8) {
     ok $class->rules, "We should get some rules";
 }
 
-sub test_rules : Test(42) {
+sub test_rules : Test(43) {
     my $self  = shift;
     my $class = $self->test_class;
 
@@ -71,10 +71,10 @@ sub test_rules : Test(42) {
 
     # Test when everything is cool.
     $info->mock( version => '3.2.0' );
-    $mb->mock( get_reply => 'fooness' );
+    $mb->mock( get_reply => 'store/fooness' );
     ok $kbs->validate,
       '... and it should return a true value if everything is ok';
-    is $kbs->db_file, 'fooness', '... and set the db_file correctly';
+    is $kbs->db_file, 'store/fooness', '... and set the db_file correctly';
     is_deeply [ $kbs->actions ], ['build_db'],
       "... and the actions should be set up";
 
@@ -84,9 +84,15 @@ sub test_rules : Test(42) {
     my $db_file = catfile 'store', 'fooness';
     is $kbs->dsn, "dbi:SQLite:dbname=$db_file",
       "...and the DSN should be set";
-    my $test_file = catfile $builder->base_dir, 't', 'data', 'fooness';
+    my $test_file = catfile $builder->base_dir, 't', 'data', 'kinetic.db';
     is $kbs->test_dsn, "dbi:SQLite:dbname=$test_file",
       "as should the test DSN";
+
+    # Test for when the file doesn't exist.
+    $mb->mock(isa => 1);
+    throws_ok { $kbs->validate } qr/Database file "$db_file" does not exist/,
+        'Should die when builder isa AppBuild and the db file does not exist';
+    $mb->unmock('isa');
 
     # Check the configs.
     $mb->mock( store  => 'sqlite' );
@@ -115,17 +121,18 @@ sub test_rules : Test(42) {
     },
       "... as should the test configuration";
 
-    # Try getting the file settin from the configuration file.
-    $builder->notes( _config_ => { store => { file => 'somefile' } } );
+    # Try getting the file setting from the configuration file.
+    s/fooness/somefile/ for ($test_file, $db_file);
+    $builder->notes( _config_ => { store => { file => $db_file } } );
     $mb->unmock('get_reply');
     ok $kbs->validate, 'Validate SQLite again';
-    is $kbs->db_file, 'somefile', 'File name should be set from config file';
-    is $kbs->dsn, 'dbi:SQLite:dbname=store/somefile',
+    is $kbs->db_file, $db_file, 'File name should be set from config file';
+    is $kbs->dsn, "dbi:SQLite:dbname=$db_file",
         'The DSN should contain the config settings';
 
+    ##########################################################################
     # Just skip the remaining tests if we can't test against a live database.
     return "Not testing SQLite" unless $self->supported('sqlite');
-    s/fooness/somefile/ for ($test_file, $db_file);
 
     # Try building the test database.
     $builder->source_dir('lib');

@@ -283,6 +283,7 @@ sub rules {
                         my $super = $self->db_super_user
                           || $builder->args('db_super_user')
                           or return;
+
                         # We do! Cache them and move on.
                         $self->{db_super_user} = $super;
                         $self->{db_super_pass} = $builder->args('db_super_pass')
@@ -332,6 +333,18 @@ sub rules {
         'Check database' => {
             do => sub { shift->result($self->_db_exists) },
             rules => [
+                Fail => {
+                    rule => sub {
+                        my $state = shift;
+                        return if $state->result;
+                        return unless $builder->isa('Kinetic::AppBuild');
+                        $state->message(
+                            'Database "' . $self->db_name
+                            . '" does not exist',
+                        );
+                        return 1;
+                    },
+                },
                 'Check plpgsql' => {
                     rule => sub {
                         my $state = shift;
@@ -1090,6 +1103,7 @@ sub setup {
     $self->_build_db_user($self->db_user);
     $self->_build_db_user($self->db_pass);
     $self->SUPER::setup(@_);
+    return $self;
 }
 
 ##############################################################################
@@ -1143,8 +1157,7 @@ sub test_cleanup {
     my $db_user = $self->test_db_user;
 
     # Disconnect all database handles.
-    my %drhs = DBI->installed_drivers;
-    $_->disconnect for grep { defined } values %{ $drhs{Pg}->{CachedKids} };
+    $self->disconnect_all;
     sleep 1; # Let them disconnect.
 
     # Connect to the template database.
@@ -1293,7 +1306,7 @@ This method tells whether the given database exists.
 
 sub _db_exists {
     my ($self, $db_name) = @_;
-    $db_name ||= $self->setup->db_name;
+    $db_name ||= $self->db_name;
     $self->_pg_says_true(
         "SELECT datname FROM pg_catalog.pg_database WHERE datname = ?",
         $db_name

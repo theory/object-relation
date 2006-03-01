@@ -5,7 +5,7 @@
 use warnings;
 use strict;
 #use Test::More 'no_plan';
-use Test::More tests => 60;
+use Test::More tests => 90;
 use Test::Exception;
 use Test::File;
 use aliased 'Test::MockModule';
@@ -18,16 +18,23 @@ use DBI;
 use lib '../../lib';
 
 my $CLASS = 'Kinetic::AppBuild';
-my ($MAIN_BUILD, $STORE, @builders, @ARGS);
+my ($MAIN_BUILD, $STORE, $KBS, @builders, @ARGS);
 
 BEGIN {
     # Omit KINETIC_CONF; the tests will set it as needed.
     delete $ENV{KINETIC_CONF};
     require Kinetic::Build;
 
-    # Load up current build config.
+    # Load up current build config, as we'll need it.
     $MAIN_BUILD = Kinetic::Build->resume;
     $STORE = $MAIN_BUILD->store;
+
+    # Make sure the store setup loads before we change directories, since it
+    # is serialized in _build/notes.
+    $MAIN_BUILD->setup_objects('store')->builder;
+
+    # Get the current command-line arguments, so that we can use them to
+    # create new build objects without errors.
     my $args = $MAIN_BUILD->args;
     @ARGS = (
         @{ delete $args->{ARGV} },
@@ -56,8 +63,10 @@ BEGIN {
 }
 
 END {
+    # Clean up our messes.
     $_->dispatch('realclean') for @builders;
     rmtree 'conf';
+    $KBS->test_cleanup if $KBS;
     # Return to root so Kinetic::Build::Test can restore t/conf/kinetic.conf.
     chdir updir; chdir updir;
 }
@@ -65,6 +74,7 @@ END {
 is_deeply [$CLASS->setup_properties ], [qw(store)],
     'Setup properties should be properly inherited';
 
+# Prevent checking setups for now.
 my $kb_mocker = MockModule->new('Kinetic::Build::Base');
 $kb_mocker->mock(_check_build_component => 1);
 
@@ -140,11 +150,24 @@ throws_ok { new_builder() }
 $ab_mocker->unmock('notes');
 
 ##############################################################################
-# Okay, let's load stuff up from the test conf file.
-#local $ENV{KINETIC_CONF} = catfile updir, qw(conf kinetic.conf);
+# Okay, let the setups get loaded.
 $kb_mocker->unmock('_check_build_component');
+
+# Force the store setups into thinking that it doesn't matter that the
+# database doesn't exist by telling it that this isn't Kinetic::AppBuild. This
+# is important, because generally, the database must exist to install an app.
+my $isa_flag;
+$kb_mocker->mock( isa => sub {
+    return undef if $_[1] eq $CLASS && !$isa_flag++;
+    shift->SUPER::isa(@_);
+});
+
 ok $builder = new_builder( dev_tests => 1 ),
     'Create new builder with dev_tests => 1';
+is $builder->path_to_config, $config_file,
+    'The path to config should be corectly set';
+is_deeply $builder->notes('_config_'), \%conf,
+    'The config file should have been read into notes';
 ok $builder->dev_tests, 'dev_tests should be true';
 
 ##############################################################################
@@ -181,8 +204,6 @@ if ($STORE eq 'sqlite') {
     $dconf{store}{dsn} = 'dbi:SQLite:dbname=' . catfile updir, qw(store kinetic.db);
 } elsif ($STORE eq 'pg') {
     delete @{$dconf{store}}{qw(db_super_pass db_super_user template_db_name)};
-    @{$dconf{store}}{qw(db_user db_pass dsn)}
-        = ('kinetic', '', 'dbi:Pg:dbname=kinetic');
 }
 is_deeply \%bconf, \%dconf, 'The configuration file should be merged';
 
@@ -209,43 +230,97 @@ is_deeply \%tconf, \%dconf, 'The test config file should be merged';
 
 ##############################################################################
 # Now, dispatch to test, and make sure that it builds a data store.
-my $mb_mocker = MockModule->new('Module::Build');
-$mb_mocker->mock(ACTION_test => sub {
-    # We'll run tests during the test action here. Sneaky, huh?
-    ok 1, 'Run super test';
-    my @keys = sort Kinetic::Meta->keys;
-    is_deeply \@keys,
-        [qw(abstract comp_comp composed contact contact_type extend kinetic
-            one party person relation simple two types_test usr version_info)],
-        'Both TestApp and Kinetic classes should now be loaded';
-    ok my $dbh = dbi_connect(@{$tconf{store}}{qw(dsn db_user db_pass)}),
-        'Now we should be able to connect to the test database';
-    # Make sure that views exist for all of the keys.
-    for my $key (@keys) {
-        next if Kinetic::Meta->for_key($key)->abstract;
-        ok $dbh->selectcol_arrayref("SELECT 1 FROM $key"),
-            "The $key view should exist";
-    }
-    ok +Kinetic::Party::User->lookup(username => 'admin'),
-        'The admin user should exist';
-
-    $dbh->disconnect;
-});
-
 SKIP: {
-    # Most of the tests are in the mock ACTION_test defined above.
-    skip 'Not running dev tests', 20 unless $ENV{KINETIC_SUPPORTED};
+    skip 'Not running dev tests', 50 unless $ENV{KINETIC_SUPPORTED};
+
+    # We need to access the schema object to test which classes it has loaded.
+    my $db_mocker = MockModule->new('Kinetic::Build::Setup::Store::DB');
+    my $orig_load_schema;
+    my $schema;
+    $db_mocker->mock(_load_schema => sub {
+        return $schema = $orig_load_schema->(@_);
+    });
+    $orig_load_schema = $db_mocker->original('_load_schema');
+
+    # Set up tests to run *during* the test actions. Yes, this is sneaky! But
+    # it's cool, because it allows us to test the database after it's created
+    # and before it's dropped by the test action.
+    my $mb_mocker = MockModule->new('Module::Build');
+    $mb_mocker->mock(ACTION_test => sub {
+        test_store(\%tconf, $schema )->disconnect;
+    });
 
     # We should fail to connect to the test data store.
     dies_ok { dbi_connect(@{$tconf{store}}{qw(dsn db_user db_pass)}) }
         'We should not be able to connect to the test database';
 
+    # So dispatch to the test action.
     $builder->install_base(catdir updir, updir);
     ok $builder->dispatch('test'), 'Dispatch to test action should return';
+    sleep 1 if $STORE eq 'pg'; # Wait for disconnect from template1.
 
+    # So we tested the data store during the test action, and now it should be
+    # gone again.
+    dies_ok { dbi_connect(@{$tconf{store}}{qw(dsn db_user db_pass)}) }
+        'And now the database should be gone again';
+
+    ##########################################################################
+    # Okay, now now we want to test an install. But first, we need an existing
+    # database. So build one from the existing install.
+    $KBS = $MAIN_BUILD->setup_objects('store');
+
+    # Silence the copy of the builder used by the store setup.
+    ok my $mbuild = $KBS->builder, 'Get the store setup copy of builder';
+    $mbuild->source_dir(join '/', updir, updir, 'lib');
+    $mbuild->base_dir(curdir);
+    $mbuild->quiet(1);
+
+    # Build the test database.
+    ok $KBS->test_setup, 'Run test_setup on current Kinetic build';
+    $mbuild->init_app;
+
+    # Make sure that we have the system views.
+    my $dbh = test_store(
+        \%tconf,
+        $schema,
+        qw(contact contact_type person usr version_info)
+    );
+
+    # Make sure that none of the sample views exist.
+    for my $key (qw(comp_comp composed extend one relation simple two types_test)) {
+        dies_ok { $dbh->selectcol_arrayref("SELECT 1 FROM $key") }
+            "The $key view should not exist";
+    }
+    $dbh->disconnect;
+
+    # Now install the sample app.
+    # Create a new build object, so that it knows that the database exists.
+    push @ARGS, '--db-file' => catfile qw(t data kinetic.db)
+        if $STORE eq 'sqlite';
+    ok $builder = new_builder(dev_tests => 1 ),
+        'Create new builder for testing install';
+
+    # Prevent Module::Build's test action from running.
+    $mb_mocker->mock(ACTION_install => undef );
+
+    # Install it!
+    $builder->dispatch('install');
+
+    # Now the sample views should exist in the database.
+    $dbh = dbi_connect(@{$tconf{store}}{qw(dsn db_user db_pass)});
+    for my $key (qw(comp_comp composed extend one relation simple two types_test)) {
+        ok $dbh->selectcol_arrayref("SELECT 1 FROM $key"),
+            "The $key view should exist";
+    }
+
+    # Tear down the test database.
+    $dbh->disconnect;
+    ok $KBS->test_cleanup, 'Cleanup Kinetic data store';
+    $KBS = undef; # Prevent cleanup in END block
     dies_ok { dbi_connect(@{$tconf{store}}{qw(dsn db_user db_pass)}) }
         'And now the database should be gone again';
 }
+
 
 ##############################################################################
 sub new_builder {
@@ -265,7 +340,34 @@ sub new_builder {
 ##############################################################################
 
 sub dbi_connect {
-    DBI->connect(@_, { RaiseError => 1, PrintError => 1 })
+    DBI->connect(@_, { RaiseError => 1, PrintError => 0 })
+}
+
+##############################################################################
+
+sub test_store {
+    my ($conf, $schema) = ( shift, shift );
+    my @check_keys = @_ ? @_ : qw(
+        comp_comp composed contact contact_type extend
+        one person relation simple two types_test usr version_info
+    );
+
+    # We'll run tests during the test action here. Sneaky, huh?
+    my @keys = sort map { $_->key } $schema->classes;
+    is_deeply \@keys, \@check_keys,
+        ,
+        'Both TestApp and Kinetic classes should now be loaded';
+    ok my $dbh = dbi_connect(@{$conf->{store}}{qw(dsn db_user db_pass)}),
+        'Now we should be able to connect to the test database';
+    # Make sure that views exist for all of the keys.
+    for my $key (@check_keys) {
+        ok $dbh->selectcol_arrayref("SELECT 1 FROM $key"),
+            "The $key view should exist";
+    }
+    ok +Kinetic::Party::User->lookup(username => 'admin'),
+        'The admin user should exist';
+
+    return $dbh;
 }
 
 1;
