@@ -344,15 +344,15 @@ is_deeply [map {$_->name} $class->attributes], [qw{ stuff thingies }],
 
 ok my $stuff = $class->attributes('stuff'),
     '... and we should be able to fetch the stuff attribute';
-can_ok $stuff, 'collection';
-ok ! $stuff->collection, 
+can_ok $stuff, 'collection_of';
+ok ! $stuff->collection_of, 
   '... and collection() should return false for non-collections';
 
 ok my $thingies = $class->attributes('thingies'),
   '... and we should be able to fetch the thingies attribute';
 
-can_ok $thingies, 'collection';
-ok my $collection = $thingies->collection, 
+can_ok $thingies, 'collection_of';
+ok my $collection = $thingies->collection_of, 
   '... and it should return true for a collection';
 is $collection->package, 'MyTestThingy',
   '... and it should return the class object for objects in the collection';

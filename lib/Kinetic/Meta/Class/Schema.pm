@@ -179,7 +179,7 @@ gets in the way when building schemas.
 
 sub table_attributes { 
     my $self = shift;
-    grep { ! $_->collection } @{$self->{cols}}
+    grep { ! $_->collection_of } @{$self->{cols}}
 }
 
 ##############################################################################

@@ -505,16 +505,16 @@ sub relationship { shift->{relationship} }
 
 ##############################################################################
 
-=head3 collection
+=head3 collection_of
 
-  my $collection = $attr->collection;
+  my $collection = $attr->collection_of;
 
 If an attribute represents a collection, this method will return the class
 object for that collection.
 
 =cut
 
-sub collection { shift->{collection} }
+sub collection_of { shift->{collection} }
 
 ##############################################################################
 

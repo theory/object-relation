@@ -177,19 +177,18 @@ sub constraints_for_class {
         $self->version_triggers(    $class ),
    );
 
-    # Add FK constraint for subclases from id column to the parent table.
+    # Add FK constraint for subclasses from id column to the parent table.
     if (my $parent = $class->parent) {
         push @cons, $self->_generate_fk($class, 'id', $parent)
     }
 
     # Add foreign keys for any attributes that reference other objects.
     for my $attr ($class->ref_attributes) {
-        use Data::Dumper;
-        main::diag("asfasdfasdf"), <STDIN> if 'ones' eq $attr->name;
         next if $attr->acts_as;
         my $ref = $attr->references or next;
         push @cons, $self->_generate_fk($class, $attr, $ref);
     }
+    push @cons, $self->_generate_collection_fks( $class );
     return @cons;
 }
 
@@ -596,7 +595,43 @@ sub _generate_fk {
       ? ($attr->foreign_key, $attr->column, uc $attr->on_delete eq 'CASCADE')
       : ($class->foreign_key, 'id', 1);
     my $null = ref $attr && $attr->required ? '' : "NEW.$col IS NOT NULL AND ";
+    return $self->_generate_fk_sql(
+         $fk,
+         $fk_table, 
+         $col,
+         $table,
+         $null,
+         $cascade
+    );
+}
 
+##############################################################################
+
+=head3 _generate_fk_sql
+
+ my $sql = $self->_generate_fk_sql(
+     $fk,
+     $fk_table, 
+     $col,
+     $table,
+     $null,
+     $cascade
+ );
+
+This method returns the actual SQL required to generate foreign key
+constraints for SQLite.  There is very little logic in this method.  Instead,
+it takes the data and creates the SQL.  The primary logic to assemble the data
+for this method is in C<_generate_fk>.
+
+The reason these methods are separate is because some tables (such as those
+created by C<has_many> relationships) are not represented by C<Kinetic::Meta>
+classes and thus do not have the direct introspective capability necessary to
+assemble the arguments dynamically.
+
+=cut
+
+sub _generate_fk_sql {
+    my ( $self, $fk, $fk_table, $col, $table, $null, $cascade ) = @_;
     # We actually have three different triggers for each foreign key, so we
     # have to give each one a slightly different name.
     (my $fki = $fk) =~ s/_/i_/;
@@ -633,6 +668,35 @@ FOR EACH ROW BEGIN
 END;
 })
   );
+}
+
+sub _generate_collection_fks {
+    my ($self, $class) = @_;
+    my @collections = grep { $_ } map { $_->collection_of } $class->attributes;
+    return unless @collections;
+    my @fks;
+    my $class_key = $class->key;
+    foreach my $coll (@collections) {
+        my $coll_key = $coll->key;
+        my $table    = $self->collection_table_name($class_key, $coll_key);
+        my $cascade  = 1;
+        foreach my $key ($class_key, $coll_key) {
+            my $fk_class = Kinetic::Meta->for_key($key);
+            my $fk_table = $fk_class->table;
+            my $fk_col   = $fk_class->key . "_id";
+            my $fk       = "fk_$table\_$fk_col";
+            my $null     = "NEW.$fk_col IS NOT NULL AND ";
+            push @fks, $self->_generate_fk_sql(
+                $fk,
+                $fk_table,
+                $fk_col,
+                $table,
+                $null,
+                $cascade
+            );
+        }
+    }
+    return @fks;
 }
 
 ##############################################################################

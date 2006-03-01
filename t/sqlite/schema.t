@@ -5,10 +5,10 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
-use Test::More 'no_plan';
 
-#use Test::More tests => 105;
-#use Test::NoWarnings;    # Adds an extra test.
+#use Test::More 'no_plan';
+use Test::More tests => 117;
+use Test::NoWarnings;    # Adds an extra test.
 use Test::Differences;
 
 FAKESQLITE: {
@@ -29,7 +29,7 @@ isa_ok $sg, 'Kinetic::Build::Schema::DB::SQLite';
 
 ok $sg->load_classes('t/sample/lib'), "Load classes";
 is_deeply [ map { $_->key } $sg->classes ],
-  [qw(simple one composed comp_comp two extend has_many relation types_test)],
+  [qw(simple one composed comp_comp two extend relation types_test yello)],
   "classes() returns classes in their proper dependency order";
 
 for my $class ( $sg->classes ) {
@@ -586,75 +586,118 @@ eq_or_diff join( "\n", $sg->schema_for_class($relation) ),
 
 ##############################################################################
 # Grab the has_many class.
-ok my $has_many = Kinetic::Meta->for_key('has_many'), "Get has_many class";
-is $has_many->key,   'has_many',  "... HasMany class has key 'has_many'";
-is $has_many->table, '_has_many', "... HasMany class has table '_has_many'";
+ok my $has_many = Kinetic::Meta->for_key('yello'), "Get has_many class";
+is $has_many->key,   'yello',  "... HasMany class has key 'yello'";
+is $has_many->table, '_yello', "... HasMany class has table '_yello'";
 
-$table = q{CREATE TABLE _has_many (
+$table = q{CREATE TABLE _yello (
     id INTEGER NOT NULL PRIMARY KEY,
     uuid TEXT NOT NULL,
     state INTEGER NOT NULL DEFAULT 1,
     age INTEGER
 );
-CREATE TABLE has_many_has_many_one (
-    has_many_id INTEGER NOT NULL PRIMARY KEY,
+
+CREATE TABLE yello_has_many_one (
+    yello_id INTEGER NOT NULL,
     one_id INTEGER NOT NULL,
-    order INTEGER NOT NULL
+    coll_order INTEGER NOT NULL,
+    PRIMARY KEY (yello_id, one_id)
 );
 };
 
-eq_or_diff $sg->tables_for_class($has_many), $table,
+eq_or_diff join("\n", $sg->tables_for_class($has_many)), $table,
   '... and it should generate the correct table';
 
-$indexes = q{CREATE UNIQUE INDEX idx_has_many_uuid ON _has_many (uuid);
-CREATE INDEX idx_has_many_state ON _has_many (state);
+$indexes = q{CREATE UNIQUE INDEX idx_yello_uuid ON _yello (uuid);
+CREATE INDEX idx_yello_state ON _yello (state);
+CREATE UNIQUE INDEX idx_yello_has_many_one ON yello_has_many_one (yello_id, one_id, coll_order);
 };
 is $sg->indexes_for_class($has_many), $indexes,
     '... and the correct indexes for the class';
 
-$constraints = q{CREATE TRIGGER cki_has_many_state
-BEFORE INSERT ON _has_many
+$constraints = q{CREATE TRIGGER cki_yello_state
+BEFORE INSERT ON _yello
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
     WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
-CREATE TRIGGER cku_has_many_state
-BEFORE UPDATE OF state ON _has_many
+CREATE TRIGGER cku_yello_state
+BEFORE UPDATE OF state ON _yello
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
     WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
-CREATE TRIGGER ck_has_many_uuid_once
-BEFORE UPDATE ON _has_many
+CREATE TRIGGER ck_yello_uuid_once
+BEFORE UPDATE ON _yello
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
     WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
 END;
+
+CREATE TRIGGER fki_yello_has_many_one_yello_id
+BEFORE INSERT ON yello_has_many_one
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'insert on table "yello_has_many_one" violates foreign key constraint "fk_yello_has_many_one_yello_id"')
+    WHERE  NEW.yello_id IS NOT NULL AND (SELECT id FROM _yello WHERE id = NEW.yello_id) IS NULL;
+END;
+
+CREATE TRIGGER fku_yello_has_many_one_yello_id
+BEFORE UPDATE ON yello_has_many_one
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'update on table "yello_has_many_one" violates foreign key constraint "fk_yello_has_many_one_yello_id"')
+    WHERE  NEW.yello_id IS NOT NULL AND (SELECT id FROM _yello WHERE id = NEW.yello_id) IS NULL;
+END;
+
+CREATE TRIGGER fkd_yello_has_many_one_yello_id
+BEFORE DELETE ON _yello
+FOR EACH ROW BEGIN
+  DELETE from yello_has_many_one WHERE yello_id = OLD.id;
+END;
+
+CREATE TRIGGER fki_yello_has_many_one_one_id
+BEFORE INSERT ON yello_has_many_one
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'insert on table "yello_has_many_one" violates foreign key constraint "fk_yello_has_many_one_one_id"')
+    WHERE  NEW.one_id IS NOT NULL AND (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL;
+END;
+
+CREATE TRIGGER fku_yello_has_many_one_one_id
+BEFORE UPDATE ON yello_has_many_one
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'update on table "yello_has_many_one" violates foreign key constraint "fk_yello_has_many_one_one_id"')
+    WHERE  NEW.one_id IS NOT NULL AND (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL;
+END;
+
+CREATE TRIGGER fkd_yello_has_many_one_one_id
+BEFORE DELETE ON simple_one
+FOR EACH ROW BEGIN
+  DELETE from yello_has_many_one WHERE one_id = OLD.id;
+END;
 };
-is join( "\n", $sg->constraints_for_class($has_many) ), $constraints,
+eq_or_diff join( "\n", $sg->constraints_for_class($has_many) ), $constraints,
   '... with the correct constraints';
 
-$view = q{CREATE VIEW has_many AS
-  SELECT _has_many.id AS id, _has_many.uuid AS uuid, _has_many.state AS state, _has_many.age AS age
-  FROM   _has_many;
+$view = q{CREATE VIEW yello AS
+  SELECT _yello.id AS id, _yello.uuid AS uuid, _yello.state AS state, _yello.age AS age
+  FROM   _yello;
 };
 is $sg->view_for_class($has_many), $view, '... and the correct view';
 
-$insert = q{CREATE TRIGGER insert_has_many
-INSTEAD OF INSERT ON has_many
+$insert = q{CREATE TRIGGER insert_yello
+INSTEAD OF INSERT ON yello
 FOR EACH ROW BEGIN
-  INSERT INTO _has_many (uuid, state, age)
+  INSERT INTO _yello (uuid, state, age)
   VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.age);
 END;
 };
 is $sg->insert_for_class($has_many), $insert, '... and the correct insert';
 
-$update = q{CREATE TRIGGER update_has_many
-INSTEAD OF UPDATE ON has_many
+$update = q{CREATE TRIGGER update_yello
+INSTEAD OF UPDATE ON yello
 FOR EACH ROW BEGIN
-  UPDATE _has_many
+  UPDATE _yello
   SET    state = NEW.state, age = NEW.age
   WHERE  id = OLD.id;
 END;
@@ -662,14 +705,13 @@ END;
 is $sg->update_for_class($has_many), $update,
   '... and the correct update for the class';
 
-$delete = q{CREATE TRIGGER delete_has_many
-INSTEAD OF DELETE ON has_many
+$delete = q{CREATE TRIGGER delete_yello
+INSTEAD OF DELETE ON yello
 FOR EACH ROW BEGIN
-  DELETE FROM _has_many
+  DELETE FROM _yello
   WHERE  id = OLD.id;
 END;
 };
-diag 'delete trigger for has_many needs to delete those things it has';
 is $sg->delete_for_class($has_many), $delete,
     '... and the correct delete for the class';
 

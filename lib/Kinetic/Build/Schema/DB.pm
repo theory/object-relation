@@ -167,21 +167,23 @@ for the class.
 
 sub tables_for_class {
     my ( $self, $class ) = @_;
+    my @tables;
     my $sql = $self->start_table($class);
     $sql .= "    " . join ",\n    ", $self->columns_for_class($class);
     $sql .= $self->end_table($class);
+    push @tables, $sql;
     foreach my $attribute ( $class->attributes ) {
-        next unless $attribute->collection;
-        $sql .= $self->collection_table($class, $attribute);
+        next unless $attribute->collection_of;
+        push @tables, $self->collection_table($class, $attribute);
     }
-    return $sql;
+    return @tables;
 }
 
 ##############################################################################
 
 =head3 collection_table 
 
-  my $coll_class = $attribute->collection;
+  my $coll_class = $attribute->collection_of;
   my $table      = $kbs->collection_table($class, $coll_class);
 
 For an attribute which represents a collection of objects, for example,
@@ -194,12 +196,14 @@ the relationship is created.  This method will return that table.
 sub collection_table {
     my ($self, $class, $attribute) = @_;;
     my $class_key = $class->key;
-    my $coll_key  = $attribute->collection->key;
+    my $coll_key  = $attribute->collection_of->key;
+    my $table     = $self->collection_table_name($class_key, $coll_key);
     return <<"    END_SQL";
-CREATE TABLE ${class_key}_has_many_${coll_key} (
-    ${class_key}_id INTEGER NOT NULL PRIMARY KEY,
-    ${coll_key}_id INTEGER NOT NULL,
-    order INTEGER NOT NULL
+CREATE TABLE $table (
+    $class_key\_id INTEGER NOT NULL,
+    $coll_key\_id INTEGER NOT NULL,
+    coll_order INTEGER NOT NULL,
+    PRIMARY KEY ($class_key\_id, $coll_key\_id)
 );
     END_SQL
 }
@@ -234,6 +238,22 @@ statement for creating a table.
 
 sub end_table {
     return "\n);\n";
+}
+
+##############################################################################
+
+=head3 collection_table_name
+
+  my $name = $kbs->collection_table_name($main_class_key, $coll_class_key);
+
+Given the keys of the primary class and the class for the collection, this
+method will return the name of the collection table.
+
+=cut
+
+sub collection_table_name {
+    my ($self, $key, $coll_key) = @_;
+    return "$key\_has_many_$coll_key";
 }
 
 ##############################################################################
@@ -413,8 +433,11 @@ string, each separated by a "\n".
 
 sub indexes_for_class {
     my ( $self, $class ) = @_;
-    return join '', map { $self->index_for_attr( $class => $_ ) }
-      grep { $_->index } $class->table_attributes;
+    my @indexes = 
+      map  { $self->index_for_attr( $class => $_ ) }
+      grep { $_->index } 
+      $class->table_attributes;
+    return join q{}, @indexes, $self->_collection_indexes($class);
 }
 
 ##############################################################################
@@ -437,6 +460,33 @@ sub index_for_attr {
     my $name   = $attr->index($class);
     my $on     = $self->index_on($attr);
     return "CREATE$unique INDEX $name ON $table ($on);\n";
+}
+
+##############################################################################
+
+=head3 _collection_indexes 
+
+  my @collection_indexes = $kbs->_collection_indexes($class);
+
+For a given class, this method will return all collection indexes for the
+class.
+
+=cut
+
+sub _collection_indexes {
+    my ( $self, $class ) = @_;
+    my @collections = grep { $_ } map { $_->collection_of } $class->attributes;
+    return unless @collections;
+    my @indexes;
+    my $class_key = $class->key;
+    foreach my $coll (@collections) {
+        my $coll_key = $coll->key;
+        my $table    = $self->collection_table_name($class_key, $coll_key);
+        push @indexes, "CREATE UNIQUE INDEX idx_$table "
+                     . "ON $table "
+                     . "($class_key\_id, $coll_key\_id, coll_order);\n";
+    }
+    return @indexes;
 }
 
 ##############################################################################

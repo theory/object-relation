@@ -8,12 +8,12 @@ use Kinetic::Meta::Widget;
 
 Kinetic::Meta::Declare->new(
     meta => [
-        key         => 'has_many',
-        plural_name => 'Has Manys',
+        key         => 'yello',
+        plural_name => 'Yellos',
     ],
     attributes => [
         age => {
-            label       => 'HasMany age',
+            label       => 'Yello age',
             type        => $TYPE_WHOLE,
             widget_meta => Kinetic::Meta::Widget->new(
                 type => 'text',
