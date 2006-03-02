@@ -194,18 +194,10 @@ the relationship is created.  This method will return that table.
 =cut
 
 sub collection_table {
-    my ($self, $class, $attribute) = @_;;
-    my $class_key = $class->key;
-    my $coll_key  = $attribute->collection_of->key;
-    my $table     = $self->collection_table_name($class_key, $coll_key);
-    return <<"    END_SQL";
-CREATE TABLE $table (
-    $class_key\_id INTEGER NOT NULL,
-    $coll_key\_id INTEGER NOT NULL,
-    coll_order INTEGER NOT NULL,
-    PRIMARY KEY ($class_key\_id, $coll_key\_id)
-);
-    END_SQL
+    throw_unimplemented [ 
+        '"[_1]" must be overridden in a subclass',
+        'collection_table'
+    ];
 }
 
 ##############################################################################
@@ -244,16 +236,16 @@ sub end_table {
 
 =head3 collection_table_name
 
-  my $name = $kbs->collection_table_name($main_class_key, $coll_class_key);
+  my $name = $kbs->collection_table_name($main_class, $coll_class);
 
-Given the keys of the primary class and the class for the collection, this
-method will return the name of the collection table.
+Given the primary class and the class for the collection, this method will
+return the name of the collection table.
 
 =cut
 
 sub collection_table_name {
-    my ($self, $key, $coll_key) = @_;
-    return "$key\_has_many_$coll_key";
+    my ($self, $class, $coll_class) = @_;
+    return $class->key . "_coll_" . $coll_class->key;
 }
 
 ##############################################################################
@@ -481,10 +473,10 @@ sub _collection_indexes {
     my $class_key = $class->key;
     foreach my $coll (@collections) {
         my $coll_key = $coll->key;
-        my $table    = $self->collection_table_name($class_key, $coll_key);
+        my $table    = $self->collection_table_name($class, $coll);
         push @indexes, "CREATE UNIQUE INDEX idx_$table "
                      . "ON $table "
-                     . "($class_key\_id, $coll_key\_id, coll_order);\n";
+                     . "($class_key\_id, $coll_key\_id, rank);\n";
     }
     return @indexes;
 }

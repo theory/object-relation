@@ -11,7 +11,7 @@ use aliased 'Test::WWW::Mechanize::Catalyst', 'Mech', 'Kinetic::UI::Catalyst';
 
 use Readonly;
 Readonly my $TIMESTAMP =>
-  '\[\w{3}\s\w{3}\s[123]\d\s\d{2}:\d{2}:\d{2}\s\d{4}\] \[catalyst\]';
+  '\[\w{3}\s\w{3}\s[123 ]\d\s\d{2}:\d{2}:\d{2}\s\d{4}\] \[catalyst\]';
 
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->any_supported(qw/pg sqlite/)

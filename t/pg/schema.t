@@ -585,11 +585,10 @@ $table = q{CREATE TABLE _yello (
     age INTEGER
 );
 
-CREATE TABLE yello_has_many_one (
+CREATE TABLE yello_coll_one (
     yello_id INTEGER NOT NULL,
     one_id INTEGER NOT NULL,
-    coll_order INTEGER NOT NULL,
-    PRIMARY KEY (yello_id, one_id)
+    rank INTEGER NOT NULL
 );
 };
 
@@ -598,78 +597,45 @@ eq_or_diff join("\n", $sg->tables_for_class($has_many)), $table,
 
 $indexes = q{CREATE UNIQUE INDEX idx_yello_uuid ON _yello (uuid);
 CREATE INDEX idx_yello_state ON _yello (state);
-CREATE UNIQUE INDEX idx_yello_has_many_one ON yello_has_many_one (yello_id, one_id, coll_order);
+CREATE UNIQUE INDEX idx_yello_coll_one ON yello_coll_one (yello_id, one_id, rank);
 };
 is $sg->indexes_for_class($has_many), $indexes,
     '... and the correct indexes for the class';
 
-$constraints = q{CREATE TRIGGER cki_yello_state
-BEFORE INSERT ON _yello
-FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-    WHERE  NEW.state NOT BETWEEN -1 AND 2;
-END;
+# Check that the ALTER TABLE ADD CONSTRAINT statements are correct.
+$constraints = q{ALTER TABLE _yello
+  ADD CONSTRAINT pk_yello_id PRIMARY KEY (id);
 
-CREATE TRIGGER cku_yello_state
-BEFORE UPDATE OF state ON _yello
-FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-    WHERE  NEW.state NOT BETWEEN -1 AND 2;
-END;
+CREATE FUNCTION yello_uuid_once() RETURNS trigger AS '
+  BEGIN
+    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
+        THEN RAISE EXCEPTION ''value of "uuid" cannot be changed'';
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql;
 
-CREATE TRIGGER ck_yello_uuid_once
-BEFORE UPDATE ON _yello
-FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
-    WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
-END;
+CREATE TRIGGER yello_uuid_once BEFORE UPDATE ON _yello
+FOR EACH ROW EXECUTE PROCEDURE yello_uuid_once();
 
-CREATE TRIGGER fki_yello_has_many_one_yello_id
-BEFORE INSERT ON yello_has_many_one
-FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'insert on table "yello_has_many_one" violates foreign key constraint "fk_yello_has_many_one_yello_id"')
-    WHERE  NEW.yello_id IS NOT NULL AND (SELECT id FROM _yello WHERE id = NEW.yello_id) IS NULL;
-END;
+ALTER TABLE yello_coll_one 
+  ADD CONSTRAINT fk_yello_coll_one_yello_id FOREIGN KEY (yello_id)
+  REFERENCES _yello(id) ON DELETE CASCADE;
 
-CREATE TRIGGER fku_yello_has_many_one_yello_id
-BEFORE UPDATE ON yello_has_many_one
-FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'update on table "yello_has_many_one" violates foreign key constraint "fk_yello_has_many_one_yello_id"')
-    WHERE  NEW.yello_id IS NOT NULL AND (SELECT id FROM _yello WHERE id = NEW.yello_id) IS NULL;
-END;
+ALTER TABLE yello_coll_one 
+  ADD CONSTRAINT fk_yello_coll_one_one_id FOREIGN KEY (one_id)
+  REFERENCES simple_one(id) ON DELETE CASCADE;
 
-CREATE TRIGGER fkd_yello_has_many_one_yello_id
-BEFORE DELETE ON _yello
-FOR EACH ROW BEGIN
-  DELETE from yello_has_many_one WHERE yello_id = OLD.id;
-END;
+ALTER TABLE yello_coll_one
+  ADD CONSTRAINT pk_yello_coll_one_ids PRIMARY KEY (yello_id, one_id);
 
-CREATE TRIGGER fki_yello_has_many_one_one_id
-BEFORE INSERT ON yello_has_many_one
-FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'insert on table "yello_has_many_one" violates foreign key constraint "fk_yello_has_many_one_one_id"')
-    WHERE  NEW.one_id IS NOT NULL AND (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL;
-END;
-
-CREATE TRIGGER fku_yello_has_many_one_one_id
-BEFORE UPDATE ON yello_has_many_one
-FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'update on table "yello_has_many_one" violates foreign key constraint "fk_yello_has_many_one_one_id"')
-    WHERE  NEW.one_id IS NOT NULL AND (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL;
-END;
-
-CREATE TRIGGER fkd_yello_has_many_one_one_id
-BEFORE DELETE ON simple_one
-FOR EACH ROW BEGIN
-  DELETE from yello_has_many_one WHERE one_id = OLD.id;
-END;
+ALTER TABLE yello_coll_one
+  ADD CONSTRAINT unique_yello_coll_one UNIQUE (yello_id, one_id, rank);
 };
-TODO: {
-    local $TODO = 'This was copied from SQLite.  Will correct it soon';
-    eq_or_diff join( "\n", $sg->constraints_for_class($has_many) ), $constraints,
-    '... with the correct constraints';
-}
+eq_or_diff join( "\n", $sg->constraints_for_class($has_many) ), $constraints,
+  '... with the correct constraints';
 
+exit;
 #open my $fh, ">", "constraints.got" or die $!;
 #print $fh join("\n", $sg->constraints_for_class($has_many));
 #close $fh;
