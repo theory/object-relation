@@ -338,12 +338,6 @@ sub _generate_collection_constraints {
             qq{ALTER TABLE $table 
   ADD CONSTRAINT fk_$table\_$coll_id FOREIGN KEY ($coll_id)
   REFERENCES $coll_table(id) ON DELETE CASCADE;
-},
-            qq{ALTER TABLE $table
-  ADD CONSTRAINT pk_$table\_ids PRIMARY KEY ($main_id, $coll_id);
-},
-            qq{ALTER TABLE $table
-  ADD CONSTRAINT unique_$table\ UNIQUE ($main_id, $coll_id, rank);
 };
     }
 }
@@ -647,35 +641,6 @@ q{CREATE DOMAIN version AS TEXT
   );
 },
 
-}
-
-##############################################################################
-
-=head3 collection_table 
-
-  my $coll_class = $attribute->collection_of;
-  my $table      = $kbs->collection_table($class, $coll_class);
-
-For an attribute which represents a collection of objects, for example,
-attributes which have a C<has_many> relationship, the primary table will not
-have a column representing the attribute.  Instead, another table representing
-the relationship is created.  This method will return that table.
-
-=cut
-
-sub collection_table {
-    my ($self, $class, $attribute) = @_;;
-    my $class_key  = $class->key;
-    my $coll_class = $attribute->collection_of;
-    my $coll_key   = $coll_class->key;
-    my $table      = $self->collection_table_name($class, $coll_class);
-    return <<"    END_SQL";
-CREATE TABLE $table (
-    $class_key\_id INTEGER NOT NULL,
-    $coll_key\_id INTEGER NOT NULL,
-    rank INTEGER NOT NULL
-);
-    END_SQL
 }
 
 ##############################################################################

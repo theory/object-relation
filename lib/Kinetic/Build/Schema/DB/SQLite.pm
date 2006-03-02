@@ -573,36 +573,6 @@ sub delete_for_class {
 
 ##############################################################################
 
-=head3 collection_table 
-
-  my $coll_class = $attribute->collection_of;
-  my $table      = $kbs->collection_table($class, $coll_class);
-
-For an attribute which represents a collection of objects, for example,
-attributes which have a C<has_many> relationship, the primary table will not
-have a column representing the attribute.  Instead, another table representing
-the relationship is created.  This method will return that table.
-
-=cut
-
-sub collection_table {
-    my ($self, $class, $attribute) = @_;;
-    my $class_key  = $class->key;
-    my $coll_class = $attribute->collection_of;
-    my $coll_key   = $coll_class->key;
-    my $table      = $self->collection_table_name($class, $coll_class);
-    return <<"    END_SQL";
-CREATE TABLE $table (
-    $class_key\_id INTEGER NOT NULL,
-    $coll_key\_id INTEGER NOT NULL,
-    rank INTEGER NOT NULL,
-    PRIMARY KEY ($class_key\_id, $coll_key\_id)
-);
-    END_SQL
-}
-
-##############################################################################
-
 =begin private
 
 =head1 Private Interface

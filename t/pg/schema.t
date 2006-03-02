@@ -6,8 +6,8 @@ use strict;
 use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
 
-use Test::More 'no_plan';
-#use Test::More tests => 114;
+#use Test::More 'no_plan';
+use Test::More tests => 126;
 use Test::NoWarnings; # Adds an extra test.
 use Test::Differences;
 
@@ -578,6 +578,11 @@ ok my $has_many = Kinetic::Meta->for_key('yello'), "Get has_many class";
 is $has_many->key,   'yello',  "... HasMany class has key 'yello'";
 is $has_many->table, '_yello', "... HasMany class has table '_yello'";
 
+# Check that the CREATE SEQUENCE statement is correct.
+$seq = "CREATE SEQUENCE seq_yello;\n";
+is $sg->sequence_for_class($has_many), $seq,
+    '... Schema class generates CREATE SEQUENCE statement';
+
 $table = q{CREATE TABLE _yello (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_yello'),
     uuid UUID NOT NULL DEFAULT UUID_V4(),
@@ -588,7 +593,8 @@ $table = q{CREATE TABLE _yello (
 CREATE TABLE yello_coll_one (
     yello_id INTEGER NOT NULL,
     one_id INTEGER NOT NULL,
-    rank INTEGER NOT NULL
+    rank INTEGER NOT NULL,
+    PRIMARY KEY (yello_id, one_id)
 );
 };
 
@@ -625,23 +631,9 @@ ALTER TABLE yello_coll_one
 ALTER TABLE yello_coll_one 
   ADD CONSTRAINT fk_yello_coll_one_one_id FOREIGN KEY (one_id)
   REFERENCES simple_one(id) ON DELETE CASCADE;
-
-ALTER TABLE yello_coll_one
-  ADD CONSTRAINT pk_yello_coll_one_ids PRIMARY KEY (yello_id, one_id);
-
-ALTER TABLE yello_coll_one
-  ADD CONSTRAINT unique_yello_coll_one UNIQUE (yello_id, one_id, rank);
 };
 eq_or_diff join( "\n", $sg->constraints_for_class($has_many) ), $constraints,
   '... with the correct constraints';
-
-exit;
-#open my $fh, ">", "constraints.got" or die $!;
-#print $fh join("\n", $sg->constraints_for_class($has_many));
-#close $fh;
-#open $fh, ">", "constraints.expected" or die $!;
-#print $fh $constraints;
-#close $fh;
 
 $view = q{CREATE VIEW yello AS
   SELECT _yello.id AS id, _yello.uuid AS uuid, _yello.state AS state, _yello.age AS age
@@ -649,52 +641,37 @@ $view = q{CREATE VIEW yello AS
 };
 is $sg->view_for_class($has_many), $view, '... and the correct view';
 
-$insert = q{CREATE TRIGGER insert_yello
-INSTEAD OF INSERT ON yello
-FOR EACH ROW BEGIN
-  INSERT INTO _yello (uuid, state, age)
-  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.age);
-END;
+$insert = q{CREATE RULE insert_yello AS
+ON INSERT TO yello DO INSTEAD (
+  INSERT INTO _yello (id, uuid, state, age)
+  VALUES (NEXTVAL('seq_yello'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.age);
+);
 };
-TODO: {
-    local $TODO = 'This was copied from SQLite.  Will correct it soon';
-    is $sg->insert_for_class($has_many), $insert, '... and the correct insert';
-}
+is $sg->insert_for_class($has_many), $insert, '... and the correct insert';
 
-$update = q{CREATE TRIGGER update_yello
-INSTEAD OF UPDATE ON yello
-FOR EACH ROW BEGIN
+$update = q{CREATE RULE update_yello AS
+ON UPDATE TO yello DO INSTEAD (
   UPDATE _yello
   SET    state = NEW.state, age = NEW.age
   WHERE  id = OLD.id;
-END;
+);
 };
-TODO: {
-    local $TODO = 'This was copied from SQLite.  Will correct it soon';
-    is $sg->update_for_class($has_many), $update,
-    '... and the correct update for the class';
-}
+eq_or_diff $sg->update_for_class($has_many), $update,
+  '... and the correct update for the class';
 
-$delete = q{CREATE TRIGGER delete_yello
-INSTEAD OF DELETE ON yello
-FOR EACH ROW BEGIN
+$delete = q{CREATE RULE delete_yello AS
+ON DELETE TO yello DO INSTEAD (
   DELETE FROM _yello
   WHERE  id = OLD.id;
-END;
+);
 };
-TODO: {
-    local $TODO = 'This was copied from SQLite.  Will correct it soon';
-     is $sg->delete_for_class($has_many), $delete,
+is $sg->delete_for_class($has_many), $delete,
     '... and the correct delete for the class';
-}
 
 # Check that a complete schema is properly generated.
-TODO: {
-    local $TODO = 'This was copied from SQLite.  Will correct it soon';
-    eq_or_diff join( "\n", $sg->schema_for_class($has_many) ),
-    join( "\n", $table, $indexes, $constraints, $view, $insert, $update,
-        $delete ), "... Schema class generates complete schema";
-}
+eq_or_diff join ( "\n", $sg->schema_for_class($has_many) ),
+  join( "\n", $seq, $table, $indexes, $constraints, $view, $insert, $update,
+    $delete ), "... Schema class generates complete schema";
 
 ##############################################################################
 # Grab the composed class.
