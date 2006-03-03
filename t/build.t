@@ -32,7 +32,7 @@ use lib catdir(updir, 'build'),              # Build test classes
         catdir(updir, updir, 'blib', 'lib'), # Build library
         catdir(updir, updir, 'lib');         # Distribution library
 
-use TEST::Class::Kinetic catdir updir, 'build', 'TEST';
+use TEST::Class::Kinetic catdir updir, 'build';
 
 TEST::Class::Kinetic->runall;
 

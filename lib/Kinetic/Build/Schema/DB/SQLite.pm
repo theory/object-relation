@@ -462,7 +462,7 @@ Called by C<constraints_for_class()>.
 
 sub version_triggers {
     my ($self, $class) = @_;
-    $self->_domain_triggers($class, version => q{NOT REGEXP '[\d._]'});
+    $self->_domain_triggers($class, version => q{NOT REGEXP '^v?\\d[\\d._]+$'});
 }
 
 ##############################################################################

@@ -1319,7 +1319,7 @@ sub test_types : Test(81) {
     # Make sure that invalid version are not allowed.
     ok $types_test->version(version->new('12.5')), 'Change the version';
     $attr_mock->mock(store_raw => sub {
-        return 'foo' if $_[0]->name eq 'version';
+        return 'v1.2a' if $_[0]->name eq 'version';
         return $orig_straw->(@_)
     });
 

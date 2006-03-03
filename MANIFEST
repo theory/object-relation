@@ -156,6 +156,7 @@ lib/Kinetic/Meta/Attribute/Schema.pm
 lib/Kinetic/Meta/Class.pm
 lib/Kinetic/Meta/Class/Schema.pm
 lib/Kinetic/Meta/DataTypes.pm
+lib/Kinetic/Meta/Declare.pm
 lib/Kinetic/Meta/Method.pm
 lib/Kinetic/Meta/Type.pm
 lib/Kinetic/Meta/Widget.pm
@@ -221,6 +222,8 @@ t/accessors.t
 t/app_build.t
 t/badconfig.t
 t/basic.t
+t/bin/setup.pl
+t/bin/teardown.pl
 t/build.t
 t/build/TEST/Kinetic/Build.pm
 t/build/TEST/Kinetic/Build/Setup.pm
@@ -265,10 +268,12 @@ t/js/jsan/Test/Harness/Browser.js
 t/js/jsan/Test/Harness/Director.js
 t/js/jsan/Test/More.js
 t/js/jsan/Test/Simple.js
+t/km_declare.t
 t/language.t
 t/lexer/code.t
 t/lexer/string.t
 t/lib/TEST/Class/Kinetic.pm
+t/lib/TEST/Kinetic/TestSetup.pm
 t/lib/TEST/Kinetic/Traits/Debug.pm
 t/lib/TEST/Kinetic/Traits/HTML.pm
 t/lib/TEST/Kinetic/Traits/JSON.pm
@@ -302,10 +307,6 @@ t/sqlite/schema.t
 t/sqlite/schema_file.t
 t/state.t
 t/store.t
-t/store/pg_setup.pl
-t/store/pg_teardown.pl
-t/store/sqlite_setup.pl
-t/store/sqlite_teardown.pl
 t/store/TEST/Kinetic.pm
 t/store/TEST/Kinetic/Format.pm
 t/store/TEST/Kinetic/Format/JSON.pm
@@ -319,10 +320,6 @@ t/store/TEST/Kinetic/UI/REST.pm
 t/store/TEST/Kinetic/UI/REST/Dispatch.pm
 t/storesearch.t
 t/system.t
-t/system/pg_setup.pl
-t/system/pg_teardown.pl
-t/system/sqlite_setup.pl
-t/system/sqlite_teardown.pl
 t/system/TEST/Kinetic.pm
 t/system/TEST/Kinetic/Contact.pm
 t/system/TEST/Kinetic/Party.pm

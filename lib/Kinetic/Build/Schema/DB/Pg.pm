@@ -637,7 +637,7 @@ CONSTRAINT ck_attribute CHECK (
 
 q{CREATE DOMAIN version AS TEXT
   CONSTRAINT ck_version CHECK (
-     VALUE ~ '[\d._]'
+     VALUE ~ '^v?\\\\d[\\\\d._]+$'
   );
 },
 

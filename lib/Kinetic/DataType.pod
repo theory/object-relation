@@ -374,7 +374,7 @@ L<Kinetic::Build::Schema::DB::Pg|Kinetic::Build::Schema::DB::Pg>:
 
   CREATE DOMAIN version AS TEXT
   CONSTRAINT ck_version CHECK (
-     VALUE ~ '[\d._]'
+     VALUE ~ '^v?\\d[\\d._]+$'
   );
 
 We have now created a new data type that allows only numbers, dots, and
@@ -396,7 +396,10 @@ C<version_triggers()> method looks like this:
 
   sub version_triggers {
       my ($self, $class) = @_;
-      $self->_domain_triggers($class, version => q{NOT REGEXP '[\d._]'});
+      $self->_domain_triggers(
+          $class,
+          version => q{NOT REGEXP '^v?\\d[\\d._]+$'
+      });
   }
 
 The C<_domain_triggers()> method will create and return the actual C<TRIGGER>

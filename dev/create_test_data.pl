@@ -5,6 +5,7 @@
 use strict;
 use warnings;
 use Getopt::Long;
+BEGIN { $ENV{KINETIC_CONF} ||= 't/conf/kinetic.conf' }
 use lib 't/lib/', 'lib', 't/sample/lib';
 use Kinetic::Meta;
 use aliased 'TestApp::Simple::One';

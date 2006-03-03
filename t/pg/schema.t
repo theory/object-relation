@@ -67,7 +67,7 @@ CONSTRAINT ck_attribute CHECK (
 
 CREATE DOMAIN version AS TEXT
   CONSTRAINT ck_version CHECK (
-     VALUE ~ '[\d._]'
+     VALUE ~ '^v?\\\\d[\\\\d._]+$'
   );
 },
  "Pg setup SQL has state domain";

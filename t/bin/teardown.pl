@@ -7,6 +7,6 @@ use warnings;
 use Kinetic::Build;
 
 my $build = Kinetic::Build->resume;
-my $kbs = $build->notes('build_store');
-$kbs->test_setup;
-$build->init_app;
+my $kbs = $build->setup_objects('store');
+$kbs->builder->quiet(1);
+$kbs->test_cleanup;

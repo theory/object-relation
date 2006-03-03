@@ -46,7 +46,7 @@ TEST::Class::Kinetic - The Kinetic test class base class
 =head1 Synopsis
 
   use lib 't/lib';
-  use TEST::Class::Kinetic 't/lib';
+  use TEST::Class::Kinetic 't/system';
   TEST::Class::Kinetic->runall;
 
 =head1 Description
@@ -58,12 +58,13 @@ subclasses to add new tests to the Kinetic framework.
 In addition to the interface provided by Test::Class, TEST::Class::Kinetic
 does the extra work of finding all test classes in a specified directory and
 loading them. The tests in these classes can then be run by calling the
-C<runall()>. This feature is most often used by test scripts in the C<t>
-directory, rather than by test classes themselves.
+C<runall()> method. This feature is most often used by test scripts in the
+C<t> directory, rather than by test classes themselves.
 
-The classes found in the directory specified in the C<use> statment are loaded
-upon startup. Only those modules that inherit from TEST::Class::Kinetic will
-be processed by a call to C<runall()>, however.
+The classes found in the directory specified in the C<use> statment (which may
+be specified as a Unix-style path; this module will convert it to the local
+system notation) are loaded upon startup. Only those modules that inherit from
+TEST::Class::Kinetic will be processed by a call to C<runall()>, however.
 
 In addition, this module sets up a number of configurations and methods that
 test subclasses can use to create directories, change directories, or check to
@@ -81,9 +82,11 @@ my @CLASSES;
 sub import {
     my ($pkg, $dir) = @_;
     if ($ENV{RUNTEST}) {
-        push @CLASSES,
-          map { eval "require $_" or die $@; $_ } split /\s+/, $ENV{RUNTEST};
+        push @CLASSES,  map { eval "require $_" or die $@; $_ }
+            split /\s+/, $ENV{RUNTEST};
     } elsif ($dir) {
+        $dir = catdir(split m{/}, $dir);
+        unshift @INC, $dir;
         my $want = sub {
             my $file = $File::Find::name;
             return if /^\.(?:svn|cvs)/;

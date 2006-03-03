@@ -137,43 +137,35 @@ Builds the database. Called as an action during C<./Build install>.
 
 sub build_db {
     my $self = shift;
+    my $sg   = $self->_load_schema;
+    # If it's App::Build, just build the classes.
+    my $code = $self->builder->isa('Kinetic::AppBuild')
+        ? sub {
+            my $dbh = shift;
+            $dbh->do($_) for map { $sg->schema_for_class($_) } $sg->classes;
+        }
+        : undef;
 
-    my $schema_class = $self->schema_class;
-    eval "use $schema_class";
-    require Carp && Carp::croak $@ if $@;
-
-    my $sg      = $schema_class->new;
-    my $builder = $self->builder;
-
-    # Load the installed classes first.
-    if ($builder->isa('Kinetic::AppBuild')) {
-        (my $base = $builder->install_base) =~ s{/?$}{/lib};
-        $sg->load_classes($base, $CLASS_EXCLUDE_RE);
-    }
-
-    # Now load the classes to be installed.
-    my $regexen = $builder->schema_skipper;
-    $regexen    = [$regexen] unless ref $regexen eq 'ARRAY';
-    $sg->load_classes($builder->source_dir, @$regexen);
-
-    my $dbh = $self->_dbh;
-    $dbh->begin_work;
-
-    eval {
-        $dbh->do($_) foreach
-            $sg->begin_schema,
-            $sg->setup_code,
-            (map { $sg->schema_for_class($_) } $sg->classes),
-            $sg->end_schema;
-        $dbh->commit;
-    };
-    if (my $err = $@) {
-        $dbh->rollback;
-        require Carp && Carp::croak $err;
-    }
-
-    return $self;
+    $self->_build_db( $sg, $code );
 }
+
+##############################################################################
+
+=head3 build_test_db
+
+Builds the test database. Called during C<./Build test>.
+
+=cut
+
+sub build_test_db {
+    my $self = shift;
+    # Let it default to building the entire database.
+    $self->_build_db(
+        $self->_load_schema( $self->builder->isa('Kinetic::AppBuild') )
+    );
+}
+
+
 
 ##############################################################################
 
@@ -191,6 +183,26 @@ sub switch_to_db {
     $self->builder->notes(db_name => $db_name);
     $self->_dbh->disconnect if $self->_dbh;
     $self->_dbh(undef); # clear wherever we were
+    return $self;
+}
+
+##############################################################################
+
+=head3 disconnect_all
+
+  $kbs->disconnect_all;
+
+Disconnects all cached connections to the database server (that is, created by
+calls to C<< DBI->connect_cached >> for the driver returned by C<dbd_class()>.
+Used by C<test_cleanup()> methods and in other contexts.
+
+=cut
+
+sub disconnect_all {
+    my $self = shift;
+    my %drhs = DBI->installed_drivers;
+    $_->disconnect for grep { defined }
+        values %{ $drhs{$self->dsn_dbd}->{CachedKids} };
     return $self;
 }
 
@@ -214,6 +226,95 @@ sub _dbh {
     my $self = shift;
     return $private{$self}->{dbh} unless @_;
     return $private{$self}->{dbh} = shift;
+}
+
+##############################################################################
+
+=head3 _build_db
+
+  $kbs->_build_db($schema);
+  $kbs->_build_db($schema, $code);
+
+This method is called by C<build_db()> and C<build_test_db()>. It builds a
+database from the schema code retreived from the $schema object. By default,
+this means that a complete schema will be generated. If, however, something
+less than that must be created, pass in a code reference that takes as its
+first argument a database handle and then builds the database itself.
+
+For example, Kinetic::AppBuild does not need to execute the setup code for the
+database, as it has presumably already been run. So C<build_test_db()> passed
+in a code reference that just builds the schema parts for each of the classes
+loaded by a $schema objec.
+
+=cut
+
+sub _build_db {
+    my ($self, $sg, $code) = @_;
+
+    $code ||= sub {
+        my $dbh = shift;
+        $dbh->do($_) for
+            $sg->begin_schema,
+            $sg->setup_code,
+            (map { $sg->schema_for_class($_) } $sg->classes),
+            $sg->end_schema;
+    };
+
+    my $dbh = $self->_dbh;
+    $dbh->begin_work;
+
+    eval {
+        $code->($dbh);
+        $dbh->commit;
+    };
+
+    if (my $err = $@) {
+        $dbh->rollback;
+        require Carp && Carp::croak $err;
+    }
+
+    return $self;
+}
+
+##############################################################################
+
+=head3 _load_schema
+
+  $kbs->_load_schema;
+  $kbs->_load_schema($boolean);
+
+Loads a Kinetic::Build::Schema object with all of the libraries found in the
+path specified by the C<source_dir> Kinetic::Build attribute. If a true value
+is passed, it will first load all of the libraries found in the
+C<install_base> Kinetic::Build attribute.
+
+Why? This loads an all of the libraries in an already installed Kinetic
+platform, including, of course, the Kinetic system classes. Then a complete
+database can be built including the system classes and the application
+classes. That's really only useful for tests, though.
+
+=cut
+
+sub _load_schema {
+    my ($self, $load_installed) = @_;
+    my $schema_class = $self->schema_class;
+    eval "use $schema_class";
+    require Carp && Carp::croak $@ if $@;
+
+    my $sg      = $schema_class->new;
+    my $builder = $self->builder;
+
+    # Load the installed classes first.
+    if ($load_installed) {
+        (my $base = $builder->install_base) =~ s{/?$}{/lib};
+        $sg->load_classes($base, $CLASS_EXCLUDE_RE);
+    }
+
+    # Now load the classes to be installed.
+    my $regexen = $builder->schema_skipper;
+    $regexen    = [$regexen] unless ref $regexen eq 'ARRAY';
+    return $sg->load_classes($builder->source_dir, @$regexen);
+
 }
 
 1;

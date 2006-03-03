@@ -283,6 +283,7 @@ sub rules {
                         my $super = $self->db_super_user
                           || $builder->args('db_super_user')
                           or return;
+
                         # We do! Cache them and move on.
                         $self->{db_super_user} = $super;
                         $self->{db_super_pass} = $builder->args('db_super_pass')
@@ -332,6 +333,18 @@ sub rules {
         'Check database' => {
             do => sub { shift->result($self->_db_exists) },
             rules => [
+                Fail => {
+                    rule => sub {
+                        my $state = shift;
+                        return if $state->result;
+                        return unless $builder->isa('Kinetic::AppBuild');
+                        $state->message(
+                            'Database "' . $self->db_name
+                            . '" does not exist',
+                        );
+                        return 1;
+                    },
+                },
                 'Check plpgsql' => {
                     rule => sub {
                         my $state = shift;
@@ -954,24 +967,27 @@ sub create_user {
 
 Builds the database with all of the tables, sequences, indexes, views,
 triggers, etc., required to power the application. Overrides the
-implementation in the parent class to silence "NOTICE" output from PostgreSQL.
+implementation in the parent class to set up the database handle and to
+silence "NOTICE" output from PostgreSQL.
 
 =cut
 
-sub build_db {
-    my $self = shift;
-    $self->_dbh(
-        $self->_connect_user(
-            $self->_dsn( $self->_build_db_name || $self->db_name)
-        )
-    );
-    local $SIG{__WARN__} = sub {
-        my $message = shift;
-        return if $message =~ /NOTICE:/; # ignore postgres warnings
-        warn $message;
-    };
-    $self->SUPER::build_db(@_);
-}
+sub build_db { shift->_build_connect('build_db') }
+
+##############################################################################
+
+=head3 build_test_db
+
+  $kbs->build_test_db;
+
+Builds the test database with all of the tables, sequences, indexes, views,
+triggers, etc., required to power the application. Overrides the
+implementation in the parent class to set up the database handle and to
+silence "NOTICE" output from PostgreSQL.
+
+=cut
+
+sub build_test_db { shift->_build_connect('build_test_db') }
 
 ##############################################################################
 
@@ -1087,6 +1103,7 @@ sub setup {
     $self->_build_db_user($self->db_user);
     $self->_build_db_user($self->db_pass);
     $self->SUPER::setup(@_);
+    return $self;
 }
 
 ##############################################################################
@@ -1111,7 +1128,7 @@ sub test_setup {
     $self->create_db;
     $self->add_plpgsql if $actions{add_plpgsql};
     $self->create_user;
-    $self->build_db;
+    $self->build_test_db;
     $self->grant_permissions;
     return $self;
 }
@@ -1140,8 +1157,7 @@ sub test_cleanup {
     my $db_user = $self->test_db_user;
 
     # Disconnect all database handles.
-    my %drhs = DBI->installed_drivers;
-    $_->disconnect for grep { defined } values %{ $drhs{Pg}->{CachedKids} };
+    $self->disconnect_all;
     sleep 1; # Let them disconnect.
 
     # Connect to the template database.
@@ -1290,7 +1306,7 @@ This method tells whether the given database exists.
 
 sub _db_exists {
     my ($self, $db_name) = @_;
-    $db_name ||= $self->setup->db_name;
+    $db_name ||= $self->db_name;
     $self->_pg_says_true(
         "SELECT datname FROM pg_catalog.pg_database WHERE datname = ?",
         $db_name
@@ -1498,6 +1514,41 @@ sub _build_db_pass {
     my $self = shift;
     return $self->{build_db_pass} unless @_;
     return $self->{build_db_pass} = shift;
+}
+
+##############################################################################
+
+=head3 _build_connect
+
+  $kbs->_build_connect($method);
+
+This method is called by C<build_db> and C<build_test_db()>, each of which
+pass their own names as arguments. C_build_connect()> then connects to the
+appropriate database, overrides warnings so that PostgreSQL "NOTICE"s will be
+silently ignored, and then calls the appropriate parent method to actually
+create the database.
+
+=cut
+
+sub _build_connect {
+    my $self = shift;
+    my $meth = 'SUPER::' . shift;
+
+    $self->_dbh(
+        $self->_connect_user(
+            $self->_dsn( $self->_build_db_name || $self->db_name)
+        )
+    );
+
+    # Ignore PostgreSQL warnings.
+    local $SIG{__WARN__} = sub {
+        my $message = shift;
+        return if $message =~ /NOTICE:/;
+        warn $message;
+    };
+
+    $self->$meth(@_);
+
 }
 
 1;

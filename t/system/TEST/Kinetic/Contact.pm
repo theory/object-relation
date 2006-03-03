@@ -1,6 +1,6 @@
 package TEST::Kinetic::Contact;
 
-# $Id: Person.pm 2619 2006-02-13 18:41:00Z theory $
+# $Id$
 
 use strict;
 use warnings;

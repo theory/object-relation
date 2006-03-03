@@ -177,37 +177,7 @@ sub new {
         @_    # User-set properties.
     );
 
-    # Load the config file, if specified.
-    if (my $conf_file = $self->path_to_config) {
-        # Load the configuration.
-        get_config( $conf_file => my %conf );
-        $self->notes(_config_ => \%conf);
-    }
-
-    # Prevent installation into lib/perl5. We just want lib'.
-    $self->install_base_relpaths->{lib} = ['lib'];
-
-    # Add www element and install path.
-    $self->add_build_element('www');
-    $self->install_base_relpaths->{www} = ['www'];
-
-    # Add config file element and install path.
-    $self->add_build_element('conf');
-    $self->install_base_relpaths->{conf} = ['conf'];
-
-    # Prompts.
-    for my $class ( reverse Class::ISA::self_and_super_path(ref $self) ) {
-        my $prompts = $PROMPTS_FOR{$class} or next;
-        for my $prompt (@$prompts) {
-            my $prop = $prompt->{name};
-            $self->$prop( $self->get_reply( %$prompt, default => $self->$prop ) );
-            if (my $setup = $SETUPS_FOR{$class}->{$prop}) {
-                $self->_check_build_component( $prop, $setup );
-            }
-        }
-    }
-
-    return $self;
+    return $self->init;
 }
 
 ##############################################################################
@@ -473,6 +443,60 @@ sub ACTION_install {
 ##############################################################################
 
 =head2 Methods
+
+=head3 init
+
+ $build->init;
+
+This method is called by C<new()> to initialize the Kinetic::Build::Base
+object. It sets up the configuration date if C<path_to_config()> returns a
+file name, adds the "www" and "conf" build elements, and collects data for all
+properties that have specified a prompt, as well as their related setup
+objects, if any.
+
+Essentially, everything that needs to be done before returning a new
+Kinetic::Build::Base object is executed here. It is separate from C<new()> so
+that subclasses can override it and therefore execute code after the object
+has been created but before calling C<SUPER::new()> to execute this code. See
+L<Kinetic::AppBuild|Kinetic::AppBuild> for an example.
+
+=cut
+
+sub init {
+    my $self = shift;
+
+    # Load the config file, if specified.
+    if (my $conf_file = $self->path_to_config) {
+        # Load the configuration.
+        get_config( $conf_file => my %conf );
+        $self->notes(_config_ => \%conf);
+    }
+
+    # Prevent installation into lib/perl5. We just want lib'.
+    $self->install_base_relpaths->{lib} = ['lib'];
+
+    # Add www element and install path.
+    $self->add_build_element('www');
+    $self->install_base_relpaths->{www} = ['www'];
+
+    # Add config file element and install path.
+    $self->add_build_element('conf');
+    $self->install_base_relpaths->{conf} = ['conf'];
+
+    # Prompts.
+    for my $class ( reverse Class::ISA::self_and_super_path(ref $self) ) {
+        my $prompts = $PROMPTS_FOR{$class} or next;
+        for my $prompt (@$prompts) {
+            my $prop = $prompt->{name};
+            $self->$prop( $self->get_reply( %$prompt, default => $self->$prop ) );
+            if (my $setup = $SETUPS_FOR{$class}->{$prop}) {
+                $self->_check_build_component( $prop, $setup );
+            }
+        }
+    }
+
+    return $self;
+}
 
 ##############################################################################
 
@@ -1222,12 +1246,12 @@ sub _get_option {
 
     # If we get here, try to look it up in the configuration.
     if (my $config_keys = $params{config_keys}) {
-        my ($label, $key) = @{ $config_keys };
+        my ($label, $ckey) = @{ $config_keys };
         die 'config_keys must be a two-item array refernce'
-            unless defined $label and defined $key;
+            unless defined $label and defined $ckey;
         if (my $config = $self->notes('_config_')) {
-            my $val = $config->{$label} ? $config->{$label}{$key} : undef;
-            return $self->_handle_callback($val, uc "$label\_$key", $callback)
+            my $val = $config->{$label} ? $config->{$label}{$ckey} : undef;
+            return $self->_handle_callback($val, uc "$label\_$ckey", $callback)
                 if defined $val;
         }
     }

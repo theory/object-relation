@@ -76,31 +76,9 @@ the Kinetic application.
 =cut
 
 sub new {
-    my ($class, @args) = @_;
-    my $self = $class->SUPER::new(@args);
+    my $self = shift->SUPER::new(@_);
 
-    unless ($self->path_to_config) {
-        # Does the base directory exist?
-        my $base = $self->install_base;
-        die qq{Directory "$base" does not exist; use --install-base to }
-            . "specify the\nKinetic base directory; or use --path-to-config "
-            . "to point to kinetic.conf\n"
-            unless -d $base;
-
-        # Is there a conf file there?
-        my $config_file = File::Spec->catfile($base, qw(conf kinetic.conf));
-        die qq{Kinetic does not appear to be installed in "$base"; use }
-            . "--install-base to\nspecify the Kinetic base directory or "
-            . "use --path-to-config to point to kinetic.conf\n"
-            unless -e $config_file;
-
-        # Great, we found it! Load it up.
-        get_config( $config_file => my %conf );
-        $self->notes( _config_ => \%conf );
-        $self->path_to_config($config_file);
-    }
-
-    # Now determine the install prefix from the config data.
+    # Determine the install prefix from the config data.
     my $base = $self->notes('_config_')->{kinetic}{root}
         or die 'I cannot find Kinetic. Is it installed? use --path-to-config '
              . 'to point to its config file';
@@ -144,8 +122,8 @@ __PACKAGE__->add_property( test_cleanup => 1 );
 
 =end comment
 
-Overrides Kinetic::Install::Base's C<install> action install the data store for the
-application.
+Overrides Kinetic::Install::Base's C<install> action install the data store
+for the application.
 
 =cut
 
@@ -233,6 +211,50 @@ sub ACTION_test {
 
     return $self;
 }
+
+##############################################################################
+
+=head2 Instance Methods
+
+=head3 init
+
+  $app_build->init;
+
+This method overrides the parent implementation to ensure that the
+C<path_to_config()> property has been set. If it hasn't, it checks for
+F<conf/kinetic.conf> under C<install_base()> and, if it exists, sets it up as
+the path to the config file. If it cannot set C<path_to_config()>, it throws
+an exception. This is because one I<must> have TKP installed in order to
+install an application onto it.
+
+=cut
+
+sub init {
+    my $self = shift;
+
+    unless ($self->path_to_config) {
+        # Does the base directory exist?
+        my $base = $self->install_base;
+        die qq{Directory "$base" does not exist; use --install-base to }
+            . "specify the\nKinetic base directory; or use --path-to-config "
+            . "to point to kinetic.conf\n"
+            unless -d $base;
+
+        # Is there a conf file there?
+        my $config_file = File::Spec->catfile($base, qw(conf kinetic.conf));
+        die qq{Kinetic does not appear to be installed in "$base"; use }
+            . "--install-base to\nspecify the Kinetic base directory or "
+            . "use --path-to-config to point to kinetic.conf\n"
+            unless -e $config_file;
+
+        # Great, we found it. So set it.
+        $self->path_to_config($config_file);
+    }
+
+    return $self->SUPER::init(@_);
+}
+
+
 
 1;
 __END__
