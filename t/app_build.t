@@ -5,7 +5,7 @@
 use warnings;
 use strict;
 #use Test::More 'no_plan';
-use Test::More tests => 90;
+use Test::More tests => 91;
 use Test::Exception;
 use Test::File;
 use aliased 'Test::MockModule';
@@ -348,8 +348,8 @@ sub dbi_connect {
 sub test_store {
     my ($conf, $schema) = ( shift, shift );
     my @check_keys = @_ ? @_ : qw(
-        comp_comp composed contact contact_type extend
-        one person relation simple two types_test usr version_info
+        comp_comp composed contact contact_type extend one person 
+        relation simple two types_test usr version_info yello
     );
 
     # We'll run tests during the test action here. Sneaky, huh?
