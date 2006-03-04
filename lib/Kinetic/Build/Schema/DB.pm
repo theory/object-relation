@@ -486,7 +486,7 @@ sub _collection_indexes {
         my $table    = $self->collection_table_name($class, $coll);
         push @indexes, "CREATE UNIQUE INDEX idx_$table "
                      . "ON $table "
-                     . "($class_key\_id, $coll_key\_id, rank);\n";
+                     . "($class_key\_id, rank);\n";
     }
     return @indexes;
 }

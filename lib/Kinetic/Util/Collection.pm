@@ -94,7 +94,7 @@ sub new {
             $iter,
             Iterator
           ]
-          unless UNIVERSAL::isa( $iter, Iterator );
+          unless eval { $iter->isa( Iterator ) };
     }
     bless {
         iter  => $iter,

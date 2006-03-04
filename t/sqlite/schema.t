@@ -610,7 +610,7 @@ eq_or_diff join("\n", $sg->tables_for_class($has_many)), $table,
 
 $indexes = q{CREATE UNIQUE INDEX idx_yello_uuid ON _yello (uuid);
 CREATE INDEX idx_yello_state ON _yello (state);
-CREATE UNIQUE INDEX idx_yello_coll_one ON yello_coll_one (yello_id, one_id, rank);
+CREATE UNIQUE INDEX idx_yello_coll_one ON yello_coll_one (yello_id, rank);
 };
 is $sg->indexes_for_class($has_many), $indexes,
     '... and the correct indexes for the class';
