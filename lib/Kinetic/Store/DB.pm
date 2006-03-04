@@ -1029,7 +1029,7 @@ sub _fetchrow_hashref {
 
   my $object = $store->_build_object_from_hashref($hashref);
 
-For a given hashref returned by C<$sth-E<gt>fetchrow_hashref>, this method
+For a given hashref returned by C<< $sth->fetchrow_hashref >>, this method
 will return an object representing that row.  Note that the hashref may
 represent multiple objects because an object can contain other objects.
 C<_build_object_from_hashref> resolves this by utilizing the metadata

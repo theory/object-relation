@@ -25,6 +25,7 @@ our $VERSION = version->new('0.0.1');
 
 use Kinetic::Util::Exceptions qw(throw_invalid);
 use aliased 'Kinetic::Util::Iterator';
+use aliased 'Array::AsHash';
 
 # to simplify the code, we use -1 instead of undef for "null" indexes
 use Readonly;
@@ -45,10 +46,16 @@ Kinetic::Util::Collection - Kinetic collection class
 
 =head1 Description
 
-This class provides an interface for accessing a collection of items,
-generally Kinetic objects. Users generally won't create collection objects
-directly, but will get them back from accessor methods for collections of
-objects related to an object.
+This class provides an interface for accessing a collection of Kinetic
+objects. Users generally won't create collection objects directly, but will
+get them back from accessor methods for collections of objects related to an
+object.
+
+Note that the collection is essentially an ordered set.  Duplicate items are
+not allowed and order is important.
+
+Also, a collection can be for objects other than Kinetic objects, but the
+objects must provide a C<uuid> method.
 
 =cut
 
@@ -79,16 +86,20 @@ B<Throws:>
 =cut
 
 sub new {
-    my ($class, $iter) = @_;
+    my ( $class, $iter ) = @_;
     {
-        local $^W; # suppress uninitialized warnings
-        throw_invalid ['Argument "[_1]" is not a valid [_2] object', $iter, Iterator]
-          unless UNIVERSAL::isa($iter, Iterator);
+        $iter ||= '';
+        throw_invalid [
+            'Argument "[_1]" is not a valid [_2] object',
+            $iter,
+            Iterator
+          ]
+          unless UNIVERSAL::isa( $iter, Iterator );
     }
     bless {
         iter  => $iter,
         index => $NULL,
-        array => [],
+        array => AsHash->new( { strict => 1 } ),
         got   => $NULL,
     }, $class;
 }
@@ -104,8 +115,8 @@ When passed a list, returns a collection object for said list.
 =cut
 
 sub from_list {
-    my ($class, @list) = @_;
-    return $class->new(Iterator->new(sub {shift @list}));
+    my ( $class, @list ) = @_;
+    return $class->new( Iterator->new( sub { shift @list } ) );
 }
 
 ##############################################################################
@@ -136,18 +147,19 @@ position of the index.
 
 sub next {
     my $self = shift;
-    if (defined $self->{got} && $self->{got} > $self->{index}) {
+    if ( defined $self->{got} && $self->{got} > $self->{index} ) {
+
         # we've been here before
         $self->{index}++;
-        return $self->{array}[$self->{index}];
+        return $self->_array->value_at( $self->index );
     }
     my $result = $self->iter->next;
     return unless defined $result;
     $self->{got} = ++$self->{index};
-    push @{$self->{array}} => $result;
+    $self->_array->push( $result->uuid, $result )
+      ;    # XXX sanity check for duplicates!
     return $result;
 }
-
 
 ##############################################################################
 
@@ -161,8 +173,8 @@ Returns the value at the current position of the collection.
 
 sub curr {
     my $self = shift;
-    return if $self->{index} == $NULL;
-    return $self->{array}[$self->{index}];
+    return if $self->index == $NULL;
+    return $self->_array->value_at( $self->index );
 }
 
 ##############################################################################
@@ -191,8 +203,8 @@ the collection, this method returns undef and does not change the position.
 
 sub prev {
     my $self = shift;
-    return unless $self->{index} > 0;
-    return $self->{array}[--$self->{index}];
+    return unless $self->index > 0;
+    return $self->_array->value_at( --$self->{index} );
 
 }
 
@@ -206,7 +218,7 @@ This method returns the iterator the collection has.
 
 =cut
 
-sub iter { $_[0]->{iter} }
+sub iter { shift->{iter} }
 
 ##############################################################################
 
@@ -220,9 +232,9 @@ current position of the collection to C<$index>.
 =cut
 
 sub get {
-    my ($self, $index) = @_;
+    my ( $self, $index ) = @_;
     $self->_fill_to($index);
-    return $self->{array}[$index];
+    return $self->_array->value_at($index);
 }
 
 ##############################################################################
@@ -238,9 +250,11 @@ Sets the value of the collection at C<$index> to C<$value>.
 # Should we allow optional typing?
 
 sub set {
-    my ($self, $index, $value) = @_;
+    my ( $self, $index, $value ) = @_;
     $self->_fill_to($index);
-    $self->{array}[$index] = $value;
+    my $array = $self->_array;
+    my $key   = $array->key_at($index);
+    $array->put( $key, $value );
 }
 
 ##############################################################################
@@ -286,7 +300,7 @@ Returns the number of items in the collection.
 sub size {
     my $self = shift;
     $self->_fill;
-    return scalar @{$self->{array}};
+    return scalar $self->_array->hcount;
 }
 
 ##############################################################################
@@ -301,10 +315,10 @@ Empties the collection.
 
 sub clear {
     my $self = shift;
-    $self->{iter}->all if defined $self->{got};
+    $self->iter->all if defined $self->{got};
     $self->{got}   = undef;
     $self->{index} = $NULL;
-    @{$self->{array}} = ();
+    $self->{array} = AsHash->new( { strict => 1 } );
 }
 
 ##############################################################################
@@ -321,32 +335,25 @@ sub splice {
     my $self = shift;
     return unless @_;
     $self->_fill;
-    return CORE::splice(@{$self->{array}}, shift           ) if 1 == @_;
-    return CORE::splice(@{$self->{array}}, shift, shift    ) if 2 == @_;
-    return CORE::splice(@{$self->{array}}, shift, shift, @_);
+    my $array  = $self->_array;
+    my $index  = shift;
+    my $last   = @_ ? shift: $array->hcount - 1;
+    my @keys   = $array->key_at( $index .. $last );
+    my @values = $array->value_at( $index .. $last );
+    $array->delete(@keys);
+
+    if (@_) {
+        my @list = map { $_->uuid => $_ } @_;
+        if ($index) {
+            my $key = $array->key_at( $index - 1 );
+            $array->insert_after( $key, @list );
+        }
+        else {
+            $array->push(@list);
+        }
+    }
+    return @values;
 }
-
-##############################################################################
-
-=begin comment
-
-=head3 extend
-
-XXX we can't implement this.  Since we cannot return undef elements, there is
-no way to extend the array.  This will be deleted unless David has a different
-viewpoint.
-
-=end comment
-
-=cut
-
-#sub extend {
-#    my ($self, $index) = @_;
-#    $#{$self->{array}} = $index unless $#{$self->{array}} >= $index;
-#}
-
-
-##############################################################################
 
 =head3 peek
 
@@ -358,7 +365,7 @@ Peek at the next item of the list without advancing the collection.
 
 sub peek {
     my $self = shift;
-    return $self->get($self->{index} + 1);
+    return $self->get( $self->index + 1 );
 }
 
 ##############################################################################
@@ -376,7 +383,7 @@ sub all {
     my $self = shift;
     $self->_fill;
     $self->reset;
-    return wantarray ? @{$self->{array}} : $self->{array};
+    return $self->_array->values;
 }
 
 ##############################################################################
@@ -392,9 +399,9 @@ is applied from the beginning of the collection.
 =cut
 
 sub do {
-    my ($self, $code) = @_;
+    my ( $self, $code ) = @_;
     $self->reset;
-    while (defined (my $item = $self->next)) {
+    while ( defined( my $item = $self->next ) ) {
         return unless $code->($item);
     }
 }
@@ -420,7 +427,7 @@ implicitly by C<clear()>, which calls C<all()>.
 sub _fill {
     my $self = shift;
     return unless defined $self->{got};
-    push @{$self->{array}}, $self->{iter}->all;
+    $self->_array->push( map { $_->uuid, $_ } $self->iter->all );
 }
 
 ##############################################################################
@@ -436,14 +443,32 @@ would be expensive.
 =cut
 
 sub _fill_to {
-    my ($self, $index) = @_;
-    if (defined $self->{got} && $index > $self->{got}) {
-        push @{$self->{array}}, $self->{iter}->next
-          while $self->{iter}->peek && $index > $self->{got}++;
-        $self->{got} = undef unless defined $self->{iter}->current;
+    my ( $self, $index ) = @_;
+    if ( defined $self->{got} && $index > $self->{got} ) {
+        my $array = $self->_array;
+        my $iter  = $self->iter;
+        while ( $iter->peek && $index > $self->{got}++ ) {
+            my $next = $iter->next;
+            $array->push( $next->uuid, $next );
+        }
+        $self->{got} = undef unless defined $iter->current;
     }
     return $self;
 }
+
+##############################################################################
+
+=head3 _array
+
+  my $array = $collection->_array;
+
+Returns the C<Array::AsHash> object.  For internal use only.  If ingested, do
+not induce vomiting.
+
+=cut
+
+sub _array { shift->{array} }
+
 =end private
 
 =cut
