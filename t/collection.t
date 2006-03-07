@@ -7,8 +7,8 @@ use warnings;
 use utf8;
 use Kinetic::Build::Test;
 
-use Test::More tests => 84;
-#use Test::More 'no_plan';
+#use Test::More tests => 86;
+use Test::More 'no_plan';
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
 use File::Spec;
@@ -45,16 +45,23 @@ throws_ok { $CLASS->new }
   '... and calling it without an argument should die';
 
 throws_ok {
-    $CLASS->new( sub { } );
+    $CLASS->new(
+        {   iter => sub { }
+        }
+    );
   }
   qr/Argument “.*” is not a valid Kinetic::Util::Iterator object/,
   '... and as should calling with without a proper iterator object';
 
 my @items = map { Faux->new($_) } qw/fee fie foe fum/;
 my $iter = Iterator->new( sub { shift @items } );
-ok my $coll = $CLASS->new($iter),
+ok my $coll = $CLASS->new( { iter => $iter } ),
   'Calling new() with a valid iterator object should succeed';
 isa_ok $coll, $CLASS => '... and the object it returns';
+
+can_ok $coll, 'package';
+ok !defined $coll->package,
+  '... and the collection package should be undefined for untyped collections';
 
 can_ok $coll, 'next';
 is $coll->next->name, 'fee',
@@ -93,7 +100,7 @@ is $coll->curr->name, 'fum', '... and curr() *still* works :)';
 
 @items = map { Faux->new($_) } qw/zero one two three four five six/;
 $iter = Iterator->new( sub { shift @items } );
-$coll = $CLASS->new($iter);
+$coll = $CLASS->new( { iter => $iter } );
 can_ok $coll, 'get';
 $coll->next;    # kick it up one
 is $coll->get(4)->name, 'four',
@@ -116,7 +123,7 @@ is $coll->curr->name, 'zero',
 can_ok $coll, 'index';
 @items = map { Faux->new($_) } qw/zero one two three four five six/;
 $iter = Iterator->new( sub { shift @items } );
-$coll = $CLASS->new($iter);
+$coll = $CLASS->new( { iter => $iter } );
 ok !defined $coll->index,
   '... and it should return undef if the collection is not pointing at anything.';
 for ( 0 .. 6 ) {
@@ -137,16 +144,16 @@ is $coll->index, 0,
   '... even if we try to move before the beginning of the list';
 
 can_ok $CLASS, 'from_list';
-ok $coll
-  = $CLASS->from_list( map { Faux->new($_) } qw/zero un deux trois quatre/ ),
+ok $coll = $CLASS->from_list(
+    { list => [ map { Faux->new($_) } qw/zero un deux trois quatre/ ] } ),
   '... and calling it should succeed';
 isa_ok $coll, $CLASS, '... and the object it returns';
 foreach (qw/zero un deux trois quatre/) {
     is $coll->next->name, $_, '... and it should return the correct items';
 }
 
-$coll
-  = $CLASS->from_list( map { Faux->new($_) } qw/zero un deux trois quatre/ );
+$coll = $CLASS->from_list(
+    { list => [ map { Faux->new($_) } qw/zero un deux trois quatre/ ] } );
 can_ok $coll, 'reset';
 $coll->next for 0 .. 3;
 $coll->reset;
@@ -154,14 +161,14 @@ ok !defined $coll->index, '... and it should reset the collection';
 is $coll->next->name, 'zero',
   '... and the collection should behave like a new collection';
 
-$coll
-  = $CLASS->from_list( map { Faux->new($_) } qw/zero un deux trois quatre/ );
+$coll = $CLASS->from_list(
+    { list => [ map { Faux->new($_) } qw/zero un deux trois quatre/ ] } );
 can_ok $coll, 'size';
 is $coll->size, 5,
   '... and it should return the number of items in the collection';
 
-$coll
-  = $CLASS->from_list( map { Faux->new($_) } qw/zero un deux trois quatre/ );
+$coll = $CLASS->from_list(
+    { list => [ map { Faux->new($_) } qw/zero un deux trois quatre/ ] } );
 can_ok $coll, 'clear';
 $coll->next;
 $coll->next;
@@ -171,8 +178,8 @@ ok !defined $coll->index, '... and index() should return undef';
 ok !defined $coll->next,  '... and next() should return undef';
 ok !defined $coll->index, '... and index() should still return undef';
 
-$coll
-  = $CLASS->from_list( map { Faux->new($_) } qw/zero un deux trois quatre/ );
+$coll = $CLASS->from_list(
+    { list => [ map { Faux->new($_) } qw/zero un deux trois quatre/ ] } );
 can_ok $coll, 'all';
 @items = map { $_->name } $coll->all;
 is_deeply \@items, [qw/zero un deux trois quatre/],
@@ -182,7 +189,9 @@ $_ = $_->name foreach @$all;
 is_deeply $all, [qw/zero un deux trois quatre/],
   '... and it should return an array ref of all items in scalar context';
 
-$coll = $CLASS->from_list(map { Faux->new($_) } qw/zero un deux trois quatre cinq/);
+$coll = $CLASS->from_list(
+    { list => [ map { Faux->new($_) } qw/zero un deux trois quatre cinq/ ] }
+);
 can_ok $coll, 'splice';
 @items = $coll->splice;
 ok !@items, '... and calling it with no arguments should produce no results';
@@ -202,19 +211,32 @@ is_deeply \@items, [qw/un/],
 
 $all = $coll->all;
 $_ = $_->name foreach @$all;
-is_deeply $all, [qw/zero deux trois/],
-  '... and leave the correct elements';
+is_deeply $all, [qw/zero deux trois/], '... and leave the correct elements';
 @items = $coll->splice( 1, 1, map { Faux->new($_) } qw/1 2/ );
 $_ = $_->name foreach @items;
 is_deeply \@items, ['deux'],
   '... and the three argument splice should behave correctly';
+
+my $expected = $coll->all;
+ok !(@items = $coll->splice( 1, 0 )),
+   'Splicing out zero elements should not return anything';
+is_deeply scalar $coll->all, $expected,
+   '... and the collection should be unchanged';
 
 $all = $coll->all;
 $_ = $_->name foreach @$all;
 is_deeply $all, [qw/zero 1 2 trois/],
   '... and the collection should have the correct elements remaining';
 
-$coll = $CLASS->from_list(map { Faux->new($_) } qw/zero un deux trois quatre cinq/);
+ok !(@items = $coll->splice( 0, 0, map { Faux->new($_) } qw/oompa loompa/ )),
+   '... and a zero length splice with new elements should not return items';
+my @all = map { $_->name } $coll->all;
+use Data::Dumper;
+diag Dumper(\@all);
+   
+$coll = $CLASS->from_list(
+    { list => [ map { Faux->new($_) } qw/zero un deux trois quatre cinq/ ] }
+);
 can_ok $coll, 'do';
 @items = ();
 my $sub = sub {
@@ -224,4 +246,4 @@ my $sub = sub {
 };
 $coll->do($sub);
 is_deeply \@items, [qw/zero un deux trois/],
- '... and it should call the sub correctly';
+  '... and it should call the sub correctly';

@@ -23,7 +23,8 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use Kinetic::Util::Exceptions qw(throw_invalid);
+use Kinetic::Meta;
+use Kinetic::Util::Exceptions qw(throw_invalid throw_invalid_class);
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Array::AsHash';
 
@@ -39,7 +40,12 @@ Kinetic::Util::Collection - Kinetic collection class
 
   use Kinetic::Util::Collection;
 
-  my $coll = Kinetic::Util::Collection->new($iterator);
+  my $coll = Kinetic::Util::Collection->new(
+     {
+         iter => $iterator,
+         key  => $key        # optional
+     }
+  );
   while (my $thing = $coll->next) {
       # Do something with $thing.
   }
@@ -57,7 +63,9 @@ not allowed and order is important.
 Also, a collection can be for objects other than Kinetic objects, but the
 objects must provide a C<uuid> method.
 
-=cut
+If the key is not supplied, the collection is untyped.  If the key is
+supplied, the collection is I<typed>.  All objects in the collection must
+either be Kinetic classes or subclasses for the key C<$key>.  =cut
 
 ##############################################################################
 # Constructors.
@@ -86,7 +94,9 @@ B<Throws:>
 =cut
 
 sub new {
-    my ( $class, $iter ) = @_;
+    my ( $class, $arg_for ) = @_;
+    $arg_for ||= {};
+    my ( $iter, $key ) = @{$arg_for}{qw/iter key/};
     {
         $iter ||= '';
         throw_invalid [
@@ -94,14 +104,26 @@ sub new {
             $iter,
             Iterator
           ]
-          unless eval { $iter->isa( Iterator ) };
+          unless eval { $iter->isa(Iterator) };
     }
-    bless {
-        iter  => $iter,
-        index => $NULL,
-        array => AsHash->new( { strict => 1 } ),
-        got   => $NULL,
+    my $package;
+
+    if ( defined $key ) {
+        my $class_object = Kinetic::Meta->for_key($key)
+          or throw_invalid_class [
+            'I could not find the class for key "[_1]"',
+            $key
+          ];
+        $package = $class_object->package;
+    }
+    my $self = bless {
+        iter    => $iter,
+        index   => $NULL,
+        array   => AsHash->new( { strict => 1 } ),
+        got     => $NULL,
+        package => $package,
     }, $class;
+    return $self;
 }
 
 ##############################################################################
@@ -115,8 +137,14 @@ When passed a list, returns a collection object for said list.
 =cut
 
 sub from_list {
-    my ( $class, @list ) = @_;
-    return $class->new( Iterator->new( sub { shift @list } ) );
+    my ( $class, $arg_for ) = @_;
+    $arg_for ||= {};
+    my ( $list, $key ) = @{$arg_for}{qw/list key/};
+    return $class->new(
+        {   iter => Iterator->new( sub { shift @$list } ),
+            key  => $key
+        }
+    );
 }
 
 ##############################################################################
@@ -147,19 +175,32 @@ position of the index.
 
 sub next {
     my $self = shift;
-    if ( defined $self->{got} && $self->{got} > $self->{index} ) {
+    if ( defined $self->{got} && $self->{got} > ( $self->index || 0 ) ) {
 
         # we've been here before
-        $self->{index}++;
-        return $self->_array->value_at( $self->index );
+        $self->_inc_index;
+        return $self->curr;
     }
-    my $result = $self->iter->next;
+    my $result = $self->_check( $self->iter->next );
     return unless defined $result;
-    $self->{got} = ++$self->{index};
-    $self->_array->push( $result->uuid, $result )
-      ;    # XXX sanity check for duplicates!
+    $self->_inc_index;
+    $self->{got} = $self->index;
+    $self->_array->push( $result->uuid, $result );
     return $result;
 }
+
+##############################################################################
+
+=head3 package
+
+  my $package = $collection->package;
+
+If the collection is typed (see C<new>), this method will return the type of
+objects allowed in the collection.
+
+=cut
+
+sub package { shift->{package} }
 
 ##############################################################################
 
@@ -174,7 +215,7 @@ Returns the value at the current position of the collection.
 sub curr {
     my $self = shift;
     return if $self->index == $NULL;
-    return $self->_array->value_at( $self->index );
+    return $self->_check( $self->_array->value_at( $self->index ) );
 }
 
 ##############################################################################
@@ -204,8 +245,8 @@ the collection, this method returns undef and does not change the position.
 sub prev {
     my $self = shift;
     return unless $self->index > 0;
-    return $self->_array->value_at( --$self->{index} );
-
+    $self->_dec_index;
+    return $self->curr;
 }
 
 ##############################################################################
@@ -234,7 +275,7 @@ current position of the collection to C<$index>.
 sub get {
     my ( $self, $index ) = @_;
     $self->_fill_to($index);
-    return $self->_array->value_at($index);
+    return $self->_check( $self->_array->value_at($index) );
 }
 
 ##############################################################################
@@ -251,6 +292,7 @@ Sets the value of the collection at C<$index> to C<$value>.
 
 sub set {
     my ( $self, $index, $value ) = @_;
+    $value = $self->_check($value);
     $self->_fill_to($index);
     my $array = $self->_array;
     my $key   = $array->key_at($index);
@@ -340,10 +382,10 @@ sub splice {
     my $last   = @_ ? shift: $array->hcount - 1;
     my @keys   = $array->key_at( $index .. $last );
     my @values = $array->value_at( $index .. $last );
-    $array->delete(@keys);
+    $array->delete(@keys) if @keys;
 
     if (@_) {
-        my @list = map { $_->uuid => $_ } @_;
+        my @list = map { $_->uuid => $self->_check($_) } @_;
         if ($index) {
             my $key = $array->key_at( $index - 1 );
             $array->insert_after( $key, @list );
@@ -427,7 +469,8 @@ implicitly by C<clear()>, which calls C<all()>.
 sub _fill {
     my $self = shift;
     return unless defined $self->{got};
-    $self->_array->push( map { $_->uuid, $_ } $self->iter->all );
+    $self->_array->push( map { $_->uuid, $self->_check($_) }
+          $self->iter->all );
 }
 
 ##############################################################################
@@ -449,7 +492,7 @@ sub _fill_to {
         my $iter  = $self->iter;
         while ( $iter->peek && $index > $self->{got}++ ) {
             my $next = $iter->next;
-            $array->push( $next->uuid, $next );
+            $array->push( $next->uuid, $self->_check($next) );
         }
         $self->{got} = undef unless defined $iter->current;
     }
@@ -468,6 +511,54 @@ not induce vomiting.
 =cut
 
 sub _array { shift->{array} }
+
+##############################################################################
+
+=head3 _inc_index
+
+  $collection->_inc_index;
+
+Increments the collection index by one.
+
+=cut
+
+sub _inc_index { shift->{index}++ }
+
+##############################################################################
+
+=head3 _dec_index
+
+  $collection->_dec_index;
+
+Decrements the collection index by one.
+
+=cut
+
+sub _dec_index { shift->{index}-- }
+
+##############################################################################
+
+=head3 _check
+
+  $value = $collection->_check($value);
+
+Returns the C<$value> unchanged for untyped collections.  Otherwise, throws a
+C<Kinetic::Exception::Fatal::Invalid> exception if the C<$value> does not
+match the collection type (class or subclass).
+
+=cut
+
+sub _check {
+    my ( $self, $value ) = @_;
+    return unless defined $value;
+    my $package = $self->package or return $value;
+    return $value if $value->isa($package);
+    throw_invalid [
+        'Value "[_1]" is not a valid [_2] object',
+        $value,
+        $package
+    ];
+}
 
 =end private
 
