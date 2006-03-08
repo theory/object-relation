@@ -116,6 +116,17 @@ isa_ok $coll, $CLASS => '... and the object it returns';
 can_ok $coll, 'package';
 is $coll->package, 'Faux', '... and the collection package should be correct';
 
+@Kinetic::Util::Collection::Faux::ISA = $CLASS;
+my @items2 = map { Faux->new($_) } qw/fee fie foe fum/;
+my $iter2 = Iterator->new( sub { shift @items2 } );
+ok my $coll_from_package
+  = Kinetic::Util::Collection::Faux->new( { iter => $iter } ),
+  'Creating a collection from a subclass should succeed';
+
+is $coll_from_package->package, 'Faux',
+  '... and it should be for the correct package';
+is_deeply $coll_from_package, $coll, '... and be set up correctly';
+
 #
 # Testing a basic type
 #
@@ -246,41 +257,3 @@ isa_ok $coll, $CLASS, '... and the object it returns';
 foreach (qw/zero un deux trois quatre/) {
     is $coll->next->name, $_, '... and it should return the correct items';
 }
-
-$coll = $CLASS->from_list(
-    {   list => [ map { Faux->new($_) } qw/zero un deux trois quatre cinq/ ],
-        key  => 'faux'
-    }
-);
-can_ok $coll, 'splice';
-@items = $coll->splice;
-ok !@items, '... and calling it with no arguments should produce no results';
-@items = $coll->splice(4);
-$_ = $_->name foreach @items;
-is_deeply \@items, [qw/quatre cinq/],
-  '... and it should behave just like splice';
-
-my $all = $coll->all;
-$_ = $_->name foreach @$all;
-is_deeply $all, [qw/zero un deux trois/],
-  '... and the collection should have the correct remaining elements';
-@items = $coll->splice( 1, 1 );
-$_ = $_->name foreach @items;
-is_deeply \@items, [qw/un/],
-  '... and the two argument splice should behave correctly';
-
-$all = $coll->all;
-$_ = $_->name foreach @$all;
-is_deeply $all, [qw/zero deux trois/], '... and leave the correct elements';
-@items = $coll->splice( 1, 1, map { Faux->new($_) } qw/1 2/ );
-$_ = $_->name foreach @items;
-is_deeply \@items, ['deux'],
-  '... and the three argument splice should behave correctly';
-
-$all = $coll->all;
-$_ = $_->name foreach @$all;
-is_deeply $all, [qw/zero 1 2 trois/],
-  '... and the collection should have the correct elements remaining';
-
-
-

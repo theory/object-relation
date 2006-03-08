@@ -12,6 +12,7 @@ use Kinetic::Util::Context;
 use Kinetic::Meta::Type;
 use Kinetic::Util::Constants qw($OBJECT_DELIMITER);
 use Widget::Meta;
+use aliased 'Kinetic::Util::Collection';
 
 =head1 Name
 
@@ -598,52 +599,75 @@ This private method overrides the parent C<build()> method in order to set up
 the C<raw()> and C<store_raw()> accessor values.
 
 =cut
+{
+    my %COLLECTION_KEY_FOR;
+    sub build {
+        my $self = shift;
 
-sub build {
-    my $self = shift;
+        my $collection;
+        # Figure out if the attribute is a reference to another object in a
+        # Kinetic::Meta class. Use Class::Meta->for_key to avoid
+        # Kinetic::Meta->for_key's exception.
+        if ($self->{references} = Class::Meta->for_key($self->type)) {
+            my $rel = $self->{relationship} ||= 'has';
+            $self->{once} = 1 if $rel eq 'extends' || $rel eq 'mediates';
 
-    # Figure out if the attribute is a reference to another object in a
-    # Kinetic::Meta class. Use Class::Meta->for_key to avoid
-    # Kinetic::Meta->for_key's exception.
-    if ($self->{references} = Class::Meta->for_key($self->type)) {
-        my $rel = $self->{relationship} ||= 'has';
-        $self->{once} = 1 if $rel eq 'extends' || $rel eq 'mediates';
-        if ( 'has_many' eq $self->{relationship} ) {
-            $self->{collection} = $self->{references};
-            undef $self->{references};
-        }
-    } else {
-        $self->{relationship} = undef;
-    }
-
-    $self->SUPER::build(@_);
-
-    my $type = Kinetic::Meta::Type->new($self->type);
-    # Create the attribute object raw() and bake() code references.
-    if ($self->authz >= Class::Meta::READ) {
-        my $get = $type->make_attr_get($self);
-        if (my $raw = $type->raw) {
-            $self->{_raw} = sub { $raw->($get->(shift)) };
+            # XXX get rid of "has_many" after we get this working
+            if ( 'has_many' eq $self->{relationship} ) {
+                $self->{collection} = delete $self->{references};
+                my $collection_package = Collection;
+                ($collection = $self->{type}) =~
+                    s{^(?<!$collection_package\::)([[:word:]]+)}
+                    {$collection_package\::\u$1};
+                my $type = $1;
+                $self->{type} = "collection_$type";
+                if ( $collection && ! exists $COLLECTION_KEY_FOR{ $collection } ) {
+                    {
+                        no strict 'refs';
+                        @{"$collection\::ISA"} = $collection_package;
+                    }
+                    Kinetic::Meta::Type->add(
+                        key     => $self->{type},
+                        name    => "\u$type collection",
+                        builder => 'Kinetic::Meta::AccessorBuilder',
+                        check   => $collection,
+                    );
+                    $COLLECTION_KEY_FOR{ $collection } = $self->{type};
+                }
+            }
         } else {
-            $self->{_raw} = $get;
-        }
-        if (my $store_raw = $type->store_raw) {
-            $self->{_store_raw} = sub { $store_raw->($get->(shift)) };
-        } else {
-            $self->{_store_raw} = $self->{_raw};
+            $self->{relationship} = undef;
         }
 
-        if ($self->authz >= Class::Meta::WRITE) {
-            my $set = $type->make_attr_set($self);
-            if (my $bake = $type->bake) {
-                $self->{_bake} = sub { $set->($_[0], $bake->($_[1])) };
+        $self->SUPER::build(@_);
+
+        my $type = Kinetic::Meta::Type->new($self->type);
+        # Create the attribute object raw() and bake() code references.
+        if ($self->authz >= Class::Meta::READ) {
+            my $get = $type->make_attr_get($self);
+            if (my $raw = $type->raw) {
+                $self->{_raw} = sub { $raw->($get->(shift)) };
             } else {
-                $self->{_bake} = $set;
+                $self->{_raw} = $get;
+            }
+            if (my $store_raw = $type->store_raw) {
+                $self->{_store_raw} = sub { $store_raw->($get->(shift)) };
+            } else {
+                $self->{_store_raw} = $self->{_raw};
+            }
+
+            if ($self->authz >= Class::Meta::WRITE) {
+                my $set = $type->make_attr_set($self);
+                if (my $bake = $type->bake) {
+                    $self->{_bake} = sub { $set->($_[0], $bake->($_[1])) };
+                } else {
+                    $self->{_bake} = $set;
+                }
             }
         }
-    }
 
-    return $self;
+        return $self;
+    }
 }
 
 1;

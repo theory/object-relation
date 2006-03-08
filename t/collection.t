@@ -7,8 +7,8 @@ use warnings;
 use utf8;
 use Kinetic::Build::Test;
 
-#use Test::More tests => 86;
-use Test::More 'no_plan';
+use Test::More tests => 78;
+#use Test::More 'no_plan';
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
 use File::Spec;
@@ -188,51 +188,6 @@ my $all = $coll->all;
 $_ = $_->name foreach @$all;
 is_deeply $all, [qw/zero un deux trois quatre/],
   '... and it should return an array ref of all items in scalar context';
-
-$coll = $CLASS->from_list(
-    { list => [ map { Faux->new($_) } qw/zero un deux trois quatre cinq/ ] }
-);
-can_ok $coll, 'splice';
-@items = $coll->splice;
-ok !@items, '... and calling it with no arguments should produce no results';
-@items = $coll->splice(4);
-$_ = $_->name foreach @items;
-is_deeply \@items, [qw/quatre cinq/],
-  '... and it should behave just like splice';
-
-$all = $coll->all;
-$_ = $_->name foreach @$all;
-is_deeply $all, [qw/zero un deux trois/],
-  '... and the collection should have the correct remaining elements';
-@items = $coll->splice( 1, 1 );
-$_ = $_->name foreach @items;
-is_deeply \@items, [qw/un/],
-  '... and the two argument splice should behave correctly';
-
-$all = $coll->all;
-$_ = $_->name foreach @$all;
-is_deeply $all, [qw/zero deux trois/], '... and leave the correct elements';
-@items = $coll->splice( 1, 1, map { Faux->new($_) } qw/1 2/ );
-$_ = $_->name foreach @items;
-is_deeply \@items, ['deux'],
-  '... and the three argument splice should behave correctly';
-
-my $expected = $coll->all;
-ok !(@items = $coll->splice( 1, 0 )),
-   'Splicing out zero elements should not return anything';
-is_deeply scalar $coll->all, $expected,
-   '... and the collection should be unchanged';
-
-$all = $coll->all;
-$_ = $_->name foreach @$all;
-is_deeply $all, [qw/zero 1 2 trois/],
-  '... and the collection should have the correct elements remaining';
-
-ok !(@items = $coll->splice( 0, 0, map { Faux->new($_) } qw/oompa loompa/ )),
-   '... and a zero length splice with new elements should not return items';
-my @all = map { $_->name } $coll->all;
-use Data::Dumper;
-diag Dumper(\@all);
    
 $coll = $CLASS->from_list(
     { list => [ map { Faux->new($_) } qw/zero un deux trois quatre cinq/ ] }

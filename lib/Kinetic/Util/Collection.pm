@@ -106,22 +106,13 @@ sub new {
           ]
           unless eval { $iter->isa(Iterator) };
     }
-    my $package;
 
-    if ( defined $key ) {
-        my $class_object = Kinetic::Meta->for_key($key)
-          or throw_invalid_class [
-            'I could not find the class for key "[_1]"',
-            $key
-          ];
-        $package = $class_object->package;
-    }
     my $self = bless {
         iter    => $iter,
         index   => $NULL,
         array   => AsHash->new( { strict => 1 } ),
         got     => $NULL,
-        package => $package,
+        package => $class->_get_package($key),
     }, $class;
     return $self;
 }
@@ -365,38 +356,6 @@ sub clear {
 
 ##############################################################################
 
-=head3 splice
-
- my @list = $coll->splice(@splice_args);
-
-Operates just like C<splice>.
-
-=cut
-
-sub splice {
-    my $self = shift;
-    return unless @_;
-    $self->_fill;
-    my $array  = $self->_array;
-    my $index  = shift;
-    my $last   = @_ ? shift: $array->hcount - 1;
-    my @keys   = $array->key_at( $index .. $last );
-    my @values = $array->value_at( $index .. $last );
-    $array->delete(@keys) if @keys;
-
-    if (@_) {
-        my @list = map { $_->uuid => $self->_check($_) } @_;
-        if ($index) {
-            my $key = $array->key_at( $index - 1 );
-            $array->insert_after( $key, @list );
-        }
-        else {
-            $array->push(@list);
-        }
-    }
-    return @values;
-}
-
 =head3 peek
 
  my $item = $coll->peek;
@@ -558,6 +517,42 @@ sub _check {
         $value,
         $package
     ];
+}
+
+##############################################################################
+
+=head3 _get_package 
+
+  my $package = $coll->_get_package($key);
+
+Given a Kinetic key, this method will return the package for that key.  If the
+C<$coll> is a subclass of C<Kinetic::Util::Collection>, the key will be
+ignored and the key will be assumed to be the final part of the package name.
+If a key or subclass is present and the package cannot be determined, a
+C<Kinetic::Util::Exception::Fatal::InvalidClass> exception will be thrown.
+
+Returns C<undef> if no key is present and we are not using a subclass.  This
+allows for untyped collections.
+
+=cut
+
+sub _get_package {
+    my ( $class, $key ) = @_;
+    if ( __PACKAGE__ ne $class ) {
+        my $package = __PACKAGE__;
+        ( $key = $class ) =~ s/^$package\:://;
+        $key = lc $key;
+    }
+    my $package;
+    if ( defined $key ) {
+        my $class_object = Kinetic::Meta->for_key($key)
+          or throw_invalid_class [
+            'I could not find the class for key "[_1]"',
+            $key
+          ];
+        $package = $class_object->package;
+    }
+    return $package;
 }
 
 =end private

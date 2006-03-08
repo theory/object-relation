@@ -4,9 +4,13 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 236;
-#use Test::More 'no_plan';
+#use Test::More tests => 236;
+use Test::More 'no_plan';
+use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
+
+use Kinetic::Util::Collection;
+use aliased 'Kinetic::Util::Iterator';
 
 package MyTestThingy;
 
@@ -117,6 +121,11 @@ BEGIN {
         name        => 'Gross',
         plural_name => 'Cheese pimples',
     ), "Create MyTestHasMany class";
+
+    ok $km->add_constructor(
+        name   => 'new',
+        create => 1,
+    ), 'Add constructor to MyTestHasMany class';
 
     ok $km->add_attribute(
         name          => 'stuff',
@@ -356,6 +365,19 @@ ok my $collection = $thingies->collection_of,
   '... and it should return true for a collection';
 is $collection->package, 'MyTestThingy',
   '... and it should return the class object for objects in the collection';
+
+my @thingies = map { MyTestThingy->new } 1 .. 3;
+my $coll = Kinetic::Util::Collection::Thingy->new( {
+    iter => Iterator->new( sub { shift @thingies } )
+} );
+my $has_many = MyTestHasMany->new;
+
+throws_ok { $has_many->thingies(1) }
+    'Kinetic::Util::Exception::Fatal::Invalid',
+    'Adding an invalid type to a has_many relationship should fail';
+
+lives_ok { $has_many->thingies($coll) }
+    '... but adding a valid collection of the right type should succeed';
 
 ##############################################################################
 # Text extends class.
