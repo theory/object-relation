@@ -1,7 +1,13 @@
 package TestApp::Composed;
-use base 'Kinetic';
-use TestApp::Simple::One;
+
+use strict;
+use warnings;
+
+use Kinetic::Meta;
+use Kinetic::Meta::Widget;
 use Kinetic::Util::Language::en_us;
+
+use TestApp::Simple::One;
 
 BEGIN {
     my $km = Kinetic::Meta->new(

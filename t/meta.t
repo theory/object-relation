@@ -4,8 +4,8 @@
 
 use strict;
 use Kinetic::Build::Test;
-#use Test::More tests => 236;
-use Test::More 'no_plan';
+use Test::More tests => 241;
+#use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
 
@@ -40,8 +40,6 @@ BEGIN {
     ok defined(&Kinetic::Meta::Attribute::_view_column),
         'Now Attribute::_view_column() should exist';
 }
-
-use base 'Kinetic';
 
 BEGIN {
     is( Kinetic::Meta->class_class, 'Kinetic::Meta::Class',
@@ -113,6 +111,7 @@ BEGIN {
 }
 
 package MyTestHasMany;
+
 BEGIN { Test::More->import; }
 
 BEGIN {
@@ -144,7 +143,6 @@ BEGIN {
 }
 
 package MyTestExtends;
-use base 'Kinetic';
 BEGIN { Test::More->import; }
 
 BEGIN {
@@ -170,7 +168,6 @@ BEGIN {
 }
 
 package MyTestMediates;
-use base 'Kinetic';
 BEGIN { Test::More->import; }
 
 BEGIN {
@@ -196,7 +193,6 @@ BEGIN {
 }
 
 package MyTest::Meta::ExtMed;
-use base 'Kinetic';
 BEGIN { Test::More->import; }
 BEGIN {
     eval {
@@ -325,14 +321,17 @@ is $attr->widget_meta->type, 'text',
 
 is_deeply [$fclass->ref_attributes], [$attr],
     'We should be able to get the one referenced attribute';
-is_deeply [$fclass->direct_attributes],
+
+# XXX Should direct and persistent attributes return the id attribute?
+is_deeply [ grep { $_->name ne 'id' }     $fclass->direct_attributes ],
           [ grep { $_->name ne 'thingy' } $fclass->attributes ],
     'Direct attributes should have all but the referenced attribute';
-is_deeply [$fclass->persistent_attributes],
+is_deeply [ grep { $_->name ne 'id' }    $fclass->persistent_attributes ],
           [ grep { $_->name ne 'lname' } $fclass->attributes ],
     'Persistent attributes should have all but the non-persistent attribute';
 
-is_deeply [$class->persistent_attributes], [$class->attributes('id'), $class->attributes],
+is_deeply [$class->persistent_attributes],
+          [$class->attributes('id'), $class->attributes],
     'By default, persistent_attributes should return all attributes';
 
 is $attr->references, MyTestThingy->my_class,
@@ -340,15 +339,13 @@ is $attr->references, MyTestThingy->my_class,
 is $attr->relationship, 'has',
   'The Fooey should have a "has" relationship to the thingy';
 $attr = $fclass->attributes('fname');
-is_deeply [$fclass->direct_attributes], [$attr, $fclass->attributes('lname')],
-  "And direct_attributes should return the non-referenced attributes";
 is $attr->relationship, undef, "The fname attribute should have no relationship";
 
 ##############################################################################
 # Text has_many class.
 ok $class = MyTestHasMany->my_class, 'Get MyTestHasMany class object';
 
-is_deeply [map {$_->name} $class->attributes], [qw{ stuff thingies }],
+is_deeply [map {$_->name} $class->attributes], [qw{ uuid state stuff thingies }],
    '... and it should have the correct attributes';
 
 ok my $stuff = $class->attributes('stuff'),
@@ -378,6 +375,14 @@ throws_ok { $has_many->thingies(1) }
 
 lives_ok { $has_many->thingies($coll) }
     '... but adding a valid collection of the right type should succeed';
+
+ok my $coll2 = $has_many->thingies,
+    'thingies() should return what it was set to';
+isa_ok $coll2, 'Kinetic::Util::Collection::Thingy',
+    '... and the object it returns';
+is_deeply $coll2, $coll,
+    '... and it should be identical to the stored collection';
+
 
 ##############################################################################
 # Text extends class.

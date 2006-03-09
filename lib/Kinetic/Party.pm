@@ -23,8 +23,6 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use base qw(Kinetic);
-
 =head1 Name
 
 Kinetic::Party - Kinetic parties (people, organizations)

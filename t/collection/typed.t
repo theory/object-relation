@@ -7,8 +7,8 @@ use warnings;
 use utf8;
 use Kinetic::Build::Test;
 
-#use Test::More tests => 84;
-use Test::More 'no_plan';
+use Test::More tests => 67;
+#use Test::More 'no_plan';
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
 use File::Spec;

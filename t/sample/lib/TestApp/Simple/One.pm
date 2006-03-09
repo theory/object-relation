@@ -1,5 +1,6 @@
 package TestApp::Simple::One;
 use base 'TestApp::Simple';
+use Kinetic::Meta;
 use Kinetic::Util::Language::en_us;
 
 BEGIN {

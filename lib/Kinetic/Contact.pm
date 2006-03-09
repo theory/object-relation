@@ -23,7 +23,6 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use base 'Kinetic';
 use Kinetic::Meta;
 use Kinetic::Meta::Widget;
 use Kinetic::Type::Contact;

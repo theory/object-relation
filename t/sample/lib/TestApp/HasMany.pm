@@ -1,10 +1,13 @@
 package TestApp::HasMany;
-use base 'Kinetic';
 
-use TestApp::Simple::One;
+use strict;
+use warnings;
+
+use Kinetic::Meta::Widget;
 use Kinetic::Util::Language::en_us;
 use Kinetic::Meta::Declare ':all';
-use Kinetic::Meta::Widget;
+
+use TestApp::Simple::One;
 
 Kinetic::Meta::Declare->new(
     meta => [
