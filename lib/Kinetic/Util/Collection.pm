@@ -28,6 +28,8 @@ use Kinetic::Util::Exceptions qw(throw_invalid throw_invalid_class);
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Array::AsHash';
 
+use Scalar::Util 'blessed';
+
 # to simplify the code, we use -1 instead of undef for "null" indexes
 use Readonly;
 Readonly our $NULL => -1;
@@ -112,28 +114,72 @@ sub new {
         index   => $NULL,
         array   => AsHash->new( { strict => 1 } ),
         got     => $NULL,
-        package => $class->_get_package($key),
+        key     => $key,
+        package => undef,
     }, $class;
+    $self->_set_package;
     return $self;
+}
+
+##############################################################################
+
+=head3 empty
+
+  my $collection = Kinetic::Util::Collection->empty;
+
+Syntactic sugar for creating a new, empty collection.  Takes no arguments.
+
+=cut
+
+sub empty {
+    my $class = shift;
+    return $class->new( { iter => Iterator->new( sub { } ) } );
 }
 
 ##############################################################################
 
 =head3 from_list
 
-  my $coll = Kinetic::Util::Collection->from_list(@list);
+  my $coll = Kinetic::Util::Collection->from_list(
+     {
+         list => \@list,
+         key  => $key,    # optional
+     }
+ );
 
-When passed a list, returns a collection object for said list.
+When passed a list, returns a collection object for said list.  If the key is
+present, all objects in C<@list> must be objects whose classes correspond to
+said key.
+
+For convenience, this method may also be called from a collection instance and
+it returns a new collection.  Uses the collection type, if any, from the
+invoking instance, unless an explicit key is used.
+
+ # will be the same type as $old_coll
+ my $coll = $old_coll->from_list({ list => \@list });
+
+ # will ignore the type of $old_coll
+ my $coll = $old_coll->from_list({ list => \@list, key => 'customer' });
 
 =cut
 
 sub from_list {
-    my ( $class, $arg_for ) = @_;
+    my ( $proto, $arg_for ) = @_;
+    my $class = ref $proto || $proto;
     $arg_for ||= {};
     my ( $list, $key ) = @{$arg_for}{qw/list key/};
+    if ( defined $key ) {
+        $class = __PACKAGE__;
+    }
+    elsif ( blessed $proto && defined $proto->{key} ) {
+        $key = $proto->{$key} unless defined $key;
+    }
+    my @key;
+    push @key => ( key => $key ) if defined $key;
+    my @list = @$list;    # copy the array to avoid changing called array
     return $class->new(
-        {   iter => Iterator->new( sub { shift @$list } ),
-            key  => $key
+        {   iter => Iterator->new( sub { shift @list } ),
+            @key
         }
     );
 }
@@ -521,23 +567,19 @@ sub _check {
 
 ##############################################################################
 
-=head3 _get_package 
+=head3 _set_package 
 
-  my $package = $coll->_get_package($key);
+  my $package = $coll->_set_package;
 
-Given a Kinetic key, this method will return the package for that key.  If the
-C<$coll> is a subclass of C<Kinetic::Util::Collection>, the key will be
-ignored and the key will be assumed to be the final part of the package name.
-If a key or subclass is present and the package cannot be determined, a
-C<Kinetic::Util::Exception::Fatal::InvalidClass> exception will be thrown.
-
-Returns C<undef> if no key is present and we are not using a subclass.  This
-allows for untyped collections.
+If we have a typed collection, this method sets the package and key for the
+collection.  Used internally.
 
 =cut
 
-sub _get_package {
-    my ( $class, $key ) = @_;
+sub _set_package {
+    my ($self) = @_;
+    my $class  = ref $self;
+    my $key    = $self->{key};
     if ( __PACKAGE__ ne $class ) {
         my $package = __PACKAGE__;
         ( $key = $class ) =~ s/^$package\:://;
@@ -550,9 +592,10 @@ sub _get_package {
             'I could not find the class for key "[_1]"',
             $key
           ];
-        $package = $class_object->package;
+        $self->{package} = $class_object->package;
+        $self->{key}     = $key;
     }
-    return $package;
+    return $self;
 }
 
 =end private

@@ -4,7 +4,7 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 241;
+use Test::More tests => 244;
 #use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
@@ -364,10 +364,17 @@ is $collection->package, 'MyTestThingy',
   '... and it should return the class object for objects in the collection';
 
 my @thingies = map { MyTestThingy->new } 1 .. 3;
-my $coll = Kinetic::Util::Collection::Thingy->new( {
+my $thingy_coll = 'Kinetic::Util::Collection::Thingy';
+my $coll = $thingy_coll->new( {
     iter => Iterator->new( sub { shift @thingies } )
 } );
 my $has_many = MyTestHasMany->new;
+
+ok my $empty_coll = $has_many->thingies,
+    'thingies() should return a default value';
+isa_ok $empty_coll, $thingy_coll, '... and the value it returns';
+my @all = $empty_coll->all;
+ok !@all, '... and it should be an empty collection';
 
 throws_ok { $has_many->thingies(1) }
     'Kinetic::Util::Exception::Fatal::Invalid',

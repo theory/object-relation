@@ -672,13 +672,14 @@ END;
 
 sub _generate_collection_fks {
     my ($self, $class) = @_;
-    my @collections = $class->collection_classes;
-    return unless @collections;
+    my @attributes = grep { $_->collection_of } $class->attributes;
+    return unless @attributes;
+    my @indexes;
     my @fks;
-    foreach my $coll (@collections) {
-        my $table    = $self->collection_table_name($class, $coll);
+    foreach my $attr (@attributes) {
+        my $table    = $attr->collection_table;
         my $cascade  = 1;
-        foreach my $fk_class ($class, $coll) {
+        foreach my $fk_class ( $class, $attr->collection_of ) {
             my $fk_table = $fk_class->table;
             my $fk_col   = $fk_class->key . "_id";
             my $fk       = "fk_$table\_$fk_col";

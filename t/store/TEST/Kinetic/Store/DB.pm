@@ -23,6 +23,7 @@ use aliased 'TestApp::Extend';
 use aliased 'TestApp::Relation';
 use aliased 'TestApp::Composed';
 use aliased 'TestApp::TypesTest';
+use aliased 'TestApp::HasMany';
 
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->any_supported(qw/pg sqlite/)
@@ -695,6 +696,29 @@ sub test_extend : Test(45) {
         is_deeply [ map { '' . $_->two } @extends ], ["$two", "$two"],
             'And in fact they should point to the very same Two object';
     }
+}
+
+sub test_has_many : Test(no_plan) {
+    my $self = shift;
+    return 'Skip test_has_many for abstract class' unless $self->_should_run;
+    ok my $has_many = HasMany->new( age => 32 ), 'Create a HasMany object';
+    ok $has_many->save, 'Save the HasMany object';
+    
+    ok my $coll = $has_many->ones,
+        'The collection slot should have a default value';
+    isa_ok $coll, 'Kinetic::Util::Collection::One',
+        '... and the object it contains';
+    my @all = $coll->all;
+    ok !@all, '... and it should be an empty collection';
+     
+    my @ones = map { One->new( name => $_ ) } qw/uno dos tres/;
+    $has_many->ones( $coll->from_list( { list => \@ones } ) );
+    ok $has_many->save,
+        'We should be able to save the object with a new collection';
+    foreach my $one (@ones) {
+        ok defined $one->uuid,
+            '... and the collection objects should now have uuids';
+    } # 9 tests
 }
 
 sub test_mediate : Test(43) {

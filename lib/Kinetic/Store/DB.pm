@@ -527,13 +527,13 @@ sub _save {
     local $self->{search_class} = $object->my_class;
     local $self->{view}         = $self->{search_class}->key;
 
-    # XXX get a cleaner way of handling this
     if ( $object->state == State->PURGED ) {
         return $self->_delete($object);
     }
 
     local @{$self}{qw/columns values/};
     $self->_save_contained($object);
+    $self->_save_collections($object);
 
     return $object->id
       ? $self->_update($object)
@@ -571,6 +571,75 @@ sub _save_contained {
     } $class->ref_attributes;
 
     return $self;
+}
+
+##############################################################################
+
+=head3 _save_collections
+
+  $self->_save_collections( $object );
+
+For any collections the various object attributes may point to, this method
+will save the individual objects in those collections.
+
+=cut
+
+sub _save_collections {
+    my ( $self, $object ) = @_;
+
+    my $class = $object->my_class;
+    foreach my $attr ( $class->persistent_attributes ) {
+        next unless $attr->collection_of;
+        my $method    = $attr->name;
+        my $coll_info = $self->_get_collection_table_info( $object, $attr );
+        my $index     = 0;
+
+        # XXX here's the tricky part ...
+
+        # foreach item in the collection, I either need to alter it's rank in
+        # the $coll_info, if it's present, or track the highest index in
+        # $coll_info and add the item if it's not there.
+
+        # Then I'll need to go through each one and if the item->{exists},
+        # update the item.  Otherwise, I'll need to insert it.
+
+        # Another tricky bit will be how we deal with state.  If an item is
+        # purged, this could throw off the index.  If it's deleted, it should
+        # probably not show up in the collection.
+
+        # Also, it should go without saying that the search interface doesn't
+        # really handle these items, yet.
+
+        my $coll = $object->$method;
+        while ( defined (my $thing = $coll->next) ) {
+            $thing->save;
+        }
+    }
+
+    return $self;
+}
+
+sub _get_collection_table_info {
+    my ($self, $object, $attr) = @_;
+    my $object_id = $object->my_class->key . "_id";
+    my $coll_id   = $attr->type . "_id";
+    $coll_id =~ s/^collection_//; # XXX Hack!  Must find a better way
+    my $table     = $attr->collection_table;
+    my $sql       = <<"    END_SQL";
+    SELECT $coll_id, rank 
+    FROM   $table
+    WHERE  $object_id = ?
+    END_SQL
+    my $sth = $self->_dbh->prepare( $sql );
+    $sth->execute( $object->id );
+    my %rank_for;
+    while ( my $result = $sth->fetchrow_arrayref ) {
+        $rank_for{ $result->[0] } = { 
+            rank   => $result->[1],
+            exists => 1,
+        };
+    }
+    return \%rank_for;
 }
 
 ##############################################################################
@@ -763,7 +832,7 @@ sub _insert {
     # INSERT all attributes.
     my ( @cols, @vals );
     foreach my $attr ( $self->{search_class}->persistent_attributes ) {
-        next if $attr->name eq 'id';
+        next if $attr->name eq 'id' || $attr->collection_of;
         push @cols => $attr->_view_column;
         push @vals => $attr->store_raw($object);
         throw_invalid( [ 'Attribute "[_1]" must be defined', $attr->name ] )
@@ -872,6 +941,7 @@ sub _update {
     my @mods = $object->_get_modified or return $self;
     my ( @cols, @vals );
     foreach my $attr ( $self->{search_class}->attributes(@mods) ) {
+        next if $attr->collection_of;
         push @cols => $attr->_view_column;
         push @vals => $attr->store_raw($object);
     }

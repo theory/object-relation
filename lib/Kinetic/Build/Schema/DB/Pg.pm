@@ -323,12 +323,15 @@ sub constraints_for_class {
 
 sub _generate_collection_constraints {
     my ( $self, $class ) = @_;
-    my @collections = $class->collection_classes;
-    return unless @collections;
+    my @attributes = grep { $_->collection_of } $class->attributes;
+    return unless @attributes;
+    my @indexes;
+    my @fks;
     my $main_id    = $class->key . "_id";
     my $main_table = $class->table;
-    foreach my $coll (@collections) {
-        my $table      = $self->collection_table_name($class, $coll);
+    foreach my $attr (@attributes) {
+        my $table      = $attr->collection_table;
+        my $coll       = $attr->collection_of;
         my $coll_table = $coll->table;
         my $coll_id    = $coll->key . "_id";
         return qq{ALTER TABLE $table 

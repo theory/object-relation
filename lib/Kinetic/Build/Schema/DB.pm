@@ -198,8 +198,8 @@ sub collection_table {
     my ($self, $class, $attribute) = @_;;
     my $class_key  = $class->key;
     my $coll_class = $attribute->collection_of;
+    my $table      = $attribute->collection_table;
     my $coll_key   = $coll_class->key;
-    my $table      = $self->collection_table_name($class, $coll_class);
     return <<"    END_SQL";
 CREATE TABLE $table (
     $class_key\_id INTEGER NOT NULL,
@@ -240,22 +240,6 @@ statement for creating a table.
 
 sub end_table {
     return "\n);\n";
-}
-
-##############################################################################
-
-=head3 collection_table_name
-
-  my $name = $kbs->collection_table_name($main_class, $coll_class);
-
-Given the primary class and the class for the collection, this method will
-return the name of the collection table.
-
-=cut
-
-sub collection_table_name {
-    my ($self, $class, $coll_class) = @_;
-    return $class->key . "_coll_" . $coll_class->key;
 }
 
 ##############################################################################
@@ -477,13 +461,12 @@ class.
 
 sub _collection_indexes {
     my ( $self, $class ) = @_;
-    my @collections = grep { $_ } map { $_->collection_of } $class->attributes;
-    return unless @collections;
+    my @attributes = grep { $_->collection_of } $class->attributes;
+    return unless @attributes;
     my @indexes;
     my $class_key = $class->key;
-    foreach my $coll (@collections) {
-        my $coll_key = $coll->key;
-        my $table    = $self->collection_table_name($class, $coll);
+    foreach my $attr (@attributes) {
+        my $table    = $attr->collection_table;
         push @indexes, "CREATE UNIQUE INDEX idx_$table "
                      . "ON $table "
                      . "($class_key\_id, rank);\n";

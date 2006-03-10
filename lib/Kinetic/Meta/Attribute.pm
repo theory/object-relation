@@ -13,6 +13,7 @@ use Kinetic::Meta::Type;
 use Kinetic::Util::Constants qw($OBJECT_DELIMITER);
 use Widget::Meta;
 use aliased 'Kinetic::Util::Collection';
+use aliased 'Kinetic::Util::Iterator';
 
 =head1 Name
 
@@ -519,6 +520,19 @@ sub collection_of { shift->{collection} }
 
 ##############################################################################
 
+=head3 collection_table 
+
+  my $table_name = $attr->collection_table;
+
+If an attribute represents a collection, this method will return the name of
+the table for that collection.
+
+=cut
+
+sub collection_table { shift->{coll_table} }
+
+##############################################################################
+
 =head2 Instance methods
 
 =head3 raw
@@ -615,6 +629,10 @@ the C<raw()> and C<store_raw()> accessor values.
             # XXX get rid of "has_many" after we get this working
             if ( 'has_many' eq $self->{relationship} ) {
                 $self->{collection} = delete $self->{references};
+                $self->{coll_table} = 
+                     $self->class->key 
+                   . "_coll_" 
+                   . $self->type;
                 my $collection_package = Collection;
                 ($collection = $self->{type}) =~
                     s{^(?<!$collection_package\::)([[:word:]]+)}
@@ -626,6 +644,7 @@ the C<raw()> and C<store_raw()> accessor values.
                         no strict 'refs';
                         @{"$collection\::ISA"} = $collection_package;
                     }
+                    $self->{default} = $collection->empty;
                     Kinetic::Meta::Type->add(
                         key     => $self->{type},
                         name    => "\u$type collection",

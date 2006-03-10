@@ -7,7 +7,7 @@ use warnings;
 use utf8;
 use Kinetic::Build::Test;
 
-use Test::More tests => 78;
+use Test::More tests => 82;
 #use Test::More 'no_plan';
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
@@ -188,7 +188,7 @@ my $all = $coll->all;
 $_ = $_->name foreach @$all;
 is_deeply $all, [qw/zero un deux trois quatre/],
   '... and it should return an array ref of all items in scalar context';
-   
+
 $coll = $CLASS->from_list(
     { list => [ map { Faux->new($_) } qw/zero un deux trois quatre cinq/ ] }
 );
@@ -202,3 +202,9 @@ my $sub = sub {
 $coll->do($sub);
 is_deeply \@items, [qw/zero un deux trois/],
   '... and it should call the sub correctly';
+
+can_ok $CLASS, 'empty';
+ok $coll = $CLASS->empty, '... and calling it should succeed';
+isa_ok $coll, $CLASS, '... and the object it returns';
+my @all = $coll->all;
+ok ! @all, '... and the collection should be empty';
