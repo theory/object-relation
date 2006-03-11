@@ -109,16 +109,16 @@ sub new {
           unless eval { $iter->isa(Iterator) };
     }
 
-    my $self = bless {
+    my $self = {
         iter    => $iter,
         index   => $NULL,
         array   => AsHash->new( { strict => 1 } ),
         got     => $NULL,
         key     => $key,
         package => undef,
-    }, $class;
-    $self->_set_package;
-    return $self;
+    };
+    $class = $class->_set_package($self);
+    bless $self, $class;
 }
 
 ##############################################################################
@@ -569,17 +569,17 @@ sub _check {
 
 =head3 _set_package 
 
-  my $package = $coll->_set_package;
+  my $package = Kinetic::Util::Collection->_set_package($self_hashref);
 
 If we have a typed collection, this method sets the package and key for the
-collection.  Used internally.
+collection.  As an arguments, takes the hashref which will eventually be
+blessed into the class.  Returns the correct class to bless the hashref into.
 
 =cut
 
 sub _set_package {
-    my ($self) = @_;
-    my $class  = ref $self;
-    my $key    = $self->{key};
+    my ($class, $hashref) = @_;
+    my $key    = $hashref->{key};
     if ( __PACKAGE__ ne $class ) {
         my $package = __PACKAGE__;
         ( $key = $class ) =~ s/^$package\:://;
@@ -587,15 +587,20 @@ sub _set_package {
     }
     my $package;
     if ( defined $key ) {
+        # we have a typed collection!
         my $class_object = Kinetic::Meta->for_key($key)
           or throw_invalid_class [
             'I could not find the class for key "[_1]"',
             $key
           ];
-        $self->{package} = $class_object->package;
-        $self->{key}     = $key;
+        $hashref->{package} = $class_object->package;
+        $hashref->{key}     = $key;
+        
+        $class = __PACKAGE__ . "::\u$key";
+        no strict 'refs';
+        @{"$class\::ISA"} = __PACKAGE__;
     }
-    return $self;
+    return $class;
 }
 
 =end private

@@ -20,6 +20,7 @@ package Kinetic::Store::DB;
 
 use strict;
 use base qw(Kinetic::Store);
+Kinetic::Store->import('ANY');    # XXX stupid?
 use version;
 our $VERSION = version->new('0.0.1');
 use DBI;
@@ -52,6 +53,7 @@ use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::DataType::DateTime::Incomplete';
 use aliased 'Kinetic::Store::Search';
 use aliased 'Kinetic::DataType::State';
+use aliased 'Kinetic::Util::Collection';
 
 my %SEARCH_TYPE_FOR = map { $_ => 1 } qw/CODE STRING XML/;
 
@@ -590,56 +592,180 @@ sub _save_collections {
     my $class = $object->my_class;
     foreach my $attr ( $class->persistent_attributes ) {
         next unless $attr->collection_of;
-        my $method    = $attr->name;
-        my $coll_info = $self->_get_collection_table_info( $object, $attr );
-        my $index     = 0;
 
-        # XXX here's the tricky part ...
+        $self->_clear_collection_info( $object, $attr );
 
-        # foreach item in the collection, I either need to alter it's rank in
-        # the $coll_info, if it's present, or track the highest index in
-        # $coll_info and add the item if it's not there.
-
-        # Then I'll need to go through each one and if the item->{exists},
-        # update the item.  Otherwise, I'll need to insert it.
-
-        # Another tricky bit will be how we deal with state.  If an item is
-        # purged, this could throw off the index.  If it's deleted, it should
-        # probably not show up in the collection.
-
-        # Also, it should go without saying that the search interface doesn't
-        # really handle these items, yet.
-
-        my $coll = $object->$method;
-        while ( defined (my $thing = $coll->next) ) {
+        my $method = $attr->name;
+        my $coll   = $object->$method;
+        my $rank   = 1;
+        while ( defined( my $thing = $coll->next ) ) {
             $thing->save;
+            next if $thing->state == State->PURGED;
+            $self->_update_coll_table( $object, $attr, $thing, $rank );
+            $rank++;
         }
     }
 
     return $self;
 }
 
+##############################################################################
+
+=head3 _update_coll_table 
+
+ $self->_update_coll_table( $object, $attr, $thing, $rank );
+  
+Given an object, the collection attribute, the specific item in the collection
+and the items rank, this method updates the collection table for that
+information.
+
+=cut
+
+sub _update_coll_table {
+    my ( $self, $object, $attr, $thing, $rank_val ) = @_;
+    my ( $object_id, $coll_id, $rank ) = $self->_collection_table_fields(
+        $object,
+        $attr
+    );
+    my $table = $attr->collection_table;
+    my $sth   = $self->_dbh->prepare_cached(<<"    END_SQL");
+    INSERT INTO $table ($object_id, $coll_id, $rank) VALUES (?, ?, ?)
+    END_SQL
+    $sth->execute( $object->id, $thing->id, $rank_val );
+    return $self;
+}
+
+##############################################################################
+
+=head3 _clear_collection_info 
+
+ $self->_clear_collection_info( $object, $attr );
+
+Given an object and the collection attribute, this method deletes all records
+from the table which match that collection.
+
+=cut
+
+sub _clear_collection_info {
+    my ( $self, $object, $attr ) = @_;
+    my $table = $attr->collection_table;
+    my ( $object_id, undef, undef ) = $self->_collection_table_fields(
+        $object,
+        $attr
+    );
+    my $sth = $self->_dbh->prepare("DELETE FROM $table WHERE $object_id = ?");
+    $sth->execute( $object->id );
+    return $self;
+}
+
+##############################################################################
+
+=head3 _get_collection_table_info 
+
+  my $info = $self->_get_collection_table_info( $object, $attr );
+
+Given an object and the attribute for the collection, this method returns an
+AoA.  Each contained array has two elemements, the object id and rank,
+respectively, for each collection item for the object attribute.
+
+=cut
+
 sub _get_collection_table_info {
-    my ($self, $object, $attr) = @_;
+    my ( $self, $object, $attr ) = @_;
+    my ( $object_id, $coll_id, $rank )
+      = $self->_collection_table_fields( $object, $attr );
+    my $table = $attr->collection_table;
+    my $sql   = <<"    END_SQL";
+    SELECT   $coll_id, $rank 
+    FROM     $table
+    WHERE    $object_id = ?
+    ORDER BY $rank
+    END_SQL
+    my $sth = $self->_dbh->prepare($sql);
+    $sth->execute( $object->id );
+    my @ranks;
+    while ( my $result = $sth->fetchrow_arrayref ) {
+        push @ranks, [@$result];
+    }
+    return \@ranks;
+}
+
+##############################################################################
+
+=head3 _expand_collections 
+
+  $self->_expand_collections( $object );
+
+In an actual query, we don't get the collection information.  This method
+fetches and sets the collection for each collection attribute.
+
+=cut
+
+sub _expand_collections {
+
+    # XXX this should probably be called from Kinetic::Meta::Attribute as this
+    # inflation should be deferred.  However, we'll put it here for now just
+    # to try and get this working.
+    my ( $self, $object ) = @_;
+    foreach my $attr ( $object->my_class->attributes ) {
+        next unless $attr->collection_of;
+        $self->_expand_collection_attribute( $object, $attr );
+    }
+    return $self;
+}
+
+##############################################################################
+
+=head3 _expand_collection_attribute 
+
+  $self->_expand_collection_attribute( $object, $attr );
+
+Given an object and an attribute, this method will expand the collection for
+that attribute.
+
+=cut
+
+sub _expand_collection_attribute {
+    my ( $self, $object, $attr ) = @_;
+    my %rank_for =
+      map {@$_} @{ $self->_get_collection_table_info( $object, $attr ) };
+
+    $self->_prepare_method($PREPARE);
+    $self->_should_create_iterator(0);
+    local $self->{search_class} = $attr->collection_of;
+    my @results =
+      sort { $rank_for{ $a->id } <=> $rank_for{ $b->id } }
+      @{ $self->_query( id => ANY( keys %rank_for ) ) };
+    my $coll_name = $attr->name;
+    (my $key = $attr->type) =~ s/^collection_//;
+    $object->$coll_name(
+        Collection->from_list(
+            {   list => \@results,
+                key  => $key,
+            }
+        )
+    );
+    return $self;
+}
+
+##############################################################################
+
+=head3 _collection_table_fields 
+
+  my ($object_id, $coll_id, $rank) 
+     = $self->_collection_table_fields($object, $attr);
+
+This method returns the correct object id name, collection item id name, and
+rank name.  These are used in building SQL for fetching collection results.
+
+=cut
+
+sub _collection_table_fields {
+    my ( $self, $object, $attr ) = @_;
     my $object_id = $object->my_class->key . "_id";
     my $coll_id   = $attr->type . "_id";
-    $coll_id =~ s/^collection_//; # XXX Hack!  Must find a better way
-    my $table     = $attr->collection_table;
-    my $sql       = <<"    END_SQL";
-    SELECT $coll_id, rank 
-    FROM   $table
-    WHERE  $object_id = ?
-    END_SQL
-    my $sth = $self->_dbh->prepare( $sql );
-    $sth->execute( $object->id );
-    my %rank_for;
-    while ( my $result = $sth->fetchrow_arrayref ) {
-        $rank_for{ $result->[0] } = { 
-            rank   => $result->[1],
-            exists => 1,
-        };
-    }
-    return \%rank_for;
+    $coll_id =~ s/^collection_//;    # XXX Hack!  Must find a better way
+    return ( $object_id, $coll_id, 'rank' );
 }
 
 ##############################################################################
@@ -1123,7 +1249,10 @@ sub _build_object_from_hashref {
         # create the object
         my %object;
         @object{@object_attributes} = @{$hashref}{@object_columns};
-        $objects_for{$package}      = bless \%object => $package;
+        my $object = bless \%object => $package;
+
+        $self->_expand_collections($object);
+        $objects_for{$package} = $object;
 
         # do we have a contained object?
         if ( defined( my $contains = $metadata_for{$package}{contains} ) ) {
@@ -1175,7 +1304,7 @@ sub _set_search_data {
                 my $package = $class->package;
                 unshift @build_order => $package;
                 foreach my $attr ( $class->persistent_attributes ) {
-                    next if $attr->acts_as;
+                    next if $attr->acts_as || $attr->collection_of;
                     my $column      = $attr->_view_column;
                     my $view_column = "$prefix$column";
                     $packages{$package}{columns}{$view_column} = $column;

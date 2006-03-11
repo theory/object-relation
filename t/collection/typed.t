@@ -7,7 +7,7 @@ use warnings;
 use utf8;
 use Kinetic::Build::Test;
 
-use Test::More tests => 67;
+use Test::More tests => 68;
 #use Test::More 'no_plan';
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
@@ -254,6 +254,7 @@ ok $coll = $CLASS->from_list(
   ),
   '... and calling it should succeed';
 isa_ok $coll, $CLASS, '... and the object it returns';
+ok $coll->isa("$CLASS\::Faux") , '... and it should be the proper class';
 foreach (qw/zero un deux trois quatre/) {
     is $coll->next->name, $_, '... and it should return the correct items';
 }

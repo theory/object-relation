@@ -644,7 +644,7 @@ the C<raw()> and C<store_raw()> accessor values.
                         no strict 'refs';
                         @{"$collection\::ISA"} = $collection_package;
                     }
-                    $self->{default} = $collection->empty;
+                    $self->{default} ||= $collection->empty;
                     Kinetic::Meta::Type->add(
                         key     => $self->{type},
                         name    => "\u$type collection",

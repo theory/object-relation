@@ -698,7 +698,7 @@ sub test_extend : Test(45) {
     }
 }
 
-sub test_has_many : Test(no_plan) {
+sub test_has_many : Test(13) {
     my $self = shift;
     return 'Skip test_has_many for abstract class' unless $self->_should_run;
     ok my $has_many = HasMany->new( age => 32 ), 'Create a HasMany object';
@@ -719,6 +719,17 @@ sub test_has_many : Test(no_plan) {
         ok defined $one->uuid,
             '... and the collection objects should now have uuids';
     } # 9 tests
+
+    ok my $has_many_2 = HasMany->lookup( uuid => $has_many->uuid ),
+        'We should be able to lookup has_many objects';
+    $has_many_2->state; # inflate
+    ok my $coll_2 = $has_many_2->ones,
+        '... and the should have collections';
+    isa_ok $coll_2, 'Kinetic::Util::Collection::One',
+        '... and the collection';
+    my $all_2 = $coll_2->all;
+    $_->state foreach @$all_2; 
+    is_deeply $all_2, \@ones, '... and it should have the correct objects';
 }
 
 sub test_mediate : Test(43) {
