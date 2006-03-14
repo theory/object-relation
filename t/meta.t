@@ -4,7 +4,7 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 244;
+use Test::More tests => 247;
 #use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
@@ -391,6 +391,14 @@ is_deeply $coll2, $coll,
     '... and it should be identical to the stored collection';
 
 
+my $thingy_class = Kinetic::Meta->for_key('thingy');
+can_ok $thingy_class, 'contained_in';
+ok my @containers = $thingy_class->contained_in,
+  '... and it should return containing classes';
+is_deeply \@containers, [ $has_many->my_class ],
+  '... and they should be the correct classes';
+
+
 ##############################################################################
 # Text extends class.
 ok $class = MyTestExtends->my_class, 'Get TestExtends class object';
@@ -406,7 +414,7 @@ isa_ok $ex => 'Kinetic';
 ok !$ex->isa('MyTestThingy'), 'The object isn\'ta MyTestThingy';
 
 # Make sure that delegates_to is set properly.
-ok my $thingy_class = Kinetic::Meta->for_key('thingy'),
+ok $thingy_class = Kinetic::Meta->for_key('thingy'),
     'Get the thingy class object';
 ok $attr = $class->attributes('uuid'), 'Get the uuid attribute object';
 is $attr->delegates_to, undef, 'uuid should not delegate';

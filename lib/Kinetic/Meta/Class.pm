@@ -91,6 +91,7 @@ sub new {
             $self->{$rel} = Kinetic::Meta->for_key($ref) unless ref $ref;
         }
     }
+    $self->{contained_in} ||= {};
     return $self;
 }
 
@@ -244,6 +245,31 @@ sub persistent_attributes { @{ shift->{persistent_attrs} } }
 
 ##############################################################################
 
+=head3 contained_in
+
+  my @containers = $class->contained_in;
+
+  if ( my $container = $class->contained_in($key) ) {
+      ...
+  }
+
+If instances of this class are available in collections of other classes, this
+method will return all of those classes, sorted by key,  If given a specific
+key, returns the class for that key, if the current class can be contained in
+the key class.  Otherwise, returns false.
+
+=cut
+
+sub contained_in {
+    my $self = shift;
+    my $contained_in = $self->{contained_in};
+    return map { $contained_in->{$_} } sort keys %$contained_in;
+    my $key = shift;
+    return $contained_in->{$key};
+}
+
+##############################################################################
+
 =head3 build
 
 This private method overrides the parent C<build()> method in order to cache
@@ -291,6 +317,33 @@ sub build {
     }
     return $self;
 }
+
+##############################################################################
+
+=begin private
+
+=head2 Private Instance Methods
+
+=head3 _add_container
+
+  $class->_add_container($key);
+
+This trusted method is should be called from an attribute class such as
+C<Kinetic::Meta::Attribute> to add a new container object for the current
+class.  See C<contained_in>.
+
+=cut
+
+sub _add_container {
+    my ( $self, $key ) = @_;
+    return $self if exists $self->{contained_in}{$key};
+    $self->{contained_in}{$key} = Kinetic::Meta->for_key($key);
+    return $self;
+}
+
+=end private
+
+=cut
 
 1;
 __END__

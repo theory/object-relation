@@ -629,10 +629,12 @@ the C<raw()> and C<store_raw()> accessor values.
             # XXX get rid of "has_many" after we get this working
             if ( 'has_many' eq $self->{relationship} ) {
                 $self->{collection} = delete $self->{references};
-                $self->{coll_table} = 
-                     $self->class->key 
-                   . "_coll_" 
-                   . $self->type;
+                my $class_key = $self->class->key;
+                $self->{coll_table} = "$class_key\_coll_" . $self->type;
+
+                # the contained class must know which classes contain it.
+                Kinetic::Meta->for_key($self->type)->_add_container($class_key);
+
                 my $collection_package = Collection;
                 ($collection = $self->{type}) =~
                     s{^(?<!$collection_package\::)([[:word:]]+)}

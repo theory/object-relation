@@ -529,7 +529,7 @@ sub _save {
     local $self->{search_class} = $object->my_class;
     local $self->{view}         = $self->{search_class}->key;
 
-    if ( $object->state == State->PURGED ) {
+    if ( $object->is_purged ) {
         return $self->_delete($object);
     }
 
@@ -600,7 +600,7 @@ sub _save_collections {
         my $rank   = 1;
         while ( defined( my $thing = $coll->next ) ) {
             $thing->save;
-            next if $thing->state == State->PURGED;
+            next if $thing->is_purged;
             $self->_update_coll_table( $object, $attr, $thing, $rank );
             $rank++;
         }
@@ -623,7 +623,7 @@ information.
 
 sub _update_coll_table {
     my ( $self, $object, $attr, $thing, $rank_val ) = @_;
-    my ( $object_id, $coll_id, $rank ) = $self->_collection_table_fields(
+    my ( $object_id, $coll_id, $rank ) = $self->_collection_table_columns(
         $object,
         $attr
     );
@@ -649,7 +649,7 @@ from the table which match that collection.
 sub _clear_collection_info {
     my ( $self, $object, $attr ) = @_;
     my $table = $attr->collection_table;
-    my ( $object_id, undef, undef ) = $self->_collection_table_fields(
+    my ( $object_id, undef, undef ) = $self->_collection_table_columns(
         $object,
         $attr
     );
@@ -673,7 +673,7 @@ respectively, for each collection item for the object attribute.
 sub _get_collection_table_info {
     my ( $self, $object, $attr ) = @_;
     my ( $object_id, $coll_id, $rank )
-      = $self->_collection_table_fields( $object, $attr );
+      = $self->_collection_table_columns( $object, $attr );
     my $table = $attr->collection_table;
     my $sql   = <<"    END_SQL";
     SELECT   $coll_id, $rank 
@@ -726,41 +726,56 @@ that attribute.
 =cut
 
 sub _expand_collection_attribute {
-    my ( $self, $object, $attr ) = @_;
-    my %rank_for =
-      map {@$_} @{ $self->_get_collection_table_info( $object, $attr ) };
 
+    # XXX This is better than what we had before and I can potentially use
+    # this method as the lazy attribute loader for collections once I get the
+    # timing issue worked out.
+
+    my ( $self, $object, $attr ) = @_;
     $self->_prepare_method($PREPARE);
-    $self->_should_create_iterator(0);
+    $self->_should_create_iterator(1);
     local $self->{search_class} = $attr->collection_of;
-    my @results =
-      sort { $rank_for{ $a->id } <=> $rank_for{ $b->id } }
-      @{ $self->_query( id => ANY( keys %rank_for ) ) };
+
+    $self->_set_search_data;
+    my $collection_table = $attr->collection_table;
+    my ( $object_id, $coll_id, $rank )
+      = $self->_collection_table_columns( $object, $attr );
+    my $container_table = $object->my_class->key;
+    my $contained_table = $attr->collection_of->key;
+    my $columns = join ', ' => map { "$contained_table.$_" } 
+        $self->_search_data_columns;
+    my $sql = <<"    END_SQL";
+    SELECT   $columns
+    FROM     $contained_table, $collection_table, $container_table 
+    WHERE    $contained_table.id = $collection_table.$coll_id
+      AND    $collection_table.$object_id = $container_table.id
+      AND    $container_table.id = ?
+    ORDER BY $collection_table.$rank
+    END_SQL
+
+    my $results = $self->_get_sql_results( $sql, [ $object->id ] );
+
     my $coll_name = $attr->name;
     (my $key = $attr->type) =~ s/^collection_//;
     $object->$coll_name(
-        Collection->from_list(
-            {   list => \@results,
-                key  => $key,
-            }
-        )
+        Collection->new( { iter => $results, key => $key } )
     );
     return $self;
 }
 
 ##############################################################################
 
-=head3 _collection_table_fields 
+=head3 _collection_table_columns 
 
   my ($object_id, $coll_id, $rank) 
-     = $self->_collection_table_fields($object, $attr);
+     = $self->_collection_table_columns($object, $attr);
 
 This method returns the correct object id name, collection item id name, and
 rank name.  These are used in building SQL for fetching collection results.
 
 =cut
 
-sub _collection_table_fields {
+sub _collection_table_columns {
     my ( $self, $object, $attr ) = @_;
     my $object_id = $object->my_class->key . "_id";
     my $coll_id   = $attr->type . "_id";

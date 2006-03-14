@@ -322,6 +322,8 @@ Those methods are:
 
 =item C<is_deleted>
 
+=item C<is_purged>
+
 =item C<activate>
 
 =item C<deactivate>
@@ -357,6 +359,7 @@ Those methods are:
     sub is_active    { shift->state == ACTIVE    }
     sub is_inactive  { shift->state == INACTIVE  }
     sub is_deleted   { shift->state == DELETED   }
+    sub is_purged    { shift->state == PURGED    }
 
     sub activate     { shift->state(ACTIVE)      }
     sub deactivate   { shift->state(INACTIVE)    }
