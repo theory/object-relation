@@ -738,8 +738,6 @@ sub _insert_into_table {
             if (my $def = $self->column_default($_)) {
                 $def =~ s/DEFAULT\s+//;
                 'COALESCE(NEW.' . $_->view_column . ", $def)";
-            } elsif ($_->type eq 'uuid') {
-                'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
             } else {
                 'NEW.' . $_->view_column;
             }
@@ -770,8 +768,6 @@ sub _extended_insert {
             if (my $def = $self->column_default($_)) {
                 $def =~ s/DEFAULT\s+//;
                 'COALESCE(NEW.' . $_->view_column . ", $def)";
-            } elsif ($_->type eq 'uuid') {
-                'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
             } else {
                 'NEW.' . $_->view_column;
             }
@@ -836,8 +832,6 @@ sub _extending_insert {
             if (my $def = $self->column_default($_)) {
                 $def =~ s/DEFAULT\s+//;
                 'COALESCE(NEW.' . $_->view_column . ", $def)";
-            } elsif ($_->type eq 'uuid') {
-                'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
             } elsif ($_->type eq $ext_key) {
                 "CURRVAL('seq_$ext_seq')";
             } else {

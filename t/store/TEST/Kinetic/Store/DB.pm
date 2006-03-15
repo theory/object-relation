@@ -466,7 +466,6 @@ sub insert : Test(7) {
         [ map { $_->_column } @attributes ],
         [ map { $_->raw($one) } @attributes ],
     );
-    $one->_save_prep; # To populate UUID.
     ok $store->_insert($one), 'and calling it should succeed';
     is $SQL, $expected, 'and it should generate the correct sql';
     my $uuid = shift @$BIND;

@@ -3,11 +3,12 @@
 # $Id$
 
 use strict;
-use Test::More tests => 85;
+use Test::More tests => 82;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Util::Functions qw(:uuid);
 use Kinetic::Util::Config qw(STORE_CLASS);
+use Kinetic::Util::Constants qw($UUID_RE);
 
 package Kinetic::TestTypes;
 use strict;
@@ -106,19 +107,10 @@ ok( my $t = Kinetic::TestTypes->new,
     'Kinetic::TestTypes->new');
 
 # Test the UUID accessor.
-eval { $t->uuid('foo') };
-ok my $err = $@, 'Got error setting UUID to bogus value';
-like $err->error, qr/Value .foo. is not a UUID/,
-    'It should be the correct error';
-
-my $uuid = create_uuid();
-ok $t->uuid($uuid), 'Set the UUID';
-is $t->uuid, $uuid, 'Check the UUID';
-
-# Make sure we can't set it again.
+like $t->uuid, $UUID_RE, 'The UUID should be set';
 eval { $t->uuid(create_uuid()) };
-ok( $err = $@, "Got error setting UUID to a new value" );
-like $err->error, qr/Attribute .uuid. can be set only once/,
+ok my $err = $@, 'Got error setting UUID to bogus value';
+like $err->error, qr/Cannot assign to read-only attribute .uuid./,
     'It should be the correct error';
 
 # Test state accessor.

@@ -4,7 +4,7 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 61;
+use Test::More tests => 58;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use OSSP::uuid;
@@ -59,7 +59,6 @@ isa_ok $kinetic, 'MyApp::TestThingy';
 isa_ok $kinetic, 'Kinetic';
 
 # Check UUID.
-$kinetic->_save_prep; # Force UUID generation.
 my $ug = OSSP::uuid->new;
 ok my $uuid = $kinetic->uuid, "Get UUID";
 ok $ug->import(str => $uuid), "It's a valid UUID";
@@ -81,13 +80,6 @@ ok my $wm = $attr->widget_meta, "Get UUID widget meta object";
 is $wm->type, 'text', "Check UUID widget type";
 is $wm->tip, 'The globally unique identifier for this object',
   "Check UUID widget tip";
-ok $kinetic = MyApp::TestThingy->new(
-    uuid => '12CAD854-08BD-11D9-8AF0-8AB02ED80375'
-), "Create new kinetic and assign a UUID";
-is $kinetic->uuid, '12CAD854-08BD-11D9-8AF0-8AB02ED80375',
-  "Our UUID should have been assigned";
-eval {  MyApp::TestThingy->new(uuid => 'foo' ) };
-ok $err = $@, "We should get an error when using a bogus UUID";
 
 # Check state.
 is $kinetic->state, ACTIVE, "Check for active state";

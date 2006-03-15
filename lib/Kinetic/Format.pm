@@ -246,7 +246,7 @@ sub _obj_to_hashref {
 
   my $object = $formatter->_hashref_to_obj($hashref);
 
-Protected method to be used by subclasses.  Given an hashreference in the
+Protected method to be used by subclasses. Given an hash reference in the
 format returned by C<_obj_to_hashref>, this method will return a
 L<Kinetic|Kinetic> object for it.
 
@@ -265,7 +265,7 @@ sub _hashref_to_obj {
                 $object->$attr($contained);
             }
             else {
-                $attribute->bake( $object, $value );
+                $object->{$attr} = $value;
             }
         }
     }
@@ -275,8 +275,10 @@ sub _hashref_to_obj {
 sub _verify_usage {
     my $self = shift;
     if ( __PACKAGE__ eq ref $self ) {
-        throw_fatal [ 'Abstract class "[_1]" must not be used directly',
-            __PACKAGE__ ];
+        throw_fatal [
+            'Abstract class "[_1]" must not be used directly',
+            __PACKAGE__,
+        ];
     }
 }
 

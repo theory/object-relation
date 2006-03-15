@@ -416,20 +416,6 @@ B<Throws:>
 
 =head2 Private Class Methods
 
-=head3 _save
-
-  $store->_save($object);
-
-This is the base implementation for saving Kinetic objects. All it does is cal
-the C<_save_prep()> method on the object to be saved.
-
-=cut
-
-sub _save {
-    my ( $self, $obj ) = @_;
-    $obj->_save_prep;
-}
-
 =head3 _add_store_meta
 
   package Kinetic;

@@ -69,8 +69,10 @@ my $req_chk = sub {
 my $once_chk = sub {
     my ($new, $key, $obj) = @_;
     no warnings;
+    # XXX Yes, using $obj->{id} is evil. Change if we ever use a non-dataase
+    # data store.
     throw_invalid([ 'Attribute "[_1]" can be set only once', $key ])
-        if defined $obj->{$key} && $obj->{$key} ne $new && $obj->uuid;
+        if defined $obj->{$key} && $obj->{$key} ne $new && $obj->{id};
 };
 
 ##############################################################################

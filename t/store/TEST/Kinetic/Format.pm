@@ -119,6 +119,7 @@ sub to_and_from_hashref : Test(7) {
       '... and calling it should succeed';
     isa_ok $object, ref $foo, '... and the object it returns';
     $object->{id} = $foo->{id};
+    $test->force_inflation($object);
     is_deeply $object, $foo, '... and it should be the correct object';
 }
 
