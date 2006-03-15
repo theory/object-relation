@@ -88,23 +88,27 @@ the same name as the attribute itself.
 
 =cut
 
+my $has_many_builder = sub {
+    my ($attr, $name, @checks) = @_;
+    (my $key = $attr->type) =~ s/^collection_//; # XXX :(
+    my $store = Store->new;
+    return sub {
+        my $self = shift;
+        if (@_) {
+            $_->($_[0], $name, $self) for @checks;
+            _set( $self, $name, shift );
+        }
+        else {
+            return $self->{$name} ? $self->{$name}
+                 : $self->uuid    ? $store->_get_collection( $self, $attr )
+                 :                  Collection->empty;
+        }
+    };
+};
+
 my %builders = (
     default => {
-        has_many => sub {
-            my ($attr, $name, @checks) = @_;
-            (my $key = $attr->type) =~ s/^collection_//; # XXX :(
-            return sub {
-                my $self = shift;
-                if (@_) {
-                    $_->($_[0], $name, $self) for @checks;
-                    _set( $self, $name, shift );
-                }
-                else {
-                    return Collection->empty( $key ) unless $self->uuid;
-                    return Store->new->_get_collection( $self, $attr );
-                }
-            };
-        },
+        has_many => $has_many_builder,
         get => sub {
             my $name = shift;
             return sub {

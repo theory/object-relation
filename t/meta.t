@@ -4,8 +4,8 @@
 
 use strict;
 use Kinetic::Build::Test;
-#use Test::More tests => 250;
-use Test::More 'no_plan';
+use Test::More tests => 249;
+#use Test::More 'no_plan';
 use Test::Exception;
 #use Test::NoWarnings; # Adds an extra test.
 
@@ -389,7 +389,6 @@ isa_ok $coll2, 'Kinetic::Util::Collection::Thingy',
     '... and the object it returns';
 is_deeply [$coll2->all], [$coll->all],
     '... and it should be identical to the stored collection';
-exit;
 
 my $thingy_class = Kinetic::Meta->for_key('thingy');
 can_ok $thingy_class, 'contained_in';
