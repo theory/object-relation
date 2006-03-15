@@ -1017,12 +1017,20 @@ sub grant_permissions {
 #   s => 'special'
 #   t => 'TOAST table'
 
+    # XXX the "OR c.relnname ~ /_coll_/" is an ugly hack to allow the store
+    # code to easily delete records from collection tables.  This hack should
+    # go away at some point.
+
     my $objects = $dbh->selectcol_arrayref(qq{
         SELECT n.nspname || '."' || c.relname || '"'
         FROM   pg_catalog.pg_class c
                LEFT JOIN pg_catalog.pg_user u ON u.usesysid = c.relowner
                LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-        WHERE  c.relkind IN ('S', 'v')
+        WHERE  (
+                 c.relkind IN ('S', 'v') 
+                 OR 
+                 ( c.relkind = 'r' AND c.relname ~ '.+_coll_.+' )
+               )
                AND n.nspname NOT IN ('pg_catalog', 'pg_toast')
                AND pg_catalog.pg_table_is_visible(c.oid)
     });

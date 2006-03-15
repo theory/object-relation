@@ -317,7 +317,32 @@ sub constraints_for_class {
         $self->unique_triggers( $class ),
     );
 
+    push @cons, $self->_generate_collection_constraints( $class );
     return @cons;
+}
+
+sub _generate_collection_constraints {
+    my ( $self, $class ) = @_;
+    my @attributes = grep { $_->collection_of } $class->attributes;
+    return unless @attributes;
+    my @indexes;
+    my @fks;
+    my $main_id    = $class->key . "_id";
+    my $main_table = $class->table;
+    foreach my $attr (@attributes) {
+        my $table      = $attr->collection_table;
+        my $coll       = $attr->collection_of;
+        my $coll_table = $coll->table;
+        my $coll_id    = $coll->key . "_id";
+        return qq{ALTER TABLE $table 
+  ADD CONSTRAINT fk_$table$main_table\_id FOREIGN KEY ($main_id)
+  REFERENCES $main_table(id) ON DELETE CASCADE;
+},
+            qq{ALTER TABLE $table 
+  ADD CONSTRAINT fk_$table\_$coll_id FOREIGN KEY ($coll_id)
+  REFERENCES $coll_table(id) ON DELETE CASCADE;
+};
+    }
 }
 
 ##############################################################################

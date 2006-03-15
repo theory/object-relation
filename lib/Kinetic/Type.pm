@@ -23,8 +23,6 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use base 'Kinetic';
-
 =head1 Name
 
 Kinetic::Type - Abstract class for Kinetic types

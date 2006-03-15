@@ -12,6 +12,8 @@ use Kinetic::Util::Context;
 use Kinetic::Meta::Type;
 use Kinetic::Util::Constants qw($OBJECT_DELIMITER);
 use Widget::Meta;
+use aliased 'Kinetic::Util::Collection';
+use aliased 'Kinetic::Util::Iterator';
 
 =head1 Name
 
@@ -139,9 +141,12 @@ my %RELATIONSHIPS = (
     references_many => undef,
     part_of_many    => undef,
 );
+my %COLLECTION_KEY_FOR;
 
 sub new {
-    my $self = shift->SUPER::new(@_);
+    my ($class, $parent_class, @args) = @_;
+    @args = $class->_prepare_kinetic($parent_class, @args);
+    my $self = $class->SUPER::new($parent_class, @args);
     $self->{unique}      ||= $self->{distinct};
     $self->{indexed}     ||= $self->{unique};
     $self->{persistent}    = 1 unless defined $self->{persistent};
@@ -149,7 +154,7 @@ sub new {
 
     if (exists $self->{relationship}) {
         $self->class->handle_error(
-           qq{I don't know what a "$self->{relationship}" relationship is}
+           qq{I don't know what a "$self->{relationship}" relationship is} # "
         ) unless exists $RELATIONSHIPS{$self->{relationship}}
     }
 
@@ -505,6 +510,32 @@ sub relationship { shift->{relationship} }
 
 ##############################################################################
 
+=head3 collection_of
+
+  my $collection = $attr->collection_of;
+
+If an attribute represents a collection, this method will return the class
+object for that collection.
+
+=cut
+
+sub collection_of { shift->{collection} }
+
+##############################################################################
+
+=head3 collection_table 
+
+  my $table_name = $attr->collection_table;
+
+If an attribute represents a collection, this method will return the name of
+the table for that collection.
+
+=cut
+
+sub collection_table { shift->{coll_table} }
+
+##############################################################################
+
 =head2 Instance methods
 
 =head3 raw
@@ -589,19 +620,10 @@ the C<raw()> and C<store_raw()> accessor values.
 sub build {
     my $self = shift;
 
-    # Figure out if the attribute is a reference to another object in a
-    # Kinetic::Meta class. Use Class::Meta->for_key to avoid
-    # Kinetic::Meta->for_key's exception.
-    if ($self->{references} = Class::Meta->for_key($self->type)) {
-        my $rel = $self->{relationship} ||= 'has';
-        $self->{once} = 1 if $rel eq 'extends' || $rel eq 'mediates';
-    } else {
-        $self->{relationship} = undef;
-    }
-
     $self->SUPER::build(@_);
 
     my $type = Kinetic::Meta::Type->new($self->type);
+
     # Create the attribute object raw() and bake() code references.
     if ($self->authz >= Class::Meta::READ) {
         my $get = $type->make_attr_get($self);
@@ -628,6 +650,81 @@ sub build {
 
     return $self;
 }
+
+##############################################################################
+
+=begin private
+
+=head1 Private Interface
+
+=head2 Private Instance Methods
+
+=head3 _prepare_kinetic 
+
+ sub new {
+     my ($class, $parent_class, @args) = @_;
+     @args = $class->_prepare_kinetic( $parent_class, @args );
+     $class->SUPER::new(@args);
+     ...
+ }
+
+When creating a new C<Kinetic::Meta::Attribute> object, some attributes of the
+object are Kinetic specific.  The handling of these attributes should
+generally be done prior to the SUPER constructor being called.  Returns the
+new arguments for the parent constructor.
+
+=cut
+
+sub _prepare_kinetic {
+    my ( $class, $parent_class, %arg_for ) = @_;
+    my $collection;
+
+    # Figure out if the attribute is a reference to another object in a
+    # Kinetic::Meta class. Use Class::Meta->for_key to avoid
+    # Kinetic::Meta->for_key's exception.
+    if ($arg_for{references} = Class::Meta->for_key($arg_for{type})) {
+        my $rel = $arg_for{relationship} ||= 'has';
+        $arg_for{once} = 1 if $rel eq 'extends' || $rel eq 'mediates';
+    } else {
+        delete $arg_for{relationship};
+    }
+
+    # XXX get rid of "has_many" after we get this working
+    if ( exists $arg_for{relationship} && 'has_many' eq $arg_for{relationship} ) {
+        $arg_for{collection} = delete $arg_for{references};
+        my $class_key = $parent_class->key;
+        $arg_for{coll_table} = "$class_key\_coll_" . $arg_for{type};
+        # the contained class must know which classes contain it.
+        Kinetic::Meta->for_key($arg_for{type})->_add_container($class_key);
+
+        my $collection_package = Collection;
+        ($collection = $arg_for{type}) =~
+            s{^(?<!$collection_package\::)([[:word:]]+)}
+            {$collection_package\::\u$1};
+        my $type = $1;
+        $arg_for{type} = "collection_$type";
+        if ( $collection && ! exists $COLLECTION_KEY_FOR{ $collection } ) {
+            {
+                no strict 'refs';
+                @{"$collection\::ISA"} = $collection_package;
+            }
+            $arg_for{default} ||= sub { $collection->empty };
+            Kinetic::Meta::Type->add(
+                key     => $arg_for{type},
+                name    => "\u$type collection",
+                builder => 'Kinetic::Meta::AccessorBuilder',
+                check   => $collection,
+            );
+            $COLLECTION_KEY_FOR{ $collection } = $arg_for{type};
+        }
+    }
+    return %arg_for;
+}
+
+=end private
+
+=cut
+
 1;
 __END__
 

@@ -177,7 +177,10 @@ gets in the way when building schemas.
 
 =cut
 
-sub table_attributes { @{shift->{cols}} }
+sub table_attributes { 
+    my $self = shift;
+    grep { ! $_->collection_of } @{$self->{cols}}
+}
 
 ##############################################################################
 
@@ -277,6 +280,22 @@ sub build {
     $self->{parents}      = \@parents;
 
     return $self;
+}
+
+##############################################################################
+
+=head3 collection_classes
+
+ my @collection_classes = $class->collection_classes; 
+
+For attributes representing collections, this method returns the classes they
+are collections of.
+
+=cut
+
+sub collection_classes {
+    my $self = shift;
+    return grep { $_ } map { $_->collection_of } $self->attributes;
 }
 
 sub _col_attrs {

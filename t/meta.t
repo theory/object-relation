@@ -4,11 +4,14 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 217;
+use Test::More tests => 244;
 #use Test::More 'no_plan';
+use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
-use lib '/Users/david/dev/Kineticode/trunk/Class-Meta/lib';
 use Kinetic::Util::Constants qw($UUID_RE);
+
+use Kinetic::Util::Collection;
+use aliased 'Kinetic::Util::Iterator';
 
 package MyTestThingy;
 
@@ -31,15 +34,13 @@ BEGIN {
         'Attribute::_view_column() should not exist';
 
     # Implicitly loads database store.
-    use_ok('Kinetic');
+    use_ok('Kinetic') or die;
 
     ok defined(&Kinetic::Meta::Attribute::_column),
         'Now Attribute::_column() should exist';
     ok defined(&Kinetic::Meta::Attribute::_view_column),
         'Now Attribute::_view_column() should exist';
 }
-
-use base 'Kinetic';
 
 BEGIN {
     is( Kinetic::Meta->class_class, 'Kinetic::Meta::Class',
@@ -110,8 +111,39 @@ BEGIN {
     ok $km->build, "Build TestFooey class";
 }
 
+package MyTestHasMany;
+
+BEGIN { Test::More->import; }
+
+BEGIN {
+    ok my $km = Kinetic::Meta->new(
+        key         => 'cheese_pimple',
+        name        => 'Gross',
+        plural_name => 'Cheese pimples',
+    ), "Create MyTestHasMany class";
+
+    ok $km->add_constructor(
+        name   => 'new',
+        create => 1,
+    ), 'Add constructor to MyTestHasMany class';
+
+    ok $km->add_attribute(
+        name          => 'stuff',
+        type          => 'whole',
+        label         => 'Stuffs',
+    ), "Add stuff attribute";
+
+    ok $km->add_attribute(
+        name          => 'thingies',
+        type          => 'thingy',
+        label         => 'Thingies',
+        relationship  => 'has_many',
+    ), "Add thingy collection";
+
+    ok $km->build, "Build MyTestHasMany class";
+}
+
 package MyTestExtends;
-use base 'Kinetic';
 BEGIN { Test::More->import; }
 
 BEGIN {
@@ -137,7 +169,6 @@ BEGIN {
 }
 
 package MyTestMediates;
-use base 'Kinetic';
 BEGIN { Test::More->import; }
 
 BEGIN {
@@ -163,7 +194,6 @@ BEGIN {
 }
 
 package MyTest::Meta::ExtMed;
-use base 'Kinetic';
 BEGIN { Test::More->import; }
 BEGIN {
     eval {
@@ -180,7 +210,7 @@ BEGIN {
         'It should have the correct message';
 }
 
-package MyTest::Meta::Excptions;
+package MyTest::Meta::Exceptions;
 
 BEGIN {
     Test::More->import;
@@ -292,14 +322,17 @@ is $attr->widget_meta->type, 'text',
 
 is_deeply [$fclass->ref_attributes], [$attr],
     'We should be able to get the one referenced attribute';
-is_deeply [$fclass->direct_attributes],
+
+# XXX Should direct and persistent attributes return the id attribute?
+is_deeply [ grep { $_->name ne 'id' }     $fclass->direct_attributes ],
           [ grep { $_->name ne 'thingy' } $fclass->attributes ],
     'Direct attributes should have all but the referenced attribute';
-is_deeply [$fclass->persistent_attributes],
+is_deeply [ grep { $_->name ne 'id' }    $fclass->persistent_attributes ],
           [ grep { $_->name ne 'lname' } $fclass->attributes ],
     'Persistent attributes should have all but the non-persistent attribute';
 
-is_deeply [$class->persistent_attributes], [$class->attributes('id'), $class->attributes],
+is_deeply [$class->persistent_attributes],
+          [$class->attributes('id'), $class->attributes],
     'By default, persistent_attributes should return all attributes';
 
 is $attr->references, MyTestThingy->my_class,
@@ -307,9 +340,70 @@ is $attr->references, MyTestThingy->my_class,
 is $attr->relationship, 'has',
   'The Fooey should have a "has" relationship to the thingy';
 $attr = $fclass->attributes('fname');
-is_deeply [$fclass->direct_attributes], [$attr, $fclass->attributes('lname')],
-  "And direct_attributes should return the non-referenced attributes";
 is $attr->relationship, undef, "The fname attribute should have no relationship";
+
+##############################################################################
+# Text has_many class.
+ok $class = MyTestHasMany->my_class, 'Get MyTestHasMany class object';
+
+is_deeply [map {$_->name} $class->attributes], [qw{ uuid state stuff thingies }],
+   '... and it should have the correct attributes';
+
+ok my $stuff = $class->attributes('stuff'),
+    '... and we should be able to fetch the stuff attribute';
+can_ok $stuff, 'collection_of';
+ok ! $stuff->collection_of, 
+  '... and collection() should return false for non-collections';
+
+ok my $thingies = $class->attributes('thingies'),
+  '... and we should be able to fetch the thingies attribute';
+
+can_ok $thingies, 'collection_of';
+ok my $collection = $thingies->collection_of, 
+  '... and it should return true for a collection';
+is $collection->package, 'MyTestThingy',
+  '... and it should return the class object for objects in the collection';
+
+my @thingies = map { MyTestThingy->new } 1 .. 3;
+my $thingy_coll = 'Kinetic::Util::Collection::Thingy';
+my $coll = $thingy_coll->new( {
+    iter => Iterator->new( sub { shift @thingies } )
+} );
+my $has_many = MyTestHasMany->new;
+
+ok my $empty_coll = $has_many->thingies,
+    'thingies() should return a default value';
+isa_ok $empty_coll, $thingy_coll, '... and the value it returns';
+my @all = $empty_coll->all;
+ok !@all, '... and it should be an empty collection';
+
+throws_ok { $has_many->thingies(1) }
+    'Kinetic::Util::Exception::Fatal::Invalid',
+    'Adding an invalid type to a has_many relationship should fail';
+
+lives_ok { $has_many->thingies($coll) }
+    '... but adding a valid collection of the right type should succeed';
+
+ok my $coll2 = $has_many->thingies,
+    'thingies() should return what it was set to';
+isa_ok $coll2, 'Kinetic::Util::Collection::Thingy',
+    '... and the object it returns';
+is_deeply [$coll2->all], [$coll->all],
+    '... and it should be identical to the stored collection';
+
+my $thingy_class = Kinetic::Meta->for_key('thingy');
+can_ok $thingy_class, 'contained_in';
+ok my @containers = $thingy_class->contained_in,
+  '... and it should return containing classes';
+is_deeply \@containers, [ $has_many->my_class ],
+  '... and they should be the correct classes';
+
+ok my $container = $thingy_class->contained_in('cheese_pimple'),
+   'Fetching an individual container should succeed';
+is_deeply $container, $has_many->my_class,
+  '... and it should be the correct class';
+ok ! $thingy_class->contained_in('no_such_class'),
+  '... but contained_in() should report false as appropriate';
 
 ##############################################################################
 # Text extends class.
@@ -326,7 +420,7 @@ isa_ok $ex => 'Kinetic';
 ok !$ex->isa('MyTestThingy'), 'The object isn\'ta MyTestThingy';
 
 # Make sure that delegates_to is set properly.
-ok my $thingy_class = Kinetic::Meta->for_key('thingy'),
+ok $thingy_class = Kinetic::Meta->for_key('thingy'),
     'Get the thingy class object';
 ok $attr = $class->attributes('uuid'), 'Get the uuid attribute object';
 is $attr->delegates_to, undef, 'uuid should not delegate';

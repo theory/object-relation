@@ -7,7 +7,7 @@ use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
 
 #use Test::More 'no_plan';
-use Test::More tests => 113;
+use Test::More tests => 126;
 use Test::NoWarnings; # Adds an extra test.
 use Test::Differences;
 
@@ -34,7 +34,7 @@ isa_ok $sg, 'Kinetic::Build::Schema::DB::Pg';
 
 ok $sg->load_classes('t/sample/lib'), "Load classes";
 is_deeply [ map { $_->key } $sg->classes ],
-    [qw(simple one composed comp_comp two extend relation types_test)],
+    [qw(simple one composed comp_comp two extend relation types_test yello)],
     "classes() returns classes in their proper dependency order";
 
 for my $class ( $sg->classes ) {
@@ -92,7 +92,7 @@ my $table = q{CREATE TABLE _simple (
     description TEXT
 );
 };
-eq_or_diff $sg->table_for_class($simple), $table,
+eq_or_diff $sg->tables_for_class($simple), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -188,7 +188,7 @@ $table = q{CREATE TABLE simple_one (
     bool BOOLEAN NOT NULL DEFAULT true
 );
 };
-eq_or_diff $sg->table_for_class($one), $table,
+eq_or_diff $sg->tables_for_class($one), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -276,7 +276,7 @@ $table = q{CREATE TABLE simple_two (
     date TIMESTAMP NOT NULL
 );
 };
-eq_or_diff $sg->table_for_class($two), $table,
+eq_or_diff $sg->tables_for_class($two), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -448,7 +448,7 @@ $table = q{CREATE TABLE _relation (
     one_id INTEGER NOT NULL
 );
 };
-eq_or_diff $sg->table_for_class($relation), $table,
+eq_or_diff $sg->tables_for_class($relation), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -573,6 +573,107 @@ eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($relation) ) ),
   "... Schema class generates complete schema";
 
 ##############################################################################
+# Grab the has_many class.
+ok my $has_many = Kinetic::Meta->for_key('yello'), "Get has_many class";
+is $has_many->key,   'yello',  "... HasMany class has key 'yello'";
+is $has_many->table, '_yello', "... HasMany class has table '_yello'";
+
+# Check that the CREATE SEQUENCE statement is correct.
+$seq = "CREATE SEQUENCE seq_yello;\n";
+is $sg->sequence_for_class($has_many), $seq,
+    '... Schema class generates CREATE SEQUENCE statement';
+
+$table = q{CREATE TABLE _yello (
+    id INTEGER NOT NULL DEFAULT NEXTVAL('seq_yello'),
+    uuid UUID NOT NULL DEFAULT UUID_V4(),
+    state STATE NOT NULL DEFAULT 1,
+    age INTEGER
+);
+
+CREATE TABLE yello_coll_one (
+    yello_id INTEGER NOT NULL,
+    one_id INTEGER NOT NULL,
+    rank INTEGER NOT NULL,
+    PRIMARY KEY (yello_id, one_id)
+);
+};
+
+eq_or_diff join("\n", $sg->tables_for_class($has_many)), $table,
+  '... and it should generate the correct table';
+
+$indexes = q{CREATE UNIQUE INDEX idx_yello_uuid ON _yello (uuid);
+CREATE INDEX idx_yello_state ON _yello (state);
+CREATE UNIQUE INDEX idx_yello_coll_one ON yello_coll_one (yello_id, rank);
+};
+is $sg->indexes_for_class($has_many), $indexes,
+    '... and the correct indexes for the class';
+
+# Check that the ALTER TABLE ADD CONSTRAINT statements are correct.
+$constraints = q{ALTER TABLE _yello
+  ADD CONSTRAINT pk_yello_id PRIMARY KEY (id);
+
+CREATE FUNCTION yello_uuid_once() RETURNS trigger AS '
+  BEGIN
+    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
+        THEN RAISE EXCEPTION ''value of "uuid" cannot be changed'';
+    END IF;
+    RETURN NEW;
+  END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER yello_uuid_once BEFORE UPDATE ON _yello
+FOR EACH ROW EXECUTE PROCEDURE yello_uuid_once();
+
+ALTER TABLE yello_coll_one 
+  ADD CONSTRAINT fk_yello_coll_one_yello_id FOREIGN KEY (yello_id)
+  REFERENCES _yello(id) ON DELETE CASCADE;
+
+ALTER TABLE yello_coll_one 
+  ADD CONSTRAINT fk_yello_coll_one_one_id FOREIGN KEY (one_id)
+  REFERENCES simple_one(id) ON DELETE CASCADE;
+};
+eq_or_diff join( "\n", $sg->constraints_for_class($has_many) ), $constraints,
+  '... with the correct constraints';
+
+$view = q{CREATE VIEW yello AS
+  SELECT _yello.id AS id, _yello.uuid AS uuid, _yello.state AS state, _yello.age AS age
+  FROM   _yello;
+};
+is $sg->view_for_class($has_many), $view, '... and the correct view';
+
+$insert = q{CREATE RULE insert_yello AS
+ON INSERT TO yello DO INSTEAD (
+  INSERT INTO _yello (id, uuid, state, age)
+  VALUES (NEXTVAL('seq_yello'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.age);
+);
+};
+is $sg->insert_for_class($has_many), $insert, '... and the correct insert';
+
+$update = q{CREATE RULE update_yello AS
+ON UPDATE TO yello DO INSTEAD (
+  UPDATE _yello
+  SET    state = NEW.state, age = NEW.age
+  WHERE  id = OLD.id;
+);
+};
+eq_or_diff $sg->update_for_class($has_many), $update,
+  '... and the correct update for the class';
+
+$delete = q{CREATE RULE delete_yello AS
+ON DELETE TO yello DO INSTEAD (
+  DELETE FROM _yello
+  WHERE  id = OLD.id;
+);
+};
+is $sg->delete_for_class($has_many), $delete,
+    '... and the correct delete for the class';
+
+# Check that a complete schema is properly generated.
+eq_or_diff join ( "\n", $sg->schema_for_class($has_many) ),
+  join( "\n", $seq, $table, $indexes, $constraints, $view, $insert, $update,
+    $delete ), "... Schema class generates complete schema";
+
+##############################################################################
 # Grab the composed class.
 ok my $composed = Kinetic::Meta->for_key('composed'), "Get composed class";
 is $composed->key,   'composed',  "... Composed class has key 'composed'";
@@ -592,7 +693,7 @@ $table = q{CREATE TABLE _composed (
     color TEXT
 );
 };
-eq_or_diff $sg->table_for_class($composed), $table,
+eq_or_diff $sg->tables_for_class($composed), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -708,7 +809,7 @@ $table = q{CREATE TABLE _comp_comp (
     composed_id INTEGER NOT NULL
 );
 };
-eq_or_diff $sg->table_for_class($comp_comp), $table,
+eq_or_diff $sg->tables_for_class($comp_comp), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -824,7 +925,7 @@ $table = q{CREATE TABLE _extend (
     two_id INTEGER NOT NULL
 );
 };
-eq_or_diff $sg->table_for_class($extend), $table,
+eq_or_diff $sg->tables_for_class($extend), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.
@@ -965,7 +1066,7 @@ $table = q{CREATE TABLE _types_test (
     attribute ATTRIBUTE
 );
 };
-eq_or_diff $sg->table_for_class($types_test), $table,
+eq_or_diff $sg->tables_for_class($types_test), $table,
   "... Schema class generates CREATE TABLE statement";
 
 # Check that the CREATE INDEX statements are correct.

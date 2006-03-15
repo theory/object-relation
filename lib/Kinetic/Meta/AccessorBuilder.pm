@@ -7,6 +7,9 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
+use aliased 'Kinetic::Store';
+use aliased 'Kinetic::Util::Collection';
+
 use Kinetic::Util::Exceptions qw(throw_invalid throw_read_only);
 use Class::Meta;
 
@@ -87,8 +90,27 @@ the same name as the attribute itself.
 
 =cut
 
+my $has_many_builder = sub {
+    my ($attr, $name, @checks) = @_;
+    (my $key = $attr->type) =~ s/^collection_//; # XXX :(
+    my $store = Store->new;
+    return sub {
+        my $self = shift;
+        if (@_) {
+            $_->($_[0], $name, $self) for @checks;
+            _set( $self, $name, shift );
+        }
+        else {
+            return $self->{$name} ? $self->{$name}
+                 : $self->uuid    ? $store->_get_collection( $self, $attr )
+                 :                  Collection->empty;
+        }
+    };
+};
+
 my %builders = (
     default => {
+        has_many => $has_many_builder,
         get => sub {
             my $name = shift;
             return sub {
@@ -230,6 +252,19 @@ sub build {
     # If we get here, it's an object attribute.
     my $bake    = Kinetic::Meta::Type->new($attr->type)->bake;
     my $builder = $bake ? $builders{bake} : $builders{default};
+ 
+    # Create any delegation methods.
+    if (my $rel = $attr->relationship) {
+        if ($rel eq 'type_of') {
+            _delegate($pkg, $attr, Class::Meta::READ);
+        } elsif ($rel eq 'extends' || $rel eq 'mediates') {
+            _delegate($pkg, $attr, Class::Meta::RDWR);
+        } elsif ($rel eq 'has_many') {
+            *{"$pkg\::$name"} = $builder->{has_many}->($attr, $name, @checks);
+            return;
+        }
+    }
+
     if ($create == Class::Meta::GET) {
         # Create GET accessor.
         *{"${pkg}::$name"} = $builder->{get}->($name, $bake);
@@ -237,15 +272,6 @@ sub build {
         # Create GETSET accessor(s).
         unshift @checks, $bake if $bake;
         *{"${pkg}::$name"} = $builder->{getset}->($attr, $name, @checks);
-    }
-
-    # Create any delegation methods.
-    if (my $rel = $attr->relationship) {
-        if ($rel eq 'type_of') {
-            _delegate($pkg, $attr, Class::Meta::READ);
-        } elsif ($rel eq 'extends' || $rel eq 'mediates') {
-            _delegate($pkg, $attr, Class::Meta::RDWR);
-        }
     }
 }
 

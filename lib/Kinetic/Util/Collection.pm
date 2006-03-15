@@ -23,12 +23,21 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use Kinetic::Util::Exceptions qw(throw_invalid);
+use Kinetic::Meta;
+use Kinetic::Util::Exceptions qw(throw_invalid throw_invalid_class);
 use aliased 'Kinetic::Util::Iterator';
+use aliased 'Array::AsHash';
+
+use Scalar::Util qw(blessed refaddr);
 
 # to simplify the code, we use -1 instead of undef for "null" indexes
 use Readonly;
 Readonly our $NULL => -1;
+
+sub _key($) {
+    my $thing = shift;
+    return defined $thing->uuid ? $thing->uuid : refaddr $thing;
+}
 
 =head1 Name
 
@@ -38,19 +47,32 @@ Kinetic::Util::Collection - Kinetic collection class
 
   use Kinetic::Util::Collection;
 
-  my $coll = Kinetic::Util::Collection->new($iterator);
+  my $coll = Kinetic::Util::Collection->new(
+     {
+         iter => $iterator,
+         key  => $key        # optional
+     }
+  );
   while (my $thing = $coll->next) {
       # Do something with $thing.
   }
 
 =head1 Description
 
-This class provides an interface for accessing a collection of items,
-generally Kinetic objects. Users generally won't create collection objects
-directly, but will get them back from accessor methods for collections of
-objects related to an object.
+This class provides an interface for accessing a collection of Kinetic
+objects. Users generally won't create collection objects directly, but will
+get them back from accessor methods for collections of objects related to an
+object.
 
-=cut
+Note that the collection is essentially an ordered set.  Duplicate items are
+not allowed and order is important.
+
+Also, a collection can be for objects other than Kinetic objects, but the
+objects must provide a C<uuid> method.
+
+If the key is not supplied, the collection is untyped.  If the key is
+supplied, the collection is I<typed>.  All objects in the collection must
+either be Kinetic classes or subclasses for the key C<$key>.  =cut
 
 ##############################################################################
 # Constructors.
@@ -79,33 +101,87 @@ B<Throws:>
 =cut
 
 sub new {
-    my ($class, $iter) = @_;
+    my ( $class, $arg_for ) = @_;
+    $arg_for ||= {};
+    my ( $iter, $key ) = @{$arg_for}{qw/iter key/};
     {
-        local $^W; # suppress uninitialized warnings
-        throw_invalid ['Argument "[_1]" is not a valid [_2] object', $iter, Iterator]
-          unless UNIVERSAL::isa($iter, Iterator);
+        $iter ||= '';
+        throw_invalid [
+            'Argument "[_1]" is not a valid [_2] object',
+            $iter,
+            Iterator
+          ]
+          unless eval { $iter->isa(Iterator) };
     }
-    bless {
-        iter  => $iter,
-        index => $NULL,
-        array => [],
-        got   => $NULL,
-    }, $class;
+
+    my $self = {
+        iter    => $iter,
+        index   => $NULL,
+        array   => AsHash->new( { strict => 1 } ),
+        got     => $NULL,
+        key     => $key,
+        package => undef,
+    };
+    $class = $class->_set_package($self);
+    bless $self, $class;
+}
+
+##############################################################################
+
+=head3 empty
+
+  my $collection = Kinetic::Util::Collection->empty;
+  my $collection = Kinetic::Util::Collection->empty( $key );
+
+Syntactic sugar for creating a new, empty collection.  Takes an optional key
+to force a typed collection.
+
+=cut
+
+sub empty {
+    my $class = shift;
+    my @key;
+    @key = ( key => shift ) if @_;
+    return $class->new( { iter => Iterator->new( sub { } ), @key } );
 }
 
 ##############################################################################
 
 =head3 from_list
 
-  my $coll = Kinetic::Util::Collection->from_list(@list);
+  my $coll = Kinetic::Util::Collection->from_list(
+     {
+         list => \@list,
+         key  => $key,    # optional
+     }
+ );
 
-When passed a list, returns a collection object for said list.
+When passed a list, returns a collection object for said list.  If the key is
+present, all objects in C<@list> must be objects whose classes correspond to
+said key.
+
+For convenience, this method may also be called from a collection instance and
+it returns a new collection.  Uses the collection type, if any, from the
+invoking instance, unless an explicit key is used.
+
+ # will be the same type as $old_coll
+ my $coll = $old_coll->from_list({ list => \@list });
+
+ # will ignore the type of $old_coll
+ my $coll = $old_coll->from_list({ list => \@list, key => 'customer' });
 
 =cut
 
 sub from_list {
-    my ($class, @list) = @_;
-    return $class->new(Iterator->new(sub {shift @list}));
+    my ( $proto, $arg_for ) = @_;
+    my $class = ref $proto || $proto;
+    $arg_for ||= {};
+    my ( $list, $key ) = @{$arg_for}{qw/list key/};
+    my @key;
+    push @key => ( key => $key ) if defined $key;
+    my @list = @$list;    # copy the array to avoid changing called array
+    return $class->new(
+        { iter => Iterator->new( sub { shift @list } ), @key } );
 }
 
 ##############################################################################
@@ -131,23 +207,34 @@ position of the index.
 
 =cut
 
-# I am forced to conclude that iterators are not permitted to return an undef
-# value.  This is annoying.
-
 sub next {
     my $self = shift;
-    if (defined $self->{got} && $self->{got} > $self->{index}) {
+    if ( defined $self->{got} && $self->{got} > ( $self->index || 0 ) ) {
+
         # we've been here before
-        $self->{index}++;
-        return $self->{array}[$self->{index}];
+        $self->_inc_index;
+        return $self->curr;
     }
-    my $result = $self->iter->next;
+    my $result = $self->_check( $self->iter->next );
     return unless defined $result;
-    $self->{got} = ++$self->{index};
-    push @{$self->{array}} => $result;
+    $self->_inc_index;
+    $self->{got} = $self->index;
+    $self->_array->push( _key $result, $result );
     return $result;
 }
 
+##############################################################################
+
+=head3 package
+
+  my $package = $collection->package;
+
+If the collection is typed (see C<new>), this method will return the type of
+objects allowed in the collection.
+
+=cut
+
+sub package { shift->{package} }
 
 ##############################################################################
 
@@ -161,8 +248,8 @@ Returns the value at the current position of the collection.
 
 sub curr {
     my $self = shift;
-    return if $self->{index} == $NULL;
-    return $self->{array}[$self->{index}];
+    return if $self->index == $NULL;
+    return $self->_check( $self->_array->value_at( $self->index ) );
 }
 
 ##############################################################################
@@ -191,9 +278,9 @@ the collection, this method returns undef and does not change the position.
 
 sub prev {
     my $self = shift;
-    return unless $self->{index} > 0;
-    return $self->{array}[--$self->{index}];
-
+    return unless $self->index > 0;
+    $self->_dec_index;
+    return $self->curr;
 }
 
 ##############################################################################
@@ -206,7 +293,7 @@ This method returns the iterator the collection has.
 
 =cut
 
-sub iter { $_[0]->{iter} }
+sub iter { shift->{iter} }
 
 ##############################################################################
 
@@ -220,9 +307,9 @@ current position of the collection to C<$index>.
 =cut
 
 sub get {
-    my ($self, $index) = @_;
+    my ( $self, $index ) = @_;
     $self->_fill_to($index);
-    return $self->{array}[$index];
+    return $self->_check( $self->_array->value_at($index) );
 }
 
 ##############################################################################
@@ -235,12 +322,13 @@ Sets the value of the collection at C<$index> to C<$value>.
 
 =cut
 
-# Should we allow optional typing?
-
 sub set {
-    my ($self, $index, $value) = @_;
+    my ( $self, $index, $value ) = @_;
+    $value = $self->_check($value);
     $self->_fill_to($index);
-    $self->{array}[$index] = $value;
+    my $array = $self->_array;
+    my $key   = $array->key_at($index);
+    $array->put( $key, $value );
 }
 
 ##############################################################################
@@ -286,7 +374,7 @@ Returns the number of items in the collection.
 sub size {
     my $self = shift;
     $self->_fill;
-    return scalar @{$self->{array}};
+    return scalar $self->_array->hcount;
 }
 
 ##############################################################################
@@ -301,50 +389,11 @@ Empties the collection.
 
 sub clear {
     my $self = shift;
-    $self->{iter}->all if defined $self->{got};
+    $self->iter->all if defined $self->{got};
     $self->{got}   = undef;
     $self->{index} = $NULL;
-    @{$self->{array}} = ();
+    $self->{array} = AsHash->new( { strict => 1 } );
 }
-
-##############################################################################
-
-=head3 splice
-
- my @list = $coll->splice(@splice_args);
-
-Operates just like C<splice>.
-
-=cut
-
-sub splice {
-    my $self = shift;
-    return unless @_;
-    $self->_fill;
-    return CORE::splice(@{$self->{array}}, shift           ) if 1 == @_;
-    return CORE::splice(@{$self->{array}}, shift, shift    ) if 2 == @_;
-    return CORE::splice(@{$self->{array}}, shift, shift, @_);
-}
-
-##############################################################################
-
-=begin comment
-
-=head3 extend
-
-XXX we can't implement this.  Since we cannot return undef elements, there is
-no way to extend the array.  This will be deleted unless David has a different
-viewpoint.
-
-=end comment
-
-=cut
-
-#sub extend {
-#    my ($self, $index) = @_;
-#    $#{$self->{array}} = $index unless $#{$self->{array}} >= $index;
-#}
-
 
 ##############################################################################
 
@@ -358,7 +407,7 @@ Peek at the next item of the list without advancing the collection.
 
 sub peek {
     my $self = shift;
-    return $self->get($self->{index} + 1);
+    return $self->get( $self->index + 1 );
 }
 
 ##############################################################################
@@ -376,7 +425,7 @@ sub all {
     my $self = shift;
     $self->_fill;
     $self->reset;
-    return wantarray ? @{$self->{array}} : $self->{array};
+    return $self->_array->values;
 }
 
 ##############################################################################
@@ -392,9 +441,9 @@ is applied from the beginning of the collection.
 =cut
 
 sub do {
-    my ($self, $code) = @_;
+    my ( $self, $code ) = @_;
     $self->reset;
-    while (defined (my $item = $self->next)) {
+    while ( defined( my $item = $self->next ) ) {
         return unless $code->($item);
     }
 }
@@ -420,14 +469,15 @@ implicitly by C<clear()>, which calls C<all()>.
 sub _fill {
     my $self = shift;
     return unless defined $self->{got};
-    push @{$self->{array}}, $self->{iter}->all;
+    $self->_array->push( map { _key $_, $self->_check($_) }
+          $self->iter->all );
 }
 
 ##############################################################################
 
 =head3 _fill_to
 
-  $coll->_fill_to($index);t
+  $coll->_fill_to($index);
 
 Like C<_fill>, but only fills the collection up to the specified index.  This
 is usefull when you must fill part of the collection but filling all of it
@@ -436,14 +486,119 @@ would be expensive.
 =cut
 
 sub _fill_to {
-    my ($self, $index) = @_;
-    if (defined $self->{got} && $index > $self->{got}) {
-        push @{$self->{array}}, $self->{iter}->next
-          while $self->{iter}->peek && $index > $self->{got}++;
-        $self->{got} = undef unless defined $self->{iter}->current;
+    my ( $self, $index ) = @_;
+    if ( defined $self->{got} && $index > $self->{got} ) {
+        my $array = $self->_array;
+        my $iter  = $self->iter;
+        while ( $iter->peek && $index > $self->{got}++ ) {
+            my $next = $iter->next;
+            $array->push( _key $next, $self->_check($next) );
+        }
+        $self->{got} = undef unless defined $iter->current;
     }
     return $self;
 }
+
+##############################################################################
+
+=head3 _array
+
+  my $array = $collection->_array;
+
+Returns the C<Array::AsHash> object.  For internal use only.  If ingested, do
+not induce vomiting.
+
+=cut
+
+sub _array { shift->{array} }
+
+##############################################################################
+
+=head3 _inc_index
+
+  $collection->_inc_index;
+
+Increments the collection index by one.
+
+=cut
+
+sub _inc_index { shift->{index}++ }
+
+##############################################################################
+
+=head3 _dec_index
+
+  $collection->_dec_index;
+
+Decrements the collection index by one.
+
+=cut
+
+sub _dec_index { shift->{index}-- }
+
+##############################################################################
+
+=head3 _check
+
+  $value = $collection->_check($value);
+
+Returns the C<$value> unchanged for untyped collections.  Otherwise, throws a
+C<Kinetic::Exception::Fatal::Invalid> exception if the C<$value> does not
+match the collection type (class or subclass).
+
+=cut
+
+sub _check {
+    my ( $self, $value ) = @_;
+    return unless defined $value;
+    my $package = $self->package or return $value;
+    return $value if $value->isa($package);
+    throw_invalid [
+        'Value "[_1]" is not a valid [_2] object',
+        $value,
+        $package
+    ];
+}
+
+##############################################################################
+
+=head3 _set_package 
+
+  my $package = Kinetic::Util::Collection->_set_package($self_hashref);
+
+If we have a typed collection, this method sets the package and key for the
+collection.  As an arguments, takes the hashref which will eventually be
+blessed into the class.  Returns the correct class to bless the hashref into.
+
+=cut
+
+sub _set_package {
+    my ( $class, $hashref ) = @_;
+    my $key = $hashref->{key};
+    if ( __PACKAGE__ ne $class ) {
+        my $package = __PACKAGE__;
+        ( $key = $class ) =~ s/^$package\:://;
+        $key = lc $key;
+    }
+    my $package;
+    if ( defined $key ) {
+
+        # we have a typed collection!
+        my $class_object = Kinetic::Meta->for_key($key)
+          or throw_invalid_class [
+            'I could not find the class for key "[_1]"',
+            $key
+          ];
+        $hashref->{package} = $class_object->package;
+        $hashref->{key}     = $key;
+
+        $class = __PACKAGE__ . "::\u$key";
+        no strict 'refs';
+        @{"$class\::ISA"} = __PACKAGE__;
+    }
+    return $class;
+}
+
 =end private
 
 =cut

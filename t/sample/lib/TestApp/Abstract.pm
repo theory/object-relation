@@ -1,5 +1,10 @@
 package TestApp::Abstract;
-use base 'Kinetic';
+
+use strict;
+use warnings;
+
+use Kinetic::Meta;
+use Kinetic::Meta::Widget;
 use Kinetic::Util::Language::en_us;
 
 BEGIN {

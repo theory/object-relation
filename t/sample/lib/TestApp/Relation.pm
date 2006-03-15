@@ -1,10 +1,11 @@
 package TestApp::Relation;
-use base 'Kinetic';
-use TestApp::Simple;
-use TestApp::Simple::One;
-use Kinetic::Util::Language::en_us;
+
+use strict;
+use warnings;
+
 use Kinetic::Meta::Declare ':all';
 use Kinetic::Meta::Widget;
+use Kinetic::Util::Language::en_us;
 
 Kinetic::Meta::Declare->new(
     meta => [

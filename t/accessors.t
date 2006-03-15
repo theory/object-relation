@@ -122,6 +122,7 @@ eval { $t->get_ro };
 ok( $@, "Cannot use affordance accessor" );
 eval { $t->ro(2) };
 ok( $@, "Cannot set ro attribute" );
+
 ok( my $attr = $class->attributes('ro'), "Get ro attribute" );
 is( $attr->get($t), 1, "Check ro via attribute object" );
 is( $attr->raw($t), 1, "Check ro raw value");

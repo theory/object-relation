@@ -40,6 +40,7 @@ our $VERSION = version->new('0.0.1');
 use Exporter::Tidy default => ['parse'];
 use HOP::Stream qw/drop list_to_stream/;
 use HOP::Parser qw/:all/;
+use Scalar::Util 'blessed';
 
 use Kinetic::DataType::DateTime::Incomplete qw/is_incomplete_iso8601/;
 use Kinetic::Store::Search;
@@ -429,9 +430,12 @@ sub _normalize_value {
 
 sub parse {
     my ( $stream, $store ) = @_;
-    unless ( defined $store && UNIVERSAL::isa( $store, 'Kinetic::Store' ) ) {
-        throw_search [ 'Argument "[_1]" is not a valid [_2] object', 2,
-            'Kinetic::Store' ];
+    unless ( blessed $store && $store->isa('Kinetic::Store') ) {
+        throw_search [ 
+            'Argument "[_1]" is not a valid [_2] object', 
+             2,
+            'Kinetic::Store'
+        ];
     }
     $STORE = $store;
     my ( $results, $remainder ) = eval { $entire_input->($stream) };

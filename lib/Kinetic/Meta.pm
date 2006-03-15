@@ -19,6 +19,9 @@ use Kinetic::Util::Exceptions qw(
 );
 use Class::Meta::Types::String;    # Move to DataTypes.
 
+use Readonly;
+Readonly my $BASE_CLASS => 'Kinetic';
+
 =head1 Name
 
 Kinetic::Meta - Kinetic class automation, introspection, and data validation
@@ -28,7 +31,6 @@ Kinetic::Meta - Kinetic class automation, introspection, and data validation
   package MyThingy;
 
   use strict;
-  use base 'Kinetic::Base';
 
   BEGIN {
       my $cm = Kinetic::Meta->new(
@@ -46,6 +48,10 @@ automation, introspection, and data validation for Kinetic classes. It
 overrides the behavior of Class::Meta to specify the use of the
 L<Kinetic::Meta::Class|Kinetic::Meta::Class> subclass in place of
 Class::Meta::Class.
+
+Any class created with L<Kinetic::Meta|Kinetic::Meta> will automatically have
+L<Kinetic|Kinetic> pushed onto its C<@ISA> array unless it already inherits
+from L<Kinetic|Kinetic>.
 
 =head1 Dynamic APIs
 
@@ -134,9 +140,34 @@ sub new {
         method_class    => $pkg->method_class,
     );
 
-    my $class = $self->class;
+    my $class    = $self->class;
+    my $package  = $class->package;
     my $extended = $class->extends;
     my $mediated = $class->mediates;
+
+    unless ( $BASE_CLASS eq $package ) { # no circular inheritance
+        unless ( $package->isa($BASE_CLASS) ) {
+            # force packages to inherit from Kinetic
+            # XXX unfortunately, there's some deep magic in "use base" which
+            # causes the simple "push @ISA" to fail.
+            #no strict 'refs';
+            #push @{"$package\::ISA"}, $BASE_CLASS;
+            eval <<"            ADD_BASE_CLASS";
+            package $package;
+            use base '$BASE_CLASS';
+            ADD_BASE_CLASS
+            if ( my $error = $@ ) {
+                # this should never happen ...
+                # If it does, there's a good chance you're in the wrong
+                # directory and the config file can't be found.
+                throw_invalid_class [
+                    'I could not load the class "[_1]": [_2]',
+                    $BASE_CLASS, 
+                    $error,
+                ];
+            }
+        }
+    }
 
     if ($extended and $mediated) {
         throw_invalid_class [
@@ -147,7 +178,6 @@ sub new {
 
     # Set up attributes if this class extends another class.
     elsif ($extended) {
-        my $package = $class->package;
         my $ext_pkg = $extended->package;
 
         # Make sure that we're not using inheritance!
@@ -361,8 +391,8 @@ sub _add_delegates {
              default => $def,
         relationship => $rel,
         widget_meta  => Kinetic::Meta::Widget->new(
-            type => 'search',
-            tip  => $ref->{label},
+                type => 'search',
+                tip  => $ref->{label},
         ),
     );
 
@@ -376,6 +406,7 @@ sub _add_delegates {
     # only by _add_delegates(). It won't return any for the current class
     # until after build() is called, and since this is new(), the class itself
     # hasn't declared any yet!
+
     my %attrs = map { $_->name => undef }
         $class->attributes, $parent->attributes;
 

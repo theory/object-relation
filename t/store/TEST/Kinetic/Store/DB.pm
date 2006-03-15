@@ -23,6 +23,7 @@ use aliased 'TestApp::Extend';
 use aliased 'TestApp::Relation';
 use aliased 'TestApp::Composed';
 use aliased 'TestApp::TypesTest';
+use aliased 'TestApp::HasMany';
 
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->any_supported(qw/pg sqlite/)
@@ -176,7 +177,8 @@ sub where_clause : Test(11) {
     is $where,
       '(LOWER(name) = LOWER(?) OR (LOWER(desc) = LOWER(?) AND this = ?)) AND state > ?',
       'and compound where snippets with array refs should succeed';
-    is_deeply $bind, [qw/foo bar that -1/], 'and return the correct bind params';
+    is_deeply $bind, [qw/foo bar that -1/],
+      'and return the correct bind params';
 
     $store->{search_data}{columns} = [
         qw/
@@ -694,6 +696,40 @@ sub test_extend : Test(45) {
         is_deeply [ map { '' . $_->two } @extends ], ["$two", "$two"],
             'And in fact they should point to the very same Two object';
     }
+}
+
+sub test_has_many : Test(13) {
+    my $self = shift;
+    return 'Skip test_has_many for abstract class' unless $self->_should_run;
+    ok my $has_many = HasMany->new( age => 32 ), 'Create a HasMany object';
+    ok $has_many->save, 'Save the HasMany object';
+    
+    ok my $coll = $has_many->ones,
+        'The collection slot should have a default value';
+    isa_ok $coll, 'Kinetic::Util::Collection::One',
+        '... and the object it contains';
+    my @all = $coll->all;
+    ok !@all, '... and it should be an empty collection';
+     
+    my @ones = map { One->new( name => $_ ) } qw/uno dos tres/;
+    $has_many->ones( $coll->from_list( { list => \@ones } ) );
+    ok $has_many->save,
+        'We should be able to save the object with a new collection';
+    foreach my $one (@ones) {
+        ok defined $one->uuid,
+            '... and the collection objects should now have uuids';
+    } # 9 tests
+
+    ok my $has_many_2 = HasMany->lookup( uuid => $has_many->uuid ),
+        'We should be able to lookup has_many objects';
+    $has_many_2->state; # inflate
+    ok my $coll_2 = $has_many_2->ones,
+        '... and the should have collections';
+    isa_ok $coll_2, 'Kinetic::Util::Collection::One',
+        '... and the collection';
+    my $all_2 = $coll_2->all;
+    $_->state foreach @$all_2; 
+    is_deeply $all_2, \@ones, '... and it should have the correct objects';
 }
 
 sub test_mediate : Test(43) {

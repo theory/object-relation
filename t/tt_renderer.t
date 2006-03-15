@@ -16,8 +16,7 @@ use Test::XML;
 my $RENDERER;
 
 BEGIN {
-    chdir 't' if -d 't';
-    use lib '../lib';
+    use lib 'lib';
     $RENDERER = 'Kinetic::UI::TT::Plugin::Renderer';
     use_ok $RENDERER or die;
 }
@@ -43,12 +42,14 @@ BEGIN {
 
     package Some::Package;
 
-    use Kinetic::Meta;
+    use Kinetic::Meta::Declare ':all';
     use aliased 'Kinetic::Meta::Widget';
-    use Class::Meta::Declare qw/:all/;
 
-    Class::Meta::Declare->new(
-        meta       => [ use => 'Kinetic::Meta' ],
+    Kinetic::Meta::Declare->new(
+        meta => [
+            key         => 'some_package',
+            plural_name => 'Some packages',
+        ],
         attributes => [
             foo => {
                 label       => 'Foo',
@@ -247,6 +248,8 @@ $expected = <<'END_EXPECTED';
     <p>Order by:</p>
     <p>
         <select name="_order_by">
+            <option value="uuid">UUID</option>
+            <option value="state">State</option>
             <option value="foo">Foo</option>
             <option value="check">Checkbox</option>
             <option value="some_text_area">Text area</option>

@@ -76,7 +76,7 @@ sub schema_for_class {
       map       { $self->$_($class) }
       qw(
       sequence_for_class
-      table_for_class
+      tables_for_class
       indexes_for_class
       constraints_for_class
       view_for_class
@@ -156,20 +156,58 @@ sub sequence_for_class { return '' }
 
 ##############################################################################
 
-=head3 table_for_class
+=head3 tables_for_class
 
-  my $table_sql = $kbs->table_for_class($class);
+  my $table_sql = $kbs->tables_for_class($class);
 
 This method takes a class object. It returns a C<CREATE TABLE> SQL statement
 for the class.
 
 =cut
 
-sub table_for_class {
+sub tables_for_class {
     my ( $self, $class ) = @_;
+    my @tables;
     my $sql = $self->start_table($class);
     $sql .= "    " . join ",\n    ", $self->columns_for_class($class);
-    return $sql . $self->end_table($class);
+    $sql .= $self->end_table($class);
+    push @tables, $sql;
+    foreach my $attribute ( $class->attributes ) {
+        next unless $attribute->collection_of;
+        push @tables, $self->collection_table($class, $attribute);
+    }
+    return @tables;
+}
+
+##############################################################################
+
+=head3 collection_table 
+
+  my $coll_class = $attribute->collection_of;
+  my $table      = $kbs->collection_table($class, $coll_class);
+
+For an attribute which represents a collection of objects, for example,
+attributes which have a C<has_many> relationship, the primary table will not
+have a column representing the attribute.  Instead, another table representing
+the relationship is created.  This method will return the C<CREATE TABLE>
+statement for that table.
+
+=cut
+
+sub collection_table {
+    my ($self, $class, $attribute) = @_;;
+    my $class_key  = $class->key;
+    my $coll_class = $attribute->collection_of;
+    my $table      = $attribute->collection_table;
+    my $coll_key   = $coll_class->key;
+    return <<"    END_SQL";
+CREATE TABLE $table (
+    $class_key\_id INTEGER NOT NULL,
+    $coll_key\_id INTEGER NOT NULL,
+    rank INTEGER NOT NULL,
+    PRIMARY KEY ($class_key\_id, $coll_key\_id)
+);
+    END_SQL
 }
 
 ##############################################################################
@@ -178,7 +216,7 @@ sub table_for_class {
 
   my $start_table_sql = $kbs->start_table($class);
 
-This method is called by C<table_for_class()> to generate the opening
+This method is called by C<tables_for_class()> to generate the opening
 statement for creating a table.
 
 =cut
@@ -195,7 +233,7 @@ sub start_table {
 
   my $end_table_sql = $kbs->end_table($class);
 
-This method is called by C<table_for_class()> to generate the closing
+This method is called by C<tables_for_class()> to generate the closing
 statement for creating a table.
 
 =cut
@@ -381,8 +419,11 @@ string, each separated by a "\n".
 
 sub indexes_for_class {
     my ( $self, $class ) = @_;
-    return join '', map { $self->index_for_attr( $class => $_ ) }
-      grep { $_->index } $class->table_attributes;
+    my @indexes = 
+      map  { $self->index_for_attr( $class => $_ ) }
+      grep { $_->index } 
+      $class->table_attributes;
+    return join q{}, @indexes, $self->_collection_indexes($class);
 }
 
 ##############################################################################
@@ -405,6 +446,32 @@ sub index_for_attr {
     my $name   = $attr->index($class);
     my $on     = $self->index_on($attr);
     return "CREATE$unique INDEX $name ON $table ($on);\n";
+}
+
+##############################################################################
+
+=head3 _collection_indexes 
+
+  my @collection_indexes = $kbs->_collection_indexes($class);
+
+For a given class, this method will return all collection indexes for the
+class.
+
+=cut
+
+sub _collection_indexes {
+    my ( $self, $class ) = @_;
+    my @attributes = grep { $_->collection_of } $class->attributes;
+    return unless @attributes;
+    my @indexes;
+    my $class_key = $class->key;
+    foreach my $attr (@attributes) {
+        my $table    = $attr->collection_table;
+        push @indexes, "CREATE UNIQUE INDEX idx_$table "
+                     . "ON $table "
+                     . "($class_key\_id, rank);\n";
+    }
+    return @indexes;
 }
 
 ##############################################################################
