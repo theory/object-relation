@@ -9,6 +9,7 @@ use base 'TEST::Class::Kinetic';
 
 use Test::More;
 use aliased 'Test::MockModule';
+use Kinetic::Util::Constants qw($UUID_RE);
 
 sub class_key { 'kinetic' }
 sub class     { Kinetic::Meta->for_key(shift->class_key) };
@@ -88,7 +89,7 @@ sub test_new : Test(6) {
 
     isa_ok $obj, $pkg;
     isa_ok $obj, 'Kinetic';
-    is $obj->uuid, undef,   '...Its UUID should be undef';
+    like $obj->uuid, $UUID_RE,   '...Its UUID should be defined';
 
     # Test attributes.
 }
@@ -101,7 +102,7 @@ sub test_save : Test(8) {
 
     ok my $pkg   = $class->package, "Get $key package";
     ok my $obj   = $pkg->new,       "Construct new $pkg object";
-    is $obj->uuid, undef,           'UUID should be undef';
+    like $obj->uuid, $UUID_RE,      'UUID should be defined';
 
     # Set up any test values.
     if (my $vals = $self->attr_values) {

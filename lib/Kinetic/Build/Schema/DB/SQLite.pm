@@ -718,11 +718,11 @@ sub _insert_into_table {
           . join(', ', map { $_->column } $class->table_attributes )
           . ")\n  VALUES ($pk"
           . join(', ', map {
-              if (my $def = $self->column_default($_)) {
+              if ($_->type eq 'uuid') {
+                  'COALESCE(NEW.' . $_->view_column . ', UUID_V4())';
+              } elsif (my $def = $self->column_default($_)) {
                   $def =~ s/DEFAULT\s+//;
                   'COALESCE(NEW.' . $_->view_column . ", $def)";
-              } elsif ($_->type eq 'uuid') {
-                  'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
               } else {
                   'NEW.' . $_->view_column;
               }
@@ -792,11 +792,11 @@ sub _extended_insert_into_table {
         . join(', ', map { $_->column } $impl->table_attributes )
         . ")\n  SELECT $pk"
         . join(', ', map {
-            if (my $def = $self->column_default($_)) {
+            if ($_->type eq 'uuid') {
+                'COALESCE(NEW.' . $_->view_column . ', UUID_V4())';
+            } elsif (my $def = $self->column_default($_)) {
                 $def =~ s/DEFAULT\s+//;
                 'COALESCE(NEW.' . $_->view_column . ", $def)";
-            } elsif ($_->type eq 'uuid') {
-                'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
             } else {
                 'NEW.' . $_->view_column;
             }
@@ -854,11 +854,11 @@ sub _extending_insert {
         . join(', ', map { $_->column } $class->table_attributes )
         . ")\n  VALUES ("
         . join(', ', map {
-            if (my $def = $self->column_default($_)) {
+            if ($_->type eq 'uuid') {
+                'COALESCE(NEW.' . $_->view_column . ', UUID_V4())';
+            } elsif (my $def = $self->column_default($_)) {
                 $def =~ s/DEFAULT\s+//;
                 'COALESCE(NEW.' . $_->view_column . ", $def)";
-            } elsif ($_->type eq 'uuid') {
-                'COALESCE(NEW.' . $_->view_column . ", UUID_V4())";
             } elsif ($_->type eq $ext_key) {
                 'COALESCE(NEW.' . $_->view_column . ", last_insert_rowid())";
             } else {

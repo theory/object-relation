@@ -4,10 +4,11 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 249;
+use Test::More tests => 244;
 #use Test::More 'no_plan';
 use Test::Exception;
-#use Test::NoWarnings; # Adds an extra test.
+use Test::NoWarnings; # Adds an extra test.
+use Kinetic::Util::Constants qw($UUID_RE);
 
 use Kinetic::Util::Collection;
 use aliased 'Kinetic::Util::Iterator';
@@ -432,11 +433,8 @@ is $attr->acts_as, $thingy_class->attributes('foo'),
 ok $ex->foo('fooey'), 'Should be able to set delegated attribute';
 is $ex->foo, $ex->thingy->foo, 'The value should have been passed through';
 
-is $ex->uuid, undef, 'The UUID should be undefined';
-is $ex->thingy_uuid, undef, 'And the thingy UUID should be undef';
-ok $ex->_save_prep, 'Prepare it for storage';
-ok $ex->uuid, 'The UUID should now be defined';
-ok $ex->thingy_uuid, 'And so should the thingy UUID';
+like $ex->uuid, $UUID_RE, 'The UUID should be defined';
+like $ex->thingy_uuid, $UUID_RE, 'And the thingy UUID should be defined';
 ok $ex->uuid ne $ex->thingy_uuid, 'And they should have different UUIDs';
 
 # We should get the trusted extended object attribute.
@@ -534,11 +532,8 @@ is $attr->acts_as, $thingy_class->attributes('foo'),
 ok $med->foo('fooey'), 'Should be able to set delegated attribute';
 is $med->foo, $med->thingy->foo, 'The value should have been passed through';
 
-is $med->uuid, undef, 'The UUID should be undefined';
-is $med->thingy_uuid, undef, 'And the thingy UUID should be undef';
-ok $med->_save_prep, 'Prepare it for storage';
-ok $med->uuid, 'The UUID should now be defined';
-ok $med->thingy_uuid, 'And so should the thingy UUID';
+like $med->uuid, $UUID_RE, 'The UUID should be defined';
+like $med->thingy_uuid, $UUID_RE, 'And the thingy UUID should be defined';
 ok $med->uuid ne $med->thingy_uuid, 'And they should have different UUIDs';
 
 # We should get the trusted mediateed object attribute.

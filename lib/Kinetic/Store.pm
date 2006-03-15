@@ -344,7 +344,7 @@ B<Throws:>
 
   my @uuids = $store->squery_uuids( $class => "@search_params" );
   my $uuids_aref = $store->squery_uuids( $class => "@search_params" );
-  
+
 Same as C<query_uuids> but uses a string search.
 
 =head3 count
@@ -415,20 +415,6 @@ B<Throws:>
 =head1 Private Methods
 
 =head2 Private Class Methods
-
-=head3 _save
-
-  $store->_save($object);
-
-This is the base implementation for saving Kinetic objects. All it does is cal
-the C<_save_prep()> method on the object to be saved.
-
-=cut
-
-sub _save {
-    my ( $self, $obj ) = @_;
-    $obj->_save_prep;
-}
 
 =head3 _add_store_meta
 
@@ -883,7 +869,7 @@ And naturally it works with numbers, too:
 =item LIKE
 
 The C<LIKE> operator is used to do a simple pattern match against a value.  Please
-consult your actual data store's documentation for exact implementation. 
+consult your actual data store's documentation for exact implementation.
 
 In the case of a RDBMs data store, this translates directly to an SQL C<LIKE>
 operator.

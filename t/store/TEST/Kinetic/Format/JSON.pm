@@ -67,7 +67,6 @@ sub serialize : Test(7) {
     my $test = shift;
     my $formatter = JSON->new( { pretty => 1, indent => 2 } );
     my ( $foo, $bar, $baz ) = $test->test_objects;
-    $foo->_save_prep;    # Force UUID generation.
     can_ok $formatter, 'serialize';
     ok my $json = $formatter->serialize($foo),
       '... and serializing an object should succeed';
@@ -88,7 +87,6 @@ sub serialize : Test(7) {
     # test contained object serialization
 
     my $two = Two->new;
-    $two->_save_prep;    # Force UUID generation.
     $two->name('june17');
     $two->date(
         DateTime->new(
@@ -152,6 +150,7 @@ sub deserialize : Test(5) {
         # information this way.
         $_->{description} = '' unless defined $_->{description};
     }
+    $test->force_inflation($new_foo);
     is_deeply $new_foo, $foo,
       '... and it should be able to deserialize a Kinetic object from JSON';
 
@@ -159,7 +158,6 @@ sub deserialize : Test(5) {
 
     my $two = Two->new;
     $two->age(20);
-    $two->uuid(create_uuid());
     $two->name('june17');
     $two->description('some description');
     $two->date(

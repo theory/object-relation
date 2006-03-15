@@ -525,7 +525,6 @@ top level.
 sub _save {
     my ( $self, $object ) = @_;
 
-    $object->_save_prep;
     local $self->{search_class} = $object->my_class;
     local $self->{view}         = $self->{search_class}->key;
 
