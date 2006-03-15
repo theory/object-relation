@@ -35,7 +35,7 @@ Kinetic::Contact - Kinetic contact objects
 
 =head1 Description
 
-This class represents contacts in TKP. 
+This class represents contacts in TKP.
 
 =cut
 
