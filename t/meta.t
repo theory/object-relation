@@ -4,10 +4,10 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 247;
-#use Test::More 'no_plan';
+#use Test::More tests => 250;
+use Test::More 'no_plan';
 use Test::Exception;
-use Test::NoWarnings; # Adds an extra test.
+#use Test::NoWarnings; # Adds an extra test.
 
 use Kinetic::Util::Collection;
 use aliased 'Kinetic::Util::Iterator';
@@ -387,9 +387,9 @@ ok my $coll2 = $has_many->thingies,
     'thingies() should return what it was set to';
 isa_ok $coll2, 'Kinetic::Util::Collection::Thingy',
     '... and the object it returns';
-is_deeply $coll2, $coll,
+is_deeply [$coll2->all], [$coll->all],
     '... and it should be identical to the stored collection';
-
+exit;
 
 my $thingy_class = Kinetic::Meta->for_key('thingy');
 can_ok $thingy_class, 'contained_in';
@@ -398,6 +398,12 @@ ok my @containers = $thingy_class->contained_in,
 is_deeply \@containers, [ $has_many->my_class ],
   '... and they should be the correct classes';
 
+ok my $container = $thingy_class->contained_in('cheese_pimple'),
+   'Fetching an individual container should succeed';
+is_deeply $container, $has_many->my_class,
+  '... and it should be the correct class';
+ok ! $thingy_class->contained_in('no_such_class'),
+  '... but contained_in() should report false as appropriate';
 
 ##############################################################################
 # Text extends class.

@@ -263,7 +263,7 @@ the key class.  Otherwise, returns false.
 sub contained_in {
     my $self = shift;
     my $contained_in = $self->{contained_in};
-    return map { $contained_in->{$_} } sort keys %$contained_in;
+    return map { $contained_in->{$_} } sort keys %$contained_in unless @_;
     my $key = shift;
     return $contained_in->{$key};
 }

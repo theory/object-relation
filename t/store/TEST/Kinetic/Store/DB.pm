@@ -177,7 +177,8 @@ sub where_clause : Test(11) {
     is $where,
       '(LOWER(name) = LOWER(?) OR (LOWER(desc) = LOWER(?) AND this = ?)) AND state > ?',
       'and compound where snippets with array refs should succeed';
-    is_deeply $bind, [qw/foo bar that -1/], 'and return the correct bind params';
+    is_deeply $bind, [qw/foo bar that -1/],
+      'and return the correct bind params';
 
     $store->{search_data}{columns} = [
         qw/

@@ -7,22 +7,23 @@ use warnings;
 use utf8;
 use Kinetic::Build::Test;
 
-use Test::More tests => 82;
+use Test::More tests => 95;
 #use Test::More 'no_plan';
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
 use File::Spec;
 use aliased 'Kinetic::Util::Iterator';
+use Kinetic::Util::Constants '$UUID_RE';
+use Data::UUID;
 
 {
 
     package Faux;
-    my $uuid = 1;
 
     sub new {
         my ( $class, $name ) = @_;
         bless {
-            uuid => $uuid++,
+            uuid => undef,
             name => $name,
         }, $class;
     }
@@ -30,6 +31,7 @@ use aliased 'Kinetic::Util::Iterator';
     sub id   { shift->{uuid} }
     sub name { shift->{name} }
     sub uuid { shift->{uuid} }
+    sub save { $_[0]->{uuid} ||= Data::UUID->new->create_str; $_[0] }
 }
 
 my $CLASS;
@@ -53,8 +55,13 @@ throws_ok {
   qr/Argument “.*” is not a valid Kinetic::Util::Iterator object/,
   '... and as should calling with without a proper iterator object';
 
+#
+# A collection of unsaved objects (they don't yet have UUIDs)
+#
+
 my @items = map { Faux->new($_) } qw/fee fie foe fum/;
-my $iter = Iterator->new( sub { shift @items } );
+my @copy  = @items;
+my $iter  = Iterator->new( sub { shift @copy } );
 ok my $coll = $CLASS->new( { iter => $iter } ),
   'Calling new() with a valid iterator object should succeed';
 isa_ok $coll, $CLASS => '... and the object it returns';
@@ -75,9 +82,59 @@ is $coll->next->name, 'fum',
 ok !defined $coll->next,
   '... but when we get to the end it should return undef';
 
+#
+# A bit of internals testing to ensure that objects don't need a UUID to be
+# saved correctly.
+#
+# Sorry 'bout that.
+#
+
+can_ok $coll, '_array';
+ok my $array = $coll->_array, '... and we should be the AsHash object';
+my @keys = $array->keys;
+ok !grep {/$UUID_RE/} @keys, '... and none of the keys should match a UUID';
+
+#
+# A collection of saved objects (they do have UUIDs)
+#
+
+$_->save foreach @items;
+
+$iter = Iterator->new( sub { shift @items } );
+ok $coll = $CLASS->new( { iter => $iter } ),
+  'Calling new() with saved objects should succeed';
+isa_ok $coll, $CLASS => '... and the object it returns';
+
+ok !defined $coll->package,
+  '... and the collection package should be undefined for untyped collections';
+
+is $coll->next->name, 'fee',
+  '... and it should return the correct value (fee)';
+is $coll->next->name, 'fie',
+  '... and it should return the correct value (fie)';
+is $coll->next->name, 'foe',
+  '... and it should return the correct value (foe)';
+is $coll->next->name, 'fum',
+  '... and it should return the correct value (fum)';
+ok !defined $coll->next,
+  '... but when we get to the end it should return undef';
+
+#
+# A wee bit more internals testing.
+#
+
+ok $array = $coll->_array, '... and we should be the AsHash object';
+@keys = $array->keys;
+is scalar(grep {/$UUID_RE/} @keys), scalar(@keys),
+  '... and all of the keys should match a UUID';
+
 can_ok $coll, 'curr';
 is $coll->curr->name, 'fum',
   '... and it should return the current value the collection is pointing to.';
+
+#
+# Now let's walk backwards through the collection
+#
 
 can_ok $coll, 'prev';
 is $coll->prev->name, 'foe',
@@ -98,7 +155,11 @@ is $coll->next->name, 'fum', '... until the last position';
 ok !defined $coll->next, '... but there exists nothing after the end';
 is $coll->curr->name, 'fum', '... and curr() *still* works :)';
 
-@items = map { Faux->new($_) } qw/zero one two three four five six/;
+#
+# Let's get items by index
+#
+
+@items = map { Faux->new($_)->save } qw/zero one two three four five six/;
 $iter = Iterator->new( sub { shift @items } );
 $coll = $CLASS->new( { iter => $iter } );
 can_ok $coll, 'get';
@@ -207,4 +268,4 @@ can_ok $CLASS, 'empty';
 ok $coll = $CLASS->empty, '... and calling it should succeed';
 isa_ok $coll, $CLASS, '... and the object it returns';
 my @all = $coll->all;
-ok ! @all, '... and the collection should be empty';
+ok !@all, '... and the collection should be empty';

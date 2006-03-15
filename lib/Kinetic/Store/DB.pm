@@ -605,7 +605,6 @@ sub _save_collections {
             $rank++;
         }
     }
-
     return $self;
 }
 
@@ -692,40 +691,16 @@ sub _get_collection_table_info {
 
 ##############################################################################
 
-=head3 _expand_collections 
+=head3 _get_collection 
 
-  $self->_expand_collections( $object );
-
-In an actual query, we don't get the collection information.  This method
-fetches and sets the collection for each collection attribute.
-
-=cut
-
-sub _expand_collections {
-
-    # XXX this should probably be called from Kinetic::Meta::Attribute as this
-    # inflation should be deferred.  However, we'll put it here for now just
-    # to try and get this working.
-    my ( $self, $object ) = @_;
-    foreach my $attr ( $object->my_class->attributes ) {
-        next unless $attr->collection_of;
-        $self->_expand_collection_attribute( $object, $attr );
-    }
-    return $self;
-}
-
-##############################################################################
-
-=head3 _expand_collection_attribute 
-
-  $self->_expand_collection_attribute( $object, $attr );
+  $self->_get_collection( $object, $attr );
 
 Given an object and an attribute, this method will expand the collection for
 that attribute.
 
 =cut
 
-sub _expand_collection_attribute {
+sub _get_collection {
 
     # XXX This is better than what we had before and I can potentially use
     # this method as the lazy attribute loader for collections once I get the
@@ -752,15 +727,11 @@ sub _expand_collection_attribute {
       AND    $container_table.id = ?
     ORDER BY $collection_table.$rank
     END_SQL
-
     my $results = $self->_get_sql_results( $sql, [ $object->id ] );
 
     my $coll_name = $attr->name;
     (my $key = $attr->type) =~ s/^collection_//;
-    $object->$coll_name(
-        Collection->new( { iter => $results, key => $key } )
-    );
-    return $self;
+    return Collection->new( { iter => $results, key => $key } )
 }
 
 ##############################################################################
@@ -1266,7 +1237,7 @@ sub _build_object_from_hashref {
         @object{@object_attributes} = @{$hashref}{@object_columns};
         my $object = bless \%object => $package;
 
-        $self->_expand_collections($object);
+        # $self->_expand_collections($object); # XXX delete this now?
         $objects_for{$package} = $object;
 
         # do we have a contained object?

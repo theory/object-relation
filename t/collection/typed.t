@@ -7,7 +7,7 @@ use warnings;
 use utf8;
 use Kinetic::Build::Test;
 
-use Test::More tests => 68;
+use Test::More tests => 76;
 #use Test::More 'no_plan';
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
@@ -19,12 +19,11 @@ use aliased 'Test::MockModule';
 {
 
     package Faux;
-    my $uuid = 1;
 
     sub new {
         my ( $class, $name ) = @_;
         bless {
-            uuid => $uuid++,
+            uuid => undef,
             name => $name,
         }, $class;
     }
@@ -32,6 +31,7 @@ use aliased 'Test::MockModule';
     sub id   { shift->{uuid} }
     sub name { shift->{name} }
     sub uuid { shift->{uuid} }
+    sub save { $_[0]->{uuid} ||= Data::UUID->new->create_str; $_[0] }
 
     package Faux::Subclass;
     our @ISA = 'Faux';
@@ -257,4 +257,14 @@ isa_ok $coll, $CLASS, '... and the object it returns';
 ok $coll->isa("$CLASS\::Faux") , '... and it should be the proper class';
 foreach (qw/zero un deux trois quatre/) {
     is $coll->next->name, $_, '... and it should return the correct items';
+}
+
+ok my $new_coll = $coll->from_list(
+    { list => [ map { Faux->new($_) } qw/zero un deux trois quatre/ ] }
+  ),
+  'New collections should be able to get the type from the old collection';
+isa_ok $new_coll, $CLASS, '... and the object it returns';
+ok $new_coll->isa("$CLASS\::Faux") , '... and it should be the proper class';
+foreach (qw/zero un deux trois quatre/) {
+    is $new_coll->next->name, $_, '... and it should return the correct items';
 }

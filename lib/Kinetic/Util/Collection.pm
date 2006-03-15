@@ -28,11 +28,16 @@ use Kinetic::Util::Exceptions qw(throw_invalid throw_invalid_class);
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Array::AsHash';
 
-use Scalar::Util 'blessed';
+use Scalar::Util qw(blessed refaddr);
 
 # to simplify the code, we use -1 instead of undef for "null" indexes
 use Readonly;
 Readonly our $NULL => -1;
+
+sub _key($) {
+    my $thing = shift;
+    return defined $thing->uuid ? $thing->uuid : refaddr $thing;
+}
 
 =head1 Name
 
@@ -126,14 +131,18 @@ sub new {
 =head3 empty
 
   my $collection = Kinetic::Util::Collection->empty;
+  my $collection = Kinetic::Util::Collection->empty( $key );
 
-Syntactic sugar for creating a new, empty collection.  Takes no arguments.
+Syntactic sugar for creating a new, empty collection.  Takes an optional key
+to force a typed collection.
 
 =cut
 
 sub empty {
     my $class = shift;
-    return $class->new( { iter => Iterator->new( sub { } ) } );
+    my @key;
+    @key = ( key => shift ) if @_;
+    return $class->new( { iter => Iterator->new( sub { } ), @key } );
 }
 
 ##############################################################################
@@ -168,20 +177,11 @@ sub from_list {
     my $class = ref $proto || $proto;
     $arg_for ||= {};
     my ( $list, $key ) = @{$arg_for}{qw/list key/};
-    if ( defined $key ) {
-        $class = __PACKAGE__;
-    }
-    elsif ( blessed $proto && defined $proto->{key} ) {
-        $key = $proto->{$key} unless defined $key;
-    }
     my @key;
     push @key => ( key => $key ) if defined $key;
     my @list = @$list;    # copy the array to avoid changing called array
     return $class->new(
-        {   iter => Iterator->new( sub { shift @list } ),
-            @key
-        }
-    );
+        { iter => Iterator->new( sub { shift @list } ), @key } );
 }
 
 ##############################################################################
@@ -207,9 +207,6 @@ position of the index.
 
 =cut
 
-# I am forced to conclude that iterators are not permitted to return an undef
-# value.  This is annoying.
-
 sub next {
     my $self = shift;
     if ( defined $self->{got} && $self->{got} > ( $self->index || 0 ) ) {
@@ -222,7 +219,7 @@ sub next {
     return unless defined $result;
     $self->_inc_index;
     $self->{got} = $self->index;
-    $self->_array->push( $result->uuid, $result );
+    $self->_array->push( _key $result, $result );
     return $result;
 }
 
@@ -324,8 +321,6 @@ sub get {
 Sets the value of the collection at C<$index> to C<$value>.
 
 =cut
-
-# Should we allow optional typing?
 
 sub set {
     my ( $self, $index, $value ) = @_;
@@ -474,7 +469,7 @@ implicitly by C<clear()>, which calls C<all()>.
 sub _fill {
     my $self = shift;
     return unless defined $self->{got};
-    $self->_array->push( map { $_->uuid, $self->_check($_) }
+    $self->_array->push( map { _key $_, $self->_check($_) }
           $self->iter->all );
 }
 
@@ -482,7 +477,7 @@ sub _fill {
 
 =head3 _fill_to
 
-  $coll->_fill_to($index);t
+  $coll->_fill_to($index);
 
 Like C<_fill>, but only fills the collection up to the specified index.  This
 is usefull when you must fill part of the collection but filling all of it
@@ -497,7 +492,7 @@ sub _fill_to {
         my $iter  = $self->iter;
         while ( $iter->peek && $index > $self->{got}++ ) {
             my $next = $iter->next;
-            $array->push( $next->uuid, $self->_check($next) );
+            $array->push( _key $next, $self->_check($next) );
         }
         $self->{got} = undef unless defined $iter->current;
     }
@@ -578,8 +573,8 @@ blessed into the class.  Returns the correct class to bless the hashref into.
 =cut
 
 sub _set_package {
-    my ($class, $hashref) = @_;
-    my $key    = $hashref->{key};
+    my ( $class, $hashref ) = @_;
+    my $key = $hashref->{key};
     if ( __PACKAGE__ ne $class ) {
         my $package = __PACKAGE__;
         ( $key = $class ) =~ s/^$package\:://;
@@ -587,6 +582,7 @@ sub _set_package {
     }
     my $package;
     if ( defined $key ) {
+
         # we have a typed collection!
         my $class_object = Kinetic::Meta->for_key($key)
           or throw_invalid_class [
@@ -595,7 +591,7 @@ sub _set_package {
           ];
         $hashref->{package} = $class_object->package;
         $hashref->{key}     = $key;
-        
+
         $class = __PACKAGE__ . "::\u$key";
         no strict 'refs';
         @{"$class\::ISA"} = __PACKAGE__;
