@@ -24,7 +24,7 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 #use Kinetic::Meta; # Do not load here--causes loading order problems.
-use Kinetic::Util::Exceptions qw(throw_invalid throw_invalid_class);
+use Kinetic::Util::Exceptions qw(throw_fatal throw_invalid throw_invalid_class);
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Array::AsHash';
 
@@ -36,7 +36,11 @@ Readonly our $NULL => -1;
 
 sub _key($) {
     my $thing = shift;
-    return defined $thing->uuid ? $thing->uuid : refaddr $thing;
+    my $uuid  = eval { $thing->uuid };
+    my $addr  = refaddr $thing;
+    return $uuid ? $uuid 
+        :  $addr ? $addr
+        :          $thing;
 }
 
 =head1 Name
@@ -177,6 +181,7 @@ sub from_list {
     my $class = ref $proto || $proto;
     $arg_for ||= {};
     my ( $list, $key ) = @{$arg_for}{qw/list key/};
+    $class->_check_dups($list);
     my @key;
     push @key => ( key => $key ) if defined $key;
     my @list = @$list;    # copy the array to avoid changing called array
@@ -425,7 +430,9 @@ sub all {
     my $self = shift;
     $self->_fill;
     $self->reset;
-    return $self->_array->values;
+    my @values = $self->_array->values;
+    $self->{got} = $#values;
+    return wantarray ? @values : \@values;
 }
 
 ##############################################################################
@@ -597,6 +604,39 @@ sub _set_package {
         @{"$class\::ISA"} = __PACKAGE__;
     }
     return $class;
+}
+
+##############################################################################
+
+=head3 _check_dups
+
+  $coll->_check_dups(\@list);
+
+Given an array reference, this method will return the invocant if no duplicate
+elements are in the array.  Otherwise, throws a
+C<Kinetic::Util::Exception::Fatal>identifying the key type (UUID, refaddr or
+value) used and the duplicate values.
+
+=cut
+
+sub _check_dups {
+    my ($proto, $list) = @_;
+    my $uuid  = eval { $list->[0]->uuid };
+    my $addr  = refaddr $list->[0];
+    my $key_type =  $uuid ? 'UUIDs' 
+        :           $addr ? 'addresses'
+        :                   'values';
+
+    my (%found, @dups);
+    foreach my $item (@$list) {
+        no warnings 'uninitialized';
+        push @dups, $item if $found{$item}++;
+    }
+    return $proto unless @dups;
+    throw_fatal [
+        'Cannot assign duplicate [_1] to a collection: [_2]',
+        $key_type, join ', ', @dups
+    ];
 }
 
 =end private

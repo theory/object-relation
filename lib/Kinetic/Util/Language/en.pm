@@ -169,6 +169,9 @@ our %Lexicon;
         %rest_messages,
 
         # Exceptions.
+        'Cannot assign duplicate [_1] to a collection: [_2]',
+        'Cannot assign duplicate [_1] to a collection: [_2]',
+
         'Could not open file "[_1]" for [_2]: [_3]',
         'Could not open file “[_1]” for [_2]: [_3]',
 

@@ -7,7 +7,7 @@ use warnings;
 use utf8;
 use Kinetic::Build::Test;
 
-use Test::More tests => 95;
+use Test::More tests => 102;
 #use Test::More 'no_plan';
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
@@ -125,7 +125,7 @@ ok !defined $coll->next,
 
 ok $array = $coll->_array, '... and we should be the AsHash object';
 @keys = $array->keys;
-is scalar(grep {/$UUID_RE/} @keys), scalar(@keys),
+is scalar( grep {/$UUID_RE/} @keys ), scalar(@keys),
   '... and all of the keys should match a UUID';
 
 can_ok $coll, 'curr';
@@ -269,3 +269,22 @@ ok $coll = $CLASS->empty, '... and calling it should succeed';
 isa_ok $coll, $CLASS, '... and the object it returns';
 my @all = $coll->all;
 ok !@all, '... and the collection should be empty';
+
+#
+# testing primitives
+#
+use Data::Dumper;
+my @list = ( 1 .. 4 );
+ok $coll = $CLASS->from_list( { list => \@list } ),
+  'We should be able to create a collection of integers';
+is $coll->next, 1, '... and we should be able to get the next() value';
+is_deeply [ $coll->all ], [ 1 .. 4 ],
+  '... and it should contain the correct integers';
+is $coll->next, 1, '... and generally just behave like a normal collection';
+is $coll->next, 2, '... and generally just behave like a normal collection';
+
+throws_ok {$coll = $CLASS->from_list( { list => [1,1] } )}
+    'Kinetic::Util::Exception::Fatal',
+    'Trying to assign duplicate items to a collection should fail';
+like $@, qr/^Cannot assign duplicate values to a collection: 1/,
+    '... with an appropriate error message';

@@ -144,9 +144,9 @@ my %RELATIONSHIPS = (
 my %COLLECTION_KEY_FOR;
 
 sub new {
-    my ($class, $parent_class, @args) = @_;
-    @args = $class->_prepare_kinetic($parent_class, @args);
-    my $self = $class->SUPER::new($parent_class, @args);
+    my ($class, $containing_class, @args) = @_;
+    @args = $class->_prepare_kinetic($containing_class, @args);
+    my $self = $class->SUPER::new($containing_class, @args);
     $self->{unique}      ||= $self->{distinct};
     $self->{indexed}     ||= $self->{unique};
     $self->{persistent}    = 1 unless defined $self->{persistent};
@@ -662,8 +662,8 @@ sub build {
 =head3 _prepare_kinetic 
 
  sub new {
-     my ($class, $parent_class, @args) = @_;
-     @args = $class->_prepare_kinetic( $parent_class, @args );
+     my ($class, $containing_class, @args) = @_;
+     @args = $class->_prepare_kinetic( $containing_class, @args );
      $class->SUPER::new(@args);
      ...
  }
@@ -676,7 +676,7 @@ new arguments for the parent constructor.
 =cut
 
 sub _prepare_kinetic {
-    my ( $class, $parent_class, %arg_for ) = @_;
+    my ( $class, $containing_class, %arg_for ) = @_;
     my $collection;
 
     # Figure out if the attribute is a reference to another object in a
@@ -692,7 +692,7 @@ sub _prepare_kinetic {
     # XXX get rid of "has_many" after we get this working
     if ( exists $arg_for{relationship} && 'has_many' eq $arg_for{relationship} ) {
         $arg_for{collection} = delete $arg_for{references};
-        my $class_key = $parent_class->key;
+        my $class_key = $containing_class->key;
         $arg_for{coll_table} = "$class_key\_coll_" . $arg_for{type};
         # the contained class must know which classes contain it.
         Kinetic::Meta->for_key($arg_for{type})->_add_container($class_key);
