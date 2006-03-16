@@ -369,6 +369,24 @@ Those methods are:
 
 ##############################################################################
 
+=head3 is_persistent
+
+  my $is_persistent = $kinetic->is_persistent;
+
+Returns true if the object is persistent and false if it is not. What does it
+mean to be persistent? It means that the object has been saved to the data
+store at least once and has not been purged.
+
+=cut
+
+sub is_persistent {
+    my $self = shift;
+    # XXX This should be changed if we ever rely on non-DB stores.
+    return $self->{id} ? $self : undef;
+}
+
+##############################################################################
+
 =head2 Other Instance Methods
 
 =head3 save

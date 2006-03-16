@@ -45,15 +45,17 @@ sub _should_run {
     return ref $test eq "TEST::$package";
 }
 
-sub lookup : Test(8) {
+sub lookup : Test(15) {
     my $test = shift;
     return unless $test->_should_run;
 
     $test->clear_database;
-    my $one = One->new;
+    ok my $one = One->new, 'Create One object';
     $one->name('divO');
     $one->description('ssalc tset');
-    $one->save;
+    ok ! $one->is_persistent, 'The new object should not yet be persistent';
+    ok $one->save, 'Save the object';
+    ok $one->is_persistent, 'The oject should now be persistent';
     can_ok One, 'lookup';
     my $thing = One->lookup( uuid => $one->uuid );
     is_deeply $test->force_inflation($thing), $one,
@@ -68,6 +70,10 @@ sub lookup : Test(8) {
     throws_ok { One->lookup( name => 1 ) }
       'Kinetic::Util::Exception::Fatal::Attribute',
       'or if you search on a non-unique field';
+
+    ok $one->purge, 'Purge the object';
+    ok $one->save, 'Save the purged oject';
+    ok ! $one->is_persistent, 'The object should no longer be persistent';
 }
 
 sub save : Test(10) {

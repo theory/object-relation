@@ -4,7 +4,7 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 58;
+use Test::More tests => 59;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use OSSP::uuid;
@@ -61,6 +61,7 @@ isa_ok $kinetic, 'Kinetic';
 # Check UUID.
 my $ug = OSSP::uuid->new;
 ok my $uuid = $kinetic->uuid, "Get UUID";
+ok !$kinetic->is_persistent, 'It should not be persistent';
 ok $ug->import(str => $uuid), "It's a valid UUID";
 is join('-', unpack('x2 a8 a4 a4 a4 a12', $kinetic->uuid_hex)),
     $kinetic->uuid, 'Valid Hex UUID';
