@@ -36,11 +36,7 @@ Readonly our $NULL => -1;
 
 sub _key($) {
     my $thing = shift;
-    my $uuid  = eval { $thing->uuid };
-    my $addr  = refaddr $thing;
-    return $uuid ? $uuid 
-        :  $addr ? $addr
-        :          $thing;
+    return eval { $thing->uuid } || refaddr $thing || $thing;
 }
 
 =head1 Name
