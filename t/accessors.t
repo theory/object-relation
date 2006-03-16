@@ -8,6 +8,8 @@ use Kinetic::Build::Test;
 use Test::More tests => 118;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
+use Kinetic::DataType::State qw(:all);
+use Kinetic::DataType::DateTime;
 
 package Kinetic::TestAccessors;
 use base 'Kinetic';
@@ -109,8 +111,6 @@ BEGIN {
 # Do the tests.
 ##############################################################################
 package main;
-use Kinetic::DataType::State qw(:all);
-use Kinetic::DataType::DateTime;
 # Instantiate an object and test its accessors.
 ok( my $t = Kinetic::TestAccessors->new,
     'Kinetic::TestAccessors->new');

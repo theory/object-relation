@@ -23,7 +23,7 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.1');
 
-use Kinetic::Meta;
+#use Kinetic::Meta; # Do not load here--causes loading order problems.
 use Kinetic::Util::Exceptions qw(throw_invalid throw_invalid_class);
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Array::AsHash';
