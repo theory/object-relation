@@ -27,8 +27,8 @@ See L<Kinetic::Store|Kinetic::Store>.
 =head1 Description
 
 This class implements the Kinetic storage API using DBI to communicate with an
-RDBMS. RDBMS specific behavior is implemented via the
-C<Kinetic::Store::DB::Pg> and C<Kinetic::Store::DBI::SQLite> classes.
+DBMS. DBMS specific behavior is implemented via the C<Kinetic::Store::DB::Pg>
+and C<Kinetic::Store::DBI::SQLite> classes.
 
 This discussion will be a high-level overview of how the C<Kinetic::Store::DB>
 class operates.
@@ -111,36 +111,36 @@ names and create placeholders (bind parameters) and use the view name for the
 table name. Then they execute the resulting SQL using the attribute values for
 the bind values. The C<&_insert> method then sets the object ID.
 
-=head2 C<< $kinetic_object->search( @params ) >>
+=head2 C<< $kinetic_object->query( @params ) >>
 
-The C<< $object->search >> method is where the real magic happens.  The
-C<< $object->search_guids >>, C<< $object->lookup >> and C<< $object->count >>
+The C<< $object->query >> method is where the real magic happens.  The
+C<< $object->query_guids >>, C<< $object->lookup >> and C<< $object->count >>
 methods are closely related, so the following description applies to them
 also.
 
-  my $iter = $kinetic_object->search( @search_params );
+  my $iter = $kinetic_object->query( @query_params );
 
 This method returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator>
-object containing all objects that match the search parameters. See
-L<Kinetic::Store|Kinetic::Store> for detailed information about search
+object containing all objects that match the query parameters. See
+L<Kinetic::Store|Kinetic::Store> for detailed information about query
 parameters.
 
-First we'll give a general overview of how the C<search> method works and then
+First we'll give a general overview of how the C<query> method works and then
 we'll go into detail about the various parts.
 
-As usual, C<search> calls C<&_search> internally. The latter method determines
-what type of search we are working with. This "type" of search is either
-C<CODE> or C<STRING>. A C<CODE> search looks like this:
+As usual, C<query> calls C<&_query> internally. The latter method determines
+what type of query we are working with. This "type" of query is either C<CODE>
+or C<STRING>. A C<CODE> query looks like this:
 
- $object->search( \@parameters, \%constraints );
+ $object->query( \@parameters, \%constraints );
 
-A string search is similar:
+A string query is similar:
 
- $object->search( STRING => $parameters, @constraints );
+ $object->query( STRING => $parameters, @constraints );
 
 Here is a concrete example.  These searches are equivalent:
 
-  $object->search(
+  $object->query(
       name => LIKE '%vid',
       age  => GE 21,
       {
@@ -149,7 +149,7 @@ Here is a concrete example.  These searches are equivalent:
       }
    );
 
-  $object->search(
+  $object->query(
       STRING     => "name => LIKE '%vid', age  => GE 21",
       order_by   => 'name',
       order_by   => 'age',
@@ -163,9 +163,9 @@ affect the how results are returned.
 
 B<Note>: If no parameters are supplied, every object for a given class is
 returned. Constraints are optional. However, if you want constraints for
-string searches, you must pass an empty string search, first:
+string searches, you must pass an empty string query, first:
 
-  $object->search( STRING => '', @constraints );
+  $object->query( STRING => '', @constraints );
 
 The above searches might translate to SQL as follows (loosely):
 
@@ -179,29 +179,29 @@ The above searches might translate to SQL as follows (loosely):
 The reason there are both C<CODE> and C<STRING> searches is the former is used
 from Perl and the latter is used externally, such as from an AJAX call. It is
 important to note, though, that C<eval()> is not used with C<STRING> searches.
-Instead, the the string is lexed into a series of tokens the search parser
+Instead, the the string is lexed into a series of tokens the query parser
 understands. More on this later.
 
-As of this writing, C<&_search> determines the type of search by calling the
+As of this writing, C<&_query> determines the type of query by calling the
 C<&_set_search_type> method to examine the first parameter. If it's "STRING",
-we have a string search. Otherwise, it's assumed to be a code search. No other
-search methods are supported at this time. If we have a I<STRING> search type,
+we have a string query. Otherwise, it's assumed to be a code query. No other
+query methods are supported at this time. If we have a I<STRING> query type,
 we check to see if there are any constraints and convert them into a hashref
-matching the I<CODE> search type hashref.
+matching the I<CODE> query type hashref.
 
-Once the search type is determined, we set the search data via a method
+Once the query type is determined, we set the query data via a method
 cleverly named C<&_set_search_data>. This method uses the C<Kinetic::Meta>
 introspection API to determine all relevant information necessary to conduct
-the search and convert results back into Kinetic objects. Because this method
+the query and convert results back into Kinetic objects. Because this method
 is relatively expensive, the information is cached and subsequent calls will
 fetch the cached results. If a Kinetic object's metadata is altered, the cache
 will need to be cleared (but this should never happen).
 
-Then, we use the view's columns and the search parameters and constraints to
+Then, we use the view's columns and the query parameters and constraints to
 construct the SQL and determine the bind parameters.
 
     my ( $sql, $bind_params )
-      = $self->_get_select_sql_and_bind_params( $columns, \@search_params );
+      = $self->_get_select_sql_and_bind_params( $columns, \@query_params );
 
 Then it's simply (hah!) a matter of fetching the SQL results.
 
@@ -209,22 +209,22 @@ Then it's simply (hah!) a matter of fetching the SQL results.
 
 Now for details of the fiddly bits.
 
-=head2 C<< $store->_set_search_type( \@search ) >>
+=head2 C<< $store->_set_search_type( \@query ) >>
 
 This method is straightforward. As mentioned earlier, if the first argument is
-I<STRING>, then we have a string search and the third argument and beyond are
+I<STRING>, then we have a string query and the third argument and beyond are
 considered to be constraints. The constrains are converted into a hashref that
 matches the I<CODE> hashref.
 
 =head2 C<< $store->_set_search_data >>
 
-This method sets the search data used for the current search. Since this is
-expensive, we cache search data for each search class. The search data
-consists of the SQL columns that will be used in the search SQL and metadata
+This method sets the query data used for the current query. Since this is
+expensive, we cache query data for each query class. The query data
+consists of the SQL columns that will be used in the query SQL and metadata
 that C<&_build_object_from_hashref> will use to break the returned SQL data
 down into an object and its contained objects.
 
-=head2 C<< $store->_get_select_sql_and_bind_params( $columns, \@search ) >>
+=head2 C<< $store->_get_select_sql_and_bind_params( $columns, \@query ) >>
 
 Once again, we have a fairly straightforward method. When we get here, we
 fetch the name of the view, we build a C<WHERE> clause from the
@@ -238,7 +238,7 @@ bind parameters. The relevant code looks like this:
   my $sql = "SELECT $columns FROM $view $where_clause";
   $sql .= $self->_constraints($constraints) if $constraints;
 
-=head2 C<< $self->_make_where_clause( \@search ) >>
+=head2 C<< $self->_make_where_clause( \@query ) >>
 
 This is where the start of the real magic happens. This method returns a
 C<WHERE> clause and an arrayref of any appropriate bind parameters for that
@@ -253,18 +253,18 @@ Here's the tricky bit:
 
 The C<code_lexer_stream> and C<string_lexer_stream> functions are exported by
 C<Kinetic::Store::Lexer::Code> and C<Kinetic::Store::Lexer::String>,
-respectively. Each takes the appropriate search parameters (either the Perl
-code or the search string) and returns a virtually identical stream of tokens.
+respectively. Each takes the appropriate query parameters (either the Perl
+code or the query string) and returns a virtually identical stream of tokens.
 You can see details of their behavior in C<t/lexer/code.t> and
 C<t/lexer/string.t>.
 
 For example, lets consider the following two searches:
 
- $object->search(
+ $object->query(
       name => LIKE 'foo',
        age => GT 3
  );
- $object->search(
+ $object->query(
       STRING => "name => LIKE 'foo', age => GT 3"
  );
 
@@ -282,7 +282,7 @@ tokens:
   [ 'VALUE',           3 ],
 
 With a few exceptions, merely quoting the Perl code is what is necessary to
-turn a I<CODE> search into a I<STRING> search. This may seem a bit strange,
+turn a I<CODE> query into a I<STRING> query. This may seem a bit strange,
 but what it gives us is this:
 
     my $intermediate_representation = parse( $stream, $store );
@@ -297,7 +297,7 @@ list of L<Kinetic::Store::Search|Kinetic::Store::Search> objects and groups of
 said objects (see L<Kinetic::Store::Parser|Kinetic::Store::Parser> for
 more information on this).
 
-This approach allows us to have multiple search interfaces and one parser for
+This approach allows us to have multiple query interfaces and one parser for
 all searches. This simplifies the code tremendously. Further, if other data
 stores (such as LDAP or XML) are implemented in the future, they can use the
 same IR to handle their searches. Nothing up to this point is specific to SQL.
@@ -344,7 +344,7 @@ Now that we have the C<WHERE> clause built up, we go back up to the
 C<&_get_select_sql_and_bind_params> method, add the constraints (relatively
 straightforward), and finally call the C<&_get_sql_results> method. This
 method usually returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator>
-object representing the results of a given C<search>. Some methods require all
+object representing the results of a given C<query>. Some methods require all
 results to be returned at once, but whether an iterator or all results are
 required, it effectively boils down to this:
 
