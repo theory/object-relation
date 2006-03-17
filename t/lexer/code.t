@@ -3,7 +3,7 @@ use warnings;
 use strict;
 
 use Kinetic::Build::Test;
-use Test::More tests => 37;
+use Test::More tests => 39;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 
@@ -309,5 +309,28 @@ $expected = [
   [ 'OP',           '=>' ],
   [ 'COMPARE',    'LIKE' ],
   [ 'VALUE',      '%vid' ],
+];
+is_deeply $tokens, $expected, '... and it should return the correct tokens';
+
+ok $tokens = lex([
+    'person.uuid' => EQ '1234',
+    date          => LT $y1968,
+    name          => LIKE '%vid',
+]), 'Fully-qualifed identifiers should be lexable';
+$expected = [
+  [ 'IDENTIFIER', 'person.uuid' ],
+  [ 'OP',                  '=>' ],
+  [ 'COMPARE',             'EQ' ],
+  [ 'VALUE',             '1234' ],
+  [ 'OP',                   ',' ],
+  [ 'IDENTIFIER',        'date' ],
+  [ 'OP',                  '=>' ],
+  [ 'COMPARE',             'LT' ],
+  [ 'VALUE',             $y1968 ],
+  [ 'OP',                   ',' ],
+  [ 'IDENTIFIER',        'name' ],
+  [ 'OP',                  '=>' ],
+  [ 'COMPARE',           'LIKE' ],
+  [ 'VALUE',             '%vid' ],
 ];
 is_deeply $tokens, $expected, '... and it should return the correct tokens';

@@ -133,11 +133,16 @@ sub where_clause : Test(11) {
         name => undef,
         desc => undef
     };                    # so it doesn't think it's an object search
+
+    # needed internally
+    $store->{search_type} = 'CODE';
     my ( $where, $bind ) = $store->_make_where_clause(
-        [
-            name => 'foo',
-            desc => 'bar',
-        ]
+        $store->_parse_search_request(
+            [
+                name => 'foo',
+                desc => 'bar',
+            ]
+        )
     );
     is $where,
       '(LOWER(name) = LOWER(?) AND LOWER(desc) = LOWER(?)) AND state > ?',
@@ -152,13 +157,15 @@ sub where_clause : Test(11) {
         this => undef
     };                         # so it doesn't think it's an object search
     ( $where, $bind ) = $store->_make_where_clause(
-        [
-            name => 'foo',
+        $store->_parse_search_request(
             [
-                desc => 'bar',
-                this => 'that',
-            ],
-        ]
+                name => 'foo',
+                [
+                    desc => 'bar',
+                    this => 'that',
+                ],
+            ]
+        )
     );
     is $where,
       '(LOWER(name) = LOWER(?) AND (LOWER(desc) = LOWER(?) AND this = ?)) AND state > ?',
@@ -166,13 +173,15 @@ sub where_clause : Test(11) {
     is_deeply $bind, [qw/foo bar that -1/], 'and return the correct bind params';
 
     ( $where, $bind ) = $store->_make_where_clause(
-        [
-            name => 'foo',
-            OR(
-                desc => 'bar',
-                this => 'that',
-            ),
-        ]
+        $store->_parse_search_request(
+            [
+                name => 'foo',
+                OR(
+                    desc => 'bar',
+                    this => 'that',
+                ),
+            ]
+        )
     );
     is $where,
       '(LOWER(name) = LOWER(?) OR (LOWER(desc) = LOWER(?) AND this = ?)) AND state > ?',
@@ -194,18 +203,20 @@ sub where_clause : Test(11) {
     @{ $store->{search_data}{lookup} }{ @{ $store->{search_data}{columns} } } =
       undef;
     ( $where, $bind ) = $store->_make_where_clause(
-        [
+        $store->_parse_search_request(
             [
-                last_name  => 'Wall',
-                first_name => 'Larry',
-            ],
-            OR( bio => LIKE '%perl%' ),
-            OR(
-                'one.type'   => LIKE 'email',
-                'one.value'  => LIKE '@cpan\.org$',
-                'fav_number' => GE 42
-            )
-        ]
+                [
+                    last_name  => 'Wall',
+                    first_name => 'Larry',
+                ],
+                OR( bio => LIKE '%perl%' ),
+                OR(
+                    'one.type'   => LIKE 'email',
+                    'one.value'  => LIKE '@cpan\.org$',
+                    'fav_number' => GE 42
+                )
+            ]
+        )
     );
     is $where,
       '((last_name = ? AND first_name = ?) OR (bio  LIKE ?) OR '
@@ -215,18 +226,20 @@ sub where_clause : Test(11) {
       'and be able to generate the correct bindings';
 
     ( $where, $bind ) = $store->_make_where_clause(
-        [
-            AND(
-                last_name  => 'Wall',
-                first_name => 'Larry',
-            ),
-            OR( bio => LIKE '%perl%' ),
-            OR(
-                'one.type'   => LIKE 'email',
-                'one.value'  => LIKE '@cpan\.org$',
-                'fav_number' => GE 42
-            )
-        ]
+        $store->_parse_search_request(
+            [
+                AND(
+                    last_name  => 'Wall',
+                    first_name => 'Larry',
+                ),
+                OR( bio => LIKE '%perl%' ),
+                OR(
+                    'one.type'   => LIKE 'email',
+                    'one.value'  => LIKE '@cpan\.org$',
+                    'fav_number' => GE 42
+                )
+            ]
+        )
     );
     is $where,
       '((last_name = ? AND first_name = ?) OR (bio  LIKE ?) OR '

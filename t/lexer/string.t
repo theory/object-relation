@@ -3,7 +3,7 @@ use warnings;
 use strict;
 
 use Kinetic::Build::Test;
-use Test::More tests => 43;
+use Test::More tests => 45;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use Test::Exception;
@@ -296,3 +296,14 @@ $expected = [
 ];
 
 is_deeply $tokens, $expected, '... and get the correct tokens';
+
+ok $tokens = lex('person.uuid => "1234"'),
+    'Fully-qualifed identifiers should be lexable';
+$expected = [
+  [ 'IDENTIFIER', 'person.uuid' ],
+  [ 'OP',                  '=>' ],
+  [ 'VALUE',             '1234' ],
+];
+
+is_deeply $tokens, $expected, '... and get the correct tokens';
+

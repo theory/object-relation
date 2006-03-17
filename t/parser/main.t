@@ -3,12 +3,12 @@ use warnings;
 use strict;
 
 use Kinetic::Build::Test;
-use Test::More tests => 87;
-#use Test::More 'no_plan';
+#use Test::More tests => 87;
+use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use Test::Exception;
 
-use lib 'lib', '../lib';
+use lib '../lib';
 
 use aliased 'Kinetic::Store::Search';
 use aliased 'Kinetic::DataType::DateTime::Incomplete';
@@ -43,7 +43,10 @@ BEGIN {
 
     sub new { bless {} => shift }
 
-    sub _search_data_has_column { return exists $column{ $_[1] } }
+    sub _search_data_has_column {
+        my ( $self, $column ) = @_;
+        return 1 if exists $column{ $column };
+    }
 }
 
 my $store = Faux::Store->new;
@@ -502,4 +505,27 @@ ok $result = parse(
   'Code LT/GT code should be parseable';
 
 is_deeply $result, [ $search1968, $search1966, $search_like ],
+  '... and it should return the correct results';
+
+my $fq_search = Search->new(
+    operator => 'EQ',
+    negated  => '',
+    data     => '1234',
+    column   => 'person.uuid',
+);
+
+exit;
+ok $result = parse(
+    code_lexer_stream(
+        [
+            'person.uuid' => '1234',
+            date          => LT $y1968,
+            name          => LIKE '%vid',
+        ]
+    ),
+    $store
+  ),
+  'Fully-qualifed identifiers should be parseable';
+
+is_deeply $result, [ $fq_search, $search1968, $search_like ],
   '... and it should return the correct results';

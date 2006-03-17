@@ -500,10 +500,14 @@ sub _get_select_sql_and_bind_params {
     my ( $self, $columns, $search_request ) = @_;
     my $constraints = pop @$search_request
       if 'HASH' eq ref $search_request->[-1];
-    my $view = $self->search_class->key;
-    my ( $where_clause, $bind_params )
-      = $self->_make_where_clause($search_request);
+
+    my $ir = $self->_parse_search_request($search_request);
+    my ( $where_clause, $bind_params ) = $self->_make_where_clause($ir);
     $where_clause = "WHERE $where_clause" if $where_clause;
+ 
+    # now that we've moved up the parsing, we should have enough data to
+    # figure out which tables we're selecting from.
+    my $view = $self->search_class->key;
     my $sql = "SELECT $columns FROM $view $where_clause";
     $sql .= $self->_constraints($constraints) if $constraints;
     return ( $sql, $bind_params );
@@ -1370,7 +1374,7 @@ argument.
 
 sub _search_data_has_column {
     my ( $self, $column ) = @_;
-    return exists $self->{search_data}{lookup}{$column};
+    return 1 if exists $self->{search_data}{lookup}{$column};
 }
 
 ##############################################################################
@@ -1402,44 +1406,52 @@ sub _search_data_build_order { @{ shift->{search_data}{build_order} } }
 
 =head3 _make_where_clause
 
- my ($where_clause, $bind_params) = $self->_make_where_clause(\@search_params);
+ my ($where_clause, $bind_params) = $self->_make_where_clause($ir);
 
-This method returns a where clause and an arrayref of any appropriate bind
-params for that where clause. Returns an empty string if no where clause can
-be generated.
+This method takes an intermediate representation (ir) and returns a where
+clause and an arrayref of any appropriate bind params for that where clause.
 
 =cut
 
 sub _make_where_clause {
-    my ( $self, $search_request ) = @_;
+    my ( $self, $ir ) = @_;
 
     my $deleted = 0 + State->DELETED;
 
-    if ( @$search_request && $search_request->[0] ) {
-
-        # unless explicitly set elsewhere, the default search type is CODE
-        $self->{search_type} ||= 'CODE';
-        my $stream = $self->{search_type} eq
-          'CODE'    # XXX we may need to clean this up later
-          ? code_lexer_stream($search_request)
-          : string_lexer_stream( $search_request->[0] );
-        my $ir = parse( $stream, $self );
-        $self->{searching_on_state} ||= 0;
-        my ( $where_clause, $bind_params )
-          = $self->_convert_ir_to_where_clause($ir);
-        $where_clause = "" if '()' eq $where_clause;
-
-        unless ( $self->{searching_on_state} ) {
-            $where_clause .= ' AND state > ?';
-            push @$bind_params, $deleted;
-        }
-        return ( $where_clause, $bind_params );
-    }
-    else {
-        return ( 'state > ?', [$deleted] )
-          unless @$search_request && $search_request->[0];
+    unless ( @$ir ) {
+        # no search request.  Return everything not deleted.
+        return ( 'state > ?', [$deleted] );
     }
 
+    my ( $clause, $bind_params ) = $self->_convert_ir_to_where_clause($ir);
+    $clause = "" if '()' eq $clause;
+
+    unless ( $self->{searching_on_state} ) {
+        $clause .= ' AND state > ?';
+        push @$bind_params, $deleted;
+    }
+    return ( $clause, $bind_params );
+}
+
+##############################################################################
+
+=head3 _parse_search_request
+
+  my $ir = $self->_parse_search_request(\@search_request);
+
+Takes the user's search request and return an intermediate representation (ir)
+of that request.  This ir is ultimately used in
+C<_convert_ir_to_where_clause>.
+
+=cut
+
+sub _parse_search_request {
+    my ( $self, $search_request ) = @_;
+    return [] unless $search_request->[0];
+    my $stream = $self->{search_type} eq 'CODE'
+        ? code_lexer_stream($search_request)
+        : string_lexer_stream( $search_request->[0] );
+    return parse( $stream, $self );
 }
 
 sub _convert_ir_to_where_clause {

@@ -387,7 +387,7 @@ sub _make_search {
     my $negated = $_[0][0];
     my ( $operator, $value ) = @{ $_[1] };
 
-    $column =~ s/\Q$ATTR_DELIMITER\E/$OBJECT_DELIMITER/eg;
+    $column =~ s/\Q$ATTR_DELIMITER\E/$OBJECT_DELIMITER/g;
     unless ( $STORE->_search_data_has_column($column) ) {
 
         # special case for searching on a contained object id ...
@@ -405,7 +405,7 @@ sub _make_search {
         $column = $id_column;
         $value  =
           'ARRAY' eq ref $value ? [ map $_->id => @$value ]
-          : ref $value ? $value->id
+          : blessed $value ? $value->id
           : die $LANGUAGE->maketext(
             'Object key "[_1]" must point to an object, not a scalar "[_2]"',
             $id_column, $value
@@ -442,20 +442,10 @@ sub parse {
 
     if ( my $error = $@ ) {
         if ( 'ARRAY' eq ref $error ) {
-            my $message = fetch_error($error);
-            throw_search [ 'Could not parse search request:  [_1]', $message ];
+            $error = fetch_error($error);
         }
-        else {
-            throw_search 'Could not parse search request'
-              if $remainder
-              or !$results;
-
-            # can't get rid of the former until we nail that down in the tests
-            #panic "Unknown error ($error)";
-        }
+        throw_search [ 'Could not parse search request:  [_1]', $error ];
     }
-
-    # XXX really need to figure out a more descriptive error message
     return $results;
 }
 
