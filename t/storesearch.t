@@ -4,7 +4,7 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 61;
+use Test::More tests => 57;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use Test::Exception;
@@ -16,21 +16,41 @@ BEGIN {
     use_ok $CLASS or die 
 };
 
+{
+    package Faux::Class;
+    sub new { bless {}, shift }
+    sub key { 'faux' }
+}
+
 can_ok $CLASS, 'new';
-ok my $search = $CLASS->new, "... and calling it should succeed";
-isa_ok $search, $CLASS, "... and the object it returns";
+ok my $search = $CLASS->new(class => Faux::Class->new),
+  '... and calling it should succeed';
+isa_ok $search, $CLASS, '... and the object it returns';
 
 throws_ok { $CLASS->new(foobar => 1, negated => 2, barfoo => 3)}
     'Kinetic::Util::Exception::Fatal::Search',
     '... but it should die if unknown search attributes are specified';
 
-foreach my $attribute (qw/column negated operator place_holder search_class/) {
+foreach my $attribute (qw/column negated operator class/) {
     can_ok $search, $attribute;
-    ok ! defined $search->$attribute, '... and its initial value should be undefined';
+    if ($attribute eq 'class') {
+        isa_ok $search->$attribute, 'Faux::Class',
+            '... and the class object should be set';
+    }
+    else {
+        ok ! defined $search->$attribute, 
+            '... and its initial value should be undefined';
+    }
     ok $search->$attribute(scalar reverse $attribute),
         '... but setting it to a new value should succeed';
-    is $search->$attribute, scalar(reverse $attribute),
-        '... and now it should return the new value';
+    if ('column' eq $attribute) {
+        is $search->$attribute, 'faux.' . scalar(reverse $attribute),
+            '... and now it should return the new value';
+    }
+    else {
+        is $search->$attribute, scalar(reverse $attribute),
+            '... and now it should return the new value';
+    }
 }
 
 can_ok $search, 'data';

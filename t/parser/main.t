@@ -3,12 +3,10 @@ use warnings;
 use strict;
 
 use Kinetic::Build::Test;
-#use Test::More tests => 87;
-use Test::More 'no_plan';
+use Test::More tests => 87;
+#use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use Test::Exception;
-
-use lib '../lib';
 
 use aliased 'Kinetic::Store::Search';
 use aliased 'Kinetic::DataType::DateTime::Incomplete';
@@ -19,6 +17,12 @@ use Kinetic::Store::Lexer::Code qw/code_lexer_stream/;
 
 BEGIN {
     use_ok 'Kinetic::Store::Parser', qw/parse/ or die;
+}
+
+{
+    package Faux::Class;
+    sub new { bless {}, shift }
+    sub key { 'faux' }
 }
 
 {
@@ -43,9 +47,10 @@ BEGIN {
 
     sub new { bless {} => shift }
 
+    my $faux_class = Faux::Class->new;
     sub _search_data_has_column {
         my ( $self, $column ) = @_;
-        return 1 if exists $column{ $column };
+        return $faux_class if exists $column{ $column };
     }
 }
 
@@ -74,6 +79,7 @@ throws_ok { parse( code_lexer_stream( [ name => 'foo', 'bar' ] ), $store ) }
   'Unparseable code searches should throw an exception';
 
 my $name_search = Search->new(
+    class    => Faux::Class->new,
     operator => 'EQ',
     negated  => '',
     data     => 'foo',
@@ -81,6 +87,7 @@ my $name_search = Search->new(
 );
 
 my $between_search = Search->new(
+    class    => Faux::Class->new,
     operator => 'BETWEEN',
     negated  => '',
     data     => [qw/bar foo/],
@@ -88,6 +95,7 @@ my $between_search = Search->new(
 );
 
 my $age_search = Search->new(
+    class    => Faux::Class->new,
     operator => 'EQ',
     negated  => 'NOT',
     data     => 3,
@@ -312,6 +320,7 @@ $result = parse(
   'Parsing code recursive group ops should succeed';
 
 my $any_search = Search->new(
+    class    => Faux::Class->new,
     operator => 'ANY',
     negated  => '',
     data     => [qw/foo bar baz/],
@@ -355,6 +364,7 @@ is_deeply $result, [ [ 'AND', $name_search, $age_search ] ],
   '... and have them correctly converted';
 
 my $not_like_search = Search->new(
+    class    => Faux::Class->new,
     operator => 'LIKE',
     negated  => 'NOT',
     data     => 'that',
@@ -388,6 +398,7 @@ is_deeply $result, $expected,
   'Code mixing standard and AND terms should succeed';
 
 my $lname = Search->new(
+    class    => Faux::Class->new,
     operator => 'EQ',
     negated  => '',
     data     => 'something',
@@ -395,6 +406,7 @@ my $lname = Search->new(
 );
 
 my $one_type = Search->new(
+    class    => Faux::Class->new,
     operator => 'LIKE',
     negated  => '',
     data     => 'email',
@@ -402,6 +414,7 @@ my $one_type = Search->new(
 );
 
 my $fav_number = Search->new(
+    class    => Faux::Class->new,
     operator => 'GE',
     negated  => '',
     data     => 42,
@@ -462,6 +475,7 @@ my $y1968 = Incomplete->new( year => 1968 );
 my $y1966 = Incomplete->new( year => 1966 );
 
 my $search1968 = Search->new(
+    class    => Faux::Class->new,
     operator => 'LT',
     negated  => '',
     data     => $y1968,
@@ -469,6 +483,7 @@ my $search1968 = Search->new(
 );
 
 my $search1966 = Search->new(
+    class    => Faux::Class->new,
     operator => 'GT',
     negated  => '',
     data     => $y1966,
@@ -476,6 +491,7 @@ my $search1966 = Search->new(
 );
 
 my $search_like = Search->new(
+    class    => Faux::Class->new,
     operator => 'LIKE',
     negated  => '',
     data     => '%vid',
@@ -508,6 +524,7 @@ is_deeply $result, [ $search1968, $search1966, $search_like ],
   '... and it should return the correct results';
 
 my $fq_search = Search->new(
+    class    => Faux::Class->new,
     operator => 'EQ',
     negated  => '',
     data     => '1234',

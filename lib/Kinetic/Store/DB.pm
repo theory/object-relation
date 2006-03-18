@@ -1366,15 +1366,16 @@ sub _search_data_columns { @{ shift->{search_data}{columns} } }
     ...
   }
 
-This method returns true of false depending upon whether or not the current
-search class has a database column matching the column name passed as an
-argument.
+This method returns the search class for the column depending upon whether or
+not the search class has a database column matching the column name passed as
+an argument.
 
 =cut
 
 sub _search_data_has_column {
     my ( $self, $column ) = @_;
-    return 1 if exists $self->{search_data}{lookup}{$column};
+    return $self->{search_class}
+        if exists $self->{search_data}{lookup}{$column};
 }
 
 ##############################################################################
@@ -1416,11 +1417,9 @@ clause and an arrayref of any appropriate bind params for that where clause.
 sub _make_where_clause {
     my ( $self, $ir ) = @_;
 
-    my $deleted = 0 + State->DELETED;
-
     unless ( @$ir ) {
         # no search request.  Return everything not deleted.
-        return ( 'state > ?', [$deleted] );
+        return ( 'state > ?', [ 0 + State->DELETED ] );
     }
 
     my ( $clause, $bind_params ) = $self->_convert_ir_to_where_clause($ir);
@@ -1428,7 +1427,7 @@ sub _make_where_clause {
 
     unless ( $self->{searching_on_state} ) {
         $clause .= ' AND state > ?';
-        push @$bind_params, $deleted;
+        push @$bind_params, 0 + State->DELETED;
     }
     return ( $clause, $bind_params );
 }
@@ -1471,7 +1470,7 @@ sub _convert_ir_to_where_clause {
         elsif ( Search eq ref $term ) {
             my $search_method = $term->search_method;
             my ( $token, $bind ) = $self->$search_method($term);
-            if ( $token =~ /\bstate\b/i ) {
+            if ( $token =~ /\bstate\b/i ) { # XXX What if token is "statement"?
                 $self->{searching_on_state} = 1;
             }
             push @where => $token;
@@ -1488,8 +1487,7 @@ sub _convert_ir_to_where_clause {
         }
         else {
             panic
-              'Failed to convert IR to where clause.  This should not happen.'
-              ,;
+              'Failed to convert IR to where clause.  This should not happen.';
         }
         unless ( $where[-1] =~ $GROUP_OP ) {
             push @where => 'AND';
@@ -1528,28 +1526,31 @@ sub _is_case_sensitive {
 
 =head3 _handle_case_sensitivity
 
-  my ($column, $place_holder) = $store->_handle_case_sensitivity($column);
+  my ($column, $place_holder) = $store->_handle_case_sensitivity($search);
 
-This method takes a column and return the correct column token and bind param
-based upon whether or not the column's data type is case-insensitive.
+This method takes a search object and return the correct column token and bind
+param based upon whether or not the column's data type is case-insensitive.
 
 =cut
 
 sub _handle_case_sensitivity {
-    my ( $self, $column ) = @_;
+    my ( $self, $search ) = @_;
 
+    my $column = $search->column;
     # if 'type eq string' for attr (only relevent for postgres)
-    my $orig_column  = $column;
-    my $search_class = $self->{search_class};
-    if ( $column =~ /$OBJECT_DELIMITER/ ) {
-        my ( $key, $column2 ) = split /$OBJECT_DELIMITER/ => $column;
-        $search_class = Kinetic::Meta->for_key($key);
-        $column       = $column2;
+    my $orig_column    = $column;
+    my $search_class   = $self->{search_class};
+    my $attribute_name = $search->base_column;
+    if ( $column =~ /^[[:word:]]+\.([[:word:]]+)$OBJECT_DELIMITER([[:word:]]+)/ ) {
+        my ( $key, $base_column ) = ( $1, $2 );
+
+        $search_class   = Kinetic::Meta->for_key($key);
+        $attribute_name = $column = $base_column;
     }
     if ($search_class) {
         $column = "LOWER($orig_column)"
           if $self->_is_case_sensitive(
-            $search_class->attributes($column)->type );
+            $search_class->attributes($attribute_name)->type );
     }
     return $column =~ /^LOWER/
       ? ( $column, 'LOWER(?)' )
@@ -1593,16 +1594,14 @@ L<Kinetic::Store::Seach|Kinetic::Store::Search>.
 sub _ANY_SEARCH {
     my ( $self, $search ) = @_;
     my ( $negated, $value ) = ( $search->negated, $search->data );
-    my ( $column, $place_holder )
-      = $self->_handle_case_sensitivity( $search->column );
+    my ( $column, $place_holder ) = $self->_handle_case_sensitivity($search);
     my $place_holders = join ', ' => ($place_holder) x @$value;
     return ( "$column $negated IN ($place_holders)", $value );
 }
 
 sub _EQ_SEARCH {
     my ( $self, $search ) = @_;
-    my ( $column, $place_holder )
-      = $self->_handle_case_sensitivity( $search->column );
+    my ( $column, $place_holder ) = $self->_handle_case_sensitivity($search);
     my $operator = $search->operator;
     return ( "$column $operator $place_holder", [ $search->data ] );
 }
@@ -1617,16 +1616,14 @@ sub _GT_LT_SEARCH {
     my ( $self, $search ) = @_;
     my $value    = $search->data;
     my $operator = $search->operator;
-    my ( $column, $place_holder )
-      = $self->_handle_case_sensitivity( $search->column );
+    my ( $column, $place_holder ) = $self->_handle_case_sensitivity($search);
     return ( "$column $operator $place_holder", [$value] );
 }
 
 sub _BETWEEN_SEARCH {
     my ( $self, $search ) = @_;
     my ( $negated, $operator ) = ( $search->negated, $search->operator );
-    my ( $column, $place_holder )
-      = $self->_handle_case_sensitivity( $search->column );
+    my ( $column, $place_holder ) = $self->_handle_case_sensitivity($search);
     return (
         "$column $negated $operator $place_holder AND $place_holder",
         $search->data
@@ -1635,8 +1632,7 @@ sub _BETWEEN_SEARCH {
 
 sub _MATCH_SEARCH {
     my ( $self, $search ) = @_;
-    my ( $column, $place_holder )
-      = $self->_handle_case_sensitivity( $search->column );
+    my ( $column, $place_holder ) = $self->_handle_case_sensitivity($search);
     my $operator = $search->negated ? '!~*' : '~*';
     return ( "$column $operator $place_holder", [ $search->data ] );
 }
@@ -1644,8 +1640,7 @@ sub _MATCH_SEARCH {
 sub _LIKE_SEARCH {
     my ( $self, $search ) = @_;
     my ( $negated, $operator ) = ( $search->negated, $search->operator );
-    my ( $column, $place_holder )
-      = $self->_handle_case_sensitivity( $search->column );
+    my ( $column, $place_holder ) = $self->_handle_case_sensitivity($search);
     return ( "$column $negated $operator $place_holder", [ $search->data ] );
 }
 

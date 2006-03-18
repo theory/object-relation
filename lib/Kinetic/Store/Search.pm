@@ -34,15 +34,13 @@ use aliased 'Kinetic::DataType::DateTime::Incomplete';
 
 # generic getter/setters
 my @_ATTRIBUTES = qw/
-  column
   negated
   operator
-  place_holder
-  search_class
+  class
   /;
 
 # getter/setter with custom behavior
-my @ATTRIBUTES = ( 'data', @_ATTRIBUTES );
+my @ATTRIBUTES = ( 'data', 'column', 'key', @_ATTRIBUTES );
 
 # simple getter/setter lookup table
 my %ATTR_LOOKUP;
@@ -88,9 +86,8 @@ Kinetic::Store::Search - Manage Kinetic search parameters
       column       => $column,
       operator     => $operator,
       negated      => $negated,
-      place_holder => $place_holder,
       data         => $data,
-      search_class => $search_class,
+      class        => $class,
   );
   # later
   $search->column($new_attr);
@@ -114,15 +111,14 @@ the appropriate search token.
 
 =head3 new
 
-  my $search = Kinetic::Store::Search->new;
+  my $search = Kinetic::Store::Search->new( class => $class );
   # or
   my $search = Kinetic::Store::Search->new(
       column       => $column,
       operator     => $operator,
       negated      => $negated,
       data         => $data,
-      place_holder => $place_holder,
-      search_class => $search_class,
+      class        => $class,
   );
 
 Creates and returns a new search manager.
@@ -223,21 +219,41 @@ sub search_method {
 
 sub data {
     my $self = shift;
-    if (@_) {
-        my $data = shift;
-        $self->{data}          = $data;
-        $self->{search_method} = undef;    # clear search_method cache
+    return $self->{data} unless @_;
 
-        # XXX Is this too early? If it is, we should push this test into
-        # the operator() method. For now, it works and all tests pass.
-        unless ( $self->operator ) {
-            $self->operator( 'ARRAY' eq ref $data ? 'BETWEEN' : 'EQ' );
-        }
-        return $self;
+    my $data = shift;
+    $self->{data}          = $data;
+    $self->{search_method} = undef;    # clear search_method cache
+
+    # XXX Is this too early? If it is, we should push this test into
+    # the operator() method. For now, it works and all tests pass.
+    unless ( $self->operator ) {
+        $self->operator( 'ARRAY' eq ref $data ? 'BETWEEN' : 'EQ' );
     }
-    return $self->{data};
+    return $self;
 }
 
+sub column {
+    my $self = shift;
+    return $self->{column} unless @_;
+
+    my $column = shift;
+    $self->{base_column} = $column;
+    my $key    = $self->key;
+    $column    = "$key.$column" unless $column =~ /^$key\./;
+    $self->{column} = $column;
+    return $self;
+}
+
+sub base_column {
+    return shift->{base_column};
+}
+
+sub key {
+    my $self = shift;
+    $self->{key} = $self->{class}->key unless $self->{key};
+    return $self->{key};
+}
 
 sub formatted_data {
     my $self = shift;
@@ -277,7 +293,7 @@ sub _ANY_SEARCH {
     unless ( 1 == keys %types ) {
         throw_search "All types to an ANY search must match";
     }
-    return Incomplete eq ref $data->[0]
+    return eval { $data->[0]->isa(Incomplete) }
       ? '_date_handler'
       : '_ANY_SEARCH';
 }
@@ -296,6 +312,8 @@ sub _BETWEEN_SEARCH {
             $count
         ];
     }
+
+    # XXX is it OK if one ISA another type?
     if ( ref $data->[0] ne ref $data->[1] ) {
         throw_search [
 "BETWEEN searches must be between identical types. You have ([_1]) and ([_2])",
@@ -303,7 +321,7 @@ sub _BETWEEN_SEARCH {
             ref $data->[1]
         ];
     }
-    return Incomplete eq ref $data->[0]
+    return eval { $data->[0]->isa(Incomplete) }
       ? '_date_handler'
       : '_BETWEEN_SEARCH';
 }
@@ -312,13 +330,14 @@ sub _am_i_eq_or_not {
     my ($search) = @_;
     my $data = $search->data;
     $search->operator( $search->negated ? '!=' : '=' );
-    return !defined $data ? '_NULL_SEARCH'
-      : UNIVERSAL::isa( $data, Incomplete ) ? '_date_handler'
-      : '_EQ_SEARCH';
+
+    return ! defined $data              ? '_NULL_SEARCH'
+      : eval { $data->isa(Incomplete) } ? '_date_handler'
+      :                                   '_EQ_SEARCH';
 }
 
 ##############################################################################
-# Class Methods
+# Instance Methods
 ##############################################################################
 
 =head2 Instance Methods
@@ -327,7 +346,15 @@ sub _am_i_eq_or_not {
 
   $search->column([$column]);
 
-Getter/Setter for the object column on which you wish to search.
+Getter/Setter for the object column on which you wish to search.  This is the
+fully-qualified column name (i.e., "$table.$column").  If you wish the column
+name without the table, see C<base_column>.
+
+=head3 base_column 
+
+ my $column = $search->base_column;
+
+Returns the column name without the table.
 
 =head3 data
 
@@ -371,17 +398,20 @@ C<original_operator> returns C<EQ>, C<operator> will return C<!=>.
 Getter/Setter identifying which operator was being used for the current search.
 Examples are 'LE', 'EQ', 'LIKE', etc.
 
-=head3 place_holder
+=head3 class
 
-  $search->place_holder([$place_holder]);
+  $search->class([$class]);
 
-Getter/Setter for the place holder to use in Database store apps, such as '?'.
+Getter/Setter for the class which contains the current column.
 
-=head3 search_class
+=head3 key
 
-  $search->search_class([$search_class]);
+ my $key = $search->key;
 
-Getter/Setter for the current search class.
+Returns the class key for the Kinetic object this search object refers to.
+This is a convenient (cached) shortcut for:
+
+ $search->class->key;
 
 =cut
 

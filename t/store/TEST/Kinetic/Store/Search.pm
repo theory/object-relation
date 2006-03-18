@@ -11,6 +11,7 @@ use Test::More;
 use Test::Exception;
 
 use aliased 'Kinetic::Store::Search';
+use aliased 'TestApp::Simple::One';
 
 __PACKAGE__->runtests unless caller;
 
@@ -22,10 +23,11 @@ sub constructor : Test(3) {
       'new() with unknown attributes should throw an exception';
 
     my %search = (
-        column   => 'first_name',
+        column   => 'name',
         operator => 'EQ',
         negated  => 'NOT',
         data     => 'foo',
+        class    => Kinetic::Meta->for_key('one'),
     );
     ok my $search = Search->new(%search),
       '... and creating a new Search object should succeed';
@@ -36,10 +38,11 @@ sub methods : Test(16) {
     my $test = shift;
 
     my %search = (
-        column   => 'first_name',
+        column   => 'name',
         operator => 'EQ',
         negated  => 'NOT',
         data     => 'foo',
+        class    => Kinetic::Meta->for_key('one'),
     );
     ok my $search = Search->new(%search),
       'Creating an EQ search should succeed';

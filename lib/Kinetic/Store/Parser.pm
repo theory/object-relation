@@ -388,11 +388,13 @@ sub _make_search {
     my ( $operator, $value ) = @{ $_[1] };
 
     $column =~ s/\Q$ATTR_DELIMITER\E/$OBJECT_DELIMITER/g;
-    unless ( $STORE->_search_data_has_column($column) ) {
+
+    my $class;
+    unless ( $class = $STORE->_search_data_has_column($column) ) {
 
         # special case for searching on a contained object id ...
         my $id_column = $column . $OBJECT_DELIMITER . 'id';
-        unless ( $STORE->_search_data_has_column($id_column) ) {
+        unless ( $class = $STORE->_search_data_has_column($id_column) ) {
             die $LANGUAGE->maketext(
                 q{Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]},
                 $column,
@@ -417,6 +419,7 @@ sub _make_search {
         negated  => ( $negated || '' ),
         operator => ( $operator || 'EQ' ),
         data     => _normalize_value($value),
+        class    => $class,
     );
 }
 
