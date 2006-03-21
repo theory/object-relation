@@ -504,7 +504,7 @@ sub _get_select_sql_and_bind_params {
     my $ir = $self->_parse_search_request($search_request);
     my ( $where_clause, $bind_params ) = $self->_make_where_clause($ir);
     $where_clause = "WHERE $where_clause" if $where_clause;
- 
+
     # now that we've moved up the parsing, we should have enough data to
     # figure out which tables we're selecting from.
     my $view = $self->search_class->key;
@@ -617,10 +617,10 @@ sub _save_collections {
 
 ##############################################################################
 
-=head3 _update_coll_table 
+=head3 _update_coll_table
 
  $self->_update_coll_table( $object, $attr, $thing, $rank );
-  
+
 Given an object, the collection attribute, the specific item in the collection
 and the items rank, this method updates the collection table for that
 information.
@@ -646,7 +646,7 @@ sub _update_coll_table {
 
 ##############################################################################
 
-=head3 _clear_collection_info 
+=head3 _clear_collection_info
 
  $self->_clear_collection_info( $object, $attr );
 
@@ -669,7 +669,7 @@ sub _clear_collection_info {
 
 ##############################################################################
 
-=head3 _get_collection_table_info 
+=head3 _get_collection_table_info
 
   my $info = $self->_get_collection_table_info( $object, $attr );
 
@@ -685,7 +685,7 @@ sub _get_collection_table_info {
       = $self->_collection_table_columns( $object, $attr );
     my $table = $attr->collection_table;
     my $sql   = <<"    END_SQL";
-    SELECT   $coll_id, $rank 
+    SELECT   $coll_id, $rank
     FROM     $table
     WHERE    $object_id = ?
     ORDER BY $rank
@@ -701,7 +701,7 @@ sub _get_collection_table_info {
 
 ##############################################################################
 
-=head3 _get_collection 
+=head3 _get_collection
 
   $self->_get_collection( $object, $attr );
 
@@ -730,7 +730,7 @@ sub _get_collection {
     my $columns = join ', ' => $self->_search_data_columns;
     my $sql = <<"    END_SQL";
     SELECT   $columns
-    FROM     $contained_table, $collection_table, $container_table 
+    FROM     $contained_table, $collection_table, $container_table
     WHERE    $contained_table.id = $collection_table.$coll_id
       AND    $collection_table.$object_id = $container_table.id
       AND    $container_table.id = ?
@@ -745,9 +745,9 @@ sub _get_collection {
 
 ##############################################################################
 
-=head3 _collection_table_columns 
+=head3 _collection_table_columns
 
-  my ($object_id, $coll_id, $rank) 
+  my ($object_id, $coll_id, $rank)
      = $self->_collection_table_columns($object, $attr);
 
 This method returns the correct object id name, collection item id name, and
@@ -829,7 +829,7 @@ search type property accordingly. It will I<remove> the search type from the
 front of the search params, if it's there.
 
 Also, if we have a string search, everything passed I<after> the search is
-assumed to be a list of name/value pairs for the constraints.  These are 
+assumed to be a list of name/value pairs for the constraints.  These are
 also removed from the search params and replaced with a hashref containing
 them.  This allows us to do this:
 
@@ -1560,7 +1560,7 @@ sub _handle_case_sensitivity {
 
     # Normally we have something like customer__uuid
     # For references objects, we might have something like
-    # salesperson.customer__uuid 
+    # salesperson.customer__uuid
 
     if ( $column =~ /^[[:word:]]+\.([[:word:]]+)$OBJECT_DELIMITER([[:word:]]+)/ ) {
         my ( $key, $base_column ) = ( $1, $2 );
@@ -1725,7 +1725,17 @@ sub _constraint_order_by {
         $attr =~ s/\Q$ATTR_DELIMITER\E/$OBJECT_DELIMITER/;
         if ($search_class->attributes($attr)) {
             $_ = "$view.$attr";
-        } # else we assume it's already properly qualified
+        }
+
+        else {
+            # This will work for simple contained objects, but not
+            # for contained.contained.contained.attr. For that we'll
+            # need to add recursion.
+            my ($key) = $_ =~ /^([^.]+)[.]/;
+            if ($key && $search_class->attributes($key)) {
+                $_ = "$view.$attr";
+            } # else we assume it's already properly qualified
+        }
     }
     my @sorts;
 
