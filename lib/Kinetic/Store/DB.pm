@@ -538,11 +538,15 @@ sub _save {
 
     local @{$self}{qw/columns values/};
     $self->_save_contained($object);
-    $self->_save_collections($object);
 
-    return $object->id
+    my $result = $object->id
       ? $self->_update($object)
       : $self->_insert($object);
+
+    # collections must be saved after the object is saved as collections rely
+    # on the object ID.
+    $self->_save_collections($object);
+    return $result;
 }
 
 ##############################################################################
@@ -633,6 +637,9 @@ sub _update_coll_table {
     my $sth   = $self->_dbh->prepare_cached(<<"    END_SQL");
     INSERT INTO $table ($object_id, $coll_id, $rank) VALUES (?, ?, ?)
     END_SQL
+
+    # note the use of the object ID here.  If we have a new object, it *must*
+    # be saved before updating the collection table.
     $sth->execute( $object->id, $thing->id, $rank_val );
     return $self;
 }
@@ -720,8 +727,7 @@ sub _get_collection {
       = $self->_collection_table_columns( $object, $attr );
     my $container_table = $object->my_class->key;
     my $contained_table = $attr->collection_of->key;
-    my $columns = join ', ' => map { "$contained_table.$_" } 
-        $self->_search_data_columns;
+    my $columns = join ', ' => $self->_search_data_columns;
     my $sql = <<"    END_SQL";
     SELECT   $columns
     FROM     $contained_table, $collection_table, $container_table 
@@ -1154,6 +1160,8 @@ sub _get_sql_results {
     my ( $self, $sql, $bind_params ) = @_;
     my $dbi_method = $self->_prepare_method;
     my $sth        = $self->_dbh->$dbi_method($sql);
+#use Test::More; # XXX debug
+#diag $sql;      # XXX debug
     $self->_execute( $sth, $bind_params );
 
     if ( $self->_should_create_iterator ) {
@@ -1278,7 +1286,8 @@ my %SEARCH_DATA_FOR;
 
 sub _set_search_data {
     my ($self) = @_;
-    my $package = $self->search_class->package;
+    my $package      = $self->search_class->package;
+    my $primary_view = $self->search_class->key;
     unless ( exists $SEARCH_DATA_FOR{$package} ) {
         my ( @columns, %packages );
         my @classes_to_process = {
@@ -1309,7 +1318,7 @@ sub _set_search_data {
                         $packages{$package}{contains}{$column} = $class;
                     }
                     else {
-                        push @columns => $view_column;
+                        push @columns => "$primary_view.$view_column";
                     }
                 }
             }
@@ -1374,8 +1383,12 @@ an argument.
 
 sub _search_data_has_column {
     my ( $self, $column ) = @_;
-    return $self->{search_class}
-        if exists $self->{search_data}{lookup}{$column};
+    my $search_class = $self->search_class;
+    my $actual_column = $column =~ /^[[:word:]]+\./
+        ? $column
+        : $search_class->key . ".$column";
+    return $search_class
+        if exists $self->{search_data}{lookup}{$actual_column};
 }
 
 ##############################################################################
@@ -1417,16 +1430,17 @@ clause and an arrayref of any appropriate bind params for that where clause.
 sub _make_where_clause {
     my ( $self, $ir ) = @_;
 
+    my $view = $self->{search_class}->key;
     unless ( @$ir ) {
         # no search request.  Return everything not deleted.
-        return ( 'state > ?', [ 0 + State->DELETED ] );
+        return ( "$view.state > ?", [ 0 + State->DELETED ] );
     }
 
     my ( $clause, $bind_params ) = $self->_convert_ir_to_where_clause($ir);
     $clause = "" if '()' eq $clause;
 
     unless ( $self->{searching_on_state} ) {
-        $clause .= ' AND state > ?';
+        $clause .= " AND $view.state > ?";
         push @$bind_params, 0 + State->DELETED;
     }
     return ( $clause, $bind_params );
@@ -1541,6 +1555,11 @@ sub _handle_case_sensitivity {
     my $orig_column    = $column;
     my $search_class   = $self->{search_class};
     my $attribute_name = $search->base_column;
+
+    # Normally we have something like customer__uuid
+    # For references objects, we might have something like
+    # salesperson.customer__uuid 
+
     if ( $column =~ /^[[:word:]]+\.([[:word:]]+)$OBJECT_DELIMITER([[:word:]]+)/ ) {
         my ( $key, $base_column ) = ( $1, $2 );
 
@@ -1692,8 +1711,20 @@ sub _constraint_order_by {
     $sort_order = [$sort_order] unless 'ARRAY' eq ref $sort_order;
 
     # normalize . to __
-    s/\Q$ATTR_DELIMITER\E/$OBJECT_DELIMITER/eg
-      foreach @$value;    # one.name -> one__name
+
+    # one.name => one__name (for a contained object)
+    # person.name => person.name (for an unrelated object)
+    my $search_class = $self->search_class;
+    my $view         = $search_class->key;
+
+    # this is potentially fragile and we may need to revisit it.
+    foreach (@$value) {
+        my $attr = $_;
+        $attr =~ s/\Q$ATTR_DELIMITER\E/$OBJECT_DELIMITER/;
+        if ($search_class->attributes($attr)) {
+            $_ = "$view.$attr";
+        } # else we assume it's already properly qualified
+    }
     my @sorts;
 
     # XXX Perl 6 would so rock for this...

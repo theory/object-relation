@@ -347,7 +347,7 @@ sub _am_i_eq_or_not {
   $search->column([$column]);
 
 Getter/Setter for the object column on which you wish to search.  This is the
-fully-qualified column name (i.e., "$table.$column").  If you wish the column
+table-qualified column name (i.e., "$table.$column").  If you wish the column
 name without the table, see C<base_column>.
 
 =head3 base_column 

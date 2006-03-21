@@ -101,7 +101,6 @@ sub test_dbh : Test(2) {
 }
 
 sub where_clause : Test(11) {
-    return; # XXX skipping internals for a moment
     my $store = Store->new;
     $store->{search_class} = One->new->my_class;
     my $my_class = MockModule->new('Kinetic::Meta::Class');
@@ -128,11 +127,9 @@ sub where_clause : Test(11) {
         }
     );
     can_ok $store, '_make_where_clause';
-    $store->{search_data}{columns} =
-      [qw/name desc/];    # so it doesn't think it's an object search
     $store->{search_data}{lookup} = {
-        name => undef,
-        desc => undef
+        "one.name" => undef,
+        "one.desc" => undef
     };                    # so it doesn't think it's an object search
 
     # needed internally
@@ -146,16 +143,13 @@ sub where_clause : Test(11) {
         )
     );
     is $where,
-      '(LOWER(name) = LOWER(?) AND LOWER(desc) = LOWER(?)) AND state > ?',
+      '(LOWER(one.name) = LOWER(?) AND LOWER(one.desc) = LOWER(?)) AND one.state > ?',
       'and simple compound where snippets should succeed';
     is_deeply $bind, [qw/foo bar -1/], 'and return the correct bind params';
-
-    $store->{search_data}{columns} =
-      [qw/name desc this/];    # so it doesn't think it's an object search
     $store->{search_data}{lookup} = {
-        name => undef,
-        desc => undef,
-        this => undef
+        "one.name" => undef,
+        "one.desc" => undef,
+        "one.this" => undef
     };                         # so it doesn't think it's an object search
     ( $where, $bind ) = $store->_make_where_clause(
         $store->_parse_search_request(
@@ -169,7 +163,7 @@ sub where_clause : Test(11) {
         )
     );
     is $where,
-      '(LOWER(name) = LOWER(?) AND (LOWER(desc) = LOWER(?) AND this = ?)) AND state > ?',
+      '(LOWER(one.name) = LOWER(?) AND (LOWER(one.desc) = LOWER(?) AND one.this = ?)) AND one.state > ?',
       'and compound where snippets with array refs should succeed';
     is_deeply $bind, [qw/foo bar that -1/], 'and return the correct bind params';
 
@@ -185,22 +179,23 @@ sub where_clause : Test(11) {
         )
     );
     is $where,
-      '(LOWER(name) = LOWER(?) OR (LOWER(desc) = LOWER(?) AND this = ?)) AND state > ?',
+      '(LOWER(one.name) = LOWER(?) OR (LOWER(one.desc) = LOWER(?) AND one.this = ?)) AND one.state > ?',
       'and compound where snippets with array refs should succeed';
     is_deeply $bind, [qw/foo bar that -1/],
       'and return the correct bind params';
 
     $store->{search_data}{columns} = [
         qw/
-          last_name
-          first_name
-          bio
-          one__type
-          one__value
-          fav_number
+          two.last_name
+          two.first_name
+          two.bio
+          two.one__type
+          two.one__value
+          two.fav_number
           /
     ];    # so it doesn't think it's an object search
     $store->{search_data}{lookup} = {};
+    $store->{search_class} = Two->my_class;
     @{ $store->{search_data}{lookup} }{ @{ $store->{search_data}{columns} } } =
       undef;
     ( $where, $bind ) = $store->_make_where_clause(
@@ -220,8 +215,8 @@ sub where_clause : Test(11) {
         )
     );
     is $where,
-      '((last_name = ? AND first_name = ?) OR (bio  LIKE ?) OR '
-      . '(one__type  LIKE ? AND one__value  LIKE ? AND fav_number >= ?)) AND state > ?',
+      '((two.last_name = ? AND two.first_name = ?) OR (two.bio  LIKE ?) OR '
+      . '(two.one__type  LIKE ? AND two.one__value  LIKE ? AND two.fav_number >= ?)) AND two.state > ?',
       'Even very complex conditions should be manageable';
     is_deeply $bind, [qw/Wall Larry %perl% email @cpan\.org$ 42 -1/],
       'and be able to generate the correct bindings';
@@ -243,8 +238,8 @@ sub where_clause : Test(11) {
         )
     );
     is $where,
-      '((last_name = ? AND first_name = ?) OR (bio  LIKE ?) OR '
-      . '(one__type  LIKE ? AND one__value  LIKE ? AND fav_number >= ?)) AND state > ?',
+      '((two.last_name = ? AND two.first_name = ?) OR (two.bio  LIKE ?) OR '
+      . '(two.one__type  LIKE ? AND two.one__value  LIKE ? AND two.fav_number >= ?)) AND two.state > ?',
       'Even very complex conditions should be manageable';
     is_deeply $bind, [qw/Wall Larry %perl% email @cpan\.org$ 42 -1/],
       'and be able to generate the correct bindings';
@@ -263,7 +258,7 @@ sub set_search_data : Test(9) {
     is_deeply \@keys, [qw/build_order columns lookup  metadata/],
       'and it should return the types of data that we are looking for';
     is_deeply [ sort @{ $results->{columns} } ],
-      [qw/bool description id name state uuid/],
+      [qw/one.bool one.description one.id one.name one.state one.uuid/],
       'which correctly identify the sql column names';
     is_deeply $results->{metadata},
       {
@@ -288,7 +283,8 @@ sub set_search_data : Test(9) {
     is_deeply \@keys, [qw/build_order columns lookup  metadata/],
       'and it should return the types of data that we are looking for';
     is_deeply [ sort @{ $results->{columns} } ], [
-        qw/ age date description id name one__bool one__description one__id
+        map { "two.$_" } 
+          qw/ age date description id name one__bool one__description one__id
           one__name one__state one__uuid state uuid /
       ],
       'which correctly identify the sql column names';
@@ -557,14 +553,18 @@ sub query_match : Test(6) {
     is_deeply \@items, [$baz], 'and should include the correct items';
 }
 
-sub constraints : Test(4) {
+sub constraints : Test(5) {
     can_ok Store, '_constraints';
-    is Store->_constraints( { order_by => 'name' } ), ' ORDER BY name',
+    my $store = Store->new;
+    $store->{search_class} = One->my_class;
+    is $store->_constraints( { order_by => 'name' } ), ' ORDER BY one.name',
       'and it should build a valid order by clause';
-    is Store->_constraints( { order_by => [qw/foo bar/] } ),
-      ' ORDER BY foo, bar', 'even if we have multiple order by columns';
-    is Store->_constraints( { order_by => 'name', sort_order => ASC } ),
-      ' ORDER BY name ASC', 'and ORDER BY can be ascending or descending';
+    is $store->_constraints( { order_by => [qw/name bool/] } ),
+      ' ORDER BY one.name, one.bool', 'even if we have multiple order by columns';
+    is $store->_constraints( { order_by => 'name', sort_order => ASC } ),
+      ' ORDER BY one.name ASC', 'and ORDER BY can be ascending or descending';
+    is $store->_constraints( { order_by => 'two.name' } ),
+      ' ORDER BY two.name', 'but it ignores attributes not in the search class';
 }
 
 sub test_extend : Test(45) {
@@ -733,7 +733,6 @@ sub test_has_many : Test(13) {
         ok defined $one->uuid,
             '... and the collection objects should now have uuids';
     } # 9 tests
-
     ok my $has_many_2 = HasMany->lookup( uuid => $has_many->uuid ),
         'We should be able to lookup has_many objects';
     $has_many_2->state; # inflate

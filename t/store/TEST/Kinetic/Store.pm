@@ -24,6 +24,7 @@ use aliased 'Kinetic::DataType::State';
 
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
+use aliased 'TestApp::HasMany';
 
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->any_supported(qw/pg sqlite/)
@@ -2173,6 +2174,77 @@ sub string_order_by : Test(6) {
     @results = $test->_all_items($iterator);
     is_deeply \@results, [ $baz, $foo, $bar ],
       'and we can combine single items order_by and sort parameters';
+}
+
+sub joins : Test(no_plan) {
+    my $test = shift;
+    return unless $test->_should_run;
+    my $has_many = HasMany->new( age => 32 );
+    my $coll = $has_many->ones;
+    my @ones = map { One->new( name => $_ ) } qw/uno dos tres/;
+    $has_many->ones( $coll->from_list( { list => \@ones } ) );
+    $has_many->save;
+    my $has_many_2 = HasMany->new( age => 19 );
+
+    # SELECT [contact fields]
+    # FROM   contact, person_coll_contact, person
+    # WHERE  contact.id = person_coll_contact.contact_id
+    #   AND contact_coll_contact.person_id = person.id
+    #   AND person.uuid = ?
+    # ORDER BY person_coll_contact.rank
+    One->query;
+    my $store = Store->new;
+
+    can_ok $store, 'query';
+    return;
+    my ( $foo, $bar, $baz ) = $test->test_objects;
+    foreach ( $foo, $bar, $baz ) {
+        $_->name( $_->name . chr(0x100) );
+        $_->save;
+    }
+    my $class = $foo->my_class;
+    ok my $iterator = $store->query($class),
+      'A search with only a class should succeed';
+    my @results = $test->_all_items($iterator);
+    is @results, 3, 'returning all instances in the class';
+
+    foreach my $result (@results) {
+        ok is_utf8( $result->name ),
+          '... and the data should be unicode strings';
+    }
+
+    ok $iterator = $store->query( $class, name => $foo->name ),
+      'and an exact match should succeed';
+    isa_ok $iterator, Iterator, 'and the object it returns';
+    is_deeply $test->force_inflation( $iterator->next ), $foo,
+      'and the first item should match the correct object';
+    ok !$test->force_inflation( $iterator->next ),
+      'and there should be the correct number of objects';
+
+    ok $iterator = $store->query( $class, name => $foo->name ),
+      'We should also be able to call search as a class method';
+    isa_ok $iterator, Iterator, 'and the object it returns';
+    is_deeply $test->force_inflation( $iterator->next ), $foo,
+      'and it should return the same results as an instance method';
+    ok !$test->force_inflation( $iterator->next ),
+      'and there should be the correct number of objects';
+
+    ok $iterator = $store->query( $class, name => ucfirst $foo->name ),
+      'Case-insensitive searches should work';
+    isa_ok $iterator, Iterator, 'and the object it returns';
+    is_deeply $test->force_inflation( $iterator->next ), $foo,
+      'and they should return data even if the case does not match';
+
+    $iterator =
+      $store->query( $class, name => $foo->name, description => 'asdf' );
+    ok !$test->force_inflation( $iterator->next ),
+      'but searching for non-existent values will return no results';
+    $foo->description('asdf');
+    $foo->save;
+    $iterator =
+      $store->query( $class, name => $foo->name, description => 'asdf' );
+    is_deeply $test->force_inflation( $iterator->next ), $foo,
+      '... and it should be the correct results';
 }
 
 1;
