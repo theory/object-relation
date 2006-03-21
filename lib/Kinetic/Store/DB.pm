@@ -1479,9 +1479,11 @@ sub _convert_ir_to_where_clause {
             push @where => $token;
             push @bind  => @$bind;
 
-           # (LOWER(name) = LOWER(?) OR (LOWER(desc) = LOWER(?) AND this = ?))
+           # (LOWER(one.name) = LOWER(?) 
+           #     OR
+           #     (LOWER(one.desc) = LOWER(?) AND one.this = ?))
         }
-        elsif ( Search eq ref $term ) {
+        elsif ( eval { $term->isa(Search) } ) {
             my $search_method = $term->search_method;
             my ( $token, $bind ) = $self->$search_method($term);
             if ( $token =~ /\bstate\b/i ) { # XXX What if token is "statement"?
