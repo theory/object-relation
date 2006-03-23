@@ -24,8 +24,8 @@ Kinetic::Meta::Declare->new(
             ),
         },
         ones => {
-            relationship => 'has_many', # can also be an array ref
             type         => 'one',
+            relationship => 'has_many',
             widget_meta  => Kinetic::Meta::Widget->new(
                 type => 'text',
                 tip  => 'This is a tip.  This is only a tip.',

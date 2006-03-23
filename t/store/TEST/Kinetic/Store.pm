@@ -2191,7 +2191,7 @@ sub joins : Test(no_plan) {
     # WHERE  contact.id = person_coll_contact.contact_id
     #   AND contact_coll_contact.person_id = person.id
     #   AND person.uuid = ?
-    # ORDER BY person_coll_contact.rank
+    # ORDER BY person_coll_contact.seq
     One->query;
     my $store = Store->new;
 

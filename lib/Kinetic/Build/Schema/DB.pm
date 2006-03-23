@@ -204,7 +204,7 @@ sub collection_table {
 CREATE TABLE $table (
     $class_key\_id INTEGER NOT NULL,
     $coll_key\_id INTEGER NOT NULL,
-    rank INTEGER NOT NULL,
+    seq INTEGER NOT NULL,
     PRIMARY KEY ($class_key\_id, $coll_key\_id)
 );
     END_SQL
@@ -469,7 +469,7 @@ sub _collection_indexes {
         my $table    = $attr->collection_table;
         push @indexes, "CREATE UNIQUE INDEX idx_$table "
                      . "ON $table "
-                     . "($class_key\_id, rank);\n";
+                     . "($class_key\_id, seq);\n";
     }
     return @indexes;
 }

@@ -604,12 +604,12 @@ sub _save_collections {
 
         my $method = $attr->name;
         my $coll   = $object->$method;
-        my $rank   = 1;
+        my $seq   = 1;
         while ( defined( my $thing = $coll->next ) ) {
             $thing->save;
             next if $thing->is_purged;
-            $self->_update_coll_table( $object, $attr, $thing, $rank );
-            $rank++;
+            $self->_update_coll_table( $object, $attr, $thing, $seq );
+            $seq++;
         }
     }
     return $self;
@@ -619,28 +619,28 @@ sub _save_collections {
 
 =head3 _update_coll_table
 
- $self->_update_coll_table( $object, $attr, $thing, $rank );
+ $self->_update_coll_table( $object, $attr, $thing, $seq );
 
 Given an object, the collection attribute, the specific item in the collection
-and the items rank, this method updates the collection table for that
+and the items seq, this method updates the collection table for that
 information.
 
 =cut
 
 sub _update_coll_table {
-    my ( $self, $object, $attr, $thing, $rank_val ) = @_;
-    my ( $object_id, $coll_id, $rank ) = $self->_collection_table_columns(
+    my ( $self, $object, $attr, $thing, $seq_val ) = @_;
+    my ( $object_id, $coll_id, $seq ) = $self->_collection_table_columns(
         $object,
         $attr
     );
     my $table = $attr->collection_table;
     my $sth   = $self->_dbh->prepare_cached(<<"    END_SQL");
-    INSERT INTO $table ($object_id, $coll_id, $rank) VALUES (?, ?, ?)
+    INSERT INTO $table ($object_id, $coll_id, $seq) VALUES (?, ?, ?)
     END_SQL
 
     # note the use of the object ID here.  If we have a new object, it *must*
     # be saved before updating the collection table.
-    $sth->execute( $object->id, $thing->id, $rank_val );
+    $sth->execute( $object->id, $thing->id, $seq_val );
     return $self;
 }
 
@@ -674,29 +674,29 @@ sub _clear_collection_info {
   my $info = $self->_get_collection_table_info( $object, $attr );
 
 Given an object and the attribute for the collection, this method returns an
-AoA.  Each contained array has two elemements, the object id and rank,
+AoA.  Each contained array has two elemements, the object id and seq,
 respectively, for each collection item for the object attribute.
 
 =cut
 
 sub _get_collection_table_info {
     my ( $self, $object, $attr ) = @_;
-    my ( $object_id, $coll_id, $rank )
+    my ( $object_id, $coll_id, $seq )
       = $self->_collection_table_columns( $object, $attr );
     my $table = $attr->collection_table;
     my $sql   = <<"    END_SQL";
-    SELECT   $coll_id, $rank
+    SELECT   $coll_id, $seq
     FROM     $table
     WHERE    $object_id = ?
-    ORDER BY $rank
+    ORDER BY $seq
     END_SQL
     my $sth = $self->_dbh->prepare($sql);
     $sth->execute( $object->id );
-    my @ranks;
+    my @seqs;
     while ( my $result = $sth->fetchrow_arrayref ) {
-        push @ranks, [@$result];
+        push @seqs, [@$result];
     }
-    return \@ranks;
+    return \@seqs;
 }
 
 ##############################################################################
@@ -723,7 +723,7 @@ sub _get_collection {
 
     $self->_set_search_data;
     my $collection_table = $attr->collection_table;
-    my ( $object_id, $coll_id, $rank )
+    my ( $object_id, $coll_id, $seq )
       = $self->_collection_table_columns( $object, $attr );
     my $container_table = $object->my_class->key;
     my $contained_table = $attr->collection_of->key;
@@ -734,7 +734,7 @@ sub _get_collection {
     WHERE    $contained_table.id = $collection_table.$coll_id
       AND    $collection_table.$object_id = $container_table.id
       AND    $container_table.id = ?
-    ORDER BY $collection_table.$rank
+    ORDER BY $collection_table.$seq
     END_SQL
     my $results = $self->_get_sql_results( $sql, [ $object->id ] );
 
@@ -747,11 +747,11 @@ sub _get_collection {
 
 =head3 _collection_table_columns
 
-  my ($object_id, $coll_id, $rank)
+  my ($object_id, $coll_id, $seq)
      = $self->_collection_table_columns($object, $attr);
 
 This method returns the correct object id name, collection item id name, and
-rank name.  These are used in building SQL for fetching collection results.
+seq name.  These are used in building SQL for fetching collection results.
 
 =cut
 
@@ -760,7 +760,7 @@ sub _collection_table_columns {
     my $object_id = $object->my_class->key . "_id";
     my $coll_id   = $attr->type . "_id";
     $coll_id =~ s/^collection_//;    # XXX Hack!  Must find a better way
-    return ( $object_id, $coll_id, 'rank' );
+    return ( $object_id, $coll_id, 'seq' );
 }
 
 ##############################################################################
