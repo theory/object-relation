@@ -23,7 +23,7 @@ use aliased 'TestApp::Extend';
 use aliased 'TestApp::Relation';
 use aliased 'TestApp::Composed';
 use aliased 'TestApp::TypesTest';
-use aliased 'TestApp::HasMany';
+use aliased 'TestApp::Yello';
 
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->any_supported(qw/pg sqlite/)
@@ -283,7 +283,7 @@ sub set_search_data : Test(9) {
     is_deeply \@keys, [qw/build_order columns lookup  metadata/],
       'and it should return the types of data that we are looking for';
     is_deeply [ sort @{ $results->{columns} } ], [
-        map { "two.$_" } 
+        map { "two.$_" }
           qw/ age date description id name one__bool one__description one__id
           one__name one__state one__uuid state uuid /
       ],
@@ -715,16 +715,16 @@ sub test_extend : Test(45) {
 sub test_has_many : Test(13) {
     my $self = shift;
     return 'Skip test_has_many for abstract class' unless $self->_should_run;
-    ok my $has_many = HasMany->new( age => 32 ), 'Create a HasMany object';
-    ok $has_many->save, 'Save the HasMany object';
-    
+    ok my $has_many = Yello->new( age => 32 ), 'Create a Yello object';
+    ok $has_many->save, 'Save the Yello object';
+
     ok my $coll = $has_many->ones,
         'The collection slot should have a default value';
     isa_ok $coll, 'Kinetic::Util::Collection::One',
         '... and the object it contains';
     my @all = $coll->all;
     ok !@all, '... and it should be an empty collection';
-     
+
     my @ones = map { One->new( name => $_ ) } qw/uno dos tres/;
     $has_many->ones( $coll->from_list( { list => \@ones } ) );
     ok $has_many->save,
@@ -733,7 +733,7 @@ sub test_has_many : Test(13) {
         ok defined $one->uuid,
             '... and the collection objects should now have uuids';
     } # 9 tests
-    ok my $has_many_2 = HasMany->lookup( uuid => $has_many->uuid ),
+    ok my $has_many_2 = Yello->lookup( uuid => $has_many->uuid ),
         'We should be able to lookup has_many objects';
     $has_many_2->state; # inflate
     ok my $coll_2 = $has_many_2->ones,
@@ -741,7 +741,7 @@ sub test_has_many : Test(13) {
     isa_ok $coll_2, 'Kinetic::Util::Collection::One',
         '... and the collection';
     my $all_2 = $coll_2->all;
-    $_->state foreach @$all_2; 
+    $_->state foreach @$all_2;
     is_deeply $all_2, \@ones, '... and it should have the correct objects';
 }
 

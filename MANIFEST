@@ -248,6 +248,7 @@ t/catalyst/session.t
 t/catalyst/TEST/Kinetic/UI/Catalyst.pm
 t/clone.t
 t/collection.t
+t/collection/typed.t
 t/config.t
 t/context.t
 t/datatypes.t
@@ -301,6 +302,7 @@ t/sample/lib/TestApp/Simple.pm
 t/sample/lib/TestApp/Simple/One.pm
 t/sample/lib/TestApp/Simple/Two.pm
 t/sample/lib/TestApp/TypesTest.pm
+t/sample/lib/TestApp/Yello.pm
 t/sample/www/test.html
 t/schema_meta.t
 t/sqlite/schema.t

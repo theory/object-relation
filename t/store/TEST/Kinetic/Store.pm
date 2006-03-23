@@ -24,7 +24,7 @@ use aliased 'Kinetic::DataType::State';
 
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
-use aliased 'TestApp::HasMany';
+use aliased 'TestApp::Yello';
 
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->any_supported(qw/pg sqlite/)
@@ -2179,12 +2179,12 @@ sub string_order_by : Test(6) {
 sub joins : Test(no_plan) {
     my $test = shift;
     return unless $test->_should_run;
-    my $has_many = HasMany->new( age => 32 );
+    my $has_many = Yello->new( age => 32 );
     my $coll = $has_many->ones;
     my @ones = map { One->new( name => $_ ) } qw/uno dos tres/;
     $has_many->ones( $coll->from_list( { list => \@ones } ) );
     $has_many->save;
-    my $has_many_2 = HasMany->new( age => 19 );
+    my $has_many_2 = Yello->new( age => 19 );
 
     # SELECT [contact fields]
     # FROM   contact, person_coll_contact, person

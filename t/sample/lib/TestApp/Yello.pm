@@ -1,4 +1,4 @@
-package TestApp::HasMany;
+package TestApp::Yello;
 
 use strict;
 use warnings;
@@ -36,16 +36,10 @@ Kinetic::Meta::Declare->new(
 
 # Add new strings to the lexicon.
 Kinetic::Util::Language::en->add_to_lexicon(
-    'has_many',
-    'has_many',
-    'Has many',
-    'Has many',
-    'Has Manys',
-    'Has Manys',
-    'This is a tip.  This is only a tip.',
-    'This is a tip.  This is only a tip.',
-    'HasMany age',
-    'HasMany age',
+    'Yello',
+    'Yello',
+    'Yellos',
+    'Yellos',
 );
 
 1;
