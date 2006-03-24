@@ -586,9 +586,9 @@ eq_or_diff join( "\n", $sg->schema_for_class($relation) ),
 
 ##############################################################################
 # Grab the yello class.
-ok my $has_many = Kinetic::Meta->for_key('yello'), "Get yello class";
-is $has_many->key,   'yello',  "... HasMany class has key 'yello'";
-is $has_many->table, '_yello', "... HasMany class has table '_yello'";
+ok my $yello = Kinetic::Meta->for_key('yello'), "Get yello class";
+is $yello->key,   'yello',  "... HasMany class has key 'yello'";
+is $yello->table, '_yello', "... HasMany class has table '_yello'";
 
 $table = q{CREATE TABLE _yello (
     id INTEGER NOT NULL PRIMARY KEY,
@@ -605,14 +605,14 @@ CREATE TABLE yello_coll_one (
 );
 };
 
-eq_or_diff join("\n", $sg->tables_for_class($has_many)), $table,
+eq_or_diff join("\n", $sg->tables_for_class($yello)), $table,
   '... and it should generate the correct table';
 
 $indexes = q{CREATE UNIQUE INDEX idx_yello_uuid ON _yello (uuid);
 CREATE INDEX idx_yello_state ON _yello (state);
 CREATE UNIQUE INDEX idx_yello_coll_one ON yello_coll_one (yello_id, seq);
 };
-is $sg->indexes_for_class($has_many), $indexes,
+is $sg->indexes_for_class($yello), $indexes,
     '... and the correct indexes for the class';
 
 $constraints = q{CREATE TRIGGER cki_yello_state
@@ -676,14 +676,14 @@ FOR EACH ROW BEGIN
   DELETE from yello_coll_one WHERE one_id = OLD.id;
 END;
 };
-eq_or_diff join( "\n", $sg->constraints_for_class($has_many) ), $constraints,
+eq_or_diff join( "\n", $sg->constraints_for_class($yello) ), $constraints,
   '... with the correct constraints';
 
 $view = q{CREATE VIEW yello AS
   SELECT _yello.id AS id, _yello.uuid AS uuid, _yello.state AS state, _yello.age AS age
   FROM   _yello;
 };
-is $sg->view_for_class($has_many), $view, '... and the correct view';
+is $sg->view_for_class($yello), $view, '... and the correct view';
 
 $insert = q{CREATE TRIGGER insert_yello
 INSTEAD OF INSERT ON yello
@@ -692,7 +692,7 @@ FOR EACH ROW BEGIN
   VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.age);
 END;
 };
-is $sg->insert_for_class($has_many), $insert, '... and the correct insert';
+is $sg->insert_for_class($yello), $insert, '... and the correct insert';
 
 $update = q{CREATE TRIGGER update_yello
 INSTEAD OF UPDATE ON yello
@@ -702,7 +702,7 @@ FOR EACH ROW BEGIN
   WHERE  id = OLD.id;
 END;
 };
-is $sg->update_for_class($has_many), $update,
+is $sg->update_for_class($yello), $update,
   '... and the correct update for the class';
 
 $delete = q{CREATE TRIGGER delete_yello
@@ -712,11 +712,11 @@ FOR EACH ROW BEGIN
   WHERE  id = OLD.id;
 END;
 };
-is $sg->delete_for_class($has_many), $delete,
+is $sg->delete_for_class($yello), $delete,
     '... and the correct delete for the class';
 
 # Check that a complete schema is properly generated.
-eq_or_diff join( "\n", $sg->schema_for_class($has_many) ),
+eq_or_diff join( "\n", $sg->schema_for_class($yello) ),
   join( "\n", $table, $indexes, $constraints, $view, $insert, $update,
     $delete ), "... Schema class generates complete schema";
 

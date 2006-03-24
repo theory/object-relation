@@ -122,14 +122,13 @@ sub view { shift->key }
 
   my $pk = $class->primary_key;
 
-Primary key constraints are named for the class key plus "_id" (the primary
-key column name), and be preceded by "pk_". For example, the primary key for
-the "person" class shall be named "pk_person_id" and the primary key for the
-"party" class shall be named "pk_party_id".
+Primary key constraints are named for the class key preceded by "pk_". For
+example, the primary key for the "person" class shall be named "pk_person" and
+the primary key for the "party" class shall be named "pk_party".
 
 =cut
 
-sub primary_key { 'pk_' . shift->key . '_id' }
+sub primary_key { 'pk_' . shift->key }
 
 ##############################################################################
 

@@ -80,7 +80,7 @@ is $simple->table, '_simple', "... Simple class has table '_simple'";
 
 # Check that the CREATE SEQUENCE statement is correct.
 my $seq = "CREATE SEQUENCE seq_simple;\n";
-is $sg->sequence_for_class($simple), $seq,
+is join("\n", $sg->sequences_for_class($simple)), $seq,
     '... Schema class generates CREATE SEQUENCE statement';
 
 # Check that the CREATE TABLE statement is correct.
@@ -105,7 +105,7 @@ eq_or_diff $sg->indexes_for_class($simple), $indexes,
 
 # Check that the ALTER TABLE ADD CONSTRAINT statements are correct.
 my $constraints = q{ALTER TABLE _simple
-  ADD CONSTRAINT pk_simple_id PRIMARY KEY (id);
+  ADD CONSTRAINT pk_simple PRIMARY KEY (id);
 
 CREATE FUNCTION simple_uuid_once() RETURNS trigger AS '
   BEGIN
@@ -179,7 +179,7 @@ is $one->table, 'simple_one', "... One class has table 'simple_one'";
 
 # Check that the CREATE SEQUENCE statement is correct.
 $seq = '';
-is $sg->sequence_for_class($one), $seq,
+is join("\n", $sg->sequences_for_class($one)), $seq,
     '... There should be no sequence for an inheriting class';
 
 # Check that the CREATE TABLE statement is correct.
@@ -197,7 +197,7 @@ is $sg->indexes_for_class($one), '',
 
 # Check that the ALTER TABLE ADD CONSTRAINT statements are correct.
 $constraints = q{ALTER TABLE simple_one
-  ADD CONSTRAINT pk_one_id PRIMARY KEY (id);
+  ADD CONSTRAINT pk_one PRIMARY KEY (id);
 
 ALTER TABLE simple_one
   ADD CONSTRAINT pfk_simple_one_id FOREIGN KEY (id)
@@ -265,7 +265,7 @@ is $two->key,   'two',        "... Two class has key 'two'";
 is $two->table, 'simple_two', "... Two class has table 'simple_two'";
 
 # Check that the CREATE SEQUENCE statement is correct.
-is $sg->sequence_for_class($two), $seq,
+is join("\n", $sg->sequences_for_class($two)), $seq,
     '... There should be no sequence for an inheriting class';
 
 # Check that the CREATE TABLE statement is correct.
@@ -289,7 +289,7 @@ eq_or_diff $sg->indexes_for_class($two), $indexes,
 
 # Check that the ALTER TABLE ADD CONSTRAINT statements are correct.
 $constraints = q{ALTER TABLE simple_two
-  ADD CONSTRAINT pk_two_id PRIMARY KEY (id);
+  ADD CONSTRAINT pk_two PRIMARY KEY (id);
 
 ALTER TABLE simple_two
   ADD CONSTRAINT pfk_simple_two_id FOREIGN KEY (id)
@@ -436,7 +436,7 @@ is $relation->table, '_relation', "... Relation class has table '_relation'";
 
 # Check that the CREATE SEQUENCE statement is correct.
 $seq = "CREATE SEQUENCE seq_relation;\n";
-is $sg->sequence_for_class($relation), $seq,
+is join("\n", $sg->sequences_for_class($relation)), $seq,
     '... Schema class generates CREATE SEQUENCE statement';
 
 # Check that the CREATE TABLE statement is correct.
@@ -463,7 +463,7 @@ eq_or_diff $sg->indexes_for_class($relation), $indexes,
 
 # Check that the ALTER TABLE ADD CONSTRAINT statements are correct.
 $constraints = q{ALTER TABLE _relation
-  ADD CONSTRAINT pk_relation_id PRIMARY KEY (id);
+  ADD CONSTRAINT pk_relation PRIMARY KEY (id);
 
 ALTER TABLE _relation
   ADD CONSTRAINT fk_relation_simple_id FOREIGN KEY (simple_id)
@@ -573,14 +573,15 @@ eq_or_diff left_justify( join ( "\n", $sg->schema_for_class($relation) ) ),
   "... Schema class generates complete schema";
 
 ##############################################################################
-# Grab the has_many class.
-ok my $has_many = Kinetic::Meta->for_key('yello'), "Get has_many class";
-is $has_many->key,   'yello',  "... HasMany class has key 'yello'";
-is $has_many->table, '_yello', "... HasMany class has table '_yello'";
+# Grab the yello class.
+ok my $yello = Kinetic::Meta->for_key('yello'), "Get yello class";
+is $yello->key,   'yello',  "... HasMany class has key 'yello'";
+is $yello->table, '_yello', "... HasMany class has table '_yello'";
 
 # Check that the CREATE SEQUENCE statement is correct.
-$seq = "CREATE SEQUENCE seq_yello;\n";
-is $sg->sequence_for_class($has_many), $seq,
+$seq
+    = "CREATE SEQUENCE seq_yello;\n\nCREATE SEQUENCE seq_yello_coll_one;\n";
+is join("\n", $sg->sequences_for_class($yello)), $seq,
     '... Schema class generates CREATE SEQUENCE statement';
 
 $table = q{CREATE TABLE _yello (
@@ -593,24 +594,23 @@ $table = q{CREATE TABLE _yello (
 CREATE TABLE yello_coll_one (
     yello_id INTEGER NOT NULL,
     one_id INTEGER NOT NULL,
-    seq INTEGER NOT NULL,
-    PRIMARY KEY (yello_id, one_id)
+    seq INTEGER NOT NULL
 );
 };
 
-eq_or_diff join("\n", $sg->tables_for_class($has_many)), $table,
+eq_or_diff join("\n", $sg->tables_for_class($yello)), $table,
   '... and it should generate the correct table';
 
 $indexes = q{CREATE UNIQUE INDEX idx_yello_uuid ON _yello (uuid);
 CREATE INDEX idx_yello_state ON _yello (state);
 CREATE UNIQUE INDEX idx_yello_coll_one ON yello_coll_one (yello_id, seq);
 };
-is $sg->indexes_for_class($has_many), $indexes,
+is $sg->indexes_for_class($yello), $indexes,
     '... and the correct indexes for the class';
 
 # Check that the ALTER TABLE ADD CONSTRAINT statements are correct.
 $constraints = q{ALTER TABLE _yello
-  ADD CONSTRAINT pk_yello_id PRIMARY KEY (id);
+  ADD CONSTRAINT pk_yello PRIMARY KEY (id);
 
 CREATE FUNCTION yello_uuid_once() RETURNS trigger AS '
   BEGIN
@@ -624,22 +624,25 @@ CREATE FUNCTION yello_uuid_once() RETURNS trigger AS '
 CREATE TRIGGER yello_uuid_once BEFORE UPDATE ON _yello
 FOR EACH ROW EXECUTE PROCEDURE yello_uuid_once();
 
-ALTER TABLE yello_coll_one 
+ALTER TABLE yello_coll_one
+  ADD CONSTRAINT pk_yello_coll_one PRIMARY KEY (yello_id, one_id);
+
+ALTER TABLE yello_coll_one
   ADD CONSTRAINT fk_yello_coll_one_yello_id FOREIGN KEY (yello_id)
   REFERENCES _yello(id) ON DELETE CASCADE;
 
-ALTER TABLE yello_coll_one 
+ALTER TABLE yello_coll_one
   ADD CONSTRAINT fk_yello_coll_one_one_id FOREIGN KEY (one_id)
   REFERENCES simple_one(id) ON DELETE CASCADE;
 };
-eq_or_diff join( "\n", $sg->constraints_for_class($has_many) ), $constraints,
+eq_or_diff join( "\n", $sg->constraints_for_class($yello) ), $constraints,
   '... with the correct constraints';
 
 $view = q{CREATE VIEW yello AS
   SELECT _yello.id AS id, _yello.uuid AS uuid, _yello.state AS state, _yello.age AS age
   FROM   _yello;
 };
-is $sg->view_for_class($has_many), $view, '... and the correct view';
+is $sg->view_for_class($yello), $view, '... and the correct view';
 
 $insert = q{CREATE RULE insert_yello AS
 ON INSERT TO yello DO INSTEAD (
@@ -647,7 +650,7 @@ ON INSERT TO yello DO INSTEAD (
   VALUES (NEXTVAL('seq_yello'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.age);
 );
 };
-is $sg->insert_for_class($has_many), $insert, '... and the correct insert';
+is $sg->insert_for_class($yello), $insert, '... and the correct insert';
 
 $update = q{CREATE RULE update_yello AS
 ON UPDATE TO yello DO INSTEAD (
@@ -656,7 +659,7 @@ ON UPDATE TO yello DO INSTEAD (
   WHERE  id = OLD.id;
 );
 };
-eq_or_diff $sg->update_for_class($has_many), $update,
+eq_or_diff $sg->update_for_class($yello), $update,
   '... and the correct update for the class';
 
 $delete = q{CREATE RULE delete_yello AS
@@ -665,11 +668,11 @@ ON DELETE TO yello DO INSTEAD (
   WHERE  id = OLD.id;
 );
 };
-is $sg->delete_for_class($has_many), $delete,
+is $sg->delete_for_class($yello), $delete,
     '... and the correct delete for the class';
 
 # Check that a complete schema is properly generated.
-eq_or_diff join ( "\n", $sg->schema_for_class($has_many) ),
+eq_or_diff join ( "\n", $sg->schema_for_class($yello) ),
   join( "\n", $seq, $table, $indexes, $constraints, $view, $insert, $update,
     $delete ), "... Schema class generates complete schema";
 
@@ -681,7 +684,7 @@ is $composed->table, '_composed', "... Composed class has table '_composed'";
 
 # Check that the CREATE SEQUENCE statement is correct.
 $seq = "CREATE SEQUENCE seq_composed;\n";
-is $sg->sequence_for_class($composed), $seq,
+is join("\n", $sg->sequences_for_class($composed)), $seq,
     '... Schema class generates CREATE SEQUENCE statement';
 
 # Check that the CREATE TABLE statement is correct.
@@ -708,7 +711,7 @@ eq_or_diff $sg->indexes_for_class($composed), $indexes,
 
 # Check that the ALTER TABLE ADD CONSTRAINT statements are correct.
 $constraints = q{ALTER TABLE _composed
-  ADD CONSTRAINT pk_composed_id PRIMARY KEY (id);
+  ADD CONSTRAINT pk_composed PRIMARY KEY (id);
 
 ALTER TABLE _composed
   ADD CONSTRAINT fk_composed_one_id FOREIGN KEY (one_id)
@@ -798,7 +801,7 @@ is $comp_comp->table, '_comp_comp', "... CompComp class has table 'comp_comp'";
 
 # Check that the CREATE SEQUENCE statement is correct.
 $seq = "CREATE SEQUENCE seq_comp_comp;\n";
-is $sg->sequence_for_class($comp_comp), $seq,
+is join("\n", $sg->sequences_for_class($comp_comp)), $seq,
     '... Schema class generates CREATE SEQUENCE statement';
 
 # Check that the CREATE TABLE statement is correct.
@@ -823,7 +826,7 @@ eq_or_diff $sg->indexes_for_class($comp_comp), $indexes,
 
 # Check that the ALTER TABLE ADD CONSTRAINT statements are correct.
 $constraints = q{ALTER TABLE _comp_comp
-  ADD CONSTRAINT pk_comp_comp_id PRIMARY KEY (id);
+  ADD CONSTRAINT pk_comp_comp PRIMARY KEY (id);
 
 ALTER TABLE _comp_comp
   ADD CONSTRAINT fk_comp_comp_composed_id FOREIGN KEY (composed_id)
@@ -914,7 +917,7 @@ is $extend->table, '_extend', "... Extend class has table '_extend'";
 
 # Check that the CREATE SEQUENCE statement is correct.
 $seq = "CREATE SEQUENCE seq_extend;\n";
-is $sg->sequence_for_class($extend), $seq,
+is join("\n", $sg->sequences_for_class($extend)), $seq,
     '... Schema class generates CREATE SEQUENCE statement';
 
 # Check that the CREATE TABLE statement is correct.
@@ -939,7 +942,7 @@ eq_or_diff $sg->indexes_for_class($extend), $indexes,
 
 # Check that the constraint and foreign key triggers are correct.
 $constraints = q{ALTER TABLE _extend
-  ADD CONSTRAINT pk_extend_id PRIMARY KEY (id);
+  ADD CONSTRAINT pk_extend PRIMARY KEY (id);
 
 ALTER TABLE _extend
   ADD CONSTRAINT fk_extend_two_id FOREIGN KEY (two_id)
@@ -1051,7 +1054,7 @@ is $types_test->table, '_types_test', "... Types_Test class has table '_types_te
 
 # Check that the CREATE SEQUENCE statement is correct.
 $seq = "CREATE SEQUENCE seq_types_test;\n";
-is $sg->sequence_for_class($types_test), $seq,
+is join("\n", $sg->sequences_for_class($types_test)), $seq,
     '... Schema class generates CREATE SEQUENCE statement';
 
 # Check that the CREATE TABLE statement is correct.
@@ -1080,7 +1083,7 @@ eq_or_diff $sg->indexes_for_class($types_test), $indexes,
 
 # Check that the constraint and foreign key triggers are correct.
 $constraints = q{ALTER TABLE _types_test
-  ADD CONSTRAINT pk_types_test_id PRIMARY KEY (id);
+  ADD CONSTRAINT pk_types_test PRIMARY KEY (id);
 
 CREATE FUNCTION types_test_uuid_once() RETURNS trigger AS '
   BEGIN

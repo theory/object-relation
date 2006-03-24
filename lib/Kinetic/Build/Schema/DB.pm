@@ -75,7 +75,7 @@ sub schema_for_class {
     return grep { $_ }
       map       { $self->$_($class) }
       qw(
-      sequence_for_class
+      sequences_for_class
       tables_for_class
       indexes_for_class
       constraints_for_class
@@ -143,16 +143,16 @@ sub behaviors_for_class {
 
 ##############################################################################
 
-=head3 sequence_for_class
+=head3 sequences_for_class
 
-  my $sequence_sql = $kbs->sequence_for_class($class);
+  my $sequence_sql = $kbs->sequences_for_class($class);
 
 This method takes a class object. By default it returns an empty string.
 Subclassses may use it to return a C<CREATE SEQUENCE> statement for the class.
 
 =cut
 
-sub sequence_for_class { return '' }
+sub sequences_for_class { return '' }
 
 ##############################################################################
 
@@ -181,15 +181,15 @@ sub tables_for_class {
 
 ##############################################################################
 
-=head3 collection_table 
+=head3 collection_table
 
   my $coll_class = $attribute->collection_of;
   my $table      = $kbs->collection_table($class, $coll_class);
 
 For an attribute which represents a collection of objects, for example,
 attributes which have a C<has_many> relationship, the primary table will not
-have a column representing the attribute.  Instead, another table representing
-the relationship is created.  This method will return the C<CREATE TABLE>
+have a column representing the attribute. Instead, another table representing
+the relationship is created. This method will return the C<CREATE TABLE>
 statement for that table.
 
 =cut
@@ -200,12 +200,31 @@ sub collection_table {
     my $coll_class = $attribute->collection_of;
     my $table      = $attribute->collection_table;
     my $coll_key   = $coll_class->key;
+    return $self->format_coll_table($table, $class_key, $coll_key);
+}
+
+##############################################################################
+
+=head3 format_coll_table
+
+  my $table = $kbs->collection_table($table, $has_key, $had_key);
+
+Called by C<collection_table()>, this method generates the actual C<CREATE
+TABLE> statement. Pass in the name of the table, the key name of the class
+that contains the collection, and the key name of the class of objects stored
+in the collection. It creates a simple table declaration that includes the
+C<PRIMARY KEY> expression, which is usable by most databases.
+
+=cut
+
+sub format_coll_table {
+    my ($self, $table, $has_key, $had_key) = @_;
     return <<"    END_SQL";
 CREATE TABLE $table (
-    $class_key\_id INTEGER NOT NULL,
-    $coll_key\_id INTEGER NOT NULL,
+    $has_key\_id INTEGER NOT NULL,
+    $had_key\_id INTEGER NOT NULL,
     seq INTEGER NOT NULL,
-    PRIMARY KEY ($class_key\_id, $coll_key\_id)
+    PRIMARY KEY ($has_key\_id, $had_key\_id)
 );
     END_SQL
 }
@@ -419,9 +438,9 @@ string, each separated by a "\n".
 
 sub indexes_for_class {
     my ( $self, $class ) = @_;
-    my @indexes = 
+    my @indexes =
       map  { $self->index_for_attr( $class => $_ ) }
-      grep { $_->index } 
+      grep { $_->index }
       $class->table_attributes;
     return join q{}, @indexes, $self->_collection_indexes($class);
 }
@@ -450,7 +469,7 @@ sub index_for_attr {
 
 ##############################################################################
 
-=head3 _collection_indexes 
+=head3 _collection_indexes
 
   my @collection_indexes = $kbs->_collection_indexes($class);
 

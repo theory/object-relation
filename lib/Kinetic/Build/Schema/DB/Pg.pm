@@ -54,20 +54,52 @@ L<Kinetic::Build::Schema::DB|Kinetic::Build::Schema::DB> for more information.
 
 =head2 Instance Methods
 
-=head3 sequence_for_class
+=head3 sequences_for_class
 
-  my $sequence_sql = $kbs->sequence_for_class($class);
+  my @sequence_sql = $kbs->sequences_for_class($class);
 
 This method takes a class object and returns a C<CREATE SEQUENCE> statement
-for the class if it has no parent classes. If it has parent classes, it simply
-returns an empty string.
+for the class if it has no parent classes, as well as sequences for any
+collections that the class contains.
 
 =cut
 
-sub sequence_for_class {
+sub sequences_for_class {
     my ($self, $class) = @_;
-    return '' if $class->parents;
-    return 'CREATE SEQUENCE seq_' . $class->key . ";\n";
+    my $key = $class->key;
+    my @seqs;
+    push @seqs, "CREATE SEQUENCE seq_$key;\n"
+        unless $class->parents;
+
+    foreach my $attr ( $class->attributes ) {
+        my $coll_class = $attr->collection_of or next;
+        my $coll_key = $coll_class->key;
+        push @seqs, "CREATE SEQUENCE seq_$key\_coll_$coll_key;\n";
+    }
+    return @seqs;
+}
+
+##############################################################################
+
+=head3 format_coll_table
+
+  my $table = $kbs->collection_table($table, $has_key, $had_key);
+
+This method overrides that in the parent class in order not to have the
+primary key embedded in the table declaration. This is because we want named
+primary keys in PostgreSQL.
+
+=cut
+
+sub format_coll_table {
+    my ($self, $table, $has_key, $had_key) = @_;
+    return <<"    END_SQL";
+CREATE TABLE $table (
+    $has_key\_id INTEGER NOT NULL,
+    $had_key\_id INTEGER NOT NULL,
+    seq INTEGER NOT NULL
+);
+    END_SQL
 }
 
 ##############################################################################
@@ -327,19 +359,23 @@ sub _generate_collection_constraints {
     return unless @attributes;
     my @indexes;
     my @fks;
-    my $main_id    = $class->key . "_id";
+    my $main_key   = $class->key;
     my $main_table = $class->table;
     foreach my $attr (@attributes) {
         my $table      = $attr->collection_table;
         my $coll       = $attr->collection_of;
         my $coll_table = $coll->table;
-        my $coll_id    = $coll->key . "_id";
-        return qq{ALTER TABLE $table 
-  ADD CONSTRAINT fk_$table$main_table\_id FOREIGN KEY ($main_id)
+        my $coll_key   = $coll->key;
+        return qq{ALTER TABLE $table
+  ADD CONSTRAINT pk_$table PRIMARY KEY ($main_key\_id, $coll_key\_id);
+},
+
+            qq{ALTER TABLE $table
+  ADD CONSTRAINT fk_$table$main_table\_id FOREIGN KEY ($main_key\_id)
   REFERENCES $main_table(id) ON DELETE CASCADE;
 },
-            qq{ALTER TABLE $table 
-  ADD CONSTRAINT fk_$table\_$coll_id FOREIGN KEY ($coll_id)
+            qq{ALTER TABLE $table
+  ADD CONSTRAINT fk_$table\_$coll_key\_id FOREIGN KEY ($coll_key\_id)
   REFERENCES $coll_table(id) ON DELETE CASCADE;
 };
     }
