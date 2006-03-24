@@ -611,6 +611,7 @@ eq_or_diff join("\n", $sg->tables_for_class($yello)), $table,
 $indexes = q{CREATE UNIQUE INDEX idx_yello_uuid ON _yello (uuid);
 CREATE INDEX idx_yello_state ON _yello (state);
 CREATE UNIQUE INDEX idx_yello_coll_one ON yello_coll_one (yello_id, seq);
+CREATE UNIQUE INDEX idx_yello_coll_one_one_id ON yello_coll_one (one_id);
 };
 is $sg->indexes_for_class($yello), $indexes,
     '... and the correct indexes for the class';

@@ -147,12 +147,13 @@ sub behaviors_for_class {
 
   my $sequence_sql = $kbs->sequences_for_class($class);
 
-This method takes a class object. By default it returns an empty string.
-Subclassses may use it to return a C<CREATE SEQUENCE> statement for the class.
+This method takes a class object. By default it returns an empty list (or
+C<undef> in a scalar context, but don't do that). Subclassses may use it to
+return a C<CREATE SEQUENCE> statement for the class.
 
 =cut
 
-sub sequences_for_class { return '' }
+sub sequences_for_class { return }
 
 ##############################################################################
 
@@ -486,9 +487,14 @@ sub _collection_indexes {
     my $class_key = $class->key;
     foreach my $attr (@attributes) {
         my $table    = $attr->collection_table;
+        my $coll_key = $attr->collection_of->key;
         push @indexes, "CREATE UNIQUE INDEX idx_$table "
                      . "ON $table "
                      . "($class_key\_id, seq);\n";
+        push @indexes, "CREATE UNIQUE INDEX idx_$table\_$coll_key\_id "
+                     . "ON $table "
+                     . "($coll_key\_id);\n"
+            if $attr->relationship eq 'has_many';
     }
     return @indexes;
 }
