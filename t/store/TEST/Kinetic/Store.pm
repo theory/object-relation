@@ -2179,12 +2179,12 @@ sub string_order_by : Test(6) {
 sub joins : Test(no_plan) {
     my $test = shift;
     return unless $test->_should_run;
-    my $has_many = Yello->new( age => 32 );
-    my $coll = $has_many->ones;
+    my $yello = Yello->new( age => 32 );
+    my $coll = $yello->ones;
     my @ones = map { One->new( name => $_ ) } qw/uno dos tres/;
-    $has_many->ones( $coll->from_list( { list => \@ones } ) );
-    $has_many->save;
-    my $has_many_2 = Yello->new( age => 19 );
+    $yello->ones( $coll->from_list( { list => \@ones } ) );
+    $yello->save;
+    my $yello_2 = Yello->new( age => 19 );
 
     # SELECT [contact fields]
     # FROM   contact, person_coll_contact, person

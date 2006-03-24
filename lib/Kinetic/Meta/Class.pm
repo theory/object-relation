@@ -263,9 +263,8 @@ the key class.  Otherwise, returns false.
 sub contained_in {
     my $self = shift;
     my $contained_in = $self->{contained_in};
+    return $contained_in->{+shift} if @_;
     return map { $contained_in->{$_} } sort keys %$contained_in unless @_;
-    my $key = shift;
-    return $contained_in->{$key};
 }
 
 ##############################################################################
@@ -336,8 +335,7 @@ class.  See C<contained_in>.
 
 sub _add_container {
     my ( $self, $key ) = @_;
-    return $self if exists $self->{contained_in}{$key};
-    $self->{contained_in}{$key} = Kinetic::Meta->for_key($key);
+    $self->{contained_in}{$key} ||= Kinetic::Meta->for_key($key);
     return $self;
 }
 

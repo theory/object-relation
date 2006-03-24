@@ -597,7 +597,7 @@ sub _generate_fk {
     my $null = ref $attr && $attr->required ? '' : "NEW.$col IS NOT NULL AND ";
     return $self->_generate_fk_sql(
          $fk,
-         $fk_table, 
+         $fk_table,
          $col,
          $table,
          $null,
@@ -611,7 +611,7 @@ sub _generate_fk {
 
  my $sql = $self->_generate_fk_sql(
      $fk,
-     $fk_table, 
+     $fk_table,
      $col,
      $table,
      $null,

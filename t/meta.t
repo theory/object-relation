@@ -343,7 +343,7 @@ $attr = $fclass->attributes('fname');
 is $attr->relationship, undef, "The fname attribute should have no relationship";
 
 ##############################################################################
-# Text has_many class.
+# Test has_many class.
 ok $class = MyTestHasMany->my_class, 'Get MyTestHasMany class object';
 
 is_deeply [map {$_->name} $class->attributes], [qw{ uuid state stuff thingies }],
@@ -406,7 +406,7 @@ ok ! $thingy_class->contained_in('no_such_class'),
   '... but contained_in() should report false as appropriate';
 
 ##############################################################################
-# Text extends class.
+# Test extends class.
 ok $class = MyTestExtends->my_class, 'Get TestExtends class object';
 is $class->extends, MyTestThingy->my_class, 'It should extend Thingy';
 is_deeply [map { $_->name } $class->attributes ],
@@ -507,7 +507,7 @@ is_deeply [$ex->thingy->_get_modified], [],
     'Thingy should list none as modified';
 
 ##############################################################################
-# Text mediates class.
+# Test mediates class.
 ok $class = MyTestMediates->my_class, 'Get TestMediates class object';
 is $class->mediates, MyTestThingy->my_class, 'It should mediate Thingy';
 is_deeply [map { $_->name } $class->attributes ],

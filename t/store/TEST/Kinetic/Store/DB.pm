@@ -715,10 +715,10 @@ sub test_extend : Test(45) {
 sub test_has_many : Test(13) {
     my $self = shift;
     return 'Skip test_has_many for abstract class' unless $self->_should_run;
-    ok my $has_many = Yello->new( age => 32 ), 'Create a Yello object';
-    ok $has_many->save, 'Save the Yello object';
+    ok my $yello = Yello->new( age => 32 ), 'Create a Yello object';
+    ok $yello->save, 'Save the Yello object';
 
-    ok my $coll = $has_many->ones,
+    ok my $coll = $yello->ones,
         'The collection slot should have a default value';
     isa_ok $coll, 'Kinetic::Util::Collection::One',
         '... and the object it contains';
@@ -726,17 +726,17 @@ sub test_has_many : Test(13) {
     ok !@all, '... and it should be an empty collection';
 
     my @ones = map { One->new( name => $_ ) } qw/uno dos tres/;
-    $has_many->ones( $coll->from_list( { list => \@ones } ) );
-    ok $has_many->save,
+    $yello->ones( $coll->from_list( { list => \@ones } ) );
+    ok $yello->save,
         'We should be able to save the object with a new collection';
     foreach my $one (@ones) {
         ok defined $one->uuid,
             '... and the collection objects should now have uuids';
     } # 9 tests
-    ok my $has_many_2 = Yello->lookup( uuid => $has_many->uuid ),
+    ok my $yello_2 = Yello->lookup( uuid => $yello->uuid ),
         'We should be able to lookup has_many objects';
-    $has_many_2->state; # inflate
-    ok my $coll_2 = $has_many_2->ones,
+    $yello_2->state; # inflate
+    ok my $coll_2 = $yello_2->ones,
         '... and the should have collections';
     isa_ok $coll_2, 'Kinetic::Util::Collection::One',
         '... and the collection';

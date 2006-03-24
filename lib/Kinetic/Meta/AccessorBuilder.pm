@@ -88,7 +88,7 @@ the same name as the attribute itself.
 
 =cut
 
-my $has_many_builder = sub {
+my $collection_builder = sub {
     my ($attr, $name, @checks) = @_;
     (my $key = $attr->type) =~ s/^collection_//; # XXX :(
     my $store = Store->new;
@@ -108,7 +108,7 @@ my $has_many_builder = sub {
 
 my %builders = (
     default => {
-        has_many => $has_many_builder,
+        collection => $collection_builder,
         get => sub {
             my $name = shift;
             return sub {
@@ -250,15 +250,15 @@ sub build {
     # If we get here, it's an object attribute.
     my $bake    = Kinetic::Meta::Type->new($attr->type)->bake;
     my $builder = $bake ? $builders{bake} : $builders{default};
- 
+
     # Create any delegation methods.
     if (my $rel = $attr->relationship) {
         if ($rel eq 'type_of') {
             _delegate($pkg, $attr, Class::Meta::READ);
         } elsif ($rel eq 'extends' || $rel eq 'mediates') {
             _delegate($pkg, $attr, Class::Meta::RDWR);
-        } elsif ($rel eq 'has_many') {
-            *{"$pkg\::$name"} = $builder->{has_many}->($attr, $name, @checks);
+        } elsif ($attr->collection_of) {
+            *{"$pkg\::$name"} = $builder->{collection}->($attr, $name, @checks);
             return;
         }
     }

@@ -157,12 +157,12 @@ sub new {
             use base '$BASE_CLASS';
             ADD_BASE_CLASS
             if ( my $error = $@ ) {
-                # this should never happen ...
+                # This should never happen ...
                 # If it does, there's a good chance you're in the wrong
                 # directory and the config file can't be found.
                 throw_invalid_class [
                     'I could not load the class "[_1]": [_2]',
-                    $BASE_CLASS, 
+                    $BASE_CLASS,
                     $error,
                 ];
             }
