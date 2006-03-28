@@ -234,6 +234,7 @@ use base 'DBI::db';
 
 sub connected {
     my $dbh = shift;
+    return if exists $dbh->{private_sqlite_functions};
 
     # Add UUID_V4() function.
     $dbh->func(
@@ -249,6 +250,8 @@ sub connected {
         my ($regex, $string) = @_;
         return $string =~ /$regex/ixms;
     }, 'create_function');
+
+    $dbh->{private_sqlite_functions} = 1;
 }
 
 1;
