@@ -50,7 +50,7 @@ BEGIN {
     my $faux_class = Faux::Class->new;
     sub _search_data_has_column {
         my ( $self, $column ) = @_;
-        return $faux_class if exists $column{ $column };
+        return ($faux_class, $column) if exists $column{ $column };
     }
 }
 

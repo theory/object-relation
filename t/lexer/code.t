@@ -3,7 +3,7 @@ use warnings;
 use strict;
 
 use Kinetic::Build::Test;
-use Test::More tests => 39;
+use Test::More tests => 41;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 
@@ -34,6 +34,18 @@ while (my $node = drop($stream)) {
     push @tokens => $node;
 }
 is_deeply \@tokens, $expected, 'Streams should also return the correct tokens';
+
+ok $tokens = lex(['some.name' => 'foo']),
+    'We should be able to lex even if the identifier has a dot';
+
+$expected = [
+  [ 'IDENTIFIER', 'some.name' ],
+  [ 'OP',                '=>' ],
+  [ 'VALUE',            'foo' ],
+];
+is_deeply $tokens, $expected,
+    '... and it should return the correct tokens';
+
 ok $tokens = lex([name => undef]),
     'We should be able to lex an undef value';
 

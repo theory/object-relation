@@ -501,14 +501,17 @@ sub _get_select_sql_and_bind_params {
     my $constraints = pop @$search_request
       if 'HASH' eq ref $search_request->[-1];
 
+    # additional views may be set in _convert_ir_to_where_clause
+    $self->{views} = { $self->search_class->key => $self->search_class };
+
     my $ir = $self->_parse_search_request($search_request);
     my ( $where_clause, $bind_params ) = $self->_make_where_clause($ir);
     $where_clause = "WHERE $where_clause" if $where_clause;
 
     # now that we've moved up the parsing, we should have enough data to
     # figure out which tables we're selecting from.
-    my $view = $self->search_class->key;
-    my $sql = "SELECT $columns FROM $view $where_clause";
+    my $views = join ', ', keys %{ $self->{views} };
+    my $sql = "SELECT $columns FROM $views $where_clause";
     $sql .= $self->_constraints($constraints) if $constraints;
     return ( $sql, $bind_params );
 }
@@ -667,37 +670,6 @@ sub _clear_collection_info {
     return $self;
 }
 
-##############################################################################
-
-=head3 _get_collection_table_info
-
-  my $info = $self->_get_collection_table_info( $object, $attr );
-
-Given an object and the attribute for the collection, this method returns an
-AoA.  Each contained array has two elemements, the object id and seq,
-respectively, for each collection item for the object attribute.
-
-=cut
-
-sub _get_collection_table_info {
-    my ( $self, $object, $attr ) = @_;
-    my ( $object_id, $coll_id, $seq )
-      = $self->_collection_table_columns( $object, $attr );
-    my $table = $attr->collection_table;
-    my $sql   = <<"    END_SQL";
-    SELECT   $coll_id, $seq
-    FROM     $table
-    WHERE    $object_id = ?
-    ORDER BY $seq
-    END_SQL
-    my $sth = $self->_dbh->prepare($sql);
-    $sth->execute( $object->id );
-    my @seqs;
-    while ( my $result = $sth->fetchrow_arrayref ) {
-        push @seqs, [@$result];
-    }
-    return \@seqs;
-}
 
 ##############################################################################
 
@@ -717,29 +689,15 @@ sub _get_collection {
     # timing issue worked out.
 
     my ( $self, $object, $attr ) = @_;
-    $self->_prepare_method($PREPARE);
-    $self->_should_create_iterator(1);
-    local $self->{search_class} = $attr->collection_of;
 
-    $self->_set_search_data;
-    my $collection_table = $attr->collection_table;
-    my ( $object_id, $coll_id, $seq )
-      = $self->_collection_table_columns( $object, $attr );
-    my $container_table = $object->my_class->key;
-    my $contained_table = $attr->collection_of->key;
-    my $columns = join ', ' => $self->_search_data_columns;
-    my $sql = <<"    END_SQL";
-    SELECT   $columns
-    FROM     $contained_table, $collection_table, $container_table
-    WHERE    $contained_table.id = $collection_table.$coll_id
-      AND    $collection_table.$object_id = $container_table.id
-      AND    $container_table.id = ?
-    ORDER BY $collection_table.$seq
-    END_SQL
-    my $results = $self->_get_sql_results( $sql, [ $object->id ] );
-
-    my $coll_name = $attr->name;
     (my $key = $attr->type) =~ s/^collection_//;
+    my $containing_key   = $object->my_class->key;
+    my $search           = Kinetic::Meta->for_key($key);
+    my $collection_table = $attr->collection_table;
+    my $results = $search->package->query( 
+        "$containing_key.uuid" => $object->uuid,
+        { order_by => "$collection_table.seq" }
+    );
     return Collection->new( { iter => $results, key => $key } )
 }
 
@@ -753,11 +711,17 @@ sub _get_collection {
 This method returns the correct object id name, collection item id name, and
 seq name.  These are used in building SQL for fetching collection results.
 
+The first argument may be a C<Kinetic::Meta::Class> object instead of a
+C<Kinetic> object.
+
 =cut
 
 sub _collection_table_columns {
     my ( $self, $object, $attr ) = @_;
-    my $object_id = $object->my_class->key . "_id";
+    my $class = $object->isa( 'Kinetic::Meta::Class' )
+        ? $object
+        : $object->my_class;
+    my $object_id = $class->key . "_id";
     my $coll_id   = $attr->type . "_id";
     $coll_id =~ s/^collection_//;    # XXX Hack!  Must find a better way
     return ( $object_id, $coll_id, 'seq' );
@@ -1160,8 +1124,10 @@ sub _get_sql_results {
     my ( $self, $sql, $bind_params ) = @_;
     my $dbi_method = $self->_prepare_method;
     my $sth        = $self->_dbh->$dbi_method($sql);
-#use Test::More; # XXX debug
-#diag $sql;      # XXX debug
+    # use Test::More; # XXX debug
+    # use Data::Dumper;
+    # diag $sql;      # XXX debug
+    # diag Dumper($bind_params);
     $self->_execute( $sth, $bind_params );
 
     if ( $self->_should_create_iterator ) {
@@ -1234,6 +1200,10 @@ and pull them off of the hashref with hash slices.
 sub _build_object_from_hashref {
     my ( $self, $hashref ) = @_;
     my %objects_for;
+
+    # for joins, we sometimes get here without main search data getting set,
+    # so we need to make sure it gets done.
+    $self->_set_search_data;
     my %metadata_for = $self->_search_data_metadata;
 
     foreach my $package ( $self->_search_data_build_order ) {
@@ -1371,24 +1341,45 @@ sub _search_data_columns { @{ shift->{search_data}{columns} } }
 
 =head3 _search_data_has_column
 
-  if ($store->_search_data_has_column($column)) {
+  if ( my ($class, $column_name) = $store->_search_data_has_column($column)) {
     ...
   }
 
-This method returns the search class for the column depending upon whether or
-not the search class has a database column matching the column name passed as
-an argument.
+This method returns the search class and the correct column name for the
+column depending upon whether or not the search class has a database column
+matching the column name passed as an argument.
 
 =cut
 
 sub _search_data_has_column {
     my ( $self, $column ) = @_;
     my $search_class = $self->search_class;
-    my $actual_column = $column =~ /^[[:word:]]+\./
-        ? $column
-        : $search_class->key . ".$column";
-    return $search_class
-        if exists $self->{search_data}{lookup}{$actual_column};
+    my $actual_column = $search_class->key . ".$column";
+    if ( exists $self->{search_data}{lookup}{$actual_column} ) {
+        # column was found in main search class
+        return ( $search_class, $column );
+    }
+    elsif ( $column =~ /^([[:word:]]+?)$OBJECT_DELIMITER(.*)$/ ) {
+        # column is possibly in a different, but related view
+        my $key    = $1;
+        my $column = $2;
+        if ( my $class = Kinetic::Meta->for_key($key) ) {
+            # we need to set the search data as it's possible that this class
+            # has not yet been searched on.
+            local $self->{search_class} = $class;
+            $self->_set_search_data;
+            $actual_column = "$key.$column";
+            if ( exists $self->{search_data}{lookup}{$actual_column} ) {
+                # column was found in related search class
+                return ( $class, $column );
+            }
+        }
+    }
+    elsif ( my ($attr) = $search_class->attributes($column) ) {
+        return unless $attr->references;
+        # If we're searching one a contained object, we get to here
+        return ( Kinetic::Meta->for_key($attr->type), $column );
+    }
 }
 
 ##############################################################################
@@ -1443,7 +1434,53 @@ sub _make_where_clause {
         $clause .= " AND $view.state > ?";
         push @$bind_params, 0 + State->DELETED;
     }
+
+    if ( my $joins = $self->_get_joins ) {
+        $clause = "($clause) AND $joins";
+    }
     return ( $clause, $bind_params );
+}
+
+sub _get_joins {
+    my $self = shift;
+    my $joins = '';
+    if ( (my @classes = values %{ $self->{views} } ) == 2 ) {
+         my ($class1, $class2) = @classes;
+         # this is a very limited hack to help with collection tables.  It
+         # will need to be revisited.
+         my $key2 = $class2->key;
+         my $coll_attr;
+         foreach my $attr ( $class1->attributes ) {
+             if ( $attr->collection_of($key2) ) {
+                 $coll_attr = $attr;
+                 last;
+             }
+         }
+         unless ( $coll_attr ) {
+            ( $class2, $class1 ) = ( $class1, $class2 );
+            my $key2 = $class2->key;
+            foreach my $attr ( $class1->attributes ) {
+                if ( $attr->collection_of($key2) ) {
+                    $coll_attr = $attr;
+                    last;
+                }
+            }
+        }
+        if ( $coll_attr ) {
+            $self->{views}{ $coll_attr->collection_table } = 1; # no associated class
+            my ( $object_id, $coll_id, $seq )
+            = $self->_collection_table_columns( $class1, $coll_attr );
+            my $coll_table     = $coll_attr->collection_table;
+            my $containing_key = $class1->key;
+            my $contained_key  = $class2->key;
+            $joins = <<"            END_JOINS";
+                $contained_key.id = $coll_table.$coll_id
+                AND
+                $containing_key.id = $coll_table.$object_id
+            END_JOINS
+        }
+        # else we don't have a coll_attr. What then?
+    }
 }
 
 ##############################################################################
@@ -1484,6 +1521,7 @@ sub _convert_ir_to_where_clause {
            #     (LOWER(one.desc) = LOWER(?) AND one.this = ?))
         }
         elsif ( eval { $term->isa(Search) } ) {
+            $self->{views}{ $term->class->key } = $term->class;            
             my $search_method = $term->search_method;
             my ( $token, $bind ) = $self->$search_method($term);
             if ( $token =~ /\bstate\b/i ) { # XXX What if token is "statement"?
@@ -1555,7 +1593,7 @@ sub _handle_case_sensitivity {
     my $column = $search->column;
     # if 'type eq string' for attr (only relevent for postgres)
     my $orig_column    = $column;
-    my $search_class   = $self->{search_class};
+    my $search_class   = $search->class;
     my $attribute_name = $search->base_column;
 
     # Normally we have something like customer__uuid

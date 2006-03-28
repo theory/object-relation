@@ -1037,7 +1037,8 @@ sub string_search_dates : Test(8) {
 sub search_compound : Test(9) {
     my $test = shift;
     return unless $test->_should_run;
-    $test->clear_database;
+    #$test->clear_database;
+    
     my $store = Store->new;
     can_ok $store, 'query';
     my $foo = Two->new;
@@ -2185,66 +2186,27 @@ sub joins : Test(no_plan) {
     $yello->ones( $coll->from_list( { list => \@ones } ) );
     $yello->save;
     my $yello_2 = Yello->new( age => 19 );
+    $yello_2->save;
 
-    # SELECT [contact fields]
-    # FROM   contact, person_coll_contact, person
-    # WHERE  contact.id = person_coll_contact.contact_id
-    #   AND contact_coll_contact.person_id = person.id
-    #   AND person.uuid = ?
-    # ORDER BY person_coll_contact.seq
-    One->query;
-    my $store = Store->new;
+    ok my $iterator = One->query( 
+        'yello.uuid' => $yello->uuid,
+        { order_by => 'one.name' }
+    ), 'Searching collection objects on a parent UUID should succeed';
 
-    can_ok $store, 'query';
-    return;
-    my ( $foo, $bar, $baz ) = $test->test_objects;
-    foreach ( $foo, $bar, $baz ) {
-        $_->name( $_->name . chr(0x100) );
-        $_->save;
-    }
-    my $class = $foo->my_class;
-    ok my $iterator = $store->query($class),
-      'A search with only a class should succeed';
     my @results = $test->_all_items($iterator);
-    is @results, 3, 'returning all instances in the class';
+    is scalar @results, 3, '... and return the correct number of results';
 
-    foreach my $result (@results) {
-        ok is_utf8( $result->name ),
-          '... and the data should be unicode strings';
-    }
+    is_deeply [map { $_->name } @results ], [qw/dos tres uno/],
+        '... and return the correct objects';
 
-    ok $iterator = $store->query( $class, name => $foo->name ),
-      'and an exact match should succeed';
-    isa_ok $iterator, Iterator, 'and the object it returns';
-    is_deeply $test->force_inflation( $iterator->next ), $foo,
-      'and the first item should match the correct object';
-    ok !$test->force_inflation( $iterator->next ),
-      'and there should be the correct number of objects';
+    ok $iterator = Yello->query( 'one.name' => 'uno' ),
+        'Searching parent objects on collection attributes should succeed';
 
-    ok $iterator = $store->query( $class, name => $foo->name ),
-      'We should also be able to call search as a class method';
-    isa_ok $iterator, Iterator, 'and the object it returns';
-    is_deeply $test->force_inflation( $iterator->next ), $foo,
-      'and it should return the same results as an instance method';
-    ok !$test->force_inflation( $iterator->next ),
-      'and there should be the correct number of objects';
+    @results = $test->_all_items($iterator);
+    is scalar @results, 1, '... and return the correct number of results';
 
-    ok $iterator = $store->query( $class, name => ucfirst $foo->name ),
-      'Case-insensitive searches should work';
-    isa_ok $iterator, Iterator, 'and the object it returns';
-    is_deeply $test->force_inflation( $iterator->next ), $foo,
-      'and they should return data even if the case does not match';
-
-    $iterator =
-      $store->query( $class, name => $foo->name, description => 'asdf' );
-    ok !$test->force_inflation( $iterator->next ),
-      'but searching for non-existent values will return no results';
-    $foo->description('asdf');
-    $foo->save;
-    $iterator =
-      $store->query( $class, name => $foo->name, description => 'asdf' );
-    is_deeply $test->force_inflation( $iterator->next ), $foo,
-      '... and it should be the correct results';
+    is_deeply [map { $_->uuid } @results ], [ $yello->uuid ],
+        '... and return the correct objects';
 }
 
 1;

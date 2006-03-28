@@ -390,11 +390,11 @@ sub _make_search {
     $column =~ s/\Q$ATTR_DELIMITER\E/$OBJECT_DELIMITER/g;
 
     my $class;
-    unless ( $class = $STORE->_search_data_has_column($column) ) {
+    unless ( ( $class, $column ) = $STORE->_search_data_has_column($column) ) {
 
         # special case for searching on a contained object id ...
         my $id_column = $column . $OBJECT_DELIMITER . 'id';
-        unless ( $class = $STORE->_search_data_has_column($id_column) ) {
+        unless ( ( $class, $id_column ) = $STORE->_search_data_has_column($id_column) ) {
             die $LANGUAGE->maketext(
                 q{Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]},
                 $column,
