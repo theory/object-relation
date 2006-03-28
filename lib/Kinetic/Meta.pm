@@ -112,9 +112,9 @@ C<< Kinetic::Meta->new >> supports these extra attributes:
 =item sort_by
 
 This attribute is the name of an attribute or array reference of names of the
-attributes to use when sorting a list of objects of the class. If
-C<sort_order> is not specified, it defaults to the first attribute declared
-after the C<uuid> and C<state> attributes.
+attributes to use when sorting a list of objects of the class. If C<sort_by>
+is not specified, it defaults to the first attribute declared after the
+C<uuid> and C<state> attributes.
 
 =item extends
 
