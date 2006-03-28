@@ -234,7 +234,7 @@ use base 'DBI::db';
 
 sub connected {
     my $dbh = shift;
-    return if exists $dbh->{private_sqlite_functions};
+    return if exists $dbh->{private_KineticSQLite_functions};
 
     # Add UUID_V4() function.
     $dbh->func(
@@ -251,7 +251,7 @@ sub connected {
         return $string =~ /$regex/ixms;
     }, 'create_function');
 
-    $dbh->{private_sqlite_functions} = 1;
+    $dbh->{private_KineticSQLite_functions} = 1;
 }
 
 1;
