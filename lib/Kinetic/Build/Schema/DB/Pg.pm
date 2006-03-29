@@ -680,6 +680,98 @@ q{CREATE DOMAIN version AS TEXT
   );
 },
 
+# This function sets all of the IDs in a collection. Any existing IDs will be
+# cleared. Think C<@coll = (@ids)>. Arguments:
+# obj_key: The containing class key
+# obj_id:  The ID of the containing obj.
+# coll_of:    The class key of the objs that make up the set.
+# coll_ids:   The IDs of all of the objs in the collection, in order.
+q{CREATE OR REPLACE FUNCTION coll_set (
+    obj_key  text,
+    obj_id   integer,
+    coll_of  text,
+    coll_ids integer[]
+) RETURNS VOID AS $$
+BEGIN
+    PERFORM coll_clear(obj_key, obj_id, coll_of);
+    PERFORM coll_add(obj_key, obj_id, coll_of, coll_ids);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+},
+
+# This function deletes a specific list of objs from a collection. Think
+# C<delete @coll{@ids}>. Arguments:
+# obj_key: The containing class key
+# obj_id:  The ID of the containing obj.
+# coll_of:    The class key of the objs that make up the set.
+# coll_ids:   The IDs of the objs to be deleted from the collection.
+q{CREATE OR REPLACE FUNCTION coll_del (
+    obj_key  text,
+    obj_id   integer,
+    coll_of  text,
+    coll_ids integer[]
+) RETURNS VOID AS $$
+DECLARE
+  coll_table text     := quote_ident(obj_key || '_coll_' || coll_of);
+  obj_column text     := quote_ident(obj_key || '_id');
+  coll_of_column text := quote_ident(coll_of || '_id');
+BEGIN
+    EXECUTE 'DELETE FROM ' || coll_table
+        || ' WHERE ' || obj_column || ' = ' || obj_id
+        || ' AND ' || coll_of_column || ' IN ('
+        || array_to_string(coll_ids, ', ') || ')';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+},
+
+# This function adds a list of objs from a collection. The new objs will
+# be added to the end of the collection. Think C<push @coll, @ids> Arguments:
+# obj_key: The containing class key
+# obj_id:  The ID of the containing obj.
+# coll_of:    The class key of the objs that make up the set.
+# coll_ids:   The IDs of the objs to be deleted from the collection.
+q{CREATE OR REPLACE FUNCTION coll_add (
+    obj_key  text,
+    obj_id   integer,
+    coll_of  text,
+    coll_ids integer[]
+) RETURNS VOID AS $$
+DECLARE
+  iloop integer       := 1;
+  coll_table text     := quote_ident(obj_key || '_coll_' || coll_of);
+  obj_column text     := quote_ident(obj_key || '_id');
+  coll_of_column text := quote_ident(coll_of || '_id');
+BEGIN
+    while coll_ids[iloop] is not null loop
+        EXECUTE 'INSERT INTO ' || coll_table
+             || ' (' || obj_column || ', ' || coll_of_column || ', place)'
+             || ' VALUES (' || obj_id || ', ' || coll_ids[iloop]
+             || ', NEXTVAL(' || quote_literal('seq_' || coll_table) || '))';
+        iloop := iloop + 1;
+    END loop;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+},
+
+# This function clears a collection. Think C<@coll = ()> Arguments:
+# obj_key: The containing class key
+# obj_id:  The ID of the containing obj.
+# coll_of:    The class key of the objs that make up the set.
+# coll_ids:   The IDs of the objs to be deleted from the collection.
+q{CREATE OR REPLACE FUNCTION coll_clear (
+    obj_key text,
+    obj_id  integer,
+    coll_of text
+) RETURNS VOID AS $$
+DECLARE
+  coll_table text := quote_ident(obj_key || '_coll_' || coll_of);
+  obj_column text := quote_ident(obj_key || '_id');
+BEGIN
+    EXECUTE 'DELETE FROM ' || coll_table
+         || ' WHERE ' || obj_column || ' = ' || obj_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+};
 }
 
 ##############################################################################

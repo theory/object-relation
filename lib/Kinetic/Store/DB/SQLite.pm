@@ -232,6 +232,39 @@ use base 'DBI::st';
 package Kinetic::Store::DB::SQLite::DBI::db;
 use base 'DBI::db';
 
+sub coll_clear {
+    my ($dbh, $obj_key, $obj_id, $coll_of) = @_;
+    $dbh->do(qq{
+        DELETE FROM $obj_key\_coll_$coll_of
+        WHERE  $obj_key\_id = ?
+    }, undef, $obj_id);
+}
+
+sub coll_del {
+    my ($dbh, $obj_key, $obj_id, $coll_of, $coll_ids) = @_;
+    my @to_del = split /,/, $coll_ids;
+    my $placeholders = join ', ', ('?') x @to_del;
+    $dbh->do(qq{
+        DELETE FROM $obj_key\_coll_$coll_of
+        WHERE  $obj_key\_id = ?
+               AND $coll_of\_id IN ($placeholders)
+    }, undef, $obj_id, @to_del);
+}
+
+sub coll_add {
+    my ($dbh, $obj_key, $obj_id, $coll_of, $coll_ids) = @_;
+    my $ins = $dbh->prepare(qq{
+        INSERT INTO $obj_key\_coll_$coll_of ($obj_key\_id, $coll_of\_id)
+        VALUES (?, ?)
+    });
+    $ins->execute($obj_id, $_) for split /,/, $coll_ids;
+}
+
+sub coll_set {
+    coll_clear(@_[0..3]);
+    coll_add(@_);
+}
+
 sub connected {
     my $dbh = shift;
     return if exists $dbh->{private_KineticSQLite_functions};
@@ -250,6 +283,12 @@ sub connected {
         my ($regex, $string) = @_;
         return $string =~ /$regex/ixms;
     }, 'create_function');
+
+    # Add collection functions.
+    $dbh->func('coll_clear', 3, sub { coll_clear($dbh, @_ ) }, 'create_function');
+    $dbh->func('coll_del',   4, sub { coll_del(  $dbh, @_ ) }, 'create_function');
+    $dbh->func('coll_add',   4, sub { coll_add(  $dbh, @_ ) }, 'create_function');
+    $dbh->func('coll_set',   4, sub { coll_set(  $dbh, @_ ) }, 'create_function');
 
     $dbh->{private_KineticSQLite_functions} = 1;
 }

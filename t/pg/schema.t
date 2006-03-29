@@ -43,7 +43,7 @@ for my $class ( $sg->classes ) {
 
 ##############################################################################
 # Check Setup SQL.
-is join( "\n", $sg->setup_code),
+eq_or_diff join( "\n", $sg->setup_code),
     q{CREATE DOMAIN state AS SMALLINT NOT NULL DEFAULT 1
 CONSTRAINT ck_state CHECK (
    VALUE BETWEEN -1 AND 2
@@ -69,8 +69,74 @@ CREATE DOMAIN version AS TEXT
   CONSTRAINT ck_version CHECK (
      VALUE ~ '^v?\\\\d[\\\\d._]+$'
   );
+
+CREATE OR REPLACE FUNCTION coll_set (
+    obj_key  text,
+    obj_id   integer,
+    coll_of  text,
+    coll_ids integer[]
+) RETURNS VOID AS $$
+BEGIN
+    PERFORM coll_clear(obj_key, obj_id, coll_of);
+    PERFORM coll_add(obj_key, obj_id, coll_of, coll_ids);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION coll_del (
+    obj_key  text,
+    obj_id   integer,
+    coll_of  text,
+    coll_ids integer[]
+) RETURNS VOID AS $$
+DECLARE
+  coll_table text     := quote_ident(obj_key || '_coll_' || coll_of);
+  obj_column text     := quote_ident(obj_key || '_id');
+  coll_of_column text := quote_ident(coll_of || '_id');
+BEGIN
+    EXECUTE 'DELETE FROM ' || coll_table
+        || ' WHERE ' || obj_column || ' = ' || obj_id
+        || ' AND ' || coll_of_column || ' IN ('
+        || array_to_string(coll_ids, ', ') || ')';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION coll_add (
+    obj_key  text,
+    obj_id   integer,
+    coll_of  text,
+    coll_ids integer[]
+) RETURNS VOID AS $$
+DECLARE
+  iloop integer       := 1;
+  coll_table text     := quote_ident(obj_key || '_coll_' || coll_of);
+  obj_column text     := quote_ident(obj_key || '_id');
+  coll_of_column text := quote_ident(coll_of || '_id');
+BEGIN
+    while coll_ids[iloop] is not null loop
+        EXECUTE 'INSERT INTO ' || coll_table
+             || ' (' || obj_column || ', ' || coll_of_column || ', place)'
+             || ' VALUES (' || obj_id || ', ' || coll_ids[iloop]
+             || ', NEXTVAL(' || quote_literal('seq_' || coll_table) || '))';
+        iloop := iloop + 1;
+    END loop;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION coll_clear (
+    obj_key text,
+    obj_id  integer,
+    coll_of text
+) RETURNS VOID AS $$
+DECLARE
+  coll_table text := quote_ident(obj_key || '_coll_' || coll_of);
+  obj_column text := quote_ident(obj_key || '_id');
+BEGIN
+    EXECUTE 'DELETE FROM ' || coll_table
+         || ' WHERE ' || obj_column || ' = ' || obj_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 },
- "Pg setup SQL has state domain";
+    'Pg setup SQL has setup SQL code';
 
 ##############################################################################
 # Grab the simple class.
