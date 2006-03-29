@@ -232,6 +232,13 @@ use base 'DBI::st';
 package Kinetic::Store::DB::SQLite::DBI::db;
 use base 'DBI::db';
 
+# This function clears a collection. Think C<@coll = ()>. Arguments:
+# $dbh:      The database handle.
+# $obj_key:  The containing class key
+# $obj_id:   The ID of the containing obj.
+# $coll_of:  The class key of the objs that make up the set.
+# $coll_ids: The IDs of the objs to be deleted from the collection.
+
 sub coll_clear {
     my ($dbh, $obj_key, $obj_id, $coll_of) = @_;
     $dbh->do(qq{
@@ -240,6 +247,13 @@ sub coll_clear {
     }, undef, $obj_id);
 }
 
+# This function deletes a specific list of objs from a collection. Think
+# C<delete @coll{@ids}>. Arguments:
+# $dbh:      The database handle.
+# $obj_key:  The containing class key
+# $obj_id:   The ID of the containing obj.
+# $coll_of:  The class key of the objs that make up the set.
+# $coll_ids: The IDs of the objs to be deleted from the collection.
 sub coll_del {
     my ($dbh, $obj_key, $obj_id, $coll_of, $coll_ids) = @_;
     my @to_del = split /,/, $coll_ids;
@@ -251,6 +265,13 @@ sub coll_del {
     }, undef, $obj_id, @to_del);
 }
 
+# This function adds a list of objs from a collection. The new objs will
+# be added to the end of the collection. Think C<push @coll, @ids>. Arguments:
+# $dbh:      The database handle.
+# $obj_key:  The containing class key
+# $obj_id:   The ID of the containing obj.
+# $coll_of:  The class key of the objs that make up the set.
+# $coll_ids: The IDs of the objs to be deleted from the collection.
 sub coll_add {
     my ($dbh, $obj_key, $obj_id, $coll_of, $coll_ids) = @_;
     my $ins = $dbh->prepare(qq{
@@ -260,6 +281,13 @@ sub coll_add {
     $ins->execute($obj_id, $_) for split /,/, $coll_ids;
 }
 
+# This function sets all of the IDs in a collection. Any existing IDs will be
+# cleared. Think C<@coll = (@ids)>. Arguments:
+# $dbh:      The database handle.
+# obj_key:  The containing class key
+# $obj_id:   The ID of the containing obj.
+# $coll_of:  The class key of the objs that make up the set.
+# $coll_ids: The IDs of all of the objs in the collection, in order.
 sub coll_set {
     coll_clear(@_[0..3]);
     coll_add(@_);

@@ -682,10 +682,10 @@ q{CREATE DOMAIN version AS TEXT
 
 # This function sets all of the IDs in a collection. Any existing IDs will be
 # cleared. Think C<@coll = (@ids)>. Arguments:
-# obj_key: The containing class key
-# obj_id:  The ID of the containing obj.
-# coll_of:    The class key of the objs that make up the set.
-# coll_ids:   The IDs of all of the objs in the collection, in order.
+# obj_key:  The containing class key
+# obj_id:   The ID of the containing obj.
+# coll_of:  The class key of the objs that make up the set.
+# coll_ids: The IDs of all of the objs in the collection, in order.
 q{CREATE OR REPLACE FUNCTION coll_set (
     obj_key  text,
     obj_id   integer,
@@ -701,10 +701,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 # This function deletes a specific list of objs from a collection. Think
 # C<delete @coll{@ids}>. Arguments:
-# obj_key: The containing class key
-# obj_id:  The ID of the containing obj.
-# coll_of:    The class key of the objs that make up the set.
-# coll_ids:   The IDs of the objs to be deleted from the collection.
+# obj_key:  The containing class key
+# obj_id:   The ID of the containing obj.
+# coll_of:  The class key of the objs that make up the set.
+# coll_ids: The IDs of the objs to be deleted from the collection.
 q{CREATE OR REPLACE FUNCTION coll_del (
     obj_key  text,
     obj_id   integer,
@@ -725,11 +725,11 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 },
 
 # This function adds a list of objs from a collection. The new objs will
-# be added to the end of the collection. Think C<push @coll, @ids> Arguments:
-# obj_key: The containing class key
-# obj_id:  The ID of the containing obj.
-# coll_of:    The class key of the objs that make up the set.
-# coll_ids:   The IDs of the objs to be deleted from the collection.
+# be added to the end of the collection. Think C<push @coll, @ids>. Arguments:
+# obj_key:  The containing class key
+# obj_id:   The ID of the containing obj.
+# coll_of:  The class key of the objs that make up the set.
+# coll_ids: The IDs of the objs to be deleted from the collection.
 q{CREATE OR REPLACE FUNCTION coll_add (
     obj_key  text,
     obj_id   integer,
@@ -753,11 +753,11 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 },
 
-# This function clears a collection. Think C<@coll = ()> Arguments:
-# obj_key: The containing class key
-# obj_id:  The ID of the containing obj.
-# coll_of:    The class key of the objs that make up the set.
-# coll_ids:   The IDs of the objs to be deleted from the collection.
+# This function clears a collection. Think C<@coll = ()>. Arguments:
+# obj_key:  The containing class key
+# obj_id:   The ID of the containing obj.
+# coll_of:  The class key of the objs that make up the set.
+# coll_ids: The IDs of the objs to be deleted from the collection.
 q{CREATE OR REPLACE FUNCTION coll_clear (
     obj_key text,
     obj_id  integer,
