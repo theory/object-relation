@@ -473,15 +473,15 @@ sub init {
     }
 
     # Prevent installation into lib/perl5. We just want lib'.
-    $self->install_base_relpaths->{lib} = ['lib'];
+    $self->install_base_relpaths(lib => 'lib');
 
     # Add www element and install path.
     $self->add_build_element('www');
-    $self->install_base_relpaths->{www} = ['www'];
+    $self->install_base_relpaths('www' => 'www');
 
     # Add config file element and install path.
     $self->add_build_element('conf');
-    $self->install_base_relpaths->{conf} = ['conf'];
+    $self->install_base_relpaths(conf => 'conf');
 
     # Prompts.
     for my $class ( reverse Class::ISA::self_and_super_path(ref $self) ) {
