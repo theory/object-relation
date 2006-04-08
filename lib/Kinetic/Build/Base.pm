@@ -610,26 +610,6 @@ sub process_conf_files {
 
 ##############################################################################
 
-=head3 process_www_files
-
-This method is called during the C<build> action to copy the Web interface
-files to F<blib/www>.
-
-=cut
-
-sub process_www_files {
-    my $self  = shift;
-    my $files = $self->find_www_files;
-    while (my ($file, $dest) = each %$files) {
-        $self->copy_if_modified(
-            from => $file,
-            to => File::Spec->catfile($self->blib, $dest)
-        );
-    }
-}
-
-##############################################################################
-
 =head3 find_conf_files
 
 Called by C<process_conf_files()>, this method returns a hash reference of
