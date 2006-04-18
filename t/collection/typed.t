@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: collection.t 2720 2006-03-04 02:11:45Z curtis $
+# $Id$
 
 use strict;
 use warnings;
