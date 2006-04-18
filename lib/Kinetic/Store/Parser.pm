@@ -383,34 +383,31 @@ my $LANGUAGE = Kinetic::Util::Context->language;
 sub _make_search {
 
     # note that this function is tightly coupled with the $search parser
-    my $column  = shift;
+    my $attr  = shift;
     my $negated = $_[0][0];
     my ( $operator, $value ) = @{ $_[1] };
 
-    $column =~ s/\Q$ATTR_DELIMITER\E/$OBJECT_DELIMITER/g;
+    $attr =~ s/\Q$ATTR_DELIMITER\E/$OBJECT_DELIMITER/g;
 
-    my $class;
-    unless ( ( $class, $column ) = $STORE->_search_data_has_column($column) ) {
+    my ($class, $column);
+    unless ( ( $class, $column ) = $STORE->_search_data_has_column($attr) ) {
+        die $LANGUAGE->maketext(
+            q{Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]},
+            $column,
+            $negated,
+            $operator,
+            $value,
+            $LANGUAGE->maketext( 'Unknown column "[_1]"', $column )
+        );
+    }
 
-        # special case for searching on a contained object id ...
-        my $id_column = $column . $OBJECT_DELIMITER . 'id';
-        unless ( ( $class, $id_column ) = $STORE->_search_data_has_column($id_column) ) {
-            die $LANGUAGE->maketext(
-                q{Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]},
-                $column,
-                $negated,
-                $operator,
-                $value,
-                $LANGUAGE->maketext( 'Unknown column "[_1]"', $column )
-            );
-        }
-        $column = $id_column;
+    if ($column eq $attr . $OBJECT_DELIMITER . 'id') {
         $value  =
           'ARRAY' eq ref $value ? [ map $_->id => @$value ]
           : blessed $value ? $value->id
           : die $LANGUAGE->maketext(
             'Object key "[_1]" must point to an object, not a scalar "[_2]"',
-            $id_column, $value
+            $attr, $value
           );
     }
 
@@ -434,8 +431,8 @@ sub _normalize_value {
 sub parse {
     my ( $stream, $store ) = @_;
     unless ( blessed $store && $store->isa('Kinetic::Store') ) {
-        throw_search [ 
-            'Argument "[_1]" is not a valid [_2] object', 
+        throw_search [
+            'Argument "[_1]" is not a valid [_2] object',
              2,
             'Kinetic::Store'
         ];

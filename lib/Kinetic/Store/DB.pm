@@ -1375,10 +1375,10 @@ sub _search_data_has_column {
             }
         }
     }
-    elsif ( my ($attr) = $search_class->attributes($column) ) {
+    elsif ( my $attr = $search_class->attributes($column) ) {
         return unless $attr->references;
         # If we're searching one a contained object, we get to here
-        return ( Kinetic::Meta->for_key($attr->type), $column );
+        return ($search_class, $column . $OBJECT_DELIMITER . 'id' );
     }
 }
 

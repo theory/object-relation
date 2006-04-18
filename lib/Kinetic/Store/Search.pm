@@ -350,7 +350,7 @@ Getter/Setter for the object column on which you wish to search.  This is the
 table-qualified column name (i.e., "$table.$column").  If you wish the column
 name without the table, see C<base_column>.
 
-=head3 base_column 
+=head3 base_column
 
  my $column = $search->base_column;
 

@@ -861,7 +861,7 @@ sub string_search_incomplete_dates : Test(25) {
       $store->query( $class, STRING => <<'    END_SEARCH', order_by => 'date' );
         date => LT "1968-xx-xxTxx:xx:xx",
         date => GT "1966-xx-xxTxx:xx:xx",
-        name => LIKE '%vid', 
+        name => LIKE '%vid',
     END_SEARCH
     @results = $test->_all_items($iterator);
     is @results, 1, 'Incomplete dates should recognize LT';
@@ -870,7 +870,7 @@ sub string_search_incomplete_dates : Test(25) {
     $iterator =
       $store->query( $class, STRING => <<'    END_SEARCH', order_by => 'date' );
         date => ["1966-xx-xxTxx:xx:xx" => "1968-xx-xxTxx:xx:xx"],
-        name => LIKE 'Ovi%', 
+        name => LIKE 'Ovi%',
     END_SEARCH
     @results = $test->_all_items($iterator);
     is @results, 1, 'Incomplete dates should recognize BETWEEN';
@@ -879,7 +879,7 @@ sub string_search_incomplete_dates : Test(25) {
     $iterator =
       $store->query( $class, STRING => <<'    END_SEARCH', order_by => 'date' );
         date => ["1966-xx-xxTxx:xx:xx" => "1968-xx-xxTxx:xx:xx"],
-        name => LIKE '%vid', 
+        name => LIKE '%vid',
     END_SEARCH
     @results = $test->_all_items($iterator);
     is @results, 2,
@@ -901,7 +901,7 @@ sub string_search_incomplete_dates : Test(25) {
     $iterator =
       $store->query( $class, STRING => <<'    END_SEARCH', order_by => 'date' );
         date => ANY(
-            "xxxx-06-20Txx:xx:xx", 
+            "xxxx-06-20Txx:xx:xx",
             "1976-01-xxTxx:xx:xx",
             "1976-xx-04Txx:xx:xx"
         ),
@@ -1038,7 +1038,7 @@ sub search_compound : Test(9) {
     my $test = shift;
     return unless $test->_should_run;
     #$test->clear_database;
-    
+
     my $store = Store->new;
     can_ok $store, 'query';
     my $foo = Two->new;
@@ -2188,7 +2188,7 @@ sub joins : Test(no_plan) {
     my $yello_2 = Yello->new( age => 19 );
     $yello_2->save;
 
-    ok my $iterator = One->query( 
+    ok my $iterator = One->query(
         'yello.uuid' => $yello->uuid,
         { order_by => 'one.name' }
     ), 'Searching collection objects on a parent UUID should succeed';
