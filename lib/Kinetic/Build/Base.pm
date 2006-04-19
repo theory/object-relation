@@ -1365,7 +1365,7 @@ sub _merge_configs {
     while (my ($label, $vals) = each %$from) {
         while (my ($key, $val) = each %$vals) {
             die qq{Cannot merge the configuration key "$key" under the label }
-                . qq{from $from_file because it has already been sety by }
+                . qq{from $from_file because it has already been set by }
                 . $to_file
                 if exists $to->{$label}{$key};
             $to->{$label}{$key} = $val;
