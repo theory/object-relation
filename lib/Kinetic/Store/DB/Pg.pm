@@ -133,7 +133,7 @@ sub _execute {
 sub _eq_date_handler {
     my ( $self, $search ) = @_;
     my $date     = $search->data;
-    my $field    = $search->column;
+    my $field    = $search->notes('column');
     my $operator = $search->operator;
     my ( @tokens, @values );
     foreach my $segment ( $date->defined_store_fields ) {
@@ -169,7 +169,7 @@ sub _date_token_and_value {
         $format .= $DATE{$segment}{format};
         $value .= sprintf "%0$DATE{$segment}{length}d" => $date->$segment;
     }
-    my $field = $search->column;
+    my $field = $search->notes('column');
     my $token = "to_char($field, '$format')";
     return ( $token, $value );
 }
@@ -187,7 +187,7 @@ sub _any_date_handler {
     my ( $self, $search ) = @_;
     my ( $negated, $value ) = ( $search->negated, $search->data );
     my ( @tokens, @values );
-    my $field = $search->column;
+    my $field = $search->notes('column');
     foreach my $date (@$value) {
         my ( $token, $value ) = $self->_date_token_and_value( $search, $date );
         push @tokens => "$token = ?";

@@ -81,8 +81,11 @@ our %Lexicon;
         q{Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]},
         'Don’t know how to search for ([_1] [_2] [_3] [_4]): [_5]',
 
-        'Object key "[_1]" must point to an object, not a scalar "[_2]"',
-        'Object key “[_1]” must point to an object, not a scalar “[_2]”',
+        'Search parameter "[_1]" must point to an object, not to a scalar "[_2]"',
+        'Search parameter “[_1]” must point to an object, not to a scalar “[_2]”',
+
+        'Search parameter "[_1]" is not an object attribute of "[_2]"',
+        'Search parameter “[_1]” is not an object attribute of “[_2]”',
     );
 
     my %search_messages = (
@@ -125,8 +128,8 @@ our %Lexicon;
         'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
         'PANIC: lookup([_1], [_2], [_3]) returned more than one result.',
 
-        'Unknown column "[_1]"',
-        'Unknown column “[_1]”',
+        'I do not recognize the search parameter "[_1]"',
+        'I do not recognize the search parameter “[_1]”',
     );
 
     my %rest_messages = (

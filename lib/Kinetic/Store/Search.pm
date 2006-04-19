@@ -40,7 +40,7 @@ my @_ATTRIBUTES = qw/
   /;
 
 # getter/setter with custom behavior
-my @ATTRIBUTES = ( 'data', 'column', 'key', @_ATTRIBUTES );
+my @ATTRIBUTES = ( 'data', 'param', 'key', @_ATTRIBUTES );
 
 # simple getter/setter lookup table
 my %ATTR_LOOKUP;
@@ -83,23 +83,23 @@ Kinetic::Store::Search - Manage Kinetic search parameters
 
   use Kinetic::Store::Search;
   my $search = Kinetic::Store::Search->new(
-      column       => $column,
-      operator     => $operator,
-      negated      => $negated,
-      data         => $data,
-      class        => $class,
+      param    => $param,
+      operator => $operator,
+      negated  => $negated,
+      data     => $data,
+      class    => $class,
   );
   # later
-  $search->column($new_attr);
+  $search->param($new_param);
   my $method = $search->search_method;
   $store->$method($search);
 
 =head1 Description
 
 This class manages all of the data necessary for creation of individual search
-tokens ("name = 'foo'", "age >= 21", etc.). When enough slots are filled,
-calling C<store_method> will return the name of the method that will generate
-the appropriate search token.
+parameters ("name = 'foo'", "age >= 21", etc.). When enough slots are filled,
+C<search_method()> will return the name of the method that will generate the
+appropriate search token.
 
 =cut
 
@@ -114,11 +114,11 @@ the appropriate search token.
   my $search = Kinetic::Store::Search->new( class => $class );
   # or
   my $search = Kinetic::Store::Search->new(
-      column       => $column,
-      operator     => $operator,
-      negated      => $negated,
-      data         => $data,
-      class        => $class,
+      param    => $param,
+      operator => $operator,
+      negated  => $negated,
+      data     => $data,
+      class    => $class,
   );
 
 Creates and returns a new search manager.
@@ -192,29 +192,27 @@ sub search_method {
         return $method;
     }
 
-    my $column = $self->column;
-    my $value  = $self->data;
-    my $neg    = $self->negated;
-    my $op     = $self->operator;
-    my $error  = "Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]";
+    my $param = $self->param;
+    my $value = $self->data;
+    my $neg   = $self->negated;
+    my $op    = $self->operator;
+    my $error = "Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]";
     no warnings 'uninitialized';
-    throw_search [ $error, $column, $neg, $op, $value, "undefined operator." ]
+    throw_search [ $error, $param, $neg, $op, $value, "undefined operator." ]
       unless defined $op;
 
     # if it's blessed, assume that it's an object whose overloading will
     # provide the correct search data
     if ( ref $value && !blessed($value) && 'ARRAY' ne ref $value ) {
         throw_search [
-            $error, $column, $neg, $op, $value,
+            $error, $param, $neg, $op, $value,
             "don't know how to handle value."
         ];
     }
     my $op_sub = $COMPARE_DISPATCH{$op}
       or
-      throw_search [ $error, $column, $neg, $op, $value, "unknown op ($op)." ];
-    my $search_method = $op_sub->($self);
-    $self->{search_method} = $search_method;
-    return $search_method;
+      throw_search [ $error, $param, $neg, $op, $value, "unknown op ($op)." ];
+    return $self->{search_method} = $op_sub->($self);
 }
 
 sub data {
@@ -233,20 +231,11 @@ sub data {
     return $self;
 }
 
-sub column {
+sub param {
     my $self = shift;
-    return $self->{column} unless @_;
-
-    my $column = shift;
-    $self->{base_column} = $column;
-    my $key    = $self->key;
-    $column    = "$key.$column" unless $column =~ /^$key\./;
-    $self->{column} = $column;
+    return $self->{param} unless @_;
+    $self->{param} = shift;
     return $self;
-}
-
-sub base_column {
-    return shift->{base_column};
 }
 
 sub key {
@@ -276,6 +265,15 @@ sub original_operator {
         return $self;
     }
     return $self->{original_operator};
+}
+
+sub notes {
+    my $self = shift;
+    return $self->{notes} ||= {} unless @_;
+    my $key = shift;
+    return $self->{notes}{$key} unless @_;
+    $self->{notes}{$key} = shift;
+    return $self;
 }
 
 sub _ANY_SEARCH {
@@ -342,19 +340,16 @@ sub _am_i_eq_or_not {
 
 =head2 Instance Methods
 
-=head3 column
+=head3 param
 
-  $search->column([$column]);
+  my $param = $search->param;
+  $search->param($param);
 
-Getter/Setter for the object column on which you wish to search.  This is the
-table-qualified column name (i.e., "$table.$column").  If you wish the column
-name without the table, see C<base_column>.
-
-=head3 base_column
-
- my $column = $search->base_column;
-
-Returns the column name without the table.
+Getter/Setter for the parameter specified for the search. Most often this will
+correspond to the name of an attribute in the class described by the class
+object returned by C<class()>, but it might instead refer to an object in
+another class by using the dot notation, e.g., "class.attr". See
+L<Kinetic::Store|Kinetic::Store> for details on the possible parameters.
 
 =head3 data
 
@@ -402,7 +397,9 @@ Examples are 'LE', 'EQ', 'LIKE', etc.
 
   $search->class([$class]);
 
-Getter/Setter for the class which contains the current column.
+Getter/Setter for the class which contains the
+L<Kinetic::Meta::Class|Kinetic::Meta::Class> object for the class being
+searched.
 
 =head3 key
 
@@ -412,6 +409,16 @@ Returns the class key for the Kinetic object this search object refers to.
 This is a convenient (cached) shortcut for:
 
  $search->class->key;
+
+=head3 notes
+
+  my $notes = $search->notes;
+  my $val = $search->notes($key);
+  $search->notes($key => $val);
+
+Manages a hash of arbitrary notes to be associated with the search object.
+These may be populated with values by the store class to help it collect the
+data necessary to perform a search of the data store.
 
 =cut
 

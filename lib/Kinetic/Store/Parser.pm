@@ -41,11 +41,12 @@ use Exporter::Tidy default => ['parse'];
 use HOP::Stream qw/drop list_to_stream/;
 use HOP::Parser qw/:all/;
 use Scalar::Util 'blessed';
+use List::Util 'first';
 
 use Kinetic::DataType::DateTime::Incomplete qw/is_incomplete_iso8601/;
 use Kinetic::Store::Search;
 use Kinetic::Util::Constants qw/:data_store/;
-use Kinetic::Util::Exceptions qw/panic throw_search/;
+use Kinetic::Util::Exceptions qw/panic throw_search isa_exception/;
 use Kinetic::Util::Context;
 
 =head1 Name
@@ -378,45 +379,20 @@ B<Throws:>
 =cut
 
 my $STORE;
-my $LANGUAGE = Kinetic::Util::Context->language;
 
 sub _make_search {
-
-    # note that this function is tightly coupled with the $search parser
-    my $attr  = shift;
+    my $param   = shift;
     my $negated = $_[0][0];
     my ( $operator, $value ) = @{ $_[1] };
 
-    $attr =~ s/\Q$ATTR_DELIMITER\E/$OBJECT_DELIMITER/g;
-
-    my ($class, $column);
-    unless ( ( $class, $column ) = $STORE->_search_data_has_column($attr) ) {
-        die $LANGUAGE->maketext(
-            q{Don't know how to search for ([_1] [_2] [_3] [_4]): [_5]},
-            $column,
-            $negated,
-            $operator,
-            $value,
-            $LANGUAGE->maketext( 'Unknown column "[_1]"', $column )
-        );
-    }
-
-    if ($column eq $attr . $OBJECT_DELIMITER . 'id') {
-        $value  =
-          'ARRAY' eq ref $value ? [ map $_->id => @$value ]
-          : blessed $value ? $value->id
-          : die $LANGUAGE->maketext(
-            'Object key "[_1]" must point to an object, not a scalar "[_2]"',
-            $attr, $value
-          );
-    }
-
-    return Kinetic::Store::Search->new(
-        column   => $column,
-        negated  => ( $negated || '' ),
-        operator => ( $operator || 'EQ' ),
-        data     => _normalize_value($value),
-        class    => $class,
+    return $STORE->_prep_search_token(
+        Kinetic::Store::Search->new(
+            param    => $param,
+            negated  => $negated || '',
+            operator => $operator || 'EQ',
+            data     => _normalize_value($value),
+            class    => $STORE->search_class,
+        )
     );
 }
 
@@ -439,9 +415,13 @@ sub parse {
     }
     $STORE = $store;
     my ( $results, $remainder ) = eval { $entire_input->($stream) };
-
     if ( my $error = $@ ) {
         if ( 'ARRAY' eq ref $error ) {
+            if (my $ex = first { isa_exception( $_ ) }
+                map { ref $_ ? @$_ : $_ } @$error
+            ) {
+                $ex->rethrow;
+            }
             $error = fetch_error($error);
         }
         throw_search [ 'Could not parse search request:  [_1]', $error ];

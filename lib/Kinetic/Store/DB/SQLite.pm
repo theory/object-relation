@@ -130,7 +130,7 @@ of the whole string.
 
 sub _MATCH_SEARCH {
     my ( $self, $search ) = @_;
-    my $col = $search->column;
+    my $col = $search->notes('column');
     my $not = $search->negated ? ' NOT' : '';
     return ( "$col$not REGEXP ?", [ $search->data ] );
 }
@@ -178,7 +178,7 @@ sub _field_format {
 sub _eq_date_handler {
     my ( $self, $search ) = @_;
     my $date     = $search->data;
-    my $token    = $self->_field_format( $search->column, $date );
+    my $token    = $self->_field_format( $search->notes('column'), $date );
     my $operator = $search->operator;
     return ( "$token $operator ?", [ $date->sort_string ] );
 }
@@ -189,7 +189,7 @@ sub _gt_lt_date_handler {
     throw_unsupported
       "You cannot do GT or LT type searches with non-contiguous dates"
       unless $date->contiguous;
-    my $token = $self->_field_format( $search->column, $date );
+    my $token = $self->_field_format( $search->notes('column'), $date );
     my $value = $date->sort_string;
     return ( "$token $operator ?", [$value] );
 }
@@ -198,7 +198,7 @@ sub _between_date_sql {
     my ( $self,    $search )   = @_;
     my ( $date1,   $date2 )    = @{ $search->data };
     my ( $negated, $operator ) = ( $search->negated, $search->operator );
-    my $token = $self->_field_format( $search->column, $date1 );
+    my $token = $self->_field_format( $search->notes('column'), $date1 );
     return (
         "$token $negated $operator ? AND ?",
         [ $date1->sort_string, $date2->sort_string ]
@@ -209,7 +209,7 @@ sub _any_date_handler {
     my ( $self, $search ) = @_;
     my ( $negated, $value ) = ( $search->negated, $search->data );
     my ( @tokens, @values );
-    my $field = $search->column;
+    my $field = $search->notes('column');
     foreach my $date (@$value) {
         my $token = $self->_field_format( $field, $date );
         push @tokens => "$token = ?";

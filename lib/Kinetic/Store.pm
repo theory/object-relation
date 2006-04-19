@@ -21,7 +21,11 @@ package Kinetic::Store;
 use strict;
 use aliased 'Kinetic::Util::Cache';
 use Kinetic::Util::Config qw(:store);
-use Kinetic::Util::Exceptions qw/throw_invalid_class throw_search/;
+use Kinetic::Util::Exceptions qw(
+    throw_invalid_class
+    throw_search
+    throw_unimplemented
+);
 
 use version;
 our $VERSION = version->new('0.0.1');
@@ -455,6 +459,27 @@ See L<Kinetic::Util::Cache|Kinetic::Util::Cache>.
 sub _cache {
     return shift->{cache};
 }
+
+##############################################################################
+
+=head3 _prep_search_token
+
+  my $search = $store->prep_search_token($search);
+
+Examines a L<Kinetic::Store::Search|Kinetic::Store::Search> object created
+by L<Kinetic::Store::Parser|Kinetic::Store::Parser> to ensure that it has
+valid search data.
+
+=cut
+
+sub _prep_search_token {
+    throw_unimplemented [
+        '"[_1]" must be overridden in a subclass',
+        '_prep_search_token',
+    ];
+}
+
+##############################################################################
 
 =end private
 

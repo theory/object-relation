@@ -12,8 +12,8 @@ use Test::Exception;
 use aliased 'Kinetic::DataType::DateTime::Incomplete';
 my $CLASS;
 BEGIN {
-    $CLASS = 'Kinetic::Store::Search'; 
-    use_ok $CLASS or die 
+    $CLASS = 'Kinetic::Store::Search';
+    use_ok $CLASS or die
 };
 
 {
@@ -31,14 +31,14 @@ throws_ok { $CLASS->new(foobar => 1, negated => 2, barfoo => 3)}
     'Kinetic::Util::Exception::Fatal::Search',
     '... but it should die if unknown search attributes are specified';
 
-foreach my $attribute (qw/column negated operator class/) {
+foreach my $attribute (qw/param negated operator class/) {
     can_ok $search, $attribute;
     if ($attribute eq 'class') {
         isa_ok $search->$attribute, 'Faux::Class',
             '... and the class object should be set';
     }
     else {
-        ok ! defined $search->$attribute, 
+        ok ! defined $search->$attribute,
             '... and its initial value should be undefined';
     }
     ok $search->$attribute(scalar reverse $attribute),
@@ -55,16 +55,16 @@ foreach my $attribute (qw/column negated operator class/) {
 
 can_ok $search, 'data';
 $search->operator('cthulhu');
-my $operator = $search->operator; 
+my $operator = $search->operator;
 ok ! defined $search->data, '... and its initial value should be undef';
 ok $search->data('phooey'), '... but settting it to a new value should succeed';
 is $search->data, 'phooey', '... and it should now return the new value';
-is $search->operator, $operator, 
+is $search->operator, $operator,
     '... and if operator was defined, it should not change if data is set';
 
 $search->operator(undef);
 $search->data([qw/some info/]);
-is $search->operator, 'BETWEEN', 
+is $search->operator, 'BETWEEN',
     'Setting data() to an aref when operator is undef sets operator to BETWEEN';
 
 $search->operator(undef);
@@ -74,7 +74,7 @@ is $search->operator, 'EQ',
 
 $search->operator(0);
 $search->data([qw/some info/]);
-is $search->operator, 'BETWEEN', 
+is $search->operator, 'BETWEEN',
     'Setting data() to an aref when operator is false sets operator to BETWEEN';
 
 $search->operator('');
@@ -86,7 +86,7 @@ my %operators = (
     EQ      => '_EQ_SEARCH',
     NOT     => '_EQ_SEARCH',
     LIKE    => '_LIKE_SEARCH',
-    MATCH   => '_MATCH_SEARCH', 
+    MATCH   => '_MATCH_SEARCH',
     GT      => '_GT_LT_SEARCH',
     LT      => '_GT_LT_SEARCH',
     GE      => '_GT_LT_SEARCH',
@@ -95,7 +95,7 @@ my %operators = (
 );
 while (my ($operator, $method) = each %operators) {
     $search->operator($operator);
-    is $search->search_method, $method, 
+    is $search->search_method, $method,
         "... and it should return the correct method for $operator searches";
 }
 
@@ -117,7 +117,7 @@ $search->operator('BETWEEN');
 $search->data('foobar');
 throws_ok {$search->search_method}
     'Kinetic::Util::Exception::Fatal::Panic',
-    'BETWEEN searches without an arrayref for the data should panic'; 
+    'BETWEEN searches without an arrayref for the data should panic';
 
 $search->data([1]),
 throws_ok {$search->search_method}
@@ -146,7 +146,7 @@ $search->operator('ANY');
 $search->data('foobar');
 throws_ok {$search->search_method}
     'Kinetic::Util::Exception::Fatal::Panic',
-    'ANY searches without an arrayref for the data should panic'; 
+    'ANY searches without an arrayref for the data should panic';
 
 $search->data([ [], {}, 1 ]);
 throws_ok {$search->search_method}

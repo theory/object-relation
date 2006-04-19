@@ -26,8 +26,8 @@ BEGIN {
 }
 
 {
-
     package Faux::Store;
+    use Kinetic::Util::Constants qw/:data_store/;
     our @ISA = 'Kinetic::Store';
     my %column;
     @column{
@@ -48,10 +48,15 @@ BEGIN {
     sub new { bless {} => shift }
 
     my $faux_class = Faux::Class->new;
-    sub _search_data_has_column {
-        my ( $self, $column ) = @_;
-        return ($faux_class, $column) if exists $column{ $column };
+    sub _prep_search_token {
+        my ($self, $search ) = @_;
+        (my $column = $search->param)
+            =~ s/\Q$ATTR_DELIMITER\E/$OBJECT_DELIMITER/g;
+        die "$column is invavlid" unless exists $column{ $column };
+#        $search->notes( column => $column );
+        return $search;
     }
+    sub search_class { $faux_class }
 }
 
 my $store = Faux::Store->new;
@@ -61,14 +66,14 @@ my $store = Faux::Store->new;
 #__END__
 
 throws_ok {
-    parse( string_lexer_stream("no_such_column => NOT 'foo'"), $store ) }
+    parse( string_lexer_stream("no_such_attr => NOT 'foo'"), $store ) }
   'Kinetic::Util::Exception::Fatal::Search',
-  'Trying to string search on a non-existent column should throw an exception';
+  'Trying to string search on a non-existent attr should throw an exception';
 
 throws_ok {
-    parse( code_lexer_stream( [ no_such_column => NOT 'foo' ] ), $store ) }
+    parse( code_lexer_stream( [ no_such_attr => NOT 'foo' ] ), $store ) }
   'Kinetic::Util::Exception::Fatal::Search',
-  'Trying to code search on a non-existent column should throw an exception';
+  'Trying to code search on a non-existent attr should throw an exception';
 
 throws_ok { parse( string_lexer_stream("name => 'foo', 'bar'"), $store ) }
   'Kinetic::Util::Exception::Fatal::Search',
@@ -83,7 +88,7 @@ my $name_search = Search->new(
     operator => 'EQ',
     negated  => '',
     data     => 'foo',
-    column   => 'name',
+    param   => 'name',
 );
 
 my $between_search = Search->new(
@@ -91,7 +96,7 @@ my $between_search = Search->new(
     operator => 'BETWEEN',
     negated  => '',
     data     => [qw/bar foo/],
-    column   => 'name',
+    param   => 'name',
 );
 
 my $age_search = Search->new(
@@ -99,7 +104,7 @@ my $age_search = Search->new(
     operator => 'EQ',
     negated  => 'NOT',
     data     => 3,
-    column   => 'age',
+    param   => 'age',
 );
 
 can_ok 'Kinetic::Store::Parser', '_extract_statements';
@@ -324,7 +329,7 @@ my $any_search = Search->new(
     operator => 'ANY',
     negated  => '',
     data     => [qw/foo bar baz/],
-    column   => 'name',
+    param   => 'name',
 );
 
 $result =
@@ -368,7 +373,7 @@ my $not_like_search = Search->new(
     operator => 'LIKE',
     negated  => 'NOT',
     data     => 'that',
-    column   => 'this',
+    param   => 'this',
 );
 $result = parse( string_lexer_stream(<<'END_SEARCH'), $store );
     name => 'foo',
@@ -402,7 +407,7 @@ my $lname = Search->new(
     operator => 'EQ',
     negated  => '',
     data     => 'something',
-    column   => 'l_name',
+    param   => 'l_name',
 );
 
 my $one_type = Search->new(
@@ -410,7 +415,7 @@ my $one_type = Search->new(
     operator => 'LIKE',
     negated  => '',
     data     => 'email',
-    column   => 'one__type',
+    param   => 'one__type',
 );
 
 my $fav_number = Search->new(
@@ -418,7 +423,7 @@ my $fav_number = Search->new(
     operator => 'GE',
     negated  => '',
     data     => 42,
-    column   => 'fav_number',
+    param   => 'fav_number',
 );
 ok $result =
   parse(
@@ -462,7 +467,7 @@ ok $result = parse(
   'Complex code groupings of terms should succeed';
 is_deeply $result, $expected, '... and should return the correct result';
 
-$name_search->column('one__name');
+$name_search->param('one.name');
 $result = parse( string_lexer_stream("one.name => 'foo'"), $store );
 ok $result, 'String parsing object delimited searches should succeed';
 is_deeply $result, [$name_search], '... and return the correct results';
@@ -479,7 +484,7 @@ my $search1968 = Search->new(
     operator => 'LT',
     negated  => '',
     data     => $y1968,
-    column   => 'date',
+    param   => 'date',
 );
 
 my $search1966 = Search->new(
@@ -487,7 +492,7 @@ my $search1966 = Search->new(
     operator => 'GT',
     negated  => '',
     data     => $y1966,
-    column   => 'date',
+    param   => 'date',
 );
 
 my $search_like = Search->new(
@@ -495,7 +500,7 @@ my $search_like = Search->new(
     operator => 'LIKE',
     negated  => '',
     data     => '%vid',
-    column   => 'name',
+    param   => 'name',
 );
 ok $result =
   parse(
@@ -528,7 +533,7 @@ my $fq_search = Search->new(
     operator => 'EQ',
     negated  => '',
     data     => '1234',
-    column   => 'person.uuid',
+    param   => 'person.uuid',
 );
 
 exit;

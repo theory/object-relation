@@ -25,6 +25,7 @@ use version;
 our $VERSION = version->new('0.0.1');
 use DBI;
 use Clone;
+use Scalar::Util qw(blessed);
 use constant DBI_CLASS => 'DBI';
 
 use Class::BuildMethods qw(
@@ -694,7 +695,7 @@ sub _get_collection {
     my $containing_key   = $object->my_class->key;
     my $search           = Kinetic::Meta->for_key($key);
     my $collection_table = $attr->collection_table;
-    my $results = $search->package->query( 
+    my $results = $search->package->query(
         "$containing_key.uuid" => $object->uuid,
         { order_by => "$collection_table.seq" }
     );
@@ -1339,25 +1340,28 @@ sub _search_data_columns { @{ shift->{search_data}{columns} } }
 
 ##############################################################################
 
-=head3 _search_data_has_column
+=head3 _prep_search_token
 
-  if ( my ($class, $column_name) = $store->_search_data_has_column($column)) {
-    ...
-  }
+ $search = $store->prep_search_token($search);
 
-This method returns the search class and the correct column name for the
-column depending upon whether or not the search class has a database column
-matching the column name passed as an argument.
+Examines a L<Kinetic::Store::Search|Kinetic::Store::Search> object created
+by L<Kinetic::Store::Parser|Kinetic::Store::Parser> to ensure that it has
+valid search data.
 
 =cut
 
-sub _search_data_has_column {
-    my ( $self, $column ) = @_;
+sub _prep_search_token {
+    my ($self, $search) = @_;
     my $search_class = $self->search_class;
+    (my $column = $search->param)
+        =~ s/\Q$ATTR_DELIMITER\E/$OBJECT_DELIMITER/g;
+
     my $actual_column = $search_class->key . ".$column";
     if ( exists $self->{search_data}{lookup}{$actual_column} ) {
         # column was found in main search class
-        return ( $search_class, $column );
+        my $key = $search->key;
+        $search->notes( base_column => $column );
+        $search->notes( column => "$key.$column")
     }
     elsif ( $column =~ /^([[:word:]]+?)$OBJECT_DELIMITER(.*)$/ ) {
         # column is possibly in a different, but related view
@@ -1371,15 +1375,44 @@ sub _search_data_has_column {
             $actual_column = "$key.$column";
             if ( exists $self->{search_data}{lookup}{$actual_column} ) {
                 # column was found in related search class
-                return ( $class, $column );
+                $search->class($class);
+                $search->notes( base_column => $column );
+                $search->notes( column => $actual_column );
             }
         }
     }
     elsif ( my $attr = $search_class->attributes($column) ) {
-        return unless $attr->references;
+        throw_search [
+            'Search parameter "[_1]" is not an object attribute of "[_2]"',
+            $search->param,
+            $search_class->package,
+        ] unless $attr->references;
+
+        # Convert value(s) to IDs.
+        my $value = $search->data;
+        $value =
+          'ARRAY' eq ref $value ? [ map $_->id => @$value ]
+          : blessed $value ? $value->id
+          : throw_search [
+              'Search parameter "[_1]" must point to an object, not to a scalar "[_2]"',
+              $search->param,
+              $value
+          ];
+
         # If we're searching one a contained object, we get to here
-        return ($search_class, $column . $OBJECT_DELIMITER . 'id' );
+        $search->data($value);
+        $search->notes( base_column => $column );
+        $column .= $OBJECT_DELIMITER . 'id';
+        $search->notes( column      => $column );
     }
+    else {
+        throw_search [
+            'I do not recognize the search parameter "[_1]"',
+            $search->param,
+        ]
+    }
+
+    return $search;
 }
 
 ##############################################################################
@@ -1428,7 +1461,7 @@ sub _make_where_clause {
     }
 
     my ( $clause, $bind_params ) = $self->_convert_ir_to_where_clause($ir);
-    $clause = "" if '()' eq $clause;
+    $clause = '' if '()' eq $clause;
 
     unless ( $self->{searching_on_state} ) {
         $clause .= " AND $view.state > ?";
@@ -1508,7 +1541,7 @@ sub _convert_ir_to_where_clause {
     my ( $self, $ir ) = @_;
     my ( @where, @bind );
     while ( defined( my $term = shift @$ir ) ) {
-        unless ( ref $term ) {    # Currently, this means its 'OR'
+        if ( !ref $term ) {    # Currently, this means its 'OR'
             pop @where if 'AND' eq $where[-1];
             push @where => $term;
             my ( $token, $bind )
@@ -1516,12 +1549,13 @@ sub _convert_ir_to_where_clause {
             push @where => $token;
             push @bind  => @$bind;
 
-           # (LOWER(one.name) = LOWER(?) 
+           # (LOWER(one.name) = LOWER(?)
            #     OR
            #     (LOWER(one.desc) = LOWER(?) AND one.this = ?))
         }
         elsif ( eval { $term->isa(Search) } ) {
-            $self->{views}{ $term->class->key } = $term->class;            
+            my $class = $term->class;
+            $self->{views}{ $class->key } = $class;
             my $search_method = $term->search_method;
             my ( $token, $bind ) = $self->$search_method($term);
             if ( $token =~ /\bstate\b/i ) { # XXX What if token is "statement"?
@@ -1590,11 +1624,11 @@ param based upon whether or not the column's data type is case-insensitive.
 sub _handle_case_sensitivity {
     my ( $self, $search ) = @_;
 
-    my $column = $search->column;
+    my $column = $search->notes('column');
     # if 'type eq string' for attr (only relevent for postgres)
     my $orig_column    = $column;
     my $search_class   = $search->class;
-    my $attribute_name = $search->base_column;
+    my $attribute_name = $search->notes('base_column');
 
     # Normally we have something like customer__uuid
     # For references objects, we might have something like
@@ -1607,9 +1641,9 @@ sub _handle_case_sensitivity {
         $attribute_name = $column = $base_column;
     }
     if ($search_class) {
-        $column = "LOWER($orig_column)"
-          if $self->_is_case_sensitive(
-            $search_class->attributes($attribute_name)->type );
+        $column = "LOWER($orig_column)" if $self->_is_case_sensitive(
+            $search_class->attributes($attribute_name)->type
+        );
     }
     return $column =~ /^LOWER/
       ? ( $column, 'LOWER(?)' )
@@ -1667,7 +1701,7 @@ sub _EQ_SEARCH {
 
 sub _NULL_SEARCH {
     my ( $self, $search ) = @_;
-    my ( $column, $negated ) = ( $search->column, $search->negated );
+    my ( $column, $negated ) = ( $search->notes('column'), $search->negated );
     return ( "$column IS $negated NULL", [] );
 }
 

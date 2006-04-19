@@ -23,7 +23,7 @@ sub constructor : Test(3) {
       'new() with unknown attributes should throw an exception';
 
     my %search = (
-        column   => 'name',
+        param    => 'name',
         operator => 'EQ',
         negated  => 'NOT',
         data     => 'foo',
@@ -38,7 +38,7 @@ sub methods : Test(16) {
     my $test = shift;
 
     my %search = (
-        column   => 'name',
+        param    => 'name',
         operator => 'EQ',
         negated  => 'NOT',
         data     => 'foo',
