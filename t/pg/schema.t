@@ -616,6 +616,16 @@ ALTER TABLE yello_coll_one
 ALTER TABLE yello_coll_one
   ADD CONSTRAINT fk_yello_coll_one_one_id FOREIGN KEY (one_id)
   REFERENCES simple_one(id) ON DELETE CASCADE;
+
+CREATE OR REPLACE FUNCTION yello_coll_one_cascade() RETURNS trigger AS $$
+  BEGIN
+    DELETE FROM simple_one WHERE id = OLD.one_id;
+    RETURN OLD;
+  END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER yello_coll_one_cascade BEFORE DELETE ON yello_coll_one
+FOR EACH ROW EXECUTE PROCEDURE yello_coll_one_cascade();
 };
 eq_or_diff join( "\n", $sg->constraints_for_class($yello) ), $constraints,
   '... with the correct constraints';

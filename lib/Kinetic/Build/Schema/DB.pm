@@ -134,6 +134,7 @@ sub behaviors_for_class {
       qw(
       indexes_for_class
       constraints_for_class
+      procedures_for_class
       view_for_class
       insert_for_class
       update_for_class
@@ -520,10 +521,9 @@ sub index_on { pop->column }
 
   my $constraint_sql = $kbs->constraints_for_class($class);
 
-Returns the SQL statements to create all of the constraints for the class
-described by the Kinetic::Meta::Class::Schema object passed as the sole
-argument. All of the constraint declaration statements will be returned in a
-single string, each separated by a double "\n\n".
+Returns a list of the SQL statements to create all of the constraints for the
+class described by the Kinetic::Meta::Class::Schema object passed as the sole
+argument.
 
 This implementation actually returns C<undef> (or an empty list), but
 may be overridden in subclasses to return constraint statements.
@@ -531,6 +531,26 @@ may be overridden in subclasses to return constraint statements.
 =cut
 
 sub constraints_for_class {
+    my ( $self, $class ) = @_;
+    return;
+}
+
+##############################################################################
+
+=head3 procedures_for_class
+
+  my $constraint_sql = $kbs->procedures_for_class($class);
+
+Returns a list of the SQL statements to create all of the procedures and/or
+functions for the class described by the Kinetic::Meta::Class::Schema object
+passed as the sole argument.
+
+This implementation actually returns C<undef> (or an empty list), but may be
+overridden in subclasses to return procedure declarations.
+
+=cut
+
+sub procedures_for_class {
     my ( $self, $class ) = @_;
     return;
 }

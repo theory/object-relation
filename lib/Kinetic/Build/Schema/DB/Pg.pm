@@ -266,8 +266,8 @@ sub index_on {
 
   my @constraints = $kbs->constraints_for_class($class);
 
-Returns the SQL statements to create all of the constraints for the class
-described by the Kinetic::Meta::Class::Schema object passed as the sole
+Returns a list of the SQL statements to create all of the constraints for the
+class described by the Kinetic::Meta::Class::Schema object passed as the sole
 argument.
 
 The constraint statements returned may include one or more of the following:
@@ -345,32 +345,24 @@ sub constraints_for_class {
     return @cons;
 }
 
-sub _generate_collection_constraints {
-    my ( $self, $class ) = @_;
-    my @attributes = grep { $_->collection_of } $class->attributes;
-    return unless @attributes;
-    my @indexes;
-    my @fks;
-    my $main_key   = $class->key;
-    my $main_table = $class->table;
-    foreach my $attr (@attributes) {
-        my $table      = $attr->collection_table;
-        my $coll       = $attr->collection_of;
-        my $coll_table = $coll->table;
-        my $coll_key   = $coll->key;
-        return qq{ALTER TABLE $table
-  ADD CONSTRAINT pk_$table PRIMARY KEY ($main_key\_id, $coll_key\_id);
-},
+##############################################################################
 
-            qq{ALTER TABLE $table
-  ADD CONSTRAINT fk_$table$main_table\_id FOREIGN KEY ($main_key\_id)
-  REFERENCES $main_table(id) ON DELETE CASCADE;
-},
-            qq{ALTER TABLE $table
-  ADD CONSTRAINT fk_$table\_$coll_key\_id FOREIGN KEY ($coll_key\_id)
-  REFERENCES $coll_table(id) ON DELETE CASCADE;
-};
-    }
+=head3 procedures_for_class
+
+  my $constraint_sql = $kbs->procedures_for_class($class);
+
+Returns a list of the SQL statements to create all of the procedures and/or
+functions for the class described by the Kinetic::Meta::Class::Schema object
+passed as the sole argument.
+
+This implementation actually returns C<undef> (or an empty list), but may be
+overridden in subclasses to return procedure declarations.
+
+=cut
+
+sub procedures_for_class {
+    my ( $self, $class ) = @_;
+    return;
 }
 
 ##############################################################################
@@ -915,6 +907,65 @@ sub _extending_insert {
         } $class->table_attributes)
         . ");\n";
 }
+
+##############################################################################
+
+=head3 _generate_collection_constraints
+
+  my @coll_constraints = $schema->_generate_collection_constraints($class);
+
+Returns a list of the constraints necessary to manage a collection table
+associated with the Kinetic::Meta::Class object passed as the sole argument.
+
+=cut
+
+sub _generate_collection_constraints {
+    my ( $self, $class ) = @_;
+    my @attributes = grep { $_->collection_of } $class->attributes;
+    return unless @attributes;
+    my @constraints;
+    my $main_key   = $class->key;
+    my $main_table = $class->table;
+    foreach my $attr (@attributes) {
+        my $table      = $attr->collection_table;
+        my $coll       = $attr->collection_of;
+        my $coll_table = $coll->table;
+        my $coll_key   = $coll->key;
+        push @constraints,
+            qq{ALTER TABLE $table
+  ADD CONSTRAINT pk_$table PRIMARY KEY ($main_key\_id, $coll_key\_id);
+},
+
+            qq{ALTER TABLE $table
+  ADD CONSTRAINT fk_$table$main_table\_id FOREIGN KEY ($main_key\_id)
+  REFERENCES $main_table(id) ON DELETE CASCADE;
+},
+            qq{ALTER TABLE $table
+  ADD CONSTRAINT fk_$table\_$coll_key\_id FOREIGN KEY ($coll_key\_id)
+  REFERENCES $coll_table(id) ON DELETE CASCADE;
+};
+
+        if ($attr->relationship eq 'has_many') {
+            # Each collection object belongs only to the parent object,
+            # so make sure that deletes fully cascade.
+        push @constraints,
+            qq{CREATE OR REPLACE FUNCTION $table\_cascade() RETURNS trigger AS \$\$
+  BEGIN
+    DELETE FROM $coll_table WHERE id = OLD.$coll_key\_id;
+    RETURN OLD;
+  END;
+\$\$ LANGUAGE plpgsql;
+},
+            $self->create_trigger_for_table(
+                "$table\_cascade",
+                'DELETE',
+                $table,
+            );
+        }
+    }
+    return @constraints;
+}
+
 1;
 __END__
 

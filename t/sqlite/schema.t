@@ -676,6 +676,12 @@ BEFORE DELETE ON simple_one
 FOR EACH ROW BEGIN
   DELETE from yello_coll_one WHERE one_id = OLD.id;
 END;
+
+CREATE TRIGGER yello_coll_one_cascade
+BEFORE DELETE ON yello_coll_one
+FOR EACH ROW BEGIN
+    DELETE FROM simple_one WHERE id = OLD.one_id;
+END;
 };
 eq_or_diff join( "\n", $sg->constraints_for_class($yello) ), $constraints,
   '... with the correct constraints';

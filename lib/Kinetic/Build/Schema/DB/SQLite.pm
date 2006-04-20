@@ -188,7 +188,7 @@ sub constraints_for_class {
         my $ref = $attr->references or next;
         push @cons, $self->_generate_fk($class, $attr, $ref);
     }
-    push @cons, $self->_generate_collection_fks( $class );
+    push @cons, $self->_generate_collection_constraints( $class );
     return @cons;
 }
 
@@ -671,12 +671,12 @@ END;
   );
 }
 
-sub _generate_collection_fks {
+sub _generate_collection_constraints {
     my ($self, $class) = @_;
     my @attributes = grep { $_->collection_of } $class->attributes;
     return unless @attributes;
     my @indexes;
-    my @fks;
+    my @constraints;
     foreach my $attr (@attributes) {
         my $table    = $attr->collection_table;
         my $cascade  = 1;
@@ -685,7 +685,7 @@ sub _generate_collection_fks {
             my $fk_col   = $fk_class->key . "_id";
             my $fk       = "fk_$table\_$fk_col";
             my $null     = "NEW.$fk_col IS NOT NULL AND ";
-            push @fks, $self->_generate_fk_sql(
+            push @constraints, $self->_generate_fk_sql(
                 $fk,
                 $fk_table,
                 $fk_col,
@@ -694,8 +694,20 @@ sub _generate_collection_fks {
                 $cascade
             );
         }
+
+        if ($attr->relationship eq 'has_many') {
+            my $coll       = $attr->collection_of;
+            my $coll_table = $coll->table;
+            my $coll_key   = $coll->key;
+            push @constraints, qq{CREATE TRIGGER $table\_cascade
+BEFORE DELETE ON $table
+FOR EACH ROW BEGIN
+    DELETE FROM $coll_table WHERE id = OLD.$coll_key\_id;
+END;
+}
+        }
     }
-    return @fks;
+    return @constraints;
 }
 
 ##############################################################################
