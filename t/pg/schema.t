@@ -299,7 +299,7 @@ ALTER TABLE simple_two
   ADD CONSTRAINT fk_two_one_id FOREIGN KEY (one_id)
   REFERENCES simple_one(id) ON DELETE RESTRICT;
 
-CREATE FUNCTION cki_two_age_unique() RETURNS trigger AS '
+CREATE FUNCTION cki_two_age_unique() RETURNS trigger AS $$
   BEGIN
     /* Lock the relevant records in the parent and child tables. */
     PERFORM true
@@ -310,16 +310,16 @@ CREATE FUNCTION cki_two_age_unique() RETURNS trigger AS '
         WHERE  id <> NEW.id AND age = NEW.age AND state > -1
         LIMIT 1
     ) THEN
-        RAISE EXCEPTION ''duplicate key violates unique constraint "ck_two_age_unique"'';
+        RAISE EXCEPTION 'duplicate key violates unique constraint "ck_two_age_unique"';
     END IF;
     RETURN NEW;
   END;
-' LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE TRIGGER cki_two_age_unique BEFORE INSERT ON simple_two
 FOR EACH ROW EXECUTE PROCEDURE cki_two_age_unique();
 
-CREATE FUNCTION cku_two_age_unique() RETURNS trigger AS '
+CREATE FUNCTION cku_two_age_unique() RETURNS trigger AS $$
   BEGIN
     IF (NEW.age <> OLD.age) THEN
         /* Lock the relevant records in the parent and child tables. */
@@ -331,17 +331,17 @@ CREATE FUNCTION cku_two_age_unique() RETURNS trigger AS '
             WHERE  id <> NEW.id AND age = NEW.age AND state > -1
             LIMIT 1
         ) THEN
-            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_two_age_unique"'';
+            RAISE EXCEPTION 'duplicate key violates unique constraint "ck_two_age_unique"';
         END IF;
     END IF;
     RETURN NEW;
   END;
-' LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE TRIGGER cku_two_age_unique BEFORE UPDATE ON simple_two
 FOR EACH ROW EXECUTE PROCEDURE cku_two_age_unique();
 
-CREATE FUNCTION ckp_two_age_unique() RETURNS trigger AS '
+CREATE FUNCTION ckp_two_age_unique() RETURNS trigger AS $$
   BEGIN
     IF (NEW.state > -1 AND OLD.state < 0
         AND (SELECT true FROM simple_two WHERE id = NEW.id)
@@ -357,12 +357,12 @@ CREATE FUNCTION ckp_two_age_unique() RETURNS trigger AS '
             FROM   simple_two
             WHERE age = (SELECT age FROM simple_two WHERE id = NEW.id)
         ) > 1 THEN
-            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_two_age_unique"'';
+            RAISE EXCEPTION 'duplicate key violates unique constraint "ck_two_age_unique"';
         END IF;
     END IF;
     RETURN NEW;
   END;
-' LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE TRIGGER ckp_two_age_unique BEFORE UPDATE ON _simple
 FOR EACH ROW EXECUTE PROCEDURE ckp_two_age_unique();

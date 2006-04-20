@@ -455,31 +455,31 @@ sub unique_triggers {
                     WHERE  id <> NEW.id AND $comp_col = $new_col AND state > -1
                     LIMIT 1
                 ) THEN
-                    RAISE EXCEPTION ''duplicate key violates unique constraint "ck_$key\_$col\_unique"'';
+                    RAISE EXCEPTION 'duplicate key violates unique constraint "ck_$key\_$col\_unique"';
                 END IF;
         END_SQL
 
-        push @trigs, qq{CREATE FUNCTION cki_$key\_$col\_unique() RETURNS trigger AS '
+        push @trigs, qq{CREATE FUNCTION cki_$key\_$col\_unique() RETURNS trigger AS \$\$
   BEGIN
     $lock_records
     RETURN NEW;
   END;
-' LANGUAGE plpgsql SECURITY DEFINER;
+\$\$ LANGUAGE plpgsql SECURITY DEFINER;
 
 @{[ $self->create_trigger_for_table("cki_${key}_${col}_unique", 'INSERT', $table) ]}
 
-CREATE FUNCTION cku_$key\_$col\_unique() RETURNS trigger AS '
+CREATE FUNCTION cku_$key\_$col\_unique() RETURNS trigger AS \$\$
   BEGIN
     IF ($new_col <> $old_col) THEN
         $lock_records
     END IF;
     RETURN NEW;
   END;
-' LANGUAGE plpgsql SECURITY DEFINER;
+\$\$ LANGUAGE plpgsql SECURITY DEFINER;
 
 @{[ $self->create_trigger_for_table("cku_${key}_${col}_unique", 'UPDATE', $table) ]}
 
-CREATE FUNCTION ckp_$key\_$col\_unique() RETURNS trigger AS '
+CREATE FUNCTION ckp_$key\_$col\_unique() RETURNS trigger AS \$\$
   BEGIN
     IF (NEW.state > -1 AND OLD.state < 0
         AND (SELECT true FROM $table WHERE id = NEW.id)
@@ -495,12 +495,12 @@ CREATE FUNCTION ckp_$key\_$col\_unique() RETURNS trigger AS '
             FROM   $table
             WHERE $comp_col = (SELECT $comp_col FROM $table WHERE id = NEW.id)
         ) > 1 THEN
-            RAISE EXCEPTION ''duplicate key violates unique constraint "ck_$key\_$col\_unique"'';
+            RAISE EXCEPTION 'duplicate key violates unique constraint "ck_$key\_$col\_unique"';
         END IF;
     END IF;
     RETURN NEW;
   END;
-' LANGUAGE plpgsql SECURITY DEFINER;
+\$\$ LANGUAGE plpgsql SECURITY DEFINER;
 
 @{[ $self->create_trigger_for_table("ckp_${key}_${col}_unique", 'UPDATE', $parent_table) ]}
 };
