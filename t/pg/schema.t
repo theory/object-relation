@@ -69,6 +69,15 @@ CREATE DOMAIN version AS TEXT
   CONSTRAINT ck_version CHECK (
      VALUE ~ '^v?\\\\d[\\\\d._]+$'
   );
+
+CREATE FUNCTION trig_uuid_once() RETURNS trigger AS $$
+  BEGIN
+    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
+        THEN RAISE EXCEPTION 'value of %.uuid cannot be changed', TG_RELNAME;
+    END IF;
+    RETURN NEW;
+  END;
+$$ LANGUAGE plpgsql;
 },
     'Pg setup SQL has setup SQL code';
 
@@ -107,17 +116,8 @@ eq_or_diff $sg->indexes_for_class($simple), $indexes,
 my $constraints = q{ALTER TABLE _simple
   ADD CONSTRAINT pk_simple PRIMARY KEY (id);
 
-CREATE FUNCTION simple_uuid_once() RETURNS trigger AS '
-  BEGIN
-    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
-        THEN RAISE EXCEPTION ''value of "uuid" cannot be changed'';
-    END IF;
-    RETURN NEW;
-  END;
-' LANGUAGE plpgsql;
-
 CREATE TRIGGER simple_uuid_once BEFORE UPDATE ON _simple
-FOR EACH ROW EXECUTE PROCEDURE simple_uuid_once();
+FOR EACH ROW EXECUTE PROCEDURE trig_uuid_once();
 };
 eq_or_diff left_justify( join("\n", $sg->constraints_for_class($simple)) ),
   left_justify($constraints), "... Schema class generates CONSTRAINT statement";
@@ -473,26 +473,17 @@ ALTER TABLE _relation
   ADD CONSTRAINT fk_relation_one_id FOREIGN KEY (one_id)
   REFERENCES simple_one(id) ON DELETE RESTRICT;
 
-CREATE FUNCTION relation_uuid_once() RETURNS trigger AS '
-  BEGIN
-    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
-        THEN RAISE EXCEPTION ''value of "uuid" cannot be changed'';
-    END IF;
-    RETURN NEW;
-  END;
-' LANGUAGE plpgsql;
-
 CREATE TRIGGER relation_uuid_once BEFORE UPDATE ON _relation
-FOR EACH ROW EXECUTE PROCEDURE relation_uuid_once();
+FOR EACH ROW EXECUTE PROCEDURE trig_uuid_once();
 
-CREATE FUNCTION relation_simple_id_once() RETURNS trigger AS '
+CREATE FUNCTION relation_simple_id_once() RETURNS trigger AS $$
   BEGIN
     IF OLD.simple_id <> NEW.simple_id OR NEW.simple_id IS NULL
-        THEN RAISE EXCEPTION ''value of "simple_id" cannot be changed'';
+        THEN RAISE EXCEPTION 'value of relation.simple_id cannot be changed';
     END IF;
     RETURN NEW;
   END;
-' LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 CREATE TRIGGER relation_simple_id_once BEFORE UPDATE ON _relation
 FOR EACH ROW EXECUTE PROCEDURE relation_simple_id_once();
@@ -612,17 +603,8 @@ is $sg->indexes_for_class($yello), $indexes,
 $constraints = q{ALTER TABLE _yello
   ADD CONSTRAINT pk_yello PRIMARY KEY (id);
 
-CREATE FUNCTION yello_uuid_once() RETURNS trigger AS '
-  BEGIN
-    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
-        THEN RAISE EXCEPTION ''value of "uuid" cannot be changed'';
-    END IF;
-    RETURN NEW;
-  END;
-' LANGUAGE plpgsql;
-
 CREATE TRIGGER yello_uuid_once BEFORE UPDATE ON _yello
-FOR EACH ROW EXECUTE PROCEDURE yello_uuid_once();
+FOR EACH ROW EXECUTE PROCEDURE trig_uuid_once();
 
 ALTER TABLE yello_coll_one
   ADD CONSTRAINT pk_yello_coll_one PRIMARY KEY (yello_id, one_id);
@@ -717,26 +699,17 @@ ALTER TABLE _composed
   ADD CONSTRAINT fk_composed_one_id FOREIGN KEY (one_id)
   REFERENCES simple_one(id) ON DELETE RESTRICT;
 
-CREATE FUNCTION composed_uuid_once() RETURNS trigger AS '
-  BEGIN
-    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
-        THEN RAISE EXCEPTION ''value of "uuid" cannot be changed'';
-    END IF;
-    RETURN NEW;
-  END;
-' LANGUAGE plpgsql;
-
 CREATE TRIGGER composed_uuid_once BEFORE UPDATE ON _composed
-FOR EACH ROW EXECUTE PROCEDURE composed_uuid_once();
+FOR EACH ROW EXECUTE PROCEDURE trig_uuid_once();
 
-CREATE FUNCTION composed_one_id_once() RETURNS trigger AS '
+CREATE FUNCTION composed_one_id_once() RETURNS trigger AS $$
   BEGIN
     IF OLD.one_id IS NOT NULL AND (OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL)
-        THEN RAISE EXCEPTION ''value of "one_id" cannot be changed'';
+        THEN RAISE EXCEPTION 'value of composed.one_id cannot be changed';
     END IF;
     RETURN NEW;
   END;
-' LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 CREATE TRIGGER composed_one_id_once BEFORE UPDATE ON _composed
 FOR EACH ROW EXECUTE PROCEDURE composed_one_id_once();
@@ -832,26 +805,17 @@ ALTER TABLE _comp_comp
   ADD CONSTRAINT fk_comp_comp_composed_id FOREIGN KEY (composed_id)
   REFERENCES _composed(id) ON DELETE RESTRICT;
 
-CREATE FUNCTION comp_comp_uuid_once() RETURNS trigger AS '
-  BEGIN
-    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
-        THEN RAISE EXCEPTION ''value of "uuid" cannot be changed'';
-    END IF;
-    RETURN NEW;
-  END;
-' LANGUAGE plpgsql;
-
 CREATE TRIGGER comp_comp_uuid_once BEFORE UPDATE ON _comp_comp
-FOR EACH ROW EXECUTE PROCEDURE comp_comp_uuid_once();
+FOR EACH ROW EXECUTE PROCEDURE trig_uuid_once();
 
-CREATE FUNCTION comp_comp_composed_id_once() RETURNS trigger AS '
+CREATE FUNCTION comp_comp_composed_id_once() RETURNS trigger AS $$
   BEGIN
     IF OLD.composed_id <> NEW.composed_id OR NEW.composed_id IS NULL
-        THEN RAISE EXCEPTION ''value of "composed_id" cannot be changed'';
+        THEN RAISE EXCEPTION 'value of comp_comp.composed_id cannot be changed';
     END IF;
     RETURN NEW;
   END;
-' LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 CREATE TRIGGER comp_comp_composed_id_once BEFORE UPDATE ON _comp_comp
 FOR EACH ROW EXECUTE PROCEDURE comp_comp_composed_id_once();
@@ -948,26 +912,17 @@ ALTER TABLE _extend
   ADD CONSTRAINT fk_extend_two_id FOREIGN KEY (two_id)
   REFERENCES simple_two(id) ON DELETE CASCADE;
 
-CREATE FUNCTION extend_uuid_once() RETURNS trigger AS '
-  BEGIN
-    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
-        THEN RAISE EXCEPTION ''value of "uuid" cannot be changed'';
-    END IF;
-    RETURN NEW;
-  END;
-' LANGUAGE plpgsql;
-
 CREATE TRIGGER extend_uuid_once BEFORE UPDATE ON _extend
-FOR EACH ROW EXECUTE PROCEDURE extend_uuid_once();
+FOR EACH ROW EXECUTE PROCEDURE trig_uuid_once();
 
-CREATE FUNCTION extend_two_id_once() RETURNS trigger AS '
+CREATE FUNCTION extend_two_id_once() RETURNS trigger AS $$
   BEGIN
     IF OLD.two_id <> NEW.two_id OR NEW.two_id IS NULL
-        THEN RAISE EXCEPTION ''value of "two_id" cannot be changed'';
+        THEN RAISE EXCEPTION 'value of extend.two_id cannot be changed';
     END IF;
     RETURN NEW;
   END;
-' LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 CREATE TRIGGER extend_two_id_once BEFORE UPDATE ON _extend
 FOR EACH ROW EXECUTE PROCEDURE extend_two_id_once();
@@ -1085,17 +1040,8 @@ eq_or_diff $sg->indexes_for_class($types_test), $indexes,
 $constraints = q{ALTER TABLE _types_test
   ADD CONSTRAINT pk_types_test PRIMARY KEY (id);
 
-CREATE FUNCTION types_test_uuid_once() RETURNS trigger AS '
-  BEGIN
-    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
-        THEN RAISE EXCEPTION ''value of "uuid" cannot be changed'';
-    END IF;
-    RETURN NEW;
-  END;
-' LANGUAGE plpgsql;
-
 CREATE TRIGGER types_test_uuid_once BEFORE UPDATE ON _types_test
-FOR EACH ROW EXECUTE PROCEDURE types_test_uuid_once();
+FOR EACH ROW EXECUTE PROCEDURE trig_uuid_once();
 };
 
 eq_or_diff join("\n", $sg->constraints_for_class($types_test)), $constraints,

@@ -378,7 +378,7 @@ sub _generate_collection_constraints {
 =head3 once_triggers_sql
 
   my $once_triggers_sql_body = $kbs->once_triggers_sql(
-    $key, $col, $table, $constraint
+    $key, $attr, $table, $constraint,
   );
 
 This method is called by C<once_triggers()> to generate database specific
@@ -388,15 +388,24 @@ non-null value, can never be changed.
 =cut
 
 sub once_triggers_sql {
-    my ($self, $key, $col, $table, $if) = @_;
-    return qq{CREATE FUNCTION $key\_$col\_once() RETURNS trigger AS '
+    my ($self, $key, $attr, $table, $if) = @_;
+    my $col = $attr->column;
+
+    return $self->create_trigger_for_table(
+        "$key\_$col\_once",
+        'UPDATE',
+        $table,
+        "trig_$col\_once",
+    ) if $attr->type eq 'uuid' && $attr->name eq 'uuid';
+
+    return qq{CREATE FUNCTION $key\_$col\_once() RETURNS trigger AS \$\$
   BEGIN
     IF $if
-        THEN RAISE EXCEPTION ''value of "$col" cannot be changed'';
+        THEN RAISE EXCEPTION 'value of $key.$col cannot be changed';
     END IF;
     RETURN NEW;
   END;
-' LANGUAGE plpgsql;
+\$\$ LANGUAGE plpgsql;
 },
     $self->create_trigger_for_table("${key}_${col}_once", 'UPDATE', $table);
 }
@@ -504,19 +513,23 @@ CREATE FUNCTION ckp_$key\_$col\_unique() RETURNS trigger AS '
 
 =head3 create_trigger_for_table
 
-  my $trigger = $kbs->create_trigger_for_table($trigger_name, $type, $table);
+  my $trigger = $kbs->create_trigger_for_table(
+      $trigger_name, $type, $table, $func,
+  );
 
 Given a trigger name and a table name, returns a C<CREATE TRIGGER> statement
 which will execute the named trigger before any row is updated/inserted in the
-table.  The C<$type> should be "UPDATE" or "INSERT".
+table. The C<$type> should be "UPDATE" or "INSERT". If C<$func> is not passed,
+the name of the trigger will be used for the name of the function.
 
 =cut
 
 sub create_trigger_for_table {
-    my ($self, $trigger, $type, $table) = @_;
+    my ($self, $trigger, $type, $table, $func) = @_;
+    $func ||= $trigger;
     return <<"    END_TRIGGER";
 CREATE TRIGGER $trigger BEFORE $type ON $table
-FOR EACH ROW EXECUTE PROCEDURE $trigger();
+FOR EACH ROW EXECUTE PROCEDURE $func();
     END_TRIGGER
 }
 
@@ -671,6 +684,16 @@ q{CREATE DOMAIN version AS TEXT
      VALUE ~ '^v?\\\\d[\\\\d._]+$'
   );
 },
+
+q{CREATE FUNCTION trig_uuid_once() RETURNS trigger AS $$
+  BEGIN
+    IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
+        THEN RAISE EXCEPTION 'value of %.uuid cannot be changed', TG_RELNAME;
+    END IF;
+    RETURN NEW;
+  END;
+$$ LANGUAGE plpgsql;
+}
 }
 
 ##############################################################################

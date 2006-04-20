@@ -752,7 +752,7 @@ sub once_triggers {
           ? "OLD.$col <> NEW.$col OR NEW.$col IS NULL"
           : "OLD.$col IS NOT NULL AND (OLD.$col <> NEW.$col OR NEW.$col IS NULL)";
         push @trigs,
-          $self->once_triggers_sql( $key, $col, $table, $constraint );
+          $self->once_triggers_sql( $key, $attr, $table, $constraint );
     }
     return join "\n", @trigs;
 }

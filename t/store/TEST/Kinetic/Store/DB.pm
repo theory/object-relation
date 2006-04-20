@@ -1038,7 +1038,7 @@ sub test_once : Test(2) {
         )
     } 'Exception::Class::DBI::DBH', '... And updating UUID should fail';
     like $@,
-        qr/value of "uuid" cannot be changed/,
+        qr/value of _?simple.uuid cannot be changed/,
         '... And it should fail with the proper message';
 
     if (ref($self) =~ /Pg$/) {

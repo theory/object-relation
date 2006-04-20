@@ -238,7 +238,7 @@ sub boolean_triggers {
 =head3 once_triggers_sql
 
   my $once_triggers_sql_body = $kbs->once_triggers_sql(
-    $key, $col, $table, $constraint
+    $key, $attr, $table, $constraint,
   );
 
 This method is called by C<once_triggers()> to generate database specific
@@ -248,11 +248,12 @@ non-null value, can never be changed.
 =cut
 
 sub once_triggers_sql {
-    my ($self, $key, $col, $table, $when) = @_;
+    my ($self, $key, $attr, $table, $when) = @_;
+    my $col = $attr->column;
     return "CREATE TRIGGER ck_$key\_$col\_once\n"
           . "BEFORE UPDATE ON $table\n"
           . "FOR EACH ROW BEGIN\n"
-        . qq{    SELECT RAISE(ABORT, 'value of "$col" cannot be changed')\n}
+        . qq{    SELECT RAISE(ABORT, 'value of $key.$col cannot be changed')\n}
           . "    WHERE  $when;\n"
           . "END;\n";
 }

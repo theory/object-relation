@@ -84,7 +84,7 @@ END;
 CREATE TRIGGER ck_simple_uuid_once
 BEFORE UPDATE ON _simple
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
+    SELECT RAISE(ABORT, 'value of simple.uuid cannot be changed')
     WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
 END;
 };
@@ -469,14 +469,14 @@ END;
 CREATE TRIGGER ck_relation_uuid_once
 BEFORE UPDATE ON _relation
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
+    SELECT RAISE(ABORT, 'value of relation.uuid cannot be changed')
     WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
 END;
 
 CREATE TRIGGER ck_relation_simple_id_once
 BEFORE UPDATE ON _relation
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value of "simple_id" cannot be changed')
+    SELECT RAISE(ABORT, 'value of relation.simple_id cannot be changed')
     WHERE  OLD.simple_id <> NEW.simple_id OR NEW.simple_id IS NULL;
 END;
 
@@ -633,7 +633,7 @@ END;
 CREATE TRIGGER ck_yello_uuid_once
 BEFORE UPDATE ON _yello
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
+    SELECT RAISE(ABORT, 'value of yello.uuid cannot be changed')
     WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
 END;
 
@@ -767,14 +767,14 @@ END;
 CREATE TRIGGER ck_composed_uuid_once
 BEFORE UPDATE ON _composed
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
+    SELECT RAISE(ABORT, 'value of composed.uuid cannot be changed')
     WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
 END;
 
 CREATE TRIGGER ck_composed_one_id_once
 BEFORE UPDATE ON _composed
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value of "one_id" cannot be changed')
+    SELECT RAISE(ABORT, 'value of composed.one_id cannot be changed')
     WHERE  OLD.one_id IS NOT NULL AND (OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL);
 END;
 
@@ -921,14 +921,14 @@ END;
 CREATE TRIGGER ck_comp_comp_uuid_once
 BEFORE UPDATE ON _comp_comp
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
+    SELECT RAISE(ABORT, 'value of comp_comp.uuid cannot be changed')
     WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
 END;
 
 CREATE TRIGGER ck_comp_comp_composed_id_once
 BEFORE UPDATE ON _comp_comp
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value of "composed_id" cannot be changed')
+    SELECT RAISE(ABORT, 'value of comp_comp.composed_id cannot be changed')
     WHERE  OLD.composed_id <> NEW.composed_id OR NEW.composed_id IS NULL;
 END;
 
@@ -1049,14 +1049,14 @@ END;
 CREATE TRIGGER ck_extend_uuid_once
 BEFORE UPDATE ON _extend
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
+    SELECT RAISE(ABORT, 'value of extend.uuid cannot be changed')
     WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
 END;
 
 CREATE TRIGGER ck_extend_two_id_once
 BEFORE UPDATE ON _extend
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value of "two_id" cannot be changed')
+    SELECT RAISE(ABORT, 'value of extend.two_id cannot be changed')
     WHERE  OLD.two_id <> NEW.two_id OR NEW.two_id IS NULL;
 END;
 
@@ -1199,7 +1199,7 @@ END;
 CREATE TRIGGER ck_types_test_uuid_once
 BEFORE UPDATE ON _types_test
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value of "uuid" cannot be changed')
+    SELECT RAISE(ABORT, 'value of types_test.uuid cannot be changed')
     WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
 END;
 
