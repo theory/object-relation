@@ -362,7 +362,132 @@ overridden in subclasses to return procedure declarations.
 
 sub procedures_for_class {
     my ( $self, $class ) = @_;
-    return;
+    my @attrs = grep { $_->collection_of } $class->attributes;
+    return unless @attrs;
+    my $main_key   = $class->key;
+    my @procs;
+    for my $attr (@attrs) {
+        my $table    = $attr->collection_table;
+        my $coll_key = $attr->collection_of->key;
+        push @procs,
+            $self->_coll_clear_sql($table, $main_key),
+            $self->_coll_del_sql($table, $main_key, $coll_key),
+            $self->_coll_add_sql($table, $main_key, $coll_key),
+            $self->_coll_set_sql($table, $main_key, $coll_key),
+        ;
+    }
+    return @procs;
+}
+
+sub _coll_clear_sql {
+    my ($self, $table, $main_key) = @_;
+    return qq{CREATE OR REPLACE FUNCTION $table\_clear (
+    obj_ident integer
+) RETURNS VOID AS \$\$
+BEGIN
+    DELETE FROM $table WHERE $main_key\_id = obj_ident;
+END;
+\$\$ LANGUAGE plpgsql SECURITY DEFINER;
+};
+}
+
+sub _coll_del_sql {
+    my ($self, $table, $main_key, $coll_key) = @_;
+    return qq{CREATE OR REPLACE FUNCTION $table\_del (
+    obj_ident integer,
+    coll_ids  integer[]
+) RETURNS VOID AS \$\$
+BEGIN
+    DELETE FROM $table
+    WHERE  $main_key\_id = obj_ident
+           AND $coll_key\_id = ANY(coll_ids);
+END;
+\$\$ LANGUAGE plpgsql SECURITY DEFINER;
+};
+}
+
+
+sub _coll_add_sql {
+    my ($self, $table, $main_key, $coll_key) = @_;
+    return qq{CREATE OR REPLACE FUNCTION $table\_add (
+    obj_ident integer,
+    coll_ids  integer[]
+) RETURNS VOID AS \$\$
+DECLARE
+  -- To keep track of the current max($coll_key\_order).
+  last_ord smallint;
+BEGIN
+    -- Lock the containing object tuple to prevernt inserts into the
+    -- collection table.
+    PERFORM true FROM $main_key WHERE id = obj_ident FOR UPDATE;
+
+    -- Determine the previous highest value of the $coll_key\_order column
+    -- for the given object ID.
+    SELECT INTO last_ord COALESCE(MAX($coll_key\_order), 0)
+    FROM   $table
+    WHERE  $main_key\_id = obj_ident;
+
+    -- Insert the new IDs. The ordering may not be sequential.
+    INSERT INTO $table ($main_key\_id, $coll_key\_id, $coll_key\_order )
+    SELECT obj_ident, coll_ids[gs.ser], gs.ser + last_ord
+    FROM   generate_series(1, array_upper(coll_ids, 1)) AS gs(ser)
+    WHERE  coll_ids[gs.ser] NOT IN (
+        SELECT $coll_key\_id FROM $table ect2
+        WHERE  $main_key\_id = obj_ident
+    );
+END;
+\$\$ LANGUAGE plpgsql SECURITY DEFINER;
+};
+}
+
+sub _coll_set_sql {
+    my ($self, $table, $main_key, $coll_key) = @_;
+    return qq{CREATE OR REPLACE FUNCTION $table\_set (
+    obj_ident integer,
+    coll_ids  integer[]
+) RETURNS VOID AS \$\$
+BEGIN
+    -- Lock the containing object tuple to prevernt inserts into the
+    -- collection table.
+    PERFORM true FROM $main_key WHERE id = obj_ident FOR UPDATE;
+
+    -- First negate $coll_key\_order to prevent unique index violations.
+    UPDATE $table
+    SET    $coll_key\_order = -$coll_key\_order
+    WHERE  $main_key\_id = obj_ident;
+
+    IF FOUND IS false THEN
+        -- There are no existing tuples, so just insert the new ones.
+        INSERT INTO $table ($main_key\_id, $coll_key\_id, $coll_key\_order)
+        SELECT obj_ident, coll_ids[gs.ser], gs.ser
+        FROM   generate_series(1, array_upper(coll_ids, 1))
+               AS gs(ser);
+    ELSE
+        -- First, update the existing tuples with new $coll_key\_order values.
+        UPDATE $table SET $coll_key\_order = ser
+        FROM (
+            SELECT gs.ser, coll_ids[gs.ser] as move_$coll_key
+            FROM   generate_series(1, array_upper(coll_ids, 1)) AS gs(ser)
+        ) AS expansion
+        WHERE move_$coll_key = $coll_key\_id
+              AND $main_key\_id = obj_ident;
+
+        -- Now insert the new tuples.
+        INSERT INTO $table ($main_key\_id, $coll_key\_id, $coll_key\_order )
+        SELECT obj_ident, coll_ids[gs.ser], gs.ser
+        FROM   generate_series(1, array_upper(coll_ids, 1)) AS gs(ser)
+        WHERE  coll_ids[gs.ser] NOT IN (
+            SELECT $coll_key\_id FROM $table ect2
+            WHERE  $main_key\_id = obj_ident
+        );
+
+        -- Delete any remaining tuples.
+        DELETE FROM $table
+        WHERE  $main_key\_id = obj_ident AND $coll_key\_order < 0;
+    END IF;
+END;
+\$\$ LANGUAGE plpgsql SECURITY DEFINER;
+};
 }
 
 ##############################################################################

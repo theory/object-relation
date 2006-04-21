@@ -79,6 +79,7 @@ sub schema_for_class {
       tables_for_class
       indexes_for_class
       constraints_for_class
+      procedures_for_class
       view_for_class
       insert_for_class
       update_for_class

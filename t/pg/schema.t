@@ -7,7 +7,7 @@ use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
 
 #use Test::More 'no_plan';
-use Test::More tests => 126;
+use Test::More tests => 127;
 use Test::NoWarnings; # Adds an extra test.
 use Test::Differences;
 
@@ -630,6 +630,106 @@ FOR EACH ROW EXECUTE PROCEDURE yello_coll_one_cascade();
 eq_or_diff join( "\n", $sg->constraints_for_class($yello) ), $constraints,
   '... with the correct constraints';
 
+# Check that the functions are correct.
+my $procs = q{CREATE OR REPLACE FUNCTION yello_coll_one_clear (
+    obj_ident integer
+) RETURNS VOID AS $$
+BEGIN
+    DELETE FROM yello_coll_one WHERE yello_id = obj_ident;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION yello_coll_one_del (
+    obj_ident integer,
+    coll_ids  integer[]
+) RETURNS VOID AS $$
+BEGIN
+    DELETE FROM yello_coll_one
+    WHERE  yello_id = obj_ident
+           AND one_id = ANY(coll_ids);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION yello_coll_one_add (
+    obj_ident integer,
+    coll_ids  integer[]
+) RETURNS VOID AS $$
+DECLARE
+  -- To keep track of the current max(one_order).
+  last_ord smallint;
+BEGIN
+    -- Lock the containing object tuple to prevernt inserts into the
+    -- collection table.
+    PERFORM true FROM yello WHERE id = obj_ident FOR UPDATE;
+
+    -- Determine the previous highest value of the one_order column
+    -- for the given object ID.
+    SELECT INTO last_ord COALESCE(MAX(one_order), 0)
+    FROM   yello_coll_one
+    WHERE  yello_id = obj_ident;
+
+    -- Insert the new IDs. The ordering may not be sequential.
+    INSERT INTO yello_coll_one (yello_id, one_id, one_order )
+    SELECT obj_ident, coll_ids[gs.ser], gs.ser + last_ord
+    FROM   generate_series(1, array_upper(coll_ids, 1)) AS gs(ser)
+    WHERE  coll_ids[gs.ser] NOT IN (
+        SELECT one_id FROM yello_coll_one ect2
+        WHERE  yello_id = obj_ident
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION yello_coll_one_set (
+    obj_ident integer,
+    coll_ids  integer[]
+) RETURNS VOID AS $$
+BEGIN
+    -- Lock the containing object tuple to prevernt inserts into the
+    -- collection table.
+    PERFORM true FROM yello WHERE id = obj_ident FOR UPDATE;
+
+    -- First negate one_order to prevent unique index violations.
+    UPDATE yello_coll_one
+    SET    one_order = -one_order
+    WHERE  yello_id = obj_ident;
+
+    IF FOUND IS false THEN
+        -- There are no existing tuples, so just insert the new ones.
+        INSERT INTO yello_coll_one (yello_id, one_id, one_order)
+        SELECT obj_ident, coll_ids[gs.ser], gs.ser
+        FROM   generate_series(1, array_upper(coll_ids, 1))
+               AS gs(ser);
+    ELSE
+        -- First, update the existing tuples with new one_order values.
+        UPDATE yello_coll_one SET one_order = ser
+        FROM (
+            SELECT gs.ser, coll_ids[gs.ser] as move_one
+            FROM   generate_series(1, array_upper(coll_ids, 1)) AS gs(ser)
+        ) AS expansion
+        WHERE move_one = one_id
+              AND yello_id = obj_ident;
+
+        -- Now insert the new tuples.
+        INSERT INTO yello_coll_one (yello_id, one_id, one_order )
+        SELECT obj_ident, coll_ids[gs.ser], gs.ser
+        FROM   generate_series(1, array_upper(coll_ids, 1)) AS gs(ser)
+        WHERE  coll_ids[gs.ser] NOT IN (
+            SELECT one_id FROM yello_coll_one ect2
+            WHERE  yello_id = obj_ident
+        );
+
+        -- Delete any remaining tuples.
+        DELETE FROM yello_coll_one
+        WHERE  yello_id = obj_ident AND one_order < 0;
+    END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+};
+
+eq_or_diff join( "\n", $sg->procedures_for_class($yello) ), $procs,
+  '... and with the correct procedures';
+
+
 $view = q{CREATE VIEW yello AS
   SELECT _yello.id AS id, _yello.uuid AS uuid, _yello.state AS state, _yello.age AS age
   FROM   _yello;
@@ -665,8 +765,8 @@ is $sg->delete_for_class($yello), $delete,
 
 # Check that a complete schema is properly generated.
 eq_or_diff join ( "\n", $sg->schema_for_class($yello) ),
-  join( "\n", $seq, $table, $indexes, $constraints, $view, $insert, $update,
-    $delete ), "... Schema class generates complete schema";
+  join( "\n", $seq, $table, $indexes, $constraints, $procs, $view, $insert,
+        $update, $delete ), "... Schema class generates complete schema";
 
 ##############################################################################
 # Grab the composed class.
