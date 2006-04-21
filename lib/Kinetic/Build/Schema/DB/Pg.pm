@@ -387,6 +387,7 @@ sub once_triggers_sql {
         "$key\_$col\_once",
         'UPDATE',
         $table,
+        'BEFORE',
         "trig_$col\_once",
     ) if $attr->type eq 'uuid' && $attr->name eq 'uuid';
 
@@ -506,21 +507,23 @@ CREATE FUNCTION ckp_$key\_$col\_unique() RETURNS trigger AS \$\$
 =head3 create_trigger_for_table
 
   my $trigger = $kbs->create_trigger_for_table(
-      $trigger_name, $type, $table, $func,
+      $trigger_name, $type, $table, $when, $func,
   );
 
 Given a trigger name and a table name, returns a C<CREATE TRIGGER> statement
 which will execute the named trigger before any row is updated/inserted in the
-table. The C<$type> should be "UPDATE" or "INSERT". If C<$func> is not passed,
-the name of the trigger will be used for the name of the function.
+table. The C<$type> should be "UPDATE" or "INSERT". C<$when> defaults to
+"BEFORE". If C<$func> is not passed, the name of the trigger will be used for
+the name of the function. All other arguments are required.
 
 =cut
 
 sub create_trigger_for_table {
-    my ($self, $trigger, $type, $table, $func) = @_;
+    my ($self, $trigger, $type, $table, $when, $func) = @_;
+    $when ||= 'BEFORE';
     $func ||= $trigger;
     return <<"    END_TRIGGER";
-CREATE TRIGGER $trigger BEFORE $type ON $table
+CREATE TRIGGER $trigger $when $type ON $table
 FOR EACH ROW EXECUTE PROCEDURE $func();
     END_TRIGGER
 }
@@ -960,6 +963,7 @@ sub _generate_collection_constraints {
                 "$table\_cascade",
                 'DELETE',
                 $table,
+                'AFTER',
             );
         }
     }

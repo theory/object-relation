@@ -624,7 +624,7 @@ CREATE OR REPLACE FUNCTION yello_coll_one_cascade() RETURNS trigger AS $$
   END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER yello_coll_one_cascade BEFORE DELETE ON yello_coll_one
+CREATE TRIGGER yello_coll_one_cascade AFTER DELETE ON yello_coll_one
 FOR EACH ROW EXECUTE PROCEDURE yello_coll_one_cascade();
 };
 eq_or_diff join( "\n", $sg->constraints_for_class($yello) ), $constraints,

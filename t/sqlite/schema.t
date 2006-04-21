@@ -189,7 +189,7 @@ FOR EACH ROW BEGIN
 END;
 
 CREATE TRIGGER pfkd_simple_one_id
-BEFORE DELETE ON _simple
+AFTER DELETE ON _simple
 FOR EACH ROW BEGIN
   DELETE from simple_one WHERE id = OLD.id;
 END;
@@ -339,7 +339,7 @@ FOR EACH ROW BEGIN
 END;
 
 CREATE TRIGGER pfkd_simple_two_id
-BEFORE DELETE ON _simple
+AFTER DELETE ON _simple
 FOR EACH ROW BEGIN
   DELETE from simple_two WHERE id = OLD.id;
 END;
@@ -495,7 +495,7 @@ FOR EACH ROW BEGIN
 END;
 
 CREATE TRIGGER fkd_relation_simple_id
-BEFORE DELETE ON _simple
+AFTER DELETE ON _simple
 FOR EACH ROW BEGIN
   DELETE from _relation WHERE simple_id = OLD.id;
 END;
@@ -652,7 +652,7 @@ FOR EACH ROW BEGIN
 END;
 
 CREATE TRIGGER fkd_yello_coll_one_yello_id
-BEFORE DELETE ON _yello
+AFTER DELETE ON _yello
 FOR EACH ROW BEGIN
   DELETE from yello_coll_one WHERE yello_id = OLD.id;
 END;
@@ -672,13 +672,13 @@ FOR EACH ROW BEGIN
 END;
 
 CREATE TRIGGER fkd_yello_coll_one_one_id
-BEFORE DELETE ON simple_one
+AFTER DELETE ON simple_one
 FOR EACH ROW BEGIN
   DELETE from yello_coll_one WHERE one_id = OLD.id;
 END;
 
 CREATE TRIGGER yello_coll_one_cascade
-BEFORE DELETE ON yello_coll_one
+AFTER DELETE ON yello_coll_one
 FOR EACH ROW BEGIN
     DELETE FROM simple_one WHERE id = OLD.one_id;
 END;
@@ -1081,7 +1081,7 @@ FOR EACH ROW BEGIN
 END;
 
 CREATE TRIGGER fkd_extend_two_id
-BEFORE DELETE ON simple_two
+AFTER DELETE ON simple_two
 FOR EACH ROW BEGIN
   DELETE from _extend WHERE two_id = OLD.id;
 END;

@@ -656,7 +656,7 @@ END;
 },
       ($cascade
          ? qq{CREATE TRIGGER $fkd
-BEFORE DELETE ON $fk_table
+AFTER DELETE ON $fk_table
 FOR EACH ROW BEGIN
   DELETE from $table WHERE $col = OLD.id;
 END;
@@ -700,7 +700,7 @@ sub _generate_collection_constraints {
             my $coll_table = $coll->table;
             my $coll_key   = $coll->key;
             push @constraints, qq{CREATE TRIGGER $table\_cascade
-BEFORE DELETE ON $table
+AFTER DELETE ON $table
 FOR EACH ROW BEGIN
     DELETE FROM $coll_table WHERE id = OLD.$coll_key\_id;
 END;
