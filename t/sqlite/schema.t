@@ -600,7 +600,7 @@ $table = q{CREATE TABLE _yello (
 CREATE TABLE yello_coll_one (
     yello_id INTEGER NOT NULL,
     one_id INTEGER NOT NULL,
-    seq INTEGER NOT NULL,
+    one_order SMALLINT NOT NULL,
     PRIMARY KEY (yello_id, one_id)
 );
 };
@@ -610,7 +610,7 @@ eq_or_diff join("\n", $sg->tables_for_class($yello)), $table,
 
 $indexes = q{CREATE UNIQUE INDEX idx_yello_uuid ON _yello (uuid);
 CREATE INDEX idx_yello_state ON _yello (state);
-CREATE UNIQUE INDEX idx_yello_coll_one ON yello_coll_one (yello_id, seq);
+CREATE UNIQUE INDEX idx_yello_coll_one ON yello_coll_one (yello_id, one_order);
 CREATE UNIQUE INDEX idx_yello_coll_one_one_id ON yello_coll_one (one_id);
 };
 is $sg->indexes_for_class($yello), $indexes,

@@ -608,12 +608,12 @@ sub _save_collections {
 
         my $method = $attr->name;
         my $coll   = $object->$method;
-        my $seq   = 1;
+        my $order   = 1;
         while ( defined( my $thing = $coll->next ) ) {
             $thing->save;
             next if $thing->is_purged;
-            $self->_update_coll_table( $object, $attr, $thing, $seq );
-            $seq++;
+            $self->_update_coll_table( $object, $attr, $thing, $order );
+            $order++;
         }
     }
     return $self;
@@ -623,28 +623,28 @@ sub _save_collections {
 
 =head3 _update_coll_table
 
- $self->_update_coll_table( $object, $attr, $thing, $seq );
+ $self->_update_coll_table( $object, $attr, $thing, $ordder );
 
 Given an object, the collection attribute, the specific item in the collection
-and the items seq, this method updates the collection table for that
+and the item's order, this method updates the collection table for that
 information.
 
 =cut
 
 sub _update_coll_table {
-    my ( $self, $object, $attr, $thing, $seq_val ) = @_;
-    my ( $object_id, $coll_id, $seq ) = $self->_collection_table_columns(
+    my ( $self, $object, $attr, $thing, $order_val ) = @_;
+    my ( $object_id, $coll_id, $order ) = $self->_collection_table_columns(
         $object,
         $attr
     );
     my $table = $attr->collection_table;
-    my $sth   = $self->_dbh->prepare_cached(<<"    END_SQL");
-    INSERT INTO $table ($object_id, $coll_id, $seq) VALUES (?, ?, ?)
-    END_SQL
+    my $sth   = $self->_dbh->prepare_cached(
+        "INSERT INTO $table ($object_id, $coll_id, $order) VALUES (?, ?, ?)"
+    );
 
     # note the use of the object ID here.  If we have a new object, it *must*
     # be saved before updating the collection table.
-    $sth->execute( $object->id, $thing->id, $seq_val );
+    $sth->execute( $object->id, $thing->id, $order_val );
     return $self;
 }
 
@@ -695,9 +695,10 @@ sub _get_collection {
     my $containing_key   = $object->my_class->key;
     my $search           = Kinetic::Meta->for_key($key);
     my $collection_table = $attr->collection_table;
+    (my $coll_key = $attr->type) =~ s/^collection_//;
     my $results = $search->package->query(
         "$containing_key.uuid" => $object->uuid,
-        { order_by => "$collection_table.seq" }
+        { order_by => "$collection_table.$coll_key\_order" }
     );
     return Collection->new( { iter => $results, key => $key } )
 }
@@ -706,11 +707,12 @@ sub _get_collection {
 
 =head3 _collection_table_columns
 
-  my ($object_id, $coll_id, $seq)
+  my ($object_id, $coll_id, $order)
      = $self->_collection_table_columns($object, $attr);
 
-This method returns the correct object id name, collection item id name, and
-seq name.  These are used in building SQL for fetching collection results.
+This method returns the correct object id column name, collection item id
+column name, and order column name. These are used in building SQL for
+fetching collection results.
 
 The first argument may be a C<Kinetic::Meta::Class> object instead of a
 C<Kinetic> object.
@@ -723,9 +725,9 @@ sub _collection_table_columns {
         ? $object
         : $object->my_class;
     my $object_id = $class->key . "_id";
-    my $coll_id   = $attr->type . "_id";
-    $coll_id =~ s/^collection_//;    # XXX Hack!  Must find a better way
-    return ( $object_id, $coll_id, 'seq' );
+    #                               XXX Hack! Must find a better way
+    (my $coll_key = $attr->type) =~ s/^collection_//;
+    return ( $object_id, "$coll_key\_id", "$coll_key\_order" );
 }
 
 ##############################################################################
@@ -1501,7 +1503,7 @@ sub _get_joins {
         }
         if ( $coll_attr ) {
             $self->{views}{ $coll_attr->collection_table } = 1; # no associated class
-            my ( $object_id, $coll_id, $seq )
+            my ( $object_id, $coll_id, $order )
             = $self->_collection_table_columns( $class1, $coll_attr );
             my $coll_table     = $coll_attr->collection_table;
             my $containing_key = $class1->key;

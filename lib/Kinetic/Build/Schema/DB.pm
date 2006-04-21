@@ -225,7 +225,7 @@ sub format_coll_table {
 CREATE TABLE $table (
     $has_key\_id INTEGER NOT NULL,
     $had_key\_id INTEGER NOT NULL,
-    seq INTEGER NOT NULL,
+    $had_key\_order SMALLINT NOT NULL,
     PRIMARY KEY ($has_key\_id, $had_key\_id)
 );
     END_SQL
@@ -491,7 +491,7 @@ sub _collection_indexes {
         my $coll_key = $attr->collection_of->key;
         push @indexes, "CREATE UNIQUE INDEX idx_$table "
                      . "ON $table "
-                     . "($class_key\_id, seq);\n";
+                     . "($class_key\_id, $coll_key\_order);\n";
         push @indexes, "CREATE UNIQUE INDEX idx_$table\_$coll_key\_id "
                      . "ON $table "
                      . "($coll_key\_id);\n"

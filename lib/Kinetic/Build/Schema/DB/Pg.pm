@@ -89,7 +89,7 @@ sub format_coll_table {
 CREATE TABLE $table (
     $has_key\_id INTEGER NOT NULL,
     $had_key\_id INTEGER NOT NULL,
-    seq INTEGER NOT NULL
+    $had_key\_order SMALLINT NOT NULL
 );
     END_SQL
 }
@@ -125,7 +125,7 @@ my %types = (
 
 sub column_type {
     my ($self, $attr) = @_;
-    return "INTEGER" if $attr->references;
+    return 'INTEGER' if $attr->references;
     my $type = $attr->type;
     return $types{$type} if $types{$type};
     croak "No such data type: $type" unless Kinetic::Meta->for_key($type);
