@@ -7,31 +7,32 @@ use warnings;
 use utf8;
 use Kinetic::Build::Test;
 
-use Test::More tests => 102;
+use Test::More tests => 114;
 #use Test::More 'no_plan';
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
 use File::Spec;
 use aliased 'Kinetic::Util::Iterator';
 use Kinetic::Util::Constants '$UUID_RE';
-use Data::UUID;
 
 {
 
     package Faux;
+    use Kinetic::Util::Functions qw(:uuid);
 
     sub new {
         my ( $class, $name ) = @_;
         bless {
             uuid => undef,
             name => $name,
+            uuid => create_uuid(),
         }, $class;
     }
 
     sub id   { shift->{uuid} }
     sub name { shift->{name} }
     sub uuid { shift->{uuid} }
-    sub save { $_[0]->{uuid} ||= Data::UUID->new->create_str; $_[0] }
+    sub save { shift }
 }
 
 my $CLASS;
@@ -83,18 +84,6 @@ ok !defined $coll->next,
   '... but when we get to the end it should return undef';
 
 #
-# A bit of internals testing to ensure that objects don't need a UUID to be
-# saved correctly.
-#
-# Sorry 'bout that.
-#
-
-can_ok $coll, '_array';
-ok my $array = $coll->_array, '... and we should be the AsHash object';
-my @keys = $array->keys;
-ok !grep {/$UUID_RE/} @keys, '... and none of the keys should match a UUID';
-
-#
 # A collection of saved objects (they do have UUIDs)
 #
 
@@ -123,8 +112,8 @@ ok !defined $coll->next,
 # A wee bit more internals testing.
 #
 
-ok $array = $coll->_array, '... and we should be the AsHash object';
-@keys = $array->keys;
+ok my $array = $coll->_array, '... and we should be the AsHash object';
+my @keys = $array->keys;
 is scalar( grep {/$UUID_RE/} @keys ), scalar(@keys),
   '... and all of the keys should match a UUID';
 
@@ -273,7 +262,6 @@ ok !@all, '... and the collection should be empty';
 #
 # testing primitives
 #
-use Data::Dumper;
 my @list = ( 1 .. 4 );
 ok $coll = $CLASS->from_list( { list => \@list } ),
   'We should be able to create a collection of integers';
@@ -288,3 +276,34 @@ throws_ok {$coll = $CLASS->from_list( { list => [1,1] } )}
     'Trying to assign duplicate items to a collection should fail';
 like $@, qr/^Cannot assign duplicate values to a collection: 1/,
     '... with an appropriate error message';
+
+#
+# Testing add().
+#
+
+@list = map { Faux->new($_) } qw/zero un deux trois quatre/;
+$coll = $CLASS->from_list({ list => \@list });
+
+my @add = map { Faux->new($_) } qw/cinq six sept/;
+can_ok $coll, 'add';
+ok $coll->add(@add), 'Add some items to the collection';
+is scalar @list, 5, 'The list should still be five items long';
+can_ok $coll, 'added';
+is_deeply scalar $coll->added, \@add, 'added() should return the added items';
+
+push @add, map { Faux->new($_) } qw/huit neuf/;
+ok $coll->add(@add[3..4]), 'Add some more items to the collection';
+is scalar @list, 5, 'The list should still be five items long';
+is_deeply scalar $coll->added, \@add,
+    'added() should return the all of the added items';
+
+my $faux = Faux->new('dix');
+ok $coll->set(0, $faux), 'Set the first item to a new object';
+is scalar $coll->added, undef, 'added() should now return undef';
+is scalar @list, 5, 'But list should still be five items long';
+
+is $coll->get(0), $faux, 'The first item should be the one we set';
+is $coll->get(5), $add[0], 'The sixth item should be the first added';
+
+is $coll->size, 10, 'The size of the collection should be 10';
+is $coll->get(5), $add[0], 'The sixth item should be the first added';
