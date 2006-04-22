@@ -26,7 +26,7 @@ use Kinetic::Util::Config qw(:store);
 BEGIN {
     # Use the appropriate subclass to connect to the database.
     if (STORE_CLASS eq 'Kinetic::Store::DB::SQLite') {
-        eval 'require Kinetic::Store::DB::SQLite';
+        eval 'require Kinetic::Store::DB::SQLite::DBI';
         die $@ if $@;
         # XXX Yes, this is a hack. It silently overrides the use of the string
         # constant "DBI" in DBI::Shell. Sneaky, eh?

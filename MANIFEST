@@ -169,6 +169,7 @@ lib/Kinetic/Store/DB/mysql.pm
 lib/Kinetic/Store/DB/Overview.pod
 lib/Kinetic/Store/DB/Pg.pm
 lib/Kinetic/Store/DB/SQLite.pm
+lib/Kinetic/Store/DB/SQLite/DBI.pm
 lib/Kinetic/Store/Lexer/Code.pm
 lib/Kinetic/Store/Lexer/Overview.pod
 lib/Kinetic/Store/Lexer/String.pm

@@ -25,9 +25,9 @@ our $VERSION = version->new('0.0.1');
 use Encode qw(_utf8_on);
 
 use Kinetic::Store qw(:logical);
+use Kinetic::Store::DB::SQLite::DBI;
 use Kinetic::Util::Config qw(:store);
 use Kinetic::Util::Exceptions qw(throw_unsupported);
-use Kinetic::Util::Functions ();
 use Exception::Class::DBI;
 use OSSP::uuid;
 
@@ -53,11 +53,15 @@ See L<Kinetic::Store|Kinetic::Store>.
 =head1 Description
 
 This class implements SQLite-specific behavior for the Kinetic storage API by
-overriding C<Kinetic::Store::DB> methods as needed.
+overriding C<Kinetic::Store::DB> methods as needed. It uses
+L<Kinetic::Store::DB::SQLite::DBI|Kinetic::Store::DB::SQLite::DBI>, a subclass
+of the L<DBI|DBI>, for custom interactions with the database.
 
 =cut
 
 ##############################################################################
+
+=begin private
 
 =head3 _fetchrow_hashref
 
@@ -219,164 +223,10 @@ sub _any_date_handler {
     return ( $token, \@values );
 }
 
-##############################################################################
-# Subclass DBI in order to add custom functions to SQLite at the beginning of
-# every connection.
-
-package Kinetic::Store::DB::SQLite::DBI;
-use base 'DBI';
-
-package Kinetic::Store::DB::SQLite::DBI::st;
-use base 'DBI::st';
-
-package Kinetic::Store::DB::SQLite::DBI::db;
-use base 'DBI::db';
-
-# This function clears a collection. Think C<@coll = ()>. Arguments:
-# $dbh:      The database handle.
-# $obj_key:  The containing class key
-# $obj_id:   The ID of the containing obj.
-# $coll_of:  The class key of the objs that make up the set.
-# $coll_ids: The IDs of the objs to be deleted from the collection.
-sub coll_clear {
-    my ($dbh, $obj_key, $obj_id, $coll_of) = @_;
-    $dbh->do(qq{
-        DELETE FROM $obj_key\_coll_$coll_of
-        WHERE  $obj_key\_id = ?
-    }, undef, $obj_id);
-}
-
-# This function deletes a specific list of objects from a collection. Think
-# C<delete @coll{@ids}>. Arguments:
-# $dbh:      The database handle.
-# $obj_key:  The containing class key
-# $obj_id:   The ID of the containing obj.
-# $coll_of:  The class key of the objs that make up the set.
-# $coll_ids: The IDs of the objs to be deleted from the collection.
-sub coll_del {
-    my ($dbh, $obj_key, $obj_id, $coll_of, $coll_ids) = @_;
-    my @to_del = split /,/, $coll_ids;
-    my $placeholders = join ', ', ('?') x @to_del;
-    $dbh->do(qq{
-        DELETE FROM $obj_key\_coll_$coll_of
-        WHERE  $obj_key\_id = ?
-               AND $coll_of\_id IN ($placeholders)
-    }, undef, $obj_id, @to_del);
-}
-
-# This function adds a list of objs from a collection. The new objs will
-# be added to the end of the collection. Think C<push @coll, @ids>. Arguments:
-# $dbh:      The database handle.
-# $obj_key:  The containing class key
-# $obj_id:   The ID of the containing obj.
-# $coll_of:  The class key of the objs that make up the set.
-# $coll_ids: The IDs of the objs to be deleted from the collection.
-sub coll_add {
-    my ($dbh, $obj_key, $obj_id, $coll_of, $coll_ids) = @_;
-    my $table = "$obj_key\_coll_$coll_of";
-
-    # Get the current maximum value.
-    my ($max) = $dbh->selectrow_array(qq{
-        SELECT coalesce(MAX($coll_of\_order), 0)
-        FROM   $table
-        WHERE  $obj_key\_id = ?
-    }, undef, $obj_id);
-
-    # Add the new IDs. Yes, there's a race condition, but there's nothing
-    # we can do about that with SQLite.
-    my $ins = $dbh->prepare(qq{
-        INSERT INTO $table ($obj_key\_id, $coll_of\_id, $coll_of\_order)
-        VALUES (?, ?, ?)
-    });
-    $ins->execute($obj_id, $_, ++$max) for split /,/, $coll_ids;
-}
-
-# This function sets all of the IDs in a collection. Any existing IDs will be
-# cleared. Think C<@coll = (@ids)>. Arguments:
-# $dbh:      The database handle.
-# obj_key:  The containing class key
-# $obj_id:   The ID of the containing obj.
-# $coll_of:  The class key of the objs that make up the set.
-# $coll_ids: The IDs of all of the objs in the collection, in order.
-sub coll_set {
-    my ($dbh, $obj_key, $obj_id, $coll_of, $coll_ids) = @_;
-    my $order = 0;
-    my $table = "$obj_key\_coll_$coll_of";
-
-    # We'll need this in a bit.
-    my $ins = $dbh->prepare(qq{
-        INSERT INTO $table ($obj_key\_id, $coll_of\_id, $coll_of\_order)
-        VALUES (?, ?, ?)
-    });
-
-    # First, negate the order of existing rows.
-    my $updated = $dbh->do(qq{
-        UPDATE $table
-        SET    $coll_of\_order = -$coll_of\_order
-        WHERE  $obj_key\_id = ?
-    }, undef, $obj_id);
-
-    if ($updated > 0) {
-        # There are existing records. We'll try updating each one, first.
-        my $upd = $dbh->prepare(qq{
-            UPDATE $table
-            SET    $coll_of\_order = ?
-            WHERE  $obj_key\_id = ?
-                   AND $coll_of\_id = ?
-        });
-
-        for my $coll_id (split /,/, $coll_ids) {
-            # If no row is updated, insert it.
-            unless ($upd->execute(++$order, $obj_id, $coll_id) > 0) {
-                $ins->execute($obj_id, $coll_id, $order);
-            }
-        }
-
-        # Now delete any remaining rows.
-        $dbh->do(qq{
-            DELETE FROM $table
-            WHERE  $obj_key\_id = ?
-            AND    $coll_of\_order < 0
-        }, undef $obj_id);
-    }
-
-    else {
-        # There are no existing records, so just insert them.
-        $ins->execute($obj_id, $_, ++$order) for split /,/, $coll_ids;
-    }
-}
-
-sub connected {
-    my $dbh = shift;
-    return if exists $dbh->{private_KineticSQLite_functions};
-    my $func = 'create_function';
-
-    # Add UUID_V4() function.
-    $dbh->func(
-        'UUID_V4',
-        0,
-        \&Kinetic::Util::Functions::create_uuid,
-        $func,
-    );
-
-    # Add regexp() function for use by REGEXP operator. See
-    # http://www.justatheory.com/computers/databases/sqlite/add_regexen.html
-    $dbh->func('regexp', 2, sub {
-        my ($regex, $string) = @_;
-        return $string =~ /$regex/ixms;
-    }, $func);
-
-    # Add collection functions.
-    $dbh->func('coll_clear', 3, sub { coll_clear($dbh, @_ ) }, $func);
-    $dbh->func('coll_del',   4, sub { coll_del(  $dbh, @_ ) }, $func);
-    $dbh->func('coll_add',   4, sub { coll_add(  $dbh, @_ ) }, $func);
-    $dbh->func('coll_set',   4, sub { coll_set(  $dbh, @_ ) }, $func);
-
-    $dbh->{private_KineticSQLite_functions} = 1;
-}
-
 1;
 __END__
+
+=end private
 
 =head1 Copyright and License
 
