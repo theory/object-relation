@@ -1,4 +1,4 @@
-# $Id: SQLite.pm 2816 2006-04-19 18:26:39Z theory $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #
