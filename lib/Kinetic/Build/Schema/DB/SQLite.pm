@@ -574,6 +574,50 @@ sub delete_for_class {
 
 ##############################################################################
 
+=head3 extras_for_class
+
+  my @sql = $kbs->extras_for_class($class)
+
+Returns a list of any extra SQL statements that need to be executed in order
+to adequately represent a class in the database. By default, there are none,
+so this method returns none. But subclasses may override it to provide extra
+functionality.
+
+=cut
+
+sub extras_for_class {
+    my ($self, $class) = @_;
+    my @attrs = grep { $_->collection_of } $class->attributes;
+    return unless @attrs;
+    my $main_key = $class->key;
+    my @triggers;
+    for my $attr(@attrs) {
+        my $view     = $attr->collection_view;
+        my $coll_key = $attr->collection_of->key;
+        for my $spec (
+            ['insert', ' into'],
+            ['update', ''],
+            ['delete', ' from'],
+        ) {
+            my $funcs = $spec->[0] eq 'delete'
+                ? "$view\_del($main_key\_id, $coll_key\_ids) "
+                . "or $view\_clear($main_key\_id)"
+                : "$view\_add($main_key\_id, $coll_key\_ids) "
+                . "or $view\_set($main_key\_id, $coll_key\_ids)";
+            push @triggers,
+                "CREATE TRIGGER $view\_$spec->[0]\n"
+              . "INSTEAD OF \U$spec->[0]\E ON $view\n"
+              . "BEGIN\n"
+              . "    SELECT RAISE(ABORT, 'Please use $funcs "
+              . "to $spec->[0]$spec->[1] the $view collection');\n"
+              . "END;\n";
+          }
+    }
+    return @triggers;
+}
+
+##############################################################################
+
 =begin private
 
 =head1 Private Interface
@@ -679,11 +723,12 @@ sub _generate_collection_constraints {
     my @constraints;
     foreach my $attr (@attributes) {
         my $table    = $attr->collection_table;
+        my $view     = $attr->collection_view;
         my $cascade  = 1;
         foreach my $fk_class ( $class, $attr->collection_of ) {
             my $fk_table = $fk_class->table;
             my $fk_col   = $fk_class->key . "_id";
-            my $fk       = "fk_$table\_$fk_col";
+            my $fk       = "fk_$view\_$fk_col";
             my $null     = "NEW.$fk_col IS NOT NULL AND ";
             push @constraints, $self->_generate_fk_sql(
                 $fk,
@@ -699,7 +744,7 @@ sub _generate_collection_constraints {
             my $coll       = $attr->collection_of;
             my $coll_table = $coll->table;
             my $coll_key   = $coll->key;
-            push @constraints, qq{CREATE TRIGGER $table\_cascade
+            push @constraints, qq{CREATE TRIGGER $view\_cascade
 AFTER DELETE ON $table
 FOR EACH ROW BEGIN
     DELETE FROM $coll_table WHERE id = OLD.$coll_key\_id;

@@ -198,6 +198,28 @@ sub _any_date_handler {
 }
 
 ##############################################################################
+
+=head3 _coll_set
+
+  $self->_coll_set($object, $attribute, \@coll_ids);
+
+This method sets a collection to a specific list of IDs, using the PL/pgSQL
+C<*_set()> function to do so correctly and efficiently.
+
+=cut
+
+sub _coll_set {
+    my ($self, $obj, $attr, $coll_ids) = @_;
+    my $func = $attr->collection_view . '_set';
+    my $id = $obj->id;
+    my $sth = $self->_dbh->prepare_cached("SELECT $func(?, ?)");
+    $sth->execute($obj->id, '{' . join(',', @$coll_ids) . '}');
+    $sth->finish;
+    return $self;
+}
+
+##############################################################################
+
 1;
 __END__
 

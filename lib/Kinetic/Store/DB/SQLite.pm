@@ -223,6 +223,30 @@ sub _any_date_handler {
     return ( $token, \@values );
 }
 
+##############################################################################
+
+=head3 _coll_set
+
+  $self->_coll_set($object, $attribute, \@coll_ids);
+
+This method sets a collection to a specific list of IDs, using the SQLite
+C<coll_set()> function defined by
+L<Kinetic::Store::DB::SQLite::DBI|Kinetic::Store::DB::SQLite::DBI> to do so
+correctly.
+
+=cut
+
+sub _coll_set {
+    my ($self, $obj, $attr, $coll_ids) = @_;
+    my $sth = $self->_dbh->prepare_cached('SELECT coll_set(?, ?, ?, ?)');
+    $sth->execute(
+        $obj->my_class->key       => $obj->id,
+        $attr->collection_of->key => join ',', @$coll_ids
+    );
+    $sth->finish;
+    return $self;
+}
+
 1;
 __END__
 

@@ -68,7 +68,7 @@ associated with blog entry ID 1 will contain the tags with the IDs 3, 14, 12,
 sub coll_set {
     my ($dbh, $obj_key, $obj_id, $coll_of, $coll_ids) = @_;
     my $order = 0;
-    my $table = "$obj_key\_coll_$coll_of";
+    my $table = "_$obj_key\_coll_$coll_of";
 
     # We'll need this in a bit.
     my $ins = $dbh->prepare(qq{
@@ -133,7 +133,7 @@ to the collection for the blog entry with the ID 1.
 
 sub coll_add {
     my ($dbh, $obj_key, $obj_id, $coll_of, $coll_ids) = @_;
-    my $table = "$obj_key\_coll_$coll_of";
+    my $table = "_$obj_key\_coll_$coll_of";
 
     my @to_add = split /,/, $coll_ids or return;
     my $placeholders = join ', ', ('?') x @to_add;

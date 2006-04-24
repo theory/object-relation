@@ -522,6 +522,19 @@ sub collection_of { shift->{collection} }
 
 ##############################################################################
 
+=head3 collection_view
+
+  my $view_name = $attr->collection_view;
+
+If an attribute represents a collection, this method will return the name of
+the view for that collection.
+
+=cut
+
+sub collection_view { shift->{coll_view} }
+
+##############################################################################
+
 =head3 collection_table
 
   my $table_name = $attr->collection_table;
@@ -531,7 +544,7 @@ the table for that collection.
 
 =cut
 
-sub collection_table { shift->{coll_table} }
+sub collection_table { '_' . shift->{coll_view} }
 
 ##############################################################################
 
@@ -695,7 +708,7 @@ sub _prepare_kinetic {
 
     my $class_key        = $containing_class->key;
     $arg_for{collection} = delete $arg_for{references};
-    $arg_for{coll_table} = "$class_key\_coll_$arg_for{type}";
+    $arg_for{coll_view}  = "$class_key\_coll_$arg_for{type}";
 
     # The contained class must know which classes contain it.
     Kinetic::Meta->for_key($arg_for{type})->_add_container($class_key);

@@ -603,74 +603,36 @@ sub _save_collections {
     my $class = $object->my_class;
     foreach my $attr ( $class->persistent_attributes ) {
         next unless $attr->collection_of;
-
-        $self->_clear_collection_info( $object, $attr );
-
-        my $method = $attr->name;
-        my $coll   = $object->$method;
-        my $order   = 1;
+        my $coll = $attr->get($object);
+        my @set;
         while ( defined( my $thing = $coll->next ) ) {
             $thing->save;
             next if $thing->is_purged;
-            $self->_update_coll_table( $object, $attr, $thing, $order );
-            $order++;
+            push @set, $thing->id;
         }
+        $self->_coll_set($object, $attr, \@set);
     }
     return $self;
 }
 
 ##############################################################################
 
-=head3 _update_coll_table
+=head3 _coll_set
 
- $self->_update_coll_table( $object, $attr, $thing, $ordder );
+  $self->_coll_set($object, $attribute, \@coll_ids);
 
-Given an object, the collection attribute, the specific item in the collection
-and the item's order, this method updates the collection table for that
-information.
-
-=cut
-
-sub _update_coll_table {
-    my ( $self, $object, $attr, $thing, $order_val ) = @_;
-    my ( $object_id, $coll_id, $order ) = $self->_collection_table_columns(
-        $object,
-        $attr
-    );
-    my $table = $attr->collection_table;
-    my $sth   = $self->_dbh->prepare_cached(
-        "INSERT INTO $table ($object_id, $coll_id, $order) VALUES (?, ?, ?)"
-    );
-
-    # note the use of the object ID here.  If we have a new object, it *must*
-    # be saved before updating the collection table.
-    $sth->execute( $object->id, $thing->id, $order_val );
-    return $self;
-}
-
-##############################################################################
-
-=head3 _clear_collection_info
-
- $self->_clear_collection_info( $object, $attr );
-
-Given an object and the collection attribute, this method deletes all records
-from the table which match that collection.
+This method, which must be implemented by subclasses, sets a collection to a
+specific list of IDs, using the database-specific methods to do so correctly
+and efficiently.
 
 =cut
 
-sub _clear_collection_info {
-    my ( $self, $object, $attr ) = @_;
-    my $table = $attr->collection_table;
-    my ( $object_id, undef, undef ) = $self->_collection_table_columns(
-        $object,
-        $attr
-    );
-    my $sth = $self->_dbh->prepare("DELETE FROM $table WHERE $object_id = ?");
-    $sth->execute( $object->id );
-    return $self;
+sub _coll_set {
+    throw_unimplemented [
+        '"[_1]" must be overridden in a subclass',
+        '_coll_set'
+    ];
 }
-
 
 ##############################################################################
 
@@ -691,24 +653,23 @@ sub _get_collection {
 
     my ( $self, $object, $attr ) = @_;
 
-    (my $key = $attr->type) =~ s/^collection_//;
-    my $containing_key   = $object->my_class->key;
-    my $search           = Kinetic::Meta->for_key($key);
-    my $collection_table = $attr->collection_table;
     (my $coll_key = $attr->type) =~ s/^collection_//;
-    my $results = $search->package->query(
+    my $containing_key   = $object->my_class->key;
+    my $search           = Kinetic::Meta->for_key($coll_key);
+    my $collection_view  = $attr->collection_view;
+    my $iter             = $search->package->query(
         "$containing_key.uuid" => $object->uuid,
-        { order_by => "$collection_table.$coll_key\_order" }
+        { order_by => "$collection_view.$coll_key\_order" }
     );
-    return Collection->new( { iter => $results, key => $key } )
+    return Collection->new( { iter => $iter, key => $coll_key } );
 }
 
 ##############################################################################
 
-=head3 _collection_table_columns
+=head3 _collection_columns
 
   my ($object_id, $coll_id, $order)
-     = $self->_collection_table_columns($object, $attr);
+     = $self->_collection_columns($object, $attr);
 
 This method returns the correct object id column name, collection item id
 column name, and order column name. These are used in building SQL for
@@ -719,7 +680,7 @@ C<Kinetic> object.
 
 =cut
 
-sub _collection_table_columns {
+sub _collection_columns {
     my ( $self, $object, $attr ) = @_;
     my $class = $object->isa( 'Kinetic::Meta::Class' )
         ? $object
@@ -1502,16 +1463,16 @@ sub _get_joins {
             }
         }
         if ( $coll_attr ) {
-            $self->{views}{ $coll_attr->collection_table } = 1; # no associated class
+            $self->{views}{ $coll_attr->collection_view } = 1; # no associated class
             my ( $object_id, $coll_id, $order )
-            = $self->_collection_table_columns( $class1, $coll_attr );
-            my $coll_table     = $coll_attr->collection_table;
+            = $self->_collection_columns( $class1, $coll_attr );
+            my $coll_view      = $coll_attr->collection_view;
             my $containing_key = $class1->key;
             my $contained_key  = $class2->key;
             $joins = <<"            END_JOINS";
-                $contained_key.id = $coll_table.$coll_id
+                $contained_key.id = $coll_view.$coll_id
                 AND
-                $containing_key.id = $coll_table.$object_id
+                $containing_key.id = $coll_view.$object_id
             END_JOINS
         }
         # else we don't have a coll_attr. What then?

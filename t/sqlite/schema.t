@@ -7,7 +7,7 @@ use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
 
 #use Test::More 'no_plan';
-use Test::More tests => 117;
+use Test::More tests => 118;
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Differences;
 
@@ -97,7 +97,7 @@ my $view = q{CREATE VIEW simple AS
   SELECT _simple.id AS id, _simple.uuid AS uuid, _simple.state AS state, _simple.name AS name, _simple.description AS description
   FROM   _simple;
 };
-eq_or_diff $sg->view_for_class($simple), $view,
+eq_or_diff $sg->views_for_class($simple), $view,
   "... Schema class generates CREATE VIEW statement";
 
 # Check that the INSERT rule/trigger is correct.
@@ -203,7 +203,7 @@ $view = q{CREATE VIEW one AS
   FROM   simple, simple_one
   WHERE  simple.id = simple_one.id;
 };
-eq_or_diff $sg->view_for_class($one), $view,
+eq_or_diff $sg->views_for_class($one), $view,
   "... Schema class generates CREATE VIEW statement";
 
 # Check that the INSERT rule/trigger is correct.
@@ -374,7 +374,7 @@ $view = q{CREATE VIEW two AS
   FROM   simple, simple_two, one
   WHERE  simple.id = simple_two.id AND simple_two.one_id = one.id;
 };
-eq_or_diff $sg->view_for_class($two), $view,
+eq_or_diff $sg->views_for_class($two), $view,
   "... Schema class generates CREATE VIEW statement";
 
 # Check that the INSERT rule/trigger is correct.
@@ -530,7 +530,7 @@ $view = q{CREATE VIEW relation AS
   FROM   _relation, simple, one
   WHERE  _relation.simple_id = simple.id AND _relation.one_id = one.id;
 };
-eq_or_diff $sg->view_for_class($relation), $view,
+eq_or_diff $sg->views_for_class($relation), $view,
   "... Schema class generates CREATE VIEW statement";
 
 # Check that the INSERT rule/trigger is correct.
@@ -597,7 +597,7 @@ $table = q{CREATE TABLE _yello (
     age INTEGER
 );
 
-CREATE TABLE yello_coll_one (
+CREATE TABLE _yello_coll_one (
     yello_id INTEGER NOT NULL,
     one_id INTEGER NOT NULL,
     one_order SMALLINT NOT NULL,
@@ -610,8 +610,8 @@ eq_or_diff join("\n", $sg->tables_for_class($yello)), $table,
 
 $indexes = q{CREATE UNIQUE INDEX idx_yello_uuid ON _yello (uuid);
 CREATE INDEX idx_yello_state ON _yello (state);
-CREATE UNIQUE INDEX idx_yello_coll_one ON yello_coll_one (yello_id, one_order);
-CREATE UNIQUE INDEX idx_yello_coll_one_one_id ON yello_coll_one (one_id);
+CREATE UNIQUE INDEX idx_yello_coll_one ON _yello_coll_one (yello_id, one_order);
+CREATE UNIQUE INDEX idx_yello_coll_one_one_id ON _yello_coll_one (one_id);
 };
 is $sg->indexes_for_class($yello), $indexes,
     '... and the correct indexes for the class';
@@ -638,47 +638,47 @@ FOR EACH ROW BEGIN
 END;
 
 CREATE TRIGGER fki_yello_coll_one_yello_id
-BEFORE INSERT ON yello_coll_one
+BEFORE INSERT ON _yello_coll_one
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'insert on table "yello_coll_one" violates foreign key constraint "fk_yello_coll_one_yello_id"')
+    SELECT RAISE(ABORT, 'insert on table "_yello_coll_one" violates foreign key constraint "fk_yello_coll_one_yello_id"')
     WHERE  NEW.yello_id IS NOT NULL AND (SELECT id FROM _yello WHERE id = NEW.yello_id) IS NULL;
 END;
 
 CREATE TRIGGER fku_yello_coll_one_yello_id
-BEFORE UPDATE ON yello_coll_one
+BEFORE UPDATE ON _yello_coll_one
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'update on table "yello_coll_one" violates foreign key constraint "fk_yello_coll_one_yello_id"')
+    SELECT RAISE(ABORT, 'update on table "_yello_coll_one" violates foreign key constraint "fk_yello_coll_one_yello_id"')
     WHERE  NEW.yello_id IS NOT NULL AND (SELECT id FROM _yello WHERE id = NEW.yello_id) IS NULL;
 END;
 
 CREATE TRIGGER fkd_yello_coll_one_yello_id
 AFTER DELETE ON _yello
 FOR EACH ROW BEGIN
-  DELETE from yello_coll_one WHERE yello_id = OLD.id;
+  DELETE from _yello_coll_one WHERE yello_id = OLD.id;
 END;
 
 CREATE TRIGGER fki_yello_coll_one_one_id
-BEFORE INSERT ON yello_coll_one
+BEFORE INSERT ON _yello_coll_one
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'insert on table "yello_coll_one" violates foreign key constraint "fk_yello_coll_one_one_id"')
+    SELECT RAISE(ABORT, 'insert on table "_yello_coll_one" violates foreign key constraint "fk_yello_coll_one_one_id"')
     WHERE  NEW.one_id IS NOT NULL AND (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL;
 END;
 
 CREATE TRIGGER fku_yello_coll_one_one_id
-BEFORE UPDATE ON yello_coll_one
+BEFORE UPDATE ON _yello_coll_one
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'update on table "yello_coll_one" violates foreign key constraint "fk_yello_coll_one_one_id"')
+    SELECT RAISE(ABORT, 'update on table "_yello_coll_one" violates foreign key constraint "fk_yello_coll_one_one_id"')
     WHERE  NEW.one_id IS NOT NULL AND (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL;
 END;
 
 CREATE TRIGGER fkd_yello_coll_one_one_id
 AFTER DELETE ON simple_one
 FOR EACH ROW BEGIN
-  DELETE from yello_coll_one WHERE one_id = OLD.id;
+  DELETE from _yello_coll_one WHERE one_id = OLD.id;
 END;
 
 CREATE TRIGGER yello_coll_one_cascade
-AFTER DELETE ON yello_coll_one
+AFTER DELETE ON _yello_coll_one
 FOR EACH ROW BEGIN
     DELETE FROM simple_one WHERE id = OLD.one_id;
 END;
@@ -689,8 +689,12 @@ eq_or_diff join( "\n", $sg->constraints_for_class($yello) ), $constraints,
 $view = q{CREATE VIEW yello AS
   SELECT _yello.id AS id, _yello.uuid AS uuid, _yello.state AS state, _yello.age AS age
   FROM   _yello;
+
+CREATE VIEW yello_coll_one AS
+  SELECT yello_id, one_id, one_order
+  FROM   _yello_coll_one;
 };
-is $sg->view_for_class($yello), $view, '... and the correct view';
+is join( "\n", $sg->views_for_class($yello)), $view, '... and the correct views';
 
 $insert = q{CREATE TRIGGER insert_yello
 INSTEAD OF INSERT ON yello
@@ -722,10 +726,31 @@ END;
 is $sg->delete_for_class($yello), $delete,
     '... and the correct delete for the class';
 
+my $extras = q{CREATE TRIGGER yello_coll_one_insert
+INSTEAD OF INSERT ON yello_coll_one
+BEGIN
+    SELECT RAISE(ABORT, 'Please use yello_coll_one_add(yello_id, one_ids) or yello_coll_one_set(yello_id, one_ids) to insert into the yello_coll_one collection');
+END;
+
+CREATE TRIGGER yello_coll_one_update
+INSTEAD OF UPDATE ON yello_coll_one
+BEGIN
+    SELECT RAISE(ABORT, 'Please use yello_coll_one_add(yello_id, one_ids) or yello_coll_one_set(yello_id, one_ids) to update the yello_coll_one collection');
+END;
+
+CREATE TRIGGER yello_coll_one_delete
+INSTEAD OF DELETE ON yello_coll_one
+BEGIN
+    SELECT RAISE(ABORT, 'Please use yello_coll_one_del(yello_id, one_ids) or yello_coll_one_clear(yello_id) to delete from the yello_coll_one collection');
+END;
+};
+eq_or_diff join("\n", $sg->extras_for_class($yello)), $extras,
+    '... and the correct extras for the class';
+
 # Check that a complete schema is properly generated.
 eq_or_diff join( "\n", $sg->schema_for_class($yello) ),
   join( "\n", $table, $indexes, $constraints, $view, $insert, $update,
-    $delete ), "... Schema class generates complete schema";
+    $delete, $extras ), "... Schema class generates complete schema";
 
 ##############################################################################
 # Grab the composed class.
@@ -840,7 +865,7 @@ $view = q{CREATE VIEW composed AS
   SELECT _composed.id AS id, _composed.uuid AS uuid, _composed.state AS state, _composed.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, _composed.color AS color
   FROM   _composed LEFT JOIN one ON _composed.one_id = one.id;
 };
-eq_or_diff $sg->view_for_class($composed), $view,
+eq_or_diff $sg->views_for_class($composed), $view,
   "... Schema class generates CREATE VIEW statement";
 
 # Check that the INSERT rule/trigger is correct.
@@ -969,7 +994,7 @@ $view = q{CREATE VIEW comp_comp AS
   FROM   _comp_comp, composed
   WHERE  _comp_comp.composed_id = composed.id;
 };
-eq_or_diff $sg->view_for_class($comp_comp), $view,
+eq_or_diff $sg->views_for_class($comp_comp), $view,
   "... Schema class generates CREATE VIEW statement";
 
 # Check that the INSERT rule/trigger is correct.
@@ -1096,7 +1121,7 @@ $view = q{CREATE VIEW extend AS
   FROM   _extend, two
   WHERE  _extend.two_id = two.id;
 };
-eq_or_diff $sg->view_for_class($extend), $view,
+eq_or_diff $sg->views_for_class($extend), $view,
   "... Schema class generates CREATE VIEW statement";
 
 # Check that the INSERT rule/trigger is correct.
@@ -1274,7 +1299,7 @@ $view = q{CREATE VIEW types_test AS
   SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator, _types_test.media_type AS media_type, _types_test.attribute AS attribute
   FROM   _types_test;
 };
-eq_or_diff $sg->view_for_class($types_test), $view,
+eq_or_diff $sg->views_for_class($types_test), $view,
   "... Schema class generates CREATE VIEW statement";
 
 # Check that the INSERT rule/trigger is correct.

@@ -65,7 +65,7 @@ methods that define these names and documentation for the naming conventions.
   my @sql = $kbs->schema_for_class($class);
 
 Returns a list of the SQL statements that can be used to build the tables,
-indexes, and constraints necessary to manage a class in a database. Pass in a
+indexes constraints, etc. necessary to manage a class in a database. Pass in a
 Kinetic::Meta::Class object as the sole argument.
 
 =cut
@@ -80,66 +80,11 @@ sub schema_for_class {
       indexes_for_class
       constraints_for_class
       procedures_for_class
-      view_for_class
+      views_for_class
       insert_for_class
       update_for_class
       delete_for_class
-    );
-}
-
-##############################################################################
-
-=head3 behaviors_for_class
-
-  my @sql = $self->behaviors_for_class($class);
-
-Takes a class object. Returns a list of SQL statements for:
-
-=over 4
-
-=item * indexes
-
-  $kbs->indexes_for_class($class);
-
-=item * constraints
-
-  $kbs->constraints_for_class($class);
-
-=item * view
-
-  $kbs->view_for_class($class);
-
-=item * inserts
-
-  $kbs->insert_for_class($class);
-
-=item * updates
-
-  $kbs->update_for_class($class);
-
-=item * deletes
-
-  $kbs->delete_for_class($class);
-
-=back
-
-This is primarily a handy wrapper method for fetching these values all at once
-when a schema is being created in a new database.
-
-=cut
-
-sub behaviors_for_class {
-    my ( $self, $class ) = @_;
-    return grep { $_ }
-      map       { $self->$_($class) }
-      qw(
-      indexes_for_class
-      constraints_for_class
-      procedures_for_class
-      view_for_class
-      insert_for_class
-      update_for_class
-      delete_for_class
+      extras_for_class
     );
 }
 
@@ -198,12 +143,12 @@ statement for that table.
 =cut
 
 sub collection_table {
-    my ($self, $class, $attribute) = @_;;
-    my $class_key  = $class->key;
-    my $coll_class = $attribute->collection_of;
-    my $table      = $attribute->collection_table;
-    my $coll_key   = $coll_class->key;
-    return $self->format_coll_table($table, $class_key, $coll_key);
+    my ($self, $class, $attribute) = @_;
+    return $self->format_coll_table(
+        $attribute->collection_table,
+        $class->key,
+        $attribute->collection_of->key
+    );
 }
 
 ##############################################################################
@@ -229,6 +174,52 @@ CREATE TABLE $table (
     $had_key\_order SMALLINT NOT NULL,
     PRIMARY KEY ($has_key\_id, $had_key\_id)
 );
+    END_SQL
+}
+
+##############################################################################
+
+=head3 collection_view
+
+  my $coll_class = $attribute->collection_of;
+  my $view       = $kbs->collection_view($class, $coll_class);
+
+For an attribute which represents a collection of objects--for example,
+attributes that have a C<has_many> relationship--this method returns a
+C<CREATE VIEW> statement for the table created by the SQL returned by
+C<collection_table()>.
+
+=cut
+
+sub collection_view {
+    my ($self, $class, $attribute) = @_;;
+    return $self->format_coll_view(
+        $attribute->collection_view,
+        $attribute->collection_table,
+        $class->key,
+        $attribute->collection_of->key
+    );
+}
+
+##############################################################################
+
+=head3 format_coll_view
+
+  my $view = $kbs->collection_view($table, $has_key, $had_key);
+
+Called by C<collection_view()>, this method generates the actual C<CREATE
+VIEW> statement. Pass in the name of the table, the key name of the class
+that contains the collection, and the key name of the class of objects stored
+in the collection.
+
+=cut
+
+sub format_coll_view {
+    my ($self, $view, $table, $has_key, $had_key) = @_;
+    return <<"    END_SQL";
+CREATE VIEW $view AS
+  SELECT $has_key\_id, $had_key\_id, $had_key\_order
+  FROM   $table;
     END_SQL
 }
 
@@ -488,12 +479,13 @@ sub _collection_indexes {
     my @indexes;
     my $class_key = $class->key;
     foreach my $attr (@attributes) {
+        my $view     = $attr->collection_view;
         my $table    = $attr->collection_table;
         my $coll_key = $attr->collection_of->key;
-        push @indexes, "CREATE UNIQUE INDEX idx_$table "
+        push @indexes, "CREATE UNIQUE INDEX idx_$view "
                      . "ON $table "
                      . "($class_key\_id, $coll_key\_order);\n";
-        push @indexes, "CREATE UNIQUE INDEX idx_$table\_$coll_key\_id "
+        push @indexes, "CREATE UNIQUE INDEX idx_$view\_$coll_key\_id "
                      . "ON $table "
                      . "($coll_key\_id);\n"
             if $attr->relationship eq 'has_many';
@@ -558,9 +550,9 @@ sub procedures_for_class {
 
 ##############################################################################
 
-=head3 view_for_class
+=head3 views_for_class
 
-  my $view_sql = $kbs->view_for_class($class);
+  my $view_sql = $kbs->views_for_class($class);
 
 Returns the SQL statement to create a database view for class described by the
 Kinetic::Meta::Class::Schema object passed as the sole argument. Views are the
@@ -575,7 +567,7 @@ to do in a single C<SELECT> statement.
 
 =cut
 
-sub view_for_class {
+sub views_for_class {
     my ( $self, $class ) = @_;
     my $key   = $class->key;
     my $table = $class->table;
@@ -611,10 +603,16 @@ sub view_for_class {
     my $name  = $class->key;
 
     # Output the view.
-    return "CREATE VIEW $name AS\n"
+    my @views = "CREATE VIEW $name AS\n"
         . "  SELECT $cols\n"
         . "  FROM   $from"
         . ( $where ? "\n  WHERE  $where;" : (';') ) . "\n";
+
+    foreach my $attr ( $class->attributes ) {
+        next unless $attr->collection_of;
+        push @views, $self->collection_view($class, $attr);
+    }
+    return @views;
 }
 
 ##############################################################################
@@ -623,7 +621,7 @@ sub view_for_class {
 
   my @view_col_sql = $kbs->view_columns($table, $tables, $wheres, @attrs);
 
-Used by the C<view_for_class()> method to generate and return the SQL
+Used by the C<views_for_class()> method to generate and return the SQL
 expressions for all of the columns used in a view. This method may be
 called recursively to get all of the column names for all of the tables
 referenced in a view, including parent tables and contained object tables.
@@ -696,6 +694,21 @@ sub view_columns {
     }
     return @cols;
 }
+
+##############################################################################
+
+=head3 extras_for_class
+
+  my @sql = $kbs->extras_for_class($class)
+
+Returns a list of any extra SQL statements that need to be executed in order
+to adequately represent a class in the database. By default, there are none,
+so this method returns none. But subclasses may override it to provide extra
+functionality.
+
+=cut
+
+sub extras_for_class { return }
 
 ##############################################################################
 

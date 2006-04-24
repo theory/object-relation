@@ -7,7 +7,7 @@ use warnings;
 use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
 
 #use Test::More 'no_plan';
-use Test::More tests => 127;
+use Test::More tests => 128;
 use Test::NoWarnings; # Adds an extra test.
 use Test::Differences;
 
@@ -70,13 +70,32 @@ CREATE DOMAIN version AS TEXT
      VALUE ~ '^v?\\\\d[\\\\d._]+$'
   );
 
-CREATE FUNCTION trig_uuid_once() RETURNS trigger AS $$
+CREATE OR REPLACE FUNCTION trig_uuid_once() RETURNS trigger AS $$
   BEGIN
     IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
         THEN RAISE EXCEPTION 'value of %.uuid cannot be changed', TG_RELNAME;
     END IF;
     RETURN NEW;
   END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION coll_error(
+    view_name  TEXT,
+    query_type TEXT,
+    obj_id     INTEGER,
+    coll_id    INTEGER
+) RETURNS VOID AS $$
+BEGIN
+    IF query_type = 'delete' THEN
+        RAISE EXCEPTION
+          'Please use %_del(%, {%}) or %_clear(%) to % from the % collection',
+          view_name, obj_id, coll_id, obj_id, query_type, view_name;
+    ELSE
+        RAISE EXCEPTION
+          'Please use %_add(%, {%}) or %_set(%, {%}) to % the % collection',
+          view_name, obj_id, coll_id, obj_id, coll_id, query_type, view_name;
+    END IF;
+END;
 $$ LANGUAGE plpgsql;
 },
     'Pg setup SQL has setup SQL code';
@@ -127,7 +146,7 @@ my $view = q{CREATE VIEW simple AS
   SELECT _simple.id AS id, _simple.uuid AS uuid, _simple.state AS state, _simple.name AS name, _simple.description AS description
   FROM   _simple;
 };
-eq_or_diff $sg->view_for_class($simple), $view,
+eq_or_diff $sg->views_for_class($simple), $view,
   "... Schema class generates CREATE VIEW statement";
 
 # Check that the INSERT rule/trigger is correct.
@@ -212,7 +231,7 @@ $view = q{CREATE VIEW one AS
   FROM   simple, simple_one
   WHERE  simple.id = simple_one.id;
 };
-eq_or_diff $sg->view_for_class($one), $view,
+eq_or_diff $sg->views_for_class($one), $view,
   "... Schema class generates CREATE VIEW statement";
 
 # Check that the INSERT rule/trigger is correct.
@@ -377,7 +396,7 @@ $view = q{CREATE VIEW two AS
   FROM   simple, simple_two, one
   WHERE  simple.id = simple_two.id AND simple_two.one_id = one.id;
 };
-eq_or_diff $sg->view_for_class($two), $view,
+eq_or_diff $sg->views_for_class($two), $view,
   "... Schema class generates CREATE VIEW statement";
 
 # Check that the INSERT rule/trigger is correct.
@@ -499,7 +518,7 @@ $view = q{CREATE VIEW relation AS
   WHERE  _relation.simple_id = simple.id AND _relation.one_id = one.id;
 };
 
-eq_or_diff $sg->view_for_class($relation), $view,
+eq_or_diff $sg->views_for_class($relation), $view,
   "... Schema class generates CREATE VIEW statement";
 
 # Check that the INSERT rule/trigger is correct.
@@ -581,7 +600,7 @@ $table = q{CREATE TABLE _yello (
     age INTEGER
 );
 
-CREATE TABLE yello_coll_one (
+CREATE TABLE _yello_coll_one (
     yello_id INTEGER NOT NULL,
     one_id INTEGER NOT NULL,
     one_order SMALLINT NOT NULL
@@ -593,8 +612,8 @@ eq_or_diff join("\n", $sg->tables_for_class($yello)), $table,
 
 $indexes = q{CREATE UNIQUE INDEX idx_yello_uuid ON _yello (uuid);
 CREATE INDEX idx_yello_state ON _yello (state);
-CREATE UNIQUE INDEX idx_yello_coll_one ON yello_coll_one (yello_id, one_order);
-CREATE UNIQUE INDEX idx_yello_coll_one_one_id ON yello_coll_one (one_id);
+CREATE UNIQUE INDEX idx_yello_coll_one ON _yello_coll_one (yello_id, one_order);
+CREATE UNIQUE INDEX idx_yello_coll_one_one_id ON _yello_coll_one (one_id);
 };
 is $sg->indexes_for_class($yello), $indexes,
     '... and the correct indexes for the class';
@@ -606,14 +625,14 @@ $constraints = q{ALTER TABLE _yello
 CREATE TRIGGER yello_uuid_once BEFORE UPDATE ON _yello
 FOR EACH ROW EXECUTE PROCEDURE trig_uuid_once();
 
-ALTER TABLE yello_coll_one
+ALTER TABLE _yello_coll_one
   ADD CONSTRAINT pk_yello_coll_one PRIMARY KEY (yello_id, one_id);
 
-ALTER TABLE yello_coll_one
+ALTER TABLE _yello_coll_one
   ADD CONSTRAINT fk_yello_coll_one_yello_id FOREIGN KEY (yello_id)
   REFERENCES _yello(id) ON DELETE CASCADE;
 
-ALTER TABLE yello_coll_one
+ALTER TABLE _yello_coll_one
   ADD CONSTRAINT fk_yello_coll_one_one_id FOREIGN KEY (one_id)
   REFERENCES simple_one(id) ON DELETE CASCADE;
 
@@ -624,7 +643,7 @@ CREATE OR REPLACE FUNCTION yello_coll_one_cascade() RETURNS trigger AS $$
   END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER yello_coll_one_cascade AFTER DELETE ON yello_coll_one
+CREATE TRIGGER yello_coll_one_cascade AFTER DELETE ON _yello_coll_one
 FOR EACH ROW EXECUTE PROCEDURE yello_coll_one_cascade();
 };
 eq_or_diff join( "\n", $sg->constraints_for_class($yello) ), $constraints,
@@ -635,7 +654,7 @@ my $procs = q{CREATE OR REPLACE FUNCTION yello_coll_one_clear (
     obj_ident integer
 ) RETURNS VOID AS $$
 BEGIN
-    DELETE FROM yello_coll_one WHERE yello_id = obj_ident;
+    DELETE FROM _yello_coll_one WHERE yello_id = obj_ident;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -644,7 +663,7 @@ CREATE OR REPLACE FUNCTION yello_coll_one_del (
     coll_ids  integer[]
 ) RETURNS VOID AS $$
 BEGIN
-    DELETE FROM yello_coll_one
+    DELETE FROM _yello_coll_one
     WHERE  yello_id = obj_ident
            AND one_id = ANY(coll_ids);
 END;
@@ -665,15 +684,15 @@ BEGIN
     -- Determine the previous highest value of the one_order column
     -- for the given object ID.
     SELECT INTO last_ord COALESCE(MAX(one_order), 0)
-    FROM   yello_coll_one
+    FROM   _yello_coll_one
     WHERE  yello_id = obj_ident;
 
     -- Insert the new IDs. The ordering may not be sequential.
-    INSERT INTO yello_coll_one (yello_id, one_id, one_order )
+    INSERT INTO _yello_coll_one (yello_id, one_id, one_order )
     SELECT obj_ident, coll_ids[gs.ser], gs.ser + last_ord
     FROM   generate_series(1, array_upper(coll_ids, 1)) AS gs(ser)
     WHERE  coll_ids[gs.ser] NOT IN (
-        SELECT one_id FROM yello_coll_one ect2
+        SELECT one_id FROM _yello_coll_one ect2
         WHERE  yello_id = obj_ident
     );
 END;
@@ -689,19 +708,19 @@ BEGIN
     PERFORM true FROM yello WHERE id = obj_ident FOR UPDATE;
 
     -- First negate one_order to prevent unique index violations.
-    UPDATE yello_coll_one
+    UPDATE _yello_coll_one
     SET    one_order = -one_order
     WHERE  yello_id = obj_ident;
 
     IF FOUND IS false THEN
         -- There are no existing tuples, so just insert the new ones.
-        INSERT INTO yello_coll_one (yello_id, one_id, one_order)
+        INSERT INTO _yello_coll_one (yello_id, one_id, one_order)
         SELECT obj_ident, coll_ids[gs.ser], gs.ser
         FROM   generate_series(1, array_upper(coll_ids, 1))
                AS gs(ser);
     ELSE
         -- First, update the existing tuples with new one_order values.
-        UPDATE yello_coll_one SET one_order = ser
+        UPDATE _yello_coll_one SET one_order = ser
         FROM (
             SELECT gs.ser, coll_ids[gs.ser] as move_one
             FROM   generate_series(1, array_upper(coll_ids, 1)) AS gs(ser)
@@ -710,16 +729,16 @@ BEGIN
               AND yello_id = obj_ident;
 
         -- Now insert the new tuples.
-        INSERT INTO yello_coll_one (yello_id, one_id, one_order )
+        INSERT INTO _yello_coll_one (yello_id, one_id, one_order )
         SELECT obj_ident, coll_ids[gs.ser], gs.ser
         FROM   generate_series(1, array_upper(coll_ids, 1)) AS gs(ser)
         WHERE  coll_ids[gs.ser] NOT IN (
-            SELECT one_id FROM yello_coll_one ect2
+            SELECT one_id FROM _yello_coll_one ect2
             WHERE  yello_id = obj_ident
         );
 
         -- Delete any remaining tuples.
-        DELETE FROM yello_coll_one
+        DELETE FROM _yello_coll_one
         WHERE  yello_id = obj_ident AND one_order < 0;
     END IF;
 END;
@@ -729,12 +748,15 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 eq_or_diff join( "\n", $sg->procedures_for_class($yello) ), $procs,
   '... and with the correct procedures';
 
-
 $view = q{CREATE VIEW yello AS
   SELECT _yello.id AS id, _yello.uuid AS uuid, _yello.state AS state, _yello.age AS age
   FROM   _yello;
+
+CREATE VIEW yello_coll_one AS
+  SELECT yello_id, one_id, one_order
+  FROM   _yello_coll_one;
 };
-is $sg->view_for_class($yello), $view, '... and the correct view';
+is join("\n", $sg->views_for_class($yello)), $view, '... and the correct views';
 
 $insert = q{CREATE RULE insert_yello AS
 ON INSERT TO yello DO INSTEAD (
@@ -763,10 +785,29 @@ ON DELETE TO yello DO INSTEAD (
 is $sg->delete_for_class($yello), $delete,
     '... and the correct delete for the class';
 
+my $extras = q{CREATE OR REPLACE RULE yello_coll_one_insert AS
+ON INSERT TO yello_coll_one DO INSTEAD (
+    SELECT coll_error('yello_coll_one', 'insert into', NEW.yello_id, NEW.one_id);
+);
+
+CREATE OR REPLACE RULE yello_coll_one_update AS
+ON UPDATE TO yello_coll_one DO INSTEAD (
+    SELECT coll_error('yello_coll_one', 'update', NEW.yello_id, NEW.one_id);
+);
+
+CREATE OR REPLACE RULE yello_coll_one_delete AS
+ON DELETE TO yello_coll_one DO INSTEAD (
+    SELECT coll_error('yello_coll_one', 'delete', OLD.yello_id, OLD.one_id);
+);
+};
+eq_or_diff join("\n", $sg->extras_for_class($yello)), $extras,
+    '... and the correct extras for the class';
+
 # Check that a complete schema is properly generated.
 eq_or_diff join ( "\n", $sg->schema_for_class($yello) ),
   join( "\n", $seq, $table, $indexes, $constraints, $procs, $view, $insert,
-        $update, $delete ), "... Schema class generates complete schema";
+        $update, $delete, $extras ),
+    "... Schema class generates complete schema";
 
 ##############################################################################
 # Grab the composed class.
@@ -832,7 +873,7 @@ $view = q{CREATE VIEW composed AS
   SELECT _composed.id AS id, _composed.uuid AS uuid, _composed.state AS state, _composed.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, _composed.color AS color
   FROM   _composed LEFT JOIN one ON _composed.one_id = one.id;
 };
-eq_or_diff $sg->view_for_class($composed), $view,
+eq_or_diff $sg->views_for_class($composed), $view,
   "... Schema class generates CREATE VIEW statement";
 
 # Check that the INSERT rule/trigger is correct.
@@ -939,7 +980,7 @@ $view = q{CREATE VIEW comp_comp AS
   FROM   _comp_comp, composed
   WHERE  _comp_comp.composed_id = composed.id;
 };
-eq_or_diff $sg->view_for_class($comp_comp), $view,
+eq_or_diff $sg->views_for_class($comp_comp), $view,
   "... Schema class generates CREATE VIEW statement";
 
 # Check that the INSERT rule/trigger is correct.
@@ -1047,7 +1088,7 @@ $view = q{CREATE VIEW extend AS
   FROM   _extend, two
   WHERE  _extend.two_id = two.id;
 };
-eq_or_diff $sg->view_for_class($extend), $view,
+eq_or_diff $sg->views_for_class($extend), $view,
   "... Schema class generates CREATE VIEW statement";
 
 # Check that the INSERT rule/trigger is correct.
@@ -1162,7 +1203,7 @@ $view = q{CREATE VIEW types_test AS
   SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator, _types_test.media_type AS media_type, _types_test.attribute AS attribute
   FROM   _types_test;
 };
-eq_or_diff $sg->view_for_class($types_test), $view,
+eq_or_diff $sg->views_for_class($types_test), $view,
   "... Schema class generates CREATE VIEW statement";
 
 # Check that the INSERT rule/trigger is correct.

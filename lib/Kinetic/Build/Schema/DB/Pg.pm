@@ -368,20 +368,21 @@ sub procedures_for_class {
     my @procs;
     for my $attr (@attrs) {
         my $table    = $attr->collection_table;
+        my $view     = $attr->collection_view;
         my $coll_key = $attr->collection_of->key;
         push @procs,
-            $self->_coll_clear_sql($table, $main_key),
-            $self->_coll_del_sql($table, $main_key, $coll_key),
-            $self->_coll_add_sql($table, $main_key, $coll_key),
-            $self->_coll_set_sql($table, $main_key, $coll_key),
+            $self->_coll_clear_sql($view, $table, $main_key),
+            $self->_coll_del_sql($view, $table, $main_key, $coll_key),
+            $self->_coll_add_sql($view, $table, $main_key, $coll_key),
+            $self->_coll_set_sql($view, $table, $main_key, $coll_key),
         ;
     }
     return @procs;
 }
 
 sub _coll_clear_sql {
-    my ($self, $table, $main_key) = @_;
-    return qq{CREATE OR REPLACE FUNCTION $table\_clear (
+    my ($self, $view, $table, $main_key) = @_;
+    return qq{CREATE OR REPLACE FUNCTION $view\_clear (
     obj_ident integer
 ) RETURNS VOID AS \$\$
 BEGIN
@@ -392,8 +393,8 @@ END;
 }
 
 sub _coll_del_sql {
-    my ($self, $table, $main_key, $coll_key) = @_;
-    return qq{CREATE OR REPLACE FUNCTION $table\_del (
+    my ($self, $view, $table, $main_key, $coll_key) = @_;
+    return qq{CREATE OR REPLACE FUNCTION $view\_del (
     obj_ident integer,
     coll_ids  integer[]
 ) RETURNS VOID AS \$\$
@@ -408,8 +409,8 @@ END;
 
 
 sub _coll_add_sql {
-    my ($self, $table, $main_key, $coll_key) = @_;
-    return qq{CREATE OR REPLACE FUNCTION $table\_add (
+    my ($self, $view, $table, $main_key, $coll_key) = @_;
+    return qq{CREATE OR REPLACE FUNCTION $view\_add (
     obj_ident integer,
     coll_ids  integer[]
 ) RETURNS VOID AS \$\$
@@ -441,8 +442,8 @@ END;
 }
 
 sub _coll_set_sql {
-    my ($self, $table, $main_key, $coll_key) = @_;
-    return qq{CREATE OR REPLACE FUNCTION $table\_set (
+    my ($self, $view, $table, $main_key, $coll_key) = @_;
+    return qq{CREATE OR REPLACE FUNCTION $view\_set (
     obj_ident integer,
     coll_ids  integer[]
 ) RETURNS VOID AS \$\$
@@ -752,6 +753,42 @@ sub delete_for_class {
 
 ##############################################################################
 
+=head3 extras_for_class
+
+  my @sql = $kbs->extras_for_class($class)
+
+Returns a list of any extra SQL statements that need to be executed in order
+to adequately represent a class in the database. By default, there are none,
+so this method returns none. But subclasses may override it to provide extra
+functionality.
+
+=cut
+
+sub extras_for_class {
+    my ($self, $class) = @_;
+    my @attrs = grep { $_->collection_of } $class->attributes;
+    return unless @attrs;
+    my $main_key = $class->key;
+    my @triggers;
+    for my $attr(@attrs) {
+        my $view     = $attr->collection_view;
+        my $coll_key = $attr->collection_of->key;
+        for my $type qw(insert update delete) {
+            my $adverb = $type eq 'insert' ? ' into' : '';
+            my $var    = $type eq 'delete' ? 'OLD' : 'NEW';
+            push @triggers,
+                "CREATE OR REPLACE RULE $view\_$type AS\n"
+              . "ON \U$type\E TO $view DO INSTEAD (\n"
+              . "    SELECT coll_error('$view', '$type$adverb', "
+              .                       "$var.yello_id, $var.one_id);\n"
+              . ");\n";
+          }
+    }
+    return @triggers;
+}
+
+##############################################################################
+
 =head3 setup_code
 
   my $setup_sql = $kbs->setup_code;
@@ -805,7 +842,7 @@ q{CREATE DOMAIN version AS TEXT
   );
 },
 
-q{CREATE FUNCTION trig_uuid_once() RETURNS trigger AS $$
+q{CREATE OR REPLACE FUNCTION trig_uuid_once() RETURNS trigger AS $$
   BEGIN
     IF OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL
         THEN RAISE EXCEPTION 'value of %.uuid cannot be changed', TG_RELNAME;
@@ -813,7 +850,27 @@ q{CREATE FUNCTION trig_uuid_once() RETURNS trigger AS $$
     RETURN NEW;
   END;
 $$ LANGUAGE plpgsql;
-}
+},
+
+q{CREATE OR REPLACE FUNCTION coll_error(
+    view_name  TEXT,
+    query_type TEXT,
+    obj_id     INTEGER,
+    coll_id    INTEGER
+) RETURNS VOID AS $$
+BEGIN
+    IF query_type = 'delete' THEN
+        RAISE EXCEPTION
+          'Please use %_del(%, {%}) or %_clear(%) to % from the % collection',
+          view_name, obj_id, coll_id, obj_id, query_type, view_name;
+    ELSE
+        RAISE EXCEPTION
+          'Please use %_add(%, {%}) or %_set(%, {%}) to % the % collection',
+          view_name, obj_id, coll_id, obj_id, coll_id, query_type, view_name;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+},
 }
 
 ##############################################################################
@@ -1056,20 +1113,21 @@ sub _generate_collection_constraints {
     my $main_table = $class->table;
     foreach my $attr (@attributes) {
         my $table      = $attr->collection_table;
+        my $view       = $attr->collection_view;
         my $coll       = $attr->collection_of;
         my $coll_table = $coll->table;
         my $coll_key   = $coll->key;
         push @constraints,
             qq{ALTER TABLE $table
-  ADD CONSTRAINT pk_$table PRIMARY KEY ($main_key\_id, $coll_key\_id);
+  ADD CONSTRAINT pk_$view PRIMARY KEY ($main_key\_id, $coll_key\_id);
 },
 
             qq{ALTER TABLE $table
-  ADD CONSTRAINT fk_$table$main_table\_id FOREIGN KEY ($main_key\_id)
+  ADD CONSTRAINT fk_$view$main_table\_id FOREIGN KEY ($main_key\_id)
   REFERENCES $main_table(id) ON DELETE CASCADE;
 },
             qq{ALTER TABLE $table
-  ADD CONSTRAINT fk_$table\_$coll_key\_id FOREIGN KEY ($coll_key\_id)
+  ADD CONSTRAINT fk_$view\_$coll_key\_id FOREIGN KEY ($coll_key\_id)
   REFERENCES $coll_table(id) ON DELETE CASCADE;
 };
 
@@ -1077,7 +1135,7 @@ sub _generate_collection_constraints {
             # Each collection object belongs only to the parent object,
             # so make sure that deletes fully cascade.
         push @constraints,
-            qq{CREATE OR REPLACE FUNCTION $table\_cascade() RETURNS trigger AS \$\$
+            qq{CREATE OR REPLACE FUNCTION $view\_cascade() RETURNS trigger AS \$\$
   BEGIN
     DELETE FROM $coll_table WHERE id = OLD.$coll_key\_id;
     RETURN OLD;
@@ -1085,7 +1143,7 @@ sub _generate_collection_constraints {
 \$\$ LANGUAGE plpgsql;
 },
             $self->create_trigger_for_table(
-                "$table\_cascade",
+                "$view\_cascade",
                 'DELETE',
                 $table,
                 'AFTER',
