@@ -614,23 +614,22 @@ sub _save_collections {
             # Assign the whole thing and return.
             my @set;
             while ( my $thing = $coll->next ) {
-                $thing->save;
-                push @set, $thing->id unless $thing->is_purged;
+                push @set, $thing->id unless $thing->save->is_purged;
             }
             $self->_coll_set($object, $attr, \@set) if @set;
             return $self;
         }
 
         # Even if the collection was cleared, we might have added objects.
-        my @add = grep { $_->save && !$_->is_purged } $coll->added;
+        my @add = grep { !$_->save->is_purged } $coll->added;
         $self->_coll_add($object, $attr, \@add) if @add;
-        return $self if $coll->cleared;
+        return $self if $coll->is_cleared;
 
         # Delete objects removed from the collection.
-        my @del = grep { $_->save && !$_->is_purged } $coll->removed;
+        my @del = grep { !$_->save->is_purged } $coll->removed;
         $self->_coll_del($object, $attr, \@del) if @del;
     }
-}
+
     return $self;
 }
 

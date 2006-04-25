@@ -2177,7 +2177,7 @@ sub string_order_by : Test(6) {
       'and we can combine single items order_by and sort parameters';
 }
 
-sub joins : Test(no_plan) {
+sub joins : Test(6) {
     my $test = shift;
     return unless $test->_should_run;
     my $yello = Yello->new( age => 32 );

@@ -47,12 +47,7 @@ throws_ok { $CLASS->new }
   qr/Argument “.*” is not a valid Kinetic::Util::Iterator object/,
   '... and calling it without an argument should die';
 
-throws_ok {
-    $CLASS->new(
-        {   iter => sub { }
-        }
-    );
-  }
+throws_ok { $CLASS->new({ iter => sub { } }) }
   qr/Argument “.*” is not a valid Kinetic::Util::Iterator object/,
   '... and as should calling with without a proper iterator object';
 

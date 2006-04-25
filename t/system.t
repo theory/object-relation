@@ -4,7 +4,7 @@
 
 use warnings;
 use strict;
-use lib 't/lib';
+use lib qw(t/lib t/system);
 use TEST::Kinetic::TestSetup;
 use TEST::Class::Kinetic 't/system';
 
