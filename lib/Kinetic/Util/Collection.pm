@@ -129,7 +129,7 @@ sub new {
         iter        => $iter,
         index       => $NULL,
         added_index => $NULL,
-        array       => AsHash->new( { strict => 1 } ),
+        array       => AsHash->new,
         got         => $NULL,
         key         => $key,
         package     => undef,
@@ -168,7 +168,7 @@ sub empty {
 
 Constructs a new collection object based on an array reference. If the key is
 present, all objects in C<@list> must be objects whose classes correspond to
-said key.
+said key. Duplicate items in the list will be removed.
 
 For convenience, this method may also be called from a collection instance
 and, in which case it returns a new collection. The new collection will be of
@@ -187,12 +187,14 @@ sub from_list {
     my $class = ref $proto || $proto;
     $arg_for ||= {};
     my ( $list, $key ) = @{$arg_for}{qw/list key/};
-    $class->_check_dupes($list) if @$list;
+    _clear_dupes($list) if @$list;
     my @list = @$list;    # copy the array to avoid changing called array
-    return $class->new({
+    my $self = $class->new({
         iter => Iterator->new( sub { shift @list } ),
         (defined $key ? (key => $key) : ()),
     });
+    $self->{assigned} = 1;
+    return $self;
 }
 
 ##############################################################################
@@ -344,7 +346,10 @@ sub get {
  $coll->set($index, $value);
 
 Sets the value of the collection at C<$index> to C<$value>. As a side effect,
-it loads the collection from the iterator up to C<$index>.
+it loads the collection from the iterator up to C<$index>. As a side effect,
+C<added()>, C<removed()> will no longer return values, C<is_cleared()> will
+return false, and C<is_assigned()> will return true, because it is assumed
+that the whole collection has been reordered.
 
 =cut
 
@@ -354,10 +359,56 @@ sub set {
     $self->_fill_to($index);
     my $array = $self->_array;
     my $key   = $array->key_at($index);
-    $array->put( $key, $value );
-    delete $self->{added};
+    $array->insert_after($key, _key $value => $value);
+    $array->delete($key);
+    delete @{ $self }{ qw(added removed cleared) };
+    $self->{assigned} = 1;
     return $self;
 }
+
+##############################################################################
+
+=head3 assign
+
+  $coll->assign(@values);
+
+Assigns a list of values to the collection in the order in which they're
+passed. All previously-existing values will be discarded and the index will be
+reset. As a result, C<added()> and C<removed()> will return now values, and
+C<is_cleared()> will return false, as the whole collection has been assigned
+to.
+
+=cut
+
+sub assign {
+    my $self = shift;
+    delete @{$self}{qw(iter added removed cleared)};
+    my %seen;
+    my @assigned = do {
+        no warnings 'uninitialized';
+        map  { $self->_check($_) } grep {  !$seen{_key $_}++; } @_;
+    };
+    $self->{assigned} = 1;
+    $self->{iter} = Iterator->new(sub { shift @assigned } );
+    @{$self}{qw(index got)} = ($NULL, $NULL);
+    $self->{array}->clear;
+    return $self;
+}
+
+##############################################################################
+
+=head3 is_assigned
+
+  if ($coll->is_assigned) {
+      print "Values have been set or assigned\n";
+  }
+
+Returns true if values have been set or assigned by one or more calls to
+C<set()> or C<assigned()> and no subsequent call to C<clear()>.
+
+=cut
+
+sub is_assigned { shift->{assigned} }
 
 ##############################################################################
 
@@ -372,21 +423,35 @@ load the collection from the iterator. Returns the collection object.
 
 sub add {
     my $self = shift;
-    if (my $added = $self->{added}) {
-        push @{ $added }, map { $self->_check($_) } @_;
-    } else {
-        $self->{added} = $added = [ map { $self->_check($_) } @_ ];
-        my $iter = $self->{iter};
-        $self->{iter} = Iterator->new(
-            sub {
-                if (defined( my $val = $iter->next )) {
-                    return $val;
-                }
-                return $added->[++$self->{added_index} ];
-            }
-        );
+    return $self unless @_;
+
+    # Create the AsHash array of added items.
+    my $added = $self->{added} || AsHash->new;
+    $self->{added} ||= $added unless $self->{assigned};
+    my $removed = $self->{removed} || {};
+
+    # Collect the items to be added.
+    my @to_push;
+    for my $item (@_) {
+        my $key = _key $item;
+        next if $added->exists($key);
+        push @to_push, $key => $self->_check($item );
+        delete $removed->{$key};
     }
+    $added->push(@to_push);
+
+    # Create a new iterator that returns the added items.
+    my $iter = $self->{iter};
+    $self->{iter} = Iterator->new(
+        sub {
+            if (defined( my $val = $iter->next )) {
+                return $val;
+            }
+            return $added->value_at(++$self->{added_index});
+        }
+    );
     return $self;
+
 }
 
 ##############################################################################
@@ -397,16 +462,78 @@ sub add {
   my $added = $coll->added;
 
 Returns a list or array reference of items that have been added to the
-collection by one or more calls to C<added()>. Returns an empty list or
-C<undef> if no items have been added or if the collection has been modified by
-a call to C<set()>.
+collection by one or more calls to C<add()>. Returns an empty list or C<undef>
+if no items have been added or if the collection has been modified by a call
+to C<set()> or C<assign()> or C<clear()>.
 
 =cut
 
 sub added {
     my $self = shift;
     my $added = $self->{added} or return;
-    return wantarray ? @$added : $added;
+    return wantarray ? $added->values : [ $added->values ];
+}
+
+##############################################################################
+
+=head3 remove
+
+  $coll->remove(@values);
+
+Removes a list of values to the end of the collection. This method does I<not>
+load the collection from the iterator. Returns the collection object.
+
+=cut
+
+sub remove {
+    my $self = shift;
+    return $self unless @_;
+
+    # Create the hash of items to be removed.
+    my $removed = $self->{removed} || {};
+    $self->{removed} ||= $removed unless $self->{assigned};
+    my $added = $self->{added};
+
+    # Add the removed items to the hash and remove them from the array.
+    my $array = $self->_array;
+    for my $item (@_) {
+        my $key = _key $item;
+        $array->delete($key);
+        $added->delete($key) if $added;
+        $removed->{$key} = $item;
+    }
+
+    # Create a new iterator to filter out the deleted items.
+    my $iter = $self->{iter};
+    $self->{iter} = Iterator->new(
+        sub {
+            while (defined( my $val = $iter->next )) {
+                return $val unless $removed->{_key $val};
+            }
+        }
+    );
+
+    return $self;
+}
+
+##############################################################################
+
+=head3 removed
+
+  my @removed = $coll->removed;
+  my $removed = $coll->removed;
+
+Returns a list or array reference of items that have been removed from the
+collection by one or more calls to C<remove()>. Returns an empty list or
+C<undef> if no items have been removed or if the collection has been modified
+by a call to C<set()> or C<assign()> or C<clear()>.
+
+=cut
+
+sub removed {
+    my $self = shift;
+    my $removed = $self->{removed} or return;
+    return wantarray ? values %{ $removed } : [ values %{ $removed } ];
 }
 
 ##############################################################################
@@ -462,18 +589,38 @@ sub size {
 
  $coll->clear;
 
-Empties the collection.
+Empties the collection. All existing values in the collection will be
+discarded, C<removed()> and C<added()> will return no values, and
+C<assigned()> will return false.
 
 =cut
 
 sub clear {
     my $self = shift;
-    $self->iter->all if defined $self->{got};
-    $self->{got}         = undef;
+    $self->{iter}        = Iterator->new(sub {});
+    $self->{got}         = $NULL;
     $self->{index}       = $NULL;
     $self->{added_index} = $NULL;
-    $self->{array}       = AsHash->new( { strict => 1 } );
+    $self->{cleared}     = 1;
+    $self->{array}->clear;
+    delete @{ $self }{qw(added removed assigned)};
+    return $self;
 }
+
+##############################################################################
+
+=head3 is_cleared
+
+  if ($coll->is_cleared) {
+      print "The collection has been cleared\n";
+  }
+
+Returns true if the collection has been cleared by a call to C<clear()> and
+there have been no subsequent calls to C<set()> or C<assigned()>.
+
+=cut
+
+sub is_cleared { shift->{cleared} }
 
 ##############################################################################
 
@@ -516,22 +663,24 @@ sub all {
 
 =head3 do
 
- $code->do($anon_sub);
+  $coll->do( sub { print "$_[0]\n"; return $_[0]; } );
+  $coll->do( sub { print "$_\n"; return $_; } );
 
-Executes the anonymous subroutine passed as the sole argument for each element
-of the list, passing each element as an argument to the subroutine, until the
-subroutine returns false. This method always resets the collection first, so
-the code reference is applied from the beginning of the collection. A side
-effect of C<do()> is that it of course the collection from the iterator until
-the subroutine returns false.
+Pass a code reference to this method to execute it for each item in the
+collection. Each item will be set to C<$_> before executing the code
+reference, and will also be passed as the sole argument to the code reference.
+If C<next()> has been called prior to the call to C<do()>, then only the
+remaining items in the iterator will passed to the code reference. Call
+C<reset()> first to ensure that all items will be processed. Iteration
+terminates when the code reference returns a false value, so be sure to have
+it return a true value if you want it to iterate over every item.
 
 =cut
 
 sub do {
     my ( $self, $code ) = @_;
-    $self->reset;
-    while ( defined( my $item = $self->next ) ) {
-        return unless $code->($item);
+    while ( defined( local $_ = $self->next ) ) {
+        return unless $code->($_);
     }
 }
 
@@ -690,34 +839,24 @@ sub _set_package {
 
 ##############################################################################
 
-=head3 _check_dupes
+=head3 _clear_dupes
 
-  $coll->_check_dupes(\@list);
+  _clear_dupes(\@list);
 
-Given an array reference, this method will return the invocant if no duplicate
-elements are in the array. Otherwise, throws a
-C<Kinetic::Util::Exception::Fatal> exception identifying the key type (UUID,
-refaddr, or value) used and the duplicate values.
+Given an array reference, this method will return the array reference with any
+duplicate entries removed.
 
 =cut
 
-sub _check_dupes {
-    my ($proto, $list) = @_;
+sub _clear_dupes {
+    my $list = shift;
 
-    my (%found, @dups);
-    foreach my $item (@$list) {
+    my %found;
+    for my $i (0..$#$list) {
         no warnings 'uninitialized';
-        push @dups, $item if $found{$item}++;
+        delete $list->[$i] if $found{_key $list->[$i]}++;
     }
-    return $proto unless @dups;
-
-    my $key_type =  eval { $list->[0]->uuid } ? 'UUIDs'
-        :           refaddr $list->[0]        ? 'addresses'
-        :                                       'values';
-    throw_fatal [
-        'Cannot assign duplicate [_1] to a collection: [_2]',
-        $key_type, join ', ', @dups
-    ];
+    return $list;
 }
 
 =end private

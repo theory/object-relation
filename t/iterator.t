@@ -101,11 +101,11 @@ $iter->do(
     package Faux::Search;
 
     sub new {
-        my ( $class, $column ) = @_;
-        bless { column => $column } => $class;
+        my ( $class, $param ) = @_;
+        bless { param => $param } => $class;
     }
 
-    sub column { shift->{column} }
+    sub param { shift->{param} }
 }
 
 my @searches = map { Faux::Search->new($_) } qw/ name rank serial /;

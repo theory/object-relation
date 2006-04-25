@@ -7,7 +7,7 @@ use warnings;
 use utf8;
 use Kinetic::Build::Test;
 
-use Test::More tests => 114;
+use Test::More tests => 163;
 #use Test::More 'no_plan';
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
@@ -15,7 +15,7 @@ use File::Spec;
 use aliased 'Kinetic::Util::Iterator';
 use Kinetic::Util::Constants '$UUID_RE';
 
-{
+FAUX: {
 
     package Faux;
     use Kinetic::Util::Functions qw(:uuid);
@@ -64,7 +64,7 @@ my @items = map { Faux->new($_) } qw/fee fie foe fum/;
 my @copy  = @items;
 my $iter  = Iterator->new( sub { shift @copy } );
 ok my $coll = $CLASS->new( { iter => $iter } ),
-  'Calling new() with a valid iterator object should succeed';
+  'Calling new() with a valid collection object should succeed';
 isa_ok $coll, $CLASS => '... and the object it returns';
 
 can_ok $coll, 'package';
@@ -163,8 +163,10 @@ is $coll->get(1)->name, 'one',
 is $coll->curr->name, 'zero',
   '... and this still should not affect the current item';
 
+ok !$coll->is_assigned, 'is_assigned() should be false';
 can_ok $coll, 'set';
-$coll->set( 3, Faux->new('trois') );
+ok $coll->set( 3, Faux->new('trois') ), 'Set item 4';
+ok $coll->is_assigned, 'And now is_assigned() should be true';
 is $coll->get(3)->name, 'trois',
   '... and we should be able to set items to new values';
 is $coll->curr->name, 'zero',
@@ -271,23 +273,21 @@ is_deeply [ $coll->all ], [ 1 .. 4 ],
 is $coll->next, 1, '... and generally just behave like a normal collection';
 is $coll->next, 2, '... and generally just behave like a normal collection';
 
-throws_ok {$coll = $CLASS->from_list( { list => [1,1] } )}
-    'Kinetic::Util::Exception::Fatal',
-    'Trying to assign duplicate items to a collection should fail';
-like $@, qr/^Cannot assign duplicate values to a collection: 1/,
-    '... with an appropriate error message';
+ok $coll = $CLASS->from_list( { list => [1,1] } ),
+    'Create a collection with duplicate items';
+is $coll->size, 1, 'The size should reflect the removal of the dupes';
 
 #
 # Testing add().
 #
 
 @list = map { Faux->new($_) } qw/zero un deux trois quatre/;
-$coll = $CLASS->from_list({ list => \@list });
+ok $coll = $CLASS->new({ iter => Iterator->new( sub { shift @list }) }),
+    'Create a new collection with five objects';
 
 my @add = map { Faux->new($_) } qw/cinq six sept/;
-can_ok $coll, 'add';
+can_ok $coll, 'add', 'added';
 ok $coll->add(@add), 'Add some items to the collection';
-is scalar @list, 5, 'The list should still be five items long';
 can_ok $coll, 'added';
 is_deeply scalar $coll->added, \@add, 'added() should return the added items';
 
@@ -300,10 +300,82 @@ is_deeply scalar $coll->added, \@add,
 my $faux = Faux->new('dix');
 ok $coll->set(0, $faux), 'Set the first item to a new object';
 is scalar $coll->added, undef, 'added() should now return undef';
-is scalar @list, 5, 'But list should still be five items long';
 
 is $coll->get(0), $faux, 'The first item should be the one we set';
 is $coll->get(5), $add[0], 'The sixth item should be the first added';
 
 is $coll->size, 10, 'The size of the collection should be 10';
 is $coll->get(5), $add[0], 'The sixth item should be the first added';
+ok $coll->add($add[0]), 'Add a pre-existing item to the collection';
+is $coll->size, 10, 'The size of the collection should still be 10';
+
+ok $coll = $CLASS->empty, 'Create a new empty collection';
+ok $coll->add(@add), 'Add some items to it';
+ok $coll->set(0, $faux), 'Set the first item to a different value';
+is $coll->added, undef, 'added() should now return undef';
+ok $coll->add(@add), 'Add all of the items again';
+is $coll->size, 5, 'The size should be five';
+is_deeply scalar $coll->all, [$faux, @add[1..4]],
+    'The items should be as expected';
+
+#
+# Testing remove()
+#
+can_ok $coll, qw(remove removed);
+ok $coll->remove($add[1]), 'Remove an object';
+is $coll->size, 4, 'The size should now be four';
+
+@list = map { Faux->new($_) } qw/zero un deux trois quatre/;
+ok $coll = $CLASS->new({ iter => Iterator->new( sub { shift @list }) }),
+    'Create a new collection with five objects';
+ok $coll->add(@add), 'Add some items';
+ok $coll->remove($add[1]), 'Delete an item';
+is_deeply scalar $coll->removed, [$add[1]],
+    'removed() should return the removed item';
+ok $coll->add($add[1]), 'Add the item again';
+ok !$coll->is_assigned, 'is_assigned() should still be false';
+is $coll->get(9), $add[1], 'The last item should be the added item';
+is $coll->size, 10, 'The collection should have ten items';
+ok $coll->remove(@add), 'Remove the added items';
+is_deeply [ sort $coll->removed ], [ sort @add ],
+    'removed() should return all of the removed items';
+is $coll->size, 5, 'The collection should now have five items';
+ok $coll->set(2, $add[1]), 'Set the third item to a new value';
+is $coll->get(2), $add[1], 'The third item should be the new value';
+ok $coll->is_assigned, 'is_assigned() should now be true';
+is $coll->added, undef, 'added() should return undef';
+is $coll->removed, undef, 'reemoved() should also return undef';
+ok $coll->add($add[1]), 'Add a pre-existing item to the collection';
+is $coll->size, 5, 'The size of the collection should still be 5';
+
+#
+# Testing assign()
+#
+ok $coll = $CLASS->from_list({ list => \@list }),
+    'Create a new collection from_list()';
+can_ok $coll, 'assign', 'is_assigned';
+ok $coll->is_assigned, 'is_assigned() should return true';
+
+ok $coll = $CLASS->new({ iter => Iterator->new( sub {} ) }),
+    'Create a new() collection';
+ok !$coll->is_assigned, 'is_assigned() should return false';
+
+ok $coll->assign(@add), 'Assign all new values';
+ok $coll->is_assigned, 'The assigned boolean should be true';
+is $coll->size, 5, 'The collection should now contain five objects';
+is $coll->index, undef, 'The index should be undefined';
+is $coll->added, undef, 'added() should be undefined';
+is $coll->get(0), $add[0], 'The first assigned value should be at 0';
+is_deeply scalar $coll->all, \@add,
+    'all() should return all of the assigned items';
+ok $coll->assign(@add, @add), 'Assign with duplicate items';
+is $coll->size, 5, 'The size should reflect removal of the dupes';
+is_deeply scalar $coll->all, \@add,
+    'all() should return all of the assigned items';
+
+#
+# Testing clear()
+#
+ok $coll = $CLASS->from_list({ list => \@list }),
+    'Create a new collection from_list()';
+can_ok $coll, qw(clear is_cleared);

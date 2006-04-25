@@ -604,14 +604,33 @@ sub _save_collections {
     foreach my $attr ( $class->persistent_attributes ) {
         next unless $attr->collection_of;
         my $coll = $attr->get($object);
-        my @set;
-        while ( defined( my $thing = $coll->next ) ) {
-            $thing->save;
-            next if $thing->is_purged;
-            push @set, $thing->id;
+
+        if ($coll->is_cleared) {
+            # We can just blow away the collection in the database.
+            $self->_coll_clear($object, $attr);
         }
-        $self->_coll_set($object, $attr, \@set);
+
+        elsif ($coll->is_assigned) {
+            # Assign the whole thing and return.
+            my @set;
+            while ( my $thing = $coll->next ) {
+                $thing->save;
+                push @set, $thing->id unless $thing->is_purged;
+            }
+            $self->_coll_set($object, $attr, \@set) if @set;
+            return $self;
+        }
+
+        # Even if the collection was cleared, we might have added objects.
+        my @add = grep { $_->save && !$_->is_purged } $coll->added;
+        $self->_coll_add($object, $attr, \@add) if @add;
+        return $self if $coll->cleared;
+
+        # Delete objects removed from the collection.
+        my @del = grep { $_->save && !$_->is_purged } $coll->removed;
+        $self->_coll_del($object, $attr, \@del) if @del;
     }
+}
     return $self;
 }
 
@@ -631,6 +650,63 @@ sub _coll_set {
     throw_unimplemented [
         '"[_1]" must be overridden in a subclass',
         '_coll_set'
+    ];
+}
+
+##############################################################################
+
+=head3 _coll_add
+
+  $self->_coll_add($object, $attribute, \@coll_ids);
+
+This method, which must be implemented by subclasses, adds a specific list of
+IDs to a collection using the database-specific methods to do so correctly and
+efficiently.
+
+=cut
+
+sub _coll_add {
+    throw_unimplemented [
+        '"[_1]" must be overridden in a subclass',
+        '_coll_add'
+    ];
+}
+
+##############################################################################
+
+=head3 _coll_del
+
+  $self->_coll_del($object, $attribute, \@coll_ids);
+
+This method, which must be implemented by subclasses, deletes a specific list
+of IDs from a collection using the database-specific methods to do so
+correctly and efficiently.
+
+=cut
+
+sub _coll_del {
+    throw_unimplemented [
+        '"[_1]" must be overridden in a subclass',
+        '_coll_del'
+    ];
+}
+
+##############################################################################
+
+=head3 _coll_clear
+
+  $self->_coll_del($object, $attribute);
+
+This method, which must be implemented by subclasses, deletes all IDs from a
+collection using the database-specific methods to do so correctly and
+efficiently.
+
+=cut
+
+sub _coll_clear {
+    throw_unimplemented [
+        '"[_1]" must be overridden in a subclass',
+        '_coll_clear'
     ];
 }
 

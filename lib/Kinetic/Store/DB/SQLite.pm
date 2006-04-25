@@ -236,9 +236,89 @@ correctly.
 
 =cut
 
-sub _coll_set {
+sub _coll_set { _coll_query(@_, 'set') }
+
+##############################################################################
+
+=head3 _coll_add
+
+  $self->_coll_add($object, $attribute, \@coll_ids);
+
+This method adds a specific list of IDs to a collection, using the SQLite
+C<coll_add()> function defined by
+L<Kinetic::Store::DB::SQLite::DBI|Kinetic::Store::DB::SQLite::DBI> to do so
+correctly.
+
+=cut
+
+sub _coll_add { _coll_query(@_, 'add') }
+
+##############################################################################
+
+=head3 _coll_del
+
+  $self->_coll_del($object, $attribute, \@coll_ids);
+
+This method deletes a specific list of IDs from a collection, using the SQLite
+C<coll_del()> function defined by
+L<Kinetic::Store::DB::SQLite::DBI|Kinetic::Store::DB::SQLite::DBI> to do so
+correctly.
+
+=cut
+
+sub _coll_del { _coll_query(@_, 'del') }
+
+##############################################################################
+
+=head3 _coll_clear
+
+  $self->_coll_clear($object, $attribute);
+
+This method clears a specific list of IDs from a collection, using the SQLite
+C<coll_clear()> function defined by
+L<Kinetic::Store::DB::SQLite::DBI|Kinetic::Store::DB::SQLite::DBI> to do so
+correctly.
+
+=cut
+
+sub _coll_clear {
     my ($self, $obj, $attr, $coll_ids) = @_;
-    my $sth = $self->_dbh->prepare_cached('SELECT coll_set(?, ?, ?, ?)');
+    my $sth = $self->_dbh->prepare_cached('SELECT coll_clear(?, ?, ?)');
+    $sth->execute( $obj->my_class->key => $obj->id, $attr->name );
+    $sth->finish;
+    return $self;
+}
+
+##############################################################################
+
+=head2 Private Functions
+
+=head3 _coll_query
+
+  _coll_query($object, $attribute, \@coll_ids, $function);
+
+This function is called by C<_coll_set()>, C<_coll_add()>, and C<_coll_del()>
+to actually do the work of executing the SQLite function. Since the three
+functions are all executed identically except in the name of he function, the
+arguments are the same as those to the methods, with the addition of an extra
+argument specifying the function to call. The C<$function> argument may be any
+one of:
+
+=over
+
+=item set
+
+=item add
+
+=item del
+
+=back
+
+=cut
+
+sub _coll_query {
+    my ($self, $obj, $attr, $coll_ids, $func) = @_;
+    my $sth = $self->_dbh->prepare_cached("SELECT coll_$func(?, ?, ?, ?)");
     $sth->execute(
         $obj->my_class->key => $obj->id,
         $attr->name         => join ',', @$coll_ids
