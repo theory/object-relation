@@ -708,7 +708,7 @@ sub _prepare_kinetic {
 
     my $class_key        = $containing_class->key;
     $arg_for{collection} = delete $arg_for{references};
-    $arg_for{coll_view}  = "$class_key\_coll_$arg_for{type}";
+    $arg_for{coll_view}  = "$class_key\_coll_$arg_for{name}";
 
     # The contained class must know which classes contain it.
     Kinetic::Meta->for_key($arg_for{type})->_add_container($class_key);

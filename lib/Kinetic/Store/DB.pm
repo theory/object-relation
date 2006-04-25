@@ -652,16 +652,17 @@ sub _get_collection {
     # timing issue worked out.
 
     my ( $self, $object, $attr ) = @_;
-
-    (my $coll_key = $attr->type) =~ s/^collection_//;
+    #                                XXX Hack! Must find a better way
+    (my $coll_type = $attr->type) =~ s/^collection_//;
+    my $coll_key         = $attr->name;
     my $containing_key   = $object->my_class->key;
-    my $search           = Kinetic::Meta->for_key($coll_key);
+    my $search           = Kinetic::Meta->for_key($coll_type);
     my $collection_view  = $attr->collection_view;
     my $iter             = $search->package->query(
         "$containing_key.uuid" => $object->uuid,
         { order_by => "$collection_view.$coll_key\_order" }
     );
-    return Collection->new( { iter => $iter, key => $coll_key } );
+    return Collection->new( { iter => $iter, key => $coll_type } );
 }
 
 ##############################################################################
@@ -686,8 +687,7 @@ sub _collection_columns {
         ? $object
         : $object->my_class;
     my $object_id = $class->key . "_id";
-    #                               XXX Hack! Must find a better way
-    (my $coll_key = $attr->type) =~ s/^collection_//;
+    my $coll_key  = $attr->name;
     return ( $object_id, "$coll_key\_id", "$coll_key\_order" );
 }
 

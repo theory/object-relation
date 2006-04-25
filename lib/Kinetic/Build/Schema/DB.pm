@@ -147,7 +147,7 @@ sub collection_table {
     return $self->format_coll_table(
         $attribute->collection_table,
         $class->key,
-        $attribute->collection_of->key
+        $attribute->name,
     );
 }
 
@@ -197,7 +197,7 @@ sub collection_view {
         $attribute->collection_view,
         $attribute->collection_table,
         $class->key,
-        $attribute->collection_of->key
+        $attribute->name,
     );
 }
 
@@ -481,7 +481,7 @@ sub _collection_indexes {
     foreach my $attr (@attributes) {
         my $view     = $attr->collection_view;
         my $table    = $attr->collection_table;
-        my $coll_key = $attr->collection_of->key;
+        my $coll_key = $attr->name;
         push @indexes, "CREATE UNIQUE INDEX idx_$view "
                      . "ON $table "
                      . "($class_key\_id, $coll_key\_order);\n";

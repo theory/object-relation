@@ -597,11 +597,11 @@ $table = q{CREATE TABLE _yello (
     age INTEGER
 );
 
-CREATE TABLE _yello_coll_one (
+CREATE TABLE _yello_coll_ones (
     yello_id INTEGER NOT NULL,
-    one_id INTEGER NOT NULL,
-    one_order SMALLINT NOT NULL,
-    PRIMARY KEY (yello_id, one_id)
+    ones_id INTEGER NOT NULL,
+    ones_order SMALLINT NOT NULL,
+    PRIMARY KEY (yello_id, ones_id)
 );
 };
 
@@ -610,8 +610,8 @@ eq_or_diff join("\n", $sg->tables_for_class($yello)), $table,
 
 $indexes = q{CREATE UNIQUE INDEX idx_yello_uuid ON _yello (uuid);
 CREATE INDEX idx_yello_state ON _yello (state);
-CREATE UNIQUE INDEX idx_yello_coll_one ON _yello_coll_one (yello_id, one_order);
-CREATE UNIQUE INDEX idx_yello_coll_one_one_id ON _yello_coll_one (one_id);
+CREATE UNIQUE INDEX idx_yello_coll_ones ON _yello_coll_ones (yello_id, ones_order);
+CREATE UNIQUE INDEX idx_yello_coll_ones_ones_id ON _yello_coll_ones (ones_id);
 };
 is $sg->indexes_for_class($yello), $indexes,
     '... and the correct indexes for the class';
@@ -637,50 +637,50 @@ FOR EACH ROW BEGIN
     WHERE  OLD.uuid <> NEW.uuid OR NEW.uuid IS NULL;
 END;
 
-CREATE TRIGGER fki_yello_coll_one_yello_id
-BEFORE INSERT ON _yello_coll_one
+CREATE TRIGGER fki_yello_coll_ones_yello_id
+BEFORE INSERT ON _yello_coll_ones
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'insert on table "_yello_coll_one" violates foreign key constraint "fk_yello_coll_one_yello_id"')
-    WHERE  NEW.yello_id IS NOT NULL AND (SELECT id FROM _yello WHERE id = NEW.yello_id) IS NULL;
+    SELECT RAISE(ABORT, 'insert on table "_yello_coll_ones" violates foreign key constraint "fk_yello_coll_ones_yello_id"')
+    WHERE  (SELECT id FROM _yello WHERE id = NEW.yello_id) IS NULL;
 END;
 
-CREATE TRIGGER fku_yello_coll_one_yello_id
-BEFORE UPDATE ON _yello_coll_one
+CREATE TRIGGER fku_yello_coll_ones_yello_id
+BEFORE UPDATE ON _yello_coll_ones
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'update on table "_yello_coll_one" violates foreign key constraint "fk_yello_coll_one_yello_id"')
-    WHERE  NEW.yello_id IS NOT NULL AND (SELECT id FROM _yello WHERE id = NEW.yello_id) IS NULL;
+    SELECT RAISE(ABORT, 'update on table "_yello_coll_ones" violates foreign key constraint "fk_yello_coll_ones_yello_id"')
+    WHERE  (SELECT id FROM _yello WHERE id = NEW.yello_id) IS NULL;
 END;
 
-CREATE TRIGGER fkd_yello_coll_one_yello_id
+CREATE TRIGGER fkd_yello_coll_ones_yello_id
 AFTER DELETE ON _yello
 FOR EACH ROW BEGIN
-  DELETE from _yello_coll_one WHERE yello_id = OLD.id;
+  DELETE from _yello_coll_ones WHERE yello_id = OLD.id;
 END;
 
-CREATE TRIGGER fki_yello_coll_one_one_id
-BEFORE INSERT ON _yello_coll_one
+CREATE TRIGGER fki_yello_coll_ones_ones_id
+BEFORE INSERT ON _yello_coll_ones
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'insert on table "_yello_coll_one" violates foreign key constraint "fk_yello_coll_one_one_id"')
-    WHERE  NEW.one_id IS NOT NULL AND (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL;
+    SELECT RAISE(ABORT, 'insert on table "_yello_coll_ones" violates foreign key constraint "fk_yello_coll_ones_ones_id"')
+    WHERE  (SELECT id FROM simple_one WHERE id = NEW.ones_id) IS NULL;
 END;
 
-CREATE TRIGGER fku_yello_coll_one_one_id
-BEFORE UPDATE ON _yello_coll_one
+CREATE TRIGGER fku_yello_coll_ones_ones_id
+BEFORE UPDATE ON _yello_coll_ones
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'update on table "_yello_coll_one" violates foreign key constraint "fk_yello_coll_one_one_id"')
-    WHERE  NEW.one_id IS NOT NULL AND (SELECT id FROM simple_one WHERE id = NEW.one_id) IS NULL;
+    SELECT RAISE(ABORT, 'update on table "_yello_coll_ones" violates foreign key constraint "fk_yello_coll_ones_ones_id"')
+    WHERE  (SELECT id FROM simple_one WHERE id = NEW.ones_id) IS NULL;
 END;
 
-CREATE TRIGGER fkd_yello_coll_one_one_id
+CREATE TRIGGER fkd_yello_coll_ones_ones_id
 AFTER DELETE ON simple_one
 FOR EACH ROW BEGIN
-  DELETE from _yello_coll_one WHERE one_id = OLD.id;
+  DELETE from _yello_coll_ones WHERE ones_id = OLD.id;
 END;
 
-CREATE TRIGGER yello_coll_one_cascade
-AFTER DELETE ON _yello_coll_one
+CREATE TRIGGER yello_coll_ones_cascade
+AFTER DELETE ON _yello_coll_ones
 FOR EACH ROW BEGIN
-    DELETE FROM simple_one WHERE id = OLD.one_id;
+    DELETE FROM simple_one WHERE id = OLD.ones_id;
 END;
 };
 eq_or_diff join( "\n", $sg->constraints_for_class($yello) ), $constraints,
@@ -690,9 +690,9 @@ $view = q{CREATE VIEW yello AS
   SELECT _yello.id AS id, _yello.uuid AS uuid, _yello.state AS state, _yello.age AS age
   FROM   _yello;
 
-CREATE VIEW yello_coll_one AS
-  SELECT yello_id, one_id, one_order
-  FROM   _yello_coll_one;
+CREATE VIEW yello_coll_ones AS
+  SELECT yello_id, ones_id, ones_order
+  FROM   _yello_coll_ones;
 };
 is join( "\n", $sg->views_for_class($yello)), $view, '... and the correct views';
 
@@ -726,22 +726,22 @@ END;
 is $sg->delete_for_class($yello), $delete,
     '... and the correct delete for the class';
 
-my $extras = q{CREATE TRIGGER yello_coll_one_insert
-INSTEAD OF INSERT ON yello_coll_one
+my $extras = q{CREATE TRIGGER yello_coll_ones_insert
+INSTEAD OF INSERT ON yello_coll_ones
 BEGIN
-    SELECT RAISE(ABORT, 'Please use yello_coll_one_add(yello_id, one_ids) or yello_coll_one_set(yello_id, one_ids) to insert into the yello_coll_one collection');
+    SELECT RAISE(ABORT, 'Please use yello_coll_ones_add(yello_id, ones_ids) or yello_coll_ones_set(yello_id, ones_ids) to insert into the yello_coll_ones collection');
 END;
 
-CREATE TRIGGER yello_coll_one_update
-INSTEAD OF UPDATE ON yello_coll_one
+CREATE TRIGGER yello_coll_ones_update
+INSTEAD OF UPDATE ON yello_coll_ones
 BEGIN
-    SELECT RAISE(ABORT, 'Please use yello_coll_one_add(yello_id, one_ids) or yello_coll_one_set(yello_id, one_ids) to update the yello_coll_one collection');
+    SELECT RAISE(ABORT, 'Please use yello_coll_ones_add(yello_id, ones_ids) or yello_coll_ones_set(yello_id, ones_ids) to update the yello_coll_ones collection');
 END;
 
-CREATE TRIGGER yello_coll_one_delete
-INSTEAD OF DELETE ON yello_coll_one
+CREATE TRIGGER yello_coll_ones_delete
+INSTEAD OF DELETE ON yello_coll_ones
 BEGIN
-    SELECT RAISE(ABORT, 'Please use yello_coll_one_del(yello_id, one_ids) or yello_coll_one_clear(yello_id) to delete from the yello_coll_one collection');
+    SELECT RAISE(ABORT, 'Please use yello_coll_ones_del(yello_id, ones_ids) or yello_coll_ones_clear(yello_id) to delete from the yello_coll_ones collection');
 END;
 };
 eq_or_diff join("\n", $sg->extras_for_class($yello)), $extras,

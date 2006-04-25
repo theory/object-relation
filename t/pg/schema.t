@@ -600,10 +600,10 @@ $table = q{CREATE TABLE _yello (
     age INTEGER
 );
 
-CREATE TABLE _yello_coll_one (
+CREATE TABLE _yello_coll_ones (
     yello_id INTEGER NOT NULL,
-    one_id INTEGER NOT NULL,
-    one_order SMALLINT NOT NULL
+    ones_id INTEGER NOT NULL,
+    ones_order SMALLINT NOT NULL
 );
 };
 
@@ -612,8 +612,8 @@ eq_or_diff join("\n", $sg->tables_for_class($yello)), $table,
 
 $indexes = q{CREATE UNIQUE INDEX idx_yello_uuid ON _yello (uuid);
 CREATE INDEX idx_yello_state ON _yello (state);
-CREATE UNIQUE INDEX idx_yello_coll_one ON _yello_coll_one (yello_id, one_order);
-CREATE UNIQUE INDEX idx_yello_coll_one_one_id ON _yello_coll_one (one_id);
+CREATE UNIQUE INDEX idx_yello_coll_ones ON _yello_coll_ones (yello_id, ones_order);
+CREATE UNIQUE INDEX idx_yello_coll_ones_ones_id ON _yello_coll_ones (ones_id);
 };
 is $sg->indexes_for_class($yello), $indexes,
     '... and the correct indexes for the class';
@@ -625,80 +625,80 @@ $constraints = q{ALTER TABLE _yello
 CREATE TRIGGER yello_uuid_once BEFORE UPDATE ON _yello
 FOR EACH ROW EXECUTE PROCEDURE trig_uuid_once();
 
-ALTER TABLE _yello_coll_one
-  ADD CONSTRAINT pk_yello_coll_one PRIMARY KEY (yello_id, one_id);
+ALTER TABLE _yello_coll_ones
+  ADD CONSTRAINT pk_yello_coll_ones PRIMARY KEY (yello_id, ones_id);
 
-ALTER TABLE _yello_coll_one
-  ADD CONSTRAINT fk_yello_coll_one_yello_id FOREIGN KEY (yello_id)
+ALTER TABLE _yello_coll_ones
+  ADD CONSTRAINT fk_yello_coll_ones_yello_id FOREIGN KEY (yello_id)
   REFERENCES _yello(id) ON DELETE CASCADE;
 
-ALTER TABLE _yello_coll_one
-  ADD CONSTRAINT fk_yello_coll_one_one_id FOREIGN KEY (one_id)
+ALTER TABLE _yello_coll_ones
+  ADD CONSTRAINT fk_yello_coll_ones_ones_id FOREIGN KEY (ones_id)
   REFERENCES simple_one(id) ON DELETE CASCADE;
 
-CREATE OR REPLACE FUNCTION yello_coll_one_cascade() RETURNS trigger AS $$
+CREATE OR REPLACE FUNCTION yello_coll_ones_cascade() RETURNS trigger AS $$
   BEGIN
-    DELETE FROM simple_one WHERE id = OLD.one_id;
+    DELETE FROM simple_one WHERE id = OLD.ones_id;
     RETURN OLD;
   END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER yello_coll_one_cascade AFTER DELETE ON _yello_coll_one
-FOR EACH ROW EXECUTE PROCEDURE yello_coll_one_cascade();
+CREATE TRIGGER yello_coll_ones_cascade AFTER DELETE ON _yello_coll_ones
+FOR EACH ROW EXECUTE PROCEDURE yello_coll_ones_cascade();
 };
 eq_or_diff join( "\n", $sg->constraints_for_class($yello) ), $constraints,
   '... with the correct constraints';
 
 # Check that the functions are correct.
-my $procs = q{CREATE OR REPLACE FUNCTION yello_coll_one_clear (
+my $procs = q{CREATE OR REPLACE FUNCTION yello_coll_ones_clear (
     obj_ident integer
 ) RETURNS VOID AS $$
 BEGIN
-    DELETE FROM _yello_coll_one WHERE yello_id = obj_ident;
+    DELETE FROM _yello_coll_ones WHERE yello_id = obj_ident;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION yello_coll_one_del (
+CREATE OR REPLACE FUNCTION yello_coll_ones_del (
     obj_ident integer,
     coll_ids  integer[]
 ) RETURNS VOID AS $$
 BEGIN
-    DELETE FROM _yello_coll_one
+    DELETE FROM _yello_coll_ones
     WHERE  yello_id = obj_ident
-           AND one_id = ANY(coll_ids);
+           AND ones_id = ANY(coll_ids);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION yello_coll_one_add (
+CREATE OR REPLACE FUNCTION yello_coll_ones_add (
     obj_ident integer,
     coll_ids  integer[]
 ) RETURNS VOID AS $$
 DECLARE
-  -- To keep track of the current max(one_order).
+  -- To keep track of the current max(ones_order).
   last_ord smallint;
 BEGIN
     -- Lock the containing object tuple to prevernt inserts into the
     -- collection table.
     PERFORM true FROM yello WHERE id = obj_ident FOR UPDATE;
 
-    -- Determine the previous highest value of the one_order column
+    -- Determine the previous highest value of the ones_order column
     -- for the given object ID.
-    SELECT INTO last_ord COALESCE(MAX(one_order), 0)
-    FROM   _yello_coll_one
+    SELECT INTO last_ord COALESCE(MAX(ones_order), 0)
+    FROM   _yello_coll_ones
     WHERE  yello_id = obj_ident;
 
     -- Insert the new IDs. The ordering may not be sequential.
-    INSERT INTO _yello_coll_one (yello_id, one_id, one_order )
+    INSERT INTO _yello_coll_ones (yello_id, ones_id, ones_order )
     SELECT obj_ident, coll_ids[gs.ser], gs.ser + last_ord
     FROM   generate_series(1, array_upper(coll_ids, 1)) AS gs(ser)
     WHERE  coll_ids[gs.ser] NOT IN (
-        SELECT one_id FROM _yello_coll_one ect2
+        SELECT ones_id FROM _yello_coll_ones ect2
         WHERE  yello_id = obj_ident
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION yello_coll_one_set (
+CREATE OR REPLACE FUNCTION yello_coll_ones_set (
     obj_ident integer,
     coll_ids  integer[]
 ) RETURNS VOID AS $$
@@ -707,39 +707,39 @@ BEGIN
     -- collection table.
     PERFORM true FROM yello WHERE id = obj_ident FOR UPDATE;
 
-    -- First negate one_order to prevent unique index violations.
-    UPDATE _yello_coll_one
-    SET    one_order = -one_order
+    -- First negate ones_order to prevent unique index violations.
+    UPDATE _yello_coll_ones
+    SET    ones_order = -ones_order
     WHERE  yello_id = obj_ident;
 
     IF FOUND IS false THEN
         -- There are no existing tuples, so just insert the new ones.
-        INSERT INTO _yello_coll_one (yello_id, one_id, one_order)
+        INSERT INTO _yello_coll_ones (yello_id, ones_id, ones_order)
         SELECT obj_ident, coll_ids[gs.ser], gs.ser
         FROM   generate_series(1, array_upper(coll_ids, 1))
                AS gs(ser);
     ELSE
-        -- First, update the existing tuples with new one_order values.
-        UPDATE _yello_coll_one SET one_order = ser
+        -- First, update the existing tuples with new ones_order values.
+        UPDATE _yello_coll_ones SET ones_order = ser
         FROM (
-            SELECT gs.ser, coll_ids[gs.ser] as move_one
+            SELECT gs.ser, coll_ids[gs.ser] as move_ones
             FROM   generate_series(1, array_upper(coll_ids, 1)) AS gs(ser)
         ) AS expansion
-        WHERE move_one = one_id
+        WHERE move_ones = ones_id
               AND yello_id = obj_ident;
 
         -- Now insert the new tuples.
-        INSERT INTO _yello_coll_one (yello_id, one_id, one_order )
+        INSERT INTO _yello_coll_ones (yello_id, ones_id, ones_order )
         SELECT obj_ident, coll_ids[gs.ser], gs.ser
         FROM   generate_series(1, array_upper(coll_ids, 1)) AS gs(ser)
         WHERE  coll_ids[gs.ser] NOT IN (
-            SELECT one_id FROM _yello_coll_one ect2
+            SELECT ones_id FROM _yello_coll_ones ect2
             WHERE  yello_id = obj_ident
         );
 
         -- Delete any remaining tuples.
-        DELETE FROM _yello_coll_one
-        WHERE  yello_id = obj_ident AND one_order < 0;
+        DELETE FROM _yello_coll_ones
+        WHERE  yello_id = obj_ident AND ones_order < 0;
     END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -752,9 +752,9 @@ $view = q{CREATE VIEW yello AS
   SELECT _yello.id AS id, _yello.uuid AS uuid, _yello.state AS state, _yello.age AS age
   FROM   _yello;
 
-CREATE VIEW yello_coll_one AS
-  SELECT yello_id, one_id, one_order
-  FROM   _yello_coll_one;
+CREATE VIEW yello_coll_ones AS
+  SELECT yello_id, ones_id, ones_order
+  FROM   _yello_coll_ones;
 };
 is join("\n", $sg->views_for_class($yello)), $view, '... and the correct views';
 
@@ -785,19 +785,19 @@ ON DELETE TO yello DO INSTEAD (
 is $sg->delete_for_class($yello), $delete,
     '... and the correct delete for the class';
 
-my $extras = q{CREATE OR REPLACE RULE yello_coll_one_insert AS
-ON INSERT TO yello_coll_one DO INSTEAD (
-    SELECT coll_error('yello_coll_one', 'insert into', NEW.yello_id, NEW.one_id);
+my $extras = q{CREATE OR REPLACE RULE yello_coll_ones_insert AS
+ON INSERT TO yello_coll_ones DO INSTEAD (
+    SELECT coll_error('yello_coll_ones', 'insert into', NEW.yello_id, NEW.ones_id);
 );
 
-CREATE OR REPLACE RULE yello_coll_one_update AS
-ON UPDATE TO yello_coll_one DO INSTEAD (
-    SELECT coll_error('yello_coll_one', 'update', NEW.yello_id, NEW.one_id);
+CREATE OR REPLACE RULE yello_coll_ones_update AS
+ON UPDATE TO yello_coll_ones DO INSTEAD (
+    SELECT coll_error('yello_coll_ones', 'update', NEW.yello_id, NEW.ones_id);
 );
 
-CREATE OR REPLACE RULE yello_coll_one_delete AS
-ON DELETE TO yello_coll_one DO INSTEAD (
-    SELECT coll_error('yello_coll_one', 'delete', OLD.yello_id, OLD.one_id);
+CREATE OR REPLACE RULE yello_coll_ones_delete AS
+ON DELETE TO yello_coll_ones DO INSTEAD (
+    SELECT coll_error('yello_coll_ones', 'delete', OLD.yello_id, OLD.ones_id);
 );
 };
 eq_or_diff join("\n", $sg->extras_for_class($yello)), $extras,

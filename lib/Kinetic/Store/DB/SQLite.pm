@@ -240,8 +240,8 @@ sub _coll_set {
     my ($self, $obj, $attr, $coll_ids) = @_;
     my $sth = $self->_dbh->prepare_cached('SELECT coll_set(?, ?, ?, ?)');
     $sth->execute(
-        $obj->my_class->key       => $obj->id,
-        $attr->collection_of->key => join ',', @$coll_ids
+        $obj->my_class->key => $obj->id,
+        $attr->name         => join ',', @$coll_ids
     );
     $sth->finish;
     return $self;

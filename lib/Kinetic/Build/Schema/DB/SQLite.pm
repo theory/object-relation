@@ -593,7 +593,7 @@ sub extras_for_class {
     my @triggers;
     for my $attr(@attrs) {
         my $view     = $attr->collection_view;
-        my $coll_key = $attr->collection_of->key;
+        my $coll_key = $attr->name;
         for my $spec (
             ['insert', ' into'],
             ['update', ''],
@@ -664,9 +664,9 @@ sub _generate_fk {
  );
 
 This method returns the actual SQL required to generate foreign key
-constraints for SQLite.  There is very little logic in this method.  Instead,
-it takes the data and creates the SQL.  The primary logic to assemble the data
-for this method is in C<_generate_fk>.
+constraints for SQLite. There is very little logic in this method. Instead, it
+takes the data and creates the SQL. The primary logic to assemble the data for
+this method is in C<_generate_fk>.
 
 The reason these methods are separate is because some tables (such as those
 created by C<has_many> relationships) are not represented by C<Kinetic::Meta>
@@ -719,31 +719,35 @@ sub _generate_collection_constraints {
     my ($self, $class) = @_;
     my @attributes = grep { $_->collection_of } $class->attributes;
     return unless @attributes;
-    my @indexes;
     my @constraints;
+    my $main_key   = $class->key;
+    my $main_table = $class->table;
     foreach my $attr (@attributes) {
-        my $table    = $attr->collection_table;
-        my $view     = $attr->collection_view;
+        my $table      = $attr->collection_table;
+        my $view       = $attr->collection_view;
+        my $coll_table = $attr->collection_of->table;
+        my $coll_key   = $attr->name;
         my $cascade  = 1;
-        foreach my $fk_class ( $class, $attr->collection_of ) {
-            my $fk_table = $fk_class->table;
-            my $fk_col   = $fk_class->key . "_id";
-            my $fk       = "fk_$view\_$fk_col";
-            my $null     = "NEW.$fk_col IS NOT NULL AND ";
-            push @constraints, $self->_generate_fk_sql(
-                $fk,
-                $fk_table,
-                $fk_col,
+        my $null     = '';
+        push @constraints,
+            $self->_generate_fk_sql(
+                "fk_$view\_$main_key\_id",
+                $main_table,
+                "$main_key\_id",
                 $table,
                 $null,
-                $cascade
+                $cascade,
+            ),
+            $self->_generate_fk_sql(
+                "fk_$view\_$coll_key\_id",
+                $coll_table,
+                "$coll_key\_id",
+                $table,
+                $null,
+                $cascade,
             );
-        }
 
         if ($attr->relationship eq 'has_many') {
-            my $coll       = $attr->collection_of;
-            my $coll_table = $coll->table;
-            my $coll_key   = $coll->key;
             push @constraints, qq{CREATE TRIGGER $view\_cascade
 AFTER DELETE ON $table
 FOR EACH ROW BEGIN

@@ -369,7 +369,7 @@ sub procedures_for_class {
     for my $attr (@attrs) {
         my $table    = $attr->collection_table;
         my $view     = $attr->collection_view;
-        my $coll_key = $attr->collection_of->key;
+        my $coll_key = $attr->name;
         push @procs,
             $self->_coll_clear_sql($view, $table, $main_key),
             $self->_coll_del_sql($view, $table, $main_key, $coll_key),
@@ -772,7 +772,7 @@ sub extras_for_class {
     my @triggers;
     for my $attr(@attrs) {
         my $view     = $attr->collection_view;
-        my $coll_key = $attr->collection_of->key;
+        my $coll_key = $attr->name;
         for my $type qw(insert update delete) {
             my $adverb = $type eq 'insert' ? ' into' : '';
             my $var    = $type eq 'delete' ? 'OLD' : 'NEW';
@@ -780,7 +780,7 @@ sub extras_for_class {
                 "CREATE OR REPLACE RULE $view\_$type AS\n"
               . "ON \U$type\E TO $view DO INSTEAD (\n"
               . "    SELECT coll_error('$view', '$type$adverb', "
-              .                       "$var.yello_id, $var.one_id);\n"
+              .            "$var.$main_key\_id, $var.$coll_key\_id);\n"
               . ");\n";
           }
     }
@@ -1114,9 +1114,8 @@ sub _generate_collection_constraints {
     foreach my $attr (@attributes) {
         my $table      = $attr->collection_table;
         my $view       = $attr->collection_view;
-        my $coll       = $attr->collection_of;
-        my $coll_table = $coll->table;
-        my $coll_key   = $coll->key;
+        my $coll_table = $attr->collection_of->table;
+        my $coll_key   = $attr->name;
         push @constraints,
             qq{ALTER TABLE $table
   ADD CONSTRAINT pk_$view PRIMARY KEY ($main_key\_id, $coll_key\_id);
