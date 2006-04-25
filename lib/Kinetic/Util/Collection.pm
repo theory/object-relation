@@ -222,14 +222,17 @@ index position.
 
 sub next {
     my $self = shift;
-    if ( defined $self->{got} && $self->{got} > ( $self->index || 0 ) ) {
+    if ( $self->{got} > ( $self->index || 0 ) ) {
         # We've been here before.
         $self->_inc_index;
         return $self->curr;
     }
 
     my $result = $self->_check( $self->iter->next );
-    return unless defined $result;
+    unless (defined $result) {
+        $self->{filled} = 1;
+        return;
+    }
     $self->{got} = $self->_inc_index;
     $self->_array->push( _key $result, $result );
     return $result;
@@ -374,9 +377,9 @@ sub set {
 
 Assigns a list of values to the collection in the order in which they're
 passed. All previously-existing values will be discarded and the index will be
-reset. As a result, C<added()> and C<removed()> will return now values, and
-C<is_cleared()> will return false, as the whole collection has been assigned
-to.
+reset. As a result, C<added()> and C<removed()> will return now values,
+C<is_cleared()> will return false, and the collection will be reset, as it has
+been assigned to.
 
 =cut
 
@@ -389,6 +392,7 @@ sub assign {
         map  { $self->_check($_) } grep {  !$seen{_key $_}++; } @_;
     };
     $self->{assigned} = 1;
+    $self->{filled} = 0;
     $self->{iter} = Iterator->new(sub { shift @assigned } );
     @{$self}{qw(index got)} = ($NULL, $NULL);
     $self->{array}->clear;
@@ -429,27 +433,33 @@ sub add {
     my $added = $self->{added} || AsHash->new;
     $self->{added} ||= $added unless $self->{assigned};
     my $removed = $self->{removed} || {};
+    my $array = $self->_array;
 
     # Collect the items to be added.
     my @to_push;
     for my $item (@_) {
         my $key = _key $item;
-        next if $added->exists($key);
+        next if $added->exists($key) || $array->exists($key);
         push @to_push, $key => $self->_check($item );
         delete $removed->{$key};
     }
+    return $self unless @to_push;
     $added->push(@to_push);
 
-    # Create a new iterator that returns the added items.
-    my $iter = $self->{iter};
-    $self->{iter} = Iterator->new(
-        sub {
-            if (defined( my $val = $iter->next )) {
-                return $val;
+    if ( $self->{filled} ) {
+        $array->push(@to_push);
+    } else {
+        # Create a new iterator that returns the added items.
+        my $iter = $self->{iter};
+        $self->{iter} = Iterator->new(
+            sub {
+                if (defined( my $val = $iter->next )) {
+                    return $val;
+                }
+                return $added->value_at(++$self->{added_index});
             }
-            return $added->value_at(++$self->{added_index});
-        }
-    );
+        );
+    }
     return $self;
 
 }
@@ -704,10 +714,11 @@ calls C<all()>.
 
 sub _fill {
     my $self = shift;
-    return unless defined $self->{got};
+    return if $self->{filled};
     $self->_array->push(
         map { _key $_, $self->_check($_) } $self->iter->all
     );
+    $self->{filled} = 1;
 }
 
 ##############################################################################
@@ -724,7 +735,7 @@ would be expensive. Called by C<get()> and C<set()>.
 
 sub _fill_to {
     my ( $self, $index ) = @_;
-    if ( defined $self->{got} && $index > $self->{got} ) {
+    if ( !$self->{filled} && $index > $self->{got} ) {
         my $array = $self->_array;
         my $iter  = $self->iter;
         while ( $iter->peek && $index > $self->{got} ) {
@@ -732,7 +743,7 @@ sub _fill_to {
             my $next = $iter->next;
             $array->push( _key $next, $self->_check($next) );
         }
-        $self->{got} = undef unless defined $iter->current;
+        $self->{filled} = 1 unless $iter->current;
     }
     return $self;
 }

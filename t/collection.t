@@ -7,7 +7,7 @@ use warnings;
 use utf8;
 use Kinetic::Build::Test;
 
-use Test::More tests => 163;
+use Test::More tests => 164;
 #use Test::More 'no_plan';
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
@@ -288,7 +288,6 @@ ok $coll = $CLASS->new({ iter => Iterator->new( sub { shift @list }) }),
 my @add = map { Faux->new($_) } qw/cinq six sept/;
 can_ok $coll, 'add', 'added';
 ok $coll->add(@add), 'Add some items to the collection';
-can_ok $coll, 'added';
 is_deeply scalar $coll->added, \@add, 'added() should return the added items';
 
 push @add, map { Faux->new($_) } qw/huit neuf/;
@@ -317,13 +316,16 @@ ok $coll->add(@add), 'Add all of the items again';
 is $coll->size, 5, 'The size should be five';
 is_deeply scalar $coll->all, [$faux, @add[1..4]],
     'The items should be as expected';
+@list = map { Faux->new($_) } qw/zero un deux trois quatre/;
+ok $coll->add(@list), 'Add more items';
+is $coll->size, 10, 'There should now be ten items in the collection';
 
 #
 # Testing remove()
 #
 can_ok $coll, qw(remove removed);
 ok $coll->remove($add[1]), 'Remove an object';
-is $coll->size, 4, 'The size should now be four';
+is $coll->size, 9, 'The size should now be nine';
 
 @list = map { Faux->new($_) } qw/zero un deux trois quatre/;
 ok $coll = $CLASS->new({ iter => Iterator->new( sub { shift @list }) }),
@@ -356,8 +358,7 @@ ok $coll = $CLASS->from_list({ list => \@list }),
 can_ok $coll, 'assign', 'is_assigned';
 ok $coll->is_assigned, 'is_assigned() should return true';
 
-ok $coll = $CLASS->new({ iter => Iterator->new( sub {} ) }),
-    'Create a new() collection';
+ok $coll = $CLASS->empty, 'Create a new empty collection';
 ok !$coll->is_assigned, 'is_assigned() should return false';
 
 ok $coll->assign(@add), 'Assign all new values';
