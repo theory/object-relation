@@ -481,6 +481,7 @@ to C<set()> or C<assign()> or C<clear()>.
 sub added {
     my $self = shift;
     my $added = $self->{added} or return;
+    return unless $added->acount;
     return wantarray ? $added->values : [ $added->values ];
 }
 
@@ -543,6 +544,7 @@ by a call to C<set()> or C<assign()> or C<clear()>.
 sub removed {
     my $self = shift;
     my $removed = $self->{removed} or return;
+    return unless %{ $removed };
     return wantarray ? values %{ $removed } : [ values %{ $removed } ];
 }
 

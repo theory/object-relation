@@ -7,7 +7,7 @@ use warnings;
 use utf8;
 use Kinetic::Build::Test;
 
-use Test::More tests => 164;
+use Test::More tests => 186;
 #use Test::More 'no_plan';
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
@@ -377,6 +377,32 @@ is_deeply scalar $coll->all, \@add,
 #
 # Testing clear()
 #
+@list = map { Faux->new($_) } qw/zero un deux trois quatre/;
+ok $coll = $CLASS->new({ iter => Iterator->new( sub { shift @list } ) }),
+    'Create a new collection';
+can_ok $coll, qw(clear is_cleared);
+is $coll->size, 5,       'The collection should have five items';
+ok !$coll->is_cleared,   'is_cleared() should return false';
+ok $coll->add($faux),    'Add an item to the collection';
+is $coll->size, 6,       'The collection should now have six items';
+ok $coll->added,         'added() should return a value';
+ok $coll->remove($faux), 'Remove the added item';
+is $coll->size, 5,       'The collection should be back to five items';
+ok !$coll->added,        'added() should no longer return a value';
+ok $coll->removed,       'remove() should return a value';
+ok $coll->clear,         'Clear the collection';
+ok $coll->is_cleared,    'is_cleared() should return true';
+ok !$coll->added,        'added() should still not return a value';
+ok !$coll->removed,      'removed() also should not return a value';
+is $coll->size, 0,       'The size should be 0';
+
+@list = map { Faux->new($_) } qw/zero un deux trois quatre/;
 ok $coll = $CLASS->from_list({ list => \@list }),
     'Create a new collection from_list()';
-can_ok $coll, qw(clear is_cleared);
+ok $coll->is_assigned,  'is_assigned() should return true';
+ok !$coll->is_cleared,  'is_cleared() should return false';
+is $coll->size, 5,      'The collection should contain five items';
+ok $coll->clear,        'Clear the collection';
+ok !$coll->is_assigned, 'is_assigned() should return false';
+ok $coll->is_cleared,   'is_cleared() should return true';
+is $coll->size, 0,      'The size should be 0';
