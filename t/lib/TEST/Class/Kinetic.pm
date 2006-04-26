@@ -81,12 +81,14 @@ my @CLASSES;
 
 sub import {
     my ($pkg, $dir) = @_;
+    if ($dir) {
+        $dir = catdir(split m{/}, $dir);
+        unshift @INC, $dir;
+    }
     if ($ENV{RUNTEST}) {
         push @CLASSES,  map { eval "require $_" or die $@; $_ }
             split /\s+/, $ENV{RUNTEST};
     } elsif ($dir) {
-        $dir = catdir(split m{/}, $dir);
-        unshift @INC, $dir;
         my $want = sub {
             my $file = $File::Find::name;
             return if /^\.(?:svn|cvs)/;

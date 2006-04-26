@@ -99,9 +99,9 @@ my $collection_builder = sub {
             _set( $self, $name, shift );
         }
         else {
-            return $self->{$name} ? $self->{$name}
-                 : $self->uuid    ? $store->_get_collection( $self, $attr )
-                 :                  Collection->empty;
+            return $self->{$name} ||= $self->is_persistent
+                ? $store->_get_collection( $self, $attr )
+                : Collection->empty;
         }
     };
 };

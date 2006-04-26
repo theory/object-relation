@@ -189,7 +189,7 @@ sub coll_del {
     my @to_del = split /,/, $coll_ids;
     my $placeholders = join ', ', ('?') x @to_del;
     $dbh->do(qq{
-        DELETE FROM $obj_key\_coll_$coll_of
+        DELETE FROM _$obj_key\_coll_$coll_of
         WHERE  $obj_key\_id = ?
                AND $coll_of\_id IN ($placeholders)
     }, undef, $obj_id, @to_del);
@@ -210,7 +210,7 @@ associated with the blog entry with the ID 1.
 sub coll_clear {
     my ($dbh, $obj_key, $obj_id, $coll_of) = @_;
     $dbh->do(qq{
-        DELETE FROM $obj_key\_coll_$coll_of
+        DELETE FROM _$obj_key\_coll_$coll_of
         WHERE  $obj_key\_id = ?
     }, undef, $obj_id);
 }

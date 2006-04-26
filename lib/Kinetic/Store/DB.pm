@@ -612,21 +612,18 @@ sub _save_collections {
 
         elsif ($coll->is_assigned) {
             # Assign the whole thing and return.
-            my @set;
-            while ( my $thing = $coll->next ) {
-                push @set, $thing->id unless $thing->save->is_purged;
-            }
+            my @set = map { $_->id } grep { !$_->save->is_purged } $coll->all;
             $self->_coll_set($object, $attr, \@set) if @set;
             return $self;
         }
 
         # Even if the collection was cleared, we might have added objects.
-        my @add = grep { !$_->save->is_purged } $coll->added;
+        my @add = map { $_->id } grep { !$_->save->is_purged } $coll->added;
         $self->_coll_add($object, $attr, \@add) if @add;
         return $self if $coll->is_cleared;
 
         # Delete objects removed from the collection.
-        my @del = grep { !$_->save->is_purged } $coll->removed;
+        my @del = map { $_->id } grep { !$_->save->is_purged } $coll->removed;
         $self->_coll_del($object, $attr, \@del) if @del;
     }
 
@@ -1163,10 +1160,6 @@ sub _get_sql_results {
     my ( $self, $sql, $bind_params ) = @_;
     my $dbi_method = $self->_prepare_method;
     my $sth        = $self->_dbh->$dbi_method($sql);
-    # use Test::More; # XXX debug
-    # use Data::Dumper;
-    # diag $sql;      # XXX debug
-    # diag Dumper($bind_params);
     $self->_execute( $sth, $bind_params );
 
     if ( $self->_should_create_iterator ) {
@@ -1540,7 +1533,7 @@ sub _get_joins {
         if ( $coll_attr ) {
             $self->{views}{ $coll_attr->collection_view } = 1; # no associated class
             my ( $object_id, $coll_id, $order )
-            = $self->_collection_columns( $class1, $coll_attr );
+                = $self->_collection_columns( $class1, $coll_attr );
             my $coll_view      = $coll_attr->collection_view;
             my $containing_key = $class1->key;
             my $contained_key  = $class2->key;

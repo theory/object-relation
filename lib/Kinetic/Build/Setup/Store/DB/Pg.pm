@@ -1182,7 +1182,7 @@ sub test_cleanup {
     }
 
     # If there are still connections, we can't drop the database. So bail.
-    die "Looks like someone is accessing $db_name, so I can't drop it\n"
+    die "# Looks like someone is accessing $db_name, so I can't drop it\n"
         if $check_connections->();
 
     # Drop the database and user.

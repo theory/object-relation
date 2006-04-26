@@ -2209,4 +2209,69 @@ sub joins : Test(6) {
         '... and return the correct objects';
 }
 
+sub collections : Test(39) {
+    my $self = shift;
+    return unless $self->_should_run;
+    ok my $yello = Yello->new( age => 32 ), 'Create new Yello';
+    ok my $coll = $yello->ones, 'Get ones collection';
+    my @names = qw/uno dos tres/;
+    my @ones = map { One->new( name => $_ ) } @names;
+    ok $coll->assign(@ones), 'Assign three ones to the collection';
+    ok $yello->save, 'Save the yello object';
+
+    ok $yello = Yello->lookup( uuid => $yello->uuid ),
+        'Look up the yello object in the database';
+    ok $coll = $yello->ones, 'Grab the ones collection';
+    is $coll->size, 3, 'The collection should have three items';
+    is_deeply [ map { $_->name } $coll->all ], [@names],
+        'And they should be in the proper order';
+    ok $coll->add(One->new( name => 'quatre')),
+        'Add another item to the collection';
+    is $coll->size, 4, 'The size should now be four';
+    is $coll->get(3)->name, 'quatre', 'The new one should be the fourth';
+    ok $yello->save, 'Save the yello object again';
+
+    ok $yello = Yello->lookup( uuid => $yello->uuid ),
+        'Look up the yello object again in the database';
+    ok $coll = $yello->ones, 'Grab the ones collection';
+    is $coll->size, 4, 'The collection should have four items';
+    is_deeply [ map { $_->name } $coll->all ], [@names, 'quatre'],
+        'And they should be in the proper order';
+    ok $coll->remove($coll->get(0), $coll->get(3)),
+        'Remove two items from the collection';
+    is $coll->size, 2, 'The size should now be two';
+    is_deeply [ map { $_->name } $coll->all ], [@names[1..2]],
+        'The remaining items should still be in order';
+    ok $yello->save, 'Save the yello object again';
+
+    ok $yello = Yello->lookup( uuid => $yello->uuid ),
+        'Look up the yello object again in the database';
+    ok $coll = $yello->ones, 'Grab the ones collection';
+    is $coll->size, 2, 'The collection should still have two items';
+    is_deeply [ map { $_->name } $coll->all ], [@names[1..2]],
+        'They should be in order';
+    ok $coll->assign(One->new(name => 'foo')),
+        'Assign a single item to the collection';
+    is $coll->size, 1, 'The collection should now have only one object';
+    is_deeply [ map { $_->name } $coll->all ], ['foo'],
+        'And it should be the correct object';
+    ok $coll->is_assigned, 'is_assigned() should return true';
+    ok $yello->save, 'Save the yello object again';
+
+    ok $yello = Yello->lookup( uuid => $yello->uuid ),
+        'Look up the yello object again in the database';
+    ok $coll = $yello->ones, 'Grab the ones collection';
+    is $coll->size, 1, 'The collection should still have one item';
+    is_deeply [ map { $_->name } $coll->all ], ['foo'],
+        'And it should be the correct item';
+    ok $coll->clear, 'Clear the collection';
+    is $coll->size, 0, 'The collection should have no items';
+    ok $yello->save, 'Save the yello object again';
+
+    ok $yello = Yello->lookup( uuid => $yello->uuid ),
+        'Look up the yello object again in the database';
+    ok $coll = $yello->ones, 'Grab the ones collection';
+    is $coll->size, 0, 'The collection should still have no items';
+}
+
 1;
