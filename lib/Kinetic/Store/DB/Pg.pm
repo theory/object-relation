@@ -65,6 +65,12 @@ storage API, by overriding C<Kinetic::Store::DB> methods as needed.
 
 ##############################################################################
 
+=begin private
+
+=head1 Interface
+
+=head2 Private Instance Methods
+
 =head3 _set_id
 
   $store->_set_id($object);
@@ -296,6 +302,8 @@ sub _coll_query {
 
 1;
 __END__
+
+=end private
 
 =head1 Copyright and License
 

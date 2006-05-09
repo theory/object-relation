@@ -461,14 +461,15 @@ BEGIN
         -- There are no existing tuples, so just insert the new ones.
         INSERT INTO $table ($main_key\_id, $coll_key\_id, $coll_key\_order)
         SELECT obj_ident, coll_ids[gs.ser], gs.ser
-        FROM   generate_series(1, array_upper(coll_ids, 1))
-               AS gs(ser);
+        FROM   generate_series(1, array_upper(coll_ids, 1)) AS gs(ser)
+        WHERE  coll_ids[gs.ser] IS NOT NULL;
     ELSE
         -- First, update the existing tuples with new $coll_key\_order values.
         UPDATE $table SET $coll_key\_order = ser
         FROM (
             SELECT gs.ser, coll_ids[gs.ser] as move_$coll_key
             FROM   generate_series(1, array_upper(coll_ids, 1)) AS gs(ser)
+            WHERE  coll_ids[gs.ser] IS NOT NULL
         ) AS expansion
         WHERE move_$coll_key = $coll_key\_id
               AND $main_key\_id = obj_ident;

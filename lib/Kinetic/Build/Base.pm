@@ -600,8 +600,12 @@ sub process_conf_files {
             $setup->$config_meth(\%conf);
         }
 
-        # Save the configuration back to the file.
+        # Make sure the file is writable and save the configuration to it.
+        chmod 0644, $conf_file;
         set_config(%conf => $conf_file);
+
+        # Make the blib file read-only again.
+        chmod 0444, $conf_file if $conf_file =~ /^blib/;
     }
 
     $self->notes(process_conf_files => 1);

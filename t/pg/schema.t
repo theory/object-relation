@@ -716,14 +716,15 @@ BEGIN
         -- There are no existing tuples, so just insert the new ones.
         INSERT INTO _yello_coll_ones (yello_id, ones_id, ones_order)
         SELECT obj_ident, coll_ids[gs.ser], gs.ser
-        FROM   generate_series(1, array_upper(coll_ids, 1))
-               AS gs(ser);
+        FROM   generate_series(1, array_upper(coll_ids, 1)) AS gs(ser)
+        WHERE  coll_ids[gs.ser] IS NOT NULL;
     ELSE
         -- First, update the existing tuples with new ones_order values.
         UPDATE _yello_coll_ones SET ones_order = ser
         FROM (
             SELECT gs.ser, coll_ids[gs.ser] as move_ones
             FROM   generate_series(1, array_upper(coll_ids, 1)) AS gs(ser)
+            WHERE  coll_ids[gs.ser] IS NOT NULL
         ) AS expansion
         WHERE move_ones = ones_id
               AND yello_id = obj_ident;
