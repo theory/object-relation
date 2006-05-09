@@ -134,11 +134,12 @@ for the corresponding parameter to understand its function.
 sub new {
     my ( $class, %attributes ) = @_;
 
-    # XXX why am I sorting these keys?
-    my @invalid = grep !exists $ATTR_LOOKUP{$_} => sort keys %attributes;
+    my @invalid = grep !exists $ATTR_LOOKUP{$_} => keys %attributes;
     if (@invalid) {
-        throw_search [ "Unknown attributes to [_1]: [_2]", "$class->new",
-            "@invalid" ];
+        throw_search [
+            "Unknown attributes to [_1]: [_2]", "$class->new",
+            "@invalid",
+        ];
     }
     my $self = bless {} => $class;
     while ( my ( $attribute, $value ) = each %attributes ) {

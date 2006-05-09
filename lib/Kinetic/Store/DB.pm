@@ -575,7 +575,8 @@ sub _save_contained {
 
         # Recurse to save the references in all extendeds, first.
         $self->_save_contained(
-            $class->attributes( $extended->key )->get($object) );
+            $class->attributes( $extended->key )->get($object)
+        );
     }
 
     $self->_save($_) for map { $_->get($object) || () } grep {
