@@ -601,8 +601,7 @@ sub _save_collections {
     my ( $self, $object ) = @_;
 
     my $class = $object->my_class;
-    foreach my $attr ( $class->persistent_attributes ) {
-        next unless $attr->collection_of;
+    foreach my $attr ( $class->collection_attributes ) {
         my $coll = $attr->get($object);
 
         if ($coll->is_cleared) {

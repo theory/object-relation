@@ -4,7 +4,7 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 244;
+use Test::More tests => 247;
 #use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
@@ -288,9 +288,12 @@ is $class->sort_by, $class->attributes('foo'),
 can_ok $class, 'ref_attributes';
 can_ok $class, 'direct_attributes';
 can_ok $class, 'persistent_attributes';
+can_ok $class, 'collection_attributes';
 
 is_deeply [$class->ref_attributes], [],
     'There should be no referenced attributes';
+is_deeply [$class->collection_attributes], [],
+    'There should be no collection attributes';
 is_deeply [$class->direct_attributes], [$class->attributes('id'), $class->attributes],
     'With no ref_attributes, direct_attributes should return all attributes';
 
@@ -348,18 +351,20 @@ ok $class = MyTestHasMany->my_class, 'Get MyTestHasMany class object';
 
 is_deeply [map {$_->name} $class->attributes], [qw{ uuid state stuff thingies }],
    '... and it should have the correct attributes';
+is_deeply [map { $_->name } $class->collection_attributes ], ['thingies'],
+    'There should be one collection attribute';
 
 ok my $stuff = $class->attributes('stuff'),
     '... and we should be able to fetch the stuff attribute';
 can_ok $stuff, 'collection_of';
-ok ! $stuff->collection_of, 
+ok ! $stuff->collection_of,
   '... and collection() should return false for non-collections';
 
 ok my $thingies = $class->attributes('thingies'),
   '... and we should be able to fetch the thingies attribute';
 
 can_ok $thingies, 'collection_of';
-ok my $collection = $thingies->collection_of, 
+ok my $collection = $thingies->collection_of,
   '... and it should return true for a collection';
 is $collection->package, 'MyTestThingy',
   '... and it should return the class object for objects in the collection';

@@ -245,6 +245,23 @@ sub persistent_attributes { @{ shift->{persistent_attrs} } }
 
 ##############################################################################
 
+=head3 collection_attributes
+
+  my @collection_attrs = $class->collection_attributes;
+
+Returns a list of collection attributes -- that is, attributes that are
+collections of objects. Equivalent to
+
+  my @collection_attrs = grep { $_->collection_of } $self->attributes;
+
+only more efficient, thanks to build-time caching.
+
+=cut
+
+sub collection_attributes { @{ shift->{collection_attrs} } }
+
+##############################################################################
+
 =head3 contained_in
 
   my @containers = $class->contained_in;
@@ -254,9 +271,9 @@ sub persistent_attributes { @{ shift->{persistent_attrs} } }
   }
 
 If instances of this class are available in collections of other classes, this
-method will return all of those classes, sorted by key,  If given a specific
+method will return all of those classes, sorted by key. If given a specific
 key, returns the class for that key, if the current class can be contained in
-the key class.  Otherwise, returns false.
+the key class. Otherwise, returns false.
 
 =cut
 
@@ -280,12 +297,13 @@ sub build {
     my $self = shift->SUPER::build(@_);
 
     # Organize attrs into categories.
-    my (@ref, @direct, @persist);
+    my (@ref, @direct, @persist, @colls);
     FAKE: {
         # Fake out Kinetic::Store so that we can get at trusted attributes.
         package Kinetic::Store;
         for my $attr ($self->attributes) {
             push @persist, $attr if $attr->persistent;
+            push @colls,   $attr if $attr->collection_of;
             if ($attr->references) {
                 push @ref, $attr;
             } else {
@@ -298,6 +316,7 @@ sub build {
     $self->{ref_attrs}        = \@ref;
     $self->{direct_attrs}     = \@direct;
     $self->{persistent_attrs} = \@persist;
+    $self->{collection_attrs} = \@colls;
 
     if (my $sort_by = $self->{sort_by}) {
         $sort_by = [$sort_by] unless ref $sort_by;

@@ -176,7 +176,7 @@ gets in the way when building schemas.
 
 =cut
 
-sub table_attributes { 
+sub table_attributes {
     my $self = shift;
     grep { ! $_->collection_of } @{$self->{cols}}
 }
@@ -281,21 +281,20 @@ sub build {
     return $self;
 }
 
-##############################################################################
+=begin private
 
-=head3 collection_classes
+=head1 Private Interface
 
- my @collection_classes = $class->collection_classes; 
+=head2 Private Functions
 
-For attributes representing collections, this method returns the classes they
-are collections of.
+=head3 _col_attrs
+
+  my @col_attrs = _col_attrs($class);
+
+Returns a list of perstent attributes that are not the "id" attribute and that
+do not delegate to another object attribute.
 
 =cut
-
-sub collection_classes {
-    my $self = shift;
-    return grep { $_ } map { $_->collection_of } $self->attributes;
-}
 
 sub _col_attrs {
     my $class = shift;
@@ -309,6 +308,8 @@ sub _col_attrs {
 __END__
 
 ##############################################################################
+
+=end private
 
 =head1 Copyright and License
 

@@ -120,8 +120,7 @@ sub tables_for_class {
     $sql .= "    " . join ",\n    ", $self->columns_for_class($class);
     $sql .= $self->end_table($class);
     push @tables, $sql;
-    foreach my $attribute ( $class->attributes ) {
-        next unless $attribute->collection_of;
+    foreach my $attribute ( $class->collection_attributes ) {
         push @tables, $self->collection_table($class, $attribute);
     }
     return @tables;
@@ -474,7 +473,7 @@ class.
 
 sub _collection_indexes {
     my ( $self, $class ) = @_;
-    my @attributes = grep { $_->collection_of } $class->attributes;
+    my @attributes = $class->collection_attributes;
     return unless @attributes;
     my @indexes;
     my $class_key = $class->key;
@@ -608,8 +607,7 @@ sub views_for_class {
         . "  FROM   $from"
         . ( $where ? "\n  WHERE  $where;" : (';') ) . "\n";
 
-    foreach my $attr ( $class->attributes ) {
-        next unless $attr->collection_of;
+    foreach my $attr ( $class->collection_attributes ) {
         push @views, $self->collection_view($class, $attr);
     }
     return @views;

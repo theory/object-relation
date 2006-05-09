@@ -362,7 +362,7 @@ overridden in subclasses to return procedure declarations.
 
 sub procedures_for_class {
     my ( $self, $class ) = @_;
-    my @attrs = grep { $_->collection_of } $class->attributes;
+    my @attrs = $class->collection_attributes;
     return unless @attrs;
     my $main_key   = $class->key;
     my @procs;
@@ -767,7 +767,7 @@ functionality.
 
 sub extras_for_class {
     my ($self, $class) = @_;
-    my @attrs = grep { $_->collection_of } $class->attributes;
+    my @attrs = $class->collection_attributes;
     return unless @attrs;
     my $main_key = $class->key;
     my @triggers;
@@ -1107,7 +1107,7 @@ associated with the Kinetic::Meta::Class object passed as the sole argument.
 
 sub _generate_collection_constraints {
     my ( $self, $class ) = @_;
-    my @attributes = grep { $_->collection_of } $class->attributes;
+    my @attributes = $class->collection_attributes;
     return unless @attributes;
     my @constraints;
     my $main_key   = $class->key;
