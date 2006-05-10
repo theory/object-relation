@@ -1595,10 +1595,11 @@ sub _convert_ir_to_where_clause {
             push @where => $token;
             push @bind  => @$bind;
         }
-        elsif ('ARRAY' eq ref $term
+        elsif (
+              'ARRAY' eq ref $term
             && 'AND'  eq $term->[0]
-            && Search eq ref $term->[1] )
-        {
+            && Search eq ref $term->[1]
+        ) {
             shift @$term;
             my ( $token, $bind ) = $self->_convert_ir_to_where_clause($term);
             push @where => $token;
@@ -1643,16 +1644,16 @@ sub _is_case_sensitive {
 
 ##############################################################################
 
-=head3 _handle_case_sensitivity
+=head3 _get_column_and_placeholder
 
-  my ($column, $place_holder) = $store->_handle_case_sensitivity($search);
+  my ($column, $place_holder) = $store->_get_column_and_placeholder($search);
 
 This method takes a search object and return the correct column token and bind
 param based upon whether or not the column's data type is case-insensitive.
 
 =cut
 
-sub _handle_case_sensitivity {
+sub _get_column_and_placeholder {
     my ( $self, $search ) = @_;
 
     my $column = $search->notes('column');
@@ -1664,7 +1665,6 @@ sub _handle_case_sensitivity {
     # Normally we have something like customer__uuid
     # For references objects, we might have something like
     # salesperson.customer__uuid
-
     if ( $column =~ /^[[:word:]]+\.([[:word:]]+)$OBJECT_DELIMITER([[:word:]]+)/ ) {
         my ( $key, $base_column ) = ( $1, $2 );
 
@@ -1718,14 +1718,14 @@ L<Kinetic::Store::Seach|Kinetic::Store::Search>.
 sub _ANY_SEARCH {
     my ( $self, $search ) = @_;
     my ( $negated, $value ) = ( $search->negated, $search->data );
-    my ( $column, $place_holder ) = $self->_handle_case_sensitivity($search);
+    my ( $column, $place_holder ) = $self->_get_column_and_placeholder($search);
     my $place_holders = join ', ' => ($place_holder) x @$value;
     return ( "$column $negated IN ($place_holders)", $value );
 }
 
 sub _EQ_SEARCH {
     my ( $self, $search ) = @_;
-    my ( $column, $place_holder ) = $self->_handle_case_sensitivity($search);
+    my ( $column, $place_holder ) = $self->_get_column_and_placeholder($search);
     my $operator = $search->operator;
     return ( "$column $operator $place_holder", [ $search->data ] );
 }
@@ -1740,14 +1740,14 @@ sub _GT_LT_SEARCH {
     my ( $self, $search ) = @_;
     my $value    = $search->data;
     my $operator = $search->operator;
-    my ( $column, $place_holder ) = $self->_handle_case_sensitivity($search);
+    my ( $column, $place_holder ) = $self->_get_column_and_placeholder($search);
     return ( "$column $operator $place_holder", [$value] );
 }
 
 sub _BETWEEN_SEARCH {
     my ( $self, $search ) = @_;
     my ( $negated, $operator ) = ( $search->negated, $search->operator );
-    my ( $column, $place_holder ) = $self->_handle_case_sensitivity($search);
+    my ( $column, $place_holder ) = $self->_get_column_and_placeholder($search);
     return (
         "$column $negated $operator $place_holder AND $place_holder",
         $search->data
@@ -1756,7 +1756,7 @@ sub _BETWEEN_SEARCH {
 
 sub _MATCH_SEARCH {
     my ( $self, $search ) = @_;
-    my ( $column, $place_holder ) = $self->_handle_case_sensitivity($search);
+    my ( $column, $place_holder ) = $self->_get_column_and_placeholder($search);
     my $operator = $search->negated ? '!~*' : '~*';
     return ( "$column $operator $place_holder", [ $search->data ] );
 }
@@ -1764,7 +1764,7 @@ sub _MATCH_SEARCH {
 sub _LIKE_SEARCH {
     my ( $self, $search ) = @_;
     my ( $negated, $operator ) = ( $search->negated, $search->operator );
-    my ( $column, $place_holder ) = $self->_handle_case_sensitivity($search);
+    my ( $column, $place_holder ) = $self->_get_column_and_placeholder($search);
     return ( "$column $negated $operator $place_holder", [ $search->data ] );
 }
 
