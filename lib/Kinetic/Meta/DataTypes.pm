@@ -26,8 +26,8 @@ our $VERSION = version->new('0.0.1');
 use Kinetic::Meta::Type;
 use OSSP::uuid;
 use Data::Types;
+use List::Util qw(sum);
 use Kinetic::Util::Exceptions qw(throw_invalid);
-use version;
 
 =head1 Name
 
@@ -223,6 +223,65 @@ Kinetic::Meta::Type->add(
     raw   => sub { ref $_[0] ? $_[0]->class->key . '.' . $_[0]->name : shift },
     bake  => sub { Kinetic::Meta->attr_for_key(shift) },
     check => 'Kinetic::Meta::Attribute',
+);
+
+##############################################################################
+
+=item upc_code
+
+=item ean_code
+
+UPC-A or EAN bar codes. They consist 13 numerals (a 0 will be prepended to
+12-digit bar codes) with a valid checksum. Some examples:
+
+  036000291452
+  0036000291452
+  725272730706
+  0978020137962
+  4007630000116
+
+The checksum is calculated according to this equation:
+
+=over
+
+=item 1
+
+Add the digits in the even-numbered positions (second, fourth, sixth, etc.)
+together and multiply by three.
+
+=item 2
+
+Add the digits in the odd-numbered positions excluding the first (third,
+fifth, seventh, etc.) to the result.
+
+=item 3
+
+Subtract the result from the next-higher multiple of ten. The answer is the
+check digit.
+
+=back
+
+See L<http://en.wikipedia.org/wiki/UPC_code> for a detailed description of UPC
+and EAN codes.
+
+=cut
+
+Kinetic::Meta::Type->add(
+    key   => 'ean_code',
+    alias => 'upc_code',
+    name  => 'EAN Code',
+    check => sub {
+        # Prepend 0 to UPC to make it a valid EAN.
+        $_[0] = "0$_[0]" if length $_[0] == 12;
+        if ($_[0] =~ /^\d{13}$/) {
+            my @nums = split '', $_[0];
+            return if 10 - (
+                sum( @nums[1,3,5,7,9,11] ) * 3
+              + sum( @nums[0,2,4,6,8,10] )
+            ) % 10 == $nums[12];
+        }
+        throw_invalid( [ 'Value "[_1]" is not a EAN or UPC code', $_[0] ] );
+    },
 );
 
 =back

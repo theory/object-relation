@@ -232,6 +232,8 @@ is_deeply \%tconf, \%dconf, 'The test config file should be merged';
 # Now, dispatch to test, and make sure that it builds a data store.
 SKIP: {
     skip 'Not running dev tests', 50 unless $ENV{KINETIC_SUPPORTED};
+    use Carp;
+    $SIG{__DIE__} = \&confess;
 
     # We need to access the schema object to test which classes it has loaded.
     my $db_mocker = MockModule->new('Kinetic::Build::Setup::Store::DB');

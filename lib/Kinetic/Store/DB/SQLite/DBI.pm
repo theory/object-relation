@@ -240,6 +240,13 @@ Conveniently, the mere presence of this function allows the SQLite C<REGEXP>
 operator to work, as well. See
 L<http://www.justatheory.com/computers/databases/sqlite/add_regexen.html>.
 
+=head3 validate_ean
+
+  SELECT validate_ean('4007630000116');
+
+Examines the value passed to it to determine whether or not it is a valid EAN
+or UPC code.
+
 =head2 Methods
 
 =head3 connected
@@ -272,6 +279,15 @@ sub connected {
     $dbh->func('coll_add',   4, sub { coll_add(  $dbh, @_ ) }, $func);
     $dbh->func('coll_set',   4, sub { coll_set(  $dbh, @_ ) }, $func);
 
+    # Add validate_ean() function.
+    $dbh->func(
+        'validate_ean',
+        1,
+        (Kinetic::Meta::Type->new('ean_code')->check)[0],
+        $func
+    );
+
+    # Make sure that we don't do this again.
     $dbh->{private_KineticSQLite_functions} = 1;
 }
 

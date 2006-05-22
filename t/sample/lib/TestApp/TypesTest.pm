@@ -54,6 +54,12 @@ BEGIN {
         type        => 'attribute',
     );
 
+    $km->add_attribute(
+        name        => 'ean',
+        label       => 'EAN',
+        type        => 'ean_code',
+    );
+
     $km->build;
 }
 

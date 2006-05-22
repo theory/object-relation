@@ -3,8 +3,9 @@
 # $Id$
 
 use strict;
-use Test::More tests => 82;
+use Test::More tests => 89;
 #use Test::More 'no_plan';
+use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Util::Functions qw(:uuid);
 use Kinetic::Util::Config qw(STORE_CLASS);
@@ -94,6 +95,13 @@ BEGIN {
                           ),
         "Add version attribute" );
 
+    # Add an ean_code attribute.
+    ok( $cm->add_attribute( name     => 'ean',
+                            view     => Class::Meta::PUBLIC,
+                            type     => 'ean_code',
+                            required => 1,
+                          ),
+        "Add ean attribute" );
 
     ok($cm->build, "Build class" );
 }
@@ -200,7 +208,7 @@ ok( Kinetic::TestTypes->string('bub'), "Set the string" );
 is( Kinetic::TestTypes->string, 'bub', 'The attribute should be set' );
 is $t->string, 'bub', "The object should see the same value";
 
-# Test Version accessor.
+# Test version accessor.
 is( $t->version, undef, 'Check for no Version' );
 
 # Make sure that automatic baking works.
@@ -219,6 +227,16 @@ is $t->my_class->attributes('version')->raw($t), $version->stringify,
 eval { $t->version('foo') };
 ok $err = $@, "Caught bad Version exception";
 isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
+
+# Test ean accessor.
+is( $t->ean, undef, 'Check for no EAN' );
+ok( $t->ean('036000291452'), 'Try a UPC');
+is( $t->ean, '0036000291452', 'Make sure that a 0 was prepended' );
+ok( $t->ean('4007630000116'), 'Try an EAN');
+is( $t->ean, '4007630000116', 'It should be properly set');
+throws_ok { $t->ean('0036000291453') }
+    'Kinetic::Util::Exception::Fatal::Invalid',
+    'Make sure an invalid EAN is caught';
 
 # Test Operator accessor.
 is( $t->operator, undef, 'Check for no Operator' );

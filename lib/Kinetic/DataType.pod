@@ -81,11 +81,10 @@ L<Kinetic::Meta::Type|Kinetic::Meta::Type>:
       check   => sub {
           my ($new_val, $attr_name, $obj) = shift;
           return unless defined $new_val;
-          Data::Types::is_real($new_val)
-              or throw_invalid([
-                 'Value "[_1]" is not a real number',
-                 $new_val,
-              ]);
+          Data::Types::is_real($new_val) or throw_invalid([
+              'Value "[_1]" is not a real number',
+              $new_val,
+          ]);
       },
   );
 
@@ -374,31 +373,35 @@ L<Kinetic::Build::Schema::DB::Pg|Kinetic::Build::Schema::DB::Pg>:
 
   CREATE DOMAIN version AS TEXT
   CONSTRAINT ck_version CHECK (
-     VALUE ~ '^v?\\d[\\d._]+$'
+     VALUE ~ '^v?\\\\d[\\\\d._]+$'
   );
 
-We have now created a new data type that allows only numbers, dots, and
-underscores. To get it in use, change the value stored in the C<%types>
-hash to use the new domain:
+PostgreSQL requires that backslashes be escaped with a backslash, so when we
+define PostgreSQL code with backslashes in Perl strings, we must escape them
+again. Hence the four backslashes in this example.
+
+ We have now created a new data type that allows only numbers, dots, and
+underscores. To get it in use, change the value stored in the C<%types> hash
+to use the new domain:
 
   version => 'VERSION',
 
 It's possible to enforce such constraints in SQLite, as well, using triggers
-and its C<REGEXP> keyword (which is will use the C<regexp()> SQLite function
+and its C<REGEXP> keyword (which will use the C<regexp()> SQLite function
 defined by TKP, which therefore supports Perl regular expressions). Adding
 domain triggers to the SQLite data store is relatively trivial. Simply add a
 new triggers method, here it would be C<version_triggers()>, that calls the
 private C<_domain_triggers()> method to define the triggers. The arguments to
 C<_domain_triggers()> are simple: The class for which the table triggers will
-be created, the name of the domain, and the right-hand side of a SQL C<WHERE>
-expression that will trigger an exception when it evaluates to true. Our
-C<version_triggers()> method looks like this:
+be created, the name of the domain, and a SQL C<WHERE> expression using '%s'
+as the placeholder for the column to be checked that will trigger an exception
+when it evaluates to true. Our C<version_triggers()> method looks like this:
 
   sub version_triggers {
       my ($self, $class) = @_;
       $self->_domain_triggers(
           $class,
-          version => q{NOT REGEXP '^v?\\d[\\d._]+$'
+          version => q{%s NOT REGEXP '^v?\\d[\\d._]+$'
       });
   }
 

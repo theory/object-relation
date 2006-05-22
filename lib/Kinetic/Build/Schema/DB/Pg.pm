@@ -121,6 +121,7 @@ my %types = (
     operator   => 'OPERATOR',
     media_type => 'MEDIA_TYPE',
     attribute  => 'ATTRIBUTE',
+    ean_code   => 'EAN_CODE',
 );
 
 sub column_type {
@@ -841,6 +842,46 @@ q{CREATE DOMAIN version AS TEXT
   CONSTRAINT ck_version CHECK (
      VALUE ~ '^v?\\\\d[\\\\d._]+$'
   );
+},
+
+# Create the function for validating EANs/UPCs.
+q{CREATE OR REPLACE FUNCTION validate_ean(
+   arg TEXT
+) RETURNS boolean AS $$
+DECLARE
+    -- Convert to BYTEA; support UPCs.
+    ean BYTEA := CASE WHEN length($1) = 12 THEN '0' || $1 ELSE $1 END;
+BEGIN
+    -- Make sure we really have a UPC or an EAN.
+    IF arg !~ '^\\\\d{12,13}$' THEN RETURN FALSE; END IF;
+
+    RETURN 10 - (
+        (
+            -- Sum odd numerals.
+            get_byte(ean,  1) - 48
+          + get_byte(ean,  3) - 48
+          + get_byte(ean,  5) - 48
+          + get_byte(ean,  7) - 48
+          + get_byte(ean,  9) - 48
+          + get_byte(ean, 11) - 48
+        ) * 3 -- Multiply total by 3.
+        -- Add even numerals except for checksum (12).
+        + get_byte(ean,  0) - 48
+        + get_byte(ean,  2) - 48
+        + get_byte(ean,  4) - 48
+        + get_byte(ean,  6) - 48
+        + get_byte(ean,  8) - 48
+        + get_byte(ean, 10) - 48
+    -- Compare to the checksum.
+    ) % 10 = get_byte(ean, 12) - 48;
+END;
+$$ LANGUAGE plpgsql immutable;
+},
+
+q{CREATE DOMAIN ean_code AS TEXT
+CONSTRAINT ck_ean_code CHECK (
+   validate_ean(VALUE)
+);
 },
 
 q{CREATE OR REPLACE FUNCTION trig_uuid_once() RETURNS trigger AS $$

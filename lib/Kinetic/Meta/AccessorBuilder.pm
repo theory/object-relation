@@ -131,10 +131,11 @@ my %builders = (
                 return sub {
                     my $self = shift;
                     return $self->{$name} unless @_;
+                    my $val = shift;
                     # Check the value passed in.
-                    $_->($_[0], $name, $self) for @checks;
+                    $_->($val, $name, $self) for @checks;
                     # Assign the value.
-                    return _set($self, $name, $_[0]);
+                    return _set($self, $name, $val);
                 };
             } else {
                 return sub {
@@ -147,10 +148,11 @@ my %builders = (
                 return sub {
                     my $self = shift;
                     return $self->{$name} unless @_;
+                    my $val = shift;
                     # Check the value passed in.
-                    $_->($_[0], $name, $self) for @checks;
+                    $_->($val, $name, $self) for @checks;
                     # Assign the value.
-                    $self->{$name} = $_[0];
+                    $self->{$name} = $val;
                     return $self;
                 };
             }
@@ -181,9 +183,10 @@ my %builders = (
                         if defined $self->{$name} && !ref $self->{$name};
                     return $self->{$name} unless @_;
                     # Check the value passed in.
-                    $_->($_[0], $name, $self) for @checks;
+                    my $val = shift;
+                    $_->($val, $name, $self) for @checks;
                     # Assign the value.
-                    return _set($self, $name, shift);
+                    return _set($self, $name, $val);
                 };
             } else {
                 return sub {
@@ -192,9 +195,10 @@ my %builders = (
                         if defined $self->{$name} && !ref $self->{$name};
                     return $self->{$name} unless @_;
                     # Check the value passed in.
-                    $_->($_[0], $name, $self) for @checks;
+                    my $val = shift;
+                    $_->($val, $name, $self) for @checks;
                     # Assign the value.
-                    $self->{$name} = shift;
+                    $self->{$name} = $val;
                     return $self;
                 };
             }
@@ -231,9 +235,10 @@ sub build {
                     my $pkg = shift;
                     return $data unless @_;
                     # Check the value passed in.
-                    $_->($_[0], $name, $pkg) for @checks;
+                    my $val = shift;
+                    $_->($val, $name, $pkg) for @checks;
                     # Assign the value.
-                    $data = $_[0];
+                    $data = $val;
                 };
             } else {
                 *{"${pkg}::$name"} = sub {

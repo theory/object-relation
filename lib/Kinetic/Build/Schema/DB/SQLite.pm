@@ -81,6 +81,7 @@ my %types = (
     operator   => 'TEXT',
     media_type => 'TEXT',
     attribute  => 'TEXT',
+    ean_code   => 'TEXT',
 );
 
 sub column_type {
@@ -175,6 +176,7 @@ sub constraints_for_class {
         $self->media_type_triggers( $class ),
         $self->attribute_triggers(  $class ),
         $self->version_triggers(    $class ),
+        $self->ean_code_triggers(   $class ),
    );
 
     # Add FK constraint for subclasses from id column to the parent table.
@@ -210,7 +212,7 @@ Called by C<constraints_for_class()>.
 
 sub state_trigger {
     my ($self, $class) = @_;
-    $self->_domain_triggers($class, state => 'NOT BETWEEN -1 AND 2');
+    $self->_domain_triggers($class, state => '%s NOT BETWEEN -1 AND 2');
 }
 
 ##############################################################################
@@ -230,7 +232,7 @@ Called by C<constraints_for_class()>.
 
 sub boolean_triggers {
     my ($self, $class) = @_;
-    $self->_domain_triggers($class, boolean => 'NOT IN (1, 0)');
+    $self->_domain_triggers($class, boolean => '%s NOT IN (1, 0)');
 }
 
 ##############################################################################
@@ -388,7 +390,7 @@ sub operator_triggers {
     $self->_domain_triggers(
         $class,
         'operator',
-        'NOT IN (' . join(
+        '%s NOT IN (' . join(
             ', ', map { "'$_'"}
                 qw(== != eq ne =~ !~ > < >= <= gt lt ge le)
             ) . ')',
@@ -416,7 +418,7 @@ sub media_type_triggers {
     $self->_domain_triggers(
         $class,
         'media_type',
-        q{NOT REGEXP '^\\w+/\\w+$'}
+        q{%s NOT REGEXP '^\\w+/\\w+$'}
     );
 }
 
@@ -440,8 +442,7 @@ sub attribute_triggers {
     my ($self, $class) = @_;
     $self->_domain_triggers(
         $class,
-        'attribute',
-        q{NOT REGEXP '^\\w+\.\\w+$'}
+        attribute => q{%s NOT REGEXP '^\\w+\.\\w+$'}
     );
 }
 
@@ -463,7 +464,31 @@ Called by C<constraints_for_class()>.
 
 sub version_triggers {
     my ($self, $class) = @_;
-    $self->_domain_triggers($class, version => q{NOT REGEXP '^v?\\d[\\d._]+$'});
+    $self->_domain_triggers(
+        $class,
+        version => q{%s NOT REGEXP '^v?\\d[\\d._]+$'}
+    );
+}
+
+##############################################################################
+
+=head3 ean_code_triggers
+
+  my @ean_code_triggers = $kbs->ean_code_triggers($class);
+
+Returns SQLite triggers to validate that the value of a ean_code column in the
+table representing the contents of the class represented by the
+Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
+does not have a ean_code attribute (because it inherits the ean_code from a
+concrete parent class), C<ean_code_trigger()> will return an empty list.
+
+Called by C<constraints_for_class()>.
+
+=cut
+
+sub ean_code_triggers {
+    my ($self, $class) = @_;
+    $self->_domain_triggers( $class, ean_code => 'NOT validate_ean(%s)' );
 }
 
 ##############################################################################
@@ -1006,7 +1031,10 @@ this meethod.
 For example, the constraint triggers for the C<state> data type an be
 constructed for a given clas like so:
 
-  my @trigs = $self->_domain_triggers($class, state => 'NOT BETWEEN -1 AND 2');
+  my @trigs = $self->_domain_triggers(
+      $class,
+      state => '%s NOT BETWEEN -1 AND 2'
+  );
 
 This makes it much easier to add new data types, whild maintenance of the code
 to enforce them in the SQLite database is all in one place.
@@ -1021,22 +1049,23 @@ sub _domain_triggers {
     my $key = $class->key;
     my @trigs;
     for my $attr (@attributes) {
-        my $col = $attr->column;
-        my $null = $attr->required ? '' : "NEW.$col IS NOT NULL AND ";
+        my $col   = $attr->column;
+        my $where = ($attr->required ? "NEW.$col IS NOT NULL AND " : '')
+            . sprintf $check, "NEW.$col";
         push @trigs,
             "CREATE TRIGGER cki_$key\_$col\n"
           . "BEFORE INSERT ON $table\n"
           . "FOR EACH ROW BEGIN\n"
           . "    SELECT RAISE(ABORT, 'value for domain $domain violates "
           .                        qq{check constraint "ck_$domain"')\n}
-          . "    WHERE  ${null}NEW.$col $check;\n"
+          . "    WHERE  $where;\n"
           . "END;\n",
             "CREATE TRIGGER cku_$key\_$col\n"
           . "BEFORE UPDATE OF $col ON $table\n"
           . "FOR EACH ROW BEGIN\n"
           . "    SELECT RAISE(ABORT, 'value for domain $domain violates "
           .                        qq{check constraint "ck_$domain"')\n}
-          . "    WHERE  ${null}NEW.$col $check;\n"
+          . "    WHERE  $where;\n"
           . "END;\n";
     }
     return @trigs;

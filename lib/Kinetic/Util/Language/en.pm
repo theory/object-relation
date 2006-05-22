@@ -223,6 +223,9 @@ our %Lexicon;
         'Value "[_1]" is not a whole number',
         'Value “[_1]” is not a whole number',
 
+        'Value "[_1]" is not a EAN or UPC code',
+        'Value “[_1]” is not a EAN or UPC code',
+
         'Cannot assign permanent state',
         'Cannot assign permanent state',
 
