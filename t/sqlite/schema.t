@@ -71,14 +71,14 @@ my $constraints = q{CREATE TRIGGER cki_simple_state
 BEFORE INSERT ON _simple
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-    WHERE  NEW.state IS NOT NULL AND NEW.state NOT BETWEEN -1 AND 2;
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER cku_simple_state
 BEFORE UPDATE OF state ON _simple
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-    WHERE  NEW.state IS NOT NULL AND NEW.state NOT BETWEEN -1 AND 2;
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER ck_simple_uuid_once
@@ -164,14 +164,14 @@ $constraints = q{CREATE TRIGGER cki_one_bool
 BEFORE INSERT ON simple_one
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain boolean violates check constraint "ck_boolean"')
-    WHERE  NEW.bool IS NOT NULL AND NEW.bool NOT IN (1, 0);
+    WHERE  NEW.bool NOT IN (1, 0);
 END;
 
 CREATE TRIGGER cku_one_bool
 BEFORE UPDATE OF bool ON simple_one
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain boolean violates check constraint "ck_boolean"')
-    WHERE  NEW.bool IS NOT NULL AND NEW.bool NOT IN (1, 0);
+    WHERE  NEW.bool NOT IN (1, 0);
 END;
 
 CREATE TRIGGER pfki_simple_one_id
@@ -279,7 +279,21 @@ eq_or_diff $sg->indexes_for_class($two), $indexes,
   "... Schema class generates CREATE INDEX statements";
 
 # Check that the constraint and foreign key triggers are correct.
-$constraints = q{CREATE TRIGGER cki_two_age_unique
+$constraints = q{CREATE TRIGGER cki_two_age
+BEFORE INSERT ON simple_two
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain whole violates check constraint "ck_whole"')
+    WHERE  NEW.age IS NOT NULL AND NEW.age < 0;
+END;
+
+CREATE TRIGGER cku_two_age
+BEFORE UPDATE OF age ON simple_two
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain whole violates check constraint "ck_whole"')
+    WHERE  NEW.age IS NOT NULL AND NEW.age < 0;
+END;
+
+CREATE TRIGGER cki_two_age_unique
 BEFORE INSERT ON simple_two
 FOR EACH ROW BEGIN
     SELECT RAISE (ABORT, 'column age is not unique')
@@ -365,6 +379,7 @@ FOR EACH ROW BEGIN
     WHERE  (SELECT one_id FROM simple_two WHERE one_id = OLD.id) IS NOT NULL;
 END;
 };
+
 eq_or_diff join( "\n", $sg->constraints_for_class($two) ), $constraints,
   "... Schema class generates CONSTRAINT statement";
 
@@ -456,14 +471,14 @@ $constraints = q{CREATE TRIGGER cki_relation_state
 BEFORE INSERT ON _relation
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-    WHERE  NEW.state IS NOT NULL AND NEW.state NOT BETWEEN -1 AND 2;
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER cku_relation_state
 BEFORE UPDATE OF state ON _relation
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-    WHERE  NEW.state IS NOT NULL AND NEW.state NOT BETWEEN -1 AND 2;
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER ck_relation_uuid_once
@@ -620,14 +635,28 @@ $constraints = q{CREATE TRIGGER cki_yello_state
 BEFORE INSERT ON _yello
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-    WHERE  NEW.state IS NOT NULL AND NEW.state NOT BETWEEN -1 AND 2;
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER cku_yello_state
 BEFORE UPDATE OF state ON _yello
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-    WHERE  NEW.state IS NOT NULL AND NEW.state NOT BETWEEN -1 AND 2;
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
+END;
+
+CREATE TRIGGER cki_yello_age
+BEFORE INSERT ON _yello
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain posint violates check constraint "ck_posint"')
+    WHERE  NEW.age IS NOT NULL AND NEW.age <= 0;
+END;
+
+CREATE TRIGGER cku_yello_age
+BEFORE UPDATE OF age ON _yello
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain posint violates check constraint "ck_posint"')
+    WHERE  NEW.age IS NOT NULL AND NEW.age <= 0;
 END;
 
 CREATE TRIGGER ck_yello_uuid_once
@@ -683,6 +712,7 @@ FOR EACH ROW BEGIN
     DELETE FROM simple_one WHERE id = OLD.ones_id;
 END;
 };
+
 eq_or_diff join( "\n", $sg->constraints_for_class($yello) ), $constraints,
   '... with the correct constraints';
 
@@ -785,14 +815,14 @@ $constraints = q{CREATE TRIGGER cki_composed_state
 BEFORE INSERT ON _composed
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-    WHERE  NEW.state IS NOT NULL AND NEW.state NOT BETWEEN -1 AND 2;
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER cku_composed_state
 BEFORE UPDATE OF state ON _composed
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-    WHERE  NEW.state IS NOT NULL AND NEW.state NOT BETWEEN -1 AND 2;
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER ck_composed_uuid_once
@@ -939,14 +969,14 @@ $constraints = q{CREATE TRIGGER cki_comp_comp_state
 BEFORE INSERT ON _comp_comp
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-    WHERE  NEW.state IS NOT NULL AND NEW.state NOT BETWEEN -1 AND 2;
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER cku_comp_comp_state
 BEFORE UPDATE OF state ON _comp_comp
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-    WHERE  NEW.state IS NOT NULL AND NEW.state NOT BETWEEN -1 AND 2;
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER ck_comp_comp_uuid_once
@@ -1067,14 +1097,14 @@ $constraints = q{CREATE TRIGGER cki_extend_state
 BEFORE INSERT ON _extend
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-    WHERE  NEW.state IS NOT NULL AND NEW.state NOT BETWEEN -1 AND 2;
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER cku_extend_state
 BEFORE UPDATE OF state ON _extend
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-    WHERE  NEW.state IS NOT NULL AND NEW.state NOT BETWEEN -1 AND 2;
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER ck_extend_uuid_once
@@ -1193,6 +1223,9 @@ $table = q{CREATE TABLE _types_test (
     id INTEGER NOT NULL PRIMARY KEY,
     uuid TEXT NOT NULL,
     state INTEGER NOT NULL DEFAULT 1,
+    integer INTEGER NOT NULL,
+    whole INTEGER,
+    posint INTEGER,
     version TEXT NOT NULL,
     duration TEXT NOT NULL,
     operator TEXT NOT NULL,
@@ -1218,14 +1251,42 @@ $constraints = q{CREATE TRIGGER cki_types_test_state
 BEFORE INSERT ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-    WHERE  NEW.state IS NOT NULL AND NEW.state NOT BETWEEN -1 AND 2;
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
 END;
 
 CREATE TRIGGER cku_types_test_state
 BEFORE UPDATE OF state ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain state violates check constraint "ck_state"')
-    WHERE  NEW.state IS NOT NULL AND NEW.state NOT BETWEEN -1 AND 2;
+    WHERE  NEW.state NOT BETWEEN -1 AND 2;
+END;
+
+CREATE TRIGGER cki_types_test_whole
+BEFORE INSERT ON _types_test
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain whole violates check constraint "ck_whole"')
+    WHERE  NEW.whole IS NOT NULL AND NEW.whole < 0;
+END;
+
+CREATE TRIGGER cku_types_test_whole
+BEFORE UPDATE OF whole ON _types_test
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain whole violates check constraint "ck_whole"')
+    WHERE  NEW.whole IS NOT NULL AND NEW.whole < 0;
+END;
+
+CREATE TRIGGER cki_types_test_posint
+BEFORE INSERT ON _types_test
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain posint violates check constraint "ck_posint"')
+    WHERE  NEW.posint IS NOT NULL AND NEW.posint <= 0;
+END;
+
+CREATE TRIGGER cku_types_test_posint
+BEFORE UPDATE OF posint ON _types_test
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'value for domain posint violates check constraint "ck_posint"')
+    WHERE  NEW.posint IS NOT NULL AND NEW.posint <= 0;
 END;
 
 CREATE TRIGGER ck_types_test_uuid_once
@@ -1239,70 +1300,70 @@ CREATE TRIGGER cki_types_test_operator
 BEFORE INSERT ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain operator violates check constraint "ck_operator"')
-    WHERE  NEW.operator IS NOT NULL AND NEW.operator NOT IN ('==', '!=', 'eq', 'ne', '=~', '!~', '>', '<', '>=', '<=', 'gt', 'lt', 'ge', 'le');
+    WHERE  NEW.operator NOT IN ('==', '!=', 'eq', 'ne', '=~', '!~', '>', '<', '>=', '<=', 'gt', 'lt', 'ge', 'le');
 END;
 
 CREATE TRIGGER cku_types_test_operator
 BEFORE UPDATE OF operator ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain operator violates check constraint "ck_operator"')
-    WHERE  NEW.operator IS NOT NULL AND NEW.operator NOT IN ('==', '!=', 'eq', 'ne', '=~', '!~', '>', '<', '>=', '<=', 'gt', 'lt', 'ge', 'le');
+    WHERE  NEW.operator NOT IN ('==', '!=', 'eq', 'ne', '=~', '!~', '>', '<', '>=', '<=', 'gt', 'lt', 'ge', 'le');
 END;
 
 CREATE TRIGGER cki_types_test_media_type
 BEFORE INSERT ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain media_type violates check constraint "ck_media_type"')
-    WHERE  NEW.media_type IS NOT NULL AND NEW.media_type NOT REGEXP '^\\w+/\\w+$';
+    WHERE  NEW.media_type NOT REGEXP '^\\w+/\\w+$';
 END;
 
 CREATE TRIGGER cku_types_test_media_type
 BEFORE UPDATE OF media_type ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain media_type violates check constraint "ck_media_type"')
-    WHERE  NEW.media_type IS NOT NULL AND NEW.media_type NOT REGEXP '^\\w+/\\w+$';
+    WHERE  NEW.media_type NOT REGEXP '^\\w+/\\w+$';
 END;
 
 CREATE TRIGGER cki_types_test_attribute
 BEFORE INSERT ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain attribute violates check constraint "ck_attribute"')
-    WHERE  NEW.attribute NOT REGEXP '^\\w+\.\\w+$';
+    WHERE  NEW.attribute IS NOT NULL AND NEW.attribute NOT REGEXP '^\\w+\.\\w+$';
 END;
 
 CREATE TRIGGER cku_types_test_attribute
 BEFORE UPDATE OF attribute ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain attribute violates check constraint "ck_attribute"')
-    WHERE  NEW.attribute NOT REGEXP '^\\w+\.\\w+$';
+    WHERE  NEW.attribute IS NOT NULL AND NEW.attribute NOT REGEXP '^\\w+\.\\w+$';
 END;
 
 CREATE TRIGGER cki_types_test_version
 BEFORE INSERT ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain version violates check constraint "ck_version"')
-    WHERE  NEW.version IS NOT NULL AND NEW.version NOT REGEXP '^v?\\d[\\d._]+$';
+    WHERE  NEW.version NOT REGEXP '^v?\\d[\\d._]+$';
 END;
 
 CREATE TRIGGER cku_types_test_version
 BEFORE UPDATE OF version ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain version violates check constraint "ck_version"')
-    WHERE  NEW.version IS NOT NULL AND NEW.version NOT REGEXP '^v?\\d[\\d._]+$';
+    WHERE  NEW.version NOT REGEXP '^v?\\d[\\d._]+$';
 END;
 
 CREATE TRIGGER cki_types_test_ean
 BEFORE INSERT ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain ean_code violates check constraint "ck_ean_code"')
-    WHERE  NOT validate_ean(NEW.ean);
+    WHERE  NEW.ean IS NOT NULL AND NOT validate_ean(NEW.ean);
 END;
 
 CREATE TRIGGER cku_types_test_ean
 BEFORE UPDATE OF ean ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain ean_code violates check constraint "ck_ean_code"')
-    WHERE  NOT validate_ean(NEW.ean);
+    WHERE  NEW.ean IS NOT NULL AND NOT validate_ean(NEW.ean);
 END;
 };
 
@@ -1311,7 +1372,7 @@ eq_or_diff join( "\n", $sg->constraints_for_class($types_test) ),
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW types_test AS
-  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator, _types_test.media_type AS media_type, _types_test.attribute AS attribute, _types_test.ean AS ean
+  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.integer AS integer, _types_test.whole AS whole, _types_test.posint AS posint, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator, _types_test.media_type AS media_type, _types_test.attribute AS attribute, _types_test.ean AS ean
   FROM   _types_test;
 };
 eq_or_diff $sg->views_for_class($types_test), $view,
@@ -1321,8 +1382,8 @@ eq_or_diff $sg->views_for_class($types_test), $view,
 $insert = q{CREATE TRIGGER insert_types_test
 INSTEAD OF INSERT ON types_test
 FOR EACH ROW BEGIN
-  INSERT INTO _types_test (uuid, state, version, duration, operator, media_type, attribute, ean)
-  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.version, NEW.duration, NEW.operator, NEW.media_type, NEW.attribute, NEW.ean);
+  INSERT INTO _types_test (uuid, state, integer, whole, posint, version, duration, operator, media_type, attribute, ean)
+  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.integer, NEW.whole, NEW.posint, NEW.version, NEW.duration, NEW.operator, NEW.media_type, NEW.attribute, NEW.ean);
 END;
 };
 eq_or_diff $sg->insert_for_class($types_test), $insert,
@@ -1333,7 +1394,7 @@ $update = q{CREATE TRIGGER update_types_test
 INSTEAD OF UPDATE ON types_test
 FOR EACH ROW BEGIN
   UPDATE _types_test
-  SET    state = NEW.state, version = NEW.version, duration = NEW.duration, operator = NEW.operator, media_type = NEW.media_type, attribute = NEW.attribute, ean = NEW.ean
+  SET    state = NEW.state, integer = NEW.integer, whole = NEW.whole, posint = NEW.posint, version = NEW.version, duration = NEW.duration, operator = NEW.operator, media_type = NEW.media_type, attribute = NEW.attribute, ean = NEW.ean
   WHERE  id = OLD.id;
 END;
 };

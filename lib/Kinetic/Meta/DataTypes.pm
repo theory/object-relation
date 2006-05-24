@@ -24,9 +24,9 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use Kinetic::Meta::Type;
+use Kinetic::Util::Functions qw(:ean);
 use OSSP::uuid;
 use Data::Types;
-use List::Util qw(sum);
 use Kinetic::Util::Exceptions qw(throw_invalid);
 
 =head1 Name
@@ -98,6 +98,8 @@ Kinetic::Meta::Type->add(
     }
 );
 
+##############################################################################
+
 =item string
 
 A Perl string, decoded to its internal, utf8 format.
@@ -115,10 +117,32 @@ Kinetic::Meta::Type->add(
 
 ##############################################################################
 
+=item integer
+
+=item int
+
+An integer. Throws a Fatal::Invalid exception if the value is not a whole
+number.
+
+=cut
+
+Kinetic::Meta::Type->add(
+    key     => 'integer',
+    alias   => 'int',
+    name    => 'Integer',
+    check   => sub {
+        return unless defined $_[0];
+        Data::Types::is_int($_[0])
+          or throw_invalid([ 'Value "[_1]" is not an integer', $_[0] ]);
+    }
+);
+
+##############################################################################
+
 =item whole
 
-A whole number. Throws a Fatal::Invalid exception if the value is not a whole
-number.
+A whole number, which is to say any integer greater than or equal to 0. Throws
+a Fatal::Invalid exception if the value is not a whole number.
 
 =cut
 
@@ -129,6 +153,25 @@ Kinetic::Meta::Type->add(
         return unless defined $_[0];
         Data::Types::is_whole($_[0])
           or throw_invalid([ 'Value "[_1]" is not a whole number', $_[0] ]);
+    }
+);
+
+##############################################################################
+
+=item posint
+
+A positive integer. Throws a Fatal::Invalid exception if the value is not a
+posint number.
+
+=cut
+
+Kinetic::Meta::Type->add(
+    key     => 'posint',
+    name    => 'Posint Number',
+    check   => sub {
+        return unless defined $_[0];
+        Data::Types::is_count($_[0])
+          or throw_invalid([ 'Value "[_1]" is not a positive integer', $_[0] ]);
     }
 );
 
@@ -273,14 +316,8 @@ Kinetic::Meta::Type->add(
     check => sub {
         # Prepend 0 to UPC to make it a valid EAN.
         $_[0] = "0$_[0]" if length $_[0] == 12;
-        if ($_[0] =~ /^\d{13}$/) {
-            my @nums = split '', $_[0];
-            return if 10 - (
-                sum( @nums[1,3,5,7,9,11] ) * 3
-              + sum( @nums[0,2,4,6,8,10] )
-            ) % 10 == $nums[12];
-        }
-        throw_invalid( [ 'Value "[_1]" is not a EAN or UPC code', $_[0] ] );
+        throw_invalid( [ 'Value "[_1]" is not a EAN or UPC code', $_[0] ] )
+            unless validate_ean($_[0]);
     },
 );
 

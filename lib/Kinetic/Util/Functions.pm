@@ -25,7 +25,7 @@ use OSSP::uuid;
 use MIME::Base64;
 use File::Find;
 use File::Spec;
-use List::Util qw(first);
+use List::Util qw(first sum);
 use Kinetic::Util::Exceptions qw/throw_fatal/;
 use Kinetic::Util::Config qw/STORE_CLASS/;
 
@@ -51,6 +51,7 @@ use Exporter::Tidy
         uuid_to_hex
         uuid_to_b64
     )],
+    ean => [qw(validate_ean)],
     class => [qw(
         file_to_mod
         load_classes
@@ -106,6 +107,30 @@ sub uuid_to_hex {
 
 sub uuid_to_b64 {
     encode_base64(uuid_to_bin(shift));
+}
+
+##############################################################################
+
+=head2 :ean
+
+=head3 validate_ean
+
+  print "$ean is valid\n" if validate_ean($ean);
+
+Returns true if the EAN or UPC argument is valid, and false if it is not.
+
+=cut
+
+# This function must return 0 or 1 to properly work in SQLite.
+
+sub validate_ean ($) {
+    my $ean = length $_[0] == 12 ? '0' . shift : shift;
+    return 0 unless $ean =~ /^\d{13}$/;
+    my @nums = split '', $ean;
+    return 10 - (
+        sum( @nums[1,3,5,7,9,11] ) * 3
+      + sum( @nums[0,2,4,6,8,10] )
+    ) % 10 == $nums[12] ? 1 : 0;
 }
 
 ##############################################################################

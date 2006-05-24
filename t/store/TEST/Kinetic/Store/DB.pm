@@ -1178,11 +1178,26 @@ sub test_fk_update : Test(9) {
         '... Which should have the proper error message';
 }
 
-sub test_types : Test(95) {
+sub test_types : Test(130) {
     my $self = shift;
     return 'Skip test_fk_update for abstract class'
         unless $self->_should_run;
     ok my $types_test = TypesTest->new, 'Create new types_test object';
+
+    # Set up the integer attribute.
+    is $types_test->integer, undef, 'The integer should be undef';
+    ok $types_test->integer(-12),    'Set the integer';
+    is $types_test->integer, -12,    'It should be properly set';
+
+    # Set up the whole attribute.
+    is $types_test->whole, undef, 'The whole should be undef';
+    ok $types_test->whole(0),     'Set the whole';
+    is $types_test->whole, 0,     'It should be properly set';
+
+    # Set up the posint attribute.
+    is $types_test->posint, undef, 'The posint should be undef';
+    ok $types_test->posint(12),    'Set the posint';
+    is $types_test->posint, 12,    'It should be properly set';
 
     # Set up the version attribute.
     is $types_test->version, undef,          'The version should be undef';
@@ -1233,6 +1248,9 @@ sub test_types : Test(95) {
         'Look up the types_test object';
 
     # Check the looked-up values.
+    is $types_test->integer,     -12,  'Integer should be correct';
+    is $types_test->whole,         0,  'Whole should be correct';
+    is $types_test->posint,       12,  'Posint should be correct';
     isa_ok $types_test->version, 'version', 'version';
     is $types_test->version, $version, 'It should be properly set';
     isa_ok $types_test->duration,      'Kinetic::DataType::Duration', 'duration';
@@ -1288,10 +1306,104 @@ sub test_types : Test(95) {
     is $types_test->attribute,  $attr, 'Attribute should be properly set';
     is $types_test->ean,        $ean,  'EAN should be properly set';
 
+    # Mock store_raw to return the wrong value when appropriate.
+    my $orig_straw = Kinetic::Meta::Attribute->can('store_raw');
+    my $attr_mock  = MockModule->new('Kinetic::Meta::Attribute');
+    my $checking   = '';
+    my $ret        = 'foo';
+    my $store_mock = sub {
+        return $ret if $_[0]->name eq $checking;
+        return $orig_straw->(@_)
+    };
+
+    # Make sure that invalid integers are not allowed.
+    $checking = 'integer';
+    $attr_mock->mock(store_raw => $store_mock);
+    ok $types_test->integer(-400), 'Change the integer';
+
+    SKIP: {
+        skip 'Need to enable SQLite strict affinity', 2
+            if $self->supported('sqlite');
+        throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
+            '... Saving it with a bogus integer should fail';
+        like $@,
+            qr/invalid input syntax for integer: "foo"/,
+            '... And it should fail with the proper message';
+    }
+
+    # The errors abort the txn, so need a new object to test updates against.
+    $attr_mock->unmock_all;
+    ok $types_test = TypesTest->new(
+        version    => $version,
+        duration   => $du,
+        operator   => 'eq',
+        media_type => $mt,
+        integer    => 20,
+    ), 'Create another types test object';
+    ok $types_test->save, 'Save it';
+
+    # Make sure that invalid whole numbers are not allowed.
+    $checking = 'whole';
+    $ret      = -12;
+    $attr_mock->mock(store_raw => $store_mock);
+    ok $types_test->whole(400), 'Change the whole';
+
+    SKIP: {
+        # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
+        skip 'Domain constraints ignored in PREPAREd statements', 2
+            if $self->supported('pg')
+            && $self->dbh->{pg_server_version} <= 80102;
+        throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
+            '... Saving it with a bogus whole should fail';
+        like $@,
+            qr/value for domain "?whole"? violates check constraint "ck_whole"/,
+            '... And it should fail with the proper message';
+    }
+
+    # The errors abort the txn, so need a new object to test updates against.
+    $attr_mock->unmock_all;
+    ok $types_test = TypesTest->new(
+        version    => $version,
+        duration   => $du,
+        operator   => 'eq',
+        media_type => $mt,
+        integer    => 20,
+    ), 'Create another types test object';
+    ok $types_test->save, 'Save it';
+
+    # Make sure that invalid posints are not allowed.
+    $checking = 'posint';
+    $ret      = 0;
+    $attr_mock->mock(store_raw => $store_mock);
+    ok $types_test->posint(400), 'Change the posint';
+
+    SKIP: {
+        # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
+        skip 'Domain constraints ignored in PREPAREd statements', 2
+            if $self->supported('pg')
+            && $self->dbh->{pg_server_version} <= 80102;
+        throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
+            '... Saving it with a bogus posint should fail';
+        like $@,
+            qr/value for domain "?posint"? violates check constraint "ck_posint"/,
+            '... And it should fail with the proper message';
+    }
+
+    # The errors abort the txn, so need a new object to test updates against.
+    $attr_mock->unmock_all;
+    ok $types_test = TypesTest->new(
+        version    => $version,
+        duration   => $du,
+        operator   => 'eq',
+        media_type => $mt,
+        integer    => 20,
+    ), 'Create another types test object';
+    ok $types_test->save, 'Save it';
+
     # Make sure that invalid operators are not allowed.
-    my $attr_mock = MockModule->new('Kinetic::Meta::Attribute');
-    $attr_mock->mock(store_raw => 'foo');
-    my $orig_straw = $attr_mock->original('store_raw');
+    $checking = 'operator';
+    $ret      = 'foo';
+    $attr_mock->mock(store_raw => $store_mock);
     ok $types_test->operator('lt'), 'Change the operator';
 
     SKIP: {
@@ -1313,16 +1425,15 @@ sub test_types : Test(95) {
         duration   => $du,
         operator   => 'eq',
         media_type => $mt,
+        integer    => 20,
     ), 'Create another types test object';
     ok $types_test->save, 'Save it';
 
     # Make sure that invalid media_types are not allowed.
     $mt = Kinetic::DataType::MediaType->new('text/xml');
     ok $types_test->media_type($mt), 'Change the media_type';
-    $attr_mock->mock(store_raw => sub {
-        return 'foo' if $_[0]->name eq 'media_type';
-        return $orig_straw->(@_)
-    });
+    $checking = 'media_type';
+    $attr_mock->mock(store_raw => $store_mock);
 
     SKIP: {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
@@ -1343,16 +1454,15 @@ sub test_types : Test(95) {
         duration   => $du,
         operator   => 'eq',
         media_type => $mt,
+        integer    => 20,
     ), 'Create another types test object';
     ok $types_test->save, 'Save it';
 
     # Make sure that invalid attributes are not allowed.
     $attr = Kinetic::Meta->attr_for_key('simple.name');
     ok $types_test->attribute($attr), 'Change the attribute';
-    $attr_mock->mock(store_raw => sub {
-        return 'foo' if $_[0]->name eq 'attribute';
-        return $orig_straw->(@_)
-    });
+    $checking = 'attribute';
+    $attr_mock->mock(store_raw => $store_mock);
 
     SKIP: {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
@@ -1373,15 +1483,15 @@ sub test_types : Test(95) {
         duration   => $du,
         operator   => 'eq',
         media_type => $mt,
+        integer    => 20,
     ), 'Create another types test object';
     ok $types_test->save, 'Save it';
 
     # Make sure that invalid version are not allowed.
     ok $types_test->version(version->new('12.5')), 'Change the version';
-    $attr_mock->mock(store_raw => sub {
-        return 'v1.2a' if $_[0]->name eq 'version';
-        return $orig_straw->(@_)
-    });
+    $checking = 'version';
+    $ret      = 'v1.2a';
+    $attr_mock->mock(store_raw => $store_mock);
 
     SKIP: {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
@@ -1402,15 +1512,15 @@ sub test_types : Test(95) {
         duration   => $du,
         operator   => 'eq',
         media_type => $mt,
+        integer    => 20,
     ), 'Create another types test object';
     ok $types_test->save, 'Save it';
 
     # Make sure that invalid ean are not allowed.
     ok $types_test->ean('036000291452'), 'Change the ean to a UPC';
-    $attr_mock->mock(store_raw => sub {
-        return '036000291453' if $_[0]->name eq 'ean';
-        return $orig_straw->(@_)
-    });
+    $checking = 'ean';
+    $ret      = '036000291453';
+    $attr_mock->mock(store_raw => $store_mock);
 
     SKIP: {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
@@ -1430,62 +1540,75 @@ sub test_types : Test(95) {
         duration   => $du,
         operator   => 'eq',
         media_type => $mt,
+        integer    => 20,
     ), 'Create another types test object';
 
-    $attr_mock->mock(store_raw => sub {
-        return 'foo' if $_[0]->name eq 'operator';
-        return $orig_straw->(@_)
-    });
+    $checking = 'integer';
+    $ret      = 'foo';
+    $attr_mock->mock(store_raw => $store_mock);
+
+    SKIP: {
+        skip 'Need to enable SQLite strict affinity', 2
+            if $self->supported('sqlite');
+        throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
+            '... Saving it with a bogus integer should fail';
+        like $@,
+            qr/invalid input syntax for integer: "foo"/,
+            '... And it should fail with the proper message';
+    }
 
     SKIP: {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 4
             if $self->supported('pg')
             && $self->dbh->{pg_server_version} <= 80102;
+
+        $checking = 'whole';
+        $ret      = -1;
+        throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
+            '... Saving it with a bogus whole should fail';
+        like $@,
+            qr/value for domain "?whole"? violates check constraint "ck_whole"/,
+            '... And it should fail with the proper message';
+
+        $checking = 'posint';
+        $ret      = 0;
+        throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
+            '... Saving it with a bogus posint should fail';
+        like $@,
+            qr/value for domain "?posint"? violates check constraint "ck_posint"/,
+            '... And it should fail with the proper message';
+
+        $checking = 'operator';
+        $ret      = 'foo';
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus operator should fail';
         like $@,
             qr/value for domain "?operator"? violates check constraint "ck_operator"/,
             '... And it should fail with the proper message';
 
-        $attr_mock->mock(store_raw => sub {
-            return 'foo' if $_[0]->name eq 'media_type';
-            return $orig_straw->(@_)
-        });
-
+        $checking = 'media_type';
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus media_type should fail';
         like $@,
             qr/value for domain media_type violates check constraint "ck_media_type"/,
             '... And it should fail with the proper message';
 
-        $attr_mock->mock(store_raw => sub {
-            return 'foo' if $_[0]->name eq 'attribute';
-            return $orig_straw->(@_)
-        });
-
+        $checking = 'attribute';
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus attribute should fail';
         like $@,
             qr/value for domain attribute violates check constraint "ck_attribute"/,
             '... And it should fail with the proper message';
 
-        $attr_mock->mock(store_raw => sub {
-            return 'foo' if $_[0]->name eq 'version';
-            return $orig_straw->(@_)
-        });
-
+        $checking = 'version';
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus version should fail';
         like $@,
             qr/value for domain version violates check constraint "ck_version"/,
             '... And it should fail with the proper message';
 
-        $attr_mock->mock(store_raw => sub {
-            return 'foo' if $_[0]->name eq 'ean';
-            return $orig_straw->(@_)
-        });
-
+        $checking = 'ean';
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus ean should fail';
         like $@,

@@ -73,7 +73,9 @@ my %types = (
     string     => 'TEXT COLLATE nocase',
     uuid       => 'TEXT',
     boolean    => 'SMALLINT',
+    integer    => 'INTEGER',
     whole      => 'INTEGER',
+    posint     => 'INTEGER',
     state      => 'INTEGER',
     datetime   => 'DATETIME',
     version    => 'TEXT',
@@ -169,6 +171,7 @@ sub constraints_for_class {
     # Start with any state, boolean, once, and unique triggers.
     my @cons = (
         $self->state_trigger(       $class ),
+        $self->numeric_triggers(    $class ),
         $self->boolean_triggers(    $class ),
         $self->once_triggers(       $class ),
         $self->unique_triggers(     $class ),
@@ -213,6 +216,28 @@ Called by C<constraints_for_class()>.
 sub state_trigger {
     my ($self, $class) = @_;
     $self->_domain_triggers($class, state => '%s NOT BETWEEN -1 AND 2');
+}
+
+##############################################################################
+
+=head3 numeric_triggers
+
+  my @numeric_triggers = $kbs->numeric_triggers($class);
+
+Returns the SQLite triggers to validate the values of any numeric type
+attributes (whole numbers or positive integers) in the class. If the class has
+no numeric attributes C<numeric_triggers()> will return an empty list.
+
+Called by C<constraints_for_class()>.
+
+=cut
+
+sub numeric_triggers {
+    my ($self, $class) = @_;
+    return
+        $self->_domain_triggers($class, whole  => '%s < 0'),
+        $self->_domain_triggers($class, posint => '%s <= 0' ),
+    ;
 }
 
 ##############################################################################
@@ -1050,8 +1075,10 @@ sub _domain_triggers {
     my @trigs;
     for my $attr (@attributes) {
         my $col   = $attr->column;
-        my $where = ($attr->required ? "NEW.$col IS NOT NULL AND " : '')
+        # If it's not required, it's allowed to be NULL, so don't check NULLs.
+        my $where = ($attr->required ? '' : "NEW.$col IS NOT NULL AND ")
             . sprintf $check, "NEW.$col";
+
         push @trigs,
             "CREATE TRIGGER cki_$key\_$col\n"
           . "BEFORE INSERT ON $table\n"

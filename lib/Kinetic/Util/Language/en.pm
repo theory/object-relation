@@ -220,8 +220,14 @@ our %Lexicon;
         'Value "[_1]" is not a string',
         'Value “[_1]” is not a string',
 
+        'Value "[_1]" is not an integer',
+        'Value “[_1]” is not an integer',
+
         'Value "[_1]" is not a whole number',
         'Value “[_1]” is not a whole number',
+
+        'Value "[_1]" is not a positive integer',
+        'Value “[_1]” is not a positive integer',
 
         'Value "[_1]" is not a EAN or UPC code',
         'Value “[_1]” is not a EAN or UPC code',

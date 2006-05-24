@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 89;
+use Test::More tests => 123;
 #use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
@@ -41,6 +41,28 @@ BEGIN {
                             default  => 1,
                           ),
         "Add boolean attribute" );
+
+    # Add an Integer attribute.
+    ok( $cm->add_attribute(
+        name     => 'integer',
+        view     => Class::Meta::PUBLIC,
+        type     => 'integer',
+    ), 'Add integer attribute' );
+
+    # Add a Whole attribute.
+    ok( $cm->add_attribute(
+        name     => 'whole',
+        view     => Class::Meta::PUBLIC,
+        type     => 'whole',
+        required => 1,
+    ), 'Add whole attribute' );
+
+    # Add a posint attribute.
+    ok( $cm->add_attribute(
+        name     => 'posint',
+        view     => Class::Meta::PUBLIC,
+        type     => 'posint',
+    ), 'Add posint attribute' );
 
     # Add a DateTime attribute.
     ok( $cm->add_attribute( name     => 'datetime',
@@ -157,6 +179,70 @@ my $date = '2005-03-23T19:30:05.1234';
 $t->{datetime} = $date; # Don't try this at home!
 isa_ok($t->datetime, 'Kinetic::DataType::DateTime');
 isa_ok($t->datetime, 'DateTime');
+
+# Test Integer accessor.
+is $t->integer, undef, 'Check for no Integer';
+ok $t->integer(-12),   '... Set it to a negative integer';
+is $t->integer, -12,   '... It should be set';
+ok $t->integer(12),    '... Set it to a positive integer';
+is $t->integer, 12,    '... It should be set';
+throws_ok { $t->integer('foo' ) }
+    'Kinetic::Util::Exception::Fatal::Invalid',
+    '... It should throw an exception for an invalid string value';
+like $@->error, qr/Value .foo. is not an integer/,
+    '... It should be the correct error';
+throws_ok { $t->integer( 12.2 ) }
+    'Kinetic::Util::Exception::Fatal::Invalid',
+    '... It should throw an exception for an invalid numeric value';
+like $@->error, qr/Value .12\.2. is not an integer/,
+    '... It should be the correct error';
+
+# Test Whole accessor.
+is $t->whole, undef, 'Check for no Whole';
+ok $t->whole(12),    '... Set whole';
+is $t->whole, 12,    '... It should be set';
+ok $t->whole(0),     '... Set it to 0';
+is $t->whole, 0,     '... It should be set to 0';
+throws_ok { $t->whole('foo' ) }
+    'Kinetic::Util::Exception::Fatal::Invalid',
+    '... It should throw an exception for an invalid string value';
+like $@->error, qr/Value .foo. is not a whole number/,
+    '... It should be the correct error';
+throws_ok { $t->whole( 12.2 ) }
+    'Kinetic::Util::Exception::Fatal::Invalid',
+    '... It should throw an exception for an invalid numeric value';
+like $@->error, qr/Value .12\.2. is not a whole number/,
+    '... It should be the correct error';
+throws_ok { $t->whole( -12 ) }
+    'Kinetic::Util::Exception::Fatal::Invalid',
+    '... It should throw an exception for an invalid negative value';
+like $@->error, qr/Value .-12. is not a whole number/,
+    '... It should be the correct error';
+
+# Test Posint accessor.
+is $t->posint, undef, '... Check for no Posint';
+ok $t->posint(12),    '... Set posint';
+is $t->posint, 12,    '... It should be set';
+throws_ok { $t->posint('foo' ) }
+    'Kinetic::Util::Exception::Fatal::Invalid',
+    '... It should throw an exception for an invalid string value';
+like $@->error, qr/Value .foo. is not a positive integer/,
+    '... It should be the correct error';
+throws_ok { $t->posint( 12.2 ) }
+    'Kinetic::Util::Exception::Fatal::Invalid',
+    '... It should throw an exception for an invalid numeric value';
+like $@->error, qr/Value .12\.2. is not a positive integer/,
+    '... It should be the correct error';
+throws_ok { $t->posint( -12 ) }
+    'Kinetic::Util::Exception::Fatal::Invalid',
+    '... It should throw an exception for an invalid negative value';
+like $@->error, qr/Value .-12. is not a positive integer/,
+    '... It should be the correct error';
+throws_ok { $t->posint(0) }
+    'Kinetic::Util::Exception::Fatal::Invalid',
+    '... It should throw an exception for an 0';
+like $@->error, qr/Value .0. is not a positive integer/,
+    '... It should be the correct error';
 
 # Try assigning a Kinetic::DataType::DateTime object.
 my $dt = Kinetic::DataType::DateTime->now->set_time_zone('America/Los_Angeles');

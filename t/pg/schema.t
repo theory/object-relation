@@ -49,6 +49,16 @@ CONSTRAINT ck_state CHECK (
    VALUE BETWEEN -1 AND 2
 );
 
+CREATE DOMAIN whole AS INTEGER
+CONSTRAINT ck_whole CHECK (
+   VALUE >= 0
+);
+
+CREATE DOMAIN posint AS INTEGER
+CONSTRAINT ck_posint CHECK (
+   VALUE > 0
+);
+
 CREATE DOMAIN operator AS TEXT
 CONSTRAINT ck_operator CHECK (
    VALUE IN('==', '!=', 'eq', 'ne', '=~', '!~', '>', '<', '>=', '<=', 'gt',
@@ -328,7 +338,7 @@ is join("\n", $sg->sequences_for_class($two)), $seq,
 $table = q{CREATE TABLE simple_two (
     id INTEGER NOT NULL,
     one_id INTEGER NOT NULL,
-    age INTEGER,
+    age WHOLE,
     date TIMESTAMP NOT NULL
 );
 };
@@ -634,7 +644,7 @@ $table = q{CREATE TABLE _yello (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_yello'),
     uuid UUID NOT NULL DEFAULT UUID_V4(),
     state STATE NOT NULL DEFAULT 1,
-    age INTEGER
+    age POSINT
 );
 
 CREATE TABLE _yello_coll_ones (
@@ -893,7 +903,7 @@ FOR EACH ROW EXECUTE PROCEDURE trig_uuid_once();
 
 CREATE FUNCTION composed_one_id_once() RETURNS trigger AS $$
   BEGIN
-    IF OLD.one_id IS NOT NULL AND (OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL)
+    IF (OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL)
         THEN RAISE EXCEPTION 'value of composed.one_id cannot be changed';
     END IF;
     RETURN NEW;
@@ -1206,6 +1216,9 @@ $table = q{CREATE TABLE _types_test (
     id INTEGER NOT NULL DEFAULT NEXTVAL('seq_types_test'),
     uuid UUID NOT NULL DEFAULT UUID_V4(),
     state STATE NOT NULL DEFAULT 1,
+    integer INTEGER NOT NULL,
+    whole WHOLE,
+    posint POSINT,
     version VERSION NOT NULL,
     duration INTERVAL NOT NULL,
     operator OPERATOR NOT NULL,
@@ -1239,7 +1252,7 @@ eq_or_diff join("\n", $sg->constraints_for_class($types_test)), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW types_test AS
-  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator, _types_test.media_type AS media_type, _types_test.attribute AS attribute, _types_test.ean AS ean
+  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.integer AS integer, _types_test.whole AS whole, _types_test.posint AS posint, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator, _types_test.media_type AS media_type, _types_test.attribute AS attribute, _types_test.ean AS ean
   FROM   _types_test;
 };
 eq_or_diff $sg->views_for_class($types_test), $view,
@@ -1248,8 +1261,8 @@ eq_or_diff $sg->views_for_class($types_test), $view,
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_types_test AS
 ON INSERT TO types_test DO INSTEAD (
-  INSERT INTO _types_test (id, uuid, state, version, duration, operator, media_type, attribute, ean)
-  VALUES (NEXTVAL('seq_types_test'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.version, NEW.duration, NEW.operator, NEW.media_type, NEW.attribute, NEW.ean);
+  INSERT INTO _types_test (id, uuid, state, integer, whole, posint, version, duration, operator, media_type, attribute, ean)
+  VALUES (NEXTVAL('seq_types_test'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.integer, NEW.whole, NEW.posint, NEW.version, NEW.duration, NEW.operator, NEW.media_type, NEW.attribute, NEW.ean);
 );
 };
 eq_or_diff $sg->insert_for_class($types_test), $insert,
@@ -1259,7 +1272,7 @@ eq_or_diff $sg->insert_for_class($types_test), $insert,
 $update = q{CREATE RULE update_types_test AS
 ON UPDATE TO types_test DO INSTEAD (
   UPDATE _types_test
-  SET    state = NEW.state, version = NEW.version, duration = NEW.duration, operator = NEW.operator, media_type = NEW.media_type, attribute = NEW.attribute, ean = NEW.ean
+  SET    state = NEW.state, integer = NEW.integer, whole = NEW.whole, posint = NEW.posint, version = NEW.version, duration = NEW.duration, operator = NEW.operator, media_type = NEW.media_type, attribute = NEW.attribute, ean = NEW.ean
   WHERE  id = OLD.id;
 );
 };

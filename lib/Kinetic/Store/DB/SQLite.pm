@@ -22,7 +22,6 @@ use strict;
 use base qw(Kinetic::Store::DB);
 use version;
 our $VERSION = version->new('0.0.1');
-use Encode qw(_utf8_on);
 
 use Kinetic::Store qw(:logical);
 use Kinetic::Store::DB::SQLite::DBI;
@@ -38,6 +37,7 @@ use constant _connect_args => (
     {
         RaiseError  => 0,
         PrintError  => 0,
+        unicode     => 1,
         HandleError => Kinetic::Util::Exception::DBI->handler,
     }
 );
@@ -76,7 +76,6 @@ sub _fetchrow_hashref {
     my ( $self, $sth ) = @_;
     my $hash = $sth->fetchrow_hashref;
     return unless $hash;
-    _utf8_on($_) foreach values %$hash;
     return $hash;
 }
 

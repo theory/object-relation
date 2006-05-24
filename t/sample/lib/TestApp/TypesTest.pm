@@ -15,6 +15,26 @@ BEGIN {
         name        => 'Types Test',
         plural_name => 'Types Tests',
     );
+
+    $km->add_attribute(
+        name        => 'integer',
+        label       => 'Integer',
+        type        => 'integer',
+        required    => 1,
+    );
+
+    $km->add_attribute(
+        name        => 'whole',
+        label       => 'Whole',
+        type        => 'whole',
+    );
+
+    $km->add_attribute(
+        name        => 'posint',
+        label       => 'Posint',
+        type        => 'posint',
+    );
+
     $km->add_attribute(
         name        => 'version',
         label       => 'Version',

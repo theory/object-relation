@@ -113,7 +113,9 @@ my %types = (
     string     => 'TEXT',
     uuid       => 'UUID',
     boolean    => 'BOOLEAN',
-    whole      => 'INTEGER',
+    integer    => 'INTEGER',
+    whole      => 'WHOLE',
+    posint     => 'POSINT',
     state      => 'STATE',
     datetime   => 'TIMESTAMP',
     version    => 'VERSION',
@@ -815,6 +817,18 @@ sub setup_code {
 q{CREATE DOMAIN state AS SMALLINT NOT NULL DEFAULT 1
 CONSTRAINT ck_state CHECK (
    VALUE BETWEEN -1 AND 2
+);
+},
+
+q{CREATE DOMAIN whole AS INTEGER
+CONSTRAINT ck_whole CHECK (
+   VALUE >= 0
+);
+},
+
+q{CREATE DOMAIN posint AS INTEGER
+CONSTRAINT ck_posint CHECK (
+   VALUE > 0
 );
 },
 

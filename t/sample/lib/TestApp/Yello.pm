@@ -9,30 +9,34 @@ use Kinetic::Meta::Declare ':all';
 
 use TestApp::Simple::One;
 
-Kinetic::Meta::Declare->new(
-    meta => [
+BEGIN {
+    my $km = Kinetic::Meta->new(
         key         => 'yello',
-        plural_name => 'Yellos',
-    ],
-    attributes => [
-        age => {
-            label       => 'Yello age',
-            type        => $TYPE_WHOLE,
-            widget_meta => Kinetic::Meta::Widget->new(
-                type => 'text',
-                tip  => 'This is a tip.  This is only a tip.',
-            ),
-        },
-        ones => {
-            type         => 'one',
-            relationship => 'has_many',
-            widget_meta  => Kinetic::Meta::Widget->new(
-                type => 'text',
-                tip  => 'This is a tip.  This is only a tip.',
-            ),
-        },
-    ]
-);
+        name        => 'Yello',
+    );
+
+    $km->add_attribute(
+        name        => 'age',
+        label       => 'Yello age',
+        type        => 'posint',
+        widget_meta => Kinetic::Meta::Widget->new(
+            type => 'text',
+            tip  => 'This is a tip.  This is only a tip.',
+        ),
+    );
+
+    $km->add_attribute(
+        name         => 'ones',
+        type         => 'one',
+        relationship => 'has_many',
+        widget_meta  => Kinetic::Meta::Widget->new(
+            type => 'text',
+            tip  => 'This is a tip.  This is only a tip.',
+        ),
+    );
+
+    $km->build;
+}
 
 # Add new strings to the lexicon.
 Kinetic::Util::Language::en->add_to_lexicon(

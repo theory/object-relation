@@ -245,7 +245,8 @@ L<http://www.justatheory.com/computers/databases/sqlite/add_regexen.html>.
   SELECT validate_ean('4007630000116');
 
 Examines the value passed to it to determine whether or not it is a valid EAN
-or UPC code.
+or UPC code. Imported from
+L<Kinetic::Util::Functions|Kinetic::Util::Functions>.
 
 =head2 Methods
 
@@ -283,7 +284,7 @@ sub connected {
     $dbh->func(
         'validate_ean',
         1,
-        (Kinetic::Meta::Type->new('ean_code')->check)[0],
+        \&Kinetic::Util::Functions::validate_ean,
         $func
     );
 

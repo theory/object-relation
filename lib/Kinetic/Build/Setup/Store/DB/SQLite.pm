@@ -385,6 +385,7 @@ sub _setup {
     $self->_dbh(my $dbh = DBI->connect($dsn, '', '', {
         RaiseError  => 0,
         PrintError  => 0,
+        unicode     => 0,
         HandleError => Kinetic::Util::Exception::DBI->handler,
     }));
 

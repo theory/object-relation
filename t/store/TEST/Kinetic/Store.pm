@@ -1357,7 +1357,7 @@ sub count : Test(15) {
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
     ok my $count = $store->count($class),
-      'A search with only a class should succeed';
+      'A count with only a class should succeed';
     is $count, 3, 'returning a count of all instances';
     ok $count = $store->count( $class, name => 'foo' ),
       'We should be able to count with a simple search';
