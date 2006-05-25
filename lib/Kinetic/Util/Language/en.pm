@@ -268,9 +268,6 @@ our %Lexicon;
         'Unknown attributes to [_1]: [_2]',
         'Unknown attributes to [_1]: [_2]',
 
-        'Invalid method "[_1]"',
-        'Invalid method “[_1]”',
-
         'Password must be as least [_1] characters',
         'Password must be as least [_1] characters',
 

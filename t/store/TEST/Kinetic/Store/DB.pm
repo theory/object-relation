@@ -445,18 +445,19 @@ sub save_contained : Test(1) {
 
 sub insert : Test(7) {
     my $test       = shift;
-    my $mock_store = MockModule->new(Store);
-    my ( $SQL, $BIND );
-    $mock_store->mock(
-        _do_sql => sub {
-            my $self = shift;
-            $SQL  = shift;
-            $BIND = shift;
-            $self;
-        }
+    my ($sth, $BIND);
+
+    my $mock_sth = MockModule->new('DBI::st', no_auto => 1);
+    $mock_sth->mock(
+        execute => sub {
+            $sth = shift;
+            $BIND = \@_;
+            return 1;
+        },
     );
 
     my $one = One->new;
+    my $mock_store = MockModule->new(Store);
     $mock_store->mock( _set_id => sub { $one->{id} = 2002 } );
     $one->name('Ovid');
     $one->description('test class');
@@ -479,7 +480,8 @@ sub insert : Test(7) {
         [ map { $_->raw($one) } @attributes ],
     );
     ok $store->_insert($one), 'and calling it should succeed';
-    is $SQL, $expected, 'and it should generate the correct sql';
+    is $sth->{Statement}, $expected, 'and it should generate the correct sql';
+    my $params = $sth->{ParamValues};
     my $uuid = shift @$BIND;
     is_deeply $BIND, $bind_params, 'and the correct bind params';
     ok exists $one->{id}, 'and an id should be created';
@@ -488,16 +490,15 @@ sub insert : Test(7) {
 }
 
 sub update : Test(7) {
-    my $test       = shift;
-    my $mock_store = MockModule->new(Store);
-    my ( $SQL, $BIND );
-    $mock_store->mock(
-        _do_sql => sub {
-            my $self = shift;
-            $SQL  = shift;
-            $BIND = shift;
-            $self;
-        }
+    my $test = shift;
+    my ($sth, $BIND);
+    my $mock_sth = MockModule->new('DBI::st', no_auto => 1);
+    $mock_sth->mock(
+        execute => sub {
+            $sth = shift;
+            $BIND = \@_;
+            return 1;
+        },
     );
 
     my $one = One->new;
@@ -517,7 +518,7 @@ sub update : Test(7) {
         [ map { $_->raw($one) } @attributes ],
     );
     ok $store->_update($one), 'and calling it should succeed';
-    is $SQL, $expected, 'and it should generate the correct sql';
+    is $sth->{Statement}, $expected, 'and it should generate the correct sql';
     my $name = shift @$BIND;
     my $id   = pop @$BIND;
     is $one->name, $name, 'and the name should be correct';
@@ -581,23 +582,27 @@ sub test_extend : Test(45) {
     isa_ok $extend, Extend;
 
     # Let's check out the SQL that gets sent off.
-    my $mocker = Test::MockModule->new('Kinetic::Store::DB');
     my ($sql, $vals);
-    my $do_sql = sub {
-        shift;
-        ($sql = shift) =~ s/\d+/ /g;
+    my $execute = sub {
+        my $sth = shift;
+        ($sql = $sth->{Statement}) =~ s/\d+/ /g;
         $sql =~ s/\d+$//;
         $sql =~ s/^\d+//;
-        $vals = shift;
+        $vals = \@_;
     };
-    $mocker->mock(_do_sql => $do_sql);
+
+    my $mock_sth = MockModule->new('DBI::st', no_auto => 1);
+    $mock_sth->mock(execute => $execute );
+
+    my $mocker = Test::MockModule->new('Kinetic::Store::DB');
     $mocker->mock(_set_ids => 1);
+
     ok $extend->save, 'Call the save method';
     is $sql, 'INSERT INTO extend (uuid, state, two__id, two__uuid, '
            . 'two__state, two__name, two__description, two__one__id, '
            . 'two__age, two__date) '
            . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        'It should insert the Exend and Two data into the view';
+        'It should insert the Extend and Two data into the view';
 
     is_deeply $vals, [
         $extend->uuid,
@@ -614,6 +619,7 @@ sub test_extend : Test(45) {
 
     # Now do the save for real.
     $mocker->unmock_all;
+    $mock_sth->unmock_all;
     ok $extend->save, 'Save the extend object';
 
     isa_ok my $two = $extend->two, Two;
@@ -665,7 +671,7 @@ sub test_extend : Test(45) {
     ok $extend->name('LOLO'), 'Rename the Extend object';
 
     # Check out the UPDATE statement.
-    $mocker->mock(_do_sql => $do_sql);
+    $mock_sth->mock(execute => $execute);
     ok $extend->save, 'Save the extend object';
     is $sql, 'UPDATE extend SET state = ?, two__name = ? WHERE id = ?',
         'It should update Extend and Two view the extend view';
@@ -675,7 +681,7 @@ sub test_extend : Test(45) {
         $extend->id,
     ], 'It should set the proper values';;
 
-    $mocker->unmock_all;
+    $mock_sth->unmock_all;
     ok $extend->save, 'Save the extend object';
 
     # Create a second extend object referencing the same Two object.
@@ -759,17 +765,21 @@ sub test_mediate : Test(43) {
     isa_ok $relation, Relation;
 
     # Let's check out the SQL that gets sent off.
-    my $mocker = Test::MockModule->new('Kinetic::Store::DB');
     my ($sql, $vals);
-    my $do_sql = sub {
-        shift;
-        ($sql = shift) =~ s/\d+/ /g;
+    my $execute = sub {
+        my $sth = shift;
+        ($sql = $sth->{Statement}) =~ s/\d+/ /g;
         $sql =~ s/\d+$//;
         $sql =~ s/^\d+//;
-        $vals = shift;
+        $vals = \@_;
     };
-    $mocker->mock(_do_sql => $do_sql);
+
+    my $mock_sth = MockModule->new('DBI::st', no_auto => 1);
+    $mock_sth->mock(execute => $execute );
+
+    my $mocker = Test::MockModule->new('Kinetic::Store::DB');
     $mocker->mock(_set_ids => 1);
+
     ok $relation->save, 'Call the save method';
     is $sql, 'INSERT INTO relation (uuid, state, simple__id, simple__uuid, '
            . 'simple__state, simple__name, simple__description, one__id) '
@@ -789,6 +799,7 @@ sub test_mediate : Test(43) {
 
     # Now do the save for real.
     $mocker->unmock_all;
+    $mock_sth->unmock_all;
     ok $relation->save, 'Save the relation object';
 
     isa_ok my $simple = $relation->simple, Simple;
@@ -837,7 +848,7 @@ sub test_mediate : Test(43) {
     ok $relation->name('LOLO'), 'Rename the Relation object';
 
     # Check out the UPDATE statement.
-    $mocker->mock(_do_sql => $do_sql);
+    $mock_sth->mock(execute => $execute );
     ok $relation->save, 'Save the relation object';
     is $sql, 'UPDATE relation SET state = ?, simple__name = ? WHERE id = ?',
         'It should update Relation and Simple view the relation view';
@@ -847,7 +858,7 @@ sub test_mediate : Test(43) {
         $relation->id,
     ], 'It should set the proper values';;
 
-    $mocker->unmock_all;
+    $mock_sth->unmock_all;
     ok $relation->save, 'Save the relation object';
 
     # Make sure that failing to set one results in an exception.

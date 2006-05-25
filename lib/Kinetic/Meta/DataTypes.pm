@@ -187,6 +187,21 @@ use Class::Meta::Types::Boolean;
 
 ##############################################################################
 
+=item binary
+
+Binary data. Attributes of this type should be used to store relatively small
+quantities of binary data, such as small Web images and the like. Larger
+quantities of binary data should be stored in blob attributes (TBD).
+
+=cut
+
+Kinetic::Meta::Type->add(
+    key   => 'binary',
+    name  => 'Binary Data',
+);
+
+##############################################################################
+
 =item version
 
 A L<version|version> object.

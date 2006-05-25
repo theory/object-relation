@@ -110,20 +110,21 @@ C<setup_code()>).
 =cut
 
 my %types = (
-    string     => 'TEXT',
-    uuid       => 'UUID',
+    attribute  => 'ATTRIBUTE',
+    binary     => 'BYTEA',
     boolean    => 'BOOLEAN',
+    duration   => 'INTERVAL',
+    datetime   => 'TIMESTAMP',
+    ean_code   => 'EAN_CODE',
     integer    => 'INTEGER',
-    whole      => 'WHOLE',
+    media_type => 'MEDIA_TYPE',
+    operator   => 'OPERATOR',
     posint     => 'POSINT',
     state      => 'STATE',
-    datetime   => 'TIMESTAMP',
+    string     => 'TEXT',
+    uuid       => 'UUID',
     version    => 'VERSION',
-    duration   => 'INTERVAL',
-    operator   => 'OPERATOR',
-    media_type => 'MEDIA_TYPE',
-    attribute  => 'ATTRIBUTE',
-    ean_code   => 'EAN_CODE',
+    whole      => 'WHOLE',
 );
 
 sub column_type {

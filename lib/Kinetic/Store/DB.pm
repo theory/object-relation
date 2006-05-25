@@ -23,7 +23,7 @@ use base qw(Kinetic::Store);
 Kinetic::Store->import('ANY');    # XXX stupid?
 use version;
 our $VERSION = version->new('0.0.1');
-use DBI;
+use DBI qw(:sql_types);
 use Clone;
 use Scalar::Util qw(blessed);
 use constant DBI_CLASS => 'DBI';
@@ -259,9 +259,9 @@ sub lookup {
     throw_attribute [ 'Attribute "[_1]" is not unique', $attr_key ]
       unless $attr->unique;
 
-    $self->_prepare_method($CACHED);
-    $self->{searching_on_state}
-      = 1;    # Always allow lookup() to find deleted objects.
+    # Always allow lookup() to find deleted objects.
+    $self->{searching_on_state} = 1;
+    $self->{cache_prepare} = 1;
     $self->_should_create_iterator(0);
 
     local $self->{search_class} = $search_class;
@@ -309,7 +309,6 @@ expect the value 'STRING' at the front of a query.
 sub query {
     my ( $proto, $search_class, @search_params ) = @_;
     my $self = $proto->_from_proto;
-    $self->_prepare_method($PREPARE);
     $self->_should_create_iterator(1);
     unless ( ref $search_class ) {
         $search_class = Kinetic::Meta->for_key($search_class);
@@ -345,7 +344,6 @@ sub query_uuids {
     }
     my $self = $proto->_from_proto;
     $self->_set_search_type( \@search_params );
-    $self->_prepare_method($PREPARE);
     $self->_should_create_iterator(0);
     local $self->{search_class} = $search_class;
     $self->_set_search_data;
@@ -376,7 +374,6 @@ sub count {
     pop @search_params if 'HASH' eq ref $search_params[-1];
     my $self = $proto->_from_proto;
     $self->_set_search_type( \@search_params );
-    $self->_prepare_method($PREPARE);
     local $self->{search_class} = $search_class;
     $self->_set_search_data;
     my ( $sql, $bind_params )
@@ -780,9 +777,10 @@ C<Kinetic::Meta> framework establishes constraints to handle this.
 sub _delete {
     my ( $self, $object ) = @_;
     return unless my $id = $object->id;    # it was never in the data store
-    my $sql = "DELETE FROM $self->{view} WHERE id = ?";
-    $self->_prepare_method($CACHED);
-    $self->_do_sql( $sql, [$id] );
+    my $sth = $self->_dbh->prepare_cached(
+        "DELETE FROM $self->{view} WHERE id = ?"
+    );
+    $sth->execute($id);
     return $object->_clear_modified;
 }
 
@@ -951,20 +949,26 @@ sub _insert {
     my ( $self, $object ) = @_;
 
     # INSERT all attributes.
-    my ( @cols, @vals );
+    my ( @cols, @vals, @bind_params );
     foreach my $attr ( $self->{search_class}->persistent_attributes ) {
         next if $attr->name eq 'id' || $attr->collection_of;
         push @cols => $attr->_view_column;
         push @vals => $attr->store_raw($object);
         throw_invalid( [ 'Attribute "[_1]" must be defined', $attr->name ] )
-          if $attr->required && !defined $attr->get($object);
+            if $attr->required && !defined $attr->get($object);
+        if (my $bind_attr = $self->_bind_attr($attr->type)) {
+            push @bind_params, [ $#vals + 1, \$vals[-1], $bind_attr ];
+        }
     }
 
     my $columns      = join ', ' => @cols;
     my $placeholders = join ', ' => ('?') x @cols;
-    my $sql = "INSERT INTO $self->{view} ($columns) VALUES ($placeholders)";
-    $self->_prepare_method($CACHED);
-    $self->_do_sql( $sql, \@vals );
+    my $sth = $self->_dbh->prepare_cached(
+        "INSERT INTO $self->{view} ($columns) VALUES ($placeholders)"
+    );
+
+    $sth->bind_param(@$_) for @bind_params;
+    $sth->execute(@vals);
     return $self->_set_ids($object);
 }
 
@@ -1060,66 +1064,43 @@ sub _update {
 
     # UPDATE only modified attributes.
     my @mods = $object->_get_modified or return $self;
-    my ( @cols, @vals );
+    my ( @cols, @vals, @bind_params );
     foreach my $attr ( $self->{search_class}->attributes(@mods) ) {
         next if $attr->collection_of;
         push @cols => $attr->_view_column;
         push @vals => $attr->store_raw($object);
+        if (my $bind_attr = $self->_bind_attr($attr->type)) {
+            push @bind_params, [ $#vals + 1, \$vals[-1], $bind_attr ];
+        }
     }
 
     my $columns = join ', ' => map {"$_ = ?"} @cols;
-    push @vals => $object->id;
-    my $sql = "UPDATE $self->{view} SET $columns WHERE id = ?";
-    $self->_prepare_method($CACHED);
-    $self->_do_sql( $sql, \@vals );
+    my $sth = $self->_dbh->prepare_cached(
+        "UPDATE $self->{view} SET $columns WHERE id = ?"
+    );
+    $sth->bind_param(@$_) for @bind_params;
+    $sth->execute(@vals, $object->id);
     return $self->_clear_mods($object);
 }
 
 ##############################################################################
 
-=head3 _do_sql
+=head3 _bind_attr
 
-  $store->_do_sql($sql, \@bind_params);
+  my $bind_attr = $store->_bind_attr($type_name);
 
-Executes the given sql with the supplied bind params.  Returns the store
-object.  Used for sql that is not expected to return data.
-
-=cut
-
-sub _do_sql {
-    my ( $self, $sql, $bind_params ) = @_;
-    my $dbi_method = $self->_prepare_method;
-    my $sth        = $self->_dbh->$dbi_method($sql);
-
-    # The warning has been suppressed due to "use of unitialized value in
-    # subroutine entry" warnings from DBD::SQLite.
-    no warnings 'uninitialized';
-    $sth->execute(@$bind_params);
-    return $self;
-}
-
-##############################################################################
-
-=head3 _prepare_method
-
-  $store->_prepare_method($prepare_method_name);
-
-This getter/setter tells L<DBI|DBI> which method to use when preparing a
-statement.
+Returns a hash reference to be used as the attribute argument to a call to
+C<bind_col()> or C<bind_param()> on a DBI statement handle. For most data
+types, no such attribute is necessary, and so this method will return
+C<undef>. But for a few, such as C<binary> and C<blob>, it will return the
+appropriate hash reference, e.g., C<{ TYPE => SQL_BLOB }>.
 
 =cut
 
-sub _prepare_method {
-    my $self = shift;
-    if (@_) {
-        my $method = shift;
-        unless ( $PREPARE eq $method || $CACHED eq $method ) {
-            throw_invalid [ 'Invalid method "[_1]"', $method ];
-        }
-        $self->{prepare_method} = $method;
-        return $self;
-    }
-    return $self->{prepare_method};
+sub _bind_attr {
+    my ($self, $type) = @_;
+    return { TYPE => SQL_BLOB } if $type eq 'binary' || $type eq 'blob';
+    return;
 }
 
 ##############################################################################
@@ -1158,9 +1139,10 @@ results of a given C<query>.
 
 sub _get_sql_results {
     my ( $self, $sql, $bind_params ) = @_;
-    my $dbi_method = $self->_prepare_method;
-    my $sth        = $self->_dbh->$dbi_method($sql);
-    $self->_execute( $sth, $bind_params );
+    my $sth = delete $self->{cache_prepare}
+        ? $self->_dbh->prepare_cached($sql)
+        : $self->_dbh->prepare($sql);
+    $sth->execute(@$bind_params);
 
     if ( $self->_should_create_iterator ) {
         my $search_class = $self->{search_class};
@@ -1180,22 +1162,6 @@ sub _get_sql_results {
         }
         return \@results;
     }
-}
-
-##############################################################################
-
-=head3 _execute
-
-  $self->_execute($sth, \@bind_params);
-
-This wrapper for C<$sth-E<gt>execute> may be subclassed if preprocessing of
-bind params is necessary.
-
-=cut
-
-sub _execute {
-    my ( $self, $sth, $bind_params ) = @_;
-    $sth->execute(@$bind_params);
 }
 
 ##############################################################################

@@ -903,7 +903,7 @@ FOR EACH ROW EXECUTE PROCEDURE trig_uuid_once();
 
 CREATE FUNCTION composed_one_id_once() RETURNS trigger AS $$
   BEGIN
-    IF (OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL)
+    IF OLD.one_id IS NOT NULL AND (OLD.one_id <> NEW.one_id OR NEW.one_id IS NULL)
         THEN RAISE EXCEPTION 'value of composed.one_id cannot be changed';
     END IF;
     RETURN NEW;

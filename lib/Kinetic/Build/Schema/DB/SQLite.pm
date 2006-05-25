@@ -70,20 +70,21 @@ dynamic).
 =cut
 
 my %types = (
-    string     => 'TEXT COLLATE nocase',
-    uuid       => 'TEXT',
+    attribute  => 'TEXT',
+    binary     => 'BLOB',
     boolean    => 'SMALLINT',
+    datetime   => 'DATETIME',
+    duration   => 'TEXT',
+    ean_code   => 'TEXT',
     integer    => 'INTEGER',
-    whole      => 'INTEGER',
+    media_type => 'TEXT',
+    operator   => 'TEXT',
     posint     => 'INTEGER',
     state      => 'INTEGER',
-    datetime   => 'DATETIME',
+    string     => 'TEXT COLLATE nocase',
+    uuid       => 'TEXT',
     version    => 'TEXT',
-    duration   => 'TEXT',
-    operator   => 'TEXT',
-    media_type => 'TEXT',
-    attribute  => 'TEXT',
-    ean_code   => 'TEXT',
+    whole      => 'INTEGER',
 );
 
 sub column_type {
