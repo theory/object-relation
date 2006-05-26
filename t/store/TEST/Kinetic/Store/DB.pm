@@ -7,6 +7,7 @@ use warnings;
 
 use Test::More;
 use Test::Exception;
+use Encode qw(is_utf8);
 use base 'TEST::Kinetic::Store';
 
 use aliased 'Test::MockModule';
@@ -1189,7 +1190,7 @@ sub test_fk_update : Test(9) {
         '... Which should have the proper error message';
 }
 
-sub test_types : Test(130) {
+sub test_types : Test(138) {
     my $self = shift;
     return 'Skip test_fk_update for abstract class'
         unless $self->_should_run;
@@ -1253,6 +1254,16 @@ sub test_types : Test(130) {
     ok $types_test->ean($ean),       'Set the ean';
     is $types_test->ean, $ean,       'It should be properly set';
 
+    # Create a nice 32K binary string.
+    my $binary;
+    $binary .= chr $_ for 0..255;
+    $binary .= ($binary) x 128;
+
+    # Set up the binary attribute.
+    is $types_test->bin, undef,   'The binary should be undef';
+    ok $types_test->bin($binary), 'Set the binary';
+    is $types_test->bin, $binary, 'It should be properly set';
+
     # Save the object.
     ok $types_test->save, 'Save the types_test object';
     ok $types_test = TypesTest->lookup( uuid => $types_test->uuid ),
@@ -1262,7 +1273,7 @@ sub test_types : Test(130) {
     is $types_test->integer,     -12,  'Integer should be correct';
     is $types_test->whole,         0,  'Whole should be correct';
     is $types_test->posint,       12,  'Posint should be correct';
-    isa_ok $types_test->version, 'version', 'version';
+    isa_ok $types_test->version,       'version', 'version';
     is $types_test->version, $version, 'It should be properly set';
     isa_ok $types_test->duration,      'Kinetic::DataType::Duration', 'duration';
     is $types_test->duration, $du,     'It should be properly set';
@@ -1270,6 +1281,12 @@ sub test_types : Test(130) {
     is $types_test->media_type, $mt,   'Media type should be properly set';
     is $types_test->attribute, $attr,  'Attribute should be properly set';
     is $types_test->ean, $ean,         'EAN should be properly set';
+    SKIP: {
+        skip 'https://rt.cpan.org/Ticket/Display.html?id=19471', 2
+            if $self->supported('sqlite') && DBD::SQLite->VERSION <= 1.12;
+        is $types_test->bin, $binary,      'Binary should be properly set';
+        ok !is_utf8($types_test->bin),     'Binary variable should not be utf8';
+    }
 
     # Change the version object.
     ok $version = version->new('3.40'),     'Create new version object';
@@ -1302,6 +1319,11 @@ sub test_types : Test(130) {
     ok $types_test->ean($ean = '0036000291452'), 'Set the ean to a new value';
     is $types_test->ean, $ean, 'It should be properly set';
 
+    # Change the binary.
+    $binary = reverse $binary;
+    ok $types_test->bin($binary), 'Set the binary to a new value';
+    is $types_test->bin, $binary, 'It should be properly set';
+
     # Save it again.
     ok $types_test->save, 'Save TypesTest object again';
     ok $types_test = TypesTest->lookup( uuid => $types_test->uuid ),
@@ -1309,13 +1331,19 @@ sub test_types : Test(130) {
 
     # Check the looked-up values.
     isa_ok $types_test->version, 'version', 'version';
-    is $types_test->version,    $version,      'It should be properly set';
-    isa_ok $types_test->duration,      'Kinetic::DataType::Duration', 'duration';
-    is $types_test->duration,   $du,   'It should be properly set';
-    is $types_test->operator,   'ne',  'Operator should be properly set';
-    is $types_test->media_type, $mt,   'Media type should be properly set';
-    is $types_test->attribute,  $attr, 'Attribute should be properly set';
-    is $types_test->ean,        $ean,  'EAN should be properly set';
+    is $types_test->version,    $version, 'It should be properly set';
+    isa_ok $types_test->duration,         'Kinetic::DataType::Duration', 'duration';
+    is $types_test->duration,   $du,      'It should be properly set';
+    is $types_test->operator,   'ne',     'Operator should be properly set';
+    is $types_test->media_type, $mt,      'Media type should be properly set';
+    is $types_test->attribute,  $attr,    'Attribute should be properly set';
+    is $types_test->ean,        $ean,     'EAN should be properly set';
+    SKIP: {
+        skip 'https://rt.cpan.org/Ticket/Display.html?id=19471', 2
+            if $self->supported('sqlite') && DBD::SQLite->VERSION <= 1.12;
+        is $types_test->bin,        $binary,  'Binary should be properly set';
+        ok !is_utf8($types_test->bin),        'Binary should not be utf8';
+    }
 
     # Mock store_raw to return the wrong value when appropriate.
     my $orig_straw = Kinetic::Meta::Attribute->can('store_raw');

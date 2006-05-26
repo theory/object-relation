@@ -80,6 +80,12 @@ BEGIN {
         type        => 'ean_code',
     );
 
+    $km->add_attribute(
+        name        => 'bin',
+        label       => 'Binary',
+        type        => 'binary',
+    );
+
     $km->build;
 }
 

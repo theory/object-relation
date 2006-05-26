@@ -167,7 +167,7 @@ posint number.
 
 Kinetic::Meta::Type->add(
     key     => 'posint',
-    name    => 'Posint Number',
+    name    => 'Positive Integer',
     check   => sub {
         return unless defined $_[0];
         Data::Types::is_count($_[0])

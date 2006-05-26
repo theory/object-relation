@@ -20,7 +20,6 @@ package Kinetic::Store::DB;
 
 use strict;
 use base qw(Kinetic::Store);
-Kinetic::Store->import('ANY');    # XXX stupid?
 use version;
 our $VERSION = version->new('0.0.1');
 use DBI qw(:sql_types);
@@ -957,7 +956,7 @@ sub _insert {
         throw_invalid( [ 'Attribute "[_1]" must be defined', $attr->name ] )
             if $attr->required && !defined $attr->get($object);
         if (my $bind_attr = $self->_bind_attr($attr->type)) {
-            push @bind_params, [ $#vals + 1, \$vals[-1], $bind_attr ];
+            push @bind_params, [ $#vals + 1, $vals[-1], $bind_attr ];
         }
     }
 
@@ -1070,7 +1069,7 @@ sub _update {
         push @cols => $attr->_view_column;
         push @vals => $attr->store_raw($object);
         if (my $bind_attr = $self->_bind_attr($attr->type)) {
-            push @bind_params, [ $#vals + 1, \$vals[-1], $bind_attr ];
+            push @bind_params, [ $#vals + 1, $vals[-1], $bind_attr ];
         }
     }
 
@@ -1148,7 +1147,7 @@ sub _get_sql_results {
         my $search_class = $self->{search_class};
         my $iterator     = Iterator->new(
             sub {
-                my $result = $self->_fetchrow_hashref($sth) or return;
+                my $result = $sth->fetchrow_hashref or return;
                 local $self->{search_class} = $search_class;
                 return $self->_build_object_from_hashref($result);
             }
@@ -1157,27 +1156,11 @@ sub _get_sql_results {
     }
     else {
         my @results;
-        while ( my $result = $self->_fetchrow_hashref($sth) ) {
+        while ( my $result = $sth->fetchrow_hashref ) {
             push @results => $self->_build_object_from_hashref($result);
         }
         return \@results;
     }
-}
-
-##############################################################################
-
-=head3 _fetchrow_hashref
-
-  my $hashref = $self->_fetchrow_hashref($sth);
-
-This wrapper for C<$sth-E<gt>_fetchrow_hashref> may be subclassed if
-post-processing of resulting data is necessary.
-
-=cut
-
-sub _fetchrow_hashref {
-    my ( $self, $sth ) = @_;
-    return $sth->fetchrow_hashref;
 }
 
 ##############################################################################
@@ -1216,7 +1199,6 @@ sub _build_object_from_hashref {
         @object{@object_attributes} = @{$hashref}{@object_columns};
         my $object = bless \%object => $package;
 
-        # $self->_expand_collections($object); # XXX delete this now?
         $objects_for{$package} = $object;
 
         # do we have a contained object?

@@ -24,6 +24,7 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use Kinetic::Store qw(:logical);
+use DBD::SQLite;
 use Kinetic::Store::DB::SQLite::DBI;
 use Kinetic::Util::Config qw(:store);
 use Kinetic::Util::Exceptions qw(throw_unsupported);
@@ -62,24 +63,6 @@ of the L<DBI|DBI>, for custom interactions with the database.
 ##############################################################################
 
 =begin private
-
-=head3 _fetchrow_hashref
-
-  $store->_fetchrow_hashref($sth);
-
-This method delegates the fetchrow hashref call to the statement handle, but
-ensures that data returned is utf8.
-
-=cut
-
-sub _fetchrow_hashref {
-    my ( $self, $sth ) = @_;
-    my $hash = $sth->fetchrow_hashref;
-    return unless $hash;
-    return $hash;
-}
-
-##############################################################################
 
 =head3 _set_id
 

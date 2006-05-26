@@ -28,6 +28,8 @@ use Kinetic::Util::Config qw(:store);
 use Exception::Class::DBI;
 use Kinetic::Util::Exceptions qw(throw_unsupported);
 use List::Util qw(first);
+use DBI        qw(:sql_types);
+use DBD::Pg    qw(:pg_types);
 use overload;
 use constant _connect_args => (
     STORE_DSN,
@@ -115,6 +117,27 @@ TBD.
 sub _full_text_search {
 
     # XXX not yet implemented
+}
+
+##############################################################################
+
+=head3 _bind_attr
+
+  my $bind_attr = $store->_bind_attr($type_name);
+
+Returns a hash reference to be used as the attribute argument to a call to
+C<bind_col()> or C<bind_param()> on a DBI statement handle. For most data
+types, no such attribute is necessary, and so this method will return
+C<undef>. But for a few, such as C<binary> and C<blob>, it will return the
+appropriate hash reference, e.g., C<{ pg_type => PG_BYTEA }>.
+
+=cut
+
+sub _bind_attr {
+    my ($self, $type) = @_;
+    return { pg_type => PG_BYTEA } if $type eq 'binary';
+    return { TYPE => SQL_BLOB }    if $type eq 'blob';
+    return;
 }
 
 ##############################################################################

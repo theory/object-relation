@@ -1224,7 +1224,8 @@ $table = q{CREATE TABLE _types_test (
     operator OPERATOR NOT NULL,
     media_type MEDIA_TYPE NOT NULL,
     attribute ATTRIBUTE,
-    ean EAN_CODE
+    ean EAN_CODE,
+    bin BYTEA
 );
 };
 eq_or_diff $sg->tables_for_class($types_test), $table,
@@ -1252,7 +1253,7 @@ eq_or_diff join("\n", $sg->constraints_for_class($types_test)), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW types_test AS
-  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.integer AS integer, _types_test.whole AS whole, _types_test.posint AS posint, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator, _types_test.media_type AS media_type, _types_test.attribute AS attribute, _types_test.ean AS ean
+  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.integer AS integer, _types_test.whole AS whole, _types_test.posint AS posint, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator, _types_test.media_type AS media_type, _types_test.attribute AS attribute, _types_test.ean AS ean, _types_test.bin AS bin
   FROM   _types_test;
 };
 eq_or_diff $sg->views_for_class($types_test), $view,
@@ -1261,8 +1262,8 @@ eq_or_diff $sg->views_for_class($types_test), $view,
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_types_test AS
 ON INSERT TO types_test DO INSTEAD (
-  INSERT INTO _types_test (id, uuid, state, integer, whole, posint, version, duration, operator, media_type, attribute, ean)
-  VALUES (NEXTVAL('seq_types_test'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.integer, NEW.whole, NEW.posint, NEW.version, NEW.duration, NEW.operator, NEW.media_type, NEW.attribute, NEW.ean);
+  INSERT INTO _types_test (id, uuid, state, integer, whole, posint, version, duration, operator, media_type, attribute, ean, bin)
+  VALUES (NEXTVAL('seq_types_test'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.integer, NEW.whole, NEW.posint, NEW.version, NEW.duration, NEW.operator, NEW.media_type, NEW.attribute, NEW.ean, NEW.bin);
 );
 };
 eq_or_diff $sg->insert_for_class($types_test), $insert,
@@ -1272,7 +1273,7 @@ eq_or_diff $sg->insert_for_class($types_test), $insert,
 $update = q{CREATE RULE update_types_test AS
 ON UPDATE TO types_test DO INSTEAD (
   UPDATE _types_test
-  SET    state = NEW.state, integer = NEW.integer, whole = NEW.whole, posint = NEW.posint, version = NEW.version, duration = NEW.duration, operator = NEW.operator, media_type = NEW.media_type, attribute = NEW.attribute, ean = NEW.ean
+  SET    state = NEW.state, integer = NEW.integer, whole = NEW.whole, posint = NEW.posint, version = NEW.version, duration = NEW.duration, operator = NEW.operator, media_type = NEW.media_type, attribute = NEW.attribute, ean = NEW.ean, bin = NEW.bin
   WHERE  id = OLD.id;
 );
 };
