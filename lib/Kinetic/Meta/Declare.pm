@@ -192,7 +192,7 @@ sub _handle_meta {
     return $declaration->get_array;
 }
 
-=head3 _handle_attribute 
+=head3 _handle_attribute
 
   Kinetic::Meta::Declare->_handle_attribute(\@atttribute_declaration);
 
@@ -222,7 +222,7 @@ sub _handle_attribute {
     return $declaration->get_array;
 }
 
-=head3 _handle_method 
+=head3 _handle_method
 
   Kinetic::Meta::Declare->_handle_method(\@method_declaration);
 
