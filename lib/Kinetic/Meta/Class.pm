@@ -95,7 +95,7 @@ sub new {
     unless ($self->{plural_key} && $self->{plural_name}) {
         require Lingua::EN::Inflect;
         $self->{plural_key}  ||= Lingua::EN::Inflect::PL( $self->key  );
-        $self->{plural_name} ||= Lingua::EN::Inflect::PL( $self->name );
+        $self->{plural_name} ||= Lingua::EN::Inflect::PL( $self->SUPER::name );
     }
 
     $self->{contained_in} ||= {};

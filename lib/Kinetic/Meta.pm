@@ -102,8 +102,11 @@ sub import {
   my $cm = Kinetic::Meta->new(%init);
 
 Overrides the parent Class::Meta constructor in order to specify that the
-class class be Kinetic::Meta::Class and that the attribute class be
-Kinetic::Meta::Attribute.
+class class be Kinetic::Meta::Classl, the attribute class be
+Kinetic::Meta::Attribute, and that the method class be Kinetic::Meta::Method.
+It also forces the C<key> parameter to default to the last part of the package
+name, e.g., the C<key> for the class My::Big::Fat::Cat would be "cat". This is
+to override Class::Meta's default of using the full class name for the C<key>.
 
 In addition to the parameters supported by C<< Class::Meta->new >>,
 C<< Kinetic::Meta->new >> supports these extra attributes:
@@ -146,9 +149,12 @@ __PACKAGE__->default_error_handler(\&throw_exlib);
 
 sub new {
     my $pkg  = shift;
+    my $caller = caller;
+    (my $key = lc $caller) =~ s/.*:://;
+
     my $self = $pkg->SUPER::new(
-        # We must specify the package
-        package         => scalar caller,
+        package         => $caller,  # Ensure.
+        key             => $key,     # Default.
         @_,
         class_class     => $pkg->class_class,
         attribute_class => $pkg->attribute_class,

@@ -13,7 +13,7 @@ use Kinetic::Util::Constants qw($UUID_RE);
 use Kinetic::Util::Collection;
 use aliased 'Kinetic::Util::Iterator';
 
-package MyTestThingy;
+package MyTest::Thingy;
 
 BEGIN {
     Test::More->import;
@@ -60,7 +60,6 @@ BEGIN {
         "The attribute class should be 'Kinetic::Meta::Attribute'");
 
     ok my $km = Kinetic::Meta->new(
-        key         => 'thingy',
         name        => 'Thingy',
         plural_name => 'Thingies',
     ), "Create TestThingy class";
@@ -87,7 +86,7 @@ BEGIN {
     ok $km->build, "Build TestThingy class";
 }
 
-package MyTestFooey;
+package MyTest::Fooey;
 
 BEGIN { Test::More->import; }
 
@@ -122,7 +121,7 @@ BEGIN {
     ok $km->build, "Build TestFooey class";
 }
 
-package MyTestHasMany;
+package MyTest::HasMany;
 
 BEGIN { Test::More->import; }
 
@@ -131,12 +130,12 @@ BEGIN {
         key         => 'cheese_pimple',
         name        => 'Gross',
         plural_name => 'Cheese pimples',
-    ), "Create MyTestHasMany class";
+    ), "Create MyTest::HasMany class";
 
     ok $km->add_constructor(
         name   => 'new',
         create => 1,
-    ), 'Add constructor to MyTestHasMany class';
+    ), 'Add constructor to MyTest::HasMany class';
 
     ok $km->add_attribute(
         name          => 'stuff',
@@ -151,10 +150,10 @@ BEGIN {
         relationship  => 'has_many',
     ), "Add thingy collection";
 
-    ok $km->build, "Build MyTestHasMany class";
+    ok $km->build, "Build MyTest::HasMany class";
 }
 
-package MyTestExtends;
+package MyTest::Extends;
 BEGIN { Test::More->import; }
 
 BEGIN {
@@ -179,7 +178,7 @@ BEGIN {
     ok $km->build, "Build TestExtends class";
 }
 
-package MyTestMediates;
+package MyTest::Mediates;
 BEGIN { Test::More->import; }
 
 BEGIN {
@@ -204,7 +203,7 @@ BEGIN {
     ok $km->build, "Build TestMediates class";
 }
 
-package MyTest::Meta::ExtMed;
+package MyTest::::Meta::ExtMed;
 BEGIN { Test::More->import; }
 BEGIN {
     eval {
@@ -216,12 +215,12 @@ BEGIN {
     };
     ok my $err = $@, 'Catch extends and mediates exception';
     is $err->error,
-        'MyTest::Meta::ExtMed can either extend or mediate another class, '
+        'MyTest::::Meta::ExtMed can either extend or mediate another class, '
         . 'but not both',
         'It should have the correct message';
 }
 
-package MyTest::Meta::Exceptions;
+package MyTest::::Meta::Exceptions;
 
 BEGIN {
     Test::More->import;
@@ -249,7 +248,7 @@ ok( Kinetic::Util::Context->language(Kinetic::Util::Language->get_handle('en_us'
 
 package main;
 
-ok my $class = MyTestThingy->my_class, "Get meta class object";
+ok my $class = MyTest::Thingy->my_class, "Get meta class object";
 isa_ok $class, 'Kinetic::Meta::Class';
 isa_ok $class, 'Class::Meta::Class';
 ok $class = Kinetic::Meta->for_key('thingy'),
@@ -283,7 +282,7 @@ is $err->error,
 
 is $class->key, 'thingy', 'Check key';
 is $class->plural_key, 'thingies', 'Check plural key';
-is $class->package, 'MyTestThingy', 'Check package';
+is $class->package, 'MyTest::Thingy', 'Check package';
 is $class->name, 'Thingy', 'Check name';
 is $class->plural_name, 'Thingies', 'Check plural name';
 is $class->sort_by, $class->attributes('foo'),
@@ -317,7 +316,7 @@ isa_ok $wm, 'Kinetic::Meta::Widget';
 isa_ok $wm, 'Widget::Meta';
 is $wm->tip, 'Kinetic', "Check tip";
 
-ok my $fclass = MyTestFooey->my_class, "Get Fooey class object";
+ok my $fclass = MyTest::Fooey->my_class, "Get Fooey class object";
 is $fclass->sort_by, $fclass->attributes('lname'), 'Check specified sort_by';
 is_deeply [$fclass->sort_by], [ $fclass->attributes('lname', 'fname') ],
     'Check sort_by in an array context';
@@ -342,7 +341,7 @@ is_deeply [$class->persistent_attributes],
           [$class->attributes('id'), $class->attributes],
     'By default, persistent_attributes should return all attributes';
 
-is $attr->references, MyTestThingy->my_class,
+is $attr->references, MyTest::Thingy->my_class,
   "The thingy object should reference the thingy class";
 is $attr->relationship, 'has',
   'The Fooey should have a "has" relationship to the thingy';
@@ -351,7 +350,7 @@ is $attr->relationship, undef, "The fname attribute should have no relationship"
 
 ##############################################################################
 # Test has_many class.
-ok $class = MyTestHasMany->my_class, 'Get MyTestHasMany class object';
+ok $class = MyTest::HasMany->my_class, 'Get MyTest::HasMany class object';
 
 is_deeply [map {$_->name} $class->attributes], [qw{ uuid state stuff thingies }],
    '... and it should have the correct attributes';
@@ -370,15 +369,15 @@ ok my $thingies = $class->attributes('thingies'),
 can_ok $thingies, 'collection_of';
 ok my $collection = $thingies->collection_of,
   '... and it should return true for a collection';
-is $collection->package, 'MyTestThingy',
+is $collection->package, 'MyTest::Thingy',
   '... and it should return the class object for objects in the collection';
 
-my @thingies = map { MyTestThingy->new } 1 .. 3;
+my @thingies = map { MyTest::Thingy->new } 1 .. 3;
 my $thingy_coll = 'Kinetic::Util::Collection::Thingy';
 my $coll = $thingy_coll->new( {
     iter => Iterator->new( sub { shift @thingies } )
 } );
-my $has_many = MyTestHasMany->new;
+my $has_many = MyTest::HasMany->new;
 
 ok my $empty_coll = $has_many->thingies,
     'thingies() should return a default value';
@@ -416,17 +415,17 @@ ok ! $thingy_class->contained_in('no_such_class'),
 
 ##############################################################################
 # Test extends class.
-ok $class = MyTestExtends->my_class, 'Get TestExtends class object';
-is $class->extends, MyTestThingy->my_class, 'It should extend Thingy';
+ok $class = MyTest::Extends->my_class, 'Get TestExtends class object';
+is $class->extends, MyTest::Thingy->my_class, 'It should extend Thingy';
 is_deeply [map { $_->name } $class->attributes ],
           [qw(uuid state thingy_uuid thingy_state foo rank)],
     'It should include the attributes from thingy';
 
 # Test its accessors.
-ok my $ex = MyTestExtends->new, 'Create new Extends object';
-isa_ok $ex => 'MyTestExtends';
+ok my $ex = MyTest::Extends->new, 'Create new Extends object';
+isa_ok $ex => 'MyTest::Extends';
 isa_ok $ex => 'Kinetic';
-ok !$ex->isa('MyTestThingy'), 'The object isn\'ta MyTestThingy';
+ok !$ex->isa('MyTest::Thingy'), 'The object isn\'ta MyTest::Thingy';
 
 # Make sure that delegates_to is set properly.
 ok $thingy_class = Kinetic::Meta->for_key('thingy'),
@@ -475,7 +474,7 @@ can_ok $ex, 'thingy_save';
 is $ex->hello, 'hello', 'The hello() method should dispatch to thingy';
 
 # Make sure that nothing has been modified.
-ok $ex = MyTestExtends->new, 'Create another Extend object';
+ok $ex = MyTest::Extends->new, 'Create another Extend object';
 is_deeply [$ex->_get_modified], [], 'No attributes should have been modified';
 ok !$ex->_is_modified('uuid'), 'UUID should not be modified';
 ok !$ex->_is_modified('foo'), 'And neither should foo';
@@ -517,17 +516,17 @@ is_deeply [$ex->thingy->_get_modified], [],
 
 ##############################################################################
 # Test mediates class.
-ok $class = MyTestMediates->my_class, 'Get TestMediates class object';
-is $class->mediates, MyTestThingy->my_class, 'It should mediate Thingy';
+ok $class = MyTest::Mediates->my_class, 'Get TestMediates class object';
+is $class->mediates, MyTest::Thingy->my_class, 'It should mediate Thingy';
 is_deeply [map { $_->name } $class->attributes ],
           [qw(uuid state thingy_uuid thingy_state foo booyah)],
     'It should include the attributes from thingy';
 
 # Test its accessors.
-ok my $med = MyTestMediates->new, 'Create new Mediates object';
-isa_ok $med => 'MyTestMediates';
+ok my $med = MyTest::Mediates->new, 'Create new Mediates object';
+isa_ok $med => 'MyTest::Mediates';
 isa_ok $med => 'Kinetic';
-ok !$med->isa('MyTestThingy'), 'The object isn\'ta MyTestThingy';
+ok !$med->isa('MyTest::Thingy'), 'The object isn\'ta MyTest::Thingy';
 
 # Make sure that delegates_to is set properly.
 ok $attr = $class->attributes('uuid'), 'Get the uuid attribute object';
@@ -574,7 +573,7 @@ can_ok $med, 'thingy_save';
 is $med->hello, 'hello', 'The hello() method should dispatch to thingy';
 
 # Make sure that nothing has been modified.
-ok $med = MyTestMediates->new, 'Create another Mediate object';
+ok $med = MyTest::Mediates->new, 'Create another Mediate object';
 is_deeply [$med->_get_modified], [], 'No attributes should have been modified';
 ok !$med->_is_modified('uuid'), 'UUID should not be modified';
 ok !$med->_is_modified('foo'), 'And neither should foo';

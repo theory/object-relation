@@ -78,8 +78,9 @@ data store access methods required by the subclasses.
 BEGIN {
     my $cm = Kinetic::Meta->new(
         key         => 'kinetic',
+        plural_key  => 'kinetics',
         name        => 'Kinetic',
-        plural_name => 'Kinetics', # Oof.
+        plural_name => 'Kinetics',
         trust       => 'Kinetic::Store',
         abstract    => 1,
     );
