@@ -91,6 +91,13 @@ sub new {
             $self->{$rel} = Kinetic::Meta->for_key($ref) unless ref $ref;
         }
     }
+
+    unless ($self->{plural_key} && $self->{plural_name}) {
+        require Lingua::EN::Inflect;
+        $self->{plural_key}  ||= Lingua::EN::Inflect::PL( $self->key  );
+        $self->{plural_name} ||= Lingua::EN::Inflect::PL( $self->name );
+    }
+
     $self->{contained_in} ||= {};
     return $self;
 }
@@ -102,6 +109,18 @@ sub new {
 =head1 Instance Interface
 
 =head2 Accessor Methods
+
+=head3 plural_key
+
+  my $plural_key = $class->plural_key;
+
+The pluralized form of the C<key> attribute, such as "thingies".
+
+=cut
+
+sub plural_key { shift->{plural_key} }
+
+##############################################################################
 
 =head3 name
 

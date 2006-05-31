@@ -35,6 +35,7 @@ Kinetic::Meta - Kinetic class automation, introspection, and data validation
   BEGIN {
       my $cm = Kinetic::Meta->new(
         key         => 'thingy',
+        plural_key  => 'thingies',
         name        => 'Thingy',
         plural_name => 'Thingies',
       );
@@ -108,6 +109,20 @@ In addition to the parameters supported by C<< Class::Meta->new >>,
 C<< Kinetic::Meta->new >> supports these extra attributes:
 
 =over
+
+=item plural_key
+
+The pluralized form of the C<key> parameter. For example, if the key is
+"thingy", the plural key would be "thingies". If not defined,
+L<Lingua::EN::Inflect|Lingua::EN::Inflect> will be used to generate a plural
+key.
+
+=item plural_name
+
+The pluralized form of the C<name> parameter. For example, if the name is
+"Thingy", the plural key would be "Thingies". If not defined,
+L<Lingua::EN::Inflect|Lingua::EN::Inflect> will be used to generate a plural
+name.
 
 =item sort_by
 

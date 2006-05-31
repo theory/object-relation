@@ -4,7 +4,7 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 247;
+use Test::More tests => 248;
 #use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
@@ -24,6 +24,17 @@ BEGIN {
     use_ok('Kinetic::Meta::Attribute')       or die;
     use_ok('Kinetic::Meta::AccessorBuilder') or die;
     use_ok('Kinetic::Meta::Widget')          or die;
+
+    # Add new strings to the lexicon.
+    Kinetic::Util::Language::en_us->add_to_lexicon(
+        'Ow'       => 'Ow', # For Class::Meta 2.54 and later.
+        'ow'       => 'ow', # For Class::Meta 2.53 and earlier.
+        'Thingy'   => 'Thingy',
+        'Thingies' => 'Thingies',
+        'Foo'      => 'Foo',
+        'Fooey'    => 'Fooey',
+        'Fooies'   => 'Fooies',
+    );
 }
 
 BEGIN {
@@ -232,14 +243,6 @@ BEGIN {
         'Check the error message';
 
 }
-# Add new strings to the lexicon.
-Kinetic::Util::Language::en_us->add_to_lexicon(
-  'Thingy'   => 'Thingy',
-  'Thingies' => 'Thingies',
-  'Foo'      => 'Foo',
-  'Fooey'    => 'Fooey',
-  'Fooies'    => 'Fooies',
-);
 
 ok( Kinetic::Util::Context->language(Kinetic::Util::Language->get_handle('en_us')),
     "Set language context" );
@@ -279,6 +282,7 @@ is $err->error,
     'We should have received the proper error message';
 
 is $class->key, 'thingy', 'Check key';
+is $class->plural_key, 'thingies', 'Check plural key';
 is $class->package, 'MyTestThingy', 'Check package';
 is $class->name, 'Thingy', 'Check name';
 is $class->plural_name, 'Thingies', 'Check plural name';
