@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 use Kinetic::Build::Test;
-use Test::More tests => 74;
+use Test::More tests => 75;
 use Test::NoWarnings; # Adds an extra test.
 use DBI;
 
@@ -144,10 +144,10 @@ DBI: {
     package Kinetic::Util::Exceptions::TestDBI;
     use Kinetic::Util::Exceptions;
     use Test::More;
-    ok my $err = Exception::Class::DBI->new('DBI error'),
+    ok my $err = Kinetic::Util::Exception::DBI->new('DBI error'),
       "Create DBI error";
     isa_ok $err, 'Kinetic::Util::Exception::DBI';
-    isa_ok $err, 'Kinetic::Util::Exception::Fatal';
+    isa_ok $err, 'Kinetic::Util::Exception::ExternalLib';
     isa_ok $err, 'Kinetic::Util::Exception';
     isa_ok $err, 'Exception::Class::DBI';
     isa_ok $err, 'Exception::Class::Base';
@@ -175,6 +175,7 @@ DBI: {
     isa_ok $err, 'Exception::Class::DBI::STH';
     isa_ok $err, 'Kinetic::Util::Exception';
     isa_ok $err, 'Kinetic::Util::Exception::DBI';
+    isa_ok $err, 'Kinetic::Util::Exception::DBI::STH';
     like $err, qr/[for Statement "select * from foo"]/,
         'The full message should include the SQL statement.';
     like $err, qr/[t.exceptions\.t:174]/, 'It should also contain a stack trace';

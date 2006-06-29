@@ -537,8 +537,7 @@ sub _set_handlers {
 }
 
 # Always use exception objects for exceptions.
-# XXX I can't recall how we said we would deal with this
-sig_handlers(1); # turn on signal handlers by default
+sig_handlers(1);
 ##############################################################################
 # From here on in, we're modifying the behavior of Exception::Class::Base.
 
@@ -576,7 +575,8 @@ sub new {
     # Localize the error message.
     $p{error} = Kinetic::Util::Context->language->maketext(
         ref $p{error} ? @{$p{error}} : $p{error}
-    );
+    ) unless $class->isa('Kinetic::Util::Exception::ExternalLib');
+
     $class->SUPER::new(%p);
 }
 
@@ -654,37 +654,44 @@ sub _filtered_frames {
           || $ignore_subs{$frame->subroutine};
     }
 
-    unless (@frames) {
-        @frames = grep { $_->filename !~ $faultregex } $trace->frames;
-    }
-    return @frames;
+    return @frames ? @frames
+        : grep { $_->filename !~ $faultregex } $trace->frames;
 }
 
 # Make Exception::Class::DBI inherit from this class, too.
 package Kinetic::Util::Exception::DBI;
-use base qw(Kinetic::Util::Exception::Fatal);
-use Exception::Class::DBI;
+use base qw(Kinetic::Util::Exception::ExternalLib Exception::Class::DBI);
 
-# XXX Fool class that shouldn't have localized messages into not calling our
-# new() method. I'd rather not reference Exception::Class::Base::new directly
-# here, but SUPER::SUPER doesn't quite to the job. Schwern says he'd be willing
-# to write a module to make SUPER::SUPER work...
-
-sub new { Exception::Class::Base::new(@_) }
-sub Kinetic::Util::Exception::ExternalLib::new { Exception::Class::Base::new(@_) }
-
-sub handler { Exception::Class::DBI::handler(@_) }
 sub full_message {
     my $self = shift;
     return $self->SUPER::full_message unless $self->can('statement');
     return $self->SUPER::full_message
-        . ' [for Statement "'
-        . $self->statement . '"]';
+        . ' [for Statement "' . $self->statement . '"]';
 }
 
-# XXX Yes, this is ugly, but it's the simplest way to do it, because
-# Exception:Class::DBI and its subclasses are not really subclassable.
-unshift @Exception::Class::DBI::ISA, __PACKAGE__;
+# Make sure that fields from all parent classes are recognized.
+sub Fields {
+    return (
+        map  { $_->Fields }
+        grep { $_->isa('Exception::Class::Base') }
+        @Kinetic::Util::Exception::DBI::ISA
+    );
+}
+
+package Kinetic::Util::Exception::DBI::H;
+use base qw(Kinetic::Util::Exception::DBI Exception::Class::DBI::H);
+
+package Kinetic::Util::Exception::DBI::DRH;
+use base qw(Kinetic::Util::Exception::DBI Exception::Class::DBI::DRH);
+
+package Kinetic::Util::Exception::DBI::DBH;
+use base qw(Kinetic::Util::Exception::DBI Exception::Class::DBI::DBH);
+
+package Kinetic::Util::Exception::DBI::STH;
+use base qw(Kinetic::Util::Exception::DBI Exception::Class::DBI::STH);
+
+package Kinetic::Util::Exception::DBI::Unknown;
+use base qw(Kinetic::Util::Exception::DBI Exception::Class::DBI::Unknown);
 
 1;
 __END__
