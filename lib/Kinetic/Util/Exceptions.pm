@@ -654,7 +654,8 @@ sub _filtered_frames {
           || $ignore_subs{$frame->subroutine};
     }
 
-    return @frames ? @frames
+    return @frames
+        ? @frames
         : grep { $_->filename !~ $faultregex } $trace->frames;
 }
 
