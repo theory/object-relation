@@ -145,13 +145,15 @@ for tables describing how GTIN checkdigits are calculated.
 =cut
 
 # This function must return 0 or 1 to properly work in SQLite.
+# http://www.justatheory.com/computers/programming/perl/stepped_series.html
 
 sub isa_gtin ($) {
-    my @nums = reverse split '', shift;
+    my @nums = reverse split q{}, shift;
+    no warnings 'uninitialized';
     (
-        sum( @nums[ grep {   $_ % 2  } 0..$#nums ] ) * 3
-      + sum( @nums[ grep { !($_ % 2) } 0..$#nums ] )
-    ) % 10 == 0 ? 1 : 0;
+        sum( @nums[ map { $_ * 2 + 1 } 0 .. $#nums / 2 ] ) * 3
+      + sum( @nums[ map { $_ * 2     } 0 .. $#nums / 2 ] )
+    ) % 10 == 0;
 }
 
 ##############################################################################
