@@ -509,7 +509,7 @@ sub update : Test(7) {
     $one->{id} = 42;
 
     # exclude it from this?
-    my $expected = 'UPDATE one SET name = ?, description = ? WHERE id = ?';
+    my $expected = 'UPDATE one SET description = ?, name = ? WHERE id = ?';
     my $bind_params = [ 'test class' ];
     my @attributes = $one->my_class->attributes;
     my $store      = Store->new;
@@ -520,11 +520,12 @@ sub update : Test(7) {
     );
     ok $store->_update($one), 'and calling it should succeed';
     is $sth->{Statement}, $expected, 'and it should generate the correct sql';
+    my $desc = shift @$BIND;
     my $name = shift @$BIND;
     my $id   = pop @$BIND;
+    is $one->description, $desc, 'and the description should be correct';
     is $one->name, $name, 'and the name should be correct';
     is $one->{id}, $id, 'and the final bind param is the id';
-    is_deeply $BIND, $bind_params, 'and the correct bind params';
     is $one->{id}, 42, 'and the private id should not be changed';
 }
 
@@ -674,11 +675,11 @@ sub test_extend : Test(45) {
     # Check out the UPDATE statement.
     $mock_sth->mock(execute => $execute);
     ok $extend->save, 'Save the extend object';
-    is $sql, 'UPDATE extend SET state = ?, two__name = ? WHERE id = ?',
+    is $sql, 'UPDATE extend SET two__name = ?, state = ? WHERE id = ?',
         'It should update Extend and Two view the extend view';
     is_deeply $vals, [
-        $extend->state->value,
         $extend->name,
+        $extend->state->value,
         $extend->id,
     ], 'It should set the proper values';;
 
@@ -851,11 +852,11 @@ sub test_mediate : Test(43) {
     # Check out the UPDATE statement.
     $mock_sth->mock(execute => $execute );
     ok $relation->save, 'Save the relation object';
-    is $sql, 'UPDATE relation SET state = ?, simple__name = ? WHERE id = ?',
+    is $sql, 'UPDATE relation SET simple__name = ?, state = ? WHERE id = ?',
         'It should update Relation and Simple view the relation view';
     is_deeply $vals, [
-        $relation->state->value,
         $relation->name,
+        $relation->state->value,
         $relation->id,
     ], 'It should set the proper values';;
 

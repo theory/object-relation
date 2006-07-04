@@ -141,8 +141,7 @@ sub force_inflation {
             $test->force_inflation( $attr->get($object) );
         }
         else {
-            my $name = $attr->name;
-            $object->$name;    # this is what forces inflation
+            $attr->get($object);
         }
     }
     return $object;

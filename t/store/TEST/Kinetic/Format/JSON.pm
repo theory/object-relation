@@ -177,7 +177,7 @@ sub deserialize : Test(5) {
         delete $_->{id};
         delete $_->one->{id};
     }
-    is_deeply $two, $new_object,
+    is_deeply $new_object, $two->_clear_modified,
       '... and the should return the correct object';
 }
 

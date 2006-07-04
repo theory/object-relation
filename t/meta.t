@@ -492,7 +492,7 @@ is_deeply [$ex->_get_modified], ['rank'],
 
 ok $ex->foo('Yow'), 'Set the foo attribute';
 ok $ex->_is_modified('foo'), 'It should know that foo has been modified';
-is_deeply [$ex->_get_modified], [qw(rank foo)],
+is_deeply [$ex->_get_modified], [qw(foo rank)],
     'It should list both rank and foo as modified';
 ok $ex->thingy->_is_modified('foo'), 'Thingy should know foo is modified';
 is_deeply [$ex->thingy->_get_modified], ['foo'],

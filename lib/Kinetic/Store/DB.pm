@@ -994,8 +994,8 @@ sub _set_ids {
         $self->_set_ids( $class->attributes( $extended->key )->get($object) );
     }
 
-    $object->_clear_modified;
-    return $self->_set_id($object);
+    $self->_set_id($object);
+    return $object->_clear_modified;
 }
 
 ##############################################################################
@@ -1072,6 +1072,7 @@ sub _update {
             push @bind_params, [ $#vals + 1, $vals[-1], $bind_attr ];
         }
     }
+    return $self unless @cols;
 
     my $columns = join ', ' => map {"$_ = ?"} @cols;
     my $sth = $self->_dbh->prepare_cached(

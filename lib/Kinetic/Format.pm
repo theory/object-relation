@@ -260,13 +260,9 @@ sub _hashref_to_obj {
         next unless defined $value;
         if ( my $attribute = $class->attributes($attr) ) {
             next unless $attribute->persistent;
-            if ( $attribute->references ) {
-                my $contained = $self->_hashref_to_obj($value);
-                $object->$attr($contained);
-            }
-            else {
-                $object->{$attr} = $value;
-            }
+            $object->{$attr} = $attribute->references
+                ? $self->_hashref_to_obj($value)
+                : $value;
         }
     }
     return $object;
