@@ -1357,14 +1357,14 @@ CREATE TRIGGER cki_types_test_gtin
 BEFORE INSERT ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain gtin violates check constraint "ck_gtin"')
-    WHERE  NEW.gtin IS NOT NULL AND NOT isa_gtin(NEW.gtin);
+    WHERE  NEW.gtin IS NOT NULL AND NOT isa_gtin(CAST(NEW.gtin AS TEXT));
 END;
 
 CREATE TRIGGER cku_types_test_gtin
 BEFORE UPDATE OF gtin ON _types_test
 FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'value for domain gtin violates check constraint "ck_gtin"')
-    WHERE  NEW.gtin IS NOT NULL AND NOT isa_gtin(NEW.gtin);
+    WHERE  NEW.gtin IS NOT NULL AND NOT isa_gtin(CAST(NEW.gtin AS TEXT));
 END;
 };
 

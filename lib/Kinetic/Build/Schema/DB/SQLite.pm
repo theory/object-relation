@@ -514,7 +514,11 @@ Called by C<constraints_for_class()>.
 
 sub gtin_triggers {
     my ($self, $class) = @_;
-    $self->_domain_triggers( $class, gtin => 'NOT isa_gtin(%s)' );
+    # Force string context so that Perl doesn't truncate the integer.
+    $self->_domain_triggers(
+        $class,
+        gtin => 'NOT isa_gtin(CAST(%s AS TEXT))'
+    );
 }
 
 ##############################################################################
