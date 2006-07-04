@@ -21,7 +21,7 @@ package Kinetic::DataType::DateTime::Incomplete;
 use strict;
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 use base 'DateTime::Incomplete';
 use Kinetic::DataType::DateTime;

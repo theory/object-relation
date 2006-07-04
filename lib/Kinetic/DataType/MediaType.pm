@@ -25,7 +25,7 @@ use Kinetic::Meta::Type;
 use Kinetic::Util::Exceptions qw(throw_invalid);
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 =head1 Name
 

@@ -21,7 +21,7 @@ package Kinetic::Util::Language::en_us;
 use strict;
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 use base 'Kinetic::Util::Language::en';
 use encoding 'utf8';

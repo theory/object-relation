@@ -24,7 +24,7 @@ use HOP::Lexer 'string_lexer';
 use Exporter::Tidy lex => ['lex'];
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 sub _trim($) {
     if (! defined wantarray) {

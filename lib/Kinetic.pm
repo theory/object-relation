@@ -29,7 +29,7 @@ use Kinetic::Store;
 use Kinetic::Util::Functions qw(:uuid);
 use Kinetic::DataType::State qw(:all);
 
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 =begin comment
 

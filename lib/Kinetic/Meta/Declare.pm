@@ -21,7 +21,7 @@ package Kinetic::Meta::Declare;
 use strict;
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 use aliased 'Array::AsHash';
 
 use Kinetic::Meta;

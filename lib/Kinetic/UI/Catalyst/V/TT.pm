@@ -22,7 +22,7 @@ use strict;
 use base 'Catalyst::View::TT';
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 # Disable the TT timer
 # http://search.cpan.org/dist/Catalyst/lib/Catalyst/Manual/FAQ.pod#How_can_I_get_rid_of_those_timer_comments_when_using_TT_as_my_view%3F

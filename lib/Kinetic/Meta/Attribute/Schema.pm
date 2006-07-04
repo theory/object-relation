@@ -21,7 +21,7 @@ package Kinetic::Meta::Attribute::Schema;
 use strict;
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 use Kinetic::Meta::Attribute ':with_dbstore_api';
 use base 'Kinetic::Meta::Attribute';

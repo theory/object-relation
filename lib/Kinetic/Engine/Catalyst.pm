@@ -22,7 +22,7 @@ use strict;
 use warnings;
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 use aliased 'Proc::Background';
 
 use Kinetic::Util::Config qw(:kinetic);

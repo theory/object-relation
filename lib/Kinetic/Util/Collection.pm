@@ -21,7 +21,7 @@ package Kinetic::Util::Collection;
 use strict;
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 #use Kinetic::Meta; # Do not load here--causes loading order problems.
 use Kinetic::Util::Exceptions qw(throw_fatal throw_invalid throw_invalid_class);

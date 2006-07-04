@@ -24,7 +24,7 @@ use Config::Std { read_config => 'get_config', write_config => 'set_config' };
 use File::Spec;
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 =head1 Name
 

@@ -23,7 +23,7 @@ use strict;
 use Regexp::Common qw/net/;
 use List::MoreUtils qw(any);
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 use base 'Kinetic::Build::Setup::Cache';
 

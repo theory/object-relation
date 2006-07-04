@@ -28,7 +28,7 @@ use Kinetic::Util::Exceptions qw(
 );
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 =head1 Name
 

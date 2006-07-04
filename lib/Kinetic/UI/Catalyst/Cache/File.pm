@@ -24,7 +24,7 @@ use warnings;
 use Kinetic::Util::Config qw(:cache);
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 use base 'Kinetic::UI::Catalyst::Cache';
 
 =head1 NAME

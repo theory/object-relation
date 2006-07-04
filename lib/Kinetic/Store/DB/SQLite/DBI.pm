@@ -35,17 +35,17 @@ queries.
 package Kinetic::Store::DB::SQLite::DBI;
 use base 'DBI';
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 package Kinetic::Store::DB::SQLite::DBI::st;
 use base 'DBI::st';
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 package Kinetic::Store::DB::SQLite::DBI::db;
 use base 'DBI::db';
 use strict;
 use Kinetic::Util::Functions ();
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 =head1 Interface
 

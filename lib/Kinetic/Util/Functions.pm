@@ -20,7 +20,7 @@ package Kinetic::Util::Functions;
 
 use strict;
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 use OSSP::uuid;
 use MIME::Base64;
 use File::Find;

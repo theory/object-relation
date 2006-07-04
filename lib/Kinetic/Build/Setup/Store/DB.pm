@@ -21,7 +21,7 @@ package Kinetic::Build::Setup::Store::DB;
 use strict;
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 use base 'Kinetic::Build::Setup::Store';
 use Kinetic::Util::Constants ':class_exclude';

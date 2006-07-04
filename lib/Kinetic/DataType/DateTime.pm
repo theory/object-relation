@@ -26,7 +26,7 @@ use Kinetic::Meta::Type;
 use Exporter::Tidy other => ['is_iso8601'];
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 =head1 Name
 

@@ -20,7 +20,7 @@ package Kinetic::UI::REST;
 
 use strict;
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 use Kinetic::Util::Constants qw/:http :rest/;
 use Kinetic::Util::Exceptions qw/throw_required/;

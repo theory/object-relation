@@ -24,7 +24,7 @@ use XML::Simple ();
 use Kinetic::Util::Constants '$XML_CT';
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 use base 'Kinetic::Format';
 

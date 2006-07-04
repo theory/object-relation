@@ -21,7 +21,7 @@ package Kinetic::Store::DB::SQLite;
 use strict;
 use base qw(Kinetic::Store::DB);
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 use Kinetic::Store qw(:logical);
 use DBD::SQLite;

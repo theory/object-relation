@@ -25,7 +25,7 @@ use HOP::Parser qw/:all/;
 use Exporter::Tidy parse => ['parse'];
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 # The indexes of tokens in the array refs
 use constant PERFORM => 0;

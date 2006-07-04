@@ -21,7 +21,7 @@ package Kinetic::Build::Schema;
 use strict;
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 use Kinetic::Meta;
 use Kinetic::Meta::Class::Schema;

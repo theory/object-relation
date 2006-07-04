@@ -21,7 +21,7 @@ package Kinetic::Party::User;
 use strict;
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 use base qw(Kinetic::Party);
 use Kinetic::Party::Person;

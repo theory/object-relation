@@ -21,7 +21,7 @@ package Kinetic::Util::Config;
 use strict;
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 use File::Spec;
 use Config::Std;

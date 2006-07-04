@@ -35,7 +35,7 @@ use Class::ISA;
 use Kinetic::Util::Exceptions;
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 my (%SETUPS_FOR, %PROMPTS_FOR);
 

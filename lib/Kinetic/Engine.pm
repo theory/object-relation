@@ -26,7 +26,7 @@ use Kinetic::Util::Config 'KINETIC_ROOT';
 use Kinetic::Util::Functions 'load_store';
 
 use version;
-our $VERSION = version->new('0.0.1');
+our $VERSION = version->new('0.0.2');
 
 load_store( File::Spec->catdir( KINETIC_ROOT, 'lib' ) );
 
