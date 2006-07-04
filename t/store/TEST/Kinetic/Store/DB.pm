@@ -1246,13 +1246,13 @@ sub test_types : Test(138) {
     is $types_test->attribute, undef, 'The attribute should be undef';
     ok $types_test->attribute($attr), 'Set the attribute';
     is $types_test->attribute, $attr, 'It should be properly set';
-    isa_ok $types_test->attribute, 'Kinetic::Meta::Attribute',  'It';
+    isa_ok $types_test->attribute,    'Kinetic::Meta::Attribute',  'It';
 
-    # Set up the ean attribute.
-    is $types_test->ean, undef,      'The ean should be undef';
-    my $ean = '4007630000116';
-    ok $types_test->ean($ean),       'Set the ean';
-    is $types_test->ean, $ean,       'It should be properly set';
+    # Set up the gtin attribute.
+    is $types_test->gtin, undef,     'The gtin should be undef';
+    my $gtin = '4007630000116';
+    ok $types_test->gtin($gtin),      'Set the gtin';
+    is $types_test->gtin, $gtin,      'It should be properly set';
 
     # Create a nice 32K binary string.
     my $binary;
@@ -1280,7 +1280,7 @@ sub test_types : Test(138) {
     is $types_test->operator, 'eq',    'Operator should be properly set';
     is $types_test->media_type, $mt,   'Media type should be properly set';
     is $types_test->attribute, $attr,  'Attribute should be properly set';
-    is $types_test->ean, $ean,         'EAN should be properly set';
+    is $types_test->gtin, $gtin,       'GTIN should be properly set';
     SKIP: {
         skip 'https://rt.cpan.org/Ticket/Display.html?id=19471', 2
             if $self->supported('sqlite') && DBD::SQLite->VERSION <= 1.12;
@@ -1315,9 +1315,9 @@ sub test_types : Test(138) {
     ok $types_test->attribute($attr),  'Set the attribute to a new value';
     is $types_test->attribute, $attr,  'It should be properly set';
 
-    # Change the ean.
-    ok $types_test->ean($ean = '0036000291452'), 'Set the ean to a new value';
-    is $types_test->ean, $ean, 'It should be properly set';
+    # Change the gtin.
+    ok $types_test->gtin($gtin = '0036000291452'), 'Set the gtin to a new value';
+    is $types_test->gtin, $gtin, 'It should be properly set';
 
     # Change the binary.
     $binary = reverse $binary;
@@ -1337,7 +1337,7 @@ sub test_types : Test(138) {
     is $types_test->operator,   'ne',     'Operator should be properly set';
     is $types_test->media_type, $mt,      'Media type should be properly set';
     is $types_test->attribute,  $attr,    'Attribute should be properly set';
-    is $types_test->ean,        $ean,     'EAN should be properly set';
+    cmp_ok $types_test->gtin, '==', $gtin, 'GTIN should be properly set';
     SKIP: {
         skip 'https://rt.cpan.org/Ticket/Display.html?id=19471', 2
             if $self->supported('sqlite') && DBD::SQLite->VERSION <= 1.12;
@@ -1555,9 +1555,9 @@ sub test_types : Test(138) {
     ), 'Create another types test object';
     ok $types_test->save, 'Save it';
 
-    # Make sure that invalid ean are not allowed.
-    ok $types_test->ean('036000291452'), 'Change the ean to a UPC';
-    $checking = 'ean';
+    # Make sure that invalid gtin are not allowed.
+    ok $types_test->gtin('036000291452'), 'Change the gtin to a UPC';
+    $checking = 'gtin';
     $ret      = '036000291453';
     $attr_mock->mock(store_raw => $store_mock);
 
@@ -1567,9 +1567,9 @@ sub test_types : Test(138) {
             if $self->supported('pg')
             && $self->dbh->{pg_server_version} <= 80102;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
-            '... Saving it with a bogus ean code should fail';
+            '... Saving it with a bogus gtin should fail';
         like $@,
-            qr/value for domain "?ean_code"? violates check constraint "ck_ean_code"/,
+            qr/value for domain "?gtin"? violates check constraint "ck_gtin"/,
             '... And it should fail with the proper message';
     }
 
@@ -1647,11 +1647,12 @@ sub test_types : Test(138) {
             qr/value for domain version violates check constraint "ck_version"/,
             '... And it should fail with the proper message';
 
-        $checking = 'ean';
+        $checking = 'gtin';
+        $ret = 123456;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
-            '... Saving it with a bogus ean should fail';
+            '... Saving it with a bogus gtin should fail';
         like $@,
-            qr/value for domain ean_code violates check constraint "ck_ean_code"/,
+            qr/value for domain gtin violates check constraint "ck_gtin"/,
             '... And it should fail with the proper message';
     }
 }

@@ -240,13 +240,12 @@ Conveniently, the mere presence of this function allows the SQLite C<REGEXP>
 operator to work, as well. See
 L<http://www.justatheory.com/computers/databases/sqlite/add_regexen.html>.
 
-=head3 validate_ean
+=head3 isa_gtin
 
-  SELECT validate_ean('4007630000116');
+  SELECT isa_gtin('4007630000116');
 
-Examines the value passed to it to determine whether or not it is a valid EAN
-or UPC code. Imported from
-L<Kinetic::Util::Functions|Kinetic::Util::Functions>.
+Examines the value passed to it to determine whether or not it is a valid
+GTIN. Imported from L<Kinetic::Util::Functions|Kinetic::Util::Functions>.
 
 =head2 Methods
 
@@ -280,11 +279,11 @@ sub connected {
     $dbh->func('coll_add',   4, sub { coll_add(  $dbh, @_ ) }, $func);
     $dbh->func('coll_set',   4, sub { coll_set(  $dbh, @_ ) }, $func);
 
-    # Add validate_ean() function.
+    # Add isa_gtin() function.
     $dbh->func(
-        'validate_ean',
+        'isa_gtin',
         1,
-        \&Kinetic::Util::Functions::validate_ean,
+        \&Kinetic::Util::Functions::isa_gtin,
         $func
     );
 

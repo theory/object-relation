@@ -229,8 +229,8 @@ our %Lexicon;
         'Value "[_1]" is not a positive integer',
         'Value “[_1]” is not a positive integer',
 
-        'Value "[_1]" is not a EAN or UPC code',
-        'Value “[_1]” is not a EAN or UPC code',
+        'Value "[_1]" is not a valid GTIN',
+        'Value “[_1]” is not a valid GTIN',
 
         'Cannot assign permanent state',
         'Cannot assign permanent state',

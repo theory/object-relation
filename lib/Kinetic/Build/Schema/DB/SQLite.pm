@@ -75,7 +75,7 @@ my %types = (
     boolean    => 'SMALLINT',
     datetime   => 'DATETIME',
     duration   => 'TEXT',
-    ean_code   => 'TEXT',
+    gtin       => 'INTEGER',
     integer    => 'INTEGER',
     media_type => 'TEXT',
     operator   => 'TEXT',
@@ -180,7 +180,7 @@ sub constraints_for_class {
         $self->media_type_triggers( $class ),
         $self->attribute_triggers(  $class ),
         $self->version_triggers(    $class ),
-        $self->ean_code_triggers(   $class ),
+        $self->gtin_triggers(       $class ),
    );
 
     # Add FK constraint for subclasses from id column to the parent table.
@@ -498,23 +498,23 @@ sub version_triggers {
 
 ##############################################################################
 
-=head3 ean_code_triggers
+=head3 gtin_triggers
 
-  my @ean_code_triggers = $kbs->ean_code_triggers($class);
+  my @gtin_triggers = $kbs->gtin_triggers($class);
 
-Returns SQLite triggers to validate that the value of a ean_code column in the
+Returns SQLite triggers to validate that the value of a gtin column in the
 table representing the contents of the class represented by the
 Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
-does not have a ean_code attribute (because it inherits the ean_code from a
-concrete parent class), C<ean_code_trigger()> will return an empty list.
+does not have a gtin attribute (because it inherits the gtin from a
+concrete parent class), C<gtin_trigger()> will return an empty list.
 
 Called by C<constraints_for_class()>.
 
 =cut
 
-sub ean_code_triggers {
+sub gtin_triggers {
     my ($self, $class) = @_;
-    $self->_domain_triggers( $class, ean_code => 'NOT validate_ean(%s)' );
+    $self->_domain_triggers( $class, gtin => 'NOT isa_gtin(%s)' );
 }
 
 ##############################################################################

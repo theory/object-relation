@@ -76,45 +76,24 @@ CONSTRAINT ck_attribute CHECK (
 );
 
 CREATE DOMAIN version AS TEXT
-  CONSTRAINT ck_version CHECK (
-     VALUE ~ '^v?\\\\d[\\\\d._]+$'
-  );
+CONSTRAINT ck_version CHECK (
+    VALUE ~ '^v?\\\\d[\\\\d._]+$'
+);
 
-CREATE OR REPLACE FUNCTION validate_ean(
-   arg TEXT
-) RETURNS boolean AS $$
-DECLARE
-    -- Convert to BYTEA; support UPCs.
-    ean BYTEA := CASE WHEN length($1) = 12 THEN '0' || $1 ELSE $1 END;
-BEGIN
-    -- Make sure we really have a UPC or an EAN.
-    IF arg !~ '^\\\\d{12,13}$' THEN RETURN FALSE; END IF;
+CREATE OR REPLACE FUNCTION isa_gtin(bigint) RETURNS BOOLEAN AS $$
+    SELECT ( sum(dgt) % 10 ) = 0
+    FROM (
+        SELECT substring($1 from idx for 1)::smallint AS dgt
+        FROM   (SELECT generate_series(length($1), 1, -2) as idx) AS foo
+        UNION ALL
+        SELECT substring($1 from idx for 1)::smallint * 3 AS dgt
+        FROM   (SELECT generate_series(length($1) -1, 1, -2) as idx) AS foo
+    ) AS bar;
+$$ LANGUAGE sql STRICT IMMUTABLE;
 
-    RETURN 10 - (
-        (
-            -- Sum odd numerals.
-            get_byte(ean,  1) - 48
-          + get_byte(ean,  3) - 48
-          + get_byte(ean,  5) - 48
-          + get_byte(ean,  7) - 48
-          + get_byte(ean,  9) - 48
-          + get_byte(ean, 11) - 48
-        ) * 3 -- Multiply total by 3.
-        -- Add even numerals except for checksum (12).
-        + get_byte(ean,  0) - 48
-        + get_byte(ean,  2) - 48
-        + get_byte(ean,  4) - 48
-        + get_byte(ean,  6) - 48
-        + get_byte(ean,  8) - 48
-        + get_byte(ean, 10) - 48
-    -- Compare to the checksum.
-    ) % 10 = get_byte(ean, 12) - 48;
-END;
-$$ LANGUAGE plpgsql immutable;
-
-CREATE DOMAIN ean_code AS TEXT
-CONSTRAINT ck_ean_code CHECK (
-   validate_ean(VALUE)
+CREATE DOMAIN gtin AS BIGINT
+CONSTRAINT ck_gtin CHECK (
+   isa_gtin(VALUE)
 );
 
 CREATE OR REPLACE FUNCTION trig_uuid_once() RETURNS trigger AS $$
@@ -1224,7 +1203,7 @@ $table = q{CREATE TABLE _types_test (
     operator OPERATOR NOT NULL,
     media_type MEDIA_TYPE NOT NULL,
     attribute ATTRIBUTE,
-    ean EAN_CODE,
+    gtin GTIN,
     bin BYTEA
 );
 };
@@ -1253,7 +1232,7 @@ eq_or_diff join("\n", $sg->constraints_for_class($types_test)), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW types_test AS
-  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.integer AS integer, _types_test.whole AS whole, _types_test.posint AS posint, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator, _types_test.media_type AS media_type, _types_test.attribute AS attribute, _types_test.ean AS ean, _types_test.bin AS bin
+  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.integer AS integer, _types_test.whole AS whole, _types_test.posint AS posint, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator, _types_test.media_type AS media_type, _types_test.attribute AS attribute, _types_test.gtin AS gtin, _types_test.bin AS bin
   FROM   _types_test;
 };
 eq_or_diff $sg->views_for_class($types_test), $view,
@@ -1262,8 +1241,8 @@ eq_or_diff $sg->views_for_class($types_test), $view,
 # Check that the INSERT rule/trigger is correct.
 $insert = q{CREATE RULE insert_types_test AS
 ON INSERT TO types_test DO INSTEAD (
-  INSERT INTO _types_test (id, uuid, state, integer, whole, posint, version, duration, operator, media_type, attribute, ean, bin)
-  VALUES (NEXTVAL('seq_types_test'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.integer, NEW.whole, NEW.posint, NEW.version, NEW.duration, NEW.operator, NEW.media_type, NEW.attribute, NEW.ean, NEW.bin);
+  INSERT INTO _types_test (id, uuid, state, integer, whole, posint, version, duration, operator, media_type, attribute, gtin, bin)
+  VALUES (NEXTVAL('seq_types_test'), COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.integer, NEW.whole, NEW.posint, NEW.version, NEW.duration, NEW.operator, NEW.media_type, NEW.attribute, NEW.gtin, NEW.bin);
 );
 };
 eq_or_diff $sg->insert_for_class($types_test), $insert,
@@ -1273,7 +1252,7 @@ eq_or_diff $sg->insert_for_class($types_test), $insert,
 $update = q{CREATE RULE update_types_test AS
 ON UPDATE TO types_test DO INSTEAD (
   UPDATE _types_test
-  SET    state = NEW.state, integer = NEW.integer, whole = NEW.whole, posint = NEW.posint, version = NEW.version, duration = NEW.duration, operator = NEW.operator, media_type = NEW.media_type, attribute = NEW.attribute, ean = NEW.ean, bin = NEW.bin
+  SET    state = NEW.state, integer = NEW.integer, whole = NEW.whole, posint = NEW.posint, version = NEW.version, duration = NEW.duration, operator = NEW.operator, media_type = NEW.media_type, attribute = NEW.attribute, gtin = NEW.gtin, bin = NEW.bin
   WHERE  id = OLD.id;
 );
 };

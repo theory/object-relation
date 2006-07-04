@@ -51,7 +51,7 @@ use Exporter::Tidy
         uuid_to_hex
         uuid_to_b64
     )],
-    ean => [qw(validate_ean)],
+    gtin => [qw(isa_gtin)],
     class => [qw(
         file_to_mod
         load_classes
@@ -111,26 +111,47 @@ sub uuid_to_b64 {
 
 ##############################################################################
 
-=head2 :ean
+=head2 :gtin
 
-=head3 validate_ean
+=head3 isa_gtin
 
-  print "$ean is valid\n" if validate_ean($ean);
+  print "$gtin is valid\n" if isa_gtin($gtin);
 
-Returns true if the EAN or UPC argument is valid, and false if it is not.
+Returns true if GTIN argument is valid, and false if it is not.
+
+The checksum is calculated according to this equation:
+
+=over
+
+=item 1
+
+Add the digits in the 1s, 100s, 10,000s, etc. positions together and multiply
+by three.
+
+=item 2
+
+Add the digits in the 10s, 1,000s, 100,000s, etc. positions to the result.
+
+=item 3
+
+Return true if the result is evenly divisible by 10, and false if it is not.
+
+=back
+
+See
+L<http://www.gs1.org/productssolutions/idkeys/support/check_digit_calculator.html#how>
+for tables describing how GTIN checkdigits are calculated.
 
 =cut
 
 # This function must return 0 or 1 to properly work in SQLite.
 
-sub validate_ean ($) {
-    my $ean = length $_[0] == 12 ? '0' . shift : shift;
-    return 0 unless $ean =~ /^\d{13}$/;
-    my @nums = split '', $ean;
-    return 10 - (
-        sum( @nums[1,3,5,7,9,11] ) * 3
-      + sum( @nums[0,2,4,6,8,10] )
-    ) % 10 == $nums[12] ? 1 : 0;
+sub isa_gtin ($) {
+    my @nums = reverse split '', shift;
+    (
+        sum( @nums[ grep {   $_ % 2  } 0..$#nums ] ) * 3
+      + sum( @nums[ grep { !($_ % 2) } 0..$#nums ] )
+    ) % 10 == 0 ? 1 : 0;
 }
 
 ##############################################################################

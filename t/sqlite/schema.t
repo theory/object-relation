@@ -1231,7 +1231,7 @@ $table = q{CREATE TABLE _types_test (
     operator TEXT NOT NULL,
     media_type TEXT NOT NULL,
     attribute TEXT,
-    ean TEXT,
+    gtin INTEGER,
     bin BLOB
 );
 };
@@ -1353,18 +1353,18 @@ FOR EACH ROW BEGIN
     WHERE  NEW.version NOT REGEXP '^v?\\d[\\d._]+$';
 END;
 
-CREATE TRIGGER cki_types_test_ean
+CREATE TRIGGER cki_types_test_gtin
 BEFORE INSERT ON _types_test
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value for domain ean_code violates check constraint "ck_ean_code"')
-    WHERE  NEW.ean IS NOT NULL AND NOT validate_ean(NEW.ean);
+    SELECT RAISE(ABORT, 'value for domain gtin violates check constraint "ck_gtin"')
+    WHERE  NEW.gtin IS NOT NULL AND NOT isa_gtin(NEW.gtin);
 END;
 
-CREATE TRIGGER cku_types_test_ean
-BEFORE UPDATE OF ean ON _types_test
+CREATE TRIGGER cku_types_test_gtin
+BEFORE UPDATE OF gtin ON _types_test
 FOR EACH ROW BEGIN
-    SELECT RAISE(ABORT, 'value for domain ean_code violates check constraint "ck_ean_code"')
-    WHERE  NEW.ean IS NOT NULL AND NOT validate_ean(NEW.ean);
+    SELECT RAISE(ABORT, 'value for domain gtin violates check constraint "ck_gtin"')
+    WHERE  NEW.gtin IS NOT NULL AND NOT isa_gtin(NEW.gtin);
 END;
 };
 
@@ -1373,7 +1373,7 @@ eq_or_diff join( "\n", $sg->constraints_for_class($types_test) ),
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW types_test AS
-  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.integer AS integer, _types_test.whole AS whole, _types_test.posint AS posint, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator, _types_test.media_type AS media_type, _types_test.attribute AS attribute, _types_test.ean AS ean, _types_test.bin AS bin
+  SELECT _types_test.id AS id, _types_test.uuid AS uuid, _types_test.state AS state, _types_test.integer AS integer, _types_test.whole AS whole, _types_test.posint AS posint, _types_test.version AS version, _types_test.duration AS duration, _types_test.operator AS operator, _types_test.media_type AS media_type, _types_test.attribute AS attribute, _types_test.gtin AS gtin, _types_test.bin AS bin
   FROM   _types_test;
 };
 eq_or_diff $sg->views_for_class($types_test), $view,
@@ -1383,8 +1383,8 @@ eq_or_diff $sg->views_for_class($types_test), $view,
 $insert = q{CREATE TRIGGER insert_types_test
 INSTEAD OF INSERT ON types_test
 FOR EACH ROW BEGIN
-  INSERT INTO _types_test (uuid, state, integer, whole, posint, version, duration, operator, media_type, attribute, ean, bin)
-  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.integer, NEW.whole, NEW.posint, NEW.version, NEW.duration, NEW.operator, NEW.media_type, NEW.attribute, NEW.ean, NEW.bin);
+  INSERT INTO _types_test (uuid, state, integer, whole, posint, version, duration, operator, media_type, attribute, gtin, bin)
+  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.integer, NEW.whole, NEW.posint, NEW.version, NEW.duration, NEW.operator, NEW.media_type, NEW.attribute, NEW.gtin, NEW.bin);
 END;
 };
 eq_or_diff $sg->insert_for_class($types_test), $insert,
@@ -1395,7 +1395,7 @@ $update = q{CREATE TRIGGER update_types_test
 INSTEAD OF UPDATE ON types_test
 FOR EACH ROW BEGIN
   UPDATE _types_test
-  SET    state = NEW.state, integer = NEW.integer, whole = NEW.whole, posint = NEW.posint, version = NEW.version, duration = NEW.duration, operator = NEW.operator, media_type = NEW.media_type, attribute = NEW.attribute, ean = NEW.ean, bin = NEW.bin
+  SET    state = NEW.state, integer = NEW.integer, whole = NEW.whole, posint = NEW.posint, version = NEW.version, duration = NEW.duration, operator = NEW.operator, media_type = NEW.media_type, attribute = NEW.attribute, gtin = NEW.gtin, bin = NEW.bin
   WHERE  id = OLD.id;
 END;
 };

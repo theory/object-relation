@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 123;
+use Test::More tests => 122;
 #use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
@@ -117,13 +117,13 @@ BEGIN {
                           ),
         "Add version attribute" );
 
-    # Add an ean_code attribute.
-    ok( $cm->add_attribute( name     => 'ean',
+    # Add an gtin attribute.
+    ok( $cm->add_attribute( name     => 'gtin',
                             view     => Class::Meta::PUBLIC,
-                            type     => 'ean_code',
+                            type     => 'gtin',
                             required => 1,
                           ),
-        "Add ean attribute" );
+        "Add gtin attribute" );
 
     ok($cm->build, "Build class" );
 }
@@ -314,15 +314,14 @@ eval { $t->version('foo') };
 ok $err = $@, "Caught bad Version exception";
 isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
 
-# Test ean accessor.
-is( $t->ean, undef, 'Check for no EAN' );
-ok( $t->ean('036000291452'), 'Try a UPC');
-is( $t->ean, '0036000291452', 'Make sure that a 0 was prepended' );
-ok( $t->ean('4007630000116'), 'Try an EAN');
-is( $t->ean, '4007630000116', 'It should be properly set');
-throws_ok { $t->ean('0036000291453') }
+# Test gtin accessor.
+is( $t->gtin, undef, 'Check for no GTIN' );
+ok( $t->gtin('036000291452'), 'Try a UPC');
+ok( $t->gtin('4007630000116'), 'Try an GTIN');
+is( $t->gtin, '4007630000116', 'It should be properly set');
+throws_ok { $t->gtin('0036000291453') }
     'Kinetic::Util::Exception::Fatal::Invalid',
-    'Make sure an invalid EAN is caught';
+    'Make sure an invalid GTIN is caught';
 
 # Test Operator accessor.
 is( $t->operator, undef, 'Check for no Operator' );

@@ -24,7 +24,7 @@ use version;
 our $VERSION = version->new('0.0.1');
 
 use Kinetic::Meta::Type;
-use Kinetic::Util::Functions qw(:ean);
+use Kinetic::Util::Functions qw(:gtin);
 use OSSP::uuid;
 use Data::Types;
 use Kinetic::Util::Exceptions qw(throw_invalid);
@@ -285,12 +285,9 @@ Kinetic::Meta::Type->add(
 
 ##############################################################################
 
-=item upc_code
+=item gtin
 
-=item ean_code
-
-UPC-A or EAN bar codes. They consist 13 numerals (a 0 will be prepended to
-12-digit bar codes) with a valid checksum. Some examples:
+A GTIN code, which includes UPC-A and EAN codes. Some examples:
 
   036000291452
   0036000291452
@@ -298,41 +295,17 @@ UPC-A or EAN bar codes. They consist 13 numerals (a 0 will be prepended to
   0978020137962
   4007630000116
 
-The checksum is calculated according to this equation:
-
-=over
-
-=item 1
-
-Add the digits in the even-numbered positions (second, fourth, sixth, etc.)
-together and multiply by three.
-
-=item 2
-
-Add the digits in the odd-numbered positions excluding the first (third,
-fifth, seventh, etc.) to the result.
-
-=item 3
-
-Subtract the result from the next-higher multiple of ten. The answer is the
-check digit.
-
-=back
-
-See L<http://en.wikipedia.org/wiki/UPC_code> for a detailed description of UPC
-and EAN codes.
+Validity of a GTIN is calculated by the C<isa_gtin()> function imported from
+L<Kinetic::Util::Functions|Kinetic::Util::Functions>.
 
 =cut
 
 Kinetic::Meta::Type->add(
-    key   => 'ean_code',
-    alias => 'upc_code',
-    name  => 'EAN Code',
+    key   => 'gtin',
+    name  => 'GTIN',
     check => sub {
-        # Prepend 0 to UPC to make it a valid EAN.
-        $_[0] = "0$_[0]" if length $_[0] == 12;
-        throw_invalid( [ 'Value "[_1]" is not a EAN or UPC code', $_[0] ] )
-            unless validate_ean($_[0]);
+        throw_invalid( [ 'Value "[_1]" is not a valid GTIN', $_[0] ] )
+            unless isa_gtin($_[0]);
     },
 );
 

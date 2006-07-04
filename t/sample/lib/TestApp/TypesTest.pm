@@ -75,9 +75,9 @@ BEGIN {
     );
 
     $km->add_attribute(
-        name        => 'ean',
-        label       => 'EAN',
-        type        => 'ean_code',
+        name        => 'gtin',
+        label       => 'GTIN',
+        type        => 'gtin',
     );
 
     $km->add_attribute(
