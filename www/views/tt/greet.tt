@@ -1,9 +1,0 @@
-[% 
-   WRAPPER 'shared/main.tt'
-   title = 'Greeting page' 
-%]
-  <div class="listing">
-    <p>Project is "[% c.config.name %]"</p>
-    <p>[% message %]</p>
-  <div>
-[% END %]

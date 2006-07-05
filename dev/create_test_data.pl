@@ -85,7 +85,7 @@ __END__
 
 =head1 create_test_data.pl
 
-Test the Kinetic Rest Server
+Create Kinetic test data.
 
 =head1 SYNOPSIS
 

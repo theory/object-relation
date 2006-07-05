@@ -57,66 +57,13 @@ Readonly our $UUID_RE          =>
 SCOPE: {
     my $sep = File::Spec->catdir('');
     Readonly our $CLASS_EXCLUDE_RE =>
-        qr/Kinetic$sep(?:(?:App)?Build|DataType|Engine|Format|Meta|Store|UI|Util)/;
+        qr/Kinetic$sep(?:(?:App)?Build|DataType|Format|Meta|Store|Util)/;
 }
-
-# HTTP content types
-Readonly our $TEXT_CT => 'text/plain';
-Readonly our $XML_CT  => 'text/xml';
-Readonly our $HTML_CT => 'text/html';
-
-# HTTP status codes
-Readonly our $HTTP_OK                    => '200 OK';
-Readonly our $HTTP_INTERNAL_SERVER_ERROR => '500 Internal Server Error';
-Readonly our $HTTP_NOT_IMPLEMENTED       => '501 Not Implemented';
-Readonly our $HTTP_NOT_FOUND             => '404 Not Found';
-Readonly our $HTTP_BAD_REQUEST           => '400 Bad Request';
-
-# XSLT
-Readonly our $CURRENT_PAGE   => '#';
-Readonly our $RESOURCES_XSLT => '/xslt/resources.xsl';
-Readonly our $SEARCH_XSLT    => '/xslt/search.xsl';
-Readonly our $INSTANCE_XSLT  => '/xslt/instance.xsl';
-
-# REST
-Readonly our $CLASS_KEY_PARAM => '_class_key';
-Readonly our $DOMAIN_PARAM    => '_domain';
-Readonly our $PATH_PARAM      => '_path';
-Readonly our $TYPE_PARAM      => '_type';
-Readonly our $LIMIT_PARAM     => '_limit';
-Readonly our $OFFSET_PARAM    => '_offset';
-Readonly our $ORDER_BY_PARAM  => '_order_by';
-Readonly our $SORT_PARAM      => '_sort_order';
-Readonly our $SEARCH_TYPE     => 'STRING';
-
-# Labels
-Readonly our $AVAILABLE_INSTANCES => 'Available instances';
-Readonly our $AVAILABLE_RESOURCES => 'Available resources';
 
 # Format
 Readonly our $KEY => 'Key';
 
-# Directories
-Readonly our $WWW_DIR => './www';
-
-use Exporter::Tidy http => [
-    qw/
-      $HTML_CT
-      $TEXT_CT
-      $XML_CT
-
-      $HTTP_OK
-      $HTTP_INTERNAL_SERVER_ERROR
-      $HTTP_NOT_IMPLEMENTED
-      $HTTP_NOT_FOUND
-      $HTTP_BAD_REQUEST
-      /
-  ],
-  data => [
-    qw/
-      $WWW_DIR
-      /
-  ],
+use Exporter::Tidy
   data_store => [
     qw/
       $ATTR_DELIMITER
@@ -133,33 +80,13 @@ use Exporter::Tidy http => [
   format => [
     qw/$KEY/
   ],
-  rest => [
-    qw/
-      $CLASS_KEY_PARAM
-      $DOMAIN_PARAM
-      $PATH_PARAM
-      $TYPE_PARAM
-      $LIMIT_PARAM
-      $OFFSET_PARAM
-      $ORDER_BY_PARAM
-      $SORT_PARAM
-      $SEARCH_TYPE
-      /
-  ],
   labels => [
     qw/
       $AVAILABLE_INSTANCES
       $AVAILABLE_RESOURCES
       /
   ],
-  xslt => [
-    qw/
-      $CURRENT_PAGE
-      $RESOURCES_XSLT
-      $SEARCH_XSLT
-      $INSTANCE_XSLT
-      /
-  ];
+;
 
 =head2 :data_store
 
@@ -212,157 +139,9 @@ L<Kinetic::Format|Kinetic::Format> related constants.
 
 =item * $KEY
 
-The identifier for the class key used in formats.  Important because it must
+The identifier for the class key used in formats. Important because it must
 not conflict with attributes names and must be an allowable key for JSON and
 XML.
-
-=back
-
-=head2 :rest
-
-These constants are related to the REST interface.
-
-=over 4
-
-=item * $CLASS_KEY_PARAM
-
-C<class_key> for current search.
-
-=item * $DOMAIN_PARAM
-
-Domain of server.
-
-=item * $PATH_PARAM
-
-REST base path.
-
-=item * $TYPE_PARAM
-
-Content type to return to client instead of XML.  Currently only supports
-'html'.
-
-=item * $LIMIT_PARAM
-
-Parameter specifying the maximum number of items to return from a search.
-
-=item * $OFFSET_PARAM
-
-Parameter specifying how which item in a search to start limiting results
-from.
-
-=item * $ORDER_BY_PARAM
-
-Parameter specifying which attributes to order search results by.
-
-=item * $SORT_PARAM
-
-Parameter specifying which direction to sort an C<$ORDER_BY_PARAM> on.  Allowed
-values are C<ASC> and C<DESC>.
-
-=item * $SEARCH_TYPE
-
-The type of search requested via the REST interface.
-
-=back
-
-=head2 :http
-
-HTTP related constants.  These are content types or status codes.
-
-=head2 Content types
-
-Used with HTTP C<Content-type:> header.
-
-=over 4
-
-=item * $HTML_CT
-
-C<text/html>
-
-=item * $TEXT_CT
-
-C<text/plain>
-
-=item * $XML_CT
-
-C<text/xml>
-
-=back
-
-=head2 Status codes
-
-Use with HTTP C<Status:> header.
-
-=over 4
-
-=item * $HTTP_INTERNAL_SERVER_ERROR
-
-C<500 Internal Server Error>
-
-=item * $HTTP_NOT_IMPLEMENTED
-
-C<501 Not Implemented>
-
-=item * $HTTP_NOT_FOUND
-
-C<404 Not Found>
-
-=item * $HTTP_BAD_REQUEST
-
-C<400 Bad Request>
-
-=item * $HTTP_OK
-
-C<200 OK>
-
-=back
-
-=head2 :labels
-
-=over 4 
-
-=item * $AVAILABLE_INSTANCES
-
-Title for "Available instances" returned in REST services.
-
-=item * $AVAILABLE_RESOURCES
-
-Title for "Available resources" returned in REST services.
-
-=back
-
-=head2 :data
-
-=over 4
-
-=item * $WWW_DIR
-
-The location of the WWW directory.
-
-=back
-
-=head2 :xslt
-
-=over 4
-
-=item * $CURRENT_PAGE
-
-This is a marker used in XML documents to indicate a link to the current page.
-Usually such a link is not desired and XSLT should not make a link if it finds
-a C<$CURRENT_PAGE> marker.
-
-=item * $RESOURCES_XSLT
-
-Location of XSLT for listing available resources (Kinetic classes in the data
-store).
-
-=item * $SEARCH_XSLT
-
-Location of XSLT for managing searches.
-
-=item * $INSTANCE_XSLT
-
-Location of XSLT for displaying Kinetic instances.
 
 =back
 

@@ -7,7 +7,6 @@ our @REQUIRES = qw(desired_attributes);
 use strict;
 use warnings;
 use HTML::Entities qw(encode_entities);
-use Kinetic::Util::Constants qw(:rest);    # form params
 
 ##############################################################################
 

@@ -16,13 +16,6 @@ requires:
   Array::AsHash: 0.31
   Cache::Cache: 1.04
   Cache::Memcached::Managed: 0.14
-  Catalyst: 5.65
-  Catalyst::Engine::Apache: 1.05
-  Catalyst::Plugin::Session: 0
-  Catalyst::Plugin::Session::State::Cookie: 0
-  Catalyst::Plugin::Session::Store::File: 0
-  Catalyst::Plugin::Session::Store::Memcached: 0.02
-  Catalyst::Plugin::Static::Simple: 0
   Class::BuildMethods: 0.1
   Class::Meta: 0.53
   Class::Meta::Express: 0.03
@@ -38,28 +31,24 @@ requires:
   Exception::Class: 1.12
   Exception::Class::DBI: 0.94
   Exporter::Tidy: 0.06
-  File::Pid: 1.01
   HOP::Lexer: 0.02
   HOP::Parser: 0.01
   HOP::Stream: 0.01
   JSON::Syck: 0.05
   Lingua::EN::Inflect: 0
   Lingua::Strfname: 0.1
+  List::MoreUtils: 0
   List::Util: 0
   Locale::Maketext: 1.09
-  LockFile::Simple: 0.205
   MIME::Base64: 0
   MIME::Types: 1.14
   OSSP::uuid: 0
-  Proc::Background: 1.08
   Readonly: 0
   Regexp::Common: 2.119
-  Test::WWW::Mechanize::Catalyst: 0.35
-  WWW::REST: 0.01
+  Term::ANSIColor: 0
   Widget::Meta: 0.03
   XML::Simple: 2.13
   aliased: 0.11
-  mod_perl2: 2.0.0
   version: 0.42
 build_requires:
   App::Info: 0.48
@@ -68,10 +57,8 @@ build_requires:
   FSA::Rules: 0.21
   File::Copy: 0
   File::Path: 0
-  HTTP::Server::Simple: 0.13
   Module::Build: 0.27_10
   Pod::Man: 2.08
-  Term::ANSIColor: 0
   Test::Class: 0.1
   Test::Differences: 0.47
   Test::Exception: 0.21
@@ -136,15 +123,6 @@ provides:
   Kinetic::Build::Setup::Cache::Memcached:
     file: lib/Kinetic/Build/Setup/Cache/Memcached.pm
     version: 0.000002
-  Kinetic::Build::Setup::Engine:
-    file: lib/Kinetic/Build/Setup/Engine.pm
-    version: 0.000002
-  Kinetic::Build::Setup::Engine::Apache2:
-    file: lib/Kinetic/Build/Setup/Engine/Apache2.pm
-    version: 0.000002
-  Kinetic::Build::Setup::Engine::Catalyst:
-    file: lib/Kinetic/Build/Setup/Engine/Catalyst.pm
-    version: 0.000002
   Kinetic::Build::Setup::State:
     file: lib/Kinetic/Build/Setup.pm
   Kinetic::Build::Setup::Store:
@@ -180,20 +158,8 @@ provides:
   Kinetic::DataType::State:
     file: lib/Kinetic/DataType/State.pm
     version: 0.000002
-  Kinetic::Engine:
-    file: lib/Kinetic/Engine.pm
-    version: 0.000002
-  Kinetic::Engine::Apache2:
-    file: lib/Kinetic/Engine/Apache2.pm
-    version: 0.000002
-  Kinetic::Engine::Apache2::Config:
-    file: lib/Kinetic/Engine/Apache2/Config.pm
-    version: 0.000002
-  Kinetic::Engine::Catalyst:
-    file: lib/Kinetic/Engine/Catalyst.pm
-    version: 0.000002
-  Kinetic::Engine::Catalyst::Config:
-    file: lib/Kinetic/Engine/Catalyst/Config.pm
+  Kinetic::Express:
+    file: lib/Kinetic/Express.pm
     version: 0.000002
   Kinetic::Format:
     file: lib/Kinetic/Format.pm
@@ -284,60 +250,6 @@ provides:
     version: 0.000002
   Kinetic::Type::Contact:
     file: lib/Kinetic/Type/Contact.pm
-    version: 0.000002
-  Kinetic::UI::Catalyst:
-    file: lib/Kinetic/UI/Catalyst.pm
-    version: 0.000002
-  Kinetic::UI::Catalyst::Auth:
-    file: lib/Kinetic/UI/Catalyst/Auth.pm
-    version: 0.000002
-  Kinetic::UI::Catalyst::C::Login:
-    file: lib/Kinetic/UI/Catalyst/C/Login.pm
-    version: 0.000002
-  Kinetic::UI::Catalyst::C::REST:
-    file: lib/Kinetic/UI/Catalyst/C/REST.pm
-    version: 0.000002
-  Kinetic::UI::Catalyst::C::Search:
-    file: lib/Kinetic/UI/Catalyst/C/Search.pm
-    version: 0.000002
-  Kinetic::UI::Catalyst::C::Users:
-    file: lib/Kinetic/UI/Catalyst/C/Users.pm
-    version: 0.000002
-  Kinetic::UI::Catalyst::C::View:
-    file: lib/Kinetic/UI/Catalyst/C/View.pm
-    version: 0.000002
-  Kinetic::UI::Catalyst::Cache:
-    file: lib/Kinetic/UI/Catalyst/Cache.pm
-    version: 0.000002
-  Kinetic::UI::Catalyst::Cache::File:
-    file: lib/Kinetic/UI/Catalyst/Cache/File.pm
-    version: 0.000002
-  Kinetic::UI::Catalyst::Cache::Memcached:
-    file: lib/Kinetic/UI/Catalyst/Cache/Memcached.pm
-    version: 0.000002
-  Kinetic::UI::Catalyst::Log:
-    file: lib/Kinetic/UI/Catalyst/Log.pm
-    version: 0.000002
-  Kinetic::UI::Catalyst::V::TT:
-    file: lib/Kinetic/UI/Catalyst/V/TT.pm
-    version: 0.000002
-  Kinetic::UI::Email::Workflow:
-    file: lib/Kinetic/UI/Email/Workflow.pm
-    version: 0.000002
-  Kinetic::UI::Email::Workflow::Lexer:
-    file: lib/Kinetic/UI/Email/Workflow/Lexer.pm
-    version: 0.000002
-  Kinetic::UI::Email::Workflow::Parser:
-    file: lib/Kinetic/UI/Email/Workflow/Parser.pm
-    version: 0.000002
-  Kinetic::UI::REST:
-    file: lib/Kinetic/UI/REST.pm
-    version: 0.000002
-  Kinetic::UI::REST::Dispatch:
-    file: lib/Kinetic/UI/REST/Dispatch.pm
-    version: 0.000002
-  Kinetic::UI::TT::Plugin::Renderer:
-    file: lib/Kinetic/UI/TT/Plugin/Renderer.pm
     version: 0.000002
   Kinetic::Util::Auth:
     file: lib/Kinetic/Util/Auth.pm

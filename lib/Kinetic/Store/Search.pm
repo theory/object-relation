@@ -364,9 +364,9 @@ Getter/Setter for the data you wish to search for.
 
 This may go away in the future.
 
-Returns data formatted suitable for the REST request.  Individual values will
-be returned unquoted.  C<ANY> or C<BETWEEN> searches will be returned as a
-string wrapped in parentheses with string values quoted.
+Returns data formatted by Data::Dumper. Individual values will be returned
+unquoted. C<ANY> or C<BETWEEN> searches will be returned as a string wrapped
+in parentheses with string values quoted.
 
 =head3 negated
 

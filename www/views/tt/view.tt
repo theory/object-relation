@@ -1,6 +1,0 @@
-[% 
-   WRAPPER shared/main.tt
-   title = 'View' 
-%]
-  [% INCLUDE shared/crud.tt mode = 'view'  %]
-[% END %]

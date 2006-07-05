@@ -49,8 +49,8 @@ In a Kinetic class:
 
 In another Kinetic class:
 
-  use Kinetic::Util::Config qw(:engine);
-  system(ENGINE_HTTPD);
+  use Kinetic::Util::Config qw(:store);
+  my $dbh = DBI->connect(STORE_DSN, STORE_DB_USER, STORE_DB_PASS);
 
 To get all constants:
 

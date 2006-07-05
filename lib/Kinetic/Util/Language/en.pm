@@ -132,20 +132,11 @@ our %Lexicon;
         'I do not recognize the search parameter “[_1]”',
     );
 
-    my %rest_messages = (
-        'The first method in a chain must return objects. You used "[_1]"',
-        'The first method in a chain must return objects. You used “[_1]”',
-
-        'No resource available to handle "[_1]"',
-        'No resource available to handle “[_1]”',
-    );
-
     %Lexicon = (
         %classes,
         %kinetic_object_states,
         %lexer_parser_messages,
         %search_messages,
-        %rest_messages,
 
         # Exceptions.
         '[_1] is not a Perl module',

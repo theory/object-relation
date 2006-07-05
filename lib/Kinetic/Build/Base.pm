@@ -64,10 +64,9 @@ intended to be used directly, but by L<Kinetic::Build|Kinetic::Build> and
 L<Kinetic::AppBuild|Kinetic::AppBuild>.
 
 The functionality it adds includes setting a different default value for the
-C<install_base> property to "$Config{installprefix}/kinetic", building and
-installing the contents of a C<www> directory, and automatically adding the
-contents of a C<bin> directory to the C<script_files> property. Read on for
-more.
+C<install_base> property to "$Config{installprefix}/kinetic" and automatically
+adding the contents of a C<bin> directory to the C<script_files> property.
+Read on for more.
 
 =cut
 
@@ -450,7 +449,7 @@ sub ACTION_install {
 
 This method is called by C<new()> to initialize the Kinetic::Build::Base
 object. It sets up the configuration date if C<path_to_config()> returns a
-file name, adds the "www" and "conf" build elements, and collects data for all
+file name, adds the "conf" build elements, and collects data for all
 properties that have specified a prompt, as well as their related setup
 objects, if any.
 
@@ -474,10 +473,6 @@ sub init {
 
     # Prevent installation into lib/perl5. We just want lib'.
     $self->install_base_relpaths(lib => 'lib');
-
-    # Add www element and install path.
-    $self->add_build_element('www');
-    $self->install_base_relpaths('www' => 'www');
 
     # Add config file element and install path.
     $self->add_build_element('conf');
@@ -633,17 +628,6 @@ all of the files in the F<bin> directory for processing and copying.
 =cut
 
 sub find_script_files { shift->find_files_in_dir('bin') }
-
-##############################################################################
-
-=head3 find_www_files
-
-Called by C<process_www_files()>, this method returns a hash reference of all
-of the files in the F<www> directory for processing and copying.
-
-=cut
-
-sub find_www_files { shift->find_files_in_dir('www') }
 
 ##############################################################################
 

@@ -5,7 +5,7 @@
 use warnings;
 use strict;
 #use Test::More 'no_plan';
-use Test::More tests => 91;
+use Test::More tests => 86;
 use Test::Exception;
 use Test::File;
 use aliased 'Test::MockModule';
@@ -85,8 +85,6 @@ isa_ok $builder, $CLASS, 'The builder';
 
 is $builder->install_base, updir, 'The install base is correct';
 is $builder->path_to_config, $config_file, 'The config file should be correct';
-is $builder->install_destination('www'), catdir(updir, 'www'),
-    'The www base should be correct';
 is $builder->install_destination('lib'), catdir(updir, 'lib'),
     'The lib base should be correct';
 is $builder->module_name, 'TestApp::Simple',
@@ -108,8 +106,6 @@ isa_ok $builder, $CLASS, 'The builder';
 
 is $builder->install_base, updir, 'The install base is correct';
 is $builder->path_to_config, $config_file, 'The config file should be correct';
-is $builder->install_destination('www'), catdir(updir, 'www'),
-    'The www base should be correct';
 is $builder->install_destination('lib'), catdir(updir, 'lib'),
     'The lib base should be correct';
 
@@ -134,9 +130,6 @@ is_deeply $builder->notes('_config_'), \%topconf,
 
 is $builder->install_base, $topconf{kinetic}{root},
     'The install base should be set from the conf file';
-is $builder->install_destination('www'),
-    catdir($topconf{kinetic}{root}, 'www'),
-    'The www base should be relative to the config root';
 is $builder->install_destination('lib'),
     catdir($topconf{kinetic}{root}, 'lib'),
     'The lib base should be relative to the config root';
@@ -173,13 +166,11 @@ ok $builder->dev_tests, 'dev_tests should be true';
 ##############################################################################
 # Now let'd make sure that the build action does what we want.
 my $blib_file  = 'blib/lib/TestApp/Simple.pm';
-my $bwww_file  = 'blib/www/test.html';
 my $bbin_file  = 'blib/script/somescript';
 my $bconf_file = 'blib/conf/kinetic.conf';
 my $tconf_file = 't/conf/kinetic.conf';
 
 file_not_exists_ok $blib_file,  'blib lib file should not yet exist';
-file_not_exists_ok $bwww_file,  'blib www file should not yet exist';
 file_not_exists_ok $bbin_file,  'blib bin file should not yet exist';
 file_not_exists_ok $bconf_file, 'blib conf file should not yet exist';
 file_not_exists_ok $tconf_file, 't conf file should not yet exist';
@@ -187,7 +178,6 @@ file_not_exists_ok $tconf_file, 't conf file should not yet exist';
 $builder->dispatch('build');
 
 file_exists_ok $blib_file,  'blib lib file should now exist';
-file_exists_ok $bwww_file,  'blib www file should now exist';
 file_exists_ok $bbin_file,  'blib bin file should now exist';
 file_exists_ok $bconf_file, 'blib conf file should now exist';
 file_exists_ok $tconf_file, 't conf file should now exist';

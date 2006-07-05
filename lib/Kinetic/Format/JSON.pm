@@ -20,7 +20,6 @@ package Kinetic::Format::JSON;
 
 use strict;
 use warnings;
-use Kinetic::Util::Constants '$TEXT_CT';
 use JSON::Syck;
 
 use version;
@@ -81,7 +80,7 @@ Returns the MIME content type for the current format.
 # XXX There also appears to be a 'text/x-json' content type, but it's not
 # standard, not is it widespread.
 
-sub content_type { $TEXT_CT }
+sub content_type { 'text/plain' }
 
 ##############################################################################
 

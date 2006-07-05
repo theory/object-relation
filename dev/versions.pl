@@ -4,7 +4,6 @@ use strict;
 use warnings;
 
 use lib 'lib', 't/store', 't/lib', 't/sample/lib';
-use TEST::Kinetic::UI::REST;
 use TEST::Kinetic::Store;
 use Kinetic::Util::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(0) }
