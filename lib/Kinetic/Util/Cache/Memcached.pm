@@ -27,8 +27,6 @@ use base 'Kinetic::Util::Cache';
 use Kinetic::Util::Config qw(:cache);
 use aliased 'Cache::Memcached';
 
-BEGIN { use Carp; $SIG{__DIE__} = \&Carp::confess };
-
 =head1 Name
 
 Kinetic::Util::Cache::Memcached - Kinetic caching
