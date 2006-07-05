@@ -6,7 +6,7 @@ use strict;
 use warnings;
 
 use Kinetic::Build::Test;
-use Test::More tests => 451;
+use Test::More tests => 331;
 use Test::NoWarnings; # Adds an extra test.
 use File::Spec;
 use File::Find;

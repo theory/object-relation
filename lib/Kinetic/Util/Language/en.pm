@@ -48,12 +48,6 @@ our %Lexicon;
         'Classes'             => 'Classes',
         'Contact'             => 'Contact',
         'Contact type'        => 'Contact type',
-        'Party'               => 'Party',
-        'Parties'             => 'Parties',
-        'Person'              => 'Person',
-        'Persons'             => 'Persons',
-        'User'                => 'User',
-        'Users'               => 'Users',
         'Version Information' => 'Version Information'
     );
 
@@ -223,18 +217,6 @@ our %Lexicon;
         'Unknown attributes to [_1]: [_2]',
         'Unknown attributes to [_1]: [_2]',
 
-        'Password must be as least [_1] characters',
-        'Password must be as least [_1] characters',
-
-        'Attribute "[_1]" is write-only',
-        'Attribute “[_1]” is write-only',
-
-        'Authentication failed',
-        'Authentication failed',
-
-        'The "[_1]" configuration section needs a "[_2]" setting',
-        'The “[_1]” configuration section needs a “[_2]” setting',
-
         'Invalid duration string: "[_1]"',
         'Invalid duration string: “[_1]”',
 
@@ -277,49 +259,6 @@ our %Lexicon;
         'Duration' => 'Duration',
         'DateTime' => 'Date and Time',
         'Media Type' => 'Media Type',
-
-        # Kinetic::Party::Person labels and tips.
-        q{The person's full name},
-        q{The person’s full name},
-
-        'Last Name' => 'Last Name',
-        q{The person's last name},
-        'The person’s last name',
-
-        'First Name' => 'First Name',
-        q{The person's first name},
-        'The person’s first name',
-
-        'Middle Name' => 'Middle Name',
-        q{The person's middle name},
-        'The person’s middle name',
-
-        'Nickname' => 'Nickname',
-        q{The person's nickname},
-        'The person’s nickname',
-
-        'Prefix' => 'Prefix',
-        q{The prefix to the person's name},
-        'The prefix to the person’s name, such as “Mr.”, “Ms.”, “Dr.”, etc.',
-
-        'Suffix' => 'Suffix',
-        q{The suffix to the person's name},
-        'The suffix to the person’s name, such as “JD”, “PhD”, “MD”, etc.',
-
-        'Generation' => 'Generation',
-        q{The generation of the person's name},
-        'The generation to the person’s name, such as “Jr.”, “III”, etc.',
-
-        'strfname_format' => '%p% f% M% l% g%, s',
-
-        # Kinetic::Party::Person::User labels and tips.
-        'Username' => 'Username',
-        q{The user's username},
-        'The user’s username',
-
-        'Password' => 'Password',
-        q{The user's password},
-        'The user’s password',
     );
 }
 

@@ -89,63 +89,6 @@ __PACKAGE__->add_property(
 
 ##############################################################################
 
-=head3 auth
-
-  my $auth = $build->auth;
-  $build->auth($engine);
-
-The type of authorization to be used for the application.  Currently only
-"kinetic" is supported.
-
-=cut
-
-__PACKAGE__->add_property(
-    name    => 'auth',
-    label   => 'Kinetic authorization',
-    default => 'kinetic',
-    message => 'Which type of authorization should I use?',
-    config_keys => [qw(auth class)],
-    callback    => sub { s/.*:://; $_ = lc; return 1; },
-    setup => {
-        kinetic => 'Kinetic::Build::Setup::Auth::Kinetic',
-    },
-);
-
-##############################################################################
-
-=head3 admin_username
-
-  my $admin_username = $build->admin_username;
-  $build->admin_username($admin_username);
-
-The username to use for the default administrative user created for all TKP
-installations. Defaults to "admin".
-
-=cut
-
-__PACKAGE__->add_property( admin_username => 'admin' );
-
-##############################################################################
-
-=head3 admin_password
-
-  my $admin_password = $build->admin_password;
-  $build->admin_password($admin_password);
-
-The password to use for the default administrative user created for all TKP
-installations. Defaults to "change me now!".
-
-=cut
-
-__PACKAGE__->add_property(
-    name    => 'admin_password',
-    label   => 'Administrative User password',
-    default => 'change me now!',
-    message => 'What password should be used for the default account?',
-);
-
-##############################################################################
-
 =head2 Actions
 
 =head3 config
@@ -253,35 +196,6 @@ sub ACTION_test {
     $self->add_to_cleanup($data);
 
     return $self->SUPER::ACTION_test(@_);
-}
-
-##############################################################################
-
-=head2 Instance Methods
-
-=head3 init_app
-
-  $build->init_app;
-
-This method is overrides the parent method to initialize Kinetic objects in
-the newly installed Kinetic data store. Currently, this means simply creating
-an admin user, but other objects will no doubt be created in the future. The
-parent class method is also called, so that version information will be
-properly stored.
-
-=cut
-
-sub init_app {
-    my $self = shift->SUPER::init_app(@_);
-
-    require Kinetic::Party::User;
-    Kinetic::Party::User->new(
-        last_name  => 'User',
-        first_name => 'Admin',
-        username   => $self->admin_username,
-        password   => $self->admin_password,
-    )->save;
-    return $self;
 }
 
 1;

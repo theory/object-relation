@@ -122,28 +122,6 @@ sub cache {
     return $cx->{cache} = shift;
 }
 
-##############################################################################
-
-=head3 user
-
-  my $user = $cx->user;
-
-Returns the L<Kinetic::Party::Person::User|Kinetic::Party::Person::User>
-object to be used for all authorization. This object will be considered the
-currently logged in user, and must be set before much can be done with
-Kinetic.
-
-=cut
-
-sub user {
-    shift;
-    return $cx->{user} unless @_;
-    UNIVERSAL::isa($_[0], 'Kinetic::Party::Person::User')
-      or throw_invalid(['Value "[_1]" is not a valid [_2] object', $_[0],
-                        'Kinetic::Party::Person::User']);
-    return $cx->{user} = shift;
-}
-
 1;
 __END__
 

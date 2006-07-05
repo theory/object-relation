@@ -12,7 +12,6 @@ use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';
 use aliased 'Kinetic::DataType::DateTime';
 use aliased 'Kinetic::Store';
-use aliased 'Kinetic::Party::User';
 
 our $VERSION = 1.0;
 
@@ -70,16 +69,6 @@ print "Creating $instances 'Two' objects for paging tests ...\n\n";
         )->save;
     }
 }
-
-print "Creating test user objects (ovid, ovidius) (theory, theory) ...\n\n";
-User->new(
-    username => 'ovid',
-    password => 'ovidius',
-)->save;
-User->new(
-    username => 'theory',
-    password => 'theory',
-)->save;
 
 __END__
 

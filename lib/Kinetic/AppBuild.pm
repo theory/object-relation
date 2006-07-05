@@ -185,15 +185,6 @@ sub ACTION_test {
         $self->init_app( Kinetic => $VERSION );
         $self->init_app;
 
-        # Create the admin user.
-        require Kinetic::Party::User;
-        Kinetic::Party::User->new(
-            last_name  => 'User',
-            first_name => 'Admin',
-            username   => 'admin',
-            password   => 'change me now!',
-        )->save;
-
         # Run the tests.
         $self->SUPER::ACTION_test(@_);
     };
