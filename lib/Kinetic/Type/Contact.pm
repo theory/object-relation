@@ -24,8 +24,7 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Kinetic::Type';
-use Kinetic::Meta;
-use Kinetic::Meta::Declare ':all';
+use Kinetic::Express;
 
 =head1 Name
 
@@ -54,7 +53,7 @@ L<Kinetic::Contact|Kinetic::Contact> for full implementation.
 
 =head2 Accessors
 
-=head3 description 
+=head3 description
 
   my $description = $contact->description;
   $contact->description($description);
@@ -63,20 +62,18 @@ The description of the contact.
 
 =cut
 
-Kinetic::Meta::Declare->new(
-    meta => [
-        key         => 'contact_type',
-        plural_name => 'Contact types',
-    ],
-    attributes => [
-        description => {
-            widget_meta => Kinetic::Meta::Widget->new(
-                type => 'text',
-                tip  => "The description of the contact"
-            )
-        },
-    ],
+meta contact_type => (
+    plural_name => 'Contact types',
 );
+
+has description => (
+    widget_meta => Kinetic::Meta::Widget->new(
+        type => 'text',
+        tip  => "The description of the contact"
+    )
+);
+
+build;
 
 1;
 __END__

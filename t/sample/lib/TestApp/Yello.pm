@@ -3,10 +3,7 @@ package TestApp::Yello;
 use strict;
 use warnings;
 
-use Kinetic::Meta::Widget;
 use Kinetic::Util::Language::en_us;
-use Kinetic::Meta::Declare ':all';
-
 use TestApp::Simple::One;
 
 BEGIN {

@@ -1,6 +1,11 @@
 ---
 name: Kinetic
-version: v0.0.1
+version: !perl/version
+  qv: 1
+  version:
+    - 0
+    - 0
+    - 2
 author:
   - 'Kineticode, Inc. <info@kineticode.com>'
 abstract: The Kinetic enterprise application framework
@@ -8,28 +13,37 @@ license: gpl
 resources:
   license: http://www.opensource.org/licenses/gpl-license.php
 requires:
-  Array::AsHash: 0.12
+  Array::AsHash: 0.31
+  Cache::Cache: 1.04
+  Cache::Memcached::Managed: 0.14
+  Catalyst: 5.65
+  Catalyst::Engine::Apache: 1.05
+  Catalyst::Plugin::Session: 0
+  Catalyst::Plugin::Session::State::Cookie: 0
+  Catalyst::Plugin::Session::Store::File: 0
+  Catalyst::Plugin::Session::Store::Memcached: 0.02
+  Catalyst::Plugin::Static::Simple: 0
   Class::BuildMethods: 0.1
-  Class::Delegator: 0.04
-  Class::Meta: 0.52
-  Class::Meta::Declare: 0.02
+  Class::Meta: 0.53
+  Class::Meta::Express: 0.03
   Clone: 0.15
-  Config::Std: 0.0.2
+  Config::Std: 0.0.3
   DBD::Pg: 1.32
-  DBD::SQLite: 1.09
-  DBI: 1.43
-  Data::Pageset: 1.01
+  DBD::SQLite: 1.12
+  DBI: 1.5
+  Data::Types: 0.06
   DateTime: 0.3
   DateTime::Format::Strptime: 1.0601
   DateTime::Incomplete: 0.02
   Exception::Class: 1.12
-  Exception::Class::DBI: 0.92
+  Exception::Class::DBI: 0.94
   Exporter::Tidy: 0.06
   File::Pid: 1.01
-  HOP::Lexer: 0.01
+  HOP::Lexer: 0.02
   HOP::Parser: 0.01
   HOP::Stream: 0.01
-  JSON: 1
+  JSON::Syck: 0.05
+  Lingua::EN::Inflect: 0
   Lingua::Strfname: 0.1
   List::Util: 0
   Locale::Maketext: 1.09
@@ -37,32 +51,32 @@ requires:
   MIME::Base64: 0
   MIME::Types: 1.14
   OSSP::uuid: 0
-  Params::Validate: 0.78
   Proc::Background: 1.08
   Readonly: 0
   Regexp::Common: 2.119
+  Test::WWW::Mechanize::Catalyst: 0.35
   WWW::REST: 0.01
   Widget::Meta: 0.03
-  XML::Genx::Simple: 0.14
-  XML::LibXML: 1.58
-  XML::LibXSLT: 1.57
   XML::Simple: 2.13
   aliased: 0.11
+  mod_perl2: 2.0.0
   version: 0.42
 build_requires:
-  Apache::FakeRequest: 1
-  App::Info: 0.42
+  App::Info: 0.48
   CGI: 3.11
   Class::Trait: 0.11
   FSA::Rules: 0.21
+  File::Copy: 0
+  File::Path: 0
   HTTP::Server::Simple: 0.13
-  Module::Build: 0.26
-  Pod::Man: 2.04
+  Module::Build: 0.27_10
+  Pod::Man: 2.08
+  Term::ANSIColor: 0
   Test::Class: 0.1
   Test::Differences: 0.47
   Test::Exception: 0.21
   Test::File: 1.08
-  Test::File::Contents: 0.02
+  Test::File::Contents: 0.03
   Test::JSON: 0.01
   Test::MockModule: 0.04
   Test::More: 0.17
@@ -70,252 +84,330 @@ build_requires:
   Test::Output: 0.07
   Test::Pod: 1.06
   Test::Pod::Coverage: 0.08
-  Test::WWW::Mechanize: 1.06
   Test::XML: 0.07
-  WWW::Mechanize: 1.16
-  XML::XPath: 1.13
 provides:
   Kinetic:
     file: lib/Kinetic.pm
-    version: v0.0.1
+    version: 0.000002
+  Kinetic::AppBuild:
+    file: lib/Kinetic/AppBuild.pm
+    version: 0.000002
   Kinetic::Build:
     file: lib/Kinetic/Build.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Build::AppInfoHandler:
-    file: lib/Kinetic/Build.pm
+    file: lib/Kinetic/Build/Base.pm
+  Kinetic::Build::Base:
+    file: lib/Kinetic/Build/Base.pm
+    version: 0.000002
   Kinetic::Build::CroakHandler:
-    file: lib/Kinetic/Build.pm
-  Kinetic::Build::Setup::Engine:
-    file: lib/Kinetic/Build/Engine.pm
-    version: v0.0.1
-  Kinetic::Build::Setup::Engine::Apache2:
-    file: lib/Kinetic/Build/Engine/Apache2.pm
-    version: v0.0.1
-  Kinetic::Build::Setup::Engine::Catalyst:
-    file: lib/Kinetic/Build/Engine/Catalyst.pm
-    version: v0.0.1
+    file: lib/Kinetic/Build/Base.pm
   Kinetic::Build::PrintHandler:
-    file: lib/Kinetic/Build.pm
+    file: lib/Kinetic/Build/Base.pm
   Kinetic::Build::PromptHandler:
-    file: lib/Kinetic/Build.pm
-  Kinetic::Build::Rules:
-    file: lib/Kinetic/Build/Rules.pm
-    version: v0.0.1
+    file: lib/Kinetic/Build/Base.pm
   Kinetic::Build::Schema:
     file: lib/Kinetic/Build/Schema.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Build::Schema::DB:
     file: lib/Kinetic/Build/Schema/DB.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Build::Schema::DB::Pg:
     file: lib/Kinetic/Build/Schema/DB/Pg.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Build::Schema::DB::SQLite:
     file: lib/Kinetic/Build/Schema/DB/SQLite.pm
-    version: v0.0.1
+    version: 0.000002
+  Kinetic::Build::Setup:
+    file: lib/Kinetic/Build/Setup.pm
+    version: 0.000002
+  Kinetic::Build::Setup::Auth:
+    file: lib/Kinetic/Build/Setup/Auth.pm
+    version: 0.000002
+  Kinetic::Build::Setup::Auth::Kinetic:
+    file: lib/Kinetic/Build/Setup/Auth/Kinetic.pm
+    version: 0.000002
+  Kinetic::Build::Setup::Cache:
+    file: lib/Kinetic/Build/Setup/Cache.pm
+    version: 0.000002
+  Kinetic::Build::Setup::Cache::File:
+    file: lib/Kinetic/Build/Setup/Cache/File.pm
+    version: 0.000002
+  Kinetic::Build::Setup::Cache::Memcached:
+    file: lib/Kinetic/Build/Setup/Cache/Memcached.pm
+    version: 0.000002
+  Kinetic::Build::Setup::Engine:
+    file: lib/Kinetic/Build/Setup/Engine.pm
+    version: 0.000002
+  Kinetic::Build::Setup::Engine::Apache2:
+    file: lib/Kinetic/Build/Setup/Engine/Apache2.pm
+    version: 0.000002
+  Kinetic::Build::Setup::Engine::Catalyst:
+    file: lib/Kinetic/Build/Setup/Engine/Catalyst.pm
+    version: 0.000002
+  Kinetic::Build::Setup::State:
+    file: lib/Kinetic/Build/Setup.pm
   Kinetic::Build::Setup::Store:
-    file: lib/Kinetic/Build/Store.pm
-    version: v0.0.1
+    file: lib/Kinetic/Build/Setup/Store.pm
+    version: 0.000002
   Kinetic::Build::Setup::Store::DB:
-    file: lib/Kinetic/Build/Store/DB.pm
-    version: v0.0.1
+    file: lib/Kinetic/Build/Setup/Store/DB.pm
+    version: 0.000002
   Kinetic::Build::Setup::Store::DB::Pg:
-    file: lib/Kinetic/Build/Store/DB/Pg.pm
-    version: v0.0.1
+    file: lib/Kinetic/Build/Setup/Store/DB/Pg.pm
+    version: 0.000002
   Kinetic::Build::Setup::Store::DB::SQLite:
-    file: lib/Kinetic/Build/Store/DB/SQLite.pm
-    version: v0.0.1
+    file: lib/Kinetic/Build/Setup/Store/DB/SQLite.pm
+    version: 0.000002
   Kinetic::Build::Test:
     file: lib/Kinetic/Build/Test.pm
-    version: v0.0.1
+    version: 0.000002
+  Kinetic::Contact:
+    file: lib/Kinetic/Contact.pm
+    version: 0.000002
   Kinetic::DataType::DateTime:
     file: lib/Kinetic/DataType/DateTime.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::DataType::DateTime::Incomplete:
     file: lib/Kinetic/DataType/DateTime/Incomplete.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::DataType::Duration:
     file: lib/Kinetic/DataType/Duration.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::DataType::MediaType:
     file: lib/Kinetic/DataType/MediaType.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::DataType::State:
     file: lib/Kinetic/DataType/State.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Engine:
     file: lib/Kinetic/Engine.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Engine::Apache2:
     file: lib/Kinetic/Engine/Apache2.pm
-    version: v0.0.1
+    version: 0.000002
+  Kinetic::Engine::Apache2::Config:
+    file: lib/Kinetic/Engine/Apache2/Config.pm
+    version: 0.000002
   Kinetic::Engine::Catalyst:
     file: lib/Kinetic/Engine/Catalyst.pm
-    version: v0.0.1
+    version: 0.000002
+  Kinetic::Engine::Catalyst::Config:
+    file: lib/Kinetic/Engine/Catalyst/Config.pm
+    version: 0.000002
   Kinetic::Format:
     file: lib/Kinetic/Format.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Format::JSON:
     file: lib/Kinetic/Format/JSON.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Format::XML:
     file: lib/Kinetic/Format/XML.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Meta:
     file: lib/Kinetic/Meta.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Meta::AccessorBuilder:
     file: lib/Kinetic/Meta/AccessorBuilder.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Meta::Attribute:
     file: lib/Kinetic/Meta/Attribute.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Meta::Attribute::Schema:
     file: lib/Kinetic/Meta/Attribute/Schema.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Meta::Class:
     file: lib/Kinetic/Meta/Class.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Meta::Class::Schema:
     file: lib/Kinetic/Meta/Class/Schema.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Meta::DataTypes:
     file: lib/Kinetic/Meta/DataTypes.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Meta::Method:
     file: lib/Kinetic/Meta/Method.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Meta::Type:
     file: lib/Kinetic/Meta/Type.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Meta::Widget:
     file: lib/Kinetic/Meta/Widget.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Party:
     file: lib/Kinetic/Party.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Party::Person:
     file: lib/Kinetic/Party/Person.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Party::User:
     file: lib/Kinetic/Party/User.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Store:
     file: lib/Kinetic/Store.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Store::DB:
     file: lib/Kinetic/Store/DB.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Store::DB::Pg:
     file: lib/Kinetic/Store/DB/Pg.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Store::DB::SQLite:
     file: lib/Kinetic/Store/DB/SQLite.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Store::DB::SQLite::DBI:
-    file: lib/Kinetic/Store/DB/SQLite.pm
+    file: lib/Kinetic/Store/DB/SQLite/DBI.pm
+    version: 0.000002
   Kinetic::Store::DB::SQLite::DBI::db:
-    file: lib/Kinetic/Store/DB/SQLite.pm
+    file: lib/Kinetic/Store/DB/SQLite/DBI.pm
+    version: 0.000002
   Kinetic::Store::DB::SQLite::DBI::st:
-    file: lib/Kinetic/Store/DB/SQLite.pm
+    file: lib/Kinetic/Store/DB/SQLite/DBI.pm
+    version: 0.000002
   Kinetic::Store::DB::mysql:
     file: lib/Kinetic/Store/DB/mysql.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Store::Lexer::Code:
     file: lib/Kinetic/Store/Lexer/Code.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Store::Lexer::String:
     file: lib/Kinetic/Store/Lexer/String.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Store::Parser:
     file: lib/Kinetic/Store/Parser.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Store::Search:
     file: lib/Kinetic/Store/Search.pm
-    version: v0.0.1
+    version: 0.000002
+  Kinetic::Type:
+    file: lib/Kinetic/Type.pm
+    version: 0.000002
+  Kinetic::Type::Contact:
+    file: lib/Kinetic/Type/Contact.pm
+    version: 0.000002
   Kinetic::UI::Catalyst:
     file: lib/Kinetic/UI/Catalyst.pm
-    version: v0.0.1
+    version: 0.000002
+  Kinetic::UI::Catalyst::Auth:
+    file: lib/Kinetic/UI/Catalyst/Auth.pm
+    version: 0.000002
   Kinetic::UI::Catalyst::C::Login:
     file: lib/Kinetic/UI/Catalyst/C/Login.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::UI::Catalyst::C::REST:
     file: lib/Kinetic/UI/Catalyst/C/REST.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::UI::Catalyst::C::Search:
     file: lib/Kinetic/UI/Catalyst/C/Search.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::UI::Catalyst::C::Users:
     file: lib/Kinetic/UI/Catalyst/C/Users.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::UI::Catalyst::C::View:
     file: lib/Kinetic/UI/Catalyst/C/View.pm
-    version: v0.0.1
+    version: 0.000002
+  Kinetic::UI::Catalyst::Cache:
+    file: lib/Kinetic/UI/Catalyst/Cache.pm
+    version: 0.000002
+  Kinetic::UI::Catalyst::Cache::File:
+    file: lib/Kinetic/UI/Catalyst/Cache/File.pm
+    version: 0.000002
+  Kinetic::UI::Catalyst::Cache::Memcached:
+    file: lib/Kinetic/UI/Catalyst/Cache/Memcached.pm
+    version: 0.000002
   Kinetic::UI::Catalyst::Log:
     file: lib/Kinetic/UI/Catalyst/Log.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::UI::Catalyst::V::TT:
     file: lib/Kinetic/UI/Catalyst/V/TT.pm
-    version: v0.0.1
+    version: 0.000002
+  Kinetic::UI::Email::Workflow:
+    file: lib/Kinetic/UI/Email/Workflow.pm
+    version: 0.000002
+  Kinetic::UI::Email::Workflow::Lexer:
+    file: lib/Kinetic/UI/Email/Workflow/Lexer.pm
+    version: 0.000002
+  Kinetic::UI::Email::Workflow::Parser:
+    file: lib/Kinetic/UI/Email/Workflow/Parser.pm
+    version: 0.000002
+  Kinetic::UI::Email::Workflow::Qpsmtpd:
+    file: lib/Kinetic/UI/Email/Workflow/Qpsmtpd.pm
+    version: 0.000002
   Kinetic::UI::REST:
     file: lib/Kinetic/UI/REST.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::UI::REST::Dispatch:
     file: lib/Kinetic/UI/REST/Dispatch.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::UI::TT::Plugin::Renderer:
     file: lib/Kinetic/UI/TT/Plugin/Renderer.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Util::Auth:
     file: lib/Kinetic/Util/Auth.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Util::Auth::Kinetic:
     file: lib/Kinetic/Util/Auth/Kinetic.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Util::Cache:
     file: lib/Kinetic/Util/Cache.pm
-    version: v0.0.1
+    version: 0.000002
+  Kinetic::Util::Cache::File:
+    file: lib/Kinetic/Util/Cache/File.pm
+    version: 0.000002
+  Kinetic::Util::Cache::Memcached:
+    file: lib/Kinetic/Util/Cache/Memcached.pm
+    version: 0.000002
   Kinetic::Util::Collection:
     file: lib/Kinetic/Util/Collection.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Util::Config:
     file: lib/Kinetic/Util/Config.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Util::Constants:
     file: lib/Kinetic/Util/Constants.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Util::Context:
     file: lib/Kinetic/Util/Context.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Util::Exception:
     file: lib/Kinetic/Util/Exceptions.pm
   Kinetic::Util::Exception::DBI:
     file: lib/Kinetic/Util/Exceptions.pm
+  Kinetic::Util::Exception::DBI::DBH:
+    file: lib/Kinetic/Util/Exceptions.pm
+  Kinetic::Util::Exception::DBI::DRH:
+    file: lib/Kinetic/Util/Exceptions.pm
+  Kinetic::Util::Exception::DBI::H:
+    file: lib/Kinetic/Util/Exceptions.pm
+  Kinetic::Util::Exception::DBI::STH:
+    file: lib/Kinetic/Util/Exceptions.pm
+  Kinetic::Util::Exception::DBI::Unknown:
+    file: lib/Kinetic/Util/Exceptions.pm
   Kinetic::Util::Exceptions:
     file: lib/Kinetic/Util/Exceptions.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Util::Functions:
     file: lib/Kinetic/Util/Functions.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Util::Iterator:
     file: lib/Kinetic/Util/Iterator.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Util::Language:
     file: lib/Kinetic/Util/Language.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Util::Language::en:
     file: lib/Kinetic/Util/Language/en.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Util::Language::en_uk:
     file: lib/Kinetic/Util/Language/en_uk.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::Util::Language::en_us:
     file: lib/Kinetic/Util/Language/en_us.pm
-    version: v0.0.1
+    version: 0.000002
   Kinetic::VersionInfo:
     file: lib/Kinetic/VersionInfo.pm
-    version: v0.0.1
-generated_by: Module::Build version 0.2704
+    version: 0.000002
+generated_by: Module::Build version 0.2801
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.2.html
   version: 1.2

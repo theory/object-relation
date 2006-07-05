@@ -18,13 +18,13 @@ package Kinetic::Express;
 # use, copy, create derivative works based on those contributions, and
 # sublicense and distribute those contributions and any derivatives thereof.
 
-our $VERSION = version->new('0.0.2');
-
+use version;
 use base 'Class::Meta::Express';
 use Kinetic::Meta;
+our $VERSION = version->new('0.0.2');
 
 sub meta {
-    splice @_, 1, 4, meta_class => 'Kinetic::Meta', default_type => 'string';
+    splice @_, 1, 0, meta_class => 'Kinetic::Meta', default_type => 'string';
     goto &Class::Meta::Express::meta;
 }
 
@@ -115,6 +115,8 @@ exported functions and their parameters.
 =item L<Kinetic|Kinetic>
 
 The base class from which all classes created by Kinetic::Express inherit.
+
+=back
 
 =head1 Copyright and License
 

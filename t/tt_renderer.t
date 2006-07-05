@@ -42,57 +42,59 @@ BEGIN {
 
     package Some::Package;
 
-    use Kinetic::Meta::Declare ':all';
+    use Kinetic::Express;
     use aliased 'Kinetic::Meta::Widget';
 
-    Kinetic::Meta::Declare->new(
-        meta => [
-            key         => 'some_package',
-            plural_name => 'Some packages',
-        ],
-        attributes => [
-            foo => {
-                label       => 'Foo',
-                widget_meta => Widget->new(
-                    type => 'text',
-                    tip  => 'foo tip',
-                ),
-            },
-            check => {
-                label       => 'Checkbox',
-                type        => $TYPE_BOOL,
-                widget_meta => Widget->new(
-                    type    => 'checkbox',
-                    checked => 1,
-                    tip     => 'Check tip',
-                ),
-            },
-            some_text_area => {
-                label       => 'Text area',
-                widget_meta => Widget->new(
-                    type => 'textarea',
-                    rows => 6,
-                    cols => 20,
-                    tip  => 'Thanks for the tip',
-                ),
-            },
-            cal => {
-                label       => "Calendar",
-                widget_meta => Widget->new(
-                    type => 'calendar',
-                    tip  => "Select a date",
-                )
-            },
-            select => {
-                label       => "Select one",
-                widget_meta => Widget->new(
-                    type    => 'dropdown',
-                    tip     => 'Select something',
-                    options => [ [ 0 => 'Zero' ], [ 1 => 'One' ], ]
-                )
-            }
-        ]
+    meta some_package => (
+        plural_name => 'Some packages',
     );
+
+    has foo => (
+        label       => 'Foo',
+        widget_meta => Widget->new(
+            type => 'text',
+            tip  => 'foo tip',
+        ),
+    );
+
+    has check => (
+        label       => 'Checkbox',
+        type        => 'boolean',
+        widget_meta => Widget->new(
+            type    => 'checkbox',
+            checked => 1,
+            tip     => 'Check tip',
+        ),
+    );
+
+    has some_text_area => (
+        label       => 'Text area',
+        widget_meta => Widget->new(
+            type => 'textarea',
+            rows => 6,
+            cols => 20,
+            tip  => 'Thanks for the tip',
+        ),
+    );
+
+    has cal => (
+        label       => "Calendar",
+        widget_meta => Widget->new(
+            type => 'calendar',
+            tip  => "Select a date",
+        )
+    );
+
+    has select => (
+        label       => "Select one",
+        widget_meta => Widget->new(
+            type    => 'dropdown',
+            tip     => 'Select something',
+            options => [ [ 0 => 'Zero' ], [ 1 => 'One' ], ]
+        )
+    );
+
+    build;
 }
 
 sub wrap {
@@ -180,10 +182,10 @@ ok $html = $r->render( $attr_for{some_text_area} ),
   'We should be able to render textarea widgets';
 $expected = <<END;
     <label for="some_text_area">Text area</label>
-    <textarea 
+    <textarea
         name="some_text_area"
         id="some_text_area"
-        rows="6" 
+        rows="6"
         cols="20"
         tip="Thanks for the tip"/>
 END
@@ -322,4 +324,3 @@ END_EXPECTED
 
 is_xml wrap($html), wrap($expected),
   '... and it should return XHTML with valid defaults';
-

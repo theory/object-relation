@@ -23,10 +23,8 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.2');
 
-use Kinetic::Meta;
-use Kinetic::Meta::Widget;
+use Kinetic::Express;
 use Kinetic::Type::Contact;
-use Kinetic::Meta::Declare ':all';
 
 =head1 Name
 
@@ -52,21 +50,21 @@ attributes.
 
 =cut
 
-Kinetic::Meta::Declare->new(
-    meta => [
-        key         => 'contact',
+BEGIN {
+    meta contact => (
         plural_name => 'Contacts',
         type_of     => 'contact_type',
-    ],
-    attributes => [
-        value => {
-            widget_meta => Kinetic::Meta::Widget->new(
-                type => 'text',
-                tip  => "The value of the contact"
-            )
-        },
-    ],
-);
+    );
+
+    has value => (
+        widget_meta => Kinetic::Meta::Widget->new(
+            type => 'text',
+            tip  => "The value of the contact"
+        )
+    );
+
+    build;
+}
 
 1;
 __END__

@@ -33,7 +33,6 @@ my $build = Kinetic::Build->new(
         'Class::BuildMethods'        => 0.10,
         'Class::Meta'                => 0.53,
         'Class::Meta::Express'       => 0.03,
-        'Class::Meta::Declare'       => 0.03,
         'Clone'                      => 0.15,
         'Config::Std'                => '0.0.3',
         'Data::Types'                => 0.06,

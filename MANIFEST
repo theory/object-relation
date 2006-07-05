@@ -1,3 +1,4 @@
+bin/kdbish
 bin/kineticd
 Build.PL
 Changes
@@ -146,6 +147,7 @@ lib/Kinetic/Engine/Apache2.pm
 lib/Kinetic/Engine/Apache2/Config.pm
 lib/Kinetic/Engine/Catalyst.pm
 lib/Kinetic/Engine/Catalyst/Config.pm
+lib/Kinetic/Express.pm
 lib/Kinetic/Format.pm
 lib/Kinetic/Format/JSON.pm
 lib/Kinetic/Format/XML.pm
@@ -156,7 +158,6 @@ lib/Kinetic/Meta/Attribute/Schema.pm
 lib/Kinetic/Meta/Class.pm
 lib/Kinetic/Meta/Class/Schema.pm
 lib/Kinetic/Meta/DataTypes.pm
-lib/Kinetic/Meta/Declare.pm
 lib/Kinetic/Meta/Method.pm
 lib/Kinetic/Meta/Type.pm
 lib/Kinetic/Meta/Widget.pm
@@ -260,6 +261,7 @@ t/duration.t
 t/duration_isoish.t
 t/engine.t
 t/exceptions.t
+t/express.t
 t/iterator.t
 t/js/html/search.html
 t/js/index.html
@@ -270,7 +272,6 @@ t/js/jsan/Test/Harness/Browser.js
 t/js/jsan/Test/Harness/Director.js
 t/js/jsan/Test/More.js
 t/js/jsan/Test/Simple.js
-t/km_declare.t
 t/language.t
 t/lexer/code.t
 t/lexer/string.t
