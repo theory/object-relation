@@ -9,7 +9,7 @@ use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Util::Functions qw(:uuid);
 use Kinetic::Util::Config qw(STORE_CLASS);
-use Kinetic::Util::Constants qw($UUID_RE);
+use Kinetic::Util::Constants qw(UUID_RE);
 
 package Kinetic::TestTypes;
 use strict;
@@ -137,7 +137,7 @@ ok( my $t = Kinetic::TestTypes->new,
     'Kinetic::TestTypes->new');
 
 # Test the UUID accessor.
-like $t->uuid, $UUID_RE, 'The UUID should be set';
+like $t->uuid, UUID_RE, 'The UUID should be set';
 eval { $t->uuid(create_uuid()) };
 ok my $err = $@, 'Got error setting UUID to bogus value';
 like $err->error, qr/Cannot assign to read-only attribute .uuid./,

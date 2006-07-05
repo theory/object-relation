@@ -43,7 +43,6 @@ requires:
   MIME::Base64: 0
   MIME::Types: 1.14
   OSSP::uuid: 0
-  Readonly: 0
   Regexp::Common: 2.119
   Term::ANSIColor: 0
   Widget::Meta: 0.03

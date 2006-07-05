@@ -51,7 +51,7 @@ BEGIN {
     sub _prep_search_token {
         my ($self, $search ) = @_;
         (my $column = $search->param)
-            =~ s/\Q$ATTR_DELIMITER\E/$OBJECT_DELIMITER/g;
+            =~ s/\Q${\ATTR_DELIMITER}\E/OBJECT_DELIMITER/eg;
         die "$column is invavlid" unless exists $column{ $column };
 #        $search->notes( column => $column );
         return $search;

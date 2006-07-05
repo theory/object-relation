@@ -31,8 +31,7 @@ use aliased 'Array::AsHash';
 use Scalar::Util qw(blessed refaddr);
 
 # to simplify the code, we use -1 instead of undef for "null" indexes
-use Readonly;
-Readonly our $NULL => -1;
+use constant NULL => -1;
 
 sub _key($) {
     my $thing = shift;
@@ -127,10 +126,10 @@ sub new {
 
     my $self = {
         iter        => $iter,
-        index       => $NULL,
-        added_index => $NULL,
+        index       => NULL,
+        added_index => NULL,
         array       => AsHash->new,
-        got         => $NULL,
+        got         => NULL,
         key         => $key,
         package     => undef,
     };
@@ -263,7 +262,7 @@ Returns the value at the current position of the collection.
 
 sub curr {
     my $self = shift;
-    return if $self->index == $NULL;
+    return if $self->index == NULL;
     return $self->_check( $self->_array->value_at( $self->index ) );
 }
 
@@ -394,7 +393,7 @@ sub assign {
     $self->{assigned} = 1;
     $self->{filled} = 0;
     $self->{iter} = Iterator->new(sub { shift @assigned } );
-    @{$self}{qw(index got)} = ($NULL, $NULL);
+    @{$self}{qw(index got)} = (NULL, NULL);
     $self->{array}->clear;
     return $self;
 }
@@ -561,7 +560,7 @@ collection is not yet pointing at anything.
 
 sub index {
     my $self = shift;
-    return if $self->{index} == $NULL;
+    return if $self->{index} == NULL;
     return $self->{index};
 }
 
@@ -576,7 +575,7 @@ collection has been created with the same iterator.
 
 =cut
 
-sub reset { @{+shift}{qw(index added_index)} = ($NULL, $NULL) }
+sub reset { @{+shift}{qw(index added_index)} = (NULL, NULL) }
 
 ##############################################################################
 
@@ -610,9 +609,9 @@ C<assigned()> will return false.
 sub clear {
     my $self = shift;
     $self->{iter}        = Iterator->new(sub {});
-    $self->{got}         = $NULL;
-    $self->{index}       = $NULL;
-    $self->{added_index} = $NULL;
+    $self->{got}         = NULL;
+    $self->{index}       = NULL;
+    $self->{added_index} = NULL;
     $self->{cleared}     = 1;
     $self->{array}->clear;
     delete @{ $self }{qw(added removed assigned)};

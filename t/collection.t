@@ -13,7 +13,7 @@ use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
 use File::Spec;
 use aliased 'Kinetic::Util::Iterator';
-use Kinetic::Util::Constants '$UUID_RE';
+use Kinetic::Util::Constants 'UUID_RE';
 
 FAUX: {
 
@@ -109,7 +109,7 @@ ok !defined $coll->next,
 
 ok my $array = $coll->_array, '... and we should be the AsHash object';
 my @keys = $array->keys;
-is scalar( grep {/$UUID_RE/} @keys ), scalar(@keys),
+is scalar( grep {$_ =~ UUID_RE} @keys ), scalar(@keys),
   '... and all of the keys should match a UUID';
 
 can_ok $coll, 'curr';

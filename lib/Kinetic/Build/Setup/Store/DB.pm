@@ -307,7 +307,7 @@ sub _load_schema {
     # Load the installed classes first.
     if ($load_installed) {
         (my $base = $builder->install_base) =~ s{/?$}{/lib};
-        $sg->load_classes($base, $CLASS_EXCLUDE_RE);
+        $sg->load_classes($base, CLASS_EXCLUDE_RE);
     }
 
     # Now load the classes to be installed.

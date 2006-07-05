@@ -36,7 +36,6 @@ my %modules = (
     'Module::Build'              => 0,
     'OSSP::uuid'                 => 0,
     'Proc::Background'           => 0,
-    'Readonly'                   => 0,
     'Regexp::Common'             => 0,
     'Test::Class'                => 0,
     'Test::Differences'          => 0,

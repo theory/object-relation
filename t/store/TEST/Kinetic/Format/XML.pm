@@ -15,7 +15,7 @@ use Class::Trait qw(
     TEST::Kinetic::Traits::SampleObjects
 );
 
-use Kinetic::Util::Constants qw/$UUID_RE/;
+use Kinetic::Util::Constants qw/UUID_RE/;
 
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Store' => 'Store', ':all';
@@ -59,7 +59,7 @@ sub serialize : Test(7) {
     ok my $xml = $formatter->serialize($foo),
       '... and serializing an object should succeed';
     is_well_formed_xml $xml, '... and it should return valid XML';
-    $xml =~ s/$UUID_RE/XXX/g;
+    $xml =~ s/${\UUID_RE}/XXX/g;
     my $expected = <<'    END_EXPECTED';
     <opt 
         name="foo" 
@@ -87,7 +87,7 @@ sub serialize : Test(7) {
     ok $xml = $formatter->serialize($two),
       'Serializing an object with a contained object should succeed';
     is_well_formed_xml $xml, '... and it should return valid XML';
-    $xml =~ s/$UUID_RE/XXX/g;
+    $xml =~ s/${\UUID_RE}/XXX/g;
 
     $expected = <<'    END_EXPECTED';
     <opt

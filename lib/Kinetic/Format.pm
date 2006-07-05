@@ -215,7 +215,7 @@ L<Kinetic|Kinetic> object and render it as a hashref.  Only publicly exposed
 data will be returned in the hash ref.  Each key will be an attribute name and
 the value should be the value of the key, if any.
 
-One special key, C<$KEY>, will be the class key for the L<Kinetic|Kinetic>
+One special key, C<KEY>, will be the class key for the L<Kinetic|Kinetic>
 object.
 
 =cut
@@ -236,7 +236,7 @@ sub _obj_to_hashref {
             $value_for{ $attr->name } = $value;
         }
     }
-    $value_for{$KEY} = $object->my_class->key;
+    $value_for{+KEY} = $object->my_class->key;
     return \%value_for;
 }
 
@@ -254,7 +254,7 @@ L<Kinetic|Kinetic> object for it.
 
 sub _hashref_to_obj {
     my ( $self, $value_for ) = @_;
-    my $class  = Meta->for_key( delete $value_for->{$KEY} );
+    my $class  = Meta->for_key( delete $value_for->{+KEY} );
     my $object = $class->package->new;
     while ( my ( $attr, $value ) = each %$value_for ) {
         next unless defined $value;

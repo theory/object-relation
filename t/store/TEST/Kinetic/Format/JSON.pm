@@ -15,7 +15,7 @@ use Class::Trait qw(
   TEST::Kinetic::Traits::SampleObjects
 );
 
-use Kinetic::Util::Constants qw/$UUID_RE/;
+use Kinetic::Util::Constants qw/UUID_RE/;
 use Kinetic::Util::Functions qw/create_uuid/;
 
 use aliased 'Test::MockModule';
@@ -71,7 +71,7 @@ sub serialize : Test(7) {
     ok my $json = $formatter->serialize($foo),
       '... and serializing an object should succeed';
     is_valid_json $json, '... and it should return valid JSON';
-    $json =~ s/$UUID_RE/XXX/g;
+    $json =~ s/${\UUID_RE}/XXX/g;
     my $expected = <<'    END_EXPECTED';
         {
             "Key"         : "one",
@@ -99,7 +99,7 @@ sub serialize : Test(7) {
     ok $json = $formatter->serialize($two),
       'Serializing an object with a contained object should succeed';
     is_valid_json $json, '... and it should return valid JSON';
-    $json =~ s/$UUID_RE/XXX/g;
+    $json =~ s/${\UUID_RE}/XXX/g;
 
     $expected = <<'    END_EXPECTED';
     {

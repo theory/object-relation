@@ -30,7 +30,7 @@ Kinetic::Util::Constants - The Kinetic constants class
 =head1 Synopsis
 
   use Kinetic::Util::Contants qw/:data_store/;
-  if ($name =~ /$GROUP_OP/) {
+  if ($name =~ GROUP_OP) {
     ...
   }
 
@@ -41,50 +41,35 @@ configuration specific.
 
 =cut
 
-use Readonly;
 use File::Spec;
 
 # data_store
-Readonly our $GROUP_OP         => qr/^(?:AND|OR)$/;
-Readonly our $OBJECT_DELIMITER => '__';
-Readonly our $ATTR_DELIMITER   => '.';
-Readonly our $PREPARE          => 'prepare';
-Readonly our $CACHED           => 'prepare_cached';
-Readonly our $UUID_RE          =>
+use constant GROUP_OP         => qr/^(?:AND|OR)$/;
+use constant OBJECT_DELIMITER => '__';
+use constant ATTR_DELIMITER   => '.';
+use constant UUID_RE          =>
   qr/[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}/;
 
-# class exclusion
-SCOPE: {
-    my $sep = File::Spec->catdir('');
-    Readonly our $CLASS_EXCLUDE_RE =>
-        qr/Kinetic$sep(?:(?:App)?Build|DataType|Format|Meta|Store|Util)/;
-}
+use constant CLASS_EXCLUDE_RE =>
+    qr/Kinetic${\File::Spec->catdir('')}(?:(?:App)?Build|DataType|Format|Meta|Store|Util)/;
 
 # Format
-Readonly our $KEY => 'Key';
+use constant KEY => 'Key';
 
 use Exporter::Tidy
   data_store => [
     qw/
-      $ATTR_DELIMITER
-      $CACHED
-      $GROUP_OP
-      $UUID_RE
-      $OBJECT_DELIMITER
-      $PREPARE
+      ATTR_DELIMITER
+      GROUP_OP
+      UUID_RE
+      OBJECT_DELIMITER
       /
   ],
   class_exclude => [
-    qw/$CLASS_EXCLUDE_RE/
+    qw/CLASS_EXCLUDE_RE/
   ],
   format => [
-    qw/$KEY/
-  ],
-  labels => [
-    qw/
-      $AVAILABLE_INSTANCES
-      $AVAILABLE_RESOURCES
-      /
+    qw/KEY/
   ],
 ;
 
@@ -95,39 +80,29 @@ modules need to manipulate it.
 
 =over 4
 
-=item * $ATTR_DELIMITER
+=item * ATTR_DELIMITER
 
 In the Kinetic objects, contained object attributes are frequently referred
 to by C<$key . $delimiter . $attribute_name>.  Thus, an object with a key of
 I<customer> and an attribute named "last_name" might be referred to as
-I<customer.last_name>.  The C<$ATTR_DELIMITER> should be the C<$delimiter>.
+I<customer.last_name>.  The C<ATTR_DELIMITER> should be the C<$delimiter>.
 
-=item * $CACHED
-
-This resolves to C<prepare_cached>:  the name of the L<DBI|DBI> method used to
-prepare and cache an SQL statement.
-
-=item * $GROUP_OP
+=item * GROUP_OP
 
 A regular expression matching search grouping operators 'AND' and 'OR'.
 
-=item * $UUID_RE
+=item * UUID_RE
 
 All objects in a data store have a UUID.  This regular expression matches
 UUIDs.  Assumes all letters are upper case.
 
-=item * $OBJECT_DELIMITER
+=item * OBJECT_DELIMITER
 
 In the data store, contained object fields are usually the
 L<Kinetic::Meta|Kinetic::Meta> key, followed by the object delimiter and the
 name of the actual field.  Thus, if asking for a C<first_name> field in an
 object in a K:M class with the key C<customer> and the object delimiter is
 C<__>, the resulting field would be C<customer__first_name>.
-
-=item * $PREPARE
-
-This resolves to C<prepare>:  the name of the L<DBI|DBI> method used to prepare
-an SQL statement.
 
 =back
 
@@ -137,7 +112,7 @@ L<Kinetic::Format|Kinetic::Format> related constants.
 
 =over 4
 
-=item * $KEY
+=item * KEY
 
 The identifier for the class key used in formats. Important because it must
 not conflict with attributes names and must be an allowable key for JSON and

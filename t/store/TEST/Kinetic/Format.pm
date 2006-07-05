@@ -21,9 +21,8 @@ use aliased 'Kinetic::Store' => 'Store', ':all';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';   # contains a TestApp::Simple::One object
 
-use Readonly;
-Readonly my $FORMAT => 'Kinetic::Format';
-Readonly my $JSON   => "${FORMAT}::JSON";
+use constant FORMAT => 'Kinetic::Format';
+use constant JSON   => FORMAT . '::JSON';
 
 __PACKAGE__->SKIP_CLASS(
     __PACKAGE__->any_supported(qw/pg sqlite/)
@@ -58,23 +57,23 @@ sub content_type : Test(3) {
 
 sub constructor : Test(5) {
     my $test = shift;
-    can_ok $FORMAT, 'new';
-    throws_ok { $FORMAT->new } 'Kinetic::Util::Exception::Fatal',
+    can_ok FORMAT, 'new';
+    throws_ok { FORMAT->new } 'Kinetic::Util::Exception::Fatal',
       '... and trying to create a new formatter without a format should fail';
 
-    throws_ok { $FORMAT->new( { format => 'no_such_format' } ) }
+    throws_ok { FORMAT->new( { format => 'no_such_format' } ) }
       'Kinetic::Util::Exception::Fatal::InvalidClass',
       '... as should trying to create a new formatter with an invalid class';
 
-    ok my $formatter = $FORMAT->new( { format => 'json' } ),
+    ok my $formatter = FORMAT->new( { format => 'json' } ),
       '... and calling it should succeed';
 
-    isa_ok $formatter, $JSON, '... and the object it returns';
+    isa_ok $formatter, JSON, '... and the object it returns';
 }
 
 sub interface : Test(8) {
     my $test      = shift;
-    my $formatter = bless {}, $FORMAT;
+    my $formatter = bless {}, FORMAT;
 
     can_ok $formatter, 'ref_to_format';
     throws_ok { $formatter->ref_to_format }
@@ -97,7 +96,7 @@ sub interface : Test(8) {
 
 sub to_and_from_hashref : Test(7) {
     my $test      = shift;
-    my $formatter = bless {}, $FORMAT;
+    my $formatter = bless {}, FORMAT;
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
     can_ok $formatter, '_obj_to_hashref';
@@ -126,7 +125,7 @@ sub to_and_from_hashref : Test(7) {
 sub expand_ref : Test(9) {
     my $test = shift;
 
-    my $formatter = bless {}, $FORMAT;
+    my $formatter = bless {}, FORMAT;
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
     can_ok $formatter, 'expand_ref';
