@@ -330,9 +330,6 @@ provides:
   Kinetic::UI::Email::Workflow::Parser:
     file: lib/Kinetic/UI/Email/Workflow/Parser.pm
     version: 0.000002
-  Kinetic::UI::Email::Workflow::Qpsmtpd:
-    file: lib/Kinetic/UI/Email/Workflow/Qpsmtpd.pm
-    version: 0.000002
   Kinetic::UI::REST:
     file: lib/Kinetic/UI/REST.pm
     version: 0.000002
