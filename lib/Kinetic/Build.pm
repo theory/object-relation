@@ -62,33 +62,6 @@ L<Kinetic::Build::Trait|Kinetic::Build::Trait>.
 
 =head2 Instance Methods
 
-=head3 engine
-
-  my $engine = $build->engine;
-  $build->engine($engine);
-
-The type of engine to be used for the application.  Possible values are
-"apache" and "catalyst".  Defaults to "apache".
-
-The "catalyst" engine is merely a test engine for easy development.
-
-=cut
-
-__PACKAGE__->add_property(
-    name        => 'engine',
-    label       => 'Kinetic engine',
-    default     => 'apache',
-    message     => 'Which engine should I use?',
-    config_keys => [qw(engine class)],
-    callback    => sub { s/.*:://; $_ = lc; return 1; },
-    setup       => {
-        apache   => 'Kinetic::Build::Setup::Engine::Apache2',
-        catalyst => 'Kinetic::Build::Setup::Engine::Catalyst',
-    },
-);
-
-##############################################################################
-
 =head3 cache
 
   my $cache = $build->cache;

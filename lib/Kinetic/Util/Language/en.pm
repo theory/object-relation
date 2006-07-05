@@ -140,41 +140,14 @@ our %Lexicon;
         'No resource available to handle “[_1]”',
     );
 
-    my %kineticd = (
-        '[_1] [_2] or better not available for [_3]: [_4]',
-        '[_1] [_2] or better not available for [_3]: [_4]',
-
-        'Using config file "[_1]"',
-        'Using config file “[_1]”',
-
-        'You must specify stop, start, or restart',
-        'You must specify stop, start, or restart',
-
-        "system('[_1]') failed: [_2]",
-        "system('[_1]') failed: [_2]",
-
-        'Could not start process: [_1]',
-        'Could not start process: [_1]',
-
-        'Could not stop process "[_1]": [_2]',
-        'Could not stop process “[_1]”: [_2]',
-
-        'The Kinetic server did not appear to be running',
-        'The Kinetic server did not appear to be running',
-    );
-
     %Lexicon = (
         %classes,
         %kinetic_object_states,
-        %kineticd,
         %lexer_parser_messages,
         %search_messages,
         %rest_messages,
 
         # Exceptions.
-        'Could not open file "[_1]" for [_2]: [_3]',
-        'Could not open file “[_1]” for [_2]: [_3]',
-
         '[_1] is not a Perl module',
         '[_1] is not a Perl module',
 
@@ -190,17 +163,8 @@ our %Lexicon;
         'Value "[_1]" is not a valid media type',
         'Value “[_1]” is not a valid media type',
 
-        'Could not determine widget type handler for "[_1]"',
-        'Could not determine widget type handler for “[_1]”',
-
         'Attribute "[_1]" must be defined',
         'Attribute “[_1]” must be defined',
-
-        'Unknown render mode "[_1]"',
-        'Unknown render mode “[_1]”',
-
-        'Invalid keys passed to constructor: "[_1]"',
-        'Invalid keys passed to constructor: “[_1]”',
 
         'Attribute "[_1]" can be set only once',
         'Attribute “[_1]” can be set only once',

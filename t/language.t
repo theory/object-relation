@@ -6,7 +6,7 @@ use strict;
 use warnings;
 
 use Kinetic::Build::Test;
-use Test::More tests => 503;
+use Test::More tests => 459;
 use Test::NoWarnings; # Adds an extra test.
 use File::Spec;
 use File::Find;
@@ -43,18 +43,17 @@ BEGIN {
 
     # Find all libraries.
     my $find_libs = sub {
-        return unless /\.pm$/;
-        return if /#/;    # Ignore old backup files.
+        return unless /\.pm$/ || $File::Find::name =~ /^bin/;
+        return if /\.svn/; # Ignore .svn directories.
+        return if /#/;     # Ignore old backup files.
         return if $File::Find::name =~ /Language[^.]/;    # Ignore l10n libs.
         push @libs, $File::Find::name;
     };
 
-    # XXX We special case this as $find_libs doesn't handle this too well
-    push @libs, 'bin/kineticd';
-
     # Find all of the language classes and make sure that they load.
     find( $find_libs, File::Spec->catdir('lib') );
-    find( $find_libs, File::Spec->catdir('t') ); # the might be in test libs, too
+    find( $find_libs, File::Spec->catdir('bin') );
+    find( $find_libs, File::Spec->catdir('t') );
 }
 
 ##############################################################################

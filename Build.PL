@@ -4,19 +4,6 @@ use lib 'lib';
 use Kinetic::Build;
 use Kinetic::Util::Constants ':class_exclude';
 
-my %catalyst = (
-    'Catalyst'                                               => 5.65,
-    'Catalyst::Engine::Apache'                               => 1.05,
-    'Catalyst::Plugin::Session'                              => 0,
-    # XXX Change to option.
-    'Catalyst::Plugin::Session::Store::File'                 => 0,
-    # XXX Change to option.
-    'Catalyst::Plugin::Session::Store::Memcached'            => 0.02,
-    'Catalyst::Plugin::Session::State::Cookie'               => 0,
-    'Catalyst::Plugin::Static::Simple'                       => 0,
-    'Test::WWW::Mechanize::Catalyst'                         => 0.35,
-);
-
 my $build = Kinetic::Build->new(
     module_name          => 'Kinetic',
     license              => 'gpl',
@@ -27,7 +14,6 @@ my $build = Kinetic::Build->new(
     requires             => {
         'aliased'                    => 0.11,
         'Array::AsHash'              => 0.31,
-        %catalyst,
         'Cache::Cache'               => 1.04,   # XXX Change to option.
         'Cache::Memcached::Managed'  => 0.14,   # XXX Change to option.
         'Class::BuildMethods'        => 0.10,
@@ -59,7 +45,6 @@ my $build = Kinetic::Build->new(
         'MIME::Types'                => 1.14,
         'mod_perl2'                  => '2.0.0', # XXX Change to option.
         'OSSP::uuid'                 => 0,       # XXX Not on CPAN!
-        'Proc::Background'           => 1.08,    # Only with Catalyst engine.
         'Readonly'                   => 0,
         'Regexp::Common'             => 2.119,
         'version'                    => 0.420,

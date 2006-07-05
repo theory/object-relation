@@ -15,12 +15,10 @@ __PACKAGE__->runtests unless caller;
 
 sub extra_conf { address => undef }
 
-sub test_memcached_cache : Test(9) {
+sub test_memcached_cache : Test(8) {
     my $self  = shift;
     my $class = $self->test_class;
 
-    is $class->catalyst_cache_class, 'Kinetic::UI::Catalyst::Cache::Memcached',
-        'catalyst_cache_class should return "Kinetic::UI::Catalyst::Cache::Memcached"';
     is $class->object_cache_class, 'Kinetic::Util::Cache::Memcached',
         'object_cache_class should return "Kinetic::Util::Cache::Memcached"';
 

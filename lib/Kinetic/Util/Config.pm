@@ -35,13 +35,6 @@ Kinetic::Util::Config - Kinetic application configuration
 
 In kinetic.conf:
 
-  [engine]
-  httpd : /usr/local/apache/bin/httpd
-  conf  : /usr/local/kinetic/conf/httpd.conf
-  port  : 80
-  user  : nobody
-  group : nobody
-
   [store]
   class : Kinetic::Store::DB::Pg
   db_name : kinetic

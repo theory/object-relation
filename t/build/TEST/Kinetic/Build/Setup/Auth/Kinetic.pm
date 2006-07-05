@@ -13,12 +13,9 @@ use constant Build => 'Kinetic::Build';
 
 __PACKAGE__->runtests unless caller;
 
-sub test_kinetic_auth : Test(8) {
+sub test_kinetic_auth : Test(7) {
     my $self  = shift;
     my $class = $self->test_class;
-
-    is $class->authorization_class, 'Kinetic::Util::Auth::Kinetic',
-      'authorization_class should return "Kinetic::UI::Catalyst::Auth::Kinetic"';
 
     # Fake the Kinetic::Build interface.
     my $builder = MockModule->new(Build);

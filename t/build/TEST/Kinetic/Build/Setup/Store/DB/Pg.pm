@@ -737,7 +737,6 @@ sub test_validate_super_user : Test(37) {
     my $mb = MockModule->new(Build);
     $mb->mock(check_manifest => sub { return });
     $mb->mock( _check_build_component => 1);
-    $mb->mock(engine => 'catalyst');
     $mb->mock(cache => 'memcached');
     $mb->mock(dev_tests => undef );
 

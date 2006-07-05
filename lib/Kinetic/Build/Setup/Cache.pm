@@ -48,22 +48,6 @@ L<Kinetic::Build::Setup|Kinetic::Build::Setup>.
 
 =head2 Class Methods
 
-=head3 catalyst_cache_class
-
-  my $catalyst_cache_class
-      = $Kinetic::Build::Setup::Cache->catalyst_cache_class;
-
-This method returns the engine class responsible for managing the Catalyst UI
-session cache. Must be overridden by a subclass.
-
-=cut
-
-sub catalyst_cache_class {
-    die 'catalyst_cache_class() must be overridden in a subclass';
-}
-
-##############################################################################
-
 =head3 object_cache_class
 
   my $object_cache_class
@@ -114,7 +98,6 @@ the Kinetic caching architecture at run time.
 sub add_to_config {
     my ( $self, $conf ) = @_;
     $conf->{cache} = {
-        catalyst_class => $self->catalyst_cache_class,
         object_class   => $self->object_cache_class,
         expires        => $self->expires,
     };

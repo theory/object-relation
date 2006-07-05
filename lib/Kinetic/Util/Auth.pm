@@ -45,7 +45,7 @@ Kinetic::Util::Auth - Kinetic authentication factory class
 In F<kinetic.conf>:
 
   [auth]
-  class: Kinetic::UI::Catalyst::Auth
+  object_class:   Kinetic::Util::Cache::File
 
 In Kinetic::Engine code:
 

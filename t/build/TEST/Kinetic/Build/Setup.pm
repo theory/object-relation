@@ -156,7 +156,6 @@ sub new_builder {
         dist_version    => '1.0',
         quiet           => 1,
         accept_defaults => 1,
-        engine          => 'catalyst',
         @_,
     )
 }

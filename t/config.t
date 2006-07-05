@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 #use Test::More qw/no_plan/;
-use Test::More tests => 17;
+use Test::More tests => 15;
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Build::Test (auth => { protocol => [qw(Default LDAP)] });
 use File::Spec;
@@ -39,23 +39,14 @@ ALL: { # 3 tests.
     is(KINETIC_ROOT, getcwd(), 'Got the correct kinetic_root');
 }
 
-ENGINE: { # 3 tests.
-    package Kinetic::Util::Config::TestEngine;
-    use Test::More;
-    eval "use Kinetic::Util::Config qw(:engine)";
-    eval "STORE_CLASS";
-    ok($@, "Got error trying to access store_class");
-    ok(exists &ENGINE_CLASS, 'ENGINE_CLASS exists');
-}
-
 STORE: { # 3 tests.
     package Kinetic::Util::Config::TestStore;
     use Kinetic::Util::Config qw(:store);
     use Test::More;
     ok(STORE_CLASS, "Got store_class" );
     ok($stores{&STORE_CLASS}, "Got store_class value" );
-    eval "ENGINE_USER";
-    ok($@, "Got error trying to access apache_user");
+    eval "USER_MIN_PASS_LEN";
+    ok($@, "Got error trying to access USER_MIN_PASS_LEN");
 }
 
 USER: { # 2 tests.
@@ -73,8 +64,8 @@ NOIMPORT: { # 2 tests.
     use Test::More;
     eval "STORE_CLASS";
     ok($@, "Got error trying to access store_class");
-    eval "ENGINE_USER";
-    ok($@, "Got error trying to access apache_user");
+    eval "USER_MIN_PASS_LEN";
+    ok($@, "Got error trying to access USER_MIN_PASS_LEN");
 }
 
 AUTH: { # 3 tests.

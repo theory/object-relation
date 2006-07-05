@@ -59,20 +59,6 @@ command-line options it adds are:
 
 =head2 Class Methods
 
-=head3 catalyst_cache_class
-
-  my $catalyst_cache_class
-      = Kinetic::Build::Setup::Cache::File->catalyst_cache_class;
-
-Returns the package name of the Kinetic caching class to be used for catalyst
-sessions.
-
-=cut
-
-sub catalyst_cache_class {'Kinetic::UI::Catalyst::Cache::File'}
-
-##############################################################################
-
 =head3 object_cache_class
 
   my $object_cache_class

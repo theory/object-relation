@@ -15,12 +15,10 @@ __PACKAGE__->runtests unless caller;
 
 sub extra_conf { root => undef }
 
-sub test_file_cache : Test(9) {
+sub test_file_cache : Test(8) {
     my $self  = shift;
     my $class = $self->test_class;
 
-    is $class->catalyst_cache_class, 'Kinetic::UI::Catalyst::Cache::File',
-        'catalyst_cache_class should return "Kinetic::UI::Catalyst::Cache::File"';
     is $class->object_cache_class, 'Kinetic::Util::Cache::File',
         'object_cache_class should return "Kinetic::Util::Cache::File"';
 

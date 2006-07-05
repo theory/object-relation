@@ -176,7 +176,6 @@ sub test_props : Test(14) {
     my $class = $self->test_class;
     my $mb = MockModule->new($class);
     $mb->mock(check_manifest => sub { return });
-    $mb->mock( engine => 'catalyst' );
 
     # We can make sure things work with the default SQLite store.
     my $info = MockModule->new('App::Info::RDBMS::SQLite');
@@ -218,15 +217,6 @@ sub test_props : Test(14) {
     my @inputs = (1, '');
     $mb->mock(_readline => sub { shift @inputs }); # Accept defaults.
     $mb->mock(_prompt => sub { shift; push @msgs, @_; });
-    my $apache_build = MockModule->new('Kinetic::Build::Setup::Engine::Apache2');
-    $apache_build->mock(
-        _set_httpd => sub { shift->{httpd} = '/usr/bin/apache/httpd' }
-    );
-    $apache_build->mock(
-        _set_httpd_conf => sub {
-            shift->{httpd} = '/usr/bin/apache/conf/httpd.conf';
-        }
-    );
     my $store = MockModule->new('Kinetic::Build::Setup::Store::DB::Pg');
     $store->mock(validate => 1);
     $store->mock(info_class => 'TEST::Kinetic::TestInfo');
@@ -237,19 +227,6 @@ sub test_props : Test(14) {
         "  1> pg\n  2> sqlite\n",
         'Which data store back end should I use?',
         ' [2]:',
-        ' ',
-        "  1> apache\n  2> catalyst\n",
-        'Which engine should I use?',
-        ' [2]:',
-        ' ',
-        'Please enter the port on which to run the Catalyst server',
-        ' [3000]:',
-        ' ',
-        'Please enter the hostname on which the Catalyst server will run',
-        ' [localhost]:',
-        ' ',
-        'Should the Catalyst server automatically restart if .pm files change?',
-        ' [n]:',
         ' ',
         "  1> file\n  2> memcached\n",
         'Which session cache should I use?',
@@ -471,10 +448,6 @@ sub test_get_reply : Test(53) {
 Data store: pg
 Looking for pg_config
 path to pg_config: /usr/local/pgsql/bin/pg_config
-Kinetic engine: catalyst
-Catalyst port: 3000
-Catalyst host: localhost
-Catalyst restart: no
 Kinetic cache: file
 Cache root: $tmpdir
 Cache expiration time: 3600
@@ -904,7 +877,6 @@ sub new_builder {
         dist_version    => '1.0',
         quiet           => 1,
         accept_defaults => 1,
-        engine          => 'catalyst',
         @_,
     );
 }
