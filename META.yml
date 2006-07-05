@@ -107,12 +107,6 @@ provides:
   Kinetic::Build::Setup:
     file: lib/Kinetic/Build/Setup.pm
     version: 0.000002
-  Kinetic::Build::Setup::Auth:
-    file: lib/Kinetic/Build/Setup/Auth.pm
-    version: 0.000002
-  Kinetic::Build::Setup::Auth::Kinetic:
-    file: lib/Kinetic/Build/Setup/Auth/Kinetic.pm
-    version: 0.000002
   Kinetic::Build::Setup::Cache:
     file: lib/Kinetic/Build/Setup/Cache.pm
     version: 0.000002
@@ -199,15 +193,6 @@ provides:
   Kinetic::Meta::Widget:
     file: lib/Kinetic/Meta/Widget.pm
     version: 0.000002
-  Kinetic::Party:
-    file: lib/Kinetic/Party.pm
-    version: 0.000002
-  Kinetic::Party::Person:
-    file: lib/Kinetic/Party/Person.pm
-    version: 0.000002
-  Kinetic::Party::User:
-    file: lib/Kinetic/Party/User.pm
-    version: 0.000002
   Kinetic::Store:
     file: lib/Kinetic/Store.pm
     version: 0.000002
@@ -249,12 +234,6 @@ provides:
     version: 0.000002
   Kinetic::Type::Contact:
     file: lib/Kinetic/Type/Contact.pm
-    version: 0.000002
-  Kinetic::Util::Auth:
-    file: lib/Kinetic/Util/Auth.pm
-    version: 0.000002
-  Kinetic::Util::Auth::Kinetic:
-    file: lib/Kinetic/Util/Auth/Kinetic.pm
     version: 0.000002
   Kinetic::Util::Cache:
     file: lib/Kinetic/Util/Cache.pm
