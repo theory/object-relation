@@ -133,9 +133,6 @@ provides:
   Kinetic::Build::Test:
     file: lib/Kinetic/Build/Test.pm
     version: 0.000002
-  Kinetic::Contact:
-    file: lib/Kinetic/Contact.pm
-    version: 0.000002
   Kinetic::DataType::DateTime:
     file: lib/Kinetic/DataType/DateTime.pm
     version: 0.000002
@@ -228,12 +225,6 @@ provides:
     version: 0.000002
   Kinetic::Store::Search:
     file: lib/Kinetic/Store/Search.pm
-    version: 0.000002
-  Kinetic::Type:
-    file: lib/Kinetic/Type.pm
-    version: 0.000002
-  Kinetic::Type::Contact:
-    file: lib/Kinetic/Type/Contact.pm
     version: 0.000002
   Kinetic::Util::Cache:
     file: lib/Kinetic/Util/Cache.pm

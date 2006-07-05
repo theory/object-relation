@@ -19,7 +19,6 @@ lib/Kinetic/Build/Setup/Store/DB.pm
 lib/Kinetic/Build/Setup/Store/DB/Pg.pm
 lib/Kinetic/Build/Setup/Store/DB/SQLite.pm
 lib/Kinetic/Build/Test.pm
-lib/Kinetic/Contact.pm
 lib/Kinetic/DataType.pod
 lib/Kinetic/DataType/DateTime.pm
 lib/Kinetic/DataType/DateTime/Incomplete.pm
@@ -53,8 +52,6 @@ lib/Kinetic/Store/Lexer/String.pm
 lib/Kinetic/Store/Parser.pm
 lib/Kinetic/Store/Parser/Overview.pod
 lib/Kinetic/Store/Search.pm
-lib/Kinetic/Type.pm
-lib/Kinetic/Type/Contact.pm
 lib/Kinetic/Util/Cache.pm
 lib/Kinetic/Util/Cache/File.pm
 lib/Kinetic/Util/Cache/Memcached.pm
@@ -152,8 +149,6 @@ t/store/TEST/Kinetic/Store/Search.pm
 t/storesearch.t
 t/system.t
 t/system/TEST/Kinetic.pm
-t/system/TEST/Kinetic/Contact.pm
-t/system/TEST/Kinetic/Type/Contact.pm
 t/system/TEST/Kinetic/VersionInfo.pm
 t/test_setup.t
 t/util.t

@@ -5,7 +5,7 @@
 use warnings;
 use strict;
 #use Test::More 'no_plan';
-use Test::More tests => 80;
+use Test::More tests => 76;
 use Test::Exception;
 use Test::File;
 use aliased 'Test::MockModule';
@@ -275,7 +275,7 @@ SKIP: {
     my $dbh = test_store(
         \%tconf,
         $schema,
-        qw(contact contact_type version_info)
+        qw(version_info)
     );
 
     # Make sure that none of the sample views exist.
@@ -340,8 +340,8 @@ sub dbi_connect {
 sub test_store {
     my ($conf, $schema) = ( shift, shift );
     my @check_keys = @_ ? @_ : qw(
-        comp_comp composed contact contact_type extend one
-        relation simple two types_test version_info yello
+        comp_comp composed extend one relation simple two types_test
+        version_info yello
     );
 
     # We'll run tests during the test action here. Sneaky, huh?

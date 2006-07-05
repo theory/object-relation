@@ -19,7 +19,6 @@ else {
     # Not loading Kinetic::Engine:: modules as they often require constants
     # which will not always be available
     @modules =
-      grep { ! /Kinetic::Engine/ }
       grep { $_ ne 'Kinetic' } Test::Pod::Coverage::all_modules();
     plan tests => @modules + 2;
 }

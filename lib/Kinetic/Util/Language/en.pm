@@ -46,8 +46,6 @@ our %Lexicon;
         'Kinetic'             => 'Kinetic',
         'Class'               => 'Class',
         'Classes'             => 'Classes',
-        'Contact'             => 'Contact',
-        'Contact type'        => 'Contact type',
         'Version Information' => 'Version Information'
     );
 
