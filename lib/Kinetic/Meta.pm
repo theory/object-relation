@@ -16,7 +16,6 @@ use Kinetic::Util::Exceptions qw(
     throw_exlib
     throw_invalid_class
     throw_invalid_attr
-    isa_kinetic_exception
 );
 use Class::Meta::Types::String;    # Move to DataTypes.
 
