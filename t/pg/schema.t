@@ -15,8 +15,7 @@ FAKEPG: {
     # Fake out loading of Pg store.
     package Kinetic::Store::DB::Pg;
     use base 'Kinetic::Store::DB';
-    use File::Spec::Functions 'catfile';
-    $INC{ catfile qw(Kinetic Store DB Pg.pm) } = __FILE__;
+    $INC{'Kinetic/Store/DB/Pg.pm'} = __FILE__;
 }
 
 BEGIN { use_ok 'Kinetic::Build::Schema' or die }
@@ -27,7 +26,9 @@ sub left_justify {
     return $text;
 }
 
-ok my $sg = Kinetic::Build::Schema->new, 'Get new Schema';
+ok my $sg = Kinetic::Build::Schema->new(
+    'Kinetic::Store::DB::Pg'
+), 'Get new Schema';
 isa_ok $sg, 'Kinetic::Build::Schema';
 isa_ok $sg, 'Kinetic::Build::Schema::DB';
 isa_ok $sg, 'Kinetic::Build::Schema::DB::Pg';

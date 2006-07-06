@@ -1834,29 +1834,26 @@ Returns the current database handle.
 sub _dbh {
     my $self = shift->_from_proto;
     return $self->{dbh} || $self->DBI_CLASS->connect_cached(
-        $self->_connect_args,
+        @{ $self->{config} }{qw(dsn user pass)},
+        $self->_connect_attrs,
     );
-
-    # XXX Switch to this single line if connect_cached() ever stops resetting
-    # AutoCommit. See http://www.nntp.perl.org/group/perl.dbi.dev/3892
-    # DBI->connect_cached(shift->_connect_args);
 }
 
 ##############################################################################
 
-=head3 _connect_args
+=head3 _connect_attrs
 
-  my @connect_args = $store->_connect_args;
+  my @connect_attrs = $store->_connect_attrs;
 
 Abstract method that must be overridden in a subclass.  Returns valid
-C<DBI|DBI> connect args for the current store.
+C<DBI|DBI> connect attrs for the current store.
 
 =cut
 
-sub _connect_args {
+sub _connect_attrs {
     throw_unimplemented [
         '"[_1]" must be overridden in a subclass',
-        '_connect_args'
+        '_connect_attrs'
     ];
 }
 

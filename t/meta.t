@@ -44,8 +44,8 @@ BEGIN {
     ok !defined(&Kinetic::Meta::Attribute::_view_column),
         'Attribute::_view_column() should not exist';
 
-    # Implicitly loads database store.
-    use_ok('Kinetic') or die;
+    # Load a database store.
+    use_ok('Kinetic::Store::DB::SQLite') or die;
 
     ok defined(&Kinetic::Meta::Attribute::_column),
         'Now Attribute::_column() should exist';
@@ -297,10 +297,12 @@ is_deeply [$class->ref_attributes], [],
     'There should be no referenced attributes';
 is_deeply [$class->collection_attributes], [],
     'There should be no collection attributes';
-is_deeply [$class->direct_attributes], [$class->attributes('id'), $class->attributes],
+my @attrs = $class->attributes;
+splice @attrs, 2, 0, $class->attributes('id');
+is_deeply [$class->direct_attributes], \@attrs,
     'With no ref_attributes, direct_attributes should return all attributes';
 
-is_deeply [$class->persistent_attributes], [$class->attributes('id'), $class->attributes],
+is_deeply [$class->persistent_attributes], \@attrs,
     'By default, persistent_attributes should return all attributes';
 
 ok $attr = $class->attributes('foo'), "Get foo attribute";
@@ -337,8 +339,9 @@ is_deeply [ grep { $_->name ne 'id' }    $fclass->persistent_attributes ],
           [ grep { $_->name ne 'lname' } $fclass->attributes ],
     'Persistent attributes should have all but the non-persistent attribute';
 
-is_deeply [$class->persistent_attributes],
-          [$class->attributes('id'), $class->attributes],
+@attrs = $class->attributes;
+splice @attrs, 2, 0, $class->attributes('id');
+is_deeply [$class->persistent_attributes], \@attrs,
     'By default, persistent_attributes should return all attributes';
 
 is $attr->references, MyTest::Thingy->my_class,
@@ -447,7 +450,7 @@ ok $ex->uuid ne $ex->thingy_uuid, 'And they should have different UUIDs';
 
 # We should get the trusted extended object attribute.
 is_deeply [map { $_->name } $class->persistent_attributes],
-          [qw(id uuid state thingy thingy_uuid thingy_state foo rank)],
+          [qw(uuid state id thingy thingy_uuid thingy_state foo rank)],
     'We should get public and trusted attributes';
 
 # Make sure that methods are delegated.
@@ -546,7 +549,7 @@ ok $med->uuid ne $med->thingy_uuid, 'And they should have different UUIDs';
 
 # We should get the trusted mediateed object attribute.
 is_deeply [map { $_->name } $class->persistent_attributes],
-          [qw(id uuid state thingy thingy_uuid thingy_state foo booyah)],
+          [qw(uuid state id thingy thingy_uuid thingy_state foo booyah)],
     'We should get public and trusted attributes';
 
 # Make sure that methods are delegated.

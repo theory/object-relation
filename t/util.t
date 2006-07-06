@@ -53,7 +53,7 @@ class: { # 5 tests.
     use Kinetic::Util::Config qw/KINETIC_ROOT/;
     use Test::More;
     use aliased 'Kinetic::Build::Schema';
-    Schema->new;
+    Schema->new( 'Kinetic::Store::DB::SQLite' );
 
     can_ok __PACKAGE__, 'file_to_mod';
     can_ok __PACKAGE__, 'load_store';

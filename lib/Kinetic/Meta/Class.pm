@@ -349,7 +349,7 @@ sub build {
         $self->{sort_by} = \@sort_attrs;
     } else {
         $self->{sort_by} = [
-            first { $_->package ne 'Kinetic' } @{ $self->{direct_attrs} }
+            first { $_->package ne 'Kinetic' && $_->name ne 'id' } @direct
         ];
     }
     return $self;

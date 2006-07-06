@@ -11,14 +11,15 @@ use Test::NoWarnings; # Adds an extra test.
 {
     # Fake out loading of Pg store.
     package Kinetic::Store::DB::Pg;
-    use File::Spec::Functions 'catfile';
-    $INC{catfile qw(Kinetic Store DB Pg.pm)} = __FILE__;
+    $INC{'Kinetic/Store/DB/Pg.pm'} = __FILE__;
     sub _add_store_meta { 1 }
 }
 
 BEGIN { use_ok 'Kinetic::Build::Schema' or die };
 
-ok my $sg = Kinetic::Build::Schema->new, 'Get new Schema';
+ok my $sg = Kinetic::Build::Schema->new(
+    'Kinetic::Store::DB::Pg'
+), 'Get new Schema';
 isa_ok $sg, 'Kinetic::Build::Schema';
 isa_ok $sg, 'Kinetic::Build::Schema::DB';
 isa_ok $sg, 'Kinetic::Build::Schema::DB::Pg';

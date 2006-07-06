@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 #use Test::More qw/no_plan/;
-use Test::More tests => 15;
+use Test::More tests => 13;
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Build::Test (auth => { protocol => [qw(Default LDAP)] });
 use File::Spec;
@@ -45,17 +45,8 @@ STORE: { # 3 tests.
     use Test::More;
     ok(STORE_CLASS, "Got store_class" );
     ok($stores{&STORE_CLASS}, "Got store_class value" );
-    eval "USER_MIN_PASS_LEN";
-    ok($@, "Got error trying to access USER_MIN_PASS_LEN");
-}
-
-USER: { # 2 tests.
-    package Kinetic::Util::Config::TestUser;
-    use Kinetic::Util::Config qw(:user);
-    use Test::More;
-    ok(USER_MIN_PASS_LEN, "Got USER_MIN_PASS_LEN" );
-    eval "STORE_CLASS";
-    ok($@, "Got error trying to access store_class");
+    eval "KINETIC_ROOT";
+    ok($@, "Got error trying to access KINETIC_ROOT");
 }
 
 NOIMPORT: { # 2 tests.

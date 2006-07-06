@@ -14,6 +14,13 @@ BEGIN {
         key         => 'simple',
         name        => 'Simple',
         plural_name => 'Simples',
+        store_config => {
+            class => $ENV{KINETIC_CLASS},
+            cache => $ENV{KINETIC_CACHE},
+            user  => $ENV{KINETIC_USER},
+            pass  => $ENV{KINETIC_PASS},
+            dsn   => $ENV{KINETIC_DSN},
+        },
     );
     $km->add_attribute(
         name        => 'name',

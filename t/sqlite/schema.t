@@ -16,13 +16,14 @@ FAKESQLITE: {
     # Fake out loading of SQLite store.
     package Kinetic::Store::DB::SQLite;
     use base 'Kinetic::Store::DB';
-    use File::Spec::Functions 'catfile';
-    $INC{ catfile qw(Kinetic Store DB SQLite.pm) } = __FILE__;
+    $INC{'Kinetic/Store/DB/SQLite.pm'} = __FILE__;
 }
 
 BEGIN { use_ok 'Kinetic::Build::Schema' or die }
 
-ok my $sg = Kinetic::Build::Schema->new, 'Get new Schema';
+ok my $sg = Kinetic::Build::Schema->new(
+    'Kinetic::Store::DB::SQLite'
+), 'Get new Schema';
 isa_ok $sg, 'Kinetic::Build::Schema';
 isa_ok $sg, 'Kinetic::Build::Schema::DB';
 isa_ok $sg, 'Kinetic::Build::Schema::DB::SQLite';

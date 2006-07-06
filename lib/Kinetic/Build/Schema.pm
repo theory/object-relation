@@ -26,7 +26,6 @@ our $VERSION = version->new('0.0.2');
 use Kinetic::Meta;
 use Kinetic::Meta::Class::Schema;
 use Kinetic::Meta::Attribute::Schema;
-use Kinetic::Util::Config qw(:store);
 use Kinetic::Util::Functions;
 use File::Spec;
 use File::Path;
@@ -75,7 +74,7 @@ configured in F<kinetic.conf>.
 sub new {
     my $class = shift;
     unless ($class ne __PACKAGE__) {
-        $class = shift || STORE_CLASS;
+        $class = shift;
         $class =~ s/^Kinetic::Store/Kinetic::Build::Schema/;
         eval "require $class" or die $@;
     }

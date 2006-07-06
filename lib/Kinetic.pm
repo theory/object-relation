@@ -49,19 +49,21 @@ Kinetic - The Kinetic enterprise application framework
 =head1 Synopsis
 
   package MyApp::Thingy;
-  use base qw(Kinetic);
-  BEGIN {
-      my $km = Kinetic::Meta->new(
-          key         => 'thingy',
-          name        => 'Thingy',
-          plural_name => 'Thingies',
-      );
-      $km->add_attribute(
-        name => 'provenence',
-        type => 'string',
-      );
-      $km->build;
-  }
+  use Kinetic::Express;
+
+  meta thingy => (
+      store_config => {
+          class => 'DB::Pg',
+          cache => 'Memcached',
+          dsn   => 'dbi:Pg:dbname=kinetic',
+          user  => 'kinetic',
+          pass  => 'kinetic',
+      };
+  );
+
+  has => 'provenance';
+
+  build;
 
 =head1 Description
 
@@ -84,7 +86,6 @@ BEGIN {
         trust       => 'Kinetic::Store',
         abstract    => 1,
     );
-    Kinetic::Store->_add_store_meta($cm);
 
 ##############################################################################
 # Constructors.
@@ -111,8 +112,8 @@ parameters set to default values.
 
     # Create the new() constructor.
     $cm->add_constructor(
-        name => 'new',
-        create  => 1,
+        name   => 'new',
+        create => 1,
     );
 
 ##############################################################################
@@ -153,7 +154,7 @@ C<lookup> method in L<Kinetic::Store|Kinetic::Store> for more information.
 
     sub lookup {
         my $class = shift;
-        Kinetic::Store->lookup($class->my_class, @_);
+        $class->StoreHandle->lookup($class->my_class, @_);
     }
     $cm->add_constructor(
         name   => 'lookup',
@@ -193,13 +194,12 @@ C<squery> method in L<Kinetic::Store|Kinetic::Store> for more information.
     );
 
     foreach my $method (@redispatch) {
-        {
-            no strict 'refs';
-            *$method = sub {
-                my $class = shift;
-                Kinetic::Store->$method($class->my_class, @_);
-            };
-        }
+        no strict 'refs';
+        *$method = eval qq/sub {
+                my \$class = shift;
+                \$class->Storehandle->$method(\$class->my_class, \@_);
+        }/;
+
         $cm->add_method(
             name    => $method,
             context => Class::Meta::CLASS,
@@ -229,7 +229,6 @@ which meet the search criteria.  See the C<query_uuids> method in
 L<Kinetic::Store|Kinetic::Store> for more information.
 
 =cut
-
 
 ##############################################################################
 
@@ -401,7 +400,7 @@ C<save> method in L<Kinetic::Store|Kinetic::Store> for more information.
 
     sub save {
         my $self = shift;
-        Kinetic::Store->save($self, @_);
+        $self->StoreHandle->save($self, @_);
         return $self;
     }
     $cm->add_method(
@@ -535,6 +534,32 @@ changes to the data store.
 __END__
 
 ##############################################################################
+
+=head1 To Do
+
+=over
+
+=item *
+
+Add caching to the store.
+
+=item *
+
+Use batch updates and inserts for collections?
+
+=item *
+
+Eliminate configuration file.
+
+=item *
+
+Eliminate Kinetic::Util::Constants?
+
+=item *
+
+Eliminate Kinetic::Util::Language?
+
+=back
 
 =head1 See Also
 

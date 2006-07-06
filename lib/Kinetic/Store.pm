@@ -20,7 +20,6 @@ package Kinetic::Store;
 
 use strict;
 use aliased 'Kinetic::Util::Cache';
-use Kinetic::Util::Config qw(:store);
 use Kinetic::Util::Exceptions qw(
     throw_invalid_class
     throw_search
@@ -187,24 +186,55 @@ foreach my $method (@redispatch) {
 
 =head3 new
 
-  my $store = Kinetic::Store->new;
+  my $store = Kinetic::Store->new(
+      class => 'DB::Pg',
+      cache => 'Memcached',
+      dsn   => 'dbi:Pg:dbname=kinetic',
+      user  => 'kinetic',
+      pass  => 'kinetic',
+  );
 
 Creates and returns a new store object. This is a factory constructor; it will
-return the subclass appropriate to the currently selected store class as
-configured in the configuration file.
+return an object of the subclass specified by the C<class> parameter. The
+default parameters are:
+
+=over
+
+=item class
+
+The subclass of Kinetic::Store to use. If the class is under the
+Kinetic::Store namespace, you can leave out "Kinetic::Store". Otherwise, use
+the full class name. Defaults to "DB::SQLiite".
+
+=item cache
+
+The subclass of L<Kinetic::Util::Cache|Kinetic::Util::Cache> to use for
+caching. If the class is under the Kinetic::Util::Cache namespace, you can
+leave out "Kinetic::Util::Cache". Otherwise, use the full class name. Defaults
+to "File".
+
+=back
+
+All other parameters are specific to subclasses of Kinetic::Store; see the
+revelant subclass for details.
 
 =cut
 
 sub new {
-    my $class = shift;
-    unless ( $class ne __PACKAGE__ ) {
-        $class = shift || STORE_CLASS;
-        eval "require $class";
-        throw_invalid_class [ 'I could not load the class "[_1]": [_2]', $class,
-            $@, ]
-          if $@;
-    }
-    bless { cache => Cache->new }, $class;
+    my ($class, $params) = @_;
+    $class = _load_class(delete $params->{class}, __PACKAGE__, 'DB::SQLite')
+        if $class eq __PACKAGE__;
+
+    my $cache = _load_class(
+        delete $params->{cache},
+        'Kinetic::Util::Cache',
+        'File',
+    );
+
+    return bless {
+        cache  => $cache->new,
+        config => $params,
+    } => $class;
 }
 
 ##############################################################################
@@ -477,6 +507,40 @@ sub _prep_search_token {
         '"[_1]" must be overridden in a subclass',
         '_prep_search_token',
     ];
+}
+
+##############################################################################
+
+=head2 Private Functions
+
+=head3 _load_class
+
+  my $class = _load_class($class, $base_class, $default_class);
+
+Loads the class specified by the $class argument. It first tries to load it
+under the namespace defined by $base_class. If that class does not exist, it
+simply loads $class. In the case where $class is C<undef>, $default_class will
+be used, instead. Called by C<new()>.
+
+=cut
+
+sub _load_class {
+    my ($pkg, $base, $default) = @_;
+    my $class = "$base\::" . ($pkg || $default);
+
+    eval "require $class";
+    if ($@ && $@ =~ /^Can't locate/ && $pkg) {
+        $class = $pkg;
+        eval "require $class";
+    }
+
+    throw_invalid_class [
+        'I could not load the class "[_1]": [_2]',
+        $class,
+        $@,
+    ] if $@;
+
+    return $class;
 }
 
 ##############################################################################

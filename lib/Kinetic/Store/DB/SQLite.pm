@@ -26,22 +26,17 @@ our $VERSION = version->new('0.0.2');
 use Kinetic::Store qw(:logical);
 use DBD::SQLite;
 use Kinetic::Store::DB::SQLite::DBI;
-use Kinetic::Util::Config qw(:store);
 use Kinetic::Util::Exceptions qw(throw_unsupported);
 use Exception::Class::DBI;
 use OSSP::uuid;
 
 use constant DBI_CLASS => 'Kinetic::Store::DB::SQLite::DBI';
-use constant _connect_args => (
-    STORE_DSN,
-    '', '',
-    {
-        RaiseError  => 0,
-        PrintError  => 0,
-        unicode     => 1,
-        HandleError => Kinetic::Util::Exception::DBI->handler,
-    }
-);
+use constant _connect_attrs => {
+    RaiseError  => 0,
+    PrintError  => 0,
+    unicode     => 1,
+    HandleError => Kinetic::Util::Exception::DBI->handler,
+};
 
 =head1 Name
 

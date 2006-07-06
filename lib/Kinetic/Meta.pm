@@ -16,6 +16,7 @@ use Kinetic::Util::Exceptions qw(
     throw_exlib
     throw_invalid_class
     throw_invalid_attr
+    isa_kinetic_exception
 );
 use Class::Meta::Types::String;    # Move to DataTypes.
 
@@ -150,7 +151,6 @@ sub new {
     my $pkg  = shift;
     my $caller = caller;
     (my $key = lc $caller) =~ s/.*:://;
-
     my $self = $pkg->SUPER::new(
         package         => $caller,  # Ensure.
         key             => $key,     # Default.
@@ -165,7 +165,7 @@ sub new {
     my $extended = $class->extends;
     my $mediated = $class->mediates;
 
-    unless ( BASE_CLASS eq $package ) { # no circular inheritance
+    if ( BASE_CLASS ne $package ) {
         unless ( $package->isa(BASE_CLASS) ) {
             # force packages to inherit from Kinetic
             # XXX unfortunately, there's some deep magic in "use base" which
@@ -183,6 +183,17 @@ sub new {
                     $error,
                 ];
             }
+        }
+
+        # Set up the store handle.
+        my $store_config = delete $class->{store_config}
+            || $package->can('StoreHandle') ? undef : {};
+
+        if ($store_config) {
+            my $handle = Kinetic::Store->new($store_config);
+            $handle->_add_store_meta($self);
+            no strict 'refs';
+            *{"$package\::StoreHandle"} = sub { $handle };
         }
     }
 
@@ -399,17 +410,17 @@ sub _add_delegates {
 
     # Add attribute for the object.
     $self->add_attribute(
-                name => $key,
-                type => $key,
-            required => 1,
-               label => $ref->{label},
-                view => Class::Meta::TRUSTED,
-              create => Class::Meta::RDWR,
-             default => $def,
+        name         => $key,
+        type         => $key,
+        required     => 1,
+        label        => $ref->{label},
+        view         => Class::Meta::TRUSTED,
+        create       => Class::Meta::RDWR,
+        default      => $def,
         relationship => $rel,
         widget_meta  => Kinetic::Meta::Widget->new(
-                type => 'search',
-                tip  => $ref->{label},
+            type => 'search',
+            tip  => $ref->{label},
         ),
     );
 

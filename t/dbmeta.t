@@ -4,7 +4,7 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 43;
+use Test::More tests => 42;
 use Test::NoWarnings; # Adds an extra test.
 
 package MyTestThingy;
@@ -31,11 +31,6 @@ BEGIN {
         name        => 'Thingy',
         plural_name => 'Thingies',
     ), "Create TestThingy class";
-
-    ok $km->add_attribute(
-        name => 'id',
-        type => 'whole',
-    ), "Add id attribute";
 
     ok $km->add_attribute(
         name          => 'foo',

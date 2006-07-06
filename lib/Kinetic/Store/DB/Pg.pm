@@ -24,24 +24,18 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base qw(Kinetic::Store::DB);
-use Kinetic::Util::Config qw(:store);
 use Exception::Class::DBI;
 use Kinetic::Util::Exceptions qw(throw_unsupported);
 use List::Util qw(first);
 use DBI        qw(:sql_types);
 use DBD::Pg    qw(:pg_types);
 use overload;
-use constant _connect_args => (
-    STORE_DSN,
-    STORE_DB_USER,
-    STORE_DB_PASS,
-    {
-        RaiseError     => 0,
-        PrintError     => 0,
-        pg_enable_utf8 => 1,
-        HandleError    => Kinetic::Util::Exception::DBI->handler,
-    }
-);
+use constant _connect_attrs => {
+    RaiseError     => 0,
+    PrintError     => 0,
+    pg_enable_utf8 => 1,
+    HandleError    => Kinetic::Util::Exception::DBI->handler,
+};
 
 =head1 Name
 
