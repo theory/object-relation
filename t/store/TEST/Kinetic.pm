@@ -22,11 +22,10 @@ use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
 
 __PACKAGE__->SKIP_CLASS(
-    __PACKAGE__->any_supported(qw/pg sqlite/)
+    $ENV{KS_CLASS}
     ? 0
     : "Not testing Data Stores"
-  )
-  if caller;    # so I can run the tests directly from vim
+) if caller;    # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
 sub _all_items {
@@ -40,9 +39,7 @@ sub _all_items {
 
 sub _should_run {
     my $test    = shift;
-    my $store   = Kinetic::Store->new;
-    my $package = ref $store;
-    return ref $test eq "TEST::$package";
+    return $ENV{KS_CLASS} && ref $test eq "TEST::$ENV{KS_CLASS}";
 }
 
 sub lookup : Test(15) {

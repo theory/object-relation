@@ -20,7 +20,8 @@ sub attr_values {
 # XXX This allows $Kinetic::VERSION to work. No idea why it's necessary.
 use Kinetic;
 
-sub test_kinetic_version : Test(5) {
+#sub test_kinetic_version : Test(5) {
+sub test_kinetic_version {
     my $self = shift;
     return 'Not testing Data Stores' unless $self->dev_testing;
 

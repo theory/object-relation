@@ -135,7 +135,7 @@ whether or not to run dev tests.
 
 =cut
 
-sub dev_testing { exists $ENV{KINETIC_SUPPORTED} }
+sub dev_testing { exists $ENV{KS_CLASS} }
 
 ##############################################################################
 

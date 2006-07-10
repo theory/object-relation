@@ -27,11 +27,10 @@ use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
 use aliased 'TestApp::Yello';
 
 __PACKAGE__->SKIP_CLASS(
-    __PACKAGE__->any_supported(qw/pg sqlite/)
+    $ENV{KS_CLASS}
     ? 0
     : "Not testing Data Stores"
-  )
-  if caller;    # so I can run the tests directly from vim
+) if caller;    # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
 sub purge : Test(9) {
@@ -335,7 +334,7 @@ sub unit_constructor : Test(6) {
     ( my $class = ref $test ) =~ s/^TEST:://;
     can_ok $class => 'new';
 
-    throws_ok { Kinetic::Store->new('Bogus::Class') }
+    throws_ok { Kinetic::Store->new({ class => 'Bogus::Class'}) }
       'Kinetic::Util::Exception::Fatal::InvalidClass',
       '... and trying to load it with a bad class should throw an exception';
 

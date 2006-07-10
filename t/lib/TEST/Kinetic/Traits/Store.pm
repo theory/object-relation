@@ -28,7 +28,14 @@ database.
 
 sub mock_dbh {
     my $test  = shift;
-    my $store = Kinetic::Store->new;
+    my $store = Kinetic::Store->new({
+        class => $ENV{KS_CLASS},
+        cache => $ENV{KS_CACHE},
+        user  => $ENV{KS_USER},
+        pass  => $ENV{KS_PASS},
+        dsn   => $ENV{KS_DSN},
+    });
+
     $test->dbh( $store->_dbh );
     unless ($debugging) {    # give us an easy debugging hook
         $test->dbh->begin_work;

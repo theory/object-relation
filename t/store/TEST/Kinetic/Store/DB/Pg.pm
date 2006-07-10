@@ -15,10 +15,10 @@ use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
 
 # Skip all of the tests in this class if Postgres isn't supported.
 __PACKAGE__->SKIP_CLASS(
-    __PACKAGE__->supported('pg')
-      ? 0
-      : "Not testing PostgreSQL"
-) if caller; # so I can run the tests directly from vim
+    $ENV{KS_CLASS} && $ENV{KS_CLASS} =~ /DB:Pg$/
+    ? 0
+    : "Not testing Data Stores"
+) if caller;    # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
 # This method is used by TEST::Kinetic::Store::DB to check unique constraint

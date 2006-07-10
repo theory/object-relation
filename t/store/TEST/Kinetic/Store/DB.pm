@@ -27,11 +27,10 @@ use aliased 'TestApp::TypesTest';
 use aliased 'TestApp::Yello';
 
 __PACKAGE__->SKIP_CLASS(
-    __PACKAGE__->any_supported(qw/pg sqlite/)
+    $ENV{KS_CLASS}
     ? 0
     : "Not testing Data Stores"
-  )
-  if caller;    # so I can run the tests directly from vim
+) if caller;    # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
 sub _num_recs {
@@ -79,9 +78,9 @@ sub test_dbh : Test(2) {
     my $test  = shift;
     my $class = $test->test_class;
     if ( $class eq 'Kinetic::Store::DB' ) {
-        throws_ok { $class->_connect_args }
+        throws_ok { $class->_connect_attrs }
           'Kinetic::Util::Exception::Fatal::Unimplemented',
-          "_connect_args should throw an exception";
+          "_connect_attrs should throw an exception";
         $test->{db_mock}->unmock('_dbh');
         throws_ok { $class->_dbh }
           'Kinetic::Util::Exception::Fatal::Unimplemented',
@@ -89,8 +88,8 @@ sub test_dbh : Test(2) {
         $test->{db_mock}->mock( _dbh => $test->dbh );
     }
     else {
-        ok @{ [ $class->new->_connect_args ] },
-          "$class\::_connect_args should return values";
+        ok @{ [ $class->new->_connect_attrs ] },
+          "$class\::_connect_attrs should return values";
 
         # Only run the next test if we're testing a live data store.
         ( my $store = $class ) =~ s/.*:://;

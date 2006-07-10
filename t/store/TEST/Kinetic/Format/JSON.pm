@@ -38,11 +38,10 @@ BEGIN {
     };
 }
 __PACKAGE__->SKIP_CLASS(
-    __PACKAGE__->any_supported(qw/pg sqlite/)
+    $ENV{KS_CLASS}
     ? 0
     : "Not testing Data Stores"
-  )
-  if caller;    # so I can run the tests directly from vim
+) if caller;    # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
 sub setup : Test(setup) {

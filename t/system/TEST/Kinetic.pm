@@ -25,7 +25,13 @@ sub setup : Test(setup) {
     my $self = shift;
     return $self unless $self->dev_testing;
 
-    my $store   = Kinetic::Store->new;
+    my $store = Kinetic::Store->new({
+        class => $ENV{KS_CLASS},
+        cache => $ENV{KS_CACHE},
+        user  => $ENV{KS_USER},
+        pass  => $ENV{KS_PASS},
+        dsn   => $ENV{KS_DSN},
+    });
 
     if ($store->isa('Kinetic::Store::DB')) {
         # Set up a mocked database handle with a running transaction.

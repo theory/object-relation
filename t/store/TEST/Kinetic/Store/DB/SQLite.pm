@@ -15,10 +15,10 @@ use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
 
 # Skip all of the tests in this class if SQLite isn't supported.
 __PACKAGE__->SKIP_CLASS(
-    __PACKAGE__->supported('sqlite')
-      ? 0
-      : "Not testing SQLite"
-) if caller; # so I can run the tests directly from vim
+    $ENV{KS_CLASS} && $ENV{KS_CLASS} =~ /DB:SQLite$/
+    ? 0
+    : "Not testing Data Stores"
+) if caller;    # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
 sub full_text_search : Test(1) {
