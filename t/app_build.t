@@ -5,7 +5,7 @@
 use warnings;
 use strict;
 #use Test::More 'no_plan';
-use Test::More tests => 76;
+use Test::More tests => 73;
 use Test::Exception;
 use Test::File;
 use aliased 'Test::MockModule';
@@ -272,11 +272,13 @@ SKIP: {
     $mbuild->init_app;
 
     # Make sure that we have the system views.
-    my $dbh = test_store(
-        \%tconf,
-        $schema,
-        qw(version_info)
-    );
+#    my $dbh = test_store(
+#        \%tconf,
+#        $schema,
+#    );
+
+    ok my $dbh = dbi_connect(@{$tconf{store}}{qw(dsn db_user db_pass)}),
+        'Now we should be able to connect to the test database';
 
     # Make sure that none of the sample views exist.
     for my $key (qw(comp_comp composed extend one relation simple two types_test)) {
@@ -341,7 +343,7 @@ sub test_store {
     my ($conf, $schema) = ( shift, shift );
     my @check_keys = @_ ? @_ : qw(
         comp_comp composed extend one relation simple two types_test
-        version_info yello
+        yello
     );
 
     # We'll run tests during the test action here. Sneaky, huh?

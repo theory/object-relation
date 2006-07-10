@@ -46,7 +46,6 @@ our %Lexicon;
         'Kinetic'             => 'Kinetic',
         'Class'               => 'Class',
         'Classes'             => 'Classes',
-        'Version Information' => 'Version Information'
     );
 
     my %kinetic_object_states = (

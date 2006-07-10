@@ -66,7 +66,6 @@ lib/Kinetic/Util/Language.pm
 lib/Kinetic/Util/Language/en.pm
 lib/Kinetic/Util/Language/en_uk.pm
 lib/Kinetic/Util/Language/en_us.pm
-lib/Kinetic/VersionInfo.pm
 MANIFEST			This list of files
 META.yml
 README
@@ -149,7 +148,6 @@ t/store/TEST/Kinetic/Store/Search.pm
 t/storesearch.t
 t/system.t
 t/system/TEST/Kinetic.pm
-t/system/TEST/Kinetic/VersionInfo.pm
 t/test_setup.t
 t/util.t
 t/util/cache.t

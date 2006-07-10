@@ -861,13 +861,6 @@ sub init_app {
     $version ||= $self->dist_version;
     $version = version->new($version) unless ref $version;
 
-    # Set up the version info for this app.
-#    require Kinetic::VersionInfo;
-#    Kinetic::VersionInfo->new(
-#        app_name => $app     || $self->module_name,
-#        version  => $version || $self->dist_version,
-#    )->save;
-
     return $self;
 }
 

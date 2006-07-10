@@ -83,8 +83,8 @@ from which to create the data store. See F<t/store.t> for an example>.
 This boolean option indicates whether or not to call the C<init_app()> method
 on the build object once the setup is complete. This can be useful if the
 Kinetic libraries themselves are not used to build the data store, and so some
-necessary bits might be missing (namely the version_info table). Defaults to
-true; pass C<--no-init> to make it false.
+necessary bits might be missing. Defaults to true; pass C<--no-init> to make
+it false.
 
 =back
 

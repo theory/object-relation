@@ -170,10 +170,9 @@ data store.
 
 A good example of a simple, read-only object is a L<version|version> object.
 The C<version> module represents numeric version numbers, and is, in fact,
-already a data type in TKP, used by
-L<Kinetic::VersionInfo|Kinetic::VersionInfo>. But it makes a nice example, so
-we'll take a look at it here. Once again, the data type declaration simply
-requires a the use of L<Kinetic::Meta::Type|Kinetic::Meta::Type>:
+already a data type in TKP. But it makes a nice example, so we'll take a look
+at it here. Once again, the data type declaration simply requires a the use of
+L<Kinetic::Meta::Type|Kinetic::Meta::Type>:
 
   Kinetic::Meta::Type->add(
       key   => 'version',

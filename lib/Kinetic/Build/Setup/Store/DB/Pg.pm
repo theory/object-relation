@@ -1027,6 +1027,9 @@ sub grant_permissions {
                AND pg_catalog.pg_table_is_visible(c.oid)
     });
 
+    # XXX Delete this once we restore always-present system tables.
+    return $self unless @$objects;
+
     $dbh->do('GRANT SELECT, UPDATE, INSERT, DELETE ON '
              . join(', ', @$objects) . ' TO "'
              . ($self->_build_db_user || $self->db_user) . '"');

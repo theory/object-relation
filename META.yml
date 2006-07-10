@@ -282,9 +282,6 @@ provides:
   Kinetic::Util::Language::en_us:
     file: lib/Kinetic/Util/Language/en_us.pm
     version: 0.000002
-  Kinetic::VersionInfo:
-    file: lib/Kinetic/VersionInfo.pm
-    version: 0.000002
 generated_by: Module::Build version 0.2801
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.2.html
