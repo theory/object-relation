@@ -60,8 +60,7 @@ In F<Build.PL>:
 
 This module subclasses L<Module::Build|Module::Build> to provide added
 functionality for installing Kinetic and Kinetic applications. It is not
-intended to be used directly, but by L<Kinetic::Build|Kinetic::Build> and
-L<Kinetic::AppBuild|Kinetic::AppBuild>.
+intended to be used directly, but by L<Kinetic::Build|Kinetic::Build>.
 
 The functionality it adds includes setting a different default value for the
 C<install_base> property to "$Config{installprefix}/kinetic" and automatically
@@ -456,8 +455,7 @@ objects, if any.
 Essentially, everything that needs to be done before returning a new
 Kinetic::Build::Base object is executed here. It is separate from C<new()> so
 that subclasses can override it and therefore execute code after the object
-has been created but before calling C<SUPER::new()> to execute this code. See
-L<Kinetic::AppBuild|Kinetic::AppBuild> for an example.
+has been created but before calling C<SUPER::new()> to execute this code.
 
 =cut
 
@@ -1405,16 +1403,6 @@ __END__
 ##############################################################################
 
 =end private
-
-=head1 See Also
-
-=over
-
-=item L<Kinetic::AppBuild|Kinetic::AppBuild>
-
-The Kinetic application builder and installer.
-
-=back
 
 =head1 Copyright and License
 

@@ -47,7 +47,7 @@ sub test_class_methods : Test(7) {
       'We should have the correct DSN DBD string';
 }
 
-sub test_rules : Test(182) {
+sub test_rules : Test(180) {
     my $self = shift;
     my $class = $self->test_class;
     $self->chdirs('t', 'data');
@@ -272,13 +272,6 @@ sub test_rules : Test(182) {
       'Message should reflect success';
     is_deeply [$kbs->actions],  ['create_db'],
       'Actions should have create_db';
-
-    # Now try with database not existing and building with Kinetic::AppBuild.
-    $mb->mock(isa => 1 ); # So it thinks it's a Kinetic::AppBuild.
-    ok $fsa->reset->curr_state('Check database'), 'Reset to "Check database"';
-    throws_ok { $fsa->switch, } qr/Database "fooness" does not exist/,
-        'Should die with Kinetic::AppBuild and nonexisttent databse';
-    $mb->unmock('isa');
 
     ##########################################################################
     # Test "Check plpgsql"

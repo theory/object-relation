@@ -75,9 +75,6 @@ provides:
   Kinetic:
     file: lib/Kinetic.pm
     version: 0.000002
-  Kinetic::AppBuild:
-    file: lib/Kinetic/AppBuild.pm
-    version: 0.000002
   Kinetic::Build:
     file: lib/Kinetic/Build.pm
     version: 0.000002

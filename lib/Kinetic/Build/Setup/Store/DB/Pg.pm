@@ -333,18 +333,6 @@ sub rules {
         'Check database' => {
             do => sub { shift->result($self->_db_exists) },
             rules => [
-                Fail => {
-                    rule => sub {
-                        my $state = shift;
-                        return if $state->result;
-                        return unless $builder->isa('Kinetic::AppBuild');
-                        $state->message(
-                            'Database "' . $self->db_name
-                            . '" does not exist',
-                        );
-                        return 1;
-                    },
-                },
                 'Check plpgsql' => {
                     rule => sub {
                         my $state = shift;

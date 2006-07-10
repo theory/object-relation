@@ -33,7 +33,7 @@ sub test_class_methods : Test(8) {
     ok $class->rules, "We should get some rules";
 }
 
-sub test_rules : Test(45) {
+sub test_rules : Test(44) {
     my $self  = shift;
     my $class = $self->test_class;
 
@@ -87,12 +87,6 @@ sub test_rules : Test(45) {
     my $test_file = catfile $builder->base_dir, 't', 'data', 'kinetic.db';
     is $kbs->test_dsn, "dbi:SQLite:dbname=$test_file",
       "as should the test DSN";
-
-    # Test for when the file doesn't exist.
-    $mb->mock(isa => 1);
-    throws_ok { $kbs->validate } qr/Database file "$db_file" does not exist/,
-        'Should die when builder isa AppBuild and the db file does not exist';
-    $mb->unmock('isa');
 
     # Check the configs.
     $mb->mock( store  => 'sqlite' );

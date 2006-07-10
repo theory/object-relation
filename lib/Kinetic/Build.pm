@@ -48,9 +48,6 @@ functionality for installing Kinetic. The added functionality includes
 configuration file management, configuration file setup for tests, data store
 schema generation, and database building.
 
-This module does I<not> install Kinetic applications. That functionality is
-handled by L<Kinetic::AppBuild|Kinetic::AppBuild>.
-
 Note that this class also includes the interface defined by
 L<Kinetic::Build::Trait|Kinetic::Build::Trait>.
 
@@ -202,20 +199,6 @@ sub ACTION_test {
 __END__
 
 ##############################################################################
-
-=head1 See Also
-
-=over
-
-=item L<Kinetic::AppBuild|Kinetic::AppBuild>
-
-The Kinetic application builder and installer.
-
-=item L<Kinetic::Build::Trait|Kinetic::Build::Trait>
-
-Defines methods common to Kinetic::Build and Kinetic::AppBuild.
-
-=back
 
 =head1 Copyright and License
 

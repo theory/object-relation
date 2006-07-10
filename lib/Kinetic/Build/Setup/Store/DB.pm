@@ -138,15 +138,24 @@ Builds the database. Called as an action during C<./Build install>.
 sub build_db {
     my $self = shift;
     my $sg   = $self->_load_schema;
-    # If it's App::Build, just build the classes.
-    my $code = $self->builder->isa('Kinetic::AppBuild')
-        ? sub {
-            my $dbh = shift;
-            $dbh->do($_) for map { $sg->schema_for_class($_) } $sg->classes;
-        }
-        : undef;
+    my $dbh  = $self->_dbh;
 
-    $self->_build_db( $sg, $code );
+    $dbh->begin_work;
+    eval {
+        $dbh->do($_) for
+            $sg->begin_schema,
+            $sg->setup_code,
+            (map { $sg->schema_for_class($_) } $sg->classes),
+            $sg->end_schema;
+        $dbh->commit;
+    };
+
+    if (my $err = $@) {
+        $dbh->rollback;
+        require Carp && Carp::croak $err;
+    }
+
+    return $self;
 }
 
 ##############################################################################
@@ -160,9 +169,7 @@ Builds the test database. Called during C<./Build test>.
 sub build_test_db {
     my $self = shift;
     # Let it default to building the entire database.
-    $self->_build_db(
-        $self->_load_schema( $self->builder->isa('Kinetic::AppBuild') )
-    );
+    $self->build_db;
 }
 
 
@@ -226,54 +233,6 @@ sub _dbh {
     my $self = shift;
     return $private{$self}->{dbh} unless @_;
     return $private{$self}->{dbh} = shift;
-}
-
-##############################################################################
-
-=head3 _build_db
-
-  $kbs->_build_db($schema);
-  $kbs->_build_db($schema, $code);
-
-This method is called by C<build_db()> and C<build_test_db()>. It builds a
-database from the schema code retreived from the $schema object. By default,
-this means that a complete schema will be generated. If, however, something
-less than that must be created, pass in a code reference that takes as its
-first argument a database handle and then builds the database itself.
-
-For example, Kinetic::AppBuild does not need to execute the setup code for the
-database, as it has presumably already been run. So C<build_test_db()> passed
-in a code reference that just builds the schema parts for each of the classes
-loaded by a $schema objec.
-
-=cut
-
-sub _build_db {
-    my ($self, $sg, $code) = @_;
-
-    $code ||= sub {
-        my $dbh = shift;
-        $dbh->do($_) for
-            $sg->begin_schema,
-            $sg->setup_code,
-            (map { $sg->schema_for_class($_) } $sg->classes),
-            $sg->end_schema;
-    };
-
-    my $dbh = $self->_dbh;
-    $dbh->begin_work;
-
-    eval {
-        $code->($dbh);
-        $dbh->commit;
-    };
-
-    if (my $err = $@) {
-        $dbh->rollback;
-        require Carp && Carp::croak $err;
-    }
-
-    return $self;
 }
 
 ##############################################################################

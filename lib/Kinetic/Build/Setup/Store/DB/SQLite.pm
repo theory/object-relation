@@ -173,18 +173,6 @@ sub rules {
                     rule    => sub { ! $self->db_file },
                     message => 'No filename for database',
                 },
-                fail => {
-                    rule => sub {
-                        my $state = shift;
-                        return unless $self->builder->isa('Kinetic::AppBuild');
-                        my $file = $self->db_file;
-                        return if -e $file;
-                        $state->message(
-                            qq{Database file "$file" does not exist}
-                        );
-                        return 1;
-                    }
-                },
                 Done => {
                     rule    => 1,
                     message => 'We have a filename',

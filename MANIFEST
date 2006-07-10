@@ -3,7 +3,6 @@ Build.PL
 Changes
 conf/kinetic.conf
 lib/Kinetic.pm
-lib/Kinetic/AppBuild.pm
 lib/Kinetic/Build.pm
 lib/Kinetic/Build/Base.pm
 lib/Kinetic/Build/Schema.pm
@@ -70,7 +69,6 @@ MANIFEST			This list of files
 META.yml
 README
 t/accessors.t
-t/app_build.t
 t/badconfig.t
 t/basic.t
 t/bin/setup.pl
@@ -146,8 +144,6 @@ t/store/TEST/Kinetic/Store/DB/Pg.pm
 t/store/TEST/Kinetic/Store/DB/SQLite.pm
 t/store/TEST/Kinetic/Store/Search.pm
 t/storesearch.t
-t/system.t
-t/system/TEST/Kinetic.pm
 t/test_setup.t
 t/util.t
 t/util/cache.t
