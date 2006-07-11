@@ -2,7 +2,6 @@ Build.PL
 Changes
 lib/Kinetic.pm
 lib/Kinetic/Build.pm
-lib/Kinetic/Build/Base.pm
 lib/Kinetic/Build/Schema.pm
 lib/Kinetic/Build/Schema/DB.pm
 lib/Kinetic/Build/Schema/DB/Pg.pm
