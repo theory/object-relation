@@ -6,7 +6,6 @@ use strict;
 use warnings;
 use Test::More skip_all => "MySQL 5.01's updatable views just aren't ready";
 use Test::NoWarnings; # Adds an extra test.
-use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::mysql' };
 
 # Can't use ENUM() for state because numbers confuse it.
 # Stupid text indexes require the number of characters to index from the

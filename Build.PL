@@ -20,7 +20,6 @@ my $build = Kinetic::Build->new(
         'Class::Meta'                => 0.53,
         'Class::Meta::Express'       => 0.03,
         'Clone'                      => 0.15,
-        'Config::Std'                => '0.0.3',
         'Data::Types'                => 0.06,
         'DateTime'                   => 0.30,
         'DateTime::Format::Strptime' => 1.0601,

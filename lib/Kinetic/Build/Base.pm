@@ -26,7 +26,6 @@ use File::Spec;
 use File::Path  ();
 use File::Copy  ();
 use List::Util 'first';
-use Config::Std { read_config => 'get_config', write_config => 'set_config' };
 use Scalar::Util 'blessed';
 use Term::ANSIColor;
 use Class::ISA;
@@ -184,17 +183,13 @@ sub new {
 
   my $build = Kinetic::Build::Base->resume;
 
-Overrides Module::Build's implementation of the same method in order to set up
-the environment so that Kinetic::Util::Config can find the local configuration
-file.
+Overrides Module::Build's implementation of the same method in order to reload
+the setup configuration.
 
 =cut
 
 sub resume {
     my $self = shift->SUPER::resume(@_);
-    if ( my $conf = $self->notes('build_conf_file') ) {
-        $ENV{KINETIC_CONF} ||= $conf;
-    }
     if (my $setups = $SETUPS_FOR{ref $self}) {
         while (my ($prop, $class_map) = each %{ $setups }) {
             $self->_reload( $prop => $class_map );
@@ -242,7 +237,6 @@ __PACKAGE__->add_property(
     label       => 'Data store',
     default     => 'sqlite',
     message     => 'Which data store back end should I use?',
-    config_keys => [qw(store class)],
     callback    => sub { s/.*:://; $_ = lc; return 1; },
     setup       => {
         pg     => 'Kinetic::Build::Setup::Store::DB::Pg',
@@ -289,20 +283,6 @@ F<lib/Foo/Bar.pm> on Unix or F<lib\Foo\Bar.pm> on Windows.
 =cut
 
 __PACKAGE__->add_property( schema_skipper => [] );
-
-##############################################################################
-
-=head3 path_to_config
-
-  my $path_to_config = $build->path_to_config;
-  $build->path_to_config($path_to_config);
-
-The complete path to an existing configuration file. If supplied, some values
-may be pulled from this file rather than prompting the user for them.
-
-=cut
-
-__PACKAGE__->add_property( 'path_to_config' => $ENV{KINETIC_CONF} );
 
 ##############################################################################
 
@@ -355,9 +335,7 @@ sub dist_version {
 
 =end comment
 
-Overrides Module::Build's C<test> action to add the C<config> action as a
-dependency, to set the C<$KINETIC_CONF> environment variable to point to a
-tests-specific configuration file, and to set up the C<$KINETIC_SUPPORTED>
+Overrides Module::Build's C<test> action to set up the C<$KINETIC_SUPPORTED>
 environment variable with a space-delimited list of the values of all
 properties that specified a C<setup> property, so that tests can detect how
 these properties were set.
@@ -366,9 +344,6 @@ these properties were set.
 
 sub ACTION_test {
     my $self = shift;
-
-    # Set up the test configuration file.
-    local $ENV{KINETIC_CONF} = $self->notes('test_conf_file');
 
     # Set up a list of supported features.
     local $ENV{KINETIC_SUPPORTED}
@@ -447,10 +422,8 @@ sub ACTION_install {
  $build->init;
 
 This method is called by C<new()> to initialize the Kinetic::Build::Base
-object. It sets up the configuration date if C<path_to_config()> returns a
-file name, adds the "conf" build elements, and collects data for all
-properties that have specified a prompt, as well as their related setup
-objects, if any.
+object. It collects data for all properties that have specified a prompt, as
+well as their related setup objects, if any.
 
 Essentially, everything that needs to be done before returning a new
 Kinetic::Build::Base object is executed here. It is separate from C<new()> so
@@ -462,19 +435,8 @@ has been created but before calling C<SUPER::new()> to execute this code.
 sub init {
     my $self = shift;
 
-    # Load the config file, if specified.
-    if (my $conf_file = $self->path_to_config) {
-        # Load the configuration.
-        get_config( $conf_file => my %conf );
-        $self->notes(_config_ => \%conf);
-    }
-
     # Prevent installation into lib/perl5. We just want lib'.
     $self->install_base_relpaths(lib => 'lib');
-
-    # Add config file element and install path.
-    $self->add_build_element('conf');
-    $self->install_base_relpaths(conf => 'conf');
 
     # Prompts.
     for my $class ( reverse Class::ISA::self_and_super_path(ref $self) ) {
@@ -531,87 +493,6 @@ sub setup_objects {
            map  { $self->notes("build_$_") }
            $self->setup_properties;
 }
-
-##############################################################################
-
-=head3 process_conf_files
-
-This method is called during the C<build> action to copy the configuration
-files to F<blib/conf> and F<t/conf>. Their contents are also modified to
-reflect the contents of the attributes (such as the data store, database
-metadata, etc.).
-
-=cut
-
-sub process_conf_files {
-    my $self = shift;
-    return $self if $self->notes('process_conf_files');
-
-    $self->add_to_cleanup('t/conf');
-    my (@files, $config);
-    my $master_conf_file = $self->path_to_config;
-
-    # Use master file for installable confs and load its data.
-    if ($master_conf_file) {
-        @files = $self->_copy_to(
-            $self->_prep_conf_filename($master_conf_file),
-            $self->blib,
-            't'
-        );
-        $config = $self->_load_configs;
-    }
-
-    # Otherwise just copy the local config files.
-    else {
-        @files = $self->_copy_to( $self->find_conf_files, $self->blib, 't' );
-    }
-
-    for my $conf_file (@files) {
-        # Load the configuration.
-        get_config( $conf_file => my %conf );
-        $self->_merge_configs(\%conf, $config) if $config;
-
-        my $test = '';
-        if ( $conf_file =~ /^blib/ ) {
-            # This is the config file to be installed.
-            $self->notes(
-                build_conf_file => $ENV{KINETIC_CONF} = $conf_file
-            );
-        }
-        else {
-            # This is the config file to use for tests.
-            $self->notes( test_conf_file => $conf_file );
-            $test = 'test_';
-        }
-
-        # Configure from setup.
-        my $config_meth = "add_to_${test}config";
-        for my $setup ($self->setup_objects) {
-            $setup->$config_meth(\%conf);
-        }
-
-        # Make sure the file is writable and save the configuration to it.
-        chmod 0644, $conf_file;
-        set_config(%conf => $conf_file);
-
-        # Make the blib file read-only again.
-        chmod 0444, $conf_file if $conf_file =~ /^blib/;
-    }
-
-    $self->notes(process_conf_files => 1);
-    return $self;
-}
-
-##############################################################################
-
-=head3 find_conf_files
-
-Called by C<process_conf_files()>, this method returns a hash reference of
-configuration file names for processing and copying.
-
-=cut
-
-sub find_conf_files { shift->find_files_in_dir('conf') }
 
 ##############################################################################
 
@@ -693,27 +574,11 @@ might pass a code reference like C<sub { /^\d+$/ }>. Note that if the callback
 sets C<$_> to a different value, the revised value is the one that will be
 returned. This can be useful for parsing one value from another.
 
-=item config_keys
-
-An array reference with two values that will be used to look up the value in
-the configuration file specified by the C<path_to_config> property. If no
-config file has been specified, these values will not be used. Otherwise, if
-no value was found in the Module::Build runtime parameters or arguments, the
-configuration file will be consulted. The first item in the array should be
-the name of the config file label, and the second item should be the key for
-the value for that label. For example, if you wanted to get at the store class,
-it might appear in the config file like so:
-
-  [store]
-  class: Kinetic::Store::DB::Pg
-
-To retrieve that value, set the array reference to ['store', 'class'].
-
 =item environ
 
 The name of an environment variable to check for a value. Checked only after
-the Module::Build runtime parameters and arguments and the configuration file
-have failed to return a value, but before prompting the user.
+the Module::Build runtime parameters and arguments have failed to return a
+value, but before prompting the user.
 
 =back
 
@@ -723,11 +588,10 @@ sub get_reply {
     my ( $self, %params ) = @_;
     my $def_label = $params{default};
 
-    # Return command-line/config file/envronment value first.
+    # Return command-line and envronment value first.
     my $val = $self->_get_option(
         key         => $params{name},
         callback    => $params{callback},
-        config_keys => $params{config_keys},
         environ     => $params{environ},
     );
 
@@ -800,11 +664,10 @@ sub ask_y_n {
     my ( $self, %params ) = @_;
     die 'ask_y_n() called without a prompt message' unless $params{label};
 
-    # Return command-line/config file/envronment value first.
+    # Return command-line and envronment value first.
     my $val = $self->_get_option(
         key         => $params{name},
         callback    => sub { $_ = $_ ? 1 : 0; return 1; },
-        config_keys => $params{config_keys},
         environ     => $params{environ},
     );
 
@@ -1133,9 +996,8 @@ sub _is_tty {
 
    my $opt = $build->_get_option(%params);
 
-Looks in the Module::Build runtime parameters and arguments and the config
-file (if specified via the C<path_to_config> property) for an option specified
-on the command-line. The supported parameters include:
+Looks in the Module::Build runtime parameters and arguments environment for an
+option specified on the command-line. The supported parameters include:
 
 =over
 
@@ -1165,19 +1027,11 @@ exception.  Note that if the callback sets C<$_> to a different value, the
 revised value is the one that will be returned. This can be useful for parsing
 one value from another.
 
-=item config_keys
-
-An optional two-value array reference that will be used to look up the value
-in the hash reference created by the config file specified by the
-C<path_to_config> property. The config file is consulted only after a value
-has not been found in the Module::Build runtime parameters and arugments, and
-if no such file has been specified, C<_get_option()> simply returns.
-
 =item environ
 
 The name of an environment variable that might contain the value. The
 environment is checked only after the Module::Build runtime parameters and
-arguments and the configuration file.
+arguments have failed to return a value.
 
 =back
 
@@ -1197,18 +1051,6 @@ sub _get_option {
             next unless defined $val;
             return $val unless $callback;
             return $self->_handle_callback($val, "--$arg", $callback);
-        }
-    }
-
-    # If we get here, try to look it up in the configuration.
-    if (my $config_keys = $params{config_keys}) {
-        my ($label, $ckey) = @{ $config_keys };
-        die 'config_keys must be a two-item array refernce'
-            unless defined $label and defined $ckey;
-        if (my $config = $self->notes('_config_')) {
-            my $val = $config->{$label} ? $config->{$label}{$ckey} : undef;
-            return $self->_handle_callback($val, uc "$label\_$ckey", $callback)
-                if defined $val;
         }
     }
 
@@ -1268,84 +1110,6 @@ sub _reload {
           or $self->fatal_error(
             "I'm not familiar with the $component_type $component" );
         eval "require $build_class" or $self->fatal_error($@);
-    }
-    return $self;
-}
-
-##############################################################################
-
-=head3
-
-  my $conf_file_map = $build->_prep_conf_filename($conf_file);
-
-Called by C<process_conf_files()>, this method parses from the complete file
-path for an installed configuration file to extract its last directory and the
-file name. These will then be used to create new configuration files for
-testing and for installation.
-
-=cut
-
-sub _prep_conf_filename {
-    my ($self, $conf_file) = @_;
-    my ($vol, $dirs, $file) = File::Spec->splitpath($conf_file);
-    my $dir = first { $_ ne '' } reverse File::Spec->splitdir($dirs);
-    # Aiming for conf/kinetic.conf
-    return { $conf_file => File::Spec->catfile($dir, $file) };
-}
-
-##############################################################################
-
-=head3 _load_configs
-
-  my $config = $self->_load_configs;
-
-This method is called by C<process_conf_files()> when C<path_to_config> has a
-path to a configuration file. What it does is to load all the local
-configuration files in F<conf/> into a a single config hash. This config hash
-will then be merged with the contents of the config file scpecified by
-C<path_to_config>.
-
-=cut
-
-sub _load_configs {
-    my $self = shift;
-    my ($first_file, @remaining_files) = sort keys %{ $self->find_conf_files };
-    return unless $first_file;
-
-    get_config( $first_file => my %config);
-
-    for my $conf_file ( @remaining_files ) {
-        get_config( $conf_file => my %file_conf );
-        $self->_merge_configs(\%config, \%file_conf, $first_file, $conf_file);
-        $first_file = $conf_file;
-    }
-    return \%config;
-}
-
-##############################################################################
-
-=head3 _merge_configs
-
-  $self->_merge_configs(\%to, \%from, $to_file, $from_file);
-
-This method merges the contents of the \%from config hash into the \%to config
-hash. If it detects any conflicts (that is, where a value in the from hash
-already exists in the to hash), it will throw an exception, using the file
-names to indicate to the user where the conflicts lie.
-
-=cut
-
-sub _merge_configs {
-    my ($self, $to, $from, $to_file, $from_file) = @_;
-
-    while (my ($label, $vals) = each %$from) {
-        while (my ($key, $val) = each %$vals) {
-            die qq{Cannot merge the configuration key "$key" under the label }
-                . qq{from $from_file because it has already been set by }
-                . $to_file
-                if exists $to->{$label}{$key};
-            $to->{$label}{$key} = $val;
-        }
     }
     return $self;
 }

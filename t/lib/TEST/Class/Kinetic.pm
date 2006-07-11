@@ -27,7 +27,6 @@ use Cwd ();
 use File::Path ();
 use File::Find;
 use File::Spec::Functions;
-use Config::Std; # Avoid warnings.
 use Test::NoWarnings ();
 use aliased 'Test::MockModule';
 
@@ -70,10 +69,7 @@ In addition, this module sets up a number of configurations and methods that
 test subclasses can use to create directories, change directories, or check to
 see if particular features are enabled. The supported features are parsed from
 an environment variable, C<KINETIC_SUPPORTED>, which is set by C<./Build
-test>. If tests aren't being run by the Kinetic build system, simply set the
-environment variable to a space-delimited list of supported features, like so:
-
-  KINETIC_CONF=t/conf/kinetic.conf KINETIC_SUPPORTED="sqlite pg" prove t/build.t
+test>.
 
 =cut
 
@@ -203,10 +199,6 @@ Loads and returns "TEST::Kinetic::Build".
 
 Loads and returns "Kinetic::Util::Language".
 
-=item F<Kinetic/Util/Config.pm>
-
-Loads and returns "Kinetic::Util::Config".
-
 =back
 
 =cut
@@ -244,7 +236,6 @@ sub a_test_load : Test(startup => 1) {
     my $test = shift;
     (my $class = ref $test) =~ s/^TEST:://;
     return ok 1, "TEST::Class::Kinetic loaded" if $class eq 'Class::Kinetic';
-    local $ENV{KINETIC_CONF};
     use_ok $class or die;
     $test->{test_class} = $class;
 }

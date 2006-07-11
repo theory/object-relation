@@ -20,7 +20,6 @@ requires:
   Class::Meta: 0.53
   Class::Meta::Express: 0.03
   Clone: 0.15
-  Config::Std: 0.0.3
   DBD::Pg: 1.32
   DBD::SQLite: 1.12
   DBI: 1.5
@@ -127,9 +126,6 @@ provides:
   Kinetic::Build::Setup::Store::DB::SQLite:
     file: lib/Kinetic/Build/Setup/Store/DB/SQLite.pm
     version: 0.000002
-  Kinetic::Build::Test:
-    file: lib/Kinetic/Build/Test.pm
-    version: 0.000002
   Kinetic::DataType::DateTime:
     file: lib/Kinetic/DataType/DateTime.pm
     version: 0.000002
@@ -234,9 +230,6 @@ provides:
     version: 0.000002
   Kinetic::Util::Collection:
     file: lib/Kinetic/Util/Collection.pm
-    version: 0.000002
-  Kinetic::Util::Config:
-    file: lib/Kinetic/Util/Config.pm
     version: 0.000002
   Kinetic::Util::Constants:
     file: lib/Kinetic/Util/Constants.pm

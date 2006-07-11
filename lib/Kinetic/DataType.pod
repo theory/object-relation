@@ -328,8 +328,6 @@ work for the C<real> data type we defined above).
 How is the C<store_raw> method implemented? It checks to see which store is in
 use and then does the right thing:
 
-  use Kinetic::Util::Config qw(:store);
-
   sub store_raw {
       my ($self, $store) = @_;
       if ($store->isa('Kinetic::Store::DB::Pg')) {

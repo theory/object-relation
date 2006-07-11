@@ -44,9 +44,8 @@ In F<Build.PL>:
 =head1 Description
 
 This module subclasses L<Module::Build|Module::Build> to provide added
-functionality for installing Kinetic. The added functionality includes
-configuration file management, configuration file setup for tests, data store
-schema generation, and database building.
+functionality for installing Kinetic. The added functionality includes data
+store schema generation, and database building.
 
 Note that this class also includes the interface defined by
 L<Kinetic::Build::Trait|Kinetic::Build::Trait>.
@@ -76,7 +75,6 @@ __PACKAGE__->add_property(
     label       => 'Kinetic cache',
     default     => 'file',
     message     => 'Which session cache should I use?',
-    config_keys => [qw(cache class)],
     callback    => sub { s/.*:://; $_ = lc; return 1; },
     setup       => {
         memcached => 'Kinetic::Build::Setup::Cache::Memcached',
@@ -87,88 +85,6 @@ __PACKAGE__->add_property(
 ##############################################################################
 
 =head2 Actions
-
-=head3 config
-
-=begin comment
-
-=head3 ACTION_config
-
-=end comment
-
-This action modifies the contents of Kinetic::Util::Config to default to the
-location of F<kinetic.conf> specified by the build process. You won't normally
-call this action directly, as the C<build> and C<test> actions depend on it.
-
-=cut
-
-sub ACTION_config {
-    my $self = shift;
-    $self->depends_on('code');
-
-    # Find Kinetic::Util::Config and hard-code the path to the
-    # configuration file.
-    my @path = qw(lib Kinetic Util Config.pm);
-    my $old  = File::Spec->catfile( $self->blib, @path );
-
-    # Just return if there is no configuration file.
-    # XXX Can this burn us?
-    return $self unless -e $old;
-
-    # Find Kinetic::Util::Config in lib and just return if it
-    # hasn't changed.
-    my $lib = File::Spec->catfile(@path);
-    return $self if $self->up_to_date( $lib, $old );
-
-    # Figure out where we're going to install this beast.
-    $path[-1] .= '.new';
-    my $new     = File::Spec->catfile( $self->blib, @path );
-    my $base    = $self->install_base;
-    my $default = '/usr/local/kinetic/conf/kinetic.conf';
-    my $config  = File::Spec->catfile( $base, qw(conf kinetic.conf) );
-
-    # Just return if the default is legit.
-    return if $base eq $default;
-
-    # Update the file.
-    open my $orig, '<', $old or die "Cannot open '$old': $!\n";
-    open my $temp, '>', $new or die "Cannot open '$new': $!\n";
-    while (<$orig>) {
-        s/$default/$config/g;
-        print $temp $_;
-    }
-    close $orig;
-    close $temp;
-
-    # Make the switch.
-    rename $new, $old or die "Cannot rename '$old' to '$new': $!\n";
-    return $self;
-}
-
-##############################################################################
-
-=head3 build
-
-=begin comment
-
-=head3 ACTION_build
-
-=end comment
-
-Overrides Module::Build's C<build> action to add the C<config> action as a
-dependency.
-
-=cut
-
-sub ACTION_build {
-    my $self = shift;
-    $self->depends_on('code');
-    $self->depends_on('config');
-    $self->SUPER::ACTION_build(@_);
-    return $self;
-}
-
-##############################################################################
 
 =head3 test
 
@@ -185,7 +101,6 @@ use by tests. It will be deleted by the C<cleanup> action.
 
 sub ACTION_test {
     my $self = shift;
-    $self->depends_on('config');
 
     # Set up t/data for tests to fill with junk. We'll clean it up.
     my $data = $self->test_data_dir;

@@ -4,7 +4,6 @@
 
 use strict;
 use warnings;
-use Kinetic::Build::Test;
 use Test::More tests => 118;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.

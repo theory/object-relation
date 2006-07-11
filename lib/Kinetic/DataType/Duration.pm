@@ -23,7 +23,6 @@ use base 'DateTime::Duration';
 use DateTime;
 use Kinetic::Meta::Type;
 use Kinetic::Util::Exceptions qw(throw_invalid);
-use Kinetic::Util::Config qw(:store);
 
 use overload
     'fallback' => 1,

@@ -7,7 +7,6 @@ use warnings;
 use base 'TEST::Class::Kinetic';
 use Test::More;
 use aliased 'Test::MockModule';
-use Config::Std;
 use Class::Trait; # Avoid warnings.
 use Test::Exception;
 use Test::File;
@@ -25,63 +24,7 @@ sub teardown_builder : Test(teardown) {
     }
 }
 
-sub atest_process_conf_files : Test(12) {
-    my $self = shift;
-    my $class = $self->test_class;
-
-    file_exists_ok 'conf/kinetic.conf', "We should have a default config file";
-
-    # There should be no blib directory or t/conf directories.
-    file_not_exists_ok 'blib/conf/kinetic.conf',
-      "We should start with no blib config file";
-    file_not_exists_ok 't/conf/kinetic.conf',
-      "Nor should there be a t/conf config file";
-
-    # We can make sure things work with the default SQLite store.
-    my $info = MockModule->new('App::Info::RDBMS::SQLite');
-    $info->mock(installed => 1);
-    $info->mock(version => '3.2.2');
-
-    # I mock thee, builder!
-    my $builder;
-    my $mb = MockModule->new($class);
-    $mb->mock(resume => sub { $builder });
-    $mb->mock(ACTION_docs => 0);
-    $mb->mock(store => 'sqlite');
-    $mb->mock(store_config => { class => '' });
-    $builder = $self->new_builder;
-
-    # Building should create these things.
-    is $builder->dispatch('build'), $builder, "Run the build action";
-    file_exists_ok 'blib/conf/kinetic.conf',
-      "Now there should be a blib config file";
-    file_exists_ok 't/conf/kinetic.conf',
-      "And there should be a t/conf config file";
-    is $ENV{KINETIC_CONF}, catfile(qw(blib conf kinetic.conf)),
-      "The KINETIC_CONF environment variable should point to the new config file";
-
-    # Check the config file to be installed.
-    my $db_file = catfile $builder->install_base, 'store', 'kinetic.db';
-    file_contents_like 'blib/conf/kinetic.conf',
-        qr/dsn\s*:\s*dbi:SQLite:dbname=$db_file/,
-      '... The DSN should be set properly';
-    file_contents_unlike 'blib/conf/kinetic.conf', qr/\s*[pg]\s*\n/,
-        '... The PostgreSQL section should be commented out';
-
-    # Check the test config file.
-    my $test_file = catfile $builder->base_dir, 't', 'data', 'kinetic.db';
-    file_contents_like 't/conf/kinetic.conf',
-        qr/dsn\s*:\s*dbi:SQLite:dbname=$test_file/,
-      '... The test DSN should be set properly';
-    file_contents_unlike 'blib/conf/kinetic.conf', qr/\s*[pg]\s*\n/,
-        '... The PostgreSQL section should be commented out';
-
-    # Make sure we clean up our mess.
-    $builder->dispatch('clean');
-    file_not_exists_ok 'blib', 'Build lib should be gone';
-}
-
-sub test_bin_files : Test(8) {
+sub test_bin_files : Test(7) {
     my $self    = shift;
     my $class   = $self->test_class;
     my $bscript = 'blib/script/somescript';
@@ -102,11 +45,10 @@ sub test_bin_files : Test(8) {
     $mb->mock(resume => sub { $builder });
     $mb->mock(ACTION_docs => 0);
     $mb->mock(store => 'sqlite');
-    $mb->mock(store_config => { class => '' });
     $builder = $self->new_builder;
 
     # Building should create these things.
-    is $builder->dispatch('build'), $builder, "Run the build action";
+    $builder->dispatch('build');
     file_exists_ok $bscript, 'Now there should be a blib script file';
 
     # Check the bin file to be installed.
@@ -132,7 +74,7 @@ sub test_bin_files : Test(8) {
     file_not_exists_ok 'blib', 'Build lib should be gone';
 }
 
-sub test_props : Test(13) {
+sub test_props : Test(10) {
     my $self = shift;
     my $class = $self->test_class;
     my $mb = MockModule->new($class);
@@ -149,20 +91,12 @@ sub test_props : Test(13) {
     my $base = $builder->install_base;
     is_deeply $builder->install_base_relpaths->{lib}, ['lib'],
         'The lib install relpath should be "lib"';
-    is_deeply $builder->install_base_relpaths->{conf}, ['conf'],
-        'The conf install relpath should be "conf"';
-
-    # Make sure that we've added the "config" build element.
-    ok any( sub { $_ eq 'conf' }, @{ $builder->build_elements } ),
-        'Check for "conf" build element';
 
     is $builder->accept_defaults, 1, 'Accept Defaults should be enabled';
     is $builder->store, 'sqlite', 'Default store should be "SQLite"';
     is $builder->source_dir, 'lib', 'Default source dir should be "lib"';
     is_deeply $builder->schema_skipper, [],
         'Default schema skippers should be an empty arrayref';
-    is $builder->path_to_config, undef,
-        'The path to config option should be undef by default';
     is $builder->dev_tests, 0, 'Run dev tests should be disabled';
     like $builder->install_base, qr/kinetic$/,
       'The install base should end with "kinetic"';
@@ -202,7 +136,7 @@ sub test_props : Test(13) {
     is $builder->store, 'pg', 'Data store should now be "pg"';
 }
 
-sub test_check_store : Test(5) {
+sub test_check_store : Test(4) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -227,48 +161,10 @@ sub test_check_store : Test(5) {
     # Make sure that the build action checks the store.
     $builder = $self->new_builder;
     $mb->mock('ACTION_docs' => 0);
-    ok $builder->dispatch('build'), "Run build";
+    $builder->dispatch('build');
     isa_ok $builder->notes('build_store'), 'Kinetic::Build::Setup::Store';
     $builder->dispatch('clean');
     file_not_exists_ok 'blib', 'Build lib should be gone';
-}
-
-sub test_config_action : Test(4) {
-    my $self = shift;
-    my $class = $self->test_class;
-
-    # Copy Kinetic::Util::Config to data dir (not sample!).
-    $self->mkpath(qw(lib Kinetic Util));
-    copy catfile(updir, updir, qw(lib Kinetic Util Config.pm)),
-         catdir(qw(lib Kinetic Util));
-    my $default = '/usr/local/kinetic/conf/kinetic.conf';
-
-    my $config = catfile qw(lib Kinetic Util Config.pm);
-    file_contents_like $config, qr/\s+|| '$default';/,
-      qq{Config.pm should point to "$default" by default};
-
-    my $builder;
-    my $mb = MockModule->new($class);
-    $mb->mock(resume => sub { $builder });
-    $mb->mock('ACTION_code' => 0);
-    my $base = catdir '', 'foo', 'bar';
-
-    # We can make sure things work with the default SQLite store.
-    my $info = MockModule->new('App::Info::RDBMS::SQLite');
-    $info->mock(installed => 1);
-    $info->mock(version => '3.2.2');
-
-    $builder = $self->new_builder(install_base => $base);
-    can_ok $builder, 'ACTION_config';
-    ok $builder->dispatch('config'),
-      "We should be able to dispatch to the config action";
-
-    my $conf_file = catfile $base, 'kinetic', 'conf', 'kinetic.conf';
-    file_contents_like $config, qr"\s+|| '$conf_file';",
-      qq{Config.pm should now point to "$conf_file"};
-
-    # Clean up our mess.
-    unlink $config or die "Unable to delete $config: $!";
 }
 
 sub test_ask_y_n : Test(34) {
@@ -659,51 +555,6 @@ Cache expiration time: 3600
         input_value => ['foo', '3'],
         comment     => "With options by no TTY, we should just get the default",
     );
-}
-
-sub test_config_file : Test(6) {
-    my $self = shift;
-    my $class = $self->test_class;
-
-    my $kb = MockModule->new($class);
-    $kb->mock( check_manifest         => 1 );
-    $kb->mock( check_prereq           => 1 );
-    $kb->mock( _check_build_component => 1 );
-
-    ok my $builder = $self->new_builder(
-        path_to_config => 'conf/kinetic.conf',
-    ), 'Creat new builder';
-    is $builder->path_to_config, 'conf/kinetic.conf',
-        'path_to_config should be "conf/kinetic.conf"';
-
-    # Raad in the config file.
-    read_config( catfile(qw(conf kinetic.conf)) => my %conf );
-
-    # Check a few values.
-    is $builder->_get_option(
-        key => 'kinetic_root',
-        config_keys => [qw(kinetic root)],
-    ), $conf{kinetic}{root}, 'The kinetic root should be from the conf file';
-
-    is $builder->_get_option(
-        key => 'store_db_name',
-        config_keys => [qw(store db_name)],
-    ), $conf{store}{db_name}, 'The store db_name should be from the conf file';
-
-    # Try a callback.
-    is $builder->_get_option(
-        key => 'store_class',
-        config_keys => [qw(store class)],
-        callback    => sub { /^Kinetic::Store/ },
-    ), $conf{store}{class}, 'The store class should be from the conf file';
-
-    # Make sure that it works with get_reply, as well.
-    is $builder->get_reply(
-        name => 'store_class',
-        config_keys => [qw(store class)],
-        callback    => sub { /^Kinetic::Store/ },
-    ), $conf{store}{class},
-        'get_reply() should return the conf file store class';
 }
 
 sub test_environ : Test(6) {

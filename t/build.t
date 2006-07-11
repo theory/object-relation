@@ -11,20 +11,9 @@ use File::Path;
 
 
 BEGIN {
-    # All build tests execute in the sample directory with its
-    # configuration file.
+    # All build tests execute in the sample directory.
     chdir 't'; chdir 'sample';
-    $ENV{KINETIC_CONF} = catfile 'conf', 'kinetic.conf';
-
-    # Copy the config file to the sample/conf directory.
-    mkpath 'conf';
-    my $from = catfile updir, updir, qw(conf kinetic.conf);
-    my $to   = catdir(qw(conf kinetic.conf));
-    copy $from, $to or die "Cannot copy $from to $to: $!\n";
-
 }
-
-END { rmtree 'conf' }
 
 # Make sure we get access to all lib directories we're likely to need.
 use lib catdir(updir, 'build'),              # Build test classes

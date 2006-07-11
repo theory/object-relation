@@ -27,7 +27,6 @@ sub import {
     my $class = shift;
     # Run the setup script.
     return if $ENV{NOSETUP} || !$ENV{KINETIC_SUPPORTED};
-    $conf = $ENV{KINETIC_CONF};
     my $script = catfile qw(t bin setup.pl);
     system $^X, $script, @_ and die "# $script failed: ($!)";
 }
@@ -35,7 +34,6 @@ sub import {
 END {
     # Run the teardown script.
     return if $ENV{NOSETUP};
-    $ENV{KINETIC_CONF} = $conf;
     my $script = catfile qw(t bin teardown.pl);
     system $^X, $script and die "# $script failed: ($!)";
 }

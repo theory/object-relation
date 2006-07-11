@@ -24,7 +24,6 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Kinetic::Util::Cache';
-use Kinetic::Util::Config qw(:cache);
 use aliased 'Cache::Memcached';
 
 =head1 Name

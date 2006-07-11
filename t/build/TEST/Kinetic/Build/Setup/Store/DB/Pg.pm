@@ -34,7 +34,7 @@ sub test_class_methods : Test(7) {
       'We should have the correct DSN DBD string';
 }
 
-sub test_rules : Test(180) {
+sub test_rules : Test(168) {
     my $self = shift;
     my $class = $self->test_class;
     $self->chdirs('t', 'data');
@@ -562,39 +562,6 @@ sub test_rules : Test(180) {
             'The DSN should contain all of the environment data';
     }
 
-    ##############################################################################
-    # Test config file.
-    my %config = (
-        db_pass          => 'dbpass',
-        db_user          => 'dbuser',
-        dsn              => 'dbi:Pg:dbname=dbname;host=dbhost;port=987654',
-        class            => 'Kinetic::Store::DB::Pg',
-        db_super_user    => 'dbsuper',
-        db_super_pass    => 'dbspass',
-        template_db_name => 'dbtmplt',
-    );
-
-    $builder->notes( _config_ => { store => \%config } );
-    ok $fsa->reset->curr_state('Server info'), 'Set up Server info again';
-    is $kbs->db_host, 'dbhost', 'Host should now be set from config file';
-    is $kbs->db_port, '987654', 'Port should now be set from config file';
-    is $kbs->db_name, 'dbname', 'DB should now be set from config file';
-    is $kbs->db_user, 'dbuser', 'User should now be set from config file';
-    is $kbs->db_pass, 'dbpass', 'Pass should now be set from config file';
-    is $kbs->_dsn, 'dbi:Pg:dbname=dbname;host=dbhost;port=987654',
-        'The DSN should contain all of the config file data';
-
-    ok $fsa->reset->curr_state('Get super user'), 'Set up Get super user';
-    is $kbs->db_super_user, 'dbsuper',
-        'Super User should now be set from config file';
-    is $kbs->db_super_pass, 'dbspass',
-        'Super Pass should now be set from config file';
-
-    delete $kbs->{template_db_name};
-    ok $kbs->_get_template_db_name, 'Set template name';
-    is $kbs->template_db_name, 'dbtmplt',
-        'Template db name should be set from the config file';
-
     $kbs->_dbh(undef); # Prevent ugly deaths during cleanup.
 }
 
@@ -1117,7 +1084,7 @@ sub test_build_meths : Test(26) {
     $builder->dispatch('code');
 
     isa_ok $self->{tdbh} = $kbs->_connect(
-        $mock{template_db_name},
+        $kbs->_dsn($mock{template_db_name}),
         $mock{db_super_user},
         $mock{db_super_pass}, {
             RaiseError     => 0,

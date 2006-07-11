@@ -33,7 +33,7 @@ sub test_class_methods : Test(8) {
     ok $class->rules, "We should get some rules";
 }
 
-sub test_rules : Test(44) {
+sub test_rules : Test(41) {
     my $self  = shift;
     my $class = $self->test_class;
 
@@ -114,15 +114,6 @@ sub test_rules : Test(44) {
         },
     },
       "... as should the test configuration";
-
-    # Try getting the file setting from the configuration file.
-    s/fooness/somefile/ for ($test_file, $db_file);
-    $builder->notes( _config_ => { store => { file => $db_file } } );
-    $mb->unmock('get_reply');
-    ok $kbs->validate, 'Validate SQLite again';
-    is $kbs->db_file, $db_file, 'File name should be set from config file';
-    is $kbs->dsn, "dbi:SQLite:dbname=$db_file",
-        'The DSN should contain the config settings';
 
     ##########################################################################
     # Just skip the remaining tests if we can't test against a live database.

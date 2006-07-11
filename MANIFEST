@@ -1,7 +1,6 @@
 bin/kdbish
 Build.PL
 Changes
-conf/kinetic.conf
 lib/Kinetic.pm
 lib/Kinetic/Build.pm
 lib/Kinetic/Build/Base.pm
@@ -17,7 +16,6 @@ lib/Kinetic/Build/Setup/Store.pm
 lib/Kinetic/Build/Setup/Store/DB.pm
 lib/Kinetic/Build/Setup/Store/DB/Pg.pm
 lib/Kinetic/Build/Setup/Store/DB/SQLite.pm
-lib/Kinetic/Build/Test.pm
 lib/Kinetic/DataType.pod
 lib/Kinetic/DataType/DateTime.pm
 lib/Kinetic/DataType/DateTime/Incomplete.pm
@@ -55,7 +53,6 @@ lib/Kinetic/Util/Cache.pm
 lib/Kinetic/Util/Cache/File.pm
 lib/Kinetic/Util/Cache/Memcached.pm
 lib/Kinetic/Util/Collection.pm
-lib/Kinetic/Util/Config.pm
 lib/Kinetic/Util/Constants.pm
 lib/Kinetic/Util/Context.pm
 lib/Kinetic/Util/Exceptions.pm
@@ -69,7 +66,6 @@ MANIFEST			This list of files
 META.yml
 README
 t/accessors.t
-t/badconfig.t
 t/basic.t
 t/bin/setup.pl
 t/bin/teardown.pl
@@ -109,9 +105,7 @@ t/lib/TEST/Kinetic/Traits/Store.pm
 t/media_type.t
 t/meta.t
 t/mysql/schema.t
-t/noconfig.t
 t/parser/main.t
-t/pg/class.t
 t/pg/schema.t
 t/pg/schema_file.t
 t/pod.t
@@ -143,7 +137,6 @@ t/store/TEST/Kinetic/Store/DB/Pg.pm
 t/store/TEST/Kinetic/Store/DB/SQLite.pm
 t/store/TEST/Kinetic/Store/Search.pm
 t/storesearch.t
-t/test_setup.t
 t/util.t
 t/util/cache.t
 t/versions.t

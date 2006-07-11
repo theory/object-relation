@@ -395,8 +395,7 @@ The C<count()> method will most often be called to determine how many pages to
 provide links for when paginating search results in the UI. Therefore, for
 purposes of efficiency, the result of a call to C<count()> will be cached, so
 that subsequent calls to C<count()> with the same parameters will not incur
-the database overhead. The timeout for the C<count()> cache will be settable
-via a Kinetic::Util::Config setting.
+the database overhead.
 
 B<Throws:>
 
