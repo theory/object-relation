@@ -51,7 +51,6 @@ BEGIN {
 
     # Find all of the language classes and make sure that they load.
     find( $find_libs, File::Spec->catdir('lib') );
-    find( $find_libs, File::Spec->catdir('bin') );
     find( $find_libs, File::Spec->catdir('t') );
 }
 

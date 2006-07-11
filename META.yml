@@ -103,15 +103,6 @@ provides:
   Kinetic::Build::Setup:
     file: lib/Kinetic/Build/Setup.pm
     version: 0.000002
-  Kinetic::Build::Setup::Cache:
-    file: lib/Kinetic/Build/Setup/Cache.pm
-    version: 0.000002
-  Kinetic::Build::Setup::Cache::File:
-    file: lib/Kinetic/Build/Setup/Cache/File.pm
-    version: 0.000002
-  Kinetic::Build::Setup::Cache::Memcached:
-    file: lib/Kinetic/Build/Setup/Cache/Memcached.pm
-    version: 0.000002
   Kinetic::Build::Setup::State:
     file: lib/Kinetic/Build/Setup.pm
   Kinetic::Build::Setup::Store:
@@ -218,15 +209,6 @@ provides:
     version: 0.000002
   Kinetic::Store::Search:
     file: lib/Kinetic/Store/Search.pm
-    version: 0.000002
-  Kinetic::Util::Cache:
-    file: lib/Kinetic/Util/Cache.pm
-    version: 0.000002
-  Kinetic::Util::Cache::File:
-    file: lib/Kinetic/Util/Cache/File.pm
-    version: 0.000002
-  Kinetic::Util::Cache::Memcached:
-    file: lib/Kinetic/Util/Cache/Memcached.pm
     version: 0.000002
   Kinetic::Util::Collection:
     file: lib/Kinetic/Util/Collection.pm

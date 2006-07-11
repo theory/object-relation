@@ -56,34 +56,6 @@ L<Kinetic::Build::Trait|Kinetic::Build::Trait>.
 
 =head1 Class Interface
 
-=head2 Instance Methods
-
-=head3 cache
-
-  my $cache = $build->cache;
-  $build->cache($engine);
-
-The type of cache to be used for the application.  Possible values are
-"memcached" and "file".  Defaults to "memcached".
-
-The "file" cache is merely a test cache for easy development.
-
-=cut
-
-__PACKAGE__->add_property(
-    name        => 'cache',
-    label       => 'Kinetic cache',
-    default     => 'file',
-    message     => 'Which session cache should I use?',
-    callback    => sub { s/.*:://; $_ = lc; return 1; },
-    setup       => {
-        memcached => 'Kinetic::Build::Setup::Cache::Memcached',
-        file      => 'Kinetic::Build::Setup::Cache::File',
-    },
-);
-
-##############################################################################
-
 =head2 Actions
 
 =head3 test
@@ -109,6 +81,8 @@ sub ACTION_test {
 
     return $self->SUPER::ACTION_test(@_);
 }
+
+__PACKAGE__->setup_properties;
 
 1;
 __END__

@@ -64,16 +64,6 @@ sub test_props : Test(8) {
         'Which data store back end should I use?',
         ' [2]:',
         ' ',
-        "  1> file\n  2> memcached\n",
-        'Which session cache should I use?',
-        ' [1]:',
-        ' ',
-        'Please enter the root directory for caching',
-        ' [' . catdir(tmpdir(), qw(kinetic cache)) . ']:',
-        ' ',
-        'Please enter cache expiration time in seconds',
-        ' [3600]:',
-        ' ',
     ], 'We should be prompted for the data store and other stuff';
 
     is $builder->store, 'pg', 'Data store should now be "pg"';
@@ -230,15 +220,11 @@ sub test_get_reply : Test(53) {
 
     # Start not quiet and with defaults accepted.
     my $builder = $self->new_builder(quiet => 0);
-    my $tmpdir = catdir(tmpdir(), qw(kinetic cache));
 
     my $expected = <<"    END_INFO";
 Data store: pg
 Looking for pg_config
 path to pg_config: /usr/local/pgsql/bin/pg_config
-Kinetic cache: file
-Cache root: $tmpdir
-Cache expiration time: 3600
     END_INFO
     is delete $self->{info}, $expected,
       "Should have data store set by command-line option";

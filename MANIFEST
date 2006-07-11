@@ -1,4 +1,3 @@
-bin/kdbish
 Build.PL
 Changes
 lib/Kinetic.pm
@@ -9,9 +8,6 @@ lib/Kinetic/Build/Schema/DB.pm
 lib/Kinetic/Build/Schema/DB/Pg.pm
 lib/Kinetic/Build/Schema/DB/SQLite.pm
 lib/Kinetic/Build/Setup.pm
-lib/Kinetic/Build/Setup/Cache.pm
-lib/Kinetic/Build/Setup/Cache/File.pm
-lib/Kinetic/Build/Setup/Cache/Memcached.pm
 lib/Kinetic/Build/Setup/Store.pm
 lib/Kinetic/Build/Setup/Store/DB.pm
 lib/Kinetic/Build/Setup/Store/DB/Pg.pm
@@ -72,9 +68,6 @@ t/bin/teardown.pl
 t/build.t
 t/build/TEST/Kinetic/Build.pm
 t/build/TEST/Kinetic/Build/Setup.pm
-t/build/TEST/Kinetic/Build/Setup/Cache.pm
-t/build/TEST/Kinetic/Build/Setup/Cache/File.pm
-t/build/TEST/Kinetic/Build/Setup/Cache/Memcached.pm
 t/build/TEST/Kinetic/Build/Setup/Store.pm
 t/build/TEST/Kinetic/Build/Setup/Store/DB.pm
 t/build/TEST/Kinetic/Build/Setup/Store/DB/Pg.pm
