@@ -411,9 +411,7 @@ Returns the full path to the directory used by C<_path()>.
 
 =cut
 
-sub _dir {
-    return catdir shift->builder->install_base, 'store';
-}
+sub _dir { shift->_test_dir(@_) }
 
 ##############################################################################
 

@@ -24,57 +24,7 @@ sub teardown_builder : Test(teardown) {
     }
 }
 
-sub test_bin_files : Test(7) {
-    my $self    = shift;
-    my $class   = $self->test_class;
-    my $bscript = 'blib/script/somescript';
-
-    file_exists_ok 'bin/somescript', 'We should have a bin file';
-
-    # There should be no blib directory.
-    file_not_exists_ok $bscript, 'We should start with no blib script file';
-
-    # We can make sure things work with the default SQLite store.
-    my $info = MockModule->new('App::Info::RDBMS::SQLite');
-    $info->mock(installed => 1);
-    $info->mock(version => '3.2.2');
-
-    # I mock thee, builder!
-    my $builder;
-    my $mb = MockModule->new($class);
-    $mb->mock(resume => sub { $builder });
-    $mb->mock(ACTION_docs => 0);
-    $mb->mock(store => 'sqlite');
-    $builder = $self->new_builder;
-
-    # Building should create these things.
-    $builder->dispatch('build');
-    file_exists_ok $bscript, 'Now there should be a blib script file';
-
-    # Check the bin file to be installed.
-    my $lib  = File::Spec->catdir($builder->install_base, 'lib');
-    file_contents_like $bscript, qr/use lib '$lib';/,
-        '... The "use lib" line should be set properly';
-
-    my $config = $builder->config;
-    if ($config->{sharpbang} =~ /^\s*\#\!/) {
-        my $interpreter = $builder->perl;
-        file_contents_like $bscript, qr/\Q$config->{sharpbang}$interpreter/,
-            '... And the shebang line should be properly set';
-
-        file_contents_like $bscript, qr/eval 'exec \Q$interpreter/,
-            'And the eval exec line should be in place';
-    } else {
-        pass 'Shebang line irrelevant';
-        pass 'eval exec line irrelevant';
-    }
-
-    # Make sure we clean up our mess.
-    $builder->dispatch('clean');
-    file_not_exists_ok 'blib', 'Build lib should be gone';
-}
-
-sub test_props : Test(10) {
+sub test_props : Test(8) {
     my $self = shift;
     my $class = $self->test_class;
     my $mb = MockModule->new($class);
@@ -87,19 +37,12 @@ sub test_props : Test(10) {
 
     my $builder = $self->new_builder;
 
-    # Make sure the install paths are set.
-    my $base = $builder->install_base;
-    is_deeply $builder->install_base_relpaths->{lib}, ['lib'],
-        'The lib install relpath should be "lib"';
-
     is $builder->accept_defaults, 1, 'Accept Defaults should be enabled';
     is $builder->store, 'sqlite', 'Default store should be "SQLite"';
     is $builder->source_dir, 'lib', 'Default source dir should be "lib"';
     is_deeply $builder->schema_skipper, [],
         'Default schema skippers should be an empty arrayref';
     is $builder->dev_tests, 0, 'Run dev tests should be disabled';
-    like $builder->install_base, qr/kinetic$/,
-      'The install base should end with "kinetic"';
 
     # Make sure we clean up our mess.
     $builder->dispatch('clean');

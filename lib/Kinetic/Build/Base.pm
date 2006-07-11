@@ -61,11 +61,6 @@ This module subclasses L<Module::Build|Module::Build> to provide added
 functionality for installing Kinetic and Kinetic applications. It is not
 intended to be used directly, but by L<Kinetic::Build|Kinetic::Build>.
 
-The functionality it adds includes setting a different default value for the
-C<install_base> property to "$Config{installprefix}/kinetic" and automatically
-adding the contents of a C<bin> directory to the C<script_files> property.
-Read on for more.
-
 =cut
 
 ##############################################################################
@@ -167,14 +162,7 @@ such as data store information.
 =cut
 
 sub new {
-    my $self = shift->SUPER::new(
-        # Set up new default values for parent class properties.
-        install_base =>
-            File::Spec->catdir( $Config::Config{installprefix}, 'kinetic' ),
-        @_    # User-set properties.
-    );
-
-    return $self->init;
+    shift->SUPER::new( @_ )->init;
 }
 
 ##############################################################################
@@ -435,9 +423,6 @@ has been created but before calling C<SUPER::new()> to execute this code.
 sub init {
     my $self = shift;
 
-    # Prevent installation into lib/perl5. We just want lib'.
-    $self->install_base_relpaths(lib => 'lib');
-
     # Prompts.
     for my $class ( reverse Class::ISA::self_and_super_path(ref $self) ) {
         my $prompts = $PROMPTS_FOR{$class} or next;
@@ -492,37 +477,6 @@ sub setup_objects {
     return grep { $_ }
            map  { $self->notes("build_$_") }
            $self->setup_properties;
-}
-
-##############################################################################
-
-=head3 find_script_files
-
-Called by C<process_script_files()>, this method returns a hash reference of
-all of the files in the F<bin> directory for processing and copying.
-
-=cut
-
-sub find_script_files { shift->find_files_in_dir('bin') }
-
-##############################################################################
-
-=head3 find_files_in_dir
-
-  $build->find_files_in_dir($dir);
-
-Returns a hash reference of of all of the files in a directory, excluding any
-with F<.svn> in their paths. Code borrowed from Module::Build's
-C<_find_file_by_type()> method.
-
-=cut
-
-sub find_files_in_dir {
-    my ( $self, $dir ) = @_;
-    return {
-        map { $_, $_ }
-        @{ $self->rscan_dir( $dir, sub { -f && !/[.]svn/ } ) }
-    };
 }
 
 ##############################################################################
@@ -720,57 +674,6 @@ sub init_app {
     $version = version->new($version) unless ref $version;
 
     return $self;
-}
-
-##############################################################################
-
-=head3 fix_shebang_line
-
-  $builder->fix_shegang_line(@files);
-
-This method overrides that in the parent class in order to also process all of
-the script files and change any lines containing
-
-  use lib 'lib'
-
-To instead point to the library directory in which the module files will be
-installed, e.g., F</usr/local/kinetic/lib>. It then calls the parent method in
-order to fix the shebang lines, too.
-
-=cut
-
-sub fix_shebang_line {
-    my $self = shift;
-    my $lib  = File::Spec->catdir( $self->install_base, 'lib' );
-
-    for my $file (@_) {
-        $self->log_verbose(
-            qq{Changing "use lib 'lib'" in $file to "use lib '$lib'"} );
-
-        open my $fixin,  '<', $file       or die "Can't process '$file': $!";
-        open my $fixout, '>', "$file.new" or die "Can't open '$file.new': $!";
-        local $/ = "\n";
-
-        while (<$fixin>) {
-            s/use\s+lib\s+'lib'/use lib '$lib'/xms;
-            print $fixout $_;
-        }
-
-        close $fixin;
-        close $fixout;
-
-        rename $file, "$file.bak"
-          or die "Can't rename $file to $file.bak: $!";
-
-        rename "$file.new", $file
-          or die "Can't rename $file.new to $file: $!";
-
-        unlink "$file.bak"
-          or
-          $self->log_warn("Couldn't clean up $file.bak, leaving it there\n");
-    }
-
-    return $self->SUPER::fix_shebang_line(@_);
 }
 
 ##############################################################################
