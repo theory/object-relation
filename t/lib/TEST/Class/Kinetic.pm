@@ -66,10 +66,7 @@ system notation) are loaded upon startup. Only those modules that inherit from
 TEST::Class::Kinetic will be processed by a call to C<runall()>, however.
 
 In addition, this module sets up a number of configurations and methods that
-test subclasses can use to create directories, change directories, or check to
-see if particular features are enabled. The supported features are parsed from
-an environment variable, C<KINETIC_SUPPORTED>, which is set by C<./Build
-test>.
+test subclasses can use to create directories or change directories.
 
 =cut
 
@@ -132,48 +129,6 @@ whether or not to run dev tests.
 =cut
 
 sub dev_testing { exists $ENV{KS_CLASS} }
-
-##############################################################################
-
-=head3 supported
-
-  sub test_sqlite : Test(1) {
-      return "Not testing SQLite"
-        unless TEST::Class::Kinetic->supported('sqlite');
-      ok 1, 'We can use SQLite!';
-      # ...
-  }
-
-Pass a single argument to this method to find out whether a particular feature
-of the Kinetic framework is supported. This makes it easy to determine whether
-or not to skip a set of tests.
-
-=cut
-
-my %SUPPORTED = map { $_ => undef } split /\s+/, $ENV{KINETIC_SUPPORTED} || '';
-
-sub supported { exists $SUPPORTED{$_[1]} }
-
-##############################################################################
-
-=head3 any_supported
-
-  if (__PACKAGE__->any_supported(@features)) { ... }
-
-This method returns a boolean value indicating whether or not I<any> features
-of the Kinetic framework are supported. Takes a list of features.
-
-Optionally
-
-=cut
-
-sub any_supported {
-    my ($class, @features) = @_;
-    foreach my $feature (@features) {
-        return 1 if exists $SUPPORTED{$feature};
-    }
-    return;
-}
 
 ##############################################################################
 

@@ -117,7 +117,8 @@ sub test_rules : Test(41) {
 
     ##########################################################################
     # Just skip the remaining tests if we can't test against a live database.
-    return "Not testing SQLite" unless $self->supported('sqlite');
+    return "Not testing SQLite"
+        unless $ENV{KS_CLASS} && $ENV{KS_CLASS} =~ /DB::SQLite$/;
 
     # Try building the test database.
     $builder->source_dir('lib');

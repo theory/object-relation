@@ -92,8 +92,9 @@ sub test_dbh : Test(2) {
           "$class\::_connect_attrs should return values";
 
         # Only run the next test if we're testing a live data store.
-        ( my $store = $class ) =~ s/.*:://;
-        return "Not testing $store" unless $test->supported( lc $store );
+        ( my $store = $class ) =~ s/Kinetic::Store:://;
+        return "Not testing $store"
+            unless $ENV{KS_CLASS} && $ENV{KS_CLASS} =~ /$store$/;
         my $dbh = $class->new->_dbh;
         isa_ok $dbh, 'DBI::db';
         $dbh->disconnect;
@@ -1283,7 +1284,7 @@ sub test_types : Test(138) {
     is $types_test->gtin, $gtin,       'GTIN should be properly set';
     SKIP: {
         skip 'https://rt.cpan.org/Ticket/Display.html?id=19471', 2
-            if $self->supported('sqlite') && DBD::SQLite->VERSION <= 1.12;
+            if $ENV{KS_CLASS} =~ /DB::SQLite$/ && DBD::SQLite->VERSION <= 1.12;
         is $types_test->bin, $binary,      'Binary should be properly set';
         ok !is_utf8($types_test->bin),     'Binary variable should not be utf8';
     }
@@ -1340,7 +1341,7 @@ sub test_types : Test(138) {
     cmp_ok $types_test->gtin, '==', $gtin, 'GTIN should be properly set';
     SKIP: {
         skip 'https://rt.cpan.org/Ticket/Display.html?id=19471', 2
-            if $self->supported('sqlite') && DBD::SQLite->VERSION <= 1.12;
+            if $ENV{KS_CLASS} =~ /DB::SQLite$/ && DBD::SQLite->VERSION <= 1.12;
         is $types_test->bin,        $binary,  'Binary should be properly set';
         ok !is_utf8($types_test->bin),        'Binary should not be utf8';
     }
@@ -1362,7 +1363,7 @@ sub test_types : Test(138) {
 
     SKIP: {
         skip 'Need to enable SQLite strict affinity', 2
-            if $self->supported('sqlite');
+            if $ENV{KS_CLASS} =~ /DB::SQLite$/;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus integer should fail';
         like $@,
@@ -1390,7 +1391,7 @@ sub test_types : Test(138) {
     SKIP: {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 2
-            if $self->supported('pg')
+            if $ENV{KS_CLASS} =~ /DB::Pg$/
             && $self->dbh->{pg_server_version} <= 80102;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus whole should fail';
@@ -1419,7 +1420,7 @@ sub test_types : Test(138) {
     SKIP: {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 2
-            if $self->supported('pg')
+            if $ENV{KS_CLASS} =~ /DB::Pg$/
             && $self->dbh->{pg_server_version} <= 80102;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus posint should fail';
@@ -1448,7 +1449,7 @@ sub test_types : Test(138) {
     SKIP: {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 2
-            if $self->supported('pg')
+            if $ENV{KS_CLASS} =~ /DB::Pg$/
             && $self->dbh->{pg_server_version} <= 80102;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus operator should fail';
@@ -1477,7 +1478,7 @@ sub test_types : Test(138) {
     SKIP: {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 2
-            if $self->supported('pg')
+            if $ENV{KS_CLASS} =~ /DB::Pg$/
             && $self->dbh->{pg_server_version} <= 80102;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus media_type should fail';
@@ -1506,7 +1507,7 @@ sub test_types : Test(138) {
     SKIP: {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 2
-            if $self->supported('pg')
+            if $ENV{KS_CLASS} =~ /DB::Pg$/
             && $self->dbh->{pg_server_version} <= 80102;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus attribute should fail';
@@ -1535,7 +1536,7 @@ sub test_types : Test(138) {
     SKIP: {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 2
-            if $self->supported('pg')
+            if $ENV{KS_CLASS} =~ /DB::Pg$/
             && $self->dbh->{pg_server_version} <= 80102;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus version should fail';
@@ -1564,7 +1565,7 @@ sub test_types : Test(138) {
     SKIP: {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 2
-            if $self->supported('pg')
+            if $ENV{KS_CLASS} =~ /DB::Pg$/
             && $self->dbh->{pg_server_version} <= 80102;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus gtin should fail';
@@ -1588,7 +1589,7 @@ sub test_types : Test(138) {
 
     SKIP: {
         skip 'Need to enable SQLite strict affinity', 2
-            if $self->supported('sqlite');
+            if $ENV{KS_CLASS} =~ /DB::SQLite$/;
         throws_ok { $types_test->save } 'Exception::Class::DBI::STH',
             '... Saving it with a bogus integer should fail';
         like $@,
@@ -1599,7 +1600,7 @@ sub test_types : Test(138) {
     SKIP: {
         # XXX http://archives.postgresql.org/pgsql-patches/2006-01/msg00139.php
         skip 'Domain constraints ignored in PREPAREd statements', 4
-            if $self->supported('pg')
+            if $ENV{KS_CLASS} =~ /DB::Pg$/
             && $self->dbh->{pg_server_version} <= 80102;
 
         $checking = 'whole';

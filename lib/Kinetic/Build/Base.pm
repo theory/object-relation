@@ -315,61 +315,6 @@ sub dist_version {
 
 =head2 Actions
 
-=head3 test
-
-=begin comment
-
-=head3 ACTION_test
-
-=end comment
-
-Overrides Module::Build's C<test> action to set up the C<$KINETIC_SUPPORTED>
-environment variable with a space-delimited list of the values of all
-properties that specified a C<setup> property, so that tests can detect how
-these properties were set.
-
-=cut
-
-sub ACTION_test {
-    my $self = shift;
-
-    # Set up a list of supported features.
-    local $ENV{KINETIC_SUPPORTED}
-        = join ' ', map { $self->$_ } $self->setup_properties
-        if $self->dev_tests;
-
-    # Make it so!
-    $self->SUPER::ACTION_test(@_);
-}
-
-##############################################################################
-
-=head3 help
-
-=begin comment
-
-=head3 ACTION_help
-
-=end comment
-
-Provides help for the user, including a list of all supported command-line
-options.
-
-=cut
-
-sub ACTION_help {
-    my $self = shift;
-
-    # XXX To be done. The way Module::Build implements this method rather
-    # sucks (it expects its own specific POD format), so we'll likely have to
-    # hack our own. :-( We'll also want to add something to pull in options
-    # specified by the classes referenced in %SETUPS_FOR.
-    $self->SUPER::ACTION_help(@_);
-    return $self;
-}
-
-##############################################################################
-
 =head3 install
 
 =begin comment

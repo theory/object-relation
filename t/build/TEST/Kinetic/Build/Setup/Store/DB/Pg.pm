@@ -969,7 +969,8 @@ sub test_db_helpers : Test(21) {
     isa_ok $kbs, $class;
 
     # From here on in we hit the database.
-    return "Not testing PostgreSQL" unless $self->supported('pg');
+    return "Not testing PostgreSQL"
+        unless $ENV{KS_CLASS} && $ENV{KS_CLASS} =~ /DB::Pg$/;
     my $super_user = $ENV{KS_SUPER_USER} || 'postgres';
     my $super_pass = $ENV{KS_SUPER_PASS} || '';
 
@@ -1043,7 +1044,8 @@ sub test_db_helpers : Test(21) {
 
 sub test_build_meths : Test(26) {
     my $self = shift;
-    return "Not testing PostgreSQL" unless $self->supported('pg');
+    return "Not testing PostgreSQL"
+        unless $ENV{KS_CLASS} && $ENV{KS_CLASS} =~ /DB::Pg$/;
     my $class = $self->test_class;
 
     # Override builder methods to keep things quiet.
@@ -1219,7 +1221,8 @@ sub db_cleanup {
 sub _run_build_tests {
     my ($self, $kbs, $pg) = @_;
     # From here on in, we'll test actually creating the database.
-    return "Not testing PostgreSQL" unless $self->supported('pg');
+    return "Not testing PostgreSQL"
+        unless $ENV{KS_CLASS} && $ENV{KS_CLASS} =~ /DB::Pg$/;
 
     $pg->unmock('_connect');
     $pg->unmock('_plpgsql_available');

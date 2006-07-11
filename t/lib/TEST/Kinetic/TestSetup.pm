@@ -26,14 +26,14 @@ my $conf;
 sub import {
     my $class = shift;
     # Run the setup script.
-    return if $ENV{NOSETUP} || !$ENV{KINETIC_SUPPORTED};
+    return unless $ENV{KS_CLASS};
     my $script = catfile qw(t bin setup.pl);
     system $^X, $script, @_ and die "# $script failed: ($!)";
 }
 
 END {
     # Run the teardown script.
-    return if $ENV{NOSETUP};
+    return unless $ENV{KS_CLASS};
     my $script = catfile qw(t bin teardown.pl);
     system $^X, $script and die "# $script failed: ($!)";
 }
@@ -52,10 +52,10 @@ TEST::Kinetic::TestSetup - Setup Kinetic for tests
 
 =head1 Description
 
-This module automates setting up Kinetic for tests. It checks the
-$KINETIC_SUPPORTED environment variable, and if that variable is set, it knows
-that the C<dev_test> build attribute has been set to true. So on loading, it
-runs F<t/bin/setup.pl> and when all testing has completed, it runs
+This module automates setting up Kinetic for tests. It checks the $KS_CLASS
+environment variable, and if that variable is set, it knows that the
+C<dev_test> build attribute has been set to true. So on loading, it runs
+F<t/bin/setup.pl> and when all testing has completed, it runs
 F<t/bin/teardown.pl>. Those scripts must be run in a separate process; what
 they do is build the Kinetic data store and tear it down, respectively. That
 means that during dev testing, the data store is available for the duration of
