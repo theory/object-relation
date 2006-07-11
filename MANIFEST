@@ -86,7 +86,6 @@ t/build/TEST/Kinetic/Build/Setup/Store/DB/SQLite.pm
 t/clone.t
 t/collection.t
 t/collection/typed.t
-t/config.t
 t/context.t
 t/datatypes.t
 t/datetime.t

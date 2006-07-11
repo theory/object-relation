@@ -582,9 +582,6 @@ sub process_conf_files {
             # This is the config file to use for tests.
             $self->notes( test_conf_file => $conf_file );
             $test = 'test_';
-
-            # KINETIC_ROOT is different for tests than it is for installation
-            $conf{kinetic}{root} = getcwd();
         }
 
         # Configure from setup.

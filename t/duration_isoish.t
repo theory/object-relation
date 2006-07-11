@@ -4,7 +4,6 @@
 
 use strict;
 # We're testing non-Pg interval representation.
-use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::SQLite' };
 use Test::More tests => 62;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
@@ -14,6 +13,13 @@ BEGIN {
     $CLASS = 'Kinetic::DataType::Duration';
     use_ok $CLASS or die;
 };
+
+STORE: {
+    package Kinetic::Store::DB::SQLite;
+    sub new { bless {} => shift }
+}
+
+my $store = Kinetic::Store::DB::SQLite->new;
 
 for my $compare (
     [
@@ -243,7 +249,7 @@ for my $compare (
 ) {
     my ($iso_raw, $iso_padded, $obj) = @$compare;
     my $du = $CLASS->bake($iso_raw);
-    is $du->store_raw, $iso_padded,         qq{Padded iso is "$iso_padded"};
+    is $du->store_raw($store), $iso_padded, qq{Padded iso is "$iso_padded"};
     is $CLASS->bake($iso_padded), $obj, qq{Parse         "$iso_padded"};
 }
 

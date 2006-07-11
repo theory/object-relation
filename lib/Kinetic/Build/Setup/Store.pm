@@ -41,9 +41,7 @@ Kinetic::Build::Setup::Store - Kinetic data store builder
 =head1 Description
 
 This module builds a data store using the a schema output by
-L<Kinetic::Build::Schema|Kinetic::Build::Schema> to the a file. The data store
-will be built for the data store class specified by the C<STORE_CLASS>
-F<kinetic.conf> directive.
+L<Kinetic::Build::Schema|Kinetic::Build::Schema> to the a file.
 
 =cut
 

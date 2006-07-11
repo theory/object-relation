@@ -27,7 +27,6 @@ use File::Find;
 use File::Spec;
 use List::Util qw(first sum);
 use Kinetic::Util::Exceptions qw/throw_fatal/;
-use Kinetic::Util::Config qw/STORE_CLASS/;
 
 =head1 Name
 
@@ -55,7 +54,6 @@ use Exporter::Tidy
     class => [qw(
         file_to_mod
         load_classes
-        load_store
     )],
 ;
 
@@ -232,24 +230,6 @@ sub load_classes {
     find({ wanted => $find_classes, no_chdir => 1 }, $dir);
     shift @INC;
     return \@classes;
-}
-
-=head3 load_store
-
-  my $store = load_store($dir);
-  my $store = load_store($dir, $regex);
-  my $store = load_store($dir, @regexen);
-
-Behaves like C<load_classes> but ensures that the appropriate data store class
-is loaded first.
-
-=cut
-
-sub load_store {
-    my ($lib_dir, @skippers) = @_;
-    my $class = STORE_CLASS;
-    eval "require $class" or die $@;
-    load_classes( $lib_dir, @skippers );
 }
 
 1;

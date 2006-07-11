@@ -71,7 +71,7 @@ Kinetic::Meta::Type->add(
     key       => 'duration',
     name      => 'Duration',
     raw       => sub { ref $_[0] ? shift->raw : shift },
-    store_raw => sub { ref $_[0] ? shift->store_raw : shift },
+    store_raw => sub { ref $_[0] ? shift->store_raw(@_) : shift },
     bake      => sub { __PACKAGE__->bake(shift) },
     check     => __PACKAGE__,
 );
@@ -203,7 +203,7 @@ sub raw {
 
 =head3 store_raw
 
-  my $store_duration = $duration->store_raw;
+  my $store_duration = $duration->store_raw($store);
 
 Returns a duration string suitable for storage in the data store. The string
 returned depends on the data store class. For the PostgreSQL store, the string
@@ -229,12 +229,12 @@ As with raw(), The values of the duration parts will be normalized.
 =cut
 
 sub store_raw {
-    my $self = shift;
+    my ($self, $store) = @_;
     my @units = $self->in_units(
         qw(years months days hours minutes seconds nanoseconds)
     );
 
-    if (STORE_CLASS eq 'Kinetic::Store::DB::Pg') {
+    if ($store && $store->isa('Kinetic::Store::DB::Pg')) {
         # Use PostgreSQL's ugly format.
         $units[5] += delete($units[6]) / DateTime::MAX_NANOSECONDS;
         return sprintf '%s years %s mons %s days %s hours %s mins %s secs',

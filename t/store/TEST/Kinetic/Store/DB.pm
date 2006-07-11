@@ -1020,9 +1020,9 @@ sub test_once : Test(2) {
     my $dbh = $self->dbh;
     if (ref($self) =~ /Pg$/) {
         $dbh = DBI->connect(
-            Kinetic::Util::Config::STORE_DSN(),
-            Kinetic::Util::Config::STORE_DB_SUPER_USER(),
-            Kinetic::Util::Config::STORE_DB_SUPER_PASS(),
+            $ENV{KS_DSN},
+            $ENV{KS_SUPER_USER} || 'postgres',
+            $ENV{KS_SUPER_PASS} || '',
             {
                 RaiseError     => 0,
                 PrintError     => 0,

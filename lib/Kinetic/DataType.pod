@@ -313,7 +313,7 @@ Here's how C<Kinetic::DataType::Duration> uses it:
       key       => 'duration',
       name      => 'Duration',
       raw       => sub { ref $_[0] ? shift->raw : shift },
-      store_raw => sub { ref $_[0] ? shift->store_raw : shift },
+      store_raw => sub { ref $_[0] ? shift->store_raw(@_) : shift },
       bake      => sub { __PACKAGE__->bake(shift) },
       check     => __PACKAGE__,
   );
@@ -331,16 +331,14 @@ use and then does the right thing:
   use Kinetic::Util::Config qw(:store);
 
   sub store_raw {
-      my $self = shift;
-      if (STORE_CLASS eq 'Kinetic::Store::DB::Pg') {
+      my ($self, $store) = @_;
+      if ($store->isa('Kinetic::Store::DB::Pg')) {
           # return PostgreSQL format.
       }
       else {
           # Return other format for SQLite, MySQL, or whatever.
       }
   }
-
-Because C<STORE_CLASS> is a constant, this is actually very efficient.
 
 By the way, in this case, I chose to use a different format for the return
 value of C<raw> than either the PostgreSQL or SQLite format: A ISO-8601

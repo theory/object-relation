@@ -3,7 +3,6 @@
 # $Id$
 
 use strict;
-use Kinetic::Build::Test store => { class => 'Kinetic::Store::DB::Pg' };
 use Test::More tests => 197;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
@@ -15,9 +14,15 @@ BEGIN {
     use_ok $CLASS or die;
 };
 
+STORE: {
+    package Kinetic::Store::DB::Pg;
+    sub new { bless {} => shift }
+}
+
 ok my $du = $CLASS->new, 'Create duration object';
 isa_ok $du, $CLASS;
 isa_ok $du, $CLASS;
+my $store = Kinetic::Store::DB::Pg->new;
 
 for my $compare (
     [
@@ -309,7 +314,7 @@ for my $compare (
     # Try Pg format.
     my $du = $CLASS->bake($pg);
     ok !$CLASS->compare($du, $obj), qq{Parse "$pg"};
-    is $du->store_raw, $pg_raw, qq{Raw pg "$pg_raw"};
+    is $du->store_raw($store), $pg_raw, qq{Raw pg "$pg_raw"};
 
     # Try ISO-8601 format.
     $du = $CLASS->bake($iso);

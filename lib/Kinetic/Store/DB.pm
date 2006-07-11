@@ -952,7 +952,7 @@ sub _insert {
     foreach my $attr ( $self->{search_class}->persistent_attributes ) {
         next if $attr->name eq 'id' || $attr->collection_of;
         push @cols => $attr->_view_column;
-        push @vals => $attr->store_raw($object);
+        push @vals => $attr->store_raw($object, $self);
         throw_invalid( [ 'Attribute "[_1]" must be defined', $attr->name ] )
             if $attr->required && !defined $attr->get($object);
         if (my $bind_attr = $self->_bind_attr($attr->type)) {
@@ -1067,7 +1067,7 @@ sub _update {
     foreach my $attr ( $self->{search_class}->attributes(@mods) ) {
         next if $attr->collection_of;
         push @cols => $attr->_view_column;
-        push @vals => $attr->store_raw($object);
+        push @vals => $attr->store_raw($object, $self);
         if (my $bind_attr = $self->_bind_attr($attr->type)) {
             push @bind_params, [ $#vals + 1, $vals[-1], $bind_attr ];
         }

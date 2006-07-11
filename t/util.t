@@ -4,7 +4,7 @@
 
 use strict;
 use Kinetic::Build::Test;
-use Test::More tests => 21;
+use Test::More tests => 17;
 #use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
@@ -50,13 +50,11 @@ UUID: { # 10 tests.
 class: { # 5 tests.
     package MyTest3;
     use Kinetic::Util::Functions qw(:class);
-    use Kinetic::Util::Config qw/KINETIC_ROOT/;
     use Test::More;
     use aliased 'Kinetic::Build::Schema';
     Schema->new( 'Kinetic::Store::DB::SQLite' );
 
     can_ok __PACKAGE__, 'file_to_mod';
-    can_ok __PACKAGE__, 'load_store';
 
     main::throws_ok { file_to_mod( '', 'not/a/module.pl') }
       'Kinetic::Util::Exception::Fatal',
@@ -68,11 +66,4 @@ class: { # 5 tests.
       '... and it should remove the search directories';
     is file_to_mod('some/path/', 'some/path/To/Module.pm'), 'To::Module',
       '... and it should remove the search directories';
-
-    ok my $classes = load_store( 't/sample/lib' ),
-       'load_store() with a valid lib should succeed';
-    is ref $classes, 'ARRAY', '... returning an array ref';
-    is scalar(grep { $_->isa('Kinetic::Meta::Class::Schema') } @$classes),
-       scalar @$classes,
-      '... of schema objects';
 }

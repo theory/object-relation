@@ -3,12 +3,11 @@
 # $Id$
 
 use strict;
-use Test::More tests => 122;
+use Test::More tests => 123;
 #use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Util::Functions qw(:uuid);
-use Kinetic::Util::Config qw(STORE_CLASS);
 use Kinetic::Util::Constants qw(UUID_RE);
 
 package Kinetic::TestTypes;
@@ -126,6 +125,14 @@ BEGIN {
         "Add gtin attribute" );
 
     ok($cm->build, "Build class" );
+}
+
+# Set up phone data store classes.
+STORES: {
+    package Kinetic::Store::DB::Pg;
+    sub new { bless {}, shift }
+    package Kinetic::Store::DB::SQLite;
+    sub new { bless {}, shift }
 }
 
 ##############################################################################
@@ -278,11 +285,17 @@ is ref $t->duration, ref $duration, 'Duration object should be the same';
 is $t->my_class->attributes('duration')->raw($t),
     'P0Y0M2DT-23H-59M0S',
     "Make sure the raw value is properly formatted";
-my $store_raw = STORE_CLASS eq 'Kinetic::Store::DB::Pg'
-    ? '0 years 0 mons 2 days -23 hours -59 mins 0 secs'
-    : 'P00000Y00M02DT-23H-59M00S';
-is $t->my_class->attributes('duration')->store_raw($t), $store_raw,
-    "Make sure the store_raw value is properly formatted";
+
+my $store = Kinetic::Store::DB::Pg->new;
+is $t->my_class->attributes('duration')->store_raw($t, $store),
+    '0 years 0 mons 2 days -23 hours -59 mins 0 secs',
+    'Make sure the PostgreSQL store_raw value is properly formatted';
+
+$store = Kinetic::Store::DB::SQLite->new;
+is $t->my_class->attributes('duration')->store_raw($t, $store),
+    'P00000Y00M02DT-23H-59M00S',
+    'Make sure the SQLite store_raw value is properly formatted';
+
 eval { $t->duration('foo') };
 ok $err = $@, "Caught bad Duration exception";
 isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';

@@ -47,9 +47,7 @@ Kinetic::Build::Schema - Kinetic data store schema generation
 =head1 Description
 
 This module generates and outputs to a file the schema information necessary
-to create a data store for a Kinetic application. The schema will be generated
-for the data store class specified by the C<STORE_CLASS> F<kinetic.conf>
-directive.
+to create a data store for a Kinetic application.
 
 =cut
 

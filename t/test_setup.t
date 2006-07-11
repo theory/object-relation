@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 5;
+use Test::More tests => 3;
 use Test::NoWarnings; # Adds an extra test.
 
 BEGIN {
@@ -16,6 +16,3 @@ BEGIN {
 }
 
 BEGIN { use_ok( 'Kinetic::Util::Config', ':store' ) or die; }
-
-is STORE_CLASS, 'Kinetic::Store::DB::SQLite', 'Store class should be SQLite';
-is STORE_DSN,   'dbi:SQLite:dbname=__test__', 'DSN should be changed';

@@ -25,7 +25,7 @@ sub teardown_builder : Test(teardown) {
     }
 }
 
-sub atest_process_conf_files : Test(14) {
+sub atest_process_conf_files : Test(12) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -67,9 +67,6 @@ sub atest_process_conf_files : Test(14) {
       '... The DSN should be set properly';
     file_contents_unlike 'blib/conf/kinetic.conf', qr/\s*[pg]\s*\n/,
         '... The PostgreSQL section should be commented out';
-    file_contents_like 'blib/conf/kinetic.conf',
-      qr/\n\s*\[store\]\s*\n\s*class\s*:\s*Kinetic::Store::DB::SQLite\s*\n/,
-      '... The store should point to the correct data store';
 
     # Check the test config file.
     my $test_file = catfile $builder->base_dir, 't', 'data', 'kinetic.db';
@@ -78,9 +75,6 @@ sub atest_process_conf_files : Test(14) {
       '... The test DSN should be set properly';
     file_contents_unlike 'blib/conf/kinetic.conf', qr/\s*[pg]\s*\n/,
         '... The PostgreSQL section should be commented out';
-    file_contents_like 't/conf/kinetic.conf',
-      qr/\n\s*\[store\]\s*\n\s*class\s*:\s*Kinetic::Store::DB::SQLite\s*\n/,
-      '... The store should point to the correct data store in the test conf';
 
     # Make sure we clean up our mess.
     $builder->dispatch('clean');
@@ -667,7 +661,7 @@ Cache expiration time: 3600
     );
 }
 
-sub test_config_file : Test(8) {
+sub test_config_file : Test(6) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -703,16 +697,6 @@ sub test_config_file : Test(8) {
         callback    => sub { /^Kinetic::Store/ },
     ), $conf{store}{class}, 'The store class should be from the conf file';
 
-    # Fail a callback.
-    throws_ok {
-        $builder->_get_option(
-            key => 'store_class',
-            config_keys => [qw(store class)],
-            callback    => sub { /^\d/ },
-        );
-    } qr/"$conf{store}{class}" is not a valid value for STORE_CLASS/,
-        'We should get an error for a config file value that fails the callback';
-
     # Make sure that it works with get_reply, as well.
     is $builder->get_reply(
         name => 'store_class',
@@ -720,19 +704,9 @@ sub test_config_file : Test(8) {
         callback    => sub { /^Kinetic::Store/ },
     ), $conf{store}{class},
         'get_reply() should return the conf file store class';
-
-    # The failing callback should be passed, too.
-    throws_ok {
-        $builder->get_reply(
-            name => 'store_class',
-            config_keys => [qw(store class)],
-            callback    => sub { /^\d/ },
-        );
-    } qr/"$conf{store}{class}" is not a valid value for STORE_CLASS/,
-        'get_reply() should pass the failing callback';
 }
 
-sub test_environ : Test(7) {
+sub test_environ : Test(6) {
     my $self = shift;
     my $class = $self->test_class;
 
@@ -763,15 +737,6 @@ sub test_environ : Test(7) {
         environ => 'WOOT',
         callback => sub { /^hlgh/ },
     ), $ENV{WOOT}, '... and it should work with a callback';
-
-    throws_ok {
-        $builder->_get_option(
-            key => 'kinetic_root',
-            environ => 'WOOT',
-            callback => sub { /^hownow/ },
-        );
-    } qr/"$ENV{WOOT}" is not a valid value for the "WOOT" environment variable/,
-        'And a failing callback should die';
 
     # Make sure that it get_reply() passes it.
     is $builder->get_reply(

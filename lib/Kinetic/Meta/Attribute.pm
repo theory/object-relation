@@ -576,13 +576,13 @@ sub raw {
 
 =head3 store_raw
 
-  my $store_raw_value = $attr->store_raw($thingy);
+  my $store_raw_value = $attr->store_raw($thingy, $store);
 
 This method returns the raw value of an attribute properly formatted for
-serialization to the current data store. This value will most often be the
-same as that returned by C<raw()>, but different data stores require different
-formats, C<store_raw()> will return the representation appropriate for the
-current data store. For example, if the attribute was a
+serialization to a data store. This value will most often be the same as that
+returned by C<raw()>, but different data stores require different formats,
+C<store_raw()> will return the representation appropriate for the current data
+store. For example, if the attribute was a
 L<Kinetic::DataType::Duration|Kinetic::DataType::Duration> object, C<get()>
 would of course return the object, C<raw()> would return an ISO-8601 string
 representation, and C<store_raw()> would return one string representation for
@@ -638,17 +638,21 @@ sub build {
 
     # Create the attribute object raw(), store_raw(), and bake() code
     # references.
+    # XXX There must be some way to eliminate some of this code redundancy.
+    # Can these maybe be creaed by Kinetic::Meta::Type?
     if ($self->authz >= Class::Meta::READ) {
         my $get = $type->make_attr_get($self);
-        if (my $raw = $type->raw) {
+        my $raw = $type->raw;
+        if ($raw) {
             $self->{_raw} = sub { $raw->($get->(shift)) };
         } else {
             $self->{_raw} = $get;
         }
         if (my $store_raw = $type->store_raw) {
-            $self->{_store_raw} = sub { $store_raw->($get->(shift)) };
+            $self->{_store_raw} = sub { $store_raw->($get->(shift), @_) };
         } else {
-            $self->{_store_raw} = $self->{_raw};
+            # Prevent the store object from being passed to the getter.
+            $self->{_store_raw} = $raw ? $self->{_raw} : sub { $get->(shift) };
         }
 
         if ($self->authz >= Class::Meta::WRITE) {
