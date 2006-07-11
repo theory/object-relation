@@ -50,14 +50,17 @@ the underlying caching mechanism chosen.
 my %IDS;    # YUCK!
 
 sub new {
-    my $class = shift;
-    bless { cache => Memcached->new( { servers => [CACHE_ADDRESS] } ) },
-      $class;
+    my ($class, $params) = @_;
+    bless {
+        # XXX Add support for configuring these arguments.
+        cache   => Memcached->new( { servers => [127.0.0.1:11211] } ),
+        expires => $params->{expires} || 3600,
+    }, $class;
 }
 
 sub set {
     my ( $self, $id, $object ) = @_;
-    $self->_cache->set( $id, $object, CACHE_EXPIRES );
+    $self->_cache->set( $id, $object, $self->{expires} );
     $IDS{$id} = 1;
     return $self;
 }
@@ -66,7 +69,7 @@ sub add {
     my ( $self, $id, $object ) = @_;
     return if $self->get($id);
     $IDS{$id} = 1;
-    $self->_cache->add( $id, $object, CACHE_EXPIRES );
+    $self->_cache->add( $id, $object, $self->{expires} );
     return $self;
 }
 

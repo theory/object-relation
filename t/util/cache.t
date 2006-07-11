@@ -13,9 +13,6 @@ use Test::Exception;
 use Test::NoWarnings;    # Adds an extra test.
 
 use constant CACHE_DIR => catfile(qw/t data cache/);
-use Kinetic::Build::Test cache =>
-  { expires => 2, root => CACHE_DIR };
-use Kinetic::Util::Config qw(CACHE_OBJECT_CLASS);
 my $CACHE;
 
 BEGIN {
@@ -37,7 +34,9 @@ foreach my $method (qw/get set add remove/) {
 # Force factory testing
 
 can_ok $CACHE, 'new';
-ok $cache = $CACHE->new, '... and calling it should succeed';
+ok $cache = $CACHE->new('Kinetic::Util::Cache::File', {
+    expires => 2,
+}), '... and calling it should succeed';
 isa_ok $cache, $CACHE, '... and the object it returns';
 cmp_ok ref($cache), 'ne', $CACHE, '... but it is actually a subclass';
 
@@ -99,9 +98,13 @@ END {
     sub full { return join ' ', @{ +shift }{qw/rank name/} }
 }
 
-$CACHE = CACHE_OBJECT_CLASS;
+$CACHE = $ENV{KS_CACHE} =~ /Kinetic::Util::Cache/
+    ? $ENV{KS_CACHE}
+    : "Kinetic::Util::Cache::$ENV{KS_CACHE}";
 
-$cache = $CACHE->new;    # XXX reset the expire time
+$cache = $CACHE->new({
+    expires => 2,
+});    # XXX reset the expire time
 
 # we need to call this first or else a full run of the test suite might
 # encounter a previously cached object.
@@ -147,7 +150,7 @@ $cache->set( $soldier3->uuid, $soldier );
 diag "Sleeping a bit to test cache expiration"
   if $ENV{TEST_VERBOSE};
 
-sleep 4;    # 2 * the CACHE_EXPIRES amount
+sleep 4;    # 2 * the expires amount
 ok !$cache->get( $soldier3->uuid ), '... and items should expire properly';
 
 ok $cache->set( $soldier3->uuid, $soldier3 ),

@@ -15,19 +15,6 @@ use constant Build => 'Kinetic::Build';
 
 __PACKAGE__->runtests unless caller;
 
-sub get_pg_auth : Test(startup) {
-    my $self = shift;
-    return unless $self->supported('pg');
-    # We need to read in the test configuration file, in t/conf. This is to
-    # circumvent the use of the test configuration file in t/sample/conf, just
-    # so that we can get the full username and password of the super user and
-    # the template database name to test actual connections to the database.
-    # These are set up by the main ./Build. We're in t/sample, so we need to
-    # get ../conf/kinetic.conf.
-    my $conf_file = catfile updir, 'conf', 'kinetic.conf';
-    read_config($conf_file => $self->{conf});
-}
-
 sub test_class_methods : Test(7) {
     my $test = shift;
     my $class = $test->test_class;
@@ -1016,13 +1003,14 @@ sub test_db_helpers : Test(21) {
 
     # From here on in we hit the database.
     return "Not testing PostgreSQL" unless $self->supported('pg');
-    my $dsn = 'dbi:Pg:dbname=' . $self->{conf}{store}{template_db_name};
+    my $super_user = $ENV{KS_SUPER_USER} || 'postgres';
+    my $super_pass = $ENV{KS_SUPER_PASS} || '';
 
     # Test _connect().
     isa_ok my $dbh = $kbs->_connect(
-        $dsn,
-        $self->{conf}{store}{db_super_user},
-        $self->{conf}{store}{db_super_pass}, {
+        'dbi:Pg:dbname=template1',
+        $super_user,
+        $super_pass, {
             RaiseError     => 0,
             PrintError     => 0,
             pg_enable_utf8 => 1,
@@ -1043,7 +1031,7 @@ sub test_db_helpers : Test(21) {
       "And make appropriate use of them";
 
     # Test _db_exists.
-    ok $kbs->_db_exists($self->{conf}{store}{template_db_name}),
+    ok $kbs->_db_exists('template1'),
       "_db_exists should return true for the template db";
     ok !$kbs->_db_exists('__an_impossible_db_name_i_hope__'),
       "_db_exists should return false for a non-existant database";
@@ -1065,13 +1053,13 @@ sub test_db_helpers : Test(21) {
     $mb->unmock('get_reply');
 
     # Test _user_exists.
-    ok $kbs->_user_exists($self->{conf}{store}{db_super_user}),
+    ok $kbs->_user_exists($super_user),
       "_user_exists should find the super user";
     ok !$kbs->_user_exists('__impossible_user_name_i_hope__'),
       "and shouldn't find a non-existant user";
 
     # Test _can_create_db and _has_schema_permissions.
-    $pg->mock(db_user =>$self->{conf}{store}{db_super_user});
+    $pg->mock(db_user => $super_user);
     ok $kbs->_can_create_db, "Super user should be able to create db";
     ok $kbs->_has_schema_permissions,
       "Super user should add objects to the db";
@@ -1080,7 +1068,7 @@ sub test_db_helpers : Test(21) {
     ok ! eval { $kbs->_has_schema_permissions },
       "Nor can he add objects to a database";
 
-    ok $kbs->_is_super_user($self->{conf}{store}{db_super_user}),
+    ok $kbs->_is_super_user($super_user),
       "Super user should be super user";
     ok !$kbs->_is_super_user('__impossible_user_name_i_hope__'),
       "A non-existant user should not be a super user";
@@ -1100,17 +1088,17 @@ sub test_build_meths : Test(26) {
     # Mock the class to use the admin settings set up during the build.
     my $pg = MockModule->new($class);
     my %mock = (
-        db_super_user    => 'db_super_user',
-        db_super_pass    => 'db_super_pass',
-        db_user          => 'db_user',
-        db_pass          => 'db_pass',
-        test_db_user     => 'db_user',
-        test_db_pass     => 'db_pass',
-        template_db_name => 'template_db_name',
+        db_super_user    => $ENV{KS_SUPER_USER} || 'postgres',
+        db_super_pass    => $ENV{KS_SUPER_PASS} || '',
+        db_user          => $ENV{KS_USER} || 'kinetic',
+        db_pass          => $ENV{KS_PASS} || '',
+        test_db_user     => $ENV{KS_USER} || 'kinetic',
+        test_db_pass     => $ENV{KS_PASS} || '',
+        template_db_name => 'template1',
     );
 
     while (my ($meth, $val) = each %mock) {
-        $pg->mock($meth => $self->{conf}{store}{$val});
+        $pg->mock($meth => $val);
     }
     $pg->mock(db_name => $class->test_db_name);
     $pg->mock(test_db_name => $class->test_db_name);
@@ -1129,9 +1117,9 @@ sub test_build_meths : Test(26) {
     $builder->dispatch('code');
 
     isa_ok $self->{tdbh} = $kbs->_connect(
-        $kbs->_dsn($self->{conf}{store}{template_db_name}),
-        $self->{conf}{store}{db_super_user},
-        $self->{conf}{store}{db_super_pass}, {
+        $mock{template_db_name},
+        $mock{db_super_user},
+        $mock{db_super_pass}, {
             RaiseError     => 0,
             PrintError     => 0,
             pg_enable_utf8 => 1,
@@ -1150,9 +1138,9 @@ sub test_build_meths : Test(26) {
 
     # Connect to the new database.
     $self->{dbh} = DBI->connect_cached(
-        $self->{conf}{store}{dsn},
-        $self->{conf}{store}{db_super_user},
-        $self->{conf}{store}{db_super_pass}, {
+        $ENV{KS_DSN},
+        $mock{db_super_user},
+        $mock{db_super_pass}, {
             RaiseError     => 0,
             PrintError     => 0,
             pg_enable_utf8 => 1,
@@ -1201,7 +1189,7 @@ sub test_build_meths : Test(26) {
         next if $class->abstract;
         for my $perm (qw(SELECT UPDATE INSERT DELETE)) {
             push @checks, 'has_table_privilege(?, ?, ?)';
-            push @params, $self->{conf}{store}{db_user}, $view, $perm;
+            push @params, $mock{db_user}, $view, $perm;
         }
     }
 
@@ -1235,7 +1223,7 @@ sub db_cleanup {
         # query to kill a bit of time, just to make sure that we really are
         # fully disconnted. It seems like it sometimes thinks there are still
         # connections even after the query returns false.
-        my ($db_name) = $self->{conf}{store}{dsn} =~ /dbname=([^;]+)/;
+        my ($db_name) = $ENV{KS_DSN} =~ /dbname=([^;]+)/;
         sleep 1 while $dbh->selectrow_array(
             'SELECT 1 FROM pg_stat_activity where datname = ?',
             undef, $db_name
@@ -1256,7 +1244,7 @@ sub db_cleanup {
             last;
         }
 
-        $dbh->do(qq{DROP user "$self->{conf}{store}{db_user}"});
+        $dbh->do(qq{DROP user "$ENV{KS_USER}"});
     }
     return $self;
 }
@@ -1272,25 +1260,25 @@ sub _run_build_tests {
     # Test the build_db action by building the database. First make sure
     # that everything we need to build the databse is actually in place.
     my %mock = (
-        db_super_user    => 'db_super_user',
-        db_super_pass    => 'db_super_pass',
-        db_user          => 'db_user',
-        db_pass          => 'db_pass',
-        test_db_user     => 'db_user',
-        test_db_pass     => 'db_pass',
-        template_db_name => 'template_db_name',
+        db_super_user    => $ENV{KS_SUPER_USER} || 'postgres',
+        db_super_pass    => $ENV{KS_SUPER_PASS} || '',
+        db_user          => $ENV{KS_USER} || 'kinetic',
+        db_pass          => $ENV{KS_PASS} || '',
+        test_db_user     => $ENV{KS_USER} || 'kinetic',
+        test_db_pass     => $ENV{KS_PASS} || '',
+        template_db_name => 'template1',
     );
 
     while (my ($meth, $val) = each %mock) {
-        $pg->mock($meth => $self->{conf}{store}{$val});
+        $pg->mock($meth => $val);
     }
     $pg->mock(db_name => $pg->get_package->test_db_name);
     $pg->mock(test_db_name => $pg->get_package->test_db_name);
 
     # Mock the host and port by pulling them from the DSN.
-    my ($host) = $self->{conf}{store}{dsn} =~ /host=([^;]+)/;
+    my ($host) = $ENV{KS_DSN} =~ /host=([^;]+)/;
     $pg->mock(db_host => $host);
-    my ($port) = $self->{conf}{store}{dsn} =~ /port=(\d+)/;
+    my ($port) = $ENV{KS_DSN} =~ /port=(\d+)/;
     $pg->mock(db_port => $port);
 
     # Set up the template database handle.

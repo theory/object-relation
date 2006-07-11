@@ -24,7 +24,6 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Kinetic::Util::Cache';
-use Kinetic::Util::Config qw(:cache);
 
 use aliased 'Cache::FileCache';    # In the Cache::Cache distribution
 
@@ -51,14 +50,14 @@ interface.
 =cut
 
 sub new {
-    my $class = shift;
+    my ($class, $params) = @_;
     bless {
-        cache => FileCache->new(
-            {   default_expires_in => CACHE_EXPIRES,
-                namespace          => $class,
-                cache_root         => CACHE_ROOT,
-            }
-        )
+        # XXX Add support for configuring these arguments.
+        cache => FileCache->new({
+            default_expires_in => $params->{expires} || 3600,
+            namespace          => $class,
+            cache_root         => $params->{root},
+        }),
     }, $class;
 }
 

@@ -23,7 +23,6 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.2');
 
-use Kinetic::Util::Config qw(:cache);
 use Kinetic::Util::Exceptions qw(throw_unknown_class throw_unimplemented);
 
 =head1 Name
@@ -50,7 +49,10 @@ the underlying caching mechanism chosen.
 
 =head2 new
 
-  my $cache = Kinetic::Util::Cache->new;
+  my $cache = Kinetic::Util::Cache->new(
+      $cache_class,
+      $params,
+  );
 
 Returns a new cache object for whatever caching style was selected by the
 user.
@@ -58,15 +60,14 @@ user.
 =cut
 
 sub new {
-    my $class       = shift;
-    my $cache_class = CACHE_OBJECT_CLASS;
+    my ($pkg, $cache_class) = (shift, shift);
     eval "require $cache_class"
       or throw_unknown_class [
         'I could not load the class "[_1]": [_2]',
         $cache_class,
         $@
       ];
-    return $cache_class->new;
+    return $cache_class->new(@_);
 }
 
 BEGIN {
