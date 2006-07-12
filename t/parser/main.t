@@ -26,7 +26,6 @@ BEGIN {
 
 {
     package Faux::Store;
-    use Kinetic::Util::Constants qw/:data_store/;
     our @ISA = 'Kinetic::Store';
     my %column;
     @column{
@@ -49,8 +48,7 @@ BEGIN {
     my $faux_class = Faux::Class->new;
     sub _prep_search_token {
         my ($self, $search ) = @_;
-        (my $column = $search->param)
-            =~ s/\Q${\ATTR_DELIMITER}\E/OBJECT_DELIMITER/eg;
+        (my $column = $search->param) =~ s/\./__/g;
         die "$column is invavlid" unless exists $column{ $column };
 #        $search->notes( column => $column );
         return $search;

@@ -8,7 +8,6 @@ use Test::More tests => 123;
 use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
 use Kinetic::Util::Functions qw(:uuid);
-use Kinetic::Util::Constants qw(UUID_RE);
 
 package Kinetic::TestTypes;
 use strict;
@@ -144,7 +143,8 @@ ok( my $t = Kinetic::TestTypes->new,
     'Kinetic::TestTypes->new');
 
 # Test the UUID accessor.
-like $t->uuid, UUID_RE, 'The UUID should be set';
+my $ouuid = OSSP::uuid->new;
+ok $ouuid->import(str => $t->uuid ), 'The UUID should be set';
 eval { $t->uuid(create_uuid()) };
 ok my $err = $@, 'Got error setting UUID to bogus value';
 like $err->error, qr/Cannot assign to read-only attribute .uuid./,

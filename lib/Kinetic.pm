@@ -553,10 +553,6 @@ Eliminate configuration file.
 
 =item *
 
-Eliminate Kinetic::Util::Constants?
-
-=item *
-
 Eliminate Kinetic::Util::Language?
 
 =back

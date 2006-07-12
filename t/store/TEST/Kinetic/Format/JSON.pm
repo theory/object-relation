@@ -15,7 +15,6 @@ use Class::Trait qw(
   TEST::Kinetic::Traits::SampleObjects
 );
 
-use Kinetic::Util::Constants qw/UUID_RE/;
 use Kinetic::Util::Functions qw/create_uuid/;
 
 use aliased 'Test::MockModule';
@@ -64,13 +63,16 @@ sub constructor : Test(3) {
 
 sub serialize : Test(7) {
     my $test = shift;
+
+    # Force all UUIDs to be "UUID".
+    my ( $foo, $bar, $baz ) = grep { $_->{uuid} = 'UUID' } $test->test_objects;
+
     my $formatter = JSON->new( { pretty => 1, indent => 2 } );
-    my ( $foo, $bar, $baz ) = $test->test_objects;
     can_ok $formatter, 'serialize';
     ok my $json = $formatter->serialize($foo),
       '... and serializing an object should succeed';
     is_valid_json $json, '... and it should return valid JSON';
-    $json =~ s/${\UUID_RE}/XXX/g;
+
     my $expected = <<'    END_EXPECTED';
         {
             "Key"         : "one",
@@ -78,7 +80,7 @@ sub serialize : Test(7) {
             "description" : null,
             "name"        : "foo",
             "state"       : "1",
-            "uuid"        : "XXX"
+            "uuid"        : "UUID"
         }
     END_EXPECTED
     is_json $json, $expected, '... and it should return the correct JSON';
@@ -86,6 +88,7 @@ sub serialize : Test(7) {
     # test contained object serialization
 
     my $two = Two->new;
+    $two->{uuid} = 'UUID';
     $two->name('june17');
     $two->date(
         DateTime->new(
@@ -98,14 +101,13 @@ sub serialize : Test(7) {
     ok $json = $formatter->serialize($two),
       'Serializing an object with a contained object should succeed';
     is_valid_json $json, '... and it should return valid JSON';
-    $json =~ s/${\UUID_RE}/XXX/g;
 
     $expected = <<'    END_EXPECTED';
     {
       "one" : {
           "bool"        : "1",
           "name"        : "foo",
-          "uuid"        : "XXX",
+          "uuid"        : "UUID",
           "description" : null,
           "state"       : "1",
           "Key"         : "one"
@@ -113,7 +115,7 @@ sub serialize : Test(7) {
       "date"        : "1968-06-17T00:00:00",
       "name"        : "june17",
       "Key"         : "two",
-      "uuid"        : "XXX",
+      "uuid"        : "UUID",
       "description" : null,
       "age"         : null,
       "state"       : "1"

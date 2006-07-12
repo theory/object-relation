@@ -213,9 +213,6 @@ provides:
   Kinetic::Util::Collection:
     file: lib/Kinetic/Util/Collection.pm
     version: 0.000002
-  Kinetic::Util::Constants:
-    file: lib/Kinetic/Util/Constants.pm
-    version: 0.000002
   Kinetic::Util::Context:
     file: lib/Kinetic/Util/Context.pm
     version: 0.000002

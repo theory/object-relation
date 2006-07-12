@@ -46,7 +46,6 @@ use Kinetic::Store qw/:sorting/;
 use Kinetic::Store::Parser qw/parse/;
 use Kinetic::Store::Lexer::Code qw/code_lexer_stream/;
 use Kinetic::Store::Lexer::String qw/string_lexer_stream/;
-use Kinetic::Util::Constants qw/:data_store/;
 
 use aliased 'Kinetic::Meta' => 'Meta', qw/:with_dbstore_api/;
 use aliased 'Kinetic::Util::Iterator';
@@ -1261,9 +1260,7 @@ sub _set_search_data {
                     if ( my $class = $attr->references ) {
                         push @classes_to_process => {
                             class  => $class,
-                            prefix => $prefix
-                            ? $prefix . $class->key . OBJECT_DELIMITER
-                            : $class->key . OBJECT_DELIMITER
+                            prefix => $prefix . $class->key . '__',
                         };
 
                         $packages{$package}{contains}{$column} = $class;
@@ -1333,8 +1330,7 @@ valid search data.
 sub _prep_search_token {
     my ($self, $search) = @_;
     my $search_class = $self->search_class;
-    (my $column = $search->param)
-        =~ s/\Q${\ATTR_DELIMITER}\E/OBJECT_DELIMITER/eg;
+    (my $column = $search->param) =~ s/\./__/g;
 
     my $actual_column = $search_class->key . ".$column";
     if ( exists $self->{search_data}{lookup}{$actual_column} ) {
@@ -1343,7 +1339,7 @@ sub _prep_search_token {
         $search->notes( base_column => $column );
         $search->notes( column => "$key.$column")
     }
-    elsif ( $column =~ /^([[:word:]]+?)${\OBJECT_DELIMITER}(.*)$/ ) {
+    elsif ( $column =~ /^([[:word:]]+?)__(.*)$/ ) {
         # column is possibly in a different, but related view
         my $key    = $1;
         my $column = $2;
@@ -1382,7 +1378,7 @@ sub _prep_search_token {
         # If we're searching one a contained object, we get to here
         $search->data($value);
         $search->notes( base_column => $column );
-        $column .= OBJECT_DELIMITER . 'id';
+        $column .= '__id';
         $search->notes( column      => $column );
     }
     else {
@@ -1558,7 +1554,7 @@ sub _convert_ir_to_where_clause {
             panic
               'Failed to convert IR to where clause.  This should not happen.';
         }
-        unless ( $where[-1] =~ GROUP_OP ) {
+        unless ( $where[-1] =~ /^(?:AND|OR)$/ ) {
             push @where => 'AND';
         }
     }
@@ -1567,7 +1563,7 @@ sub _convert_ir_to_where_clause {
     # a group op on the end of the @where array.  We don't want that.
     pop @where
       if defined $where[-1]
-      && $where[-1] =~ GROUP_OP;
+      && $where[-1] =~ /^(?:AND|OR)$/;
     return '(' . join( ' ' => @where ) . ')', \@bind;
 }
 
@@ -1614,7 +1610,7 @@ sub _get_column_and_placeholder {
     # Normally we have something like customer__uuid
     # For references objects, we might have something like
     # salesperson.customer__uuid
-    if ( $column =~ /^[[:word:]]+\.([[:word:]]+)${\OBJECT_DELIMITER}([[:word:]]+)/ ) {
+    if ( $column =~ /^[[:word:]]+\.([[:word:]]+)__([[:word:]]+)/ ) {
         my ( $key, $base_column ) = ( $1, $2 );
 
         $search_class   = Kinetic::Meta->for_key($key);
@@ -1773,8 +1769,7 @@ sub _constraint_order_by {
 
     # this is potentially fragile and we may need to revisit it.
     foreach (@$value) {
-        my $attr = $_;
-        $attr =~ s/\Q${\ATTR_DELIMITER}\E/OBJECT_DELIMITER/e;
+        (my $attr = $_) =~ s/\./__/;
         if ($search_class->attributes($attr)) {
             $_ = "$view.$attr";
         }

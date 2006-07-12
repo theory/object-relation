@@ -21,7 +21,6 @@ NOIMPORT: { # 1 test.
 UUID: { # 10 tests.
     package MyTest2;
     use Kinetic::Util::Functions qw(:uuid);
-    use Kinetic::Util::Constants qw(UUID_RE);
     use Test::More;
     can_ok __PACKAGE__, 'create_uuid';
     can_ok __PACKAGE__, 'uuid_to_bin';
@@ -29,7 +28,8 @@ UUID: { # 10 tests.
     can_ok __PACKAGE__, 'uuid_to_b64';
 
     ok my $uuid = create_uuid(), 'Create a UUID';
-    like $uuid, UUID_RE, 'It should be a valid UUID';
+    my $ouuid = OSSP::uuid->new;
+    ok $ouuid->import(str => $uuid ), 'It should be a valid UUID';
 
     # Test uuid_to_hex().
     (my $hex = $uuid) =~ s/-//g;

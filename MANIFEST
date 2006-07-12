@@ -48,7 +48,6 @@ lib/Kinetic/Util/Cache.pm
 lib/Kinetic/Util/Cache/File.pm
 lib/Kinetic/Util/Cache/Memcached.pm
 lib/Kinetic/Util/Collection.pm
-lib/Kinetic/Util/Constants.pm
 lib/Kinetic/Util/Context.pm
 lib/Kinetic/Util/Exceptions.pm
 lib/Kinetic/Util/Functions.pm

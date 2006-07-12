@@ -10,7 +10,6 @@ our $VERSION = version->new('0.0.2');
 use base 'Class::Meta::Attribute';
 use Kinetic::Util::Context;
 use Kinetic::Meta::Type;
-use Kinetic::Util::Constants qw(OBJECT_DELIMITER);
 use Widget::Meta;
 use aliased 'Kinetic::Util::Collection';
 use aliased 'Kinetic::Util::Iterator';
@@ -80,11 +79,11 @@ sub import {
             my $self = shift;
             if (my $acts_as = $self->acts_as) {
                 my $key = $self->delegates_to->key;
-                return $key . OBJECT_DELIMITER . $acts_as->name
-                    . ($acts_as->references ? OBJECT_DELIMITER . 'id' : '');
+                return $key . '__' . $acts_as->name
+                    . ($acts_as->references ? '__id' : '');
             }
             return $self->name unless $self->references;
-            return $self->name . OBJECT_DELIMITER . 'id';
+            return $self->name . '__id';
         };
     }
 }
