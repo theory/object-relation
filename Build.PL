@@ -2,7 +2,6 @@ use strict;
 use 5.008003;
 use lib 'lib';
 use Kinetic::Build;
-use Kinetic::Util::Constants ':class_exclude';
 
 my $build = Kinetic::Build->new(
     module_name          => 'Kinetic',
@@ -10,7 +9,6 @@ my $build = Kinetic::Build->new(
     build_class          => 'Kinetic::Build',
     dist_author          => 'Kineticode, Inc. <info@kineticode.com>',
     recursive_test_files => 1,
-    schema_skipper       => CLASS_EXCLUDE_RE,
     requires             => {
         'aliased'                    => 0.11,
         'Array::AsHash'              => 0.31,

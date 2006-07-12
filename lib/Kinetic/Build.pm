@@ -13,7 +13,7 @@ package Kinetic::Build;
 # By intentionally submitting any modifications, corrections or derivatives to
 # this work, or any other work intended for use with the Kinetic framework, to
 # Kineticode, Inc., you confirm that you are the copyright holder for those
-# contributions and you grant Kineticode, Inc.  a nonexclusive, worldwide,
+# contributions and you grant Kineticode, Inc. a nonexclusive, worldwide,
 # irrevocable, royalty-free, perpetual license to use, copy, create derivative
 # works based on those contributions, and sublicense and distribute those
 # contributions and any derivatives thereof.
@@ -243,34 +243,6 @@ The directory where the Kinetic Store libraries will be found.
 =cut
 
 __PACKAGE__->add_property( source_dir => 'lib' );
-
-##############################################################################
-
-=head3 schema_skipper
-
-  my $regex = $build->schema_skipper;
-  $build->schema_skipper($regex);
-
-Optional property that may be specified as a single regular expression or as
-an array reference of regular expressions.
-L<Kinetic::Build::Schema|Kinetic::Build::Schema> will match the skipper regex
-or regexen against the file name of every Perl module file it finds in the
-C<source_dir>. Any file that matches will be not be loaded and will not result
-in the building of a schema for the module it represents.
-
-Use of this property should not generally be needed unless loading a
-non-schema module causes an error during C<./Build>. Such is true of some of
-the modules that come with Kinetic itself, for example.
-
-B<Note:> Remember that this regular expression I<will> be used to look at
-names on non-Unix file systems. Design them carefully to anticipate variations
-in directory separators and other file system shennanigans. All file names
-will be relative to the root of your Kinetic application, e.g.,
-F<lib/Foo/Bar.pm> on Unix or F<lib\Foo\Bar.pm> on Windows.
-
-=cut
-
-__PACKAGE__->add_property( schema_skipper => [] );
 
 ##############################################################################
 

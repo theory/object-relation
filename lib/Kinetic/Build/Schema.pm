@@ -124,8 +124,8 @@ its subdirectories. Use Unix-style directory naming for the $dir argument;
 C<load_classes()> will automatically convert the directory path to the
 appropriate format for the current operating system. All Perl module files
 found in the directory or its subdirectories will be loaded, excepting those
-that match one of the regular expressions passed in the $schema_skippers array
-reference argument. C<load_classes()> will only store a the
+that match one of the regular expressions passed in after the directory
+argument. C<load_classes()> will only store a the
 L<Kinetic::Meta::Class|Kinetic::Meta::Class> object for those modules that
 inherit from C<Kinetic>.
 

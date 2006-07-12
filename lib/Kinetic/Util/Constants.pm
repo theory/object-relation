@@ -50,9 +50,6 @@ use constant ATTR_DELIMITER   => '.';
 use constant UUID_RE          =>
   qr/[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}/;
 
-use constant CLASS_EXCLUDE_RE =>
-    qr/Kinetic${\File::Spec->catdir('')}(?:(?:App)?Build|DataType|Format|Meta|Store|Util)/;
-
 # Format
 use constant KEY => 'Key';
 
@@ -64,9 +61,6 @@ use Exporter::Tidy
       UUID_RE
       OBJECT_DELIMITER
       /
-  ],
-  class_exclude => [
-    qw/CLASS_EXCLUDE_RE/
   ],
   format => [
     qw/KEY/
