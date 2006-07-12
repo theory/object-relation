@@ -19,11 +19,9 @@ package Kinetic::Util::Exceptions;
 # sublicense and distribute those contributions and any derivatives thereof.
 
 use strict;
-
 use version;
-our $VERSION = version->new('0.0.2');
 
-use Kinetic::Util::Context;
+our $VERSION = version->new('0.0.2');
 
 =head1 Name
 
@@ -542,6 +540,7 @@ sig_handlers(1);
 # From here on in, we're modifying the behavior of Exception::Class::Base.
 
 package Kinetic::Util::Exception;
+use aliased 'Kinetic::Util::Language';
 
 =head2 Constructors
 
@@ -573,7 +572,7 @@ sub new {
     my %p =  @_ == 1 ? ( error => $_[0] ) : @_;
 
     # Localize the error message.
-    $p{error} = Kinetic::Util::Context->language->maketext(
+    $p{error} = Language->get_handle->maketext(
         ref $p{error} ? @{$p{error}} : $p{error}
     ) unless $class->isa('Kinetic::Util::Exception::ExternalLib');
 

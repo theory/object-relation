@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 59;
+use Test::More tests => 57;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use OSSP::uuid;
@@ -11,7 +11,6 @@ use MIME::Base64 ();
 
 BEGIN {
     use_ok 'Kinetic' or die;
-    use_ok 'Kinetic::Util::Context' or die;
     use_ok 'Kinetic::Util::Language' or die;
     use_ok 'Kinetic::Util::Language::en_us' or die;
     use_ok 'Kinetic::DataType::State' or die;
@@ -35,15 +34,12 @@ package main;
 use Kinetic::DataType::State qw(:all);
 
 # Add new strings to the lexicon.
-Kinetic::Util::Language::en_us->add_to_lexicon(
+Kinetic::Util::Language::en->add_to_lexicon(
   'Thingy',
   'Thingy',
   'Thingies',
   'Thingies',
 );
-
-ok( Kinetic::Util::Context->language(Kinetic::Util::Language->get_handle('en_us')),
-    "Set language context" );
 
 # Check Meta objects.
 ok my $class = MyApp::TestThingy->my_class, "Get meta class";

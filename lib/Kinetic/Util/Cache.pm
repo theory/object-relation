@@ -131,16 +131,6 @@ __END__
 
 ##############################################################################
 
-=head1 See Also
-
-=over 4
-
-=item L<Kinetic::Util::Context|Kinetic::Util::Context>
-
-Kinetic utility object context
-
-=back
-
 =head1 Copyright and License
 
 Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>

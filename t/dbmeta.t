@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 42;
+use Test::More tests => 41;
 use Test::NoWarnings; # Adds an extra test.
 
 package MyTestThingy;
@@ -71,15 +71,13 @@ BEGIN {
 }
 
 # Add new strings to the lexicon.
-Kinetic::Util::Language::en_us->add_to_lexicon(
+Kinetic::Util::Language::en->add_to_lexicon(
   'Thingy'   => 'Thingy',
   'Thingies' => 'Thingies',
   'Foo'      => 'Foo',
   'Fooey'    => 'Fooey',
   'Fooies'    => 'Fooies',
 );
-ok( Kinetic::Util::Context->language(Kinetic::Util::Language->get_handle('en_us')),
-    "Set language context" );
 
 package main;
 use aliased 'Test::MockModule';

@@ -8,9 +8,9 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Class::Meta::Class';
-use Kinetic::Util::Context;
 use Kinetic::Util::Exceptions qw/throw_fatal/;
 use List::Util qw(first);
+use aliased 'Kinetic::Util::Language';
 
 =head1 Name
 
@@ -131,7 +131,7 @@ Returns the localized form of the name of the class, such as "Thingy".
 =cut
 
 sub name {
-    Kinetic::Util::Context->language->maketext( shift->SUPER::name );
+    Language->get_handle->maketext( shift->SUPER::name );
 }
 
 ##############################################################################
@@ -146,7 +146,7 @@ Returns the localized plural form of the name of the class, such as
 =cut
 
 sub plural_name {
-    Kinetic::Util::Context->language->maketext( shift->{plural_name} );
+    Language->get_handle->maketext( shift->{plural_name} );
 }
 
 ##############################################################################

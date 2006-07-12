@@ -24,7 +24,7 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Widget::Meta';
-use Kinetic::Util::Context;
+use aliased 'Kinetic::Util::Language';
 
 =head1 Name
 
@@ -74,7 +74,7 @@ object".
 =cut
 
 sub tip {
-    Kinetic::Util::Context->language->maketext(shift->SUPER::tip);
+    Language->get_handle->maketext( shift->SUPER::tip );
 }
 
 1;

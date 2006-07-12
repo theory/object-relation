@@ -23,7 +23,7 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.2');
 
-use Kinetic::Util::Context;
+use aliased 'Kinetic::Util::Language';
 use Kinetic::Meta::Type;
 use overload
     '""'     => \&name,
@@ -337,7 +337,7 @@ Kinetic::DataType::State objects.
 
 =cut
 
-sub name { Kinetic::Util::Context->language->maketext($_[0]->[1]) }
+sub name { Language->get_handle->maketext($_[0]->[1]) }
 
 ##############################################################################
 

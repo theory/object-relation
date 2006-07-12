@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 158;
+use Test::More tests => 157;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 
@@ -264,9 +264,6 @@ Kinetic::Util::Language::en_us->add_to_lexicon(
   'Childofs' => 'Childofs',
   'Mediates' => 'Mediates',
 );
-
-ok( Kinetic::Util::Context->language(Kinetic::Util::Language->get_handle('en_us')),
-    "Set language context" );
 
 ##############################################################################
 package main;

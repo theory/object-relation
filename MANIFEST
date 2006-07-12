@@ -48,7 +48,6 @@ lib/Kinetic/Util/Cache.pm
 lib/Kinetic/Util/Cache/File.pm
 lib/Kinetic/Util/Cache/Memcached.pm
 lib/Kinetic/Util/Collection.pm
-lib/Kinetic/Util/Context.pm
 lib/Kinetic/Util/Exceptions.pm
 lib/Kinetic/Util/Functions.pm
 lib/Kinetic/Util/Iterator.pm
@@ -73,7 +72,6 @@ t/build/TEST/Kinetic/Build/Setup/Store/DB/SQLite.pm
 t/clone.t
 t/collection.t
 t/collection/typed.t
-t/context.t
 t/datatypes.t
 t/datetime.t
 t/datetimeincomplete.t

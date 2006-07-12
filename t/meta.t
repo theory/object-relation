@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 248;
+use Test::More tests => 247;
 #use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
@@ -24,7 +24,7 @@ BEGIN {
     use_ok('Kinetic::Meta::Widget')          or die;
 
     # Add new strings to the lexicon.
-    Kinetic::Util::Language::en_us->add_to_lexicon(
+    Kinetic::Util::Language::en->add_to_lexicon(
         'Ow'       => 'Ow', # For Class::Meta 2.54 and later.
         'ow'       => 'ow', # For Class::Meta 2.53 and earlier.
         'Thingy'   => 'Thingy',
@@ -240,9 +240,6 @@ BEGIN {
         'Check the error message';
 
 }
-
-ok( Kinetic::Util::Context->language(Kinetic::Util::Language->get_handle('en_us')),
-    "Set language context" );
 
 package main;
 

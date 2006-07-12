@@ -46,7 +46,6 @@ use List::Util 'first';
 use Kinetic::DataType::DateTime::Incomplete qw/is_incomplete_iso8601/;
 use Kinetic::Store::Search;
 use Kinetic::Util::Exceptions qw/panic throw_search isa_exception/;
-use Kinetic::Util::Context;
 
 =head1 Name
 

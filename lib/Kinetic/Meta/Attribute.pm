@@ -8,11 +8,11 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Class::Meta::Attribute';
-use Kinetic::Util::Context;
 use Kinetic::Meta::Type;
 use Widget::Meta;
 use aliased 'Kinetic::Util::Collection';
 use aliased 'Kinetic::Util::Iterator';
+use aliased 'Kinetic::Util::Language';
 
 =head1 Name
 
@@ -176,7 +176,7 @@ Returns the localized form of the label for the attribute, such as "Name".
 =cut
 
 sub label {
-    Kinetic::Util::Context->language->maketext(shift->SUPER::label);
+    Language->get_handle->maketext(shift->SUPER::label);
 }
 
 ##############################################################################
