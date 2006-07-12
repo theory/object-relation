@@ -18,14 +18,14 @@ FAKESQLITE: {
     $INC{'Kinetic/Store/DB/SQLite.pm'} = __FILE__;
 }
 
-BEGIN { use_ok 'Kinetic::Build::Schema' or die }
+BEGIN { use_ok 'Kinetic::Store::Schema' or die }
 
-ok my $sg = Kinetic::Build::Schema->new(
+ok my $sg = Kinetic::Store::Schema->new(
     'Kinetic::Store::DB::SQLite'
 ), 'Get new Schema';
-isa_ok $sg, 'Kinetic::Build::Schema';
-isa_ok $sg, 'Kinetic::Build::Schema::DB';
-isa_ok $sg, 'Kinetic::Build::Schema::DB::SQLite';
+isa_ok $sg, 'Kinetic::Store::Schema';
+isa_ok $sg, 'Kinetic::Store::Schema::DB';
+isa_ok $sg, 'Kinetic::Store::Schema::DB::SQLite';
 
 ok $sg->load_classes('t/sample/lib'), "Load classes";
 is_deeply [ map { $_->key } $sg->classes ],

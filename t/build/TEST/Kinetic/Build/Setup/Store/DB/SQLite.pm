@@ -23,7 +23,7 @@ sub test_class_methods : Test(8) {
       'We should have the correct minimum version number';
     is $class->max_version, 0,
       'We should have the correct maximum version number';
-    is $class->schema_class, 'Kinetic::Build::Schema::DB::SQLite',
+    is $class->schema_class, 'Kinetic::Store::Schema::DB::SQLite',
       'We should have the correct schema class';
     is $class->store_class, 'Kinetic::Store::DB::SQLite',
       'We should have the correct store class';

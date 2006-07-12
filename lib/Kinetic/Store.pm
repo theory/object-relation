@@ -1341,13 +1341,13 @@ back-end, here's what you'd need to do:
 
 =over
 
-=item * Create subclass of Kinetic::Build::Schema::DB
+=item * Create subclass of Kinetic::Store::Schema::DB
 
 The job of this class is to create the code to generate the data store
 infrastructure on the data store server. For a database, this generally means
 generating a DDL (SQL, stored procedures, functions, and the like). See
-L<Kinetic::Build::Schema::DB::Pg|Kinetic::Build::Schema::DB::Pg> and
-L<Kinetic::Build::Schema::DB::SQLite|Kinetic::Build::Schema::DB::SQLite> for
+L<Kinetic::Store::Schema::DB::Pg|Kinetic::Store::Schema::DB::Pg> and
+L<Kinetic::Store::Schema::DB::SQLite|Kinetic::Store::Schema::DB::SQLite> for
 examples.
 
 =item * Test it in test script

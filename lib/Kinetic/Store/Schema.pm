@@ -1,4 +1,4 @@
-package Kinetic::Build::Schema;
+package Kinetic::Store::Schema;
 
 # $Id$
 
@@ -36,12 +36,12 @@ Kinetic::Meta->attribute_class('Kinetic::Meta::Attribute::Schema');
 
 =head1 Name
 
-Kinetic::Build::Schema - Kinetic data store schema generation
+Kinetic::Store::Schema - Kinetic data store schema generation
 
 =head1 Synopsis
 
-  use Kinetic::Build::Schema;
-  my $sg = Kinetic::Build::Schema->new;
+  use Kinetic::Store::Schema;
+  my $sg = Kinetic::Store::Schema->new;
   $sg->write_schema($file_name);
 
 =head1 Description
@@ -61,7 +61,7 @@ to create a data store for a Kinetic application.
 
 =head3 new
 
-  my $sg = Kinetic::Build::Schema->new;
+  my $sg = Kinetic::Store::Schema->new;
 
 Creates and returns a new Schema object. This is a factory constructor; it
 will return the subclass appropriate to the currently selected store class as
@@ -73,7 +73,7 @@ sub new {
     my $class = shift;
     unless ($class ne __PACKAGE__) {
         $class = shift;
-        $class =~ s/^Kinetic::Store/Kinetic::Build::Schema/;
+        $class =~ s/^Kinetic::Store/Kinetic::Store::Schema/;
         eval "require $class" or die $@;
     }
     bless {}, $class;

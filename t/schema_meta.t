@@ -13,12 +13,12 @@ use Test::NoWarnings; # Adds an extra test.
     sub _add_store_meta { 1 }
 }
 
-BEGIN { use_ok 'Kinetic::Build::Schema' };
+BEGIN { use_ok 'Kinetic::Store::Schema' };
 
-ok my $sg = Kinetic::Build::Schema->new(
+ok my $sg = Kinetic::Store::Schema->new(
     'Kinetic::Store::DB::Pg'
 ), 'Get new Schema';
-isa_ok $sg, 'Kinetic::Build::Schema';
+isa_ok $sg, 'Kinetic::Store::Schema';
 
 ok $sg->load_classes('t/sample/lib', qr/Relation\.pm/),
     'Load all sample classes except Relation.pm';

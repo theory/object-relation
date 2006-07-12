@@ -24,7 +24,7 @@ sub test_class_methods : Test(7) {
       'We should have the correct minimum version number';
     is $class->max_version, 0,
       'We should have the correct maximum version number';
-    is $class->schema_class, 'Kinetic::Build::Schema::DB::Pg',
+    is $class->schema_class, 'Kinetic::Store::Schema::DB::Pg',
       'We should have the correct schema class';
     is $class->store_class, 'Kinetic::Store::DB::Pg',
       'We should have the correct store class';

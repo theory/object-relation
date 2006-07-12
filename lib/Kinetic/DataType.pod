@@ -126,8 +126,8 @@ And now the data type has been added and you can just start using it, right?
 Well, no, not quite. We still need to tell the data stores how to store an
 attribute of this type. Currently, you tell each data store how to store a
 data type by editing
-L<Kinetic::Build::Schema::DB::Pg|Kinetic::Build::Schema::DB::Pg> and
-L<Kinetic::Build::Schema::DB::SQLite|Kinetic::Build::Schema::DB::SQLite>
+L<Kinetic::Store::Schema::DB::Pg|Kinetic::Store::Schema::DB::Pg> and
+L<Kinetic::Store::Schema::DB::SQLite|Kinetic::Store::Schema::DB::SQLite>
 directly. Fortunately, for a new type like our C<real> type, this is quite
 simple. Each of these classes has a package-scoped lexical hash, C<%types>,
 that maps data types to column types. All we have to do is add a new entry for
@@ -271,8 +271,8 @@ defined in the Kinetic::DataType name space are not automatically loaded, they
 consume no memory or processor cycles unless a module actually needs them and
 loads them itself. Again, we check the data types supported by each data
 store, and add them as appropriate to
-L<Kinetic::Build::Schema::DB::Pg|Kinetic::Build::Schema::DB::Pg> and
-L<Kinetic::Build::Schema::DB::SQLite|Kinetic::Build::Schema::DB::SQLite>. It
+L<Kinetic::Store::Schema::DB::Pg|Kinetic::Store::Schema::DB::Pg> and
+L<Kinetic::Store::Schema::DB::SQLite|Kinetic::Store::Schema::DB::SQLite>. It
 turns out that PostgreSQL calls the data type "TIMESTAMP", while SQLite calls
 it "DATETIME". So we add the appropriate value to each schema class's
 C<%types> hash. For PostgreSQL:
@@ -364,7 +364,7 @@ underscores. Obviously, the C<TEXT> data type we selected above will not
 enforce that format for version columns, but we can create a new column type
 to do it. Simply add the following declaration to the list of other C<DOMAIN>
 declarations in the C<setup_code()> method of
-L<Kinetic::Build::Schema::DB::Pg|Kinetic::Build::Schema::DB::Pg>:
+L<Kinetic::Store::Schema::DB::Pg|Kinetic::Store::Schema::DB::Pg>:
 
   CREATE DOMAIN version AS TEXT
   CONSTRAINT ck_version CHECK (

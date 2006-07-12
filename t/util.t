@@ -50,7 +50,7 @@ class: { # 5 tests.
     package MyTest3;
     use Kinetic::Util::Functions qw(:class);
     use Test::More;
-    use aliased 'Kinetic::Build::Schema';
+    use aliased 'Kinetic::Store::Schema';
     Schema->new( 'Kinetic::Store::DB::SQLite' );
 
     can_ok __PACKAGE__, 'file_to_mod';

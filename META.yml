@@ -1,6 +1,6 @@
 ---
 name: Kinetic
-version: !perl/version
+version: !!perl/hash:version
   qv: 1
   version:
     - 0
@@ -78,28 +78,13 @@ provides:
     file: lib/Kinetic/Build.pm
     version: 0.000002
   Kinetic::Build::AppInfoHandler:
-    file: lib/Kinetic/Build/Base.pm
-  Kinetic::Build::Base:
-    file: lib/Kinetic/Build/Base.pm
-    version: 0.000002
+    file: lib/Kinetic/Build.pm
   Kinetic::Build::CroakHandler:
-    file: lib/Kinetic/Build/Base.pm
+    file: lib/Kinetic/Build.pm
   Kinetic::Build::PrintHandler:
-    file: lib/Kinetic/Build/Base.pm
+    file: lib/Kinetic/Build.pm
   Kinetic::Build::PromptHandler:
-    file: lib/Kinetic/Build/Base.pm
-  Kinetic::Build::Schema:
-    file: lib/Kinetic/Build/Schema.pm
-    version: 0.000002
-  Kinetic::Build::Schema::DB:
-    file: lib/Kinetic/Build/Schema/DB.pm
-    version: 0.000002
-  Kinetic::Build::Schema::DB::Pg:
-    file: lib/Kinetic/Build/Schema/DB/Pg.pm
-    version: 0.000002
-  Kinetic::Build::Schema::DB::SQLite:
-    file: lib/Kinetic/Build/Schema/DB/SQLite.pm
-    version: 0.000002
+    file: lib/Kinetic/Build.pm
   Kinetic::Build::Setup:
     file: lib/Kinetic/Build/Setup.pm
     version: 0.000002
@@ -207,8 +192,29 @@ provides:
   Kinetic::Store::Parser:
     file: lib/Kinetic/Store/Parser.pm
     version: 0.000002
+  Kinetic::Store::Schema:
+    file: lib/Kinetic/Store/Schema.pm
+    version: 0.000002
+  Kinetic::Store::Schema::DB:
+    file: lib/Kinetic/Store/Schema/DB.pm
+    version: 0.000002
+  Kinetic::Store::Schema::DB::Pg:
+    file: lib/Kinetic/Store/Schema/DB/Pg.pm
+    version: 0.000002
+  Kinetic::Store::Schema::DB::SQLite:
+    file: lib/Kinetic/Store/Schema/DB/SQLite.pm
+    version: 0.000002
   Kinetic::Store::Search:
     file: lib/Kinetic/Store/Search.pm
+    version: 0.000002
+  Kinetic::Util::Cache:
+    file: lib/Kinetic/Util/Cache.pm
+    version: 0.000002
+  Kinetic::Util::Cache::File:
+    file: lib/Kinetic/Util/Cache/File.pm
+    version: 0.000002
+  Kinetic::Util::Cache::Memcached:
+    file: lib/Kinetic/Util/Cache/Memcached.pm
     version: 0.000002
   Kinetic::Util::Collection:
     file: lib/Kinetic/Util/Collection.pm

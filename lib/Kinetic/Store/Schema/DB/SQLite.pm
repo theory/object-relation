@@ -1,4 +1,4 @@
-package Kinetic::Build::Schema::DB::SQLite;
+package Kinetic::Store::Schema::DB::SQLite;
 
 # $Id$
 
@@ -23,27 +23,27 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.2');
 
-use base 'Kinetic::Build::Schema::DB';
+use base 'Kinetic::Store::Schema::DB';
 use Kinetic::Meta;
 use List::Util qw(first);
 use Carp;
 
 =head1 Name
 
-Kinetic::Build::Schema::DB::SQLite - Kinetic SQLite data store schema generation
+Kinetic::Store::Schema::DB::SQLite - Kinetic SQLite data store schema generation
 
 =head1 Synopsis
 
-  use Kinetic::Schema;
-  my $kbs = Kinetic::Schema->new;
+  use Kinetic::Store::Schema;
+  my $kbs = Kinetic::Store::Schema->new;
   $kbs->generate_to_file($file_name);
 
 =head1 Description
 
 This module generates and outputs to a file the schema information necessary
 to create a SQLite data store for a Kinetic application. See
-L<Kinetic::Build::Schema|Kinetic::Build::Schema> and
-L<Kinetic::Build::Schema::DB|Kinetic::Build::Schema::DB> for more information.
+L<Kinetic::Store::Schema|Kinetic::Store::Schema> and
+L<Kinetic::Store::Schema::DB|Kinetic::Store::Schema::DB> for more information.
 
 =cut
 
@@ -102,7 +102,7 @@ sub column_type {
   my $index = $kbs->index_for_attr($class, $attr);
 
 Returns the SQL that declares an SQL index. This implementation overrides that
-in L<Kinetic::Build::Schema::DB|Kinetic::Build::Schema::DB> to remove the
+in L<Kinetic::Store::Schema::DB|Kinetic::Store::Schema::DB> to remove the
 C<UNIQUE> keyword from the declaration if the attribute in question is unique
 but not distinct. The difference is that a unique attribute is unique only
 relative to the C<state> attribute. A unique attribute can have more than one
@@ -1055,7 +1055,7 @@ sub _extended_update {
 This method is used to create triggers for domain constraints. That is, it
 create triggers to constrain the values of columns of particular data types.
 The data types that need these triggers tend to correspond to those for which
-C<DOMAIN>s are created in Kinetic::Build::Schema::DB::Pg; hence the name of
+C<DOMAIN>s are created in Kinetic::Store::Schema::DB::Pg; hence the name of
 this meethod.
 
 For example, the constraint triggers for the C<state> data type an be

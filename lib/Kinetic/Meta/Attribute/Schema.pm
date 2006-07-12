@@ -53,7 +53,7 @@ Kinetic::Meta::Attribute::Schema - Kinetic database store builder
 
 This module is provides metadata for all Kinetic class attributes while
 building a storage schema. Loading
-L<Kinetic::Build::Schema|Kinetic::Build::Schema> causes it to be used instead
+L<Kinetic::Store::Schema|Kinetic::Store::Schema> causes it to be used instead
 of L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>. This is so that extra
 metadata methods are available that are useful in constructing the schema, but
 are not otherwise useful when an application is actually in use.

@@ -1,4 +1,4 @@
-package Kinetic::Build::Schema::DB::Pg;
+package Kinetic::Store::Schema::DB::Pg;
 
 # $Id$
 
@@ -23,26 +23,26 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.2');
 
-use base 'Kinetic::Build::Schema::DB';
+use base 'Kinetic::Store::Schema::DB';
 use List::Util qw(first);
 use Carp;
 
 =head1 Name
 
-Kinetic::Build::Schema::DB::Pg - Kinetic PostgreSQL data store schema generation
+Kinetic::Store::Schema::DB::Pg - Kinetic PostgreSQL data store schema generation
 
 =head1 Synopsis
 
-  use Kinetic::Schema;
-  my $kbs = Kinetic::Schema->new;
+  use Kinetic::Store::Schema;
+  my $kbs = Kinetic::Store::Schema->new;
   $kbs->generate_to_file($file_name);
 
 =head1 Description
 
 This module generates and outputs to a file the schema information necessary
 to create a PostgreSQL data store for a Kinetic application. See
-L<Kinetic::Build::Schema|Kinetic::Build::Schema> and
-L<Kinetic::Build::Schema::DB|Kinetic::Build::Schema::DB> for more information.
+L<Kinetic::Store::Schema|Kinetic::Store::Schema> and
+L<Kinetic::Store::Schema::DB|Kinetic::Store::Schema::DB> for more information.
 
 =cut
 
@@ -211,7 +211,7 @@ sub column_reference { return }
   my $index = $kbs->index_for_attr($class, $attr);
 
 Returns the SQL that declares an SQL index. This implementation overrides that
-in L<Kinetic::Build::Schema::DB|Kinetic::Build::Schema::DB> to change it to a
+in L<Kinetic::Store::Schema::DB|Kinetic::Store::Schema::DB> to change it to a
 partial unique index or to remove the C<UNIQUE> keyword if the attribute is
 unique but not distinct. The difference is that a unique attribute is unique
 only relative to the C<state> attribute. A unique attribute can have more than

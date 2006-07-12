@@ -36,7 +36,7 @@ See L<Kinetic::Meta::Class|Kinetic::Meta::Class>.
 =head1 Description
 
 This module is provides metadata for all Kinetic classes while building a
-storage schema. Loading L<Kinetic::Build::Schema|Kinetic::Build::Schema>
+storage schema. Loading L<Kinetic::Store::Schema|Kinetic::Store::Schema>
 causes it to be used instead of
 L<Kinetic::Meta::Class|Kinetic::Meta::Class>. This is so that extra metadata
 methods are available that are useful in constructing the schema, but are not

@@ -241,7 +241,7 @@ sub _dbh {
   $kbs->_load_schema;
   $kbs->_load_schema($boolean);
 
-Loads a Kinetic::Build::Schema object with all of the libraries found in the
+Loads a Kinetic::Store::Schema object with all of the libraries found in the
 path specified by the C<source_dir> Kinetic::Build attribute. If a true value
 is passed, it will first load all of the libraries found in the
 C<install_base> Kinetic::Build attribute.

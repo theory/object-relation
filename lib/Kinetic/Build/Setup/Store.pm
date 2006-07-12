@@ -41,7 +41,7 @@ Kinetic::Build::Setup::Store - Kinetic data store builder
 =head1 Description
 
 This module builds a data store using the a schema output by
-L<Kinetic::Build::Schema|Kinetic::Build::Schema> to the a file.
+L<Kinetic::Store::Schema|Kinetic::Store::Schema> to the a file.
 
 =cut
 
@@ -57,7 +57,7 @@ L<Kinetic::Build::Schema|Kinetic::Build::Schema> to the a file.
 
   my $schema_class = Kinetic::Build::Setup::Store->schema_class
 
-Returns the name of the Kinetic::Build::Schema subclass that can be used
+Returns the name of the Kinetic::Store::Schema subclass that can be used
 to generate the schema code to build the data store. By default, this method
 returns the same name as the name of the Kinetic::Build::Setup::Store subclass,
 but with "Store" replaced with "Schema".
@@ -66,7 +66,7 @@ but with "Store" replaced with "Schema".
 
 sub schema_class {
     (my $class = ref $_[0] ? ref shift : shift)
-      =~ s/Kinetic::Build::Setup::Store/Kinetic::Build::Schema/;
+      =~ s/Kinetic::Build::Setup::Store/Kinetic::Store::Schema/;
     return $class;
 }
 

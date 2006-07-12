@@ -14,14 +14,14 @@ use Test::NoWarnings; # Adds an extra test.
     sub _add_store_meta { 1 }
 }
 
-BEGIN { use_ok 'Kinetic::Build::Schema' or die };
+BEGIN { use_ok 'Kinetic::Store::Schema' or die };
 
-ok my $sg = Kinetic::Build::Schema->new(
+ok my $sg = Kinetic::Store::Schema->new(
     'Kinetic::Store::DB::Pg'
 ), 'Get new Schema';
-isa_ok $sg, 'Kinetic::Build::Schema';
-isa_ok $sg, 'Kinetic::Build::Schema::DB';
-isa_ok $sg, 'Kinetic::Build::Schema::DB::Pg';
+isa_ok $sg, 'Kinetic::Store::Schema';
+isa_ok $sg, 'Kinetic::Store::Schema::DB';
+isa_ok $sg, 'Kinetic::Store::Schema::DB::Pg';
 
 ok $sg->load_classes('t/sample/lib'), "Load classes";
 my $file = 't/data/Pg.sql';

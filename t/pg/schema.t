@@ -17,7 +17,7 @@ FAKEPG: {
     $INC{'Kinetic/Store/DB/Pg.pm'} = __FILE__;
 }
 
-BEGIN { use_ok 'Kinetic::Build::Schema' or die }
+BEGIN { use_ok 'Kinetic::Store::Schema' or die }
 
 sub left_justify {
     my $text = shift;
@@ -25,12 +25,12 @@ sub left_justify {
     return $text;
 }
 
-ok my $sg = Kinetic::Build::Schema->new(
+ok my $sg = Kinetic::Store::Schema->new(
     'Kinetic::Store::DB::Pg'
 ), 'Get new Schema';
-isa_ok $sg, 'Kinetic::Build::Schema';
-isa_ok $sg, 'Kinetic::Build::Schema::DB';
-isa_ok $sg, 'Kinetic::Build::Schema::DB::Pg';
+isa_ok $sg, 'Kinetic::Store::Schema';
+isa_ok $sg, 'Kinetic::Store::Schema::DB';
+isa_ok $sg, 'Kinetic::Store::Schema::DB::Pg';
 
 ok $sg->load_classes('t/sample/lib'), "Load classes";
 is_deeply [ map { $_->key } $sg->classes ],

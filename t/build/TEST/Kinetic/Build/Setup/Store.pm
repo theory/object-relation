@@ -25,7 +25,7 @@ sub test_schema_store_meths : Test(3) {
     can_ok $class, qw(schema_class store_class);
     (my $store_class = $class) =~ s/Build::Setup:://;
     is $class->store_class, $store_class, 'Store class should be correct';
-    (my $schema_class = $class) =~ s/Setup::Store/Schema/;
+    (my $schema_class = $class) =~ s/Build::Setup::Store/Store::Schema/;
     is $class->schema_class, $schema_class, 'Schema class should be correct';
 }
 

@@ -1,4 +1,4 @@
-package Kinetic::Build::Schema::DB;
+package Kinetic::Store::Schema::DB;
 
 # $Id$
 
@@ -23,25 +23,25 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.2');
 
-use base 'Kinetic::Build::Schema';
+use base 'Kinetic::Store::Schema';
 use Kinetic::Util::Exceptions qw/throw_unimplemented/;
 
 =head1 Name
 
-Kinetic::Build::Schema::DB - Kinetic database data store schema generation
+Kinetic::Store::Schema::DB - Kinetic database data store schema generation
 
 =head1 Synopsis
 
-  use Kinetic::Build::Schema;
-  my kbs = Kinetic::Build::Schema->new;
+  use Kinetic::Store::Schema;
+  my kbs = Kinetic::Store::Schema->new;
   $kbs->write_schema($file_name);
 
 =head1 Description
 
 This is an abstract base class for the generation and output of a database
 schema to build a data store for a Kinetic application. See
-L<Kinetic::Build::Schema|Kinetic::Build::Schema> for more information and the
-subclasses of Kinetic::Schema::DB for database-specific implementations.
+L<Kinetic::Store::Schema|Kinetic::Store::Schema> for more information and the
+subclasses of Kinetic::Store::Schema::DB for database-specific implementations.
 
 =head1 Naming Conventions
 
