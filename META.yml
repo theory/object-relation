@@ -30,6 +30,7 @@ requires:
   Exception::Class: 1.12
   Exception::Class::DBI: 0.94
   Exporter::Tidy: 0.06
+  File::Find::Rule: 0
   HOP::Lexer: 0.02
   HOP::Parser: 0.01
   HOP::Stream: 0.01
@@ -206,6 +207,18 @@ provides:
     version: 0.000002
   Kinetic::Store::Search:
     file: lib/Kinetic/Store/Search.pm
+    version: 0.000002
+  Kinetic::Store::Setup:
+    file: lib/Kinetic/Store/Setup.pm
+    version: 0.000002
+  Kinetic::Store::Setup::DB:
+    file: lib/Kinetic/Store/Setup/DB.pm
+    version: 0.000002
+  Kinetic::Store::Setup::DB::Pg:
+    file: lib/Kinetic/Store/Setup/DB/Pg.pm
+    version: 0.000002
+  Kinetic::Store::Setup::DB::SQLite:
+    file: lib/Kinetic/Store/Setup/DB/SQLite.pm
     version: 0.000002
   Kinetic::Util::Cache:
     file: lib/Kinetic/Util/Cache.pm

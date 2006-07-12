@@ -220,6 +220,9 @@ our %Lexicon;
         'No duration string passed to bake()',
         'No duration string passed to bake()',
 
+        'DBD::SQLite is compiled with SQLite [_1] but we require version [_2]',
+        'DBD::SQLite is compiled with SQLite [_1] but we require version [_2]',
+
         # Kinetic::Meta::Class error.
         'No direct attribute "[_1]" to sort by',
         'No direct attribute “[_1]” to sort by',
@@ -245,6 +248,7 @@ our %Lexicon;
 
         'The state of this object',
         'The state of this object',
+
 
         # Data types.
         'UUID' => 'UUID',

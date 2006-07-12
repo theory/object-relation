@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 319;
+use Test::More tests => 323;
 use Test::NoWarnings; # Adds an extra test.
 use File::Spec;
 use File::Find;

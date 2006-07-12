@@ -44,6 +44,10 @@ lib/Kinetic/Store/Schema/DB.pm
 lib/Kinetic/Store/Schema/DB/Pg.pm
 lib/Kinetic/Store/Schema/DB/SQLite.pm
 lib/Kinetic/Store/Search.pm
+lib/Kinetic/Store/Setup.pm
+lib/Kinetic/Store/Setup/DB.pm
+lib/Kinetic/Store/Setup/DB/Pg.pm
+lib/Kinetic/Store/Setup/DB/SQLite.pm
 lib/Kinetic/Util/Cache.pm
 lib/Kinetic/Util/Cache/File.pm
 lib/Kinetic/Util/Cache/Memcached.pm
@@ -112,6 +116,7 @@ t/sample/lib/TestApp/Simple/Two.pm
 t/sample/lib/TestApp/TypesTest.pm
 t/sample/lib/TestApp/Yello.pm
 t/schema_meta.t
+t/setup.t
 t/sqlite/schema.t
 t/sqlite/schema_file.t
 t/state.t

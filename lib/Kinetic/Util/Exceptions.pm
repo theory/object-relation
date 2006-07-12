@@ -240,7 +240,7 @@ use Exception::Class(
 =item Kinetic::Util::Exception::Fatal::Unsupported
 
 Unsupported feature exception. Thrown if code attempts to use an unsupported
-feature.  Alias: C<throw_unsupported>.
+feature. Alias: C<throw_unsupported>.
 
 =cut
 
