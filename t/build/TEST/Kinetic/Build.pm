@@ -24,7 +24,7 @@ sub teardown_builder : Test(teardown) {
     }
 }
 
-sub test_props : Test(7) {
+sub test_props : Test(6) {
     my $self = shift;
     my $class = $self->test_class;
     my $mb = MockModule->new($class);
@@ -40,7 +40,6 @@ sub test_props : Test(7) {
     is $builder->accept_defaults, 1, 'Accept Defaults should be enabled';
     is $builder->store, 'sqlite', 'Default store should be "SQLite"';
     is $builder->source_dir, 'lib', 'Default source dir should be "lib"';
-    is $builder->dev_tests, 0, 'Run dev tests should be disabled';
 
     # Make sure we clean up our mess.
     $builder->dispatch('clean');

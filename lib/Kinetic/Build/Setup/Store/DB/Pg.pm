@@ -295,7 +295,7 @@ sub rules {
                 },
 
                 'Get super user' => {
-                    rule => sub { $builder->dev_tests },
+                    rule => sub { !!$ENV{KS_CLASS} },
                     message => 'Need super user credentials for dev tests',
                 },
 
@@ -1280,7 +1280,7 @@ that value.
 sub _pg_says_true {
     my ($self, $sql, @bind_params) = @_;
     my $dbh    = $self->_dbh
-      or die "I need a database handle to execute a query";
+      or die 'I need a database handle to execute a query';
     my $result = $dbh->selectrow_array($sql, undef, @bind_params);
     return $result;
 }
@@ -1299,7 +1299,7 @@ sub _db_exists {
     my ($self, $db_name) = @_;
     $db_name ||= $self->db_name;
     $self->_pg_says_true(
-        "SELECT datname FROM pg_catalog.pg_database WHERE datname = ?",
+        'SELECT datname FROM pg_catalog.pg_database WHERE datname = ?',
         $db_name
     );
 }
@@ -1360,7 +1360,7 @@ This method tells whether a particular PostgreSQL user exists.
 sub _user_exists {
     my ($self, $user) = @_;
     $self->_pg_says_true(
-        "select usename from pg_catalog.pg_user where usename = ?",
+        'select usename from pg_catalog.pg_user where usename = ?',
         $user
     );
 }
@@ -1385,7 +1385,7 @@ sub _try_connect {
     # Try connecting to the database first.
     $state->{dsn} = [$self->_dsn($self->db_name)];
     my $dbh = $self->_connect( $state->{dsn}[0], $user, $pass);
-    if (!$dbh || $self->builder->dev_tests) {
+    if (!$dbh || $ENV{KS_CLASS}) {
         my $tdb = $self->_get_template_db_name; # Try the template database.
         push @{$state->{dsn}}, $self->_dsn($tdb);
         $dbh = $self->_connect( $state->{dsn}[-1], $user, $pass);
@@ -1407,7 +1407,7 @@ databases.
 sub _can_create_db {
     my $self = shift;
     $self->_pg_says_true(
-        "select usecreatedb from pg_catalog.pg_user where usename = ?",
+        'select usecreatedb from pg_catalog.pg_user where usename = ?',
         $self->db_user
     );
 }
@@ -1447,7 +1447,7 @@ super user.
 sub _is_super_user {
     my ($self, $user) = @_;
     $self->_pg_says_true(
-        "select usesuper from pg_catalog.pg_user where usename = ?",
+        'select usesuper from pg_catalog.pg_user where usename = ?',
         $user || $self->db_super_user
     );
 }

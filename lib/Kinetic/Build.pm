@@ -246,23 +246,6 @@ __PACKAGE__->add_property( source_dir => 'lib' );
 
 ##############################################################################
 
-=head3 dev_tests
-
-  my $dev_tests = $build->dev_tests;
-  $build->dev_tests($dev_tests);
-
-Triggers the execution of developer tests. What this means is that, if this
-property is set to a true value, some tests will build temporary databases for
-comprehensive testing of all features. Tests will then be run that connect to
-and make changes to this database. The C<dev_tests> method is set to a
-false value by default.
-
-=cut
-
-__PACKAGE__->add_property( dev_tests => 0 );
-
-##############################################################################
-
 =head3 dist_version
 
   my $version = $build->dist_version;

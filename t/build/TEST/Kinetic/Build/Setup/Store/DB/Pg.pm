@@ -43,7 +43,7 @@ sub test_rules : Test(168) {
     my $mb = MockModule->new(Build);
     $mb->mock( check_manifest => undef );
     $mb->mock( _check_build_component => 1);
-    $mb->mock( dev_tests      => undef );
+    local $ENV{KS_CLASS};
 
     my $builder = $self->new_builder;
     $mb->mock(resume => $builder);
@@ -588,7 +588,7 @@ sub test_validate_user_db : Test(37) {
     my $mb = MockModule->new(Build);
     $mb->mock( check_manifest => sub { return } );
     $mb->mock( _check_build_component => 1);
-    $mb->mock( dev_tests      => undef );
+    local $ENV{KS_CLASS};
 
     my $builder = $self->new_builder( store => 'pg' );
     $builder->source_dir('lib');
@@ -685,7 +685,7 @@ sub test_validate_super_user : Test(37) {
     $mb->mock(check_manifest => sub { return });
     $mb->mock( _check_build_component => 1);
     $mb->mock(cache => 'memcached');
-    $mb->mock(dev_tests => undef );
+    local $ENV{KS_CLASS};
 
     my $builder = $self->new_builder;
     $mb->mock(resume => $builder);
@@ -804,6 +804,7 @@ sub test_validate_super_user_arg : Test(37) {
     $pg->mock(_plpgsql_available => 0);
     $pg->mock(_user_exists => 0);
     $pg->mock(_is_super_user => 1);
+    local $ENV{KS_CLASS};
 
     # Construct the object.
     ok my $kbs = $class->new, "Create new $class object";
@@ -926,6 +927,7 @@ sub test_helpers : Test(15) {
     $pg->mock(_connect => sub { shift; push @args, @_; shift @cons });
     $pg->mock(_dbh => sub { shift; shift; });
     $pg->mock(db_name => 'foo');
+    local $ENV{KS_CLASS};
 
     my $state = {};
     ok $kbs->_try_connect($state, 'one', 'two'),
