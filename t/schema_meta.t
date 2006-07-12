@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use diagnostics;
-use Test::More tests => 237;
+use Test::More tests => 277;
 use Test::NoWarnings; # Adds an extra test.
 
 {
@@ -20,8 +20,8 @@ ok my $sg = Kinetic::Store::Schema->new(
 ), 'Get new Schema';
 isa_ok $sg, 'Kinetic::Store::Schema';
 
-ok $sg->load_classes('t/sample/lib', qr/Relation\.pm/),
-    'Load all sample classes except Relation.pm';
+ok $sg->load_classes('t/sample/lib'),
+    'Load all sample classes';
 for my $class ($sg->classes) {
     ok $class->is_a('Kinetic'), $class->package . ' is a Kinetic';
     isa_ok($class, 'Class::Meta::Class');

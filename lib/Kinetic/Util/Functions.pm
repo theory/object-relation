@@ -23,7 +23,7 @@ use version;
 our $VERSION = version->new('0.0.2');
 use OSSP::uuid;
 use MIME::Base64;
-use File::Find;
+use File::Find::Rule;
 use File::Spec;
 use List::Util qw(first sum);
 use Kinetic::Util::Exceptions qw/throw_fatal/;
@@ -165,6 +165,8 @@ be imported individually or with the C<:class> tag.
 
 =cut
 
+##############################################################################
+
 =head3 file_to_mod
 
   my $module = file_to_mod($search_dir, $file);
@@ -188,48 +190,54 @@ sub file_to_mod {
     join '::', @dirs;
 }
 
+##############################################################################
+
 =head3 load_classes
 
-  my $classes = load_classes($dir);
-  my $classes = load_classes($dir, $regex);
-  my $classes = load_classes($dir, @regexen);
+  my $classes = load_classes(@dirs);
+  my @classes = load_classes(@dirs, $rule);
 
-Loads all of the Kinetic::Meta classes found in the specified directory and
-its subdirectories. Use Unix-style directory naming for the $dir argument;
-C<load_classes()> will automatically convert the directory path to the
-appropriate format for the current operating system. All Perl module files
-found in the directory or its subdirectories will be loaded, excepting those
-that match one of the regular expressions passed in after the directory
-argument. C<load_classes()> will only store a the
-L<Kinetic::Meta::Class|Kinetic::Meta::Class> object for those modules that
-inherit from C<Kinetic>.
-
-Returns an array reference of the classes loaded.
+Uses L<File::Find::Rule|File::Find::Rule> to find and load all Perl modules
+found in the directories specified and their subdirectories, and returns a
+list or array reference of the Kinetic::Meta::Class objects for each that
+inherits from C<Kinetic> and is not abstract. If the last argument so the
+method is not a File::Find::Rule object, one will be created that ignores
+directories named F<.svn> and C<CVS> and loads all files that end in F<.pm>
+and do not contain "#" in their names. If you need something more strict or
+lenient, create your own File::Find::Rule object and pass it as the last
+argument. Use Unix-style directory naming for the directory arguments;
+C<load_classes()> will automatically convert the them to the appropriate
+format for the current operating system.
 
 =cut
 
 sub load_classes {
-    my ($lib_dir, @skippers) = @_;
-    my $dir = File::Spec->catdir(split m{/}, $lib_dir);
-    unshift @INC, $dir;
+    my $rule = ref $_[-1] ? pop : File::Find::Rule->or(
+        File::Find::Rule->directory
+                        ->name( '.svn', 'CVS' )
+                        ->prune
+                        ->discard,
+        File::Find::Rule->name( qr/\.pm$/ )
+                        ->not_name( qr/#/ )
+   );
+
     my @classes;
-    my $find_classes = sub {
-        local *__ANON__ = '__ANON__find_classes';
-        return if /\.svn/;
-        return unless /\.pm$/;
-        return if /#/;    # Ignore old backup files.
-        return if first { $File::Find::name =~ m/$_/ } @skippers;
-        my $class = file_to_mod( $lib_dir, $File::Find::name );
-        eval "require $class" or die $@;
+    for my $lib_dir (@_) {
+        my $dir = File::Spec->catdir(split m{/}, $lib_dir);
+        unshift @INC, $dir;
+        $rule->start($dir);
+        while ( my $file = $rule->match ) {
+            my $class = file_to_mod( $lib_dir, $file );
+            eval "require $class" or die $@;
 
-        # Keep the class if it isa Kinetic and is not abstract.
-        unshift @classes, $class->my_class
-            if $class->isa('Kinetic') && !$class->my_class->abstract;
-    };
+            # Keep the class if it isa Kinetic and is not abstract.
+            unshift @classes, $class->my_class
+                if $class->isa('Kinetic') && !$class->my_class->abstract;
+        }
+        shift @INC;
+    }
 
-    find({ wanted => $find_classes, no_chdir => 1 }, $dir);
-    shift @INC;
-    return \@classes;
+    return wantarray ? @classes : \@classes;
 }
 
 1;

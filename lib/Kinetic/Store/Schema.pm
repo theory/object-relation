@@ -115,25 +115,26 @@ sub classes {
 
 =head3 load_classes
 
-  $sg->load_classes($dir);
-  $sg->load_classes($dir, $regex);
-  $sg->load_classes($dir, @regexen);
+  $sg->load_classes(@dir);
+  $sg->load_classes(@dir, $rule);
 
-Loads all of the Kinetic::Meta classes found in the specified directory and
-its subdirectories. Use Unix-style directory naming for the $dir argument;
-C<load_classes()> will automatically convert the directory path to the
-appropriate format for the current operating system. All Perl module files
-found in the directory or its subdirectories will be loaded, excepting those
-that match one of the regular expressions passed in after the directory
-argument. C<load_classes()> will only store a the
-L<Kinetic::Meta::Class|Kinetic::Meta::Class> object for those modules that
-inherit from C<Kinetic>.
+Uses L<File::Find::Rule|File::Find::Rule> to find and load all Perl modules
+found in the directories specified and their subdirectories, and stores the
+the Kinetic::Meta::Class objects for each that inherits from C<Kinetic>. If
+the last argument so the method is not a File::Find::Rule object, one will be
+created that ignores directories named F<.svn> and C<CVS> and loads all files
+that end in F<.pm> and do not contain "#" in their names. If you need
+something more strict or lenient, create your own File::Find::Rule object and
+pass it as the last argument. Use Unix-style directory naming for the
+directory arguments; C<load_classes()> will automatically convert the them to
+the appropriate format for the current operating system.
 
 =cut
 
 sub load_classes {
-    my ($self, $lib_dir, @skippers) = @_;
-    my $classes = Kinetic::Util::Functions::load_classes($lib_dir, @skippers);
+    my $self = shift;
+    my $classes = Kinetic::Util::Functions::load_classes(@_);
+
     # Store classes according to dependency order.
     my (@sorted, %seen);
     for my $class (
@@ -142,7 +143,7 @@ sub load_classes {
         map  { [$_->key => $_ ] } @$classes
     ) {
         push @sorted, $self->_sort_class(\%seen, $class)
-          unless $seen{$class->key}++;
+            unless $seen{$class->key}++;
     }
 
     push @{ $self->{classes} }, @sorted;

@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 17;
+use Test::More tests => 19;
 #use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
@@ -46,12 +46,10 @@ UUID: { # 10 tests.
         'uuid_to_b64 should work';
 }
 
-class: { # 5 tests.
+class: { # 6 tests.
     package MyTest3;
     use Kinetic::Util::Functions qw(:class);
     use Test::More;
-    use aliased 'Kinetic::Store::Schema';
-    Schema->new( 'Kinetic::Store::DB::SQLite' );
 
     can_ok __PACKAGE__, 'file_to_mod';
 
@@ -65,4 +63,23 @@ class: { # 5 tests.
       '... and it should remove the search directories';
     is file_to_mod('some/path/', 'some/path/To/Module.pm'), 'To::Module',
       '... and it should remove the search directories';
+
+    is_deeply [sort map { $_->key } load_classes( 't/sample/lib') ],
+        [qw(comp_comp composed extend one relation simple two types_test yello)],
+        'load_classes should work properly';
+
+    my $rule = File::Find::Rule->or(
+        File::Find::Rule->directory
+                        ->name( '.svn', 'CVS' )
+                        ->prune
+                        ->discard,
+        File::Find::Rule->name( qr/\.pm$/ )
+                        ->not_name( qr/#/ )
+                        ->not_name( 'Yello.pm' )
+    );
+
+    is_deeply [sort map { $_->key } load_classes( 't/sample/lib', $rule) ],
+        [qw(comp_comp composed extend one relation simple two types_test)],
+        'load_classes should work properly with a custom rule';
+
 }
