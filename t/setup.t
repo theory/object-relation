@@ -38,6 +38,18 @@ can_ok $setup, qw(dsn user pass);
 setup_ctor('DB::SQLite');
 setup_ctor('DB::Pg');
 
+# Check the connect_args class methods.
+is_deeply [Kinetic::Store::Setup::DB->connect_attrs], [
+    RaiseError  => 0,
+    PrintError  => 0,
+    HandleError => Kinetic::Util::Exception::DBI->handler,
+], 'DB->connect_attrs should be correct';
+
+is_deeply [Kinetic::Store::Setup::DB::SQLite->connect_attrs], [
+    Kinetic::Store::Setup::DB->connect_attrs,
+    unicode => 1,
+], 'DB::SQLite->connect_attrs should be correct';
+
 # Check the default values for the SQLite subclass.
 is $setup->user, '', 'The username should be ""';
 is $setup->pass, '', 'The password should be ""';
@@ -95,7 +107,8 @@ sub setup_ctor {
     ok $setup = Kinetic::Store::Setup->new({ class => $class }),
         'Create a new Setup object with a partial class  name specified';
     setup_isa($setup, $full_class);
-    can_ok $setup, qw(dsn user pass dbh setup build_db class_dirs);
+    can_ok $setup,
+        qw(dsn user pass dbh setup build_db class_dirs connect connect_attrs);
     (my $store = $full_class) =~ s/Setup:://;
     is $full_class->store_class, $store, "The store class should be $store";
     is $setup->store_class, $store, "The instance store class should be $store";

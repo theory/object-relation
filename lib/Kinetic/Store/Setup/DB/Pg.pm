@@ -25,6 +25,13 @@ our $VERSION = version->new('0.0.2');
 
 use base 'Kinetic::Store::Setup::DB';
 use DBI;
+use Class::BuildMethods qw(
+    super_user
+    super_pass
+    template_db
+    host
+    port
+);
 
 =head1 Name
 
@@ -41,11 +48,11 @@ store.
 
 =cut
 
-
 ##############################################################################
 
 1;
 __END__
+
 
 =head1 Copyright and License
 

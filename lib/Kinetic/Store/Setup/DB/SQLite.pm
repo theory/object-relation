@@ -72,6 +72,26 @@ sub new {
 
 ##############################################################################
 
+=head2 Class Methods
+
+=head3 connect_attrs
+
+  DBI->connect($dsn, $user, $pass, { $setup->connect_attrs });
+
+Returns a list of arugments to be used in the attributes hash passed to the
+DBI C<connect()> method. Overrides that provided by L<Kinetic::Store::Setup::DB|Kinetic::Store::Setup::DB> to add C<unicode => 1>.
+
+=cut
+
+sub connect_attrs {
+    return (
+        shift->SUPER::connect_attrs,
+        unicode => 1,
+    );
+}
+
+##############################################################################
+
 =head1 Instance Interface
 
 =head2 Instance Methods
@@ -91,17 +111,7 @@ sub setup {
     my $self = shift;
     require DBD::SQLite;
 
-    my $dbh = DBI->connect(
-        $self->dsn,
-        $self->user,
-        $self->pass,
-        {
-            RaiseError  => 0,
-            PrintError  => 0,
-            unicode     => 1,
-            HandleError => Kinetic::Util::Exception::DBI->handler,
-        },
-    );
+    my $dbh = $self->connect;
 
     # Check the version of SQLite.
     my $req = version->new('3.2.0');

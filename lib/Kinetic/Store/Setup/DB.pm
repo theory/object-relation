@@ -24,6 +24,7 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Kinetic::Store::Setup';
+use Kinetic::Util::Exceptions;
 use Class::BuildMethods qw(
     dsn
     user
@@ -126,28 +127,53 @@ sub dsn_dbd {
 
 ##############################################################################
 
+=head3 connect_attrs
+
+  DBI->connect($dsn, $user, $pass, { $setup->connect_attrs });
+
+Returns a list of arugments to be used in the attributes hash passed to the
+DBI C<connect()> method. By default, the arguments are:
+
+  RaiseError  => 0,
+  PrintError  => 0,
+  HandleError => Kinetic::Util::Exception::DBI->handler,
+
+But they may be overridden or added to by subclasses.
+
+=cut
+
+sub connect_attrs {
+    return (
+        RaiseError  => 0,
+        PrintError  => 0,
+        HandleError => Kinetic::Util::Exception::DBI->handler,
+    );
+}
+
+##############################################################################
+
 =head1 Instance Interface
 
 =head2 Instance Accessors
 
 =head3 dsn
 
-  my $dsn = $kbs->dsn;
-  $kbs->dsn($dsn);
+  my $dsn = $setup->dsn;
+  $setup->dsn($dsn);
 
 Gets or sets the DSN to use when connecting to the database via the DBI.
 
 =head3 user
 
-  my $user = $kbs->user;
-  $kbs->user($user);
+  my $user = $setup->user;
+  $setup->user($user);
 
 Gets or sets the username used to connect to the database via the DBI.
 
 =head3 pass
 
-  my $pass = $kbs->pass;
-  $kbs->pass($pass);
+  my $pass = $setup->pass;
+  $setup->pass($pass);
 
 Gets or sets the passname used to connect to the database via the DBI.
 
@@ -175,7 +201,9 @@ sub setup {
 
 =head3 build_db
 
-Builds the database. Called as an action during C<./Build install>.
+  $setup->build_db;
+
+Builds the database.
 
 =cut
 
@@ -204,28 +232,38 @@ sub build_db {
 
 ##############################################################################
 
-=head3 switch_to_db
+=head3 connect
 
-This action switches the database connection for building a database to a
-different database. Used when switching between a template database for
-creating a new database, and the database to be built.
+  my $dbh = $setup->connect;
+  $dbh = $setup->connect(@args);
+
+Connects to the database and returns the database handle, which is also stored
+in the C<dbh> attribute. By default, it uses the C<dsn>, C<user>, and C<pass>
+attributes to connect, but these can be overridden by passing them to the
+method as arguments, instead.
+
+
+The attributes passed to C<< DBI->connect >> are those returned by
+C<connect_attrs>.
 
 =cut
 
-sub switch_to_db {
-    my ($self, $db_name) = @_;
-    $self->builder->db_name($db_name);
-    $self->builder->notes(db_name => $db_name);
-    $self->dbh->disconnect if $self->dbh;
-    $self->dbh(undef); # clear wherever we were
-    return $self;
+sub connect {
+    my $self = shift;
+    my $dbh = DBI->connect(
+        (@_ || $self->dsn, $self->user, $self->pass),
+        { $self->connect_attrs }
+    );
+
+    $self->dbh($dbh);
+    return $dbh;
 }
 
 ##############################################################################
 
 =head3 disconnect_all
 
-  $kbs->disconnect_all;
+  $setup->disconnect_all;
 
 Disconnects all cached connections to the database server (that is, created by
 calls to C<< DBI->connect_cached >> for the driver returned by C<dbd_class()>.
