@@ -37,10 +37,10 @@ See L<Kinetic::Build::Setup::Store|Kinetic::Build::Setup::Store>.
 
 =head1 Description
 
-This module inherits from Kinetic::Build::Setup::Store::DB to build a PostgreSQL data
-store. Its interface is defined entirely by Kinetic::Build::Setup::Store. Its
-interface is defined entirely by Kinetic::Build::Setup::Store. The command-line
-options it adds are:
+This module inherits from Kinetic::Build::Setup::Store::DB to build a
+PostgreSQL data store. Its interface is defined entirely by
+Kinetic::Build::Setup::Store. Its interface is defined entirely by
+Kinetic::Build::Setup::Store. The command-line options it adds are:
 
 =over
 
@@ -157,7 +157,7 @@ sub rules {
                     message => "Cannot find PostgreSQL",
                 }
             ],
-    },
+        },
 
         'Check version' => {
             rules => [

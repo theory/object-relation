@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-#use Test::More tests => 118;
+#use Test::More tests => 64;
 use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use Test::Exception;
@@ -36,7 +36,7 @@ can_ok $setup, qw(dsn user pass);
 
 # Be explicit about subclasses.
 setup_ctor('DB::SQLite');
-setup_ctor('DB::Pg');
+setup_ctor('DB::Pg', qw(super_user super_pass template_dsn));
 
 # Check the connect_args class methods.
 is_deeply [Kinetic::Store::Setup::DB->connect_attrs], [
@@ -73,6 +73,7 @@ is $setup->dsn,  'dbi:SQLite:dbname=foo',
 is_deeply [ $setup->class_dirs ], [qw(foo bar)],
     'The class_dirs should be [qw(foo bar)]';
 
+##############################################################################
 # Test the SQLite implementation.
 ok $setup = Kinetic::Store::Setup->new, 'Create a default Setup object';
 ok $setup->class_dirs('t/sample/lib'), 'Set the class_dirs for the sample';
@@ -96,6 +97,54 @@ for my $view ( Kinetic::Meta->keys ) {
 $dbh->disconnect;
 
 ##############################################################################
+# Test PostgreSQL implementation.
+ok $setup = Kinetic::Store::Setup::DB::Pg->new,
+    'Create PostgreSQL setup object';
+
+is $setup->user, 'kinetic', 'The username should be "kinetic"';
+is $setup->pass, '', 'The password should be ""';
+is $setup->dsn,  'dbi:Pg:dbname=kinetic',
+    'The dsn should be "dbi:Pg:dbname=kinetic"';
+
+is $setup->super_user,   'postgres', 'The superuser should be "postgres"';
+is $setup->super_pass,   '', 'The superuser password should be ""';
+is $setup->template_dsn, 'dbi:Pg:dbname=template1',
+    'The template dsn should be "dbi:Pg:dbname=template1"';
+
+ok $setup = Kinetic::Store::Setup::DB::Pg->new({
+    user         => 'foo',
+    pass         => 'bar',
+    super_user   => 'hoo',
+    super_pass   => 'yoo',
+    dsn          => 'dbi:Pg:dbname=foo',
+    template_dsn => 'dbi:Pg:dbname=template0',
+}), 'Create PostgreSQL setup object with parameters';
+
+is $setup->user, 'foo', 'The username should be "foo"';
+is $setup->pass, 'bar', 'The password should be "bar"';
+is $setup->dsn,  'dbi:Pg:dbname=foo',
+    'The dsn should be "dbi:Pg:dbname=foo"';
+
+is $setup->super_user,       'hoo', 'The superuser should be "hoo"';
+is $setup->super_pass,       'yoo', 'The superuser password should be "yoo"';
+is $setup->template_dsn, 'dbi:Pg:dbname=template0',
+    'The template dsnshould be "dbi:Pg:dbname=template0"';
+
+SKIP: {
+    skip 'Not testing a live PostgreSQL database', 1
+        unless $ENV{KS_CLASS} && $ENV{KS_CLASS} =~ /DB::Pg$/;
+
+    ok $setup = Kinetic::Store::Setup::DB::Pg->new({
+        user         => $ENV{KS_USER},
+        pass         => $ENV{KS_PASS},
+        super_user   => $ENV{KS_SUPER_USER},
+        super_pass   => $ENV{KS_SUPER_PASS},
+        dsn          => $ENV{KS_DSN},
+        template_dsn => $ENV{KS_TEMPLATE_DSN},
+    }), 'Create PostgreSQL setup object with live parameters';
+}
+
+##############################################################################
 
 sub setup_ctor {
     my $class = shift;
@@ -108,7 +157,8 @@ sub setup_ctor {
         'Create a new Setup object with a partial class  name specified';
     setup_isa($setup, $full_class);
     can_ok $setup,
-        qw(dsn user pass dbh setup build_db class_dirs connect connect_attrs);
+        qw(dsn user pass dbh setup build_db class_dirs connect connect_attrs),
+        @_;
     (my $store = $full_class) =~ s/Setup:://;
     is $full_class->store_class, $store, "The store class should be $store";
     is $setup->store_class, $store, "The instance store class should be $store";

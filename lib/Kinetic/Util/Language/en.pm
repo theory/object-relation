@@ -220,8 +220,14 @@ our %Lexicon;
         'No duration string passed to bake()',
         'No duration string passed to bake()',
 
-        'DBD::SQLite is compiled with SQLite [_1] but we require version [_2]',
-        'DBD::SQLite is compiled with SQLite [_1] but we require version [_2]',
+        '[_1] is compiled with [_2] [_3] but we require version [_4]',
+        '[_1] is compiled with [_2] [_3] but we require version [_4]',
+
+        'Cannot find the PostgreSQL createlang executable',
+        'Cannot find the PostgreSQL createlang executable',
+
+        '[_1] failed: [_2]', # system(foo) failed: $?
+        '[_1] failed: [_2]',
 
         # Kinetic::Meta::Class error.
         'No direct attribute "[_1]" to sort by',

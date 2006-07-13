@@ -5,12 +5,16 @@
 use strict;
 use warnings;
 
-use Test::More tests => 323;
+use Test::More;
 use Test::NoWarnings; # Adds an extra test.
 use File::Spec;
 use File::Find;
 
-no warnings 'uninitialized';
+use Kinetic::Util::Language::en;
+BEGIN {
+    # Calculate the number of tests.
+    plan tests => keys(%Kinetic::Util::Language::en::Lexicon) * 4 + 11;
+}
 
 sub file_to_class {
     my (@dirs) = File::Spec->splitdir( substr shift, 0, -3 );

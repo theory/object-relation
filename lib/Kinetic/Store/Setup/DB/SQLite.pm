@@ -27,7 +27,6 @@ use base 'Kinetic::Store::Setup::DB';
 use Kinetic::Util::Exceptions qw(
     throw_unsupported
 );
-use version;
 
 =head1 Name
 
@@ -76,10 +75,15 @@ sub new {
 
 =head3 connect_attrs
 
-  DBI->connect($dsn, $user, $pass, { $setup->connect_attrs });
+  DBI->connect(
+      $dsn, $user, $pass,
+      { Kinetic::Store::Setup::DB::SQLite->connect_attrs }
+  );
 
 Returns a list of arugments to be used in the attributes hash passed to the
-DBI C<connect()> method. Overrides that provided by L<Kinetic::Store::Setup::DB|Kinetic::Store::Setup::DB> to add C<unicode => 1>.
+DBI C<connect()> method. Overrides that provided by
+L<Kinetic::Store::Setup::DB|Kinetic::Store::Setup::DB> to add
+C<< unicode => 1 >>.
 
 =cut
 
@@ -109,15 +113,15 @@ work.
 
 sub setup {
     my $self = shift;
-    require DBD::SQLite;
-
-    my $dbh = $self->connect;
+    my $dbh  = $self->connect;
 
     # Check the version of SQLite.
     my $req = version->new('3.2.0');
     my $got = version->new($dbh->{sqlite_version});
     throw_unsupported [
-        'DBD::SQLite is compiled with SQLite [_1] but we require version [_2]',
+        '[_1] is compiled with [_2] [_3] but we require version [_4]',
+        'DBD::SQLite',
+        'SQLite',
         $got,
         $req,
     ] if $got < $req;

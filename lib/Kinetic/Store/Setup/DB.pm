@@ -129,7 +129,10 @@ sub dsn_dbd {
 
 =head3 connect_attrs
 
-  DBI->connect($dsn, $user, $pass, { $setup->connect_attrs });
+  DBI->connect(
+      $dsn, $user, $pass,
+      { Kinetic::Store::Setup::DB->connect_attrs }
+  );
 
 Returns a list of arugments to be used in the attributes hash passed to the
 DBI C<connect()> method. By default, the arguments are:
@@ -250,7 +253,7 @@ C<connect_attrs>.
 
 sub connect {
     my $self = shift;
-    my $dbh = DBI->connect(
+    my $dbh = DBI->connect_cached(
         (@_ || $self->dsn, $self->user, $self->pass),
         { $self->connect_attrs }
     );
