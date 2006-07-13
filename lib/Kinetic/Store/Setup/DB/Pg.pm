@@ -1,6 +1,6 @@
 package Kinetic::Store::Setup::DB::Pg;
 
-# $Id: Pg.pm 3006 2006-07-11 22:19:06Z theory $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

@@ -1,6 +1,6 @@
 package Kinetic::Store::Setup::DB;
 
-# $Id: DB.pm 3014 2006-07-12 18:47:41Z theory $
+# $Id$
 
 # CONTRIBUTION SUBMISSION POLICY:
 #

@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: accessors.t 3005 2006-07-11 21:46:22Z theory $
+# $Id$
 
 use strict;
 use warnings;
