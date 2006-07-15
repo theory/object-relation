@@ -229,6 +229,26 @@ our %Lexicon;
         '[_1] failed: [_2]', # system(foo) failed: $?
         '[_1] failed: [_2]',
 
+        # PostgreSQL setup exceptions.
+        'User "[_1]" cannot connect to either "[_2]" or "[_3]"',
+        'User “[_1]” cannot connect to either “[_2]” or “[_3]”',
+
+        # PostgreSQL Setup labels.
+        'Can we connect as super user?',
+        'Can we connect as super user?',
+
+        'Does the database exist?',
+        'Does the database exist?',
+
+        'Can we connect as the user?',
+        'Can we connect as the user?',
+
+        # PostgreSQL Setup messages.
+        'Yes'    => 'Yes',
+        'No'     => 'No',
+        'Okay'   => 'Okay',
+        'Failed' => 'Failed',
+
         # Kinetic::Meta::Class error.
         'No direct attribute "[_1]" to sort by',
         'No direct attribute “[_1]” to sort by',

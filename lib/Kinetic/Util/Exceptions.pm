@@ -331,7 +331,7 @@ use Exception::Class(
 =item Kinetic::Util::Exception::Fatal::Search
 
 Store search exception. Thrown if data store cannot figure out how to respond
-to a search request.  Alias: C<throw_search>.
+to a search request. Alias: C<throw_search>.
 
 =cut
 
@@ -343,18 +343,18 @@ use Exception::Class(
     },
 );
 
-=item Kinetic::Util::Exception::Fatal::Config
+=item Kinetic::Util::Exception::Fatal::Setup
 
-Configuration exception. Thrown if there is an error in the F<kinetic.conf>
-configuration data, such as a missing configuration setting.
+Setup exception. Thrown if there is an error when setting up a data store.
+Alias: C<throw_setup>.
 
 =cut
 
 use Exception::Class(
-    'Kinetic::Util::Exception::Fatal::Config' => {
-        description => 'Configuration error',
+    'Kinetic::Util::Exception::Fatal::Setup' => {
+        description => 'Setup error',
         isa         => 'Kinetic::Util::Exception::Fatal',
-        alias       => 'throw_config',
+        alias       => 'throw_setup',
     },
 );
 
@@ -436,7 +436,7 @@ use Exception::Class(
 use Exporter::Tidy all => [qw(
     panic isa_kinetic_exception isa_exception throw_exlib throw_fatal
     throw_invalid throw_read_only throw_lang throw_stat throw_io throw_error
-    throw_auth throw_required throw_xml throw_unknown_class throw_config
+    throw_auth throw_required throw_xml throw_unknown_class throw_setup
     throw_invalid_class throw_invalid_attr throw_not_found throw_unsupported
     throw_unimplemented throw_search throw_attribute sig_handlers
 )];

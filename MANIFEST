@@ -101,6 +101,7 @@ t/mysql/schema.t
 t/parser/main.t
 t/pg/schema.t
 t/pg/schema_file.t
+t/pg/setup.t
 t/pod.t
 t/pod_coverage.t
 t/relationships.t
@@ -119,6 +120,7 @@ t/schema_meta.t
 t/setup.t
 t/sqlite/schema.t
 t/sqlite/schema_file.t
+t/sqlite/setup.t
 t/state.t
 t/store.t
 t/store/TEST/Kinetic.pm

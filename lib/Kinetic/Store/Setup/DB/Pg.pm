@@ -24,6 +24,9 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Kinetic::Store::Setup::DB';
+use FSA::Rules;
+use Kinetic::Util::Language;
+
 use Class::BuildMethods qw(
     super_user
     super_pass
@@ -35,6 +38,7 @@ use Kinetic::Util::Exceptions qw(
     throw_unsupported
     throw_not_found
     throw_io
+    throw_setup
 );
 
 =head1 Name
@@ -104,7 +108,7 @@ sub new {
     $self->user('kinetic') unless $self->user;
 
     unless ($self->template_dsn) {
-        (my $dsn = $self->dsn) =~ s/dbname=[^:]+/dbname=template1/;
+        (my $dsn = $self->dsn) =~ s/dbname=['"]?[^:'"]+['"]?/dbname=template1/;
         $self->template_dsn($dsn);
     }
 
@@ -181,12 +185,373 @@ work.
 
 sub setup {
     my $self = shift;
-    # Try to connect as super user.
-
-#    $self->check_version;
-
-#    $self->build_db;
+    my $machine = FSA::Rules->new($self->rules);
+    $machine->run;
+    return $self;
     $self->disconnect_all;
+}
+
+##############################################################################
+
+=head3 rules
+
+  my $machine = FSA::Rules->new($setup->rules);
+  print $machine->graph->as_png;
+
+This method returns a list of values to be passed to the
+L<FSA::Rules|FSA::Rules> constructor. When the C<run()> method is called on
+the resulting FSA::Rules object, the rules handle the actual setup of the
+PostgreSQL database. Used internally by C<setup()> and therefore not of much
+use externally (except for testing and graphing).
+
+=cut
+
+STATE: {
+    package # Hide from the CPAN indexer.
+        Kinetic::Store::Setup::State;
+    use base 'FSA::State';
+    sub message {
+        my $self = shift;
+        return $self->SUPER::message(\@_) if @_;
+        my $lang = Kinetic::Util::Language->get_handle;
+        my $msg = $self->SUPER::message or return;
+        return $lang->maketext(ref $msg ? @{ $msg } : $msg);
+    }
+
+    sub label {
+        my $self = shift;
+        my $lang = Kinetic::Util::Language->get_handle;
+        return $lang->maketext($self->SUPER::label);
+    }
+
+    sub errors {
+        my $self = shift;
+        return @{ $self->{errors} ||= [] } unless @_;
+        push @{ $self->{errors} }, @_;
+        return $self;
+    }
+}
+
+sub rules {
+    my $self = shift;
+    return (
+        { state_class => 'Kinetic::Store::Setup::State' },
+
+        ######################################################################
+        'Start' => {
+            label => 'Can we connect as super user?',
+            do => sub {
+                local *__ANON__ = '__ANON__conect_super_user';
+                # Set up the rusult and note if we successfully connect.
+                my $state = shift;
+                if ($self->_try_connect(
+                    $state,
+                    $self->super_user,
+                    $self->super_pass,
+                )) {
+                    $state->result(1);
+                    $state->notes( super => 1 );
+                }
+            },
+            rules => [
+                'Superuser Connects' => {
+                    rule => sub { shift->result },
+                    message => 'Yes',
+                },
+                'No Superuser' => {
+                    rule => 1,
+                    message => 'No',
+                },
+            ],
+        }, # Start
+
+        ######################################################################
+        'Superuser Connects' => {
+            label => 'Does the database exist?',
+            do => sub {
+                local *__ANON__ = '__ANON__check_for_database';
+                my $state = shift;
+                my $dsn = $self->dsn;
+                # If we're connected to the database, it exists.
+                return $state->result(1) if $state->notes('dsn') eq $dsn;
+
+                # Parse out the database name from the DSn and query for it.
+                # Chance are it doesn't exist (or we would have connected to
+                # it), but let's just be thorough.
+                my ($db_name) = $dsn =~ /dbname=['"]?([^;'"]+)/;
+                $state->result($self->_fetch_value(
+                    'SELECT datname FROM pg_catalog.pg_database WHERE '
+                    . 'datname = ?',
+                    $db_name,
+                ));
+            },
+            rules => [
+                'Database Exists' => {
+                    rule => sub { shift->result },
+                    message => 'Yes',
+                },
+                'Can Create Database' => {
+                    rule => sub { shift->notes('super') },
+                    message => 'No',
+                },
+                'No Database' => {
+                    rule => 1,
+                    message => 'No',
+                },
+            ],
+        }, # Superuser Connects
+
+        ######################################################################
+        'No Superuser' => {
+            label => 'Can we connect as the user?',
+            do => sub {
+                local *__ANON__ = '__ANON__conect_user';
+                # Set up the result and note if we successfully connect.
+                my $state = shift;
+                $state->result(1) if $self->_try_connect(
+                    $state,
+                    $self->user,
+                    $self->pass,
+                );
+            },
+            rules => [
+                'User Connects' => {
+                    rule => sub { shift->result },
+                    message => 'Yes',
+                },
+                'Fail' => {
+                    rule => sub {
+                        # Set the message before we die.
+                        shift->message('No');
+                        throw_setup [
+                            'User "[_1]" cannot connect to either "[_2]" or '
+                            . '"[_3]"',
+                            $self->user,
+                            $self->dsn,
+                            $self->template_dsn
+                        ];
+                    },
+                    # Leave this for graphing.
+                    message => 'No',
+                },
+            ],
+        }, # No Superuser
+
+        ######################################################################
+        'Database Exists' => {
+            label => 'Does it have PL/pgSQL?',
+            do => sub {
+                my $state = shift;
+            },
+            rules => [
+                'Database Has PL/pgSQL' => {
+                    rule => sub { shift->result }, # and super user
+                    message => 'Yes',
+                },
+                'No PL/pgSQL' => {
+                    rule => sub { 1 }, # And have super user.
+                    message => 'No',
+                },
+                'User Exists' => {
+                    rule => sub { shift->result }, # and user
+                    message => 'Yes',
+                },
+                'Fail' => {
+                    rule => 1,  # User cannot create PL/pgSQL.
+                    message => 'No',
+                },
+            ],
+        }, # Database Exists
+
+        ######################################################################
+        'No Database' => {
+            label => 'So create the database.',
+            do => sub {
+                my $state = shift;
+            },
+            rules => [
+                'Database Has PL/pgSQL' => {
+                    rule => sub { shift->result },
+                    message => 'Okay',
+                },
+                'Add PL/pgSQL' => {
+                    rule => 1, # For superuser when template doesn't have PL/pgSQL.
+                    message => 'Okay',
+                },
+                'Fail' => {
+                    rule => 1,
+                    message => 'Failed',
+                },
+            ],
+        }, # No Database
+
+        ######################################################################
+        'User Connects' => {
+            label => 'Does the Database exist?',
+            do => sub {
+                my $state = shift;
+            },
+            rules => [
+                'Database Exists' => {
+                    rule => sub { shift->result },
+                    message => 'Yes',
+                },
+                'No Database for User' => {
+                    rule => 1,
+                    message => 'No',
+                },
+            ],
+        }, # User Connects
+
+        ######################################################################
+        'No Database for User' => {
+            label => 'Can we create a database?',
+            do => sub {
+                my $state = shift;
+            },
+            rules => [
+                'Can Create Database' => {
+                    rule => sub { shift->result },
+                    message => 'Yes',
+                },
+                'Fail' => {
+                    rule => 1,
+                    message => 'No',
+                },
+            ],
+        }, # No Database for User
+
+        ######################################################################
+        'Can Create Database' => {
+            label => 'Does the template database have PL/pgSQL?',
+            do => sub {
+                my $state = shift;
+            },
+            rules => [
+                'No Database' => {
+                    rule => sub { shift->result },
+                    message => 'Yes',
+                },
+                'No PL/pgSQL' => {
+                    rule => 1,  # For super user only.
+                    message => 'No',
+                },
+                'Fail' => {
+                    rule => 1,
+                    message => 'No',
+                },
+            ],
+        }, # Can Create Database
+
+        ######################################################################
+        'Database Has PL/pgSQL' => {
+            label => 'Does the user exist?',
+            do => sub {
+                my $state = shift;
+            },
+            rules => [
+                'User Exists' => {
+                    rule => sub { shift->result },
+                    message => 'Yes',
+                },
+                'No User' => {
+                    rule => 1,
+                    message => 'No',
+                },
+            ],
+        }, # Database Has PL/pgSQL
+
+        ######################################################################
+        'No PL/pgSQL' => {
+            label => 'So find createlang.',
+            do => sub {
+                my $state = shift;
+            },
+            rules => [
+                'Add PL/pgSQL' => {
+                    rule => sub { shift->result }, # If database exists.
+                    message => 'Okay',
+                },
+                'No Database' => {
+                    rule => 1,  # For superuser,
+                    message => 'Okay',
+                },
+                'Fail' => {
+                    rule => 1,
+                    message => 'Failed',
+                },
+            ],
+        }, # No PL/pgSQL
+
+        ######################################################################
+        'User Exists' => {
+            label => 'So build the database and grant permissions.',
+            do => sub {
+                my $state = shift;
+            },
+            rules => [
+                'Done' => {
+                    rule => sub { shift->result },
+                    message => 'Okay',
+                },
+                'Fail' => {
+                    rule => 1,
+                    message => 'Failed',
+                },
+            ],
+        }, # User Exists
+
+        ######################################################################
+        'No User' => {
+            label => 'So create the user.',
+            do => sub {
+                my $state = shift;
+            },
+            rules => [
+                'User Exists' => {
+                    rule => sub { shift->result },
+                    message => 'Okay',
+                },
+                'Fail' => {
+                    rule => 1,
+                    message => 'Failed',
+                },
+            ],
+        }, # No User
+
+        ######################################################################
+        'Add PL/pgSQL' => {
+            label => 'Add PL/pgSQL to the database.',
+            do => sub {
+                my $state = shift;
+            },
+            rules => [
+                'Database Has PL/pgSQL' => {
+                    rule => sub { shift->result },
+                    message => 'Okay',
+                },
+                'Fail' => {
+                    rule => 1,
+                    message => 'Failed',
+                },
+            ],
+        }, # Add PL/pgSQL
+
+        ######################################################################
+        'Done' => {
+            label => 'All done!',
+            do => sub {
+                my $state = shift;
+                $state->done(1);
+            },
+        }, # Done.
+
+        ######################################################################
+        'Fail' => {
+            # Exceptions should be thrown by the rules.
+            label => 'Fail spectacularly with some sort of trace.',
+        }, # Fail
+    );
 }
 
 ##############################################################################
@@ -470,6 +835,49 @@ sub find_createlang {
 
 ##############################################################################
 
+=begin private
+
+=head1 Private Interface
+
+=head1 Private Instance Interface
+
+=head3 _fetch_value
+
+  my $value = $setup->_pg_says_true($sql, @bind_params);
+
+This method executes the given SQL with the any params. It expects that the
+SQL will return one and only one value, and in turn returns that value.
+
+=cut
+
+sub _fetch_value {
+    my ($self, $sql, @bind_params) = @_;
+    my $dbh = $self->dbh or die 'I need a database handle to execute a query';
+    my $result = $dbh->selectrow_array($sql, undef, @bind_params);
+    return $result;
+}
+
+##############################################################################
+
+=head3 _db_exists
+
+  print "Database '$db_name' exists" if $setup->_db_exists($db_name);
+
+This method tells whether the given database exists.
+
+=cut
+
+sub _db_exists {
+    my ($self, $db_name) = @_;
+    $db_name ||= $self->db_name;
+    $self->_pg_says_true(
+        'SELECT datname FROM pg_catalog.pg_database WHERE datname = ?',
+        $db_name
+    );
+}
+
+##############################################################################
+
 =head3 _connect_user
 
   my $dbh = $setup->_connect_user($dsn);
@@ -494,12 +902,50 @@ sub _connect_user {
 
     $self->connect($dsn, @credentials);
 }
+
 ##############################################################################
 
+=head3 _try_connect
+
+  print "Can connect" if  $setup->_try_connect($state, $user, $password);
+
+Used by state rules, this method attempts to connect to the database server,
+first using the production DSN and then the template DSN. The successful DSN
+will be stored in under the C<dsn> key in the state object's notes. Any
+exceptions thrown by the C<connect()> method will be passed to the C<errors()>
+method of the state object. Returns the setup object on success and C<undef>
+on failure. The database handle created by the connection, if any, may be
+retreived by the C<dbh()> method.
+
+=cut
+
+sub _try_connect {
+    my ($self, $state, $user, $pass) = @_;
+    my @errs;
+    for my $dsn ($self->dsn, $self->template_dsn) {
+        eval {
+            $self->connect(
+                $dsn,
+                $user,
+                $pass,
+            );
+        };
+        if (my $err = $@) {
+            push @errs, $@;
+        } else {
+            $state->notes( dsn => $dsn );
+            return $self;
+        }
+    }
+
+    $state->errors(@errs);
+    return;
+}
 
 1;
 __END__
 
+=end private
 
 =head1 Copyright and License
 
