@@ -1,20 +1,20 @@
-package Kinetic::Store::DB::SQLite;
+package Kinetic::Store::Handle::DB::SQLite;
 
 # $Id$
 
 use strict;
-use base qw(Kinetic::Store::DB);
+use base qw(Kinetic::Store::Handle::DB);
 use version;
 our $VERSION = version->new('0.0.2');
 
-use Kinetic::Store qw(:logical);
+use Kinetic::Store::Handle qw(:logical);
 use DBD::SQLite;
-use Kinetic::Store::DB::SQLite::DBI;
+use Kinetic::Store::Handle::DB::SQLite::DBI;
 use Kinetic::Util::Exceptions qw(throw_unsupported);
 use Exception::Class::DBI;
 use OSSP::uuid;
 
-use constant DBI_CLASS => 'Kinetic::Store::DB::SQLite::DBI';
+use constant DBI_CLASS => 'Kinetic::Store::Handle::DB::SQLite::DBI';
 use constant _connect_attrs => {
     RaiseError  => 0,
     PrintError  => 0,
@@ -24,17 +24,17 @@ use constant _connect_attrs => {
 
 =head1 Name
 
-Kinetic::Store::DB::SQLite - SQLite specific behavior for Kinetic::Store::DB
+Kinetic::Store::Handle::DB::SQLite - SQLite specific behavior for Kinetic::Store::Handle::DB
 
 =head1 Synopsis
 
-See L<Kinetic::Store|Kinetic::Store>.
+See L<Kinetic::Store::Handle|Kinetic::Store::Handle>.
 
 =head1 Description
 
 This class implements SQLite-specific behavior for the Kinetic storage API by
-overriding C<Kinetic::Store::DB> methods as needed. It uses
-L<Kinetic::Store::DB::SQLite::DBI|Kinetic::Store::DB::SQLite::DBI>, a subclass
+overriding C<Kinetic::Store::Handle::DB> methods as needed. It uses
+L<Kinetic::Store::Handle::DB::SQLite::DBI|Kinetic::Store::Handle::DB::SQLite::DBI>, a subclass
 of the L<DBI|DBI>, for custom interactions with the database.
 
 =cut
@@ -47,7 +47,7 @@ of the L<DBI|DBI>, for custom interactions with the database.
 
   $store->_set_id($kinetic_object);
 
-SQLite-specific implementation of C<Kinetic::Store::DB::_set_id>.
+SQLite-specific implementation of C<Kinetic::Store::Handle::DB::_set_id>.
 
 =cut
 
@@ -85,7 +85,7 @@ sub _full_text_search {
 
   my $op = $store->_MATCH_SEARCH($key);
 
-Works like C<Kinetic::Store::DB::_MATCH_SEARCH> but supports full Perl regular
+Works like C<Kinetic::Store::Handle::DB::_MATCH_SEARCH> but supports full Perl regular
 expressions via the SQLite C<REGEXP> operator. As the regular expressions are
 compiled with the C<ixms> modifiers, they are always case-insensitive,
 and C<^> matches the beginning of the whole string, and C<$> matches the end
@@ -192,7 +192,7 @@ sub _any_date_handler {
 
 This method sets a collection to a specific list of IDs, using the SQLite
 C<coll_set()> function defined by
-L<Kinetic::Store::DB::SQLite::DBI|Kinetic::Store::DB::SQLite::DBI> to do so
+L<Kinetic::Store::Handle::DB::SQLite::DBI|Kinetic::Store::Handle::DB::SQLite::DBI> to do so
 correctly.
 
 =cut
@@ -207,7 +207,7 @@ sub _coll_set { _coll_query(@_, 'set') }
 
 This method adds a specific list of IDs to a collection, using the SQLite
 C<coll_add()> function defined by
-L<Kinetic::Store::DB::SQLite::DBI|Kinetic::Store::DB::SQLite::DBI> to do so
+L<Kinetic::Store::Handle::DB::SQLite::DBI|Kinetic::Store::Handle::DB::SQLite::DBI> to do so
 correctly.
 
 =cut
@@ -222,7 +222,7 @@ sub _coll_add { _coll_query(@_, 'add') }
 
 This method deletes a specific list of IDs from a collection, using the SQLite
 C<coll_del()> function defined by
-L<Kinetic::Store::DB::SQLite::DBI|Kinetic::Store::DB::SQLite::DBI> to do so
+L<Kinetic::Store::Handle::DB::SQLite::DBI|Kinetic::Store::Handle::DB::SQLite::DBI> to do so
 correctly.
 
 =cut
@@ -237,7 +237,7 @@ sub _coll_del { _coll_query(@_, 'del') }
 
 This method clears a specific list of IDs from a collection, using the SQLite
 C<coll_clear()> function defined by
-L<Kinetic::Store::DB::SQLite::DBI|Kinetic::Store::DB::SQLite::DBI> to do so
+L<Kinetic::Store::Handle::DB::SQLite::DBI|Kinetic::Store::Handle::DB::SQLite::DBI> to do so
 correctly.
 
 =cut

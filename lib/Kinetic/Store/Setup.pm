@@ -23,7 +23,7 @@ Kinetic::Store::Setup - Set up a Kinetic Data Store
 
 =head1 Description
 
-This module is the base class for classes that set up a Kinetic::Store data
+This module is the base class for classes that set up a Kinetic::Store::Handle data
 store.
 
 =cut
@@ -126,7 +126,7 @@ sub schema_class {
 
   my $store_class = Kinetic::Store::Setup->store_class
 
-Returns the name of the Kinetic::Store subclass that manages the interface to
+Returns the name of the Kinetic::Store::Handle subclass that manages the interface to
 the data store for Kinetic applications. By default, this method returns the
 same name as the name of the Kinetic::Store::Setup subclass, but with "Build"
 removed.

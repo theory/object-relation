@@ -13,15 +13,15 @@ use Test::Differences;
 FAKESQLITE: {
 
     # Fake out loading of SQLite store.
-    package Kinetic::Store::DB::SQLite;
-    use base 'Kinetic::Store::DB';
+    package Kinetic::Store::Handle::DB::SQLite;
+    use base 'Kinetic::Store::Handle::DB';
     $INC{'Kinetic/Store/DB/SQLite.pm'} = __FILE__;
 }
 
 BEGIN { use_ok 'Kinetic::Store::Schema' or die }
 
 ok my $sg = Kinetic::Store::Schema->new(
-    'Kinetic::Store::DB::SQLite'
+    'Kinetic::Store::Handle::DB::SQLite'
 ), 'Get new Schema';
 isa_ok $sg, 'Kinetic::Store::Schema';
 isa_ok $sg, 'Kinetic::Store::Schema::DB';

@@ -318,8 +318,8 @@ sub build {
     # Organize attrs into categories.
     my (@ref, @direct, @persist, @colls);
     FAKE: {
-        # Fake out Kinetic::Store so that we can get at trusted attributes.
-        package Kinetic::Store;
+        # Fake out Kinetic::Store::Handle so that we can get at trusted attributes.
+        package Kinetic::Store::Handle;
         for my $attr ($self->attributes) {
             push @persist, $attr if $attr->persistent;
             push @colls,   $attr if $attr->collection_of;

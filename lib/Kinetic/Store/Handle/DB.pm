@@ -1,9 +1,9 @@
-package Kinetic::Store::DB;
+package Kinetic::Store::Handle::DB;
 
 # $Id$
 
 use strict;
-use base qw(Kinetic::Store);
+use base qw(Kinetic::Store::Handle);
 use version;
 our $VERSION = version->new('0.0.2');
 use DBI qw(:sql_types);
@@ -26,7 +26,7 @@ use Kinetic::Util::Exceptions qw/
   throw_unimplemented
   throw_unsupported
   /;
-use Kinetic::Store qw/:sorting/;
+use Kinetic::Store::Handle qw/:sorting/;
 use Kinetic::Store::Parser qw/parse/;
 use Kinetic::Store::Lexer::Code qw/code_lexer_stream/;
 use Kinetic::Store::Lexer::String qw/string_lexer_stream/;
@@ -57,17 +57,17 @@ foreach my $method (@setup_string_methods) {
 
 =head1 Name
 
-Kinetic::Store::DB - The Kinetic database store base class
+Kinetic::Store::Handle::DB - The Kinetic database store base class
 
 =head1 Synopsis
 
-See L<Kinetic::Store|Kinetic::Store>.
+See L<Kinetic::Store::Handle|Kinetic::Store::Handle>.
 
 =head1 Description
 
 This class implements the Kinetic storage API using DBI to communicate with an
 RDBMS. RDBMS specific behavior is implemented via the
-C<Kinetic::Store::DB::Pg> and C<Kinetic::Store::DBI::SQLite> classes.
+C<Kinetic::Store::Handle::DB::Pg> and C<Kinetic::Store::Handle::DBI::SQLite> classes.
 
 =cut
 
@@ -199,7 +199,7 @@ Generally, the programmer will know which search class she is working with,
 but if not, this method is available. Note that it is only available externally
 if the programmer first creates an instances of store prior to doing a search.
 
- my $store = Kinetic::Store->new;
+ my $store = Kinetic::Store::Handle->new;
  my $iter  = $store->query($some_class, name => 'foo');
  my $class = $store->search_class; # returns $some_class
 
@@ -266,7 +266,7 @@ sub lookup {
   my $iter = $kinetic_object->query(@search_params);
 
 Returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> object containing
-all objects that match the search params. See L<Kinetic::Store|Kinetic::Store>
+all objects that match the search params. See L<Kinetic::Store::Handle|Kinetic::Store::Handle>
 for more information about search params.
 
 =begin comment
@@ -400,7 +400,7 @@ sub _date_handler {
   my ($where_token, $bind_params) = $self->_XXX_date_handler($search_object);
 
 The date handler methods which the search object dispatches to are data store
-dependent.  Thus, the methods in C<Kinetic::Store::DB> throw exceptions when
+dependent.  Thus, the methods in C<Kinetic::Store::Handle::DB> throw exceptions when
 called to warn the user they must be overridden.
 
 The various date handlers are:
@@ -1704,7 +1704,7 @@ sub _LIKE_SEARCH {
  my $constraints = $store->_constraints(\%constraints);
 
 This method takes a hash ref of "order by" and "limit" constraints as
-described in L<Kinetic::Store|Kinetic::Store> and return an sql snippet
+described in L<Kinetic::Store::Handle|Kinetic::Store::Handle> and return an sql snippet
 representing those constraints.
 
 =cut
@@ -1842,7 +1842,7 @@ sub _connect_attrs {
 
   package Kinetic;
   my $km = Kinetic::Meta->new;
-  Kinetic::Store->_add_store_meta($km);
+  Kinetic::Store::Handle->_add_store_meta($km);
 
 This protected method adds an "id" attribute to the Kinetic base class, solely
 for use from within database stores. May be overridden in subclasses to add

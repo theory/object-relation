@@ -9,7 +9,7 @@ use Test::NoWarnings; # Adds an extra test.
 
 {
     # Fake out loading of Pg store.
-    package Kinetic::Store::DB::Pg;
+    package Kinetic::Store::Handle::DB::Pg;
     $INC{'Kinetic/Store/DB/Pg.pm'} = __FILE__;
     sub _add_store_meta { 1 }
 }
@@ -17,7 +17,7 @@ use Test::NoWarnings; # Adds an extra test.
 BEGIN { use_ok 'Kinetic::Store::Schema' or die };
 
 ok my $sg = Kinetic::Store::Schema->new(
-    'Kinetic::Store::DB::Pg'
+    'Kinetic::Store::Handle::DB::Pg'
 ), 'Get new Schema';
 isa_ok $sg, 'Kinetic::Store::Schema';
 isa_ok $sg, 'Kinetic::Store::Schema::DB';

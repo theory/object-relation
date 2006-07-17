@@ -60,15 +60,16 @@ sub schema_class {
 
   my $store_class = Kinetic::Build::Setup::Store->store_class
 
-Returns the name of the Kinetic::Store subclass that manages the interface to
-the data store for Kinetic applications. By default, this method returns the
-same name as the name of the Kinetic::Build::Setup::Store subclass, but with "Build"
-removed.
+Returns the name of the Kinetic::Store::Handle subclass that manages the
+interface to the data store for Kinetic applications. By default, this method
+returns the same name as the name of the Kinetic::Build::Setup::Store
+subclass, but with "Build::Setup::Store" replaced with "Store::Handle".
 
 =cut
 
 sub store_class {
-    (my $class = ref $_[0] ? ref shift : shift) =~ s/Build::Setup:://;
+    (my $class = ref $_[0] ? ref shift : shift)
+        =~ s/Build::Setup::Store/Store::Handle/;
     return $class;
 }
 

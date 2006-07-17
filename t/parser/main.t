@@ -10,7 +10,7 @@ use Test::Exception;
 use aliased 'Kinetic::Store::Search';
 use aliased 'Kinetic::DataType::DateTime::Incomplete';
 
-use Kinetic::Store qw/:all/;
+use Kinetic::Store::Handle qw/:all/;
 use Kinetic::Store::Lexer::String qw/string_lexer_stream/;
 use Kinetic::Store::Lexer::Code qw/code_lexer_stream/;
 
@@ -26,7 +26,7 @@ BEGIN {
 
 {
     package Faux::Store;
-    our @ISA = 'Kinetic::Store';
+    our @ISA = 'Kinetic::Store::Handle';
     my %column;
     @column{
         qw/

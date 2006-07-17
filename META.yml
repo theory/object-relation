@@ -1,6 +1,12 @@
 ---
 name: Kinetic
-version: !!perl/hash:version
+version: !!perl/hash:Module::Build::Version
+  original: !!perl/hash:version
+    qv: 1
+    version:
+      - 0
+      - 0
+      - 2
   qv: 1
   version:
     - 0
@@ -9,19 +15,15 @@ version: !!perl/hash:version
 author:
   - 'Kineticode, Inc. <info@kineticode.com>'
 abstract: The Kinetic enterprise application framework
-license: gpl
+license: perl
 resources:
-  license: http://www.opensource.org/licenses/gpl-license.php
+  license: http://dev.perl.org/licenses/
 requires:
   Array::AsHash: 0.31
-  Cache::Cache: 1.04
-  Cache::Memcached::Managed: 0.14
   Class::BuildMethods: 0.1
   Class::Meta: 0.53
   Class::Meta::Express: 0.03
   Clone: 0.15
-  DBD::Pg: 1.32
-  DBD::SQLite: 1.12
   DBI: 1.5
   Data::Types: 0.06
   DateTime: 0.3
@@ -30,13 +32,13 @@ requires:
   Exception::Class: 1.12
   Exception::Class::DBI: 0.94
   Exporter::Tidy: 0.06
+  FSA::Rules: 0.25
   File::Find::Rule: 0
   HOP::Lexer: 0.02
   HOP::Parser: 0.01
   HOP::Stream: 0.01
   JSON::Syck: 0.05
   Lingua::EN::Inflect: 0
-  Lingua::Strfname: 0.1
   List::MoreUtils: 0
   List::Util: 0
   Locale::Maketext: 1.09
@@ -51,12 +53,12 @@ requires:
   version: 0.42
 build_requires:
   App::Info: 0.48
-  CGI: 3.11
+  Cache::Cache: 1.04
   Class::Trait: 0.11
-  FSA::Rules: 0.21
+  DBD::SQLite: 1.12
   File::Copy: 0
   File::Path: 0
-  Module::Build: 0.27_10
+  Module::Build: 0.28
   Pod::Man: 2.08
   Test::Class: 0.1
   Test::Differences: 0.47
@@ -68,16 +70,24 @@ build_requires:
   Test::More: 0.17
   Test::NoWarnings: 0.03
   Test::Output: 0.07
-  Test::Pod: 1.06
-  Test::Pod::Coverage: 0.08
   Test::XML: 0.07
 provides:
   Kinetic:
     file: lib/Kinetic.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Build:
     file: lib/Kinetic/Build.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Build::AppInfoHandler:
     file: lib/Kinetic/Build.pm
   Kinetic::Build::CroakHandler:
@@ -88,150 +98,390 @@ provides:
     file: lib/Kinetic/Build.pm
   Kinetic::Build::Setup:
     file: lib/Kinetic/Build/Setup.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Build::Setup::State:
     file: lib/Kinetic/Build/Setup.pm
   Kinetic::Build::Setup::Store:
     file: lib/Kinetic/Build/Setup/Store.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Build::Setup::Store::DB:
     file: lib/Kinetic/Build/Setup/Store/DB.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Build::Setup::Store::DB::Pg:
     file: lib/Kinetic/Build/Setup/Store/DB/Pg.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Build::Setup::Store::DB::SQLite:
     file: lib/Kinetic/Build/Setup/Store/DB/SQLite.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::DataType::DateTime:
     file: lib/Kinetic/DataType/DateTime.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::DataType::DateTime::Incomplete:
     file: lib/Kinetic/DataType/DateTime/Incomplete.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::DataType::Duration:
     file: lib/Kinetic/DataType/Duration.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::DataType::MediaType:
     file: lib/Kinetic/DataType/MediaType.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::DataType::State:
     file: lib/Kinetic/DataType/State.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Express:
     file: lib/Kinetic/Express.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Format:
     file: lib/Kinetic/Format.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Format::JSON:
     file: lib/Kinetic/Format/JSON.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Format::XML:
     file: lib/Kinetic/Format/XML.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Meta:
     file: lib/Kinetic/Meta.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Meta::AccessorBuilder:
     file: lib/Kinetic/Meta/AccessorBuilder.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Meta::Attribute:
     file: lib/Kinetic/Meta/Attribute.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Meta::Attribute::Schema:
     file: lib/Kinetic/Meta/Attribute/Schema.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Meta::Class:
     file: lib/Kinetic/Meta/Class.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Meta::Class::Schema:
     file: lib/Kinetic/Meta/Class/Schema.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Meta::DataTypes:
     file: lib/Kinetic/Meta/DataTypes.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Meta::Method:
     file: lib/Kinetic/Meta/Method.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Meta::Type:
     file: lib/Kinetic/Meta/Type.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Meta::Widget:
     file: lib/Kinetic/Meta/Widget.pm
-    version: 0.000002
-  Kinetic::Store:
-    file: lib/Kinetic/Store.pm
-    version: 0.000002
-  Kinetic::Store::DB:
-    file: lib/Kinetic/Store/DB.pm
-    version: 0.000002
-  Kinetic::Store::DB::Pg:
-    file: lib/Kinetic/Store/DB/Pg.pm
-    version: 0.000002
-  Kinetic::Store::DB::SQLite:
-    file: lib/Kinetic/Store/DB/SQLite.pm
-    version: 0.000002
-  Kinetic::Store::DB::SQLite::DBI:
-    file: lib/Kinetic/Store/DB/SQLite/DBI.pm
-    version: 0.000002
-  Kinetic::Store::DB::SQLite::DBI::db:
-    file: lib/Kinetic/Store/DB/SQLite/DBI.pm
-    version: 0.000002
-  Kinetic::Store::DB::SQLite::DBI::st:
-    file: lib/Kinetic/Store/DB/SQLite/DBI.pm
-    version: 0.000002
-  Kinetic::Store::DB::mysql:
-    file: lib/Kinetic/Store/DB/mysql.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Handle::DB:
+    file: lib/Kinetic/Store/Handle/DB.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Handle::DB::Pg:
+    file: lib/Kinetic/Store/Handle/DB/Pg.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Handle::DB::SQLite:
+    file: lib/Kinetic/Store/Handle/DB/SQLite.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Handle::DB::SQLite::DBI:
+    file: lib/Kinetic/Store/Handle/DB/SQLite/DBI.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Handle::DB::SQLite::DBI::db:
+    file: lib/Kinetic/Store/Handle/DB/SQLite/DBI.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Handle::DB::SQLite::DBI::st:
+    file: lib/Kinetic/Store/Handle/DB/SQLite/DBI.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Handle::DB::mysql:
+    file: lib/Kinetic/Store/Handle/DB/mysql.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Handle:
+    file: lib/Kinetic/Store/Handle.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Store::Lexer::Code:
     file: lib/Kinetic/Store/Lexer/Code.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Store::Lexer::String:
     file: lib/Kinetic/Store/Lexer/String.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Store::Parser:
     file: lib/Kinetic/Store/Parser.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Store::Schema:
     file: lib/Kinetic/Store/Schema.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Store::Schema::DB:
     file: lib/Kinetic/Store/Schema/DB.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Store::Schema::DB::Pg:
     file: lib/Kinetic/Store/Schema/DB/Pg.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Store::Schema::DB::SQLite:
     file: lib/Kinetic/Store/Schema/DB/SQLite.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Store::Search:
     file: lib/Kinetic/Store/Search.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Store::Setup:
     file: lib/Kinetic/Store/Setup.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Store::Setup::DB:
     file: lib/Kinetic/Store/Setup/DB.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Store::Setup::DB::Pg:
     file: lib/Kinetic/Store/Setup/DB/Pg.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Store::Setup::DB::SQLite:
     file: lib/Kinetic/Store/Setup/DB/SQLite.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Util::Cache:
     file: lib/Kinetic/Util/Cache.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Util::Cache::File:
     file: lib/Kinetic/Util/Cache/File.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Util::Cache::Memcached:
     file: lib/Kinetic/Util/Cache/Memcached.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Util::Collection:
     file: lib/Kinetic/Util/Collection.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Util::Exception:
     file: lib/Kinetic/Util/Exceptions.pm
   Kinetic::Util::Exception::DBI:
@@ -248,26 +498,61 @@ provides:
     file: lib/Kinetic/Util/Exceptions.pm
   Kinetic::Util::Exceptions:
     file: lib/Kinetic/Util/Exceptions.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Util::Functions:
     file: lib/Kinetic/Util/Functions.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Util::Iterator:
     file: lib/Kinetic/Util/Iterator.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Util::Language:
     file: lib/Kinetic/Util/Language.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Util::Language::en:
     file: lib/Kinetic/Util/Language/en.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Util::Language::en_uk:
     file: lib/Kinetic/Util/Language/en_uk.pm
-    version: 0.000002
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Util::Language::en_us:
     file: lib/Kinetic/Util/Language/en_us.pm
-    version: 0.000002
-generated_by: Module::Build version 0.2801
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+generated_by: Module::Build version 0.2804
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.2.html
   version: 1.2

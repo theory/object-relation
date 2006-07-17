@@ -12,8 +12,8 @@ use Test::Differences;
 
 FAKEPG: {
     # Fake out loading of Pg store.
-    package Kinetic::Store::DB::Pg;
-    use base 'Kinetic::Store::DB';
+    package Kinetic::Store::Handle::DB::Pg;
+    use base 'Kinetic::Store::Handle::DB';
     $INC{'Kinetic/Store/DB/Pg.pm'} = __FILE__;
 }
 
@@ -26,7 +26,7 @@ sub left_justify {
 }
 
 ok my $sg = Kinetic::Store::Schema->new(
-    'Kinetic::Store::DB::Pg'
+    'Kinetic::Store::Handle::DB::Pg'
 ), 'Get new Schema';
 isa_ok $sg, 'Kinetic::Store::Schema';
 isa_ok $sg, 'Kinetic::Store::Schema::DB';

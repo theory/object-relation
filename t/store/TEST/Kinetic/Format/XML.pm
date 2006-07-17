@@ -16,7 +16,7 @@ use Class::Trait qw(
 );
 
 use aliased 'Test::MockModule';
-use aliased 'Kinetic::Store' => 'Store', ':all';
+use aliased 'Kinetic::Store::Handle' => 'Store', ':all';
 use aliased 'Kinetic::DataType::DateTime';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object

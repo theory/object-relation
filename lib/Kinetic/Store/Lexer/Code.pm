@@ -17,7 +17,7 @@ Kinetic::Store::Lexer::Code - Lexer for Kinetic search code
 =head1 Description
 
 This package lexes the data structure built by
-L<Kinetic::Store|Kinetic::Store> search operators and return a token stream
+L<Kinetic::Store::Handle|Kinetic::Store::Handle> search operators and return a token stream
 that a Kinetic parser can parse.
 
 See L<Kinetic::Parser::DB|Kinetic::Parser::DB> for an example.
@@ -31,7 +31,7 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use overload;
-use Kinetic::Store            qw/AND BETWEEN/;
+use Kinetic::Store::Handle            qw/AND BETWEEN/;
 use Kinetic::Util::Exceptions 'throw_search';
 use HOP::Stream               'node';
 
@@ -45,7 +45,7 @@ use Exporter::Tidy            default => ['code_lexer_stream'];
 
 This function, exported on demand, is the only function publicly useful in
 this module. It takes search parameters as described in the
-L<Kinetic::Store|Kinetic::Store> documents and returns a token stream that
+L<Kinetic::Store::Handle|Kinetic::Store::Handle> documents and returns a token stream that
 Kinetic parsers should be able to turn into an intermediate representation.
 
 =cut

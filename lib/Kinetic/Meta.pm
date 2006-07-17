@@ -189,7 +189,7 @@ sub new {
             || $package->can('StoreHandle') ? undef : {};
 
         if ($store_config) {
-            my $handle = Kinetic::Store->new($store_config);
+            my $handle = Kinetic::Store::Handle->new($store_config);
             $handle->_add_store_meta($self);
             no strict 'refs';
             *{"$package\::StoreHandle"} = sub { $handle };

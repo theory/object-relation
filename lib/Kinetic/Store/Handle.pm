@@ -1,4 +1,4 @@
-package Kinetic::Store;
+package Kinetic::Store::Handle;
 
 # $Id$
 
@@ -15,25 +15,25 @@ our $VERSION = version->new('0.0.2');
 
 =head1 Name
 
-Kinetic::Store - The Kinetic data storage class
+Kinetic::Store::Handle - The Kinetic data storage class
 
 =head1 Synopsis
 
-  use Kinetic::Store;
+  use Kinetic::Store::Handle;
   use Kinetic::Biz::Subclass;
-  my $iter = Kinetic::Store->query('Kinetic::Biz::SubClass' =>
+  my $iter = Kinetic::Store::Handle->query('Kinetic::Biz::SubClass' =>
                                     attr => 'value');
 
 =head1 Description
 
 This class handles all of the work necessary to communicate with back-end
-storage systems. Kinetic::Store itself is an abstract class; its subclasses
+storage systems. Kinetic::Store::Handle itself is an abstract class; its subclasses
 will implement its interface for different storage devices: RDBMSs, OODBMSs,
 XML Files, LDAP, or whatever. The canonical storage implementation is
-L<Kinetic::Store::DB::Pg|Kinetic::Store::DB::Pg>, for PostgreSQL 7.4 or
+L<Kinetic::Store::Handle::DB::Pg|Kinetic::Store::Handle::DB::Pg>, for PostgreSQL 7.4 or
 later. Others might include
-L<Kinetic::Store::DB::SQLite|Kinetic::Store::DB::SQLite> for SQLite,
-L<Kinetic::Store::DB::mysql|Kinetic::Store::DB::mysql> for MySQL 4.1 or
+L<Kinetic::Store::Handle::DB::SQLite|Kinetic::Store::Handle::DB::SQLite> for SQLite,
+L<Kinetic::Store::Handle::DB::mysql|Kinetic::Store::Handle::DB::mysql> for MySQL 4.1 or
 later, and L<Kinetic::Store::LDAP|Kinetic::Store::LDAP>.
 
 =cut
@@ -170,7 +170,7 @@ foreach my $method (@redispatch) {
 
 =head3 new
 
-  my $store = Kinetic::Store->new(
+  my $store = Kinetic::Store::Handle->new(
       class => 'DB::Pg',
       cache => 'Memcached',
       dsn   => 'dbi:Pg:dbname=kinetic',
@@ -186,8 +186,8 @@ default parameters are:
 
 =item class
 
-The subclass of Kinetic::Store to use. If the class is under the
-Kinetic::Store namespace, you can leave out "Kinetic::Store". Otherwise, use
+The subclass of Kinetic::Store::Handle to use. If the class is under the
+Kinetic::Store::Handle namespace, you can leave out "Kinetic::Store::Handle". Otherwise, use
 the full class name. Defaults to "DB::SQLiite".
 
 =item cache
@@ -199,7 +199,7 @@ to "File".
 
 =back
 
-All other parameters are specific to subclasses of Kinetic::Store; see the
+All other parameters are specific to subclasses of Kinetic::Store::Handle; see the
 revelant subclass for details.
 
 =cut
@@ -437,7 +437,7 @@ B<Throws:>
 
   package Kinetic;
   my $km = Kinetic::Meta->new;
-  Kinetic::Store->_add_store_meta($km);
+  Kinetic::Store::Handle->_add_store_meta($km);
 
 This protected method is the interface that allows store subclasses to add
 data-store dependendent attributes to the Kinetic base class via the
@@ -447,7 +447,7 @@ attributes or other metadata objects to ease the implemtation of the data
 store.
 
 The default implementation of this method is a no-op. See
-L<Kinetic::Store::DB> for an example implemntation.
+L<Kinetic::Store::Handle::DB> for an example implemntation.
 
 =cut
 
@@ -594,7 +594,7 @@ all the objects of the class and returns all of the active objects that match
 the search. The full text substring search works because an XML representation
 of each Kinetic business object is always kept in the data store. The
 semantics of the search results will, however, be dependent on the full text
-indexing of the data store in question. See the relevant Kinetic::Store
+indexing of the data store in question. See the relevant Kinetic::Store::Handle
 subclasses for details on their full text search implementations.
 
 Note that if you need to search for objects with inactive or deleted states,
@@ -1319,7 +1319,7 @@ Because the hash reference cannot be part of an C<OR> search expression.
 
 =head1 How to Implement Store Subclasses
 
-Say you were creating a subclass of Kinetic::Store for a new storage back-end.
+Say you were creating a subclass of Kinetic::Store::Handle for a new storage back-end.
 If it were to be called, for example, "Oracle," and it was a database
 back-end, here's what you'd need to do:
 
@@ -1372,14 +1372,14 @@ are different than the behavior of the test database created for testing
 Kinetic applications. It is designed specifically to fully test the complete
 store API, as the sample classes exhibit every relationship and data type.
 
-=item * Create a subclass of Kinetic::Store::DB.
+=item * Create a subclass of Kinetic::Store::Handle::DB.
 
-It should be named Kinetic::Store::DB::Oracle. See
-L<Kinetic::Store::DB::Pg|Kinetic::Store::DB::Pg> and
-L<Kinetic::Store::DB::SQLite|Kinetic::Store::DB::SQLite> for examples. Be sure
+It should be named Kinetic::Store::Handle::DB::Oracle. See
+L<Kinetic::Store::Handle::DB::Pg|Kinetic::Store::Handle::DB::Pg> and
+L<Kinetic::Store::Handle::DB::SQLite|Kinetic::Store::Handle::DB::SQLite> for examples. Be sure
 to override the C<_add_store_meta()> method if you need to add data-store
 specific trusted attributes to Kinetic base class. For example,
-Kinetic::Store::DB uses this method to add a trusted C<id> attribute that can
+Kinetic::Store::Handle::DB uses this method to add a trusted C<id> attribute that can
 only be accessed by the store classes, but allows them to treat database IDs
 just like any other attribute.
 
@@ -1396,7 +1396,7 @@ the import methods of the various Kinetic::Meta classes (Attribute, Class,
 Type) add Kinetic::Meta methods specific to database stores.
 
 Now, an Oracle data store probably wouldn't need to add any metadata methods
-not already added by the Kinetic::Store::DB class, but if it did, you could
+not already added by the Kinetic::Store::Handle::DB class, but if it did, you could
 modify the import() methods of these classes to add the necessary methods. For
 example, say you needed to add a foo() method to Kinetic::Meta::Attribute just
 for use with Oracle, you could add something like this to the import() method
@@ -1416,7 +1416,7 @@ tests for any methods you add! See F<t/dbmeta.t> for an example.
 =item * Create the test classes for the data store.
 
 These should live in the F<t/store> directory, and be subclasses of
-TEST::Kinetic::Store::DB. See F<t/store/TEST/Kinetic/Store/DB/SQLite.pm> and
+TEST::Kinetic::Store::Handle::DB. See F<t/store/TEST/Kinetic/Store/DB/SQLite.pm> and
 F<t/store/TEST/Kinetic/Store/DB/Pg.pm> for examples.
 
 =back

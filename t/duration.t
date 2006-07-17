@@ -15,14 +15,14 @@ BEGIN {
 };
 
 STORE: {
-    package Kinetic::Store::DB::Pg;
+    package Kinetic::Store::Handle::DB::Pg;
     sub new { bless {} => shift }
 }
 
 ok my $du = $CLASS->new, 'Create duration object';
 isa_ok $du, $CLASS;
 isa_ok $du, $CLASS;
-my $store = Kinetic::Store::DB::Pg->new;
+my $store = Kinetic::Store::Handle::DB::Pg->new;
 
 for my $compare (
     [

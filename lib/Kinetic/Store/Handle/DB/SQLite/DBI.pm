@@ -2,11 +2,11 @@
 
 =head1 Name
 
-Kinetic::Store::DB::SQLite::DBI - DBI subclass adding funtions to SQLite
+Kinetic::Store::Handle::DB::SQLite::DBI - DBI subclass adding funtions to SQLite
 
 =head1 Synopsis
 
-  my $dbh = Kinetic::Store::DB::SQLite::DBI->connect(...);
+  my $dbh = Kinetic::Store::Handle::DB::SQLite::DBI->connect(...);
 
 =head1 Description
 
@@ -16,16 +16,16 @@ queries.
 
 =cut
 
-package Kinetic::Store::DB::SQLite::DBI;
+package Kinetic::Store::Handle::DB::SQLite::DBI;
 use base 'DBI';
 use version;
 our $VERSION = version->new('0.0.2');
 
-package Kinetic::Store::DB::SQLite::DBI::st;
+package Kinetic::Store::Handle::DB::SQLite::DBI::st;
 use base 'DBI::st';
 our $VERSION = version->new('0.0.2');
 
-package Kinetic::Store::DB::SQLite::DBI::db;
+package Kinetic::Store::Handle::DB::SQLite::DBI::db;
 use base 'DBI::db';
 use strict;
 use Kinetic::Util::Functions ();

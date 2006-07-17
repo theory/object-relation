@@ -26,7 +26,7 @@ sub test_class_methods : Test(7) {
       'We should have the correct maximum version number';
     is $class->schema_class, 'Kinetic::Store::Schema::DB::Pg',
       'We should have the correct schema class';
-    is $class->store_class, 'Kinetic::Store::DB::Pg',
+    is $class->store_class, 'Kinetic::Store::Handle::DB::Pg',
       'We should have the correct store class';
     is $class->dbd_class, 'DBD::Pg',
       'We should have the correct DBD class';
@@ -631,7 +631,7 @@ sub test_validate_user_db : Test(37) {
     ok $kbs->add_to_test_config(\%conf);
     is_deeply \%conf, {
         store => {
-            class            => 'Kinetic::Store::DB::Pg',
+            class            => 'Kinetic::Store::Handle::DB::Pg',
             db_user          => '__kinetic_test__',
             db_pass          => '__kinetic_test__',
             db_super_user    => '',
@@ -646,7 +646,7 @@ sub test_validate_user_db : Test(37) {
     ok $kbs->add_to_config(\%conf);
     is_deeply \%conf, {
         store => {
-            class   => 'Kinetic::Store::DB::Pg',
+            class   => 'Kinetic::Store::Handle::DB::Pg',
             db_user => 'kinetic',
             db_pass => 'asdfasdf',
             dsn     => 'dbi:Pg:dbname=kinetic',
@@ -732,7 +732,7 @@ sub test_validate_super_user : Test(37) {
     ok $kbs->add_to_test_config(\%conf);
     is_deeply \%conf, {
         store => {
-            class            => 'Kinetic::Store::DB::Pg',
+            class            => 'Kinetic::Store::Handle::DB::Pg',
             db_user          => '__kinetic_test__',
             db_pass          => '__kinetic_test__',
             db_super_user    => 'postgres',
@@ -747,7 +747,7 @@ sub test_validate_super_user : Test(37) {
     ok $kbs->add_to_config(\%conf);
     is_deeply \%conf, {
         store => {
-            class   => 'Kinetic::Store::DB::Pg',
+            class   => 'Kinetic::Store::Handle::DB::Pg',
             db_user => 'kinetic',
             db_pass => 'asdfasdf',
             dsn     => 'dbi:Pg:dbname=kinetic;host=pgme;port=5433',
@@ -828,7 +828,7 @@ sub test_validate_super_user_arg : Test(37) {
     ok $kbs->add_to_test_config(\%conf);
     is_deeply \%conf, {
         store => {
-            class            => 'Kinetic::Store::DB::Pg',
+            class            => 'Kinetic::Store::Handle::DB::Pg',
             db_user          => '__kinetic_test__',
             db_pass          => '__kinetic_test__',
             db_super_user    => 'postgres',
@@ -843,7 +843,7 @@ sub test_validate_super_user_arg : Test(37) {
     ok $kbs->add_to_config(\%conf);
     is_deeply \%conf, {
         store => {
-            class   => 'Kinetic::Store::DB::Pg',
+            class   => 'Kinetic::Store::Handle::DB::Pg',
             db_user => 'howdy',
             db_pass => 'asdfasdf',
             dsn     => 'dbi:Pg:dbname=howdy',

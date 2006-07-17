@@ -17,7 +17,7 @@ Kinetic::Store::Lexer::String - Lexer for Kinetic search strings
 =head1 Description
 
 This package will lex the a string that uses the
-L<Kinetic::Store|Kinetic::Store> search operators and return a data structure
+L<Kinetic::Store::Handle|Kinetic::Store::Handle> search operators and return a data structure
 that a Kinetic parser can parse.
 
 See L<Kinetic::Parser::DB|Kinetic::Parser::DB> for an example.
@@ -94,7 +94,7 @@ sub _strip_quotes {    # naive
 
 This function, exported on demand, is the only function publicly useful in
 this module. It takes search parameters as described in the
-L<Kinetic::Store|Kinetic::Store> documentation, formatted as a string, and
+L<Kinetic::Store::Handle|Kinetic::Store::Handle> documentation, formatted as a string, and
 returns a token stream that Kinetic parsers should be able to turn into an
 intermediate representation.
 

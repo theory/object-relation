@@ -43,7 +43,7 @@ BEGIN {
         'Attribute::_view_column() should not exist';
 
     # Load a database store.
-    use_ok('Kinetic::Store::DB::SQLite') or die;
+    use_ok('Kinetic::Store::Handle::DB::SQLite') or die;
 
     ok defined(&Kinetic::Meta::Attribute::_column),
         'Now Attribute::_column() should exist';

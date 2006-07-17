@@ -9,7 +9,7 @@ use Test::NoWarnings; # Adds an extra test.
 
 {
     # Fake out loading of SQLite store.
-    package Kinetic::Store::DB::SQLite;
+    package Kinetic::Store::Handle::DB::SQLite;
     $INC{'Kinetic/Store/DB/SQLite.pm'} = __FILE__;
     sub _add_store_meta { 1 }
 }
@@ -17,7 +17,7 @@ use Test::NoWarnings; # Adds an extra test.
 BEGIN { use_ok 'Kinetic::Store::Schema' or die };
 
 ok my $sg = Kinetic::Store::Schema->new(
-    'Kinetic::Store::DB::SQLite'
+    'Kinetic::Store::Handle::DB::SQLite'
 ), 'Get new Schema';
 isa_ok $sg, 'Kinetic::Store::Schema';
 isa_ok $sg, 'Kinetic::Store::Schema::DB';

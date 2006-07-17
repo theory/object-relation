@@ -30,7 +30,7 @@ to offer DateTime::Incomplete objects to Kinetic applications. The only way in
 which it differs from DateTime::Incomplete is that all new Kinetic::DataType::DateTime
 objects are in the "UTC" time zone unless another time zone is specified and it
 knows to properly stringify itself when accessed by
-L<Kinetic::Store|Kinetic::Store>.
+L<Kinetic::Store::Handle|Kinetic::Store::Handle>.
 
 =cut
 

@@ -21,7 +21,7 @@ L<Kinetic::Store::Parser|Kinetic::Store::Parser> class operates.
 L<Kinetic::Store::Parser|Kinetic::Store::Parser> uses the Parser module
 described in "Higher Order Perl," by Mark Jason Dominus, to transform a series
 of tokens into an intermediate representation that the
-L<Kinetic::Store|Kinetic::Store> subclasses can use to initiate searches
+L<Kinetic::Store::Handle|Kinetic::Store::Handle> subclasses can use to initiate searches
 against a datastore.
 
 The following non-standard BNF grammar describes the legal grammar allowed for
@@ -225,7 +225,7 @@ L<Kinetic::Store::Search|Kinetic::Store::Search> object.
 
 At this point, it calls the C<_make_search> function with the data it has
 matched to build and return a search object. This is when it uses the
-L<Kinetic::Store|Kinetic::Store> object that was passed in to validate that
+L<Kinetic::Store::Handle|Kinetic::Store::Handle> object that was passed in to validate that
 the search can actually be performed on the Kinetic class on which we are
 currently searching.
 

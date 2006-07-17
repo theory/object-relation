@@ -1,4 +1,4 @@
-package TEST::Kinetic::Store;
+package TEST::Kinetic::Store::Handle;
 
 # $Id$
 
@@ -15,7 +15,7 @@ use Class::Trait qw(
     TEST::Kinetic::Traits::SampleObjects
 );
 
-use aliased 'Kinetic::Store' => 'Store', ':all';
+use aliased 'Kinetic::Store::Handle' => 'Store', ':all';
 
 use aliased 'Kinetic::DataType::DateTime';
 use aliased 'Kinetic::DataType::DateTime::Incomplete';
@@ -334,13 +334,13 @@ sub unit_constructor : Test(6) {
     ( my $class = ref $test ) =~ s/^TEST:://;
     can_ok $class => 'new';
 
-    throws_ok { Kinetic::Store->new({ class => 'Bogus::Class'}) }
+    throws_ok { Kinetic::Store::Handle->new({ class => 'Bogus::Class'}) }
       'Kinetic::Util::Exception::Fatal::InvalidClass',
       '... and trying to load it with a bad class should throw an exception';
 
     ok my $store = $class->new;
     isa_ok $store, $class;
-    isa_ok $store, 'Kinetic::Store';
+    isa_ok $store, 'Kinetic::Store::Handle';
 
     my $store2 = $class->new;
     isnt "$store", "$store2", '... and a singleton should not be returned';

@@ -1,4 +1,4 @@
-package TEST::Kinetic::Store::DB;
+package TEST::Kinetic::Store::Handle::DB;
 
 # $Id$
 
@@ -8,13 +8,13 @@ use warnings;
 use Test::More;
 use Test::Exception;
 use Encode qw(is_utf8);
-use base 'TEST::Kinetic::Store';
+use base 'TEST::Kinetic::Store::Handle';
 
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Meta::Attribute';
-use aliased 'Kinetic::Store' => 'DONT_USE', ':all';
-use aliased 'Kinetic::Store::DB' => 'Store';
+use aliased 'Kinetic::Store::Handle' => 'DONT_USE', ':all';
+use aliased 'Kinetic::Store::Handle::DB' => 'Store';
 use aliased 'Kinetic::DataType::State';
 
 use aliased 'TestApp::Simple';
@@ -59,7 +59,7 @@ sub shutdown : Test(shutdown) {
 
 sub test_id : Test(5) {
 
-    # Test the private ID attribute added by Kinetic::Store::DB.
+    # Test the private ID attribute added by Kinetic::Store::Handle::DB.
     my $self = shift;
     ok my $class = One->my_class, "We should get the class object";
     ok my $attr = $class->attributes('id'),
@@ -68,16 +68,16 @@ sub test_id : Test(5) {
     ok !grep( { $_->name eq 'id' } $class->attributes ),
       "A call to attributes() should not include private attribute id";
     {
-        package Kinetic::Store;
+        package Kinetic::Store::Handle;
         Test::More::ok grep( { $_->name eq 'id' } $class->attributes ),
-          "But it should include it when we mock the Kinetic::Store package";
+          "But it should include it when we mock the Kinetic::Store::Handle package";
     }
 }
 
 sub test_dbh : Test(2) {
     my $test  = shift;
     my $class = $test->test_class;
-    if ( $class eq 'Kinetic::Store::DB' ) {
+    if ( $class eq 'Kinetic::Store::Handle::DB' ) {
         throws_ok { $class->_connect_attrs }
           'Kinetic::Util::Exception::Fatal::Unimplemented',
           "_connect_attrs should throw an exception";
@@ -392,7 +392,7 @@ sub build_objects : Test(16) {
 
 sub save : Test(12) {
     my $test  = shift;
-    my $store = Kinetic::Store->new;
+    my $store = Kinetic::Store::Handle->new;
     my $dbh   = $store->_dbh;
     my $mock  = MockModule->new(Store);
     my ( $update, $insert, $begin, $commit, $rollback );
@@ -436,7 +436,7 @@ sub save_contained : Test(1) {
     my ( $update, $insert );
     $mock->mock( _update => sub { $update = 1; $insert = 0 } );
     $mock->mock( _insert => sub { $update = 0; $insert = 1 } );
-    my $store = Kinetic::Store->new;
+    my $store = Kinetic::Store::Handle->new;
     my $dbh   = $store->_dbh;
     $mock->mock( _dbh => $dbh );
     $store->save($object2);
@@ -533,7 +533,7 @@ sub query_match : Test(6) {
     my $test = shift;
     return 'Skip query_match for abstract class' unless $test->_should_run;
     my ($foo, $bar, $baz) = $test->test_objects;
-    my $store = Kinetic::Store->new;
+    my $store = Kinetic::Store::Handle->new;
     my $iterator = $store->query( $foo->my_class,
         name => MATCH '^(f|ba)',
         { order_by => 'name' }
@@ -596,7 +596,7 @@ sub test_extend : Test(45) {
     my $mock_sth = MockModule->new('DBI::st', no_auto => 1);
     $mock_sth->mock(execute => $execute );
 
-    my $mocker = Test::MockModule->new('Kinetic::Store::DB');
+    my $mocker = Test::MockModule->new('Kinetic::Store::Handle::DB');
     $mocker->mock(_set_ids => 1);
 
     ok $extend->save, 'Call the save method';
@@ -779,7 +779,7 @@ sub test_mediate : Test(43) {
     my $mock_sth = MockModule->new('DBI::st', no_auto => 1);
     $mock_sth->mock(execute => $execute );
 
-    my $mocker = Test::MockModule->new('Kinetic::Store::DB');
+    my $mocker = Test::MockModule->new('Kinetic::Store::Handle::DB');
     $mocker->mock(_set_ids => 1);
 
     ok $relation->save, 'Call the save method';

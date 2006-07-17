@@ -1,14 +1,14 @@
-package TEST::Kinetic::Store::DB::SQLite;
+package TEST::Kinetic::Store::Handle::DB::SQLite;
 
 # $Id$
 
 use strict;
 use warnings;
 
-use base 'TEST::Kinetic::Store::DB';
+use base 'TEST::Kinetic::Store::Handle::DB';
 use Test::More;
 use Test::Exception;
-use Kinetic::Store qw/:all/;
+use Kinetic::Store::Handle qw/:all/;
 
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
@@ -25,7 +25,7 @@ sub full_text_search : Test(1) {
     my $test = shift;
     my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Kinetic::Store->new;
+    my $store = Kinetic::Store::Handle->new;
     throws_ok {$store->query($class => 'full text search string')}
         'Kinetic::Util::Exception::Fatal::Unsupported',
         'SQLite should die if a full text search is attempted';

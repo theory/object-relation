@@ -9,7 +9,7 @@ use encoding 'utf8';
 binmode STDERR, ':utf8';
 use Kinetic::Meta;
 use Kinetic::Meta::Widget;
-use Kinetic::Store;
+use Kinetic::Store::Handle;
 use Kinetic::Util::Functions qw(:uuid);
 use Kinetic::DataType::State qw(:all);
 
@@ -67,7 +67,7 @@ BEGIN {
         plural_key  => 'kinetics',
         name        => 'Kinetic',
         plural_name => 'Kinetics',
-        trust       => 'Kinetic::Store',
+        trust       => 'Kinetic::Store::Handle',
         abstract    => 1,
     );
 
@@ -132,7 +132,7 @@ C<< Kinetic->my_class->key >>.
   my $kinetic = Some::Kinetic::Object->lookup(uuid => $uuid);
 
 Calling this method looks up a Kinetic object in the data store.  See the
-C<lookup> method in L<Kinetic::Store|Kinetic::Store> for more information.
+C<lookup> method in L<Kinetic::Store::Handle|Kinetic::Store::Handle> for more information.
 
 =cut
 
@@ -152,7 +152,7 @@ C<lookup> method in L<Kinetic::Store|Kinetic::Store> for more information.
   my $iterator = Some::Kinetic::Object->query(name => LIKE '%vid');
 
 Calling this method searches the data store for objects meeting the query
-criteria.  See the C<query> method in L<Kinetic::Store|Kinetic::Store> for
+criteria.  See the C<query> method in L<Kinetic::Store::Handle|Kinetic::Store::Handle> for
 more information.
 
 =cut
@@ -165,7 +165,7 @@ more information.
 
 Calling this method searches the data store for objects meeting the query
 criteria.  This method uses a string search instead of a code search.  See the
-C<squery> method in L<Kinetic::Store|Kinetic::Store> for more information.
+C<squery> method in L<Kinetic::Store::Handle|Kinetic::Store::Handle> for more information.
 
 =cut
 
@@ -197,7 +197,7 @@ C<squery> method in L<Kinetic::Store|Kinetic::Store> for more information.
   my $count = Some::Kinetic::Object->count(name => LIKE '%vid');
 
 This method returns a count of the objects in the data store which meet the
-search criteria.  See the C<count> method in L<Kinetic::Store|Kinetic::Store>
+search criteria.  See the C<count> method in L<Kinetic::Store::Handle|Kinetic::Store::Handle>
 for more information.
 
 =cut
@@ -210,7 +210,7 @@ for more information.
 
 This method returns an array ref of uuids of the objects in the data store
 which meet the search criteria.  See the C<query_uuids> method in
-L<Kinetic::Store|Kinetic::Store> for more information.
+L<Kinetic::Store::Handle|Kinetic::Store::Handle> for more information.
 
 =cut
 
@@ -378,7 +378,7 @@ sub is_persistent {
   $kinetic->save;
 
 Calling this method saves the Kinetic object to the data store.  See the
-C<save> method in L<Kinetic::Store|Kinetic::Store> for more information.
+C<save> method in L<Kinetic::Store::Handle|Kinetic::Store::Handle> for more information.
 
 =cut
 
@@ -483,7 +483,7 @@ L<Kinetic::Meta::AccessorBuilder|Kinetic::Meta::AccessorBuilder>.
 
 Returns a list or array reference of the names of all of the persistent
 attributes that have been modified since the object was instantiated or since
-the last time it was saved. Called by C<Kinetic::Store|Kinetic::Store> and its
+the last time it was saved. Called by C<Kinetic::Store::Handle|Kinetic::Store::Handle> and its
 subclasses to determine what changes to send to the data store.
 
 =cut
@@ -501,7 +501,7 @@ subclasses to determine what changes to send to the data store.
   $kinetic->_clar_modified;
 
 Clears out the list of the names of modified persistent attributes. Called by
-C<Kinetic::Store|Kinetic::Store> and its subclasses once they have saved any
+C<Kinetic::Store::Handle|Kinetic::Store::Handle> and its subclasses once they have saved any
 changes to the data store.
 
 =cut

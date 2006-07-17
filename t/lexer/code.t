@@ -10,7 +10,7 @@ use lib 'lib';
 use HOP::Stream 'drop';
 use aliased 'Kinetic::DataType::DateTime::Incomplete';
 BEGIN {
-    use_ok 'Kinetic::Store', qw/:all/             or die;
+    use_ok 'Kinetic::Store::Handle', qw/:all/             or die;
     use_ok 'Kinetic::Store::Lexer::Code', qw/code_lexer_stream/ or die;
 }
 

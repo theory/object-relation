@@ -15,11 +15,11 @@ BEGIN {
 };
 
 STORE: {
-    package Kinetic::Store::DB::SQLite;
+    package Kinetic::Store::Handle::DB::SQLite;
     sub new { bless {} => shift }
 }
 
-my $store = Kinetic::Store::DB::SQLite->new;
+my $store = Kinetic::Store::Handle::DB::SQLite->new;
 
 for my $compare (
     [

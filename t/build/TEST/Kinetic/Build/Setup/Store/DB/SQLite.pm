@@ -25,7 +25,7 @@ sub test_class_methods : Test(8) {
       'We should have the correct maximum version number';
     is $class->schema_class, 'Kinetic::Store::Schema::DB::SQLite',
       'We should have the correct schema class';
-    is $class->store_class, 'Kinetic::Store::DB::SQLite',
+    is $class->store_class, 'Kinetic::Store::Handle::DB::SQLite',
       'We should have the correct store class';
     is $class->dbd_class, 'DBD::SQLite',
       'We should have the correct DBD class';
@@ -95,7 +95,7 @@ sub test_rules : Test(41) {
     ok $kbs->add_to_config(\%conf);
     is_deeply \%conf, {
         store => {
-            class   => 'Kinetic::Store::DB::SQLite',
+            class   => 'Kinetic::Store::Handle::DB::SQLite',
             dsn     => "dbi:SQLite:dbname=$db_file",
             db_user => '',
             db_pass => '',
@@ -107,7 +107,7 @@ sub test_rules : Test(41) {
     ok $kbs->add_to_test_config(\%conf);
     is_deeply \%conf, {
         store => {
-            class   => 'Kinetic::Store::DB::SQLite',
+            class   => 'Kinetic::Store::Handle::DB::SQLite',
             dsn     => "dbi:SQLite:dbname=$test_file",
             db_user => '',
             db_pass => '',

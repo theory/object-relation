@@ -374,11 +374,11 @@ sub _normalize_value {
 
 sub parse {
     my ( $stream, $store ) = @_;
-    unless ( blessed $store && $store->isa('Kinetic::Store') ) {
+    unless ( blessed $store && $store->isa('Kinetic::Store::Handle') ) {
         throw_search [
             'Argument "[_1]" is not a valid [_2] object',
              2,
-            'Kinetic::Store'
+            'Kinetic::Store::Handle'
         ];
     }
     $STORE = $store;

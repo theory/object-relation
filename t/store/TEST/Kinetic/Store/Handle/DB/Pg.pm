@@ -1,14 +1,14 @@
-package TEST::Kinetic::Store::DB::Pg;
+package TEST::Kinetic::Store::Handle::DB::Pg;
 
 # $Id$
 
 use strict;
 use warnings;
 
-use base 'TEST::Kinetic::Store::DB';
+use base 'TEST::Kinetic::Store::Handle::DB';
 use Test::More;
 use Test::Exception;
-use Kinetic::Store qw/:all/;
+use Kinetic::Store::Handle qw/:all/;
 
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
@@ -21,7 +21,7 @@ __PACKAGE__->SKIP_CLASS(
 ) if caller;    # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
-# This method is used by TEST::Kinetic::Store::DB to check unique constraint
+# This method is used by TEST::Kinetic::Store::Handle::DB to check unique constraint
 # error messages.
 sub unique_attr_regex {
     my ($self, $col, $key) = @_;
@@ -46,7 +46,7 @@ sub full_text_search : Test(1) {
     my $test = shift;
     my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Kinetic::Store->new;
+    my $store = Kinetic::Store::Handle->new;
     TODO: {
         local $TODO  = 'Full text search is not yet implemented.';
         my $iterator = $store->query($class => 'oo');

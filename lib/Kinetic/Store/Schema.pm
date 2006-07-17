@@ -57,7 +57,7 @@ sub new {
     my $class = shift;
     unless ($class ne __PACKAGE__) {
         $class = shift;
-        $class =~ s/^Kinetic::Store/Kinetic::Store::Schema/;
+        $class =~ s/^Kinetic::Store::Handle/Kinetic::Store::Schema/;
         eval "require $class" or die $@;
     }
     bless {}, $class;

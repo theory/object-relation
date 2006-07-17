@@ -166,7 +166,7 @@ sub operator {
   my $method = $search->search_method;
 
 This method uses the attributes that have been set to determine which search
-method the store L<Kinetic::Store|Kinetic::Store> class should dispatch to.
+method the store L<Kinetic::Store::Handle|Kinetic::Store::Handle> class should dispatch to.
 
 =cut
 
@@ -334,7 +334,7 @@ Getter/Setter for the parameter specified for the search. Most often this will
 correspond to the name of an attribute in the class described by the class
 object returned by C<class()>, but it might instead refer to an object in
 another class by using the dot notation, e.g., "class.attr". See
-L<Kinetic::Store|Kinetic::Store> for details on the possible parameters.
+L<Kinetic::Store::Handle|Kinetic::Store::Handle> for details on the possible parameters.
 
 =head3 data
 

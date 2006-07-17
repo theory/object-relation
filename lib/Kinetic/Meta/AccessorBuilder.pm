@@ -7,7 +7,7 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.2');
 
-use aliased 'Kinetic::Store';
+use aliased 'Kinetic::Store::Handle';
 use aliased 'Kinetic::Util::Collection';
 
 use Kinetic::Util::Exceptions qw(throw_invalid throw_read_only);
@@ -91,7 +91,7 @@ the same name as the attribute itself.
 my $collection_builder = sub {
     my ($attr, $name, @checks) = @_;
     (my $key = $attr->type) =~ s/^collection_//; # XXX :(
-    my $store = Store->new;
+    my $store = Handle->new; # XXX!
     return sub {
         my $self = shift;
         if (@_) {

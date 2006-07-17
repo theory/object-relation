@@ -314,7 +314,7 @@ use and then does the right thing:
 
   sub store_raw {
       my ($self, $store) = @_;
-      if ($store->isa('Kinetic::Store::DB::Pg')) {
+      if ($store->isa('Kinetic::Store::Handle::DB::Pg')) {
           # return PostgreSQL format.
       }
       else {

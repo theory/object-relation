@@ -75,7 +75,7 @@ sub dsn_dbd {
 
   my $dsn = $kbs->dsn;
 
-This abstract method returns the DSN to be used by the Kinetic::Store::DB
+This abstract method returns the DSN to be used by the Kinetic::Store::Handle::DB
 subclass to connect to the database. Must be overridden in a subclass.
 
 =cut
@@ -88,7 +88,7 @@ sub dsn { require Carp && Carp::croak "dsn() must be overridden in the subclass"
 
   my $test_dsn = $kbs->test_dsn;
 
-This abstract method returns the DSN to be used by the Kinetic::Store::DB
+This abstract method returns the DSN to be used by the Kinetic::Store::Handle::DB
 subclass to connect to a test database while C<./Build test> is running. Must
 be overridden in a subclass.
 

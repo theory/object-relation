@@ -28,7 +28,7 @@ database.
 
 sub mock_dbh {
     my $test  = shift;
-    my $store = Kinetic::Store->new({
+    my $store = Kinetic::Store::Handle->new({
         class => $ENV{KS_CLASS},
         cache => $ENV{KS_CACHE},
         user  => $ENV{KS_USER},
@@ -42,7 +42,7 @@ sub mock_dbh {
         $test->{dbi_mock} = MockModule->new( 'DBI::db', no_auto => 1 );
         $test->{dbi_mock}->mock( begin_work => 1 );
         $test->{dbi_mock}->mock( commit     => 1 );
-        $test->{db_mock} = MockModule->new('Kinetic::Store::DB');
+        $test->{db_mock} = MockModule->new('Kinetic::Store::Handle::DB');
         $test->{db_mock}->mock( _dbh => $test->dbh );
     }
 }
