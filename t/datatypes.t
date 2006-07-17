@@ -11,12 +11,12 @@ use Kinetic::Store::Functions qw(:uuid);
 
 package Kinetic::TestTypes;
 use strict;
-use base 'Kinetic';
+use base 'Kinetic::Store::Base';
 
 BEGIN {
     Test::More->import;
     # We need to load Kinetic first, or else things just won't work!
-    use_ok('Kinetic') or die;
+    use_ok('Kinetic::Store::Base') or die;
     use_ok('Kinetic::Store::Meta::DataTypes')     or die;
     use_ok('Kinetic::Store::DataType::DateTime')  or die;
     use_ok('Kinetic::Store::DataType::Duration')  or die;

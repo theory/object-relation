@@ -10,7 +10,7 @@ use Test::NoWarnings; # Adds an extra test.
 {
     # Fake out loading of SQLite store.
     package Kinetic::Store::Handle::DB::SQLite;
-    $INC{'Kinetic/Store/DB/SQLite.pm'} = __FILE__;
+    $INC{'Kinetic/Store/Handle/DB/SQLite.pm'} = __FILE__;
     sub _add_store_meta { 1 }
 }
 

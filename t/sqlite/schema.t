@@ -15,7 +15,7 @@ FAKESQLITE: {
     # Fake out loading of SQLite store.
     package Kinetic::Store::Handle::DB::SQLite;
     use base 'Kinetic::Store::Handle::DB';
-    $INC{'Kinetic/Store/DB/SQLite.pm'} = __FILE__;
+    $INC{'Kinetic/Store/Handle/DB/SQLite.pm'} = __FILE__;
 }
 
 BEGIN { use_ok 'Kinetic::Store::Schema' or die }
@@ -33,7 +33,8 @@ is_deeply [ map { $_->key } $sg->classes ],
   "classes() returns classes in their proper dependency order";
 
 for my $class ( $sg->classes ) {
-    ok $class->is_a('Kinetic'), $class->package . ' is a Kinetic';
+    ok $class->is_a('Kinetic::Store::Base'),
+        $class->package . ' is a Kinetic::Store::Base';
 }
 
 ##############################################################################

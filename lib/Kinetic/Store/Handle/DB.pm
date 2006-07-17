@@ -728,7 +728,7 @@ column name, and order column name. These are used in building SQL for
 fetching collection results.
 
 The first argument may be a C<Kinetic::Store::Meta::Class> object instead of a
-C<Kinetic> object.
+C<Kinetic::Store::Base> object.
 
 =cut
 
@@ -1840,7 +1840,7 @@ sub _connect_attrs {
 
 =head3 _add_store_meta
 
-  package Kinetic;
+  package Kinetic::Store::Base;
   my $km = Kinetic::Store::Meta->new;
   Kinetic::Store::Handle->_add_store_meta($km);
 

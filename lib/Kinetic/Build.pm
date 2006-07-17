@@ -139,9 +139,9 @@ use constant test_data_dir => File::Spec->catdir( 't', 'data' );
 
   my $cm = Kinetic::Build->new(%init);
 
-Overrides Module::Build's constructor to add Kinetic-specific build elements
-and to run methods that collect data necessary to build the Kinetic framework,
-such as data store information.
+Overrides Module::Build's constructor to add Kinetic::Store-specific build
+elements and to run methods that collect data necessary to build the Kinetic
+framework, such as data store information.
 
 =cut
 

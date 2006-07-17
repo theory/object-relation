@@ -59,7 +59,7 @@ on the subclass, in which case that class will be used.
 =item class_dirs
 
 An array refererence of the classes to search for classes that inherit from
-C<Kinetic>. These will be passed to the C<load_classes> method of
+C<Kinetic::Store::Base>. These will be passed to the C<load_classes> method of
 L<Kinetic::Store::Schema|Kinetic::Store::Schema>; as such, the final value in
 the list may optionally be a File::Find::Rule object. Defaults to C<['lib']>
 if not specified.
@@ -150,9 +150,9 @@ sub store_class {
   $setup->class_dirs(@dirs);
 
 Gets or sets the list of directories that will be searched for classes that
-inherit from C<Kinetic>. These will be passed to the C<load_classes> method of
-L<Kinetic::Store::Schema|Kinetic::Store::Schema>; as such, the final value in
-the list may optionally be a File::Find::Rule object.
+inherit from C<Kinetic::Store::Base>. These will be passed to the
+C<load_classes> method of L<Kinetic::Store::Schema|Kinetic::Store::Schema>; as
+such, the final value in the list may optionally be a File::Find::Rule object.
 
 =cut
 

@@ -71,7 +71,7 @@ BEGIN {
         store_default => 'ick',
         widget_meta   => Kinetic::Store::Meta::Widget->new(
             type => 'text',
-            tip  => 'Kinetic',
+            tip  => 'Kinetic Base Class',
         )
     ), "Add attribute";
 
@@ -311,7 +311,7 @@ is $attr->indexed, 1, "Indexed should be true";
 ok my $wm = $attr->widget_meta, "Get widget meta object";
 isa_ok $wm, 'Kinetic::Store::Meta::Widget';
 isa_ok $wm, 'Widget::Meta';
-is $wm->tip, 'Kinetic', "Check tip";
+is $wm->tip, 'Kinetic Base Class', "Check tip";
 
 ok my $fclass = MyTest::Fooey->my_class, "Get Fooey class object";
 is $fclass->sort_by, $fclass->attributes('lname'), 'Check specified sort_by';
@@ -422,7 +422,7 @@ is_deeply [map { $_->name } $class->attributes ],
 # Test its accessors.
 ok my $ex = MyTest::Extends->new, 'Create new Extends object';
 isa_ok $ex => 'MyTest::Extends';
-isa_ok $ex => 'Kinetic';
+isa_ok $ex => 'Kinetic::Store::Base';
 ok !$ex->isa('MyTest::Thingy'), 'The object isn\'ta MyTest::Thingy';
 
 # Make sure that delegates_to is set properly.
@@ -525,7 +525,7 @@ is_deeply [map { $_->name } $class->attributes ],
 # Test its accessors.
 ok my $med = MyTest::Mediates->new, 'Create new Mediates object';
 isa_ok $med => 'MyTest::Mediates';
-isa_ok $med => 'Kinetic';
+isa_ok $med => 'Kinetic::Store::Base';
 ok !$med->isa('MyTest::Thingy'), 'The object isn\'ta MyTest::Thingy';
 
 # Make sure that delegates_to is set properly.

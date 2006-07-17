@@ -20,17 +20,11 @@ Kinetic::Store::Meta::DataTypes - Kinetic data type definition
 =head1 Synopsis
 
   package Kinetic::Foo;
-  use strict;
-  use base 'Kinetic';
+  use Kinetic::Store;
 
-  BEGIN {
-      my $km = Kinetic::Store::Meta->new( key => 'foo' );
-      $km->add_attribute(
-          name => 'bar',
-          type => 'bool',
-      );
-      $km->build;
-  }
+  meta 'foo';
+  has bar => ( type => 'bool' );
+  build;
 
 =head1 Description
 
@@ -38,12 +32,13 @@ This module handles the definition of fundamental data types used by TKP. As
 these data types are loaded by TKP and are always available for use, this
 module should never be used directly. Other data types may be loaded from the
 modules in the Kinetic::Store::DataType name space. Classes that inherit from
-L<Kinetic|Kinetic> and are defined by L<Kinetic::Store::Meta|Kinetic::Store::Meta> are also
-available as data types, referenceable by their key names.
+L<Kinetic::Store::Base|Kinetic::Store::Base> and are defined by
+L<Kinetic::Store::Meta|Kinetic::Store::Meta> are also available as data types,
+referenceable by their key names.
 
-Consult L<Kinetic::Store::Meta|Kinetic::Store::Meta> and L<Class::Meta|Class::Meta> for
-details on creating new Kinetic classes with attributes of the types defined
-by this module.
+Consult L<Kinetic::Store::Meta|Kinetic::Store::Meta> and
+L<Class::Meta|Class::Meta> for details on creating new Kinetic classes with
+attributes of the types defined by this module.
 
 =cut
 

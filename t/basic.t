@@ -10,16 +10,16 @@ use OSSP::uuid;
 use MIME::Base64 ();
 
 BEGIN {
-    use_ok 'Kinetic' or die;
+    use_ok 'Kinetic::Store::Base' or die;
     use_ok 'Kinetic::Store::Language' or die;
     use_ok 'Kinetic::Store::Language::en_us' or die;
     use_ok 'Kinetic::Store::DataType::State' or die;
 };
 
-isa_ok( $Kinetic::VERSION, 'version');
+isa_ok( $Kinetic::Store::Base::VERSION, 'version');
 
 package MyApp::TestThingy;
-use base 'Kinetic';
+use base 'Kinetic::Store::Base';
 BEGIN {
     use Test::More;
     ok my $km = Kinetic::Store::Meta->new(
@@ -51,7 +51,7 @@ is $class->plural_name, 'Thingies', "Check class plural name";
 
 ok my $kinetic = MyApp::TestThingy->new, "Create new TestThingy";
 isa_ok $kinetic, 'MyApp::TestThingy';
-isa_ok $kinetic, 'Kinetic';
+isa_ok $kinetic, 'Kinetic::Store::Base';
 
 # Check UUID.
 my $ug = OSSP::uuid->new;

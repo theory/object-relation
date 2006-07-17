@@ -36,4 +36,4 @@ is $attr->type, 'string', 'Its type should be "string"';
 
 ok my $obj = My::Test->new, 'Construct My::Test object';
 isa_ok $obj, 'My::Test', 'it';
-isa_ok $obj, 'Kinetic', 'it';
+isa_ok $obj, 'Kinetic::Store::Base', 'it';

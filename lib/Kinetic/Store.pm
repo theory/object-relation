@@ -75,8 +75,8 @@ construct the class.
 
 Creates a constructor for the class. Note that all classes created by
 L<Kinetic::Store::Meta|Kinetic::Store::Meta> automatically inherit from
-L<Kinetic|Kinetic>, and therefore already have a C<new()> constructor, among
-other methods.
+L<Kinetic::Store::Base|Kinetic::Store::Base>, and therefore already have a
+C<new()> constructor, among other methods.
 
 =item has
 
@@ -107,7 +107,7 @@ The module that Kinetic::Store overrides, and from which it inherits its
 interface. See its documentation for a more complete explication of the
 exported functions and their parameters.
 
-=item L<Kinetic|Kinetic>
+=item L<Kinetic::Store::Base|Kinetic::Store::Base>
 
 The base class from which all classes created by Kinetic::Store inherit.
 

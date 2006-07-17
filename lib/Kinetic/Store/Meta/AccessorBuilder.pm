@@ -20,9 +20,9 @@ Kinetic::Store::Meta::AccessorBuilder - Builds Kinetic attribute accessors
 =head1 Description
 
 This module handles the creation of attributes for Kinetic classes. It should
-never be used directly. Consult L<Kinetic|Kinetic> and
-L<Class::Meta|Class::Meta> for details on creating new Kinetic classes with
-attributes of the types defined by this module.
+never be used directly. Consult L<Kinetic::Store::Base|Kinetic::Store::Base>
+and L<Class::Meta|Class::Meta> for details on creating new Kinetic classes
+with attributes of the types defined by this module.
 
 =cut
 

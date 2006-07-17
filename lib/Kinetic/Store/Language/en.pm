@@ -27,9 +27,9 @@ of the Kinetic localization interface.
 our %Lexicon;
 {
     my %classes = (
-        'Kinetic'             => 'Kinetic',
-        'Class'               => 'Class',
-        'Classes'             => 'Classes',
+        'Kinetic Base Class' => 'Kinetic Base Class',
+        'Class'              => 'Class',
+        'Classes'            => 'Classes',
     );
 
     my %kinetic_object_states = (

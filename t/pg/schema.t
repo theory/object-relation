@@ -14,7 +14,7 @@ FAKEPG: {
     # Fake out loading of Pg store.
     package Kinetic::Store::Handle::DB::Pg;
     use base 'Kinetic::Store::Handle::DB';
-    $INC{'Kinetic/Store/DB/Pg.pm'} = __FILE__;
+    $INC{'Kinetic/Store/Handle/DB/Pg.pm'} = __FILE__;
 }
 
 BEGIN { use_ok 'Kinetic::Store::Schema' or die }
@@ -38,7 +38,8 @@ is_deeply [ map { $_->key } $sg->classes ],
     "classes() returns classes in their proper dependency order";
 
 for my $class ( $sg->classes ) {
-    ok $class->is_a('Kinetic'), $class->package . ' is a Kinetic';
+    ok $class->is_a('Kinetic::Store::Base'),
+        $class->package . ' is a Kinetic::Store::Base';
 }
 
 ##############################################################################

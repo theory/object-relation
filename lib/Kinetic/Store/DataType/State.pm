@@ -19,7 +19,7 @@ use overload
 
 =head1 Name
 
-Kinetic::Store::DataType::State - Kinetic object states
+Kinetic::Store::DataType::State - Kinetic::Store object states
 
 =head1 Synopsis
 
@@ -107,17 +107,17 @@ versions.
 
 =back
 
-Kinetic::Store::DataType::State has constants with these names, which may be accessed
-as either class methods or as exportable functions. The constants return
-singleton Kinetic::Store::DataType::State objects that represent the various states.
-These same objects are returned by the state attribute accessors of
-Kinetic.
+Kinetic::Store::DataType::State has constants with these names, which may be
+accessed as either class methods or as exportable functions. The constants
+return singleton Kinetic::Store::DataType::State objects that represent the
+various states. These same objects are returned by the state attribute
+accessors of Kinetic.
 
 =cut
 
-# The numbers are subject to change. Change them in t/01state.t, and Kinetic,
-# too. Order is important here; the state numbers match their positions in the
-# array--so don't change them unless the values change!
+# The numbers are subject to change. Change them in t/01state.t, and
+# Kinetic::Store::Base, too. Order is important here; the state numbers match
+# their positions in the array--so don't change them unless the values change!
 
 my @states = (
     bless( [ 0,  'Inactive'  ] ),
@@ -161,8 +161,8 @@ Kinetic::Store::Meta::Type->add(
 
   my $state = Kinetic::Store::DataType::State->new($value);
 
-Returns a Kinetic::Store::DataType::State object corresponding to the state value
-passed to it.
+Returns a Kinetic::Store::DataType::State object corresponding to the state
+value passed to it.
 
 =cut
 
@@ -174,9 +174,9 @@ sub new { return $states[ $_[1] ] }
 
 =head2 Instance Methods
 
-Kinetic::Store::DataType::State overloads a number of Perl operators in order to ease
-its use in various contexts. Each instance method overloads one or more
-operations.
+Kinetic::Store::DataType::State overloads a number of Perl operators in order
+to ease its use in various contexts. Each instance method overloads one or
+more operations.
 
 =head3 value
 

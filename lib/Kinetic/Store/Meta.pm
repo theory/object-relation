@@ -19,7 +19,7 @@ use Kinetic::Store::Exceptions qw(
 );
 use Class::Meta::Types::String;    # Move to DataTypes.
 
-use constant BASE_CLASS => 'Kinetic';
+use constant BASE_CLASS => 'Kinetic::Store::Base';
 
 =head1 Name
 
@@ -49,9 +49,10 @@ overrides the behavior of Class::Meta to specify the use of the
 L<Kinetic::Store::Meta::Class|Kinetic::Store::Meta::Class> subclass in place of
 Class::Meta::Class.
 
-Any class created with L<Kinetic::Store::Meta|Kinetic::Store::Meta> will automatically have
-L<Kinetic|Kinetic> pushed onto its C<@ISA> array unless it already inherits
-from L<Kinetic|Kinetic>.
+Any class created with L<Kinetic::Store::Meta|Kinetic::Store::Meta> will
+automatically have L<Kinetic::Store::Base|Kinetic::Store::Base> pushed onto
+its C<@ISA> array unless it already inherits from
+L<Kinetic::Store::Base|Kinetic::Store::Base>.
 
 =head1 Dynamic APIs
 

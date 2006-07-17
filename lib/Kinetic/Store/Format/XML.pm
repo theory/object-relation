@@ -45,8 +45,9 @@ this class.
     indent => 2,
   });
 
-Creates and returns a new XML format  object.  It optionally takes a
-L<Kinetic|Kinetic> object as an argument.  This is equivalent to:
+Creates and returns a new XML format object. It optionally takes a
+L<Kinetic::Store::Base|Kinetic::Store::Base> object as an argument. This is
+equivalent to:
 
 If preferred, a hashref may be passed as an argument.  Keys are:
 

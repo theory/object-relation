@@ -183,13 +183,13 @@ sub file_to_mod {
 
 Uses L<File::Find::Rule|File::Find::Rule> to find and load all Perl modules
 found in the directories specified and their subdirectories, and returns a
-list or array reference of the Kinetic::Store::Meta::Class objects for each that
-inherits from C<Kinetic> and is not abstract. If the last argument so the
-method is not a File::Find::Rule object, one will be created that ignores
-directories named F<.svn> and C<CVS> and loads all files that end in F<.pm>
-and do not contain "#" in their names. If you need something more strict or
-lenient, create your own File::Find::Rule object and pass it as the last
-argument. Use Unix-style directory naming for the directory arguments;
+list or array reference of the Kinetic::Store::Meta::Class objects for each
+that inherits from C<Kinetic::Store::Base> and is not abstract. If the last
+argument so the method is not a File::Find::Rule object, one will be created
+that ignores directories named F<.svn> and C<CVS> and loads all files that end
+in F<.pm> and do not contain "#" in their names. If you need something more
+strict or lenient, create your own File::Find::Rule object and pass it as the
+last argument. Use Unix-style directory naming for the directory arguments;
 C<load_classes()> will automatically convert the them to the appropriate
 format for the current operating system.
 
@@ -214,9 +214,11 @@ sub load_classes {
             my $class = file_to_mod( $lib_dir, $file );
             eval "require $class" or die $@;
 
-            # Keep the class if it isa Kinetic and is not abstract.
+            # Keep the class if it isa Kinetic::Store::Base and is not
+            # abstract.
             unshift @classes, $class->my_class
-                if $class->isa('Kinetic') && !$class->my_class->abstract;
+                if $class->isa('Kinetic::Store::Base')
+                && !$class->my_class->abstract;
         }
         shift @INC;
     }
@@ -234,7 +236,7 @@ __END__
 
 Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>
 
-This module is free software; you can redistribute it and/or modify it under the
-same terms as Perl itself.
+This module is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut

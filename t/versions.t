@@ -19,13 +19,13 @@ else {
     # Not loading Kinetic::Engine:: modules as they often require constants
     # which will not always be available
     @modules =
-      grep { $_ ne 'Kinetic' } Test::Pod::Coverage::all_modules();
+      grep { $_ ne 'Kinetic::Store::Base' } Test::Pod::Coverage::all_modules();
     plan tests => @modules + 2;
 }
 
-use Kinetic;
-ok defined Kinetic->VERSION, "Kinetic should have a version number";
-my $version = Kinetic->VERSION;
+use Kinetic::Store::Base;
+ok defined Kinetic::Store::Base->VERSION, "Kinetic should have a version number";
+my $version = Kinetic::Store::Base->VERSION;
 SKIP: {
     skip "Kinetic.pm did not have a version", scalar @modules
       unless defined $version;

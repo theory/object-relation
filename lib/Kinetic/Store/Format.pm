@@ -18,7 +18,7 @@ use Kinetic::Store::Exceptions qw/
 
 =head1 Name
 
-Kinetic::Store::Format - The Kinetic serialization class
+Kinetic::Store::Format - The Kinetic::Store serialization class
 
 =head1 Synopsis
 
@@ -29,9 +29,9 @@ Kinetic::Store::Format - The Kinetic serialization class
 
 =head1 Description
 
-This class is used for serializing and deserializing Kinetic objects to and
-from a specified format.  New objects may be created or existing objects may
-be updated using this class.
+This class is used for serializing and deserializing Kinetic::Store objects to
+and from a specified format. New objects may be created or existing objects
+may be updated using this class.
 
 =cut
 
@@ -45,11 +45,11 @@ be updated using this class.
 
   my $xml = Kinetic::Store::Format->new({ format => 'json' });
 
-Creates and returns a new format object.  Requires a hashref as an argument.
-The key C<format> in the hashref must be a valid format with the Kinetic
-Platform supports.  Currently supported formats are:
+Creates and returns a new format object. Requires a hashref as an argument.
+The key C<format> in the hashref must be a valid format with the
+Kinetic::Store Platform supports. Currently supported formats are:
 
-=over 4 
+=over 4
 
 =item * json
 
@@ -108,7 +108,8 @@ sub format { shift->{format} }
 
   my $format = $formatter->serialize($object);
 
-Render the L<Kinetic|Kinetic> object in the desired format.
+Render the L<Kinetic::Store::Base|Kinetic::Store::Base> object in the desired
+format.
 
 =cut
 
@@ -194,12 +195,13 @@ sub format_to_ref {
   my $hashref = $formatter->_obj_to_hashref($object);
 
 Protected method to be used by subclasses, this method should take a
-L<Kinetic|Kinetic> object and render it as a hashref.  Only publicly exposed
-data will be returned in the hash ref.  Each key will be an attribute name and
-the value should be the value of the key, if any.
+L<Kinetic::Store::Base|Kinetic::Store::Base> object and render it as a
+hashref. Only publicly exposed data will be returned in the hash ref. Each key
+will be an attribute name and the value should be the value of the key, if
+any.
 
-One special key, C<Key>, will be the class key for the L<Kinetic|Kinetic>
-object.
+One special key, C<Key>, will be the class key for the
+L<Kinetic::Store::Base|Kinetic::Store::Base> object.
 
 =cut
 
@@ -231,7 +233,7 @@ sub _obj_to_hashref {
 
 Protected method to be used by subclasses. Given an hash reference in the
 format returned by C<_obj_to_hashref>, this method will return a
-L<Kinetic|Kinetic> object for it.
+L<Kinetic::Store::Base|Kinetic::Store::Base> object for it.
 
 =cut
 
@@ -268,16 +270,17 @@ sub _verify_usage {
   my $ref = $formatter->expand_ref($reference);
 
 Given an arbitrary data structure, this method will walk the structure and
-expand the Kinetic object founds into hash references.
+expand the Kinetic::Store object founds into hash references.
 
-Current understands array refs, hashrefs, Kinetic objects and Iterators.
+Current understands array refs, hashrefs, Kinetic::Store objects and
+Iterators.
 
 =cut
 
 sub expand_ref {
     my ( $self, $ref ) = @_;
     if ( blessed $ref) {
-        if ( $ref->isa('Kinetic') ) {
+        if ( $ref->isa('Kinetic::Store::Base') ) {
             return $self->_obj_to_hashref($ref);
         }
         elsif ( $ref->isa('Kinetic::Store::Iterator') ) {
@@ -318,7 +321,7 @@ Factory classes must meet the following conditions:
 
 =item * Inherit from L<Kinetic::Store::Format>.
 
-The factory class should inherit from C<Kinetic::Store::Format>. 
+The factory class should inherit from C<Kinetic::Store::Format>.
 
 =item * C<new> is optional.
 
@@ -342,7 +345,7 @@ is up to the implementor.
 
 Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>
 
-This module is free software; you can redistribute it and/or modify it under the
-same terms as Perl itself.
+This module is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut

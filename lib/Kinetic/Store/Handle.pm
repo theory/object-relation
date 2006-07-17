@@ -435,16 +435,16 @@ B<Throws:>
 
 =head3 _add_store_meta
 
-  package Kinetic;
+  package Kinetic::Store::Base;
   my $km = Kinetic::Store::Meta->new;
   Kinetic::Store::Handle->_add_store_meta($km);
 
 This protected method is the interface that allows store subclasses to add
 data-store dependendent attributes to the Kinetic base class via the
-Kinetic::Store::Meta object used to construct the Kinetic base class. It will B<only>
-be called once, during compilation, by Kinetic, to add any necessary
-attributes or other metadata objects to ease the implemtation of the data
-store.
+Kinetic::Store::Meta object used to construct the Kinetic base class. It will
+B<only> be called once, during compilation, by Kinetic::Store::Base, to add
+any necessary attributes or other metadata objects to ease the implemtation of
+the data store.
 
 The default implementation of this method is a no-op. See
 L<Kinetic::Store::Handle::DB> for an example implemntation.
@@ -1358,8 +1358,8 @@ via the C<--store> C<./Build> option.
 
 =item * Test it in a build test class
 
-See F<t/build/TEST/Kinetic/Build/Store/DB/SQLite.pm> and
-F<t/build/TEST/Kinetic/Build/Store/DB/Pg.pm> for examples.
+See F<t/build/TEST/Kinetic/Build/Store/Handle/DB/SQLite.pm> and
+F<t/build/TEST/Kinetic/Build/Store/Handle/DB/Pg.pm> for examples.
 
 =item * Create scripts to setup and teardown a test data store.
 
@@ -1416,8 +1416,9 @@ tests for any methods you add! See F<t/dbmeta.t> for an example.
 =item * Create the test classes for the data store.
 
 These should live in the F<t/store> directory, and be subclasses of
-TEST::Kinetic::Store::Handle::DB. See F<t/store/TEST/Kinetic/Store/DB/SQLite.pm> and
-F<t/store/TEST/Kinetic/Store/DB/Pg.pm> for examples.
+TEST::Kinetic::Store::Handle::DB. See
+F<t/store/TEST/Kinetic/Store/Handle/DB/SQLite.pm> and
+F<t/store/TEST/Kinetic/Store/Handle/DB/Pg.pm> for examples.
 
 =back
 

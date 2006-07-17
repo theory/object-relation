@@ -11,14 +11,14 @@ use Kinetic::Store::DataType::State qw(:all);
 use Kinetic::Store::DataType::DateTime;
 
 package Kinetic::TestAccessors;
-use base 'Kinetic';
+use base 'Kinetic::Store::Base';
 use strict;
 use Kinetic::Store::DataType::State qw(:all);
 
 BEGIN {
     Test::More->import;
     # We need to load Kinetic first, or else things just won't work!
-    use_ok('Kinetic')       or die;
+    use_ok('Kinetic::Store::Base') or die;
     use_ok('Kinetic::Store::Meta') or die;
 }
 

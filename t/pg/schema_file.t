@@ -10,7 +10,7 @@ use Test::NoWarnings; # Adds an extra test.
 {
     # Fake out loading of Pg store.
     package Kinetic::Store::Handle::DB::Pg;
-    $INC{'Kinetic/Store/DB/Pg.pm'} = __FILE__;
+    $INC{'Kinetic/Store/Handle/DB/Pg.pm'} = __FILE__;
     sub _add_store_meta { 1 }
 }
 

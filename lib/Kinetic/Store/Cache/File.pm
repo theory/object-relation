@@ -26,8 +26,8 @@ Kinetic::Store::Cache::File - Kinetic caching
 
 =head1 Description
 
-This class provides an interface for caching data in Kinetic, regardless of
-the underlying caching mechanism chosen.  See
+This class provides an interface for caching data in Kinetic::Store,
+regardless of the underlying caching mechanism chosen. See
 L<Kinetic::Store::Cache|Kinetic::Store::Cache> for a description of the
 interface.
 

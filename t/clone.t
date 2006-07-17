@@ -6,10 +6,10 @@ use strict;
 use Test::More tests => 14;
 use Test::NoWarnings; # Adds an extra test.
 
-BEGIN { use_ok 'Kinetic' or die };
+BEGIN { use_ok 'Kinetic::Store::Base' or die };
 
 package MyApp::Simple;
-use base 'Kinetic';
+use base 'Kinetic::Store::Base';
 BEGIN {
     use Test::More;
     ok my $km = Kinetic::Store::Meta->new(
@@ -38,7 +38,7 @@ ok my $kinetic = MyApp::Simple->new, "Create new Simple object";
 # Simple clone.
 ok my $k2 = $kinetic->clone, "Clone object";
 isa_ok $k2, 'MyApp::Simple';
-isa_ok $k2, 'Kinetic';
+isa_ok $k2, 'Kinetic::Store::Base';
 isnt overload::StrVal($k2), overload::StrVal($kinetic),
   "Make sure they're different objects";
 isnt $k2->uuid, $kinetic->uuid, "Check for different UUID";

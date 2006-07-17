@@ -25,7 +25,7 @@
 \b\.#
 
 # Avoid build files.
-^Kinetic
+^Kinetic-Store
 
 # Avoid non-distributable stuff.
 ^t\Wdata\W

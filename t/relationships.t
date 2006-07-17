@@ -8,7 +8,7 @@ use Test::More tests => 157;
 use Test::NoWarnings; # Adds an extra test.
 
 package MyTestBase;
-use base 'Kinetic';
+use base 'Kinetic::Store::Base';
 
 BEGIN {
     Test::More->import;
@@ -26,7 +26,7 @@ BEGIN {
 }
 
 package MyTestThingy;
-use base 'Kinetic';
+use base 'Kinetic::Store::Base';
 BEGIN { Test::More->import }
 BEGIN {
     is( Kinetic::Store::Meta->class_class, 'Kinetic::Store::Meta::Class',
@@ -54,7 +54,7 @@ BEGIN {
         store_default => 'ick',
         widget_meta   => Kinetic::Store::Meta::Widget->new(
             type => 'text',
-            tip  => 'Kinetic',
+            tip  => 'Kinetic::Store::Base',
         )
     ), "Add attribute";
 
@@ -64,7 +64,7 @@ BEGIN {
 ##############################################################################
 
 package MyTestHas;
-use base 'Kinetic';
+use base 'Kinetic::Store::Base';
 BEGIN { Test::More->import }
 BEGIN {
     ok my $km = Kinetic::Store::Meta->new(
@@ -111,7 +111,7 @@ BEGIN {
 ##############################################################################
 
 package MyTestPartof;
-use base 'Kinetic';
+use base 'Kinetic::Store::Base';
 BEGIN { Test::More->import }
 BEGIN {
     ok my $km = Kinetic::Store::Meta->new(
@@ -137,7 +137,7 @@ BEGIN {
 ##############################################################################
 
 package MyTestReferences;
-use base 'Kinetic';
+use base 'Kinetic::Store::Base';
 BEGIN { Test::More->import }
 BEGIN {
     ok my $km = Kinetic::Store::Meta->new(
@@ -184,7 +184,7 @@ BEGIN {
 ##############################################################################
 
 package MyTestChildof;
-use base 'Kinetic';
+use base 'Kinetic::Store::Base';
 BEGIN { Test::More->import }
 BEGIN {
     ok my $km = Kinetic::Store::Meta->new(
@@ -231,7 +231,7 @@ BEGIN {
 ##############################################################################
 
 package MyTestFail;
-use base 'Kinetic';
+use base 'Kinetic::Store::Base';
 BEGIN { Test::More->import }
 
 ok my $km = Kinetic::Store::Meta->new( key => 'fail'), "Create a failing KM object";

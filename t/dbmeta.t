@@ -40,7 +40,7 @@ BEGIN {
         store_default => 'ick',
         widget_meta   => Kinetic::Store::Meta::Widget->new(
             type => 'text',
-            tip  => 'Kinetic',
+            tip  => 'Kinetic Base Class',
         )
     ), "Add foo attribute";
 
@@ -116,7 +116,7 @@ $mock->unmock_all;
 ok my $wm = $attr->widget_meta, "Get widget meta object";
 isa_ok $wm, 'Kinetic::Store::Meta::Widget';
 isa_ok $wm, 'Widget::Meta';
-is $wm->tip, 'Kinetic', "Check tip";
+is $wm->tip, 'Kinetic Base Class', "Check tip";
 
 ok my $fclass = MyTestFooey->my_class, "Get Fooey class object";
 ok $attr = $fclass->attributes('thingy'), "Get thingy attribute";

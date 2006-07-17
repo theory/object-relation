@@ -31,9 +31,10 @@ document is dedicated to documenting how to add new data types to TKP.
 The first step is to determine exactly what the data type will consist of. Is
 it a simple string or number? A read-only object? A mutable object? Before you
 go any further, consider this: Any TKP business class that you create that
-inherits from L<Kinetic|Kinetic> and is implemented using
-L<Kinetic::Store::Meta|Kinetic::Store::Meta> is already a data type. Its C<key> attribute
-will name is as an attribute, and nothing further needs to be done.
+inherits from L<Kinetic::Store::Base|Kinetic::Store::Base> and is implemented
+using L<Kinetic::Store::Meta|Kinetic::Store::Meta> is already a data type. Its
+C<key> attribute will name is as an attribute, and nothing further needs to be
+done.
 
 So, aside from TKP business classes, there are essentially three different
 kinds of data types that you can add.
@@ -130,7 +131,7 @@ sure that your new data type works properly in TKP as well as in the data
 stores, so be sure to write some tests that validate that you can create
 C<real> attributes, that invalid values fail, and that the databases complain
 if the values are invalid (this might take some trickery; see
-F<t/store/TEST/Kinetic/Store/DB.pm> for some examples).
+F<t/store/TEST/Kinetic/Store/Handle/DB.pm> for some examples).
 
 =head2 Simple Objects
 

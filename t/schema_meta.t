@@ -9,7 +9,7 @@ use Test::NoWarnings; # Adds an extra test.
 {
     # Fake out loading of Pg store.
     package Kinetic::Store::Handle::DB::Pg;
-    $INC{'Kinetic/Store/DB/Pg.pm'} = __FILE__;
+    $INC{'Kinetic/Store/Handle/DB/Pg.pm'} = __FILE__;
     sub _add_store_meta { 1 }
 }
 
@@ -23,7 +23,7 @@ isa_ok $sg, 'Kinetic::Store::Schema';
 ok $sg->load_classes('t/sample/lib'),
     'Load all sample classes';
 for my $class ($sg->classes) {
-    ok $class->is_a('Kinetic'), $class->package . ' is a Kinetic';
+    ok $class->is_a('Kinetic::Store::Base'), $class->package . ' is a Kinetic::Store::Base';
     isa_ok($class, 'Class::Meta::Class');
     isa_ok($class, 'Kinetic::Store::Meta::Class');
     isa_ok($class, 'Kinetic::Store::Meta::Class::Schema');

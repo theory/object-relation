@@ -72,14 +72,6 @@ build_requires:
   Test::Output: 0.07
   Test::XML: 0.07
 provides:
-  Kinetic:
-    file: lib/Kinetic.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
   Kinetic::Build:
     file: lib/Kinetic/Build.pm
     version: !!perl/hash:version
@@ -140,6 +132,14 @@ provides:
         - 2
   Kinetic::Store:
     file: lib/Kinetic/Store.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Base:
+    file: lib/Kinetic/Store/Base.pm
     version: !!perl/hash:version
       qv: 1
       version:
