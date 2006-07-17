@@ -10,7 +10,7 @@ use Test::Exception;
 
 my $CLASS;
 BEGIN {
-    $CLASS = 'Kinetic::DataType::Duration';
+    $CLASS = 'Kinetic::Store::DataType::Duration';
     use_ok $CLASS or die;
 };
 

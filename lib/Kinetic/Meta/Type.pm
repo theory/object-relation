@@ -24,11 +24,11 @@ Kinetic::Meta::Type - Kinetic Data type validation and accessor building
       raw     => sub { ref $_[0] ? shift->value : shift },
       store_raw   => sub { shift->store_value },
       check   => sub {
-          UNIVERSAL::isa($_[0], 'Kinetic::DataType::State')
+          UNIVERSAL::isa($_[0], 'Kinetic::Store::DataType::State')
               or throw_invalid(['Value "[_1]" is not a valid [_2] object',
-                                $_[0], 'Kinetic::DataType::State']);
+                                $_[0], 'Kinetic::Store::DataType::State']);
           throw_invalid(['Cannot assign permanent state'])
-            if $_[0] == Kinetic::DataType::State->PERMANENT;
+            if $_[0] == Kinetic::Store::DataType::State->PERMANENT;
       }
   );
 
@@ -101,7 +101,7 @@ L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>.
 The code reference should simply expect the value returned by the C<get>
 accessor as its sole argument. It can then take whatever steps are necessary
 to return a serializable value. For example, if for a
-L<Kinetic::DataType::DateTime|Kinetic::DataType::DateTime> data type, we might
+L<Kinetic::Store::DataType::DateTime|Kinetic::Store::DataType::DateTime> data type, we might
 want to get back a string in ISO-8601 format in the UTC time zone. The raw
 code reference to do so might look like this:
 
@@ -122,7 +122,7 @@ by L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>. In general, it will
 exactly the same as C<raw()>, but may occasionally be different, as when
 different data stores require different raw values for a particular data type.
 
-For the L<Kinetic::DataType::Duration|Kinetic::DataType::Duration> type, for
+For the L<Kinetic::Store::DataType::Duration|Kinetic::Store::DataType::Duration> type, for
 example, C<raw()> would return an ISO-8601 string representation, while
 C<store_raw()> would return one string representation for the PostgreSQL data
 store, and a 0-padded ISO-8601 string for all other data stores.

@@ -13,7 +13,7 @@ use HOP::Parser qw/:all/;
 use Scalar::Util 'blessed';
 use List::Util 'first';
 
-use Kinetic::DataType::DateTime::Incomplete qw/is_incomplete_iso8601/;
+use Kinetic::Store::DataType::DateTime::Incomplete qw/is_incomplete_iso8601/;
 use Kinetic::Store::Search;
 use Kinetic::Util::Exceptions qw/panic throw_search isa_exception/;
 
@@ -367,7 +367,7 @@ sub _make_search {
 sub _normalize_value {
     my $value = shift;
     if ( is_incomplete_iso8601($value) ) {
-        $value = Kinetic::DataType::DateTime::Incomplete->bake($value);
+        $value = Kinetic::Store::DataType::DateTime::Incomplete->bake($value);
     }
     return $value;
 }

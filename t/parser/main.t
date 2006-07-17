@@ -8,7 +8,7 @@ use Test::NoWarnings; # Adds an extra test.
 use Test::Exception;
 
 use aliased 'Kinetic::Store::Search';
-use aliased 'Kinetic::DataType::DateTime::Incomplete';
+use aliased 'Kinetic::Store::DataType::DateTime::Incomplete';
 
 use Kinetic::Store::Handle qw/:all/;
 use Kinetic::Store::Lexer::String qw/string_lexer_stream/;

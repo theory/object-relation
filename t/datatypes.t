@@ -18,9 +18,9 @@ BEGIN {
     # We need to load Kinetic first, or else things just won't work!
     use_ok('Kinetic') or die;
     use_ok('Kinetic::Meta::DataTypes')     or die;
-    use_ok('Kinetic::DataType::DateTime')  or die;
-    use_ok('Kinetic::DataType::Duration')  or die;
-    use_ok('Kinetic::DataType::MediaType') or die;
+    use_ok('Kinetic::Store::DataType::DateTime')  or die;
+    use_ok('Kinetic::Store::DataType::Duration')  or die;
+    use_ok('Kinetic::Store::DataType::MediaType') or die;
 }
 
 BEGIN {
@@ -151,16 +151,16 @@ like $err->error, qr/Cannot assign to read-only attribute .uuid./,
     'It should be the correct error';
 
 # Test state accessor.
-is $t->state, Kinetic::DataType::State->ACTIVE, "State should be active by default";
+is $t->state, Kinetic::Store::DataType::State->ACTIVE, "State should be active by default";
 
 # Make sure that automatic baking works.
-$t->{state} = Kinetic::DataType::State->INACTIVE->value; # Don't try this at home!
-isa_ok($t->state, 'Kinetic::DataType::State');
-is $t->state, Kinetic::DataType::State->INACTIVE, "It should be the proper value.";
+$t->{state} = Kinetic::Store::DataType::State->INACTIVE->value; # Don't try this at home!
+isa_ok($t->state, 'Kinetic::Store::DataType::State');
+is $t->state, Kinetic::Store::DataType::State->INACTIVE, "It should be the proper value.";
 
 # Set the state directly.
-ok( $t->state(Kinetic::DataType::State->ACTIVE), "Set state" );
-isa_ok( $t->state, 'Kinetic::DataType::State' );
+ok( $t->state(Kinetic::Store::DataType::State->ACTIVE), "Set state" );
+isa_ok( $t->state, 'Kinetic::Store::DataType::State' );
 # Make sure we get its raw value.
 is $t->my_class->attributes('state')->raw($t),
   $t->state->value, "Make sure the raw value is a number";
@@ -184,7 +184,7 @@ is( $t->datetime, undef, 'Check for no DateTime' );
 # Make sure that automatic baking works.
 my $date = '2005-03-23T19:30:05.1234';
 $t->{datetime} = $date; # Don't try this at home!
-isa_ok($t->datetime, 'Kinetic::DataType::DateTime');
+isa_ok($t->datetime, 'Kinetic::Store::DataType::DateTime');
 isa_ok($t->datetime, 'DateTime');
 
 # Test Integer accessor.
@@ -251,8 +251,8 @@ throws_ok { $t->posint(0) }
 like $@->error, qr/Value .0. is not a positive integer/,
     '... It should be the correct error';
 
-# Try assigning a Kinetic::DataType::DateTime object.
-my $dt = Kinetic::DataType::DateTime->now->set_time_zone('America/Los_Angeles');
+# Try assigning a Kinetic::Store::DataType::DateTime object.
+my $dt = Kinetic::Store::DataType::DateTime->now->set_time_zone('America/Los_Angeles');
 ok( $t->datetime($dt), "Add DateTime object" );
 is overload::StrVal($t->datetime), overload::StrVal($dt),
   "DateTime object should be the same";
@@ -270,11 +270,11 @@ is( $t->duration, undef, 'Check for no Duration' );
 # Make sure that automatic baking works.
 my $duration = '@ 4541 years 4 mons 4 days 17 mins 31 secs';
 $t->{duration} = $duration; # Don't try this at home!
-isa_ok($t->duration, 'Kinetic::DataType::Duration');
+isa_ok($t->duration, 'Kinetic::Store::DataType::Duration');
 isa_ok($t->duration, 'DateTime::Duration');
 
 # Try assigning a Kinetic::Duration object.
-$duration = Kinetic::DataType::Duration->new(
+$duration = Kinetic::Store::DataType::Duration->new(
     days    => 2,
     hours   => -23,
     minutes => -59
@@ -354,7 +354,7 @@ is $err->error, "Value \x{201c}foo\x{201d} is not a valid operator",
 # Test Media Type accessor.
 is( $t->media_type, undef, 'Check for no Media Type' );
 
-my $mt = Kinetic::DataType::MediaType->bake('text/plain');
+my $mt = Kinetic::Store::DataType::MediaType->bake('text/plain');
 # Try assigning a Kinetic::Media_Type object.
 ok $t->media_type($mt), 'Set media_type';
 is $t->media_type, $mt, 'It should be set';
@@ -367,7 +367,7 @@ eval { $t->media_type('foo') };
 ok $err = $@, "Caught bad Media_Type exception";
 isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
 is $err->error,
-    "Value \x{201c}foo\x{201d} is not a valid Kinetic::DataType::MediaType object",
+    "Value \x{201c}foo\x{201d} is not a valid Kinetic::Store::DataType::MediaType object",
     'It should have the proper error message';
 
 # Test Attribute accessor.

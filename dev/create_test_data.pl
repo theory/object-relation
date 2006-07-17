@@ -9,7 +9,7 @@ use lib 't/lib/', 'lib', 't/sample/lib';
 use Kinetic::Meta;
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';
-use aliased 'Kinetic::DataType::DateTime';
+use aliased 'Kinetic::Store::DataType::DateTime';
 
 our $VERSION = 1.0;
 

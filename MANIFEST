@@ -7,12 +7,6 @@ lib/Kinetic/Build/Setup/Store.pm
 lib/Kinetic/Build/Setup/Store/DB.pm
 lib/Kinetic/Build/Setup/Store/DB/Pg.pm
 lib/Kinetic/Build/Setup/Store/DB/SQLite.pm
-lib/Kinetic/DataType.pod
-lib/Kinetic/DataType/DateTime.pm
-lib/Kinetic/DataType/DateTime/Incomplete.pm
-lib/Kinetic/DataType/Duration.pm
-lib/Kinetic/DataType/MediaType.pm
-lib/Kinetic/DataType/State.pm
 lib/Kinetic/Express.pm
 lib/Kinetic/Format.pm
 lib/Kinetic/Format/JSON.pm
@@ -27,6 +21,12 @@ lib/Kinetic/Meta/DataTypes.pm
 lib/Kinetic/Meta/Method.pm
 lib/Kinetic/Meta/Type.pm
 lib/Kinetic/Meta/Widget.pm
+lib/Kinetic/Store/DataType.pod
+lib/Kinetic/Store/DataType/DateTime.pm
+lib/Kinetic/Store/DataType/DateTime/Incomplete.pm
+lib/Kinetic/Store/DataType/Duration.pm
+lib/Kinetic/Store/DataType/MediaType.pm
+lib/Kinetic/Store/DataType/State.pm
 lib/Kinetic/Store/Handle.pm
 lib/Kinetic/Store/Handle/DB.pm
 lib/Kinetic/Store/Handle/DB/mysql.pm

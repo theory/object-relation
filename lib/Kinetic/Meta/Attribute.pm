@@ -557,7 +557,7 @@ This method returns the raw value of an attribute. This value will most often
 be the same as that returned by C<get()>, but when the attribute fetched is an
 object, it might return a raw value suitable for serialization or storage in a
 database. For example, if the attribute was a
-L<Kinetic::DataType::DateTime|Kinetic::DataType::DateTime> object, the
+L<Kinetic::Store::DataType::DateTime|Kinetic::Store::DataType::DateTime> object, the
 C<get()> method will return the object, but the C<raw()> method might return an
 ISO-8601 formatted string using the UTC time zone, instead.
 
@@ -582,7 +582,7 @@ serialization to a data store. This value will most often be the same as that
 returned by C<raw()>, but different data stores require different formats,
 C<store_raw()> will return the representation appropriate for the current data
 store. For example, if the attribute was a
-L<Kinetic::DataType::Duration|Kinetic::DataType::Duration> object, C<get()>
+L<Kinetic::Store::DataType::Duration|Kinetic::Store::DataType::Duration> object, C<get()>
 would of course return the object, C<raw()> would return an ISO-8601 string
 representation, and C<store_raw()> would return one string representation for
 the PostgreSQL data store, and a 0-padded ISO-8601 string for all other data

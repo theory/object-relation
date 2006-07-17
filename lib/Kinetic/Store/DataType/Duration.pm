@@ -1,4 +1,4 @@
-package Kinetic::DataType::Duration;
+package Kinetic::Store::DataType::Duration;
 
 # $Id$
 
@@ -19,11 +19,11 @@ our $VERSION = version->new('0.0.2');
 
 =head1 Name
 
-Kinetic::DataType::Duration - Kinetic Duration objects
+Kinetic::Store::DataType::Duration - Kinetic Duration objects
 
 =head1 Synopsis
 
-  my $dt = Kinetic::DataType::Duration->new(
+  my $dt = Kinetic::Store::DataType::Duration->new(
     years   => 2,
     months  => 10,
     days    => 16,
@@ -69,10 +69,10 @@ Kinetic::Meta::Type->add(
 
 =head3 bake
 
-  my $duration = Kinetic::DataType::Duration->bake($string);
+  my $duration = Kinetic::Store::DataType::Duration->bake($string);
 
 Parses an ISO-8601 Duration or PostgreSQL-formatted C<INTERVAL> string and
-returns a Kinetic::DataType::Duration object.
+returns a Kinetic::Store::DataType::Duration object.
 
 =cut
 

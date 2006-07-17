@@ -6,8 +6,8 @@ use warnings;
 use Kinetic::Meta;
 use Kinetic::Meta::Widget;
 use Kinetic::Util::Language::en_us;
-use Kinetic::DataType::Duration;
-use Kinetic::DataType::MediaType;
+use Kinetic::Store::DataType::Duration;
+use Kinetic::Store::DataType::MediaType;
 
 BEGIN {
     my $km = Kinetic::Meta->new(

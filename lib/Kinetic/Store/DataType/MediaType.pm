@@ -1,4 +1,4 @@
-package Kinetic::DataType::MediaType;
+package Kinetic::Store::DataType::MediaType;
 
 # $Id$
 
@@ -13,11 +13,11 @@ our $VERSION = version->new('0.0.2');
 
 =head1 Name
 
-Kinetic::DataType::MediaType - Kinetic MediaType objects
+Kinetic::Store::DataType::MediaType - Kinetic MediaType objects
 
 =head1 Synopsis
 
-  use aliased 'Kinetic::DataType::MediaType';
+  use aliased 'Kinetic::Store::DataType::MediaType';
   my $media_type = MediaType->bake('text/html');
 
 =head1 Description
@@ -49,7 +49,7 @@ Kinetic::Meta::Type->add(
 
 =head3 new
 
-  my $media_type = Kinetic::DataType::MediaType->new($string);
+  my $media_type = Kinetic::Store::DataType::MediaType->new($string);
 
 Overrides the implementation of C<new()> in L<MIME::Type|MIME::Type> to
 redispatch to C<bake()> if there is only one argument. Otherwise, it sends the
@@ -66,9 +66,9 @@ sub new {
 
 =head3 bake
 
-  my $media_type = Kinetic::DataType::MediaType->bake($string);
+  my $media_type = Kinetic::Store::DataType::MediaType->bake($string);
 
-Parses a media type string and returns a Kinetic::DataType::MediaType object.
+Parses a media type string and returns a Kinetic::Store::DataType::MediaType object.
 If the media type does not currently exist, it will be created by calling
 C<new()>.
 

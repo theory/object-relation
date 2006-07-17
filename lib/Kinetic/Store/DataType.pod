@@ -4,11 +4,11 @@
 
 =head1 Name
 
-Kinetic::DataType - Complex data types for TKP
+Kinetic::Store::DataType - Complex data types for TKP
 
 =head1 Description
 
-The C<Kinetic::DataType> name space is set aside for the creation of complex
+The C<Kinetic::Store::DataType> name space is set aside for the creation of complex
 data types for TKP. By "complex" I mean serializable objects, such as dates,
 durations, states, etc. It also is designed to create a distinction from
 simpler data types, which are defined in
@@ -20,7 +20,7 @@ data types might need more code to handle serialization and deserialization,
 overloading, etc. But another criterion is that, while the data types in
 L<Kinetic::Meta::DataTypes|Kinetic::Meta::DataTypes> are I<always> loaded by
 TKP, since it uses them for its own classes, the complex data types in the
-C<Kinetic::DataType> name space tend to be loaded only as needed by the
+C<Kinetic::Store::DataType> name space tend to be loaded only as needed by the
 Kinetic business classes that need them.
 
 Okay, so it's somewhat arbitrary, but you get the idea. The remainder of this
@@ -219,14 +219,14 @@ C<%types> variables:
 
 Other object data types require more work. Perhaps you have to do more work to
 serialize and deserialize them (as in
-L<Kinetic::DataTypee::Duration|Kinetic::DataTypee::Duration>, or you need to
+L<Kinetic::Store::DataTypee::Duration|Kinetic::Store::DataTypee::Duration>, or you need to
 subclass an existing object class in order to add new functionality
 (overloading, localization, etc.). In such a case, the best choice is to
-add the new class to the Kinetic::DataType name space.
+add the new class to the Kinetic::Store::DataType name space.
 
 For example, say that we wanted to add a L<DateTime|DateTime> data type. In
 fact, TKP includes a such a data type,
-L<Kinetic::DataType::DateTime|Kinetic::DataType::DateTime>, but it makes a
+L<Kinetic::Store::DataType::DateTime|Kinetic::Store::DataType::DateTime>, but it makes a
 convenient example. We wanted to subclass C<DateTime> in order to add
 additional functionality: namely forcing new C<DateTime> objects to default to
 the UTC time zone (rather than a floating time zone, the default), and to have
@@ -251,7 +251,7 @@ then declare the new data type right in the module itself:
 This example looks just like the others, except that we are here able to use
 the convenient C<__PACKAGE__> constant, since we're declaring the new data
 type right in the package that defines it. Furthermore, since data types
-defined in the Kinetic::DataType name space are not automatically loaded, they
+defined in the Kinetic::Store::DataType name space are not automatically loaded, they
 consume no memory or processor cycles unless a module actually needs them and
 loads them itself. Again, we check the data types supported by each data
 store, and add them as appropriate to
@@ -280,7 +280,7 @@ here.
 
 The first is that different data stores may actually require that a given data
 type be serialized in different ways.
-L<Kinetic::DataType::Duration|Kinetic::DataType::Duration> is a case in point.
+L<Kinetic::Store::DataType::Duration|Kinetic::Store::DataType::Duration> is a case in point.
 It turns out that PostgreSQL has a proprietary C<INTERVAL> data type that we
 could use, while SQLite has nothing equivalent. Since PostgreSQL natively
 supports C<INTERVAL>s, we can rely on it for ordering, C<BETWEEN> queries,
@@ -291,7 +291,7 @@ were required: One for PostgreSQL and one for SQLite.
 To accommodate this, there is yet another C<Kinetic::Meta::Type> parameter for
 specifying a code reference that will return the serialized form of a data
 type that depends on the current data store. That parameter is C<store_raw>.
-Here's how C<Kinetic::DataType::Duration> uses it:
+Here's how C<Kinetic::Store::DataType::Duration> uses it:
 
   Kinetic::Meta::Type->add(
       key       => 'duration',

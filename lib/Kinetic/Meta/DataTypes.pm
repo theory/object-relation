@@ -37,7 +37,7 @@ Kinetic::Meta::DataTypes - Kinetic data type definition
 This module handles the definition of fundamental data types used by TKP. As
 these data types are loaded by TKP and are always available for use, this
 module should never be used directly. Other data types may be loaded from the
-modules in the Kinetic::DataType name space. Classes that inherit from
+modules in the Kinetic::Store::DataType name space. Classes that inherit from
 L<Kinetic|Kinetic> and are defined by L<Kinetic::Meta|Kinetic::Meta> are also
 available as data types, referenceable by their key names.
 

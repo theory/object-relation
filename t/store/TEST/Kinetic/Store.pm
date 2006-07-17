@@ -17,10 +17,10 @@ use Class::Trait qw(
 
 use aliased 'Kinetic::Store::Handle' => 'Store', ':all';
 
-use aliased 'Kinetic::DataType::DateTime';
-use aliased 'Kinetic::DataType::DateTime::Incomplete';
+use aliased 'Kinetic::Store::DataType::DateTime';
+use aliased 'Kinetic::Store::DataType::DateTime::Incomplete';
 use aliased 'Kinetic::Util::Iterator';
-use aliased 'Kinetic::DataType::State';
+use aliased 'Kinetic::Store::DataType::State';
 
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object

@@ -1,4 +1,4 @@
-package Kinetic::DataType::DateTime;
+package Kinetic::Store::DataType::DateTime;
 
 # $Id$
 
@@ -14,11 +14,11 @@ our $VERSION = version->new('0.0.2');
 
 =head1 Name
 
-Kinetic::DataType::DateTime - Kinetic DateTime objects
+Kinetic::Store::DataType::DateTime - Kinetic DateTime objects
 
 =head1 Synopsis
 
-  my $dt = Kinetic::DataType::DateTime->new(
+  my $dt = Kinetic::Store::DataType::DateTime->new(
       year   => 1964,
       month  => 10,
       day    => 16,
@@ -32,7 +32,7 @@ Kinetic::DataType::DateTime - Kinetic DateTime objects
 This module creates the "datetime" data type for use in Kinetic attributes. It
 subclasses the L<DateTime|DateTime> module to offer DateTime objects to
 Kinetic applications. The only way in which it differs from DateTime is that
-all new Kinetic::DataType::DateTime objects are in the "UTC" time zone unless
+all new Kinetic::Store::DataType::DateTime objects are in the "UTC" time zone unless
 another time zone is specified.
 
 =cut
@@ -60,7 +60,7 @@ Kinetic::Meta::Type->add(
 
 =head3 new
 
-  my $dt = Kinetic::DataType::DateTime->new(
+  my $dt = Kinetic::Store::DataType::DateTime->new(
     year   => 1964,
     month  => 10,
     day    => 16,
@@ -78,7 +78,7 @@ the time zone will be UTC.
 
 =head3 bake
 
-  my $dt = Kinetic::DataType::DateTime->bake('1964-10-16T16:12:47.0');
+  my $dt = Kinetic::Store::DataType::DateTime->bake('1964-10-16T16:12:47.0');
 
 Same as C<new> but takes an ISO-8601 date string as the argument.
 
@@ -110,7 +110,7 @@ sub bake {
 
 =head3 parse_iso8601_date
 
-  my $date_href = Kinetic::DataType::DateTime->parse_iso8601_date($string);
+  my $date_href = Kinetic::Store::DataType::DateTime->parse_iso8601_date($string);
 
 Given an ISO8601 date string, returns a hashref with the date parts as values
 to the keys. Keys are:
@@ -176,7 +176,7 @@ sub raw {
 
 =head3 is_iso8601
 
-  use Kinetic::DataType::DateTime qw/is_iso8601/;
+  use Kinetic::Store::DataType::DateTime qw/is_iso8601/;
   if (is_iso8601('1964-10-16T16:12:47.0')) {
     ...
   }

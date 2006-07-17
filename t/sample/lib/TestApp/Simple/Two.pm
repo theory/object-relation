@@ -3,7 +3,7 @@ use base 'TestApp::Simple';
 use TestApp::Simple::One;
 use Kinetic::Util::Language::en_us;
 use aliased 'Kinetic::Meta::Type';
-use Kinetic::DataType::DateTime;
+use Kinetic::Store::DataType::DateTime;
 
 BEGIN {
     my $km = Kinetic::Meta->new(
@@ -41,7 +41,7 @@ BEGIN {
         type          => 'datetime',
         label         => 'Date',
         required      => 1,
-        default       => sub { Kinetic::DataType::DateTime->now },
+        default       => sub { Kinetic::Store::DataType::DateTime->now },
         widget_meta   => Kinetic::Meta::Widget->new(
             type => 'calendar',
             tip  => 'Date',

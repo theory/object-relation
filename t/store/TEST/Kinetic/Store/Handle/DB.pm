@@ -15,7 +15,7 @@ use aliased 'Kinetic::Meta';
 use aliased 'Kinetic::Meta::Attribute';
 use aliased 'Kinetic::Store::Handle' => 'DONT_USE', ':all';
 use aliased 'Kinetic::Store::Handle::DB' => 'Store';
-use aliased 'Kinetic::DataType::State';
+use aliased 'Kinetic::Store::DataType::State';
 
 use aliased 'TestApp::Simple';
 use aliased 'TestApp::Simple::One';
@@ -372,8 +372,8 @@ sub build_objects : Test(16) {
         is $object->$attr, $sql_data{$attr},
           'and basic attributes should be correct';
     }
-    isa_ok $object->state, 'Kinetic::DataType::State',
-      'and Kinetic::DataType::State objects should be handled correctly';
+    isa_ok $object->state, 'Kinetic::Store::DataType::State',
+      'and Kinetic::Store::DataType::State objects should be handled correctly';
 
     ok my $one = $object->one,
       "and we should be able to fetch the contained object";
@@ -386,8 +386,8 @@ sub build_objects : Test(16) {
       'and basic attributes should be correct';
     is $one->bool, 0, 'and basic attributes should be correct';
     is $one->state + 0, 1, 'and basic attributes should be correct';
-    isa_ok $one->state, 'Kinetic::DataType::State',
-      'and Kinetic::DataType::State objects should be handled correctly';
+    isa_ok $one->state, 'Kinetic::Store::DataType::State',
+      'and Kinetic::Store::DataType::State objects should be handled correctly';
 }
 
 sub save : Test(12) {
@@ -949,7 +949,7 @@ sub test_unique : Test(54) {
     ok $comp = Composed->lookup( uuid => $comp->uuid ),
         '... We should still be able to look up the original Composed object';
     is $comp->color, 'red', '... And its color should still be red';
-    is $comp->state, Kinetic::DataType::State->DELETED, '... And it should be deleted';
+    is $comp->state, Kinetic::Store::DataType::State->DELETED, '... And it should be deleted';
 
     # Now purge the new Composed so that we can test UPDATE.
     ok $comp3->purge, 'Purge the third Composed object';
@@ -992,7 +992,7 @@ sub test_unique : Test(54) {
     ok $two = Two->lookup( uuid => $two->uuid ),
         '... We should still be able to look up the original Two object';
     is $two->age, 37, '... And its age should still be 37';
-    is $two->state, Kinetic::DataType::State->DELETED, '... And it should be deleted';
+    is $two->state, Kinetic::Store::DataType::State->DELETED, '... And it should be deleted';
 
     # Now purge the new Two so that we can test UPDATE.
     ok $two3->purge, 'Purge the third Two object';
@@ -1221,13 +1221,13 @@ sub test_types : Test(138) {
 
     # Set up the duration attribute.
     is $types_test->duration, undef, 'The duration should be undef';
-    ok my $du = Kinetic::DataType::Duration->new(
+    ok my $du = Kinetic::Store::DataType::Duration->new(
         years  => 2,
         months => 3,
         hours  => 4,
     ), 'Create a duration object';
     ok $types_test->duration($du), 'Set the duration';
-    isa_ok $types_test->duration,  'Kinetic::DataType::Duration', 'It';
+    isa_ok $types_test->duration,  'Kinetic::Store::DataType::Duration', 'It';
     is $types_test->duration, $du, 'It should be properly set';
 
     # Set up the operator attribute.
@@ -1236,7 +1236,7 @@ sub test_types : Test(138) {
     is $types_test->operator, 'eq',  'It should be properly set';
 
     # Set up the media_type attribute.
-    my $mt = Kinetic::DataType::MediaType->new('text/plain');
+    my $mt = Kinetic::Store::DataType::MediaType->new('text/plain');
     is $types_test->media_type, undef, 'The media_type should be undef';
     ok $types_test->media_type($mt),  'Set the media_type';
     is $types_test->media_type, $mt,  'It should be properly set';
@@ -1276,7 +1276,7 @@ sub test_types : Test(138) {
     is $types_test->posint,       12,  'Posint should be correct';
     isa_ok $types_test->version,       'version', 'version';
     is $types_test->version, $version, 'It should be properly set';
-    isa_ok $types_test->duration,      'Kinetic::DataType::Duration', 'duration';
+    isa_ok $types_test->duration,      'Kinetic::Store::DataType::Duration', 'duration';
     is $types_test->duration, $du,     'It should be properly set';
     is $types_test->operator, 'eq',    'Operator should be properly set';
     is $types_test->media_type, $mt,   'Media type should be properly set';
@@ -1296,10 +1296,10 @@ sub test_types : Test(138) {
     is $types_test->version, $version,      'It should be properly set';
 
     # Change the duration object.
-    ok $du = Kinetic::DataType::Duration->new( hours  => 4 ),
+    ok $du = Kinetic::Store::DataType::Duration->new( hours  => 4 ),
         'Create a duration object';
     ok $types_test->duration($du), 'Set the duration';
-    isa_ok $types_test->duration,  'Kinetic::DataType::Duration', 'It';
+    isa_ok $types_test->duration,  'Kinetic::Store::DataType::Duration', 'It';
     is $types_test->duration, $du, 'It should be properly set';
 
     # Change the operator.
@@ -1307,7 +1307,7 @@ sub test_types : Test(138) {
     is $types_test->operator, 'ne',  'It should be properly set';
 
     # Change the media_type.
-    $mt = Kinetic::DataType::MediaType->new('text/html');
+    $mt = Kinetic::Store::DataType::MediaType->new('text/html');
     ok $types_test->media_type($mt),  'Set the media_type to a new value';
     is $types_test->media_type, $mt,  'It should be properly set';
 
@@ -1333,7 +1333,7 @@ sub test_types : Test(138) {
     # Check the looked-up values.
     isa_ok $types_test->version, 'version', 'version';
     is $types_test->version,    $version, 'It should be properly set';
-    isa_ok $types_test->duration,         'Kinetic::DataType::Duration', 'duration';
+    isa_ok $types_test->duration,         'Kinetic::Store::DataType::Duration', 'duration';
     is $types_test->duration,   $du,      'It should be properly set';
     is $types_test->operator,   'ne',     'Operator should be properly set';
     is $types_test->media_type, $mt,      'Media type should be properly set';
@@ -1470,7 +1470,7 @@ sub test_types : Test(138) {
     ok $types_test->save, 'Save it';
 
     # Make sure that invalid media_types are not allowed.
-    $mt = Kinetic::DataType::MediaType->new('text/xml');
+    $mt = Kinetic::Store::DataType::MediaType->new('text/xml');
     ok $types_test->media_type($mt), 'Change the media_type';
     $checking = 'media_type';
     $attr_mock->mock(store_raw => $store_mock);

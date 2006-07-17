@@ -10,7 +10,7 @@ use Test::Exception;
 
 my $CLASS;
 BEGIN {
-    $CLASS = 'Kinetic::DataType::MediaType';
+    $CLASS = 'Kinetic::Store::DataType::MediaType';
     use_ok $CLASS or die;
 };
 

@@ -7,13 +7,13 @@ use warnings;
 use Test::More tests => 118;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
-use Kinetic::DataType::State qw(:all);
-use Kinetic::DataType::DateTime;
+use Kinetic::Store::DataType::State qw(:all);
+use Kinetic::Store::DataType::DateTime;
 
 package Kinetic::TestAccessors;
 use base 'Kinetic';
 use strict;
-use Kinetic::DataType::State qw(:all);
+use Kinetic::Store::DataType::State qw(:all);
 
 BEGIN {
     Test::More->import;
@@ -272,13 +272,13 @@ is( overload::StrVal($attr->get($t)), $inactive_str,
 is( $attr->raw($t), 0, "Check state raw value for the new value");
 
 # test the datetime attribute to ensure it works.
-my $date = Kinetic::DataType::DateTime->bake('1964-10-16T16:12:47.0');
+my $date = Kinetic::Store::DataType::DateTime->bake('1964-10-16T16:12:47.0');
 is $t->date($date), $t, 'Set date';
 is $t->date->raw, '1964-10-16T16:12:47', 'Check date string is correct';
 ok $attr = $class->attributes('date'), 'Get date attribute';
 is $attr->get($t)->raw, '1964-10-16T16:12:47', 'Check date returns microseconds';
 is $attr->raw($t), '1964-10-16T16:12:47', 'Check attr->raw date does not return microseconds';
-$date = Kinetic::DataType::DateTime->bake('2005-10-16T16:12:47.0');
+$date = Kinetic::Store::DataType::DateTime->bake('2005-10-16T16:12:47.0');
 is $attr->set($t, $date), $t, 'Set date via attribute object';
 is $attr->raw($t), '2005-10-16T16:12:47', 'Check date returns new value';
 is $attr->bake($t, '2000-01-01T00:00:00'), $t, 'Thaw date via attribute object';

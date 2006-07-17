@@ -209,7 +209,7 @@ token with the string "BETWEEN" and two normalized values.
 
 As of this writing, the normalized value function merely examines the values
 to see if they match a
-L<Kinetic::DataType::DateTime::Incomplete|Kinetic::DataType::DateTime::Incomplete> string and, if
+L<Kinetic::Store::DataType::DateTime::Incomplete|Kinetic::Store::DataType::DateTime::Incomplete> string and, if
 they do, return an object representing them.
 
 =head1 Building search objects

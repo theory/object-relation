@@ -1,4 +1,4 @@
-package Kinetic::DataType::State;
+package Kinetic::Store::DataType::State;
 
 # $Id$
 
@@ -19,21 +19,21 @@ use overload
 
 =head1 Name
 
-Kinetic::DataType::State - Kinetic object states
+Kinetic::Store::DataType::State - Kinetic object states
 
 =head1 Synopsis
 
 Use class methods:
 
-  use Kinetic::DataType::State;
+  use Kinetic::Store::DataType::State;
 
-  if ($kinetic_obj->state->compare(Kinetic::DataType::State->ACTIVE)) {
-      $kinetic->obj->set_state(Kinetic::DataType::State->ACTIVE);
+  if ($kinetic_obj->state->compare(Kinetic::Store::DataType::State->ACTIVE)) {
+      $kinetic->obj->set_state(Kinetic::Store::DataType::State->ACTIVE);
   }
 
 Or use constants:
 
-  use Kinetic::DataType::State qw(:all);
+  use Kinetic::Store::DataType::State qw(:all);
 
   if ($kinetic_obj->state->compare(ACTIVE)) {
       $kinetic->obj->set_state(ACTIVE);
@@ -107,9 +107,9 @@ versions.
 
 =back
 
-Kinetic::DataType::State has constants with these names, which may be accessed
+Kinetic::Store::DataType::State has constants with these names, which may be accessed
 as either class methods or as exportable functions. The constants return
-singleton Kinetic::DataType::State objects that represent the various states.
+singleton Kinetic::Store::DataType::State objects that represent the various states.
 These same objects are returned by the state attribute accessors of
 Kinetic.
 
@@ -159,9 +159,9 @@ Kinetic::Meta::Type->add(
 
 =head3 new
 
-  my $state = Kinetic::DataType::State->new($value);
+  my $state = Kinetic::Store::DataType::State->new($value);
 
-Returns a Kinetic::DataType::State object corresponding to the state value
+Returns a Kinetic::Store::DataType::State object corresponding to the state value
 passed to it.
 
 =cut
@@ -174,7 +174,7 @@ sub new { return $states[ $_[1] ] }
 
 =head2 Instance Methods
 
-Kinetic::DataType::State overloads a number of Perl operators in order to ease
+Kinetic::Store::DataType::State overloads a number of Perl operators in order to ease
 its use in various contexts. Each instance method overloads one or more
 operations.
 
@@ -317,7 +317,7 @@ sub compare { $_[0]->[0] <=> $_[1]->[0] }
 
 Outputs a localized string representation the name of the state object. This
 method overloads the double-quoted string context (C<""> for
-Kinetic::DataType::State objects.
+Kinetic::Store::DataType::State objects.
 
 =cut
 

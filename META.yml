@@ -138,46 +138,6 @@ provides:
         - 0
         - 0
         - 2
-  Kinetic::DataType::DateTime:
-    file: lib/Kinetic/DataType/DateTime.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::DataType::DateTime::Incomplete:
-    file: lib/Kinetic/DataType/DateTime/Incomplete.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::DataType::Duration:
-    file: lib/Kinetic/DataType/Duration.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::DataType::MediaType:
-    file: lib/Kinetic/DataType/MediaType.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::DataType::State:
-    file: lib/Kinetic/DataType/State.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
   Kinetic::Express:
     file: lib/Kinetic/Express.pm
     version: !!perl/hash:version
@@ -290,6 +250,54 @@ provides:
         - 0
         - 0
         - 2
+  Kinetic::Store::DataType::DateTime:
+    file: lib/Kinetic/Store/DataType/DateTime.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::DataType::DateTime::Incomplete:
+    file: lib/Kinetic/Store/DataType/DateTime/Incomplete.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::DataType::Duration:
+    file: lib/Kinetic/Store/DataType/Duration.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::DataType::MediaType:
+    file: lib/Kinetic/Store/DataType/MediaType.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::DataType::State:
+    file: lib/Kinetic/Store/DataType/State.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Handle:
+    file: lib/Kinetic/Store/Handle.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Store::Handle::DB:
     file: lib/Kinetic/Store/Handle/DB.pm
     version: !!perl/hash:version
@@ -340,14 +348,6 @@ provides:
         - 2
   Kinetic::Store::Handle::DB::mysql:
     file: lib/Kinetic/Store/Handle/DB/mysql.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Store::Handle:
-    file: lib/Kinetic/Store/Handle.pm
     version: !!perl/hash:version
       qv: 1
       version:

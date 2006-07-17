@@ -8,23 +8,23 @@ use Test::More tests => 95;
 use Test::NoWarnings; # Adds an extra test.
 
 BEGIN {
-    use_ok('Kinetic::DataType::State') or die;
+    use_ok('Kinetic::Store::DataType::State') or die;
 }
 
 IMPORT: { # 10 tests.
-    package Kinetic::DataType::State::TestImport;
-    use Kinetic::DataType::State qw(:all);
+    package Kinetic::Store::DataType::State::TestImport;
+    use Kinetic::Store::DataType::State qw(:all);
     use Test::More;
 
     for my $state (PERMANENT, ACTIVE, INACTIVE, DELETED, PURGED) {
         ok(ref $state, "Got $state" );
-        isa_ok($state, 'Kinetic::DataType::State');
+        isa_ok($state, 'Kinetic::Store::DataType::State');
     }
 }
 
 NOIMPORT: { # 5 tests.
-    package Kinetic::DataType::State::TestNoImport;
-    use Kinetic::DataType::State;
+    package Kinetic::Store::DataType::State::TestNoImport;
+    use Kinetic::Store::DataType::State;
     use Test::More;
     for my $state qw(PERMANENT ACTIVE INACTIVE DELETED PURGED) {
         eval "my \$foo = $state;";
@@ -33,22 +33,22 @@ NOIMPORT: { # 5 tests.
 }
 
 NEW: { # 20 tests.
-    package Kinetic::DataType::State::TestNew;
-    use Kinetic::DataType::State;
+    package Kinetic::Store::DataType::State::TestNew;
+    use Kinetic::Store::DataType::State;
     use Test::More;
     for my $val (-2..2) {
-        my $state = Kinetic::DataType::State->new($val);
+        my $state = Kinetic::Store::DataType::State->new($val);
         ok(ref $state, "new($val)");
         is( $state->value, $val, "Value is $val" );
         is( int($state), $val, "Numeric context gets $val" );
-        unlike( "$state", qr/Kinetic::DataType::State=ARRAY/,
+        unlike( "$state", qr/Kinetic::Store::DataType::State=ARRAY/,
                 "Stringify $state");
     }
 }
 
 BOOL: { # 10 tests.
-    package Kinetic::DataType::State::TestBool;
-    use Kinetic::DataType::State qw(:all);
+    package Kinetic::Store::DataType::State::TestBool;
+    use Kinetic::Store::DataType::State qw(:all);
     use Test::More;
 
     ok( PERMANENT, "Permanent is true" );
@@ -64,8 +64,8 @@ BOOL: { # 10 tests.
 }
 
 COMPARE: { # 48 tests.
-    package Kinetic::DataType::State::TestCompare;
-    use Kinetic::DataType::State qw(:all);
+    package Kinetic::Store::DataType::State::TestCompare;
+    use Kinetic::Store::DataType::State qw(:all);
     use Test::More;
 
     my $state = INACTIVE;

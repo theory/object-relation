@@ -24,7 +24,7 @@ BEGIN {
         view     => Class::Meta::PUBLIC,
         type     => 'datetime',
         required => 1,
-        default  => sub { Kinetic::DataType::DateTime->now },
+        default  => sub { Kinetic::Store::DataType::DateTime->now },
     ), "Add datetime attribute" );
 
     ok $km->build, "Build Simple class";

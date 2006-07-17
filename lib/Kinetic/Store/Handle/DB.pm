@@ -33,9 +33,9 @@ use Kinetic::Store::Lexer::String qw/string_lexer_stream/;
 
 use aliased 'Kinetic::Meta' => 'Meta', qw/:with_dbstore_api/;
 use aliased 'Kinetic::Util::Iterator';
-use aliased 'Kinetic::DataType::DateTime::Incomplete';
+use aliased 'Kinetic::Store::DataType::DateTime::Incomplete';
 use aliased 'Kinetic::Store::Search';
-use aliased 'Kinetic::DataType::State';
+use aliased 'Kinetic::Store::DataType::State';
 use aliased 'Kinetic::Util::Collection';
 
 my %SEARCH_TYPE_FOR = map { $_ => 1 } qw/CODE STRING XML/;
