@@ -33,7 +33,7 @@ Kinetic - The Kinetic enterprise application framework
 =head1 Synopsis
 
   package MyApp::Thingy;
-  use Kinetic::Express;
+  use Kinetic::Store;
 
   meta thingy => (
       store_config => {

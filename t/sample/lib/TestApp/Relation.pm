@@ -3,7 +3,7 @@ package TestApp::Relation;
 use strict;
 use warnings;
 
-use Kinetic::Express;
+use Kinetic::Store;
 use TestApp::Simple;
 use TestApp::Simple::One;
 use Kinetic::Store::Language::en_us;

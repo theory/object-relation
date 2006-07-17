@@ -1,5 +1,5 @@
 ---
-name: Kinetic
+name: Kinetic-Store
 version: !!perl/hash:Module::Build::Version
   original: !!perl/hash:version
     qv: 1
@@ -14,7 +14,7 @@ version: !!perl/hash:Module::Build::Version
     - 2
 author:
   - 'Kineticode, Inc. <info@kineticode.com>'
-abstract: The Kinetic enterprise application framework
+abstract: Advanced Object Relational Mapper
 license: perl
 resources:
   license: http://dev.perl.org/licenses/
@@ -138,8 +138,8 @@ provides:
         - 0
         - 0
         - 2
-  Kinetic::Express:
-    file: lib/Kinetic/Express.pm
+  Kinetic::Store:
+    file: lib/Kinetic/Store.pm
     version: !!perl/hash:version
       qv: 1
       version:

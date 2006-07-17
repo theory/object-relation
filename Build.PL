@@ -4,7 +4,7 @@ use lib 'lib';
 use Kinetic::Build;
 
 my $build = Kinetic::Build->new(
-    module_name          => 'Kinetic',
+    module_name          => 'Kinetic::Store',
     license              => 'perl',
     build_class          => 'Kinetic::Build',
     dist_author          => 'Kineticode, Inc. <info@kineticode.com>',

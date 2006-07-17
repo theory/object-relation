@@ -11,7 +11,7 @@ TESTPKG: {
     package My::Test;
     use Test::More;
     BEGIN {
-        use_ok 'Kinetic::Express' or die;
+        use_ok 'Kinetic::Store' or die;
     }
 
     BEGIN {

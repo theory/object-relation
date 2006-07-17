@@ -7,7 +7,7 @@ lib/Kinetic/Build/Setup/Store.pm
 lib/Kinetic/Build/Setup/Store/DB.pm
 lib/Kinetic/Build/Setup/Store/DB/Pg.pm
 lib/Kinetic/Build/Setup/Store/DB/SQLite.pm
-lib/Kinetic/Express.pm
+lib/Kinetic/Store.pm
 lib/Kinetic/Store/Cache.pm
 lib/Kinetic/Store/Cache/File.pm
 lib/Kinetic/Store/Cache/Memcached.pm
