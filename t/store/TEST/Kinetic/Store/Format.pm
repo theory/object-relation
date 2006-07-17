@@ -1,4 +1,4 @@
-package TEST::Kinetic::Format;
+package TEST::Kinetic::Store::Format;
 
 # $Id$
 
@@ -21,7 +21,7 @@ use aliased 'Kinetic::Store::Handle' => 'Store', ':all';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';   # contains a TestApp::Simple::One object
 
-use constant FORMAT => 'Kinetic::Format';
+use constant FORMAT => 'Kinetic::Store::Format';
 use constant JSON   => FORMAT . '::JSON';
 
 __PACKAGE__->SKIP_CLASS(
@@ -44,12 +44,12 @@ sub teardown : Test(teardown) {
 
 sub content_type : Test(3) {
     my $test = shift;
-    my $formatter = Kinetic::Format->new( { format => 'xml' } );
+    my $formatter = Kinetic::Store::Format->new( { format => 'xml' } );
     can_ok $formatter, 'content_type';
     is $formatter->content_type, 'text/xml',
       '... and it should return the correct content type';
 
-    $formatter = Kinetic::Format->new( { format => 'json' } );
+    $formatter = Kinetic::Store::Format->new( { format => 'json' } );
     is $formatter->content_type, 'text/plain',
       '... and it should return the correct content type';
 }

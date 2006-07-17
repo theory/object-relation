@@ -8,9 +8,6 @@ lib/Kinetic/Build/Setup/Store/DB.pm
 lib/Kinetic/Build/Setup/Store/DB/Pg.pm
 lib/Kinetic/Build/Setup/Store/DB/SQLite.pm
 lib/Kinetic/Express.pm
-lib/Kinetic/Format.pm
-lib/Kinetic/Format/JSON.pm
-lib/Kinetic/Format/XML.pm
 lib/Kinetic/Meta.pm
 lib/Kinetic/Meta/AccessorBuilder.pm
 lib/Kinetic/Meta/Attribute.pm
@@ -27,6 +24,9 @@ lib/Kinetic/Store/DataType/DateTime/Incomplete.pm
 lib/Kinetic/Store/DataType/Duration.pm
 lib/Kinetic/Store/DataType/MediaType.pm
 lib/Kinetic/Store/DataType/State.pm
+lib/Kinetic/Store/Format.pm
+lib/Kinetic/Store/Format/JSON.pm
+lib/Kinetic/Store/Format/XML.pm
 lib/Kinetic/Store/Handle.pm
 lib/Kinetic/Store/Handle/DB.pm
 lib/Kinetic/Store/Handle/DB/mysql.pm
@@ -60,7 +60,6 @@ lib/Kinetic/Util/Language/en.pm
 lib/Kinetic/Util/Language/en_uk.pm
 lib/Kinetic/Util/Language/en_us.pm
 MANIFEST			This list of files
-META.yml
 README
 t/accessors.t
 t/basic.t
@@ -124,10 +123,10 @@ t/sqlite/setup.t
 t/state.t
 t/store.t
 t/store/TEST/Kinetic.pm
-t/store/TEST/Kinetic/Format.pm
-t/store/TEST/Kinetic/Format/JSON.pm
-t/store/TEST/Kinetic/Format/XML.pm
 t/store/TEST/Kinetic/Store.pm
+t/store/TEST/Kinetic/Store/Format.pm
+t/store/TEST/Kinetic/Store/Format/JSON.pm
+t/store/TEST/Kinetic/Store/Format/XML.pm
 t/store/TEST/Kinetic/Store/Handle/DB.pm
 t/store/TEST/Kinetic/Store/Handle/DB/Pg.pm
 t/store/TEST/Kinetic/Store/Handle/DB/SQLite.pm
@@ -136,3 +135,4 @@ t/storesearch.t
 t/util.t
 t/util/cache.t
 t/versions.t
+META.yml

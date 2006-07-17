@@ -1,4 +1,4 @@
-package TEST::Kinetic::Format::JSON;
+package TEST::Kinetic::Store::Format::JSON;
 
 # $Id$
 
@@ -23,7 +23,7 @@ use aliased 'Kinetic::Store::DataType::DateTime';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';   # contains a TestApp::Simple::One object
 
-use aliased 'Kinetic::Format::JSON';
+use aliased 'Kinetic::Store::Format::JSON';
 
 BEGIN {
 

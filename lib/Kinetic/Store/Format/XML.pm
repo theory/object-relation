@@ -1,4 +1,4 @@
-package Kinetic::Format::XML;
+package Kinetic::Store::Format::XML;
 
 # $Id$
 
@@ -9,16 +9,16 @@ use XML::Simple ();
 use version;
 our $VERSION = version->new('0.0.2');
 
-use base 'Kinetic::Format';
+use base 'Kinetic::Store::Format';
 
 =head1 Name
 
-Kinetic::Format::XML - The Kinetic XML serialization class
+Kinetic::Store::Format::XML - The Kinetic XML serialization class
 
 =head1 Synopsis
 
-  use Kinetic::Format::XML;
-  my $formatter = Kinetic::Format::XML->new;
+  use Kinetic::Store::Format::XML;
+  my $formatter = Kinetic::Store::Format::XML->new;
   my $xml      = $formatter->serialize($kinetic_object);
   my $object    = $formatter->deserialize($xml);
 
@@ -38,9 +38,9 @@ this class.
 
 =head3 new
 
-  my $xml = Kinetic::Format::XML->new;
+  my $xml = Kinetic::Store::Format::XML->new;
   # or
-  my $xml = Kinetic::Format::XML->new({
+  my $xml = Kinetic::Store::Format::XML->new({
     pretty => 1,
     indent => 2,
   });

@@ -1,4 +1,4 @@
-package Kinetic::Format::JSON;
+package Kinetic::Store::Format::JSON;
 
 # $Id$
 
@@ -9,16 +9,16 @@ use JSON::Syck;
 use version;
 our $VERSION = version->new('0.0.2');
 
-use base 'Kinetic::Format';
+use base 'Kinetic::Store::Format';
 
 =head1 Name
 
-Kinetic::Format::JSON - The Kinetic JSON serialization class
+Kinetic::Store::Format::JSON - The Kinetic JSON serialization class
 
 =head1 Synopsis
 
-  use Kinetic::Format::JSON;
-  my $formatter = Kinetic::Format::JSON->new;
+  use Kinetic::Store::Format::JSON;
+  my $formatter = Kinetic::Store::Format::JSON->new;
   my $json      = $formatter->serialize($kinetic_object);
   my $object    = $formatter->deserialize($json);
 
@@ -38,7 +38,7 @@ this class.
 
 =head3 new
 
-  my $xml = Kinetic::Format::JSON->new;
+  my $xml = Kinetic::Store::Format::JSON->new;
 
 Creates and returns a new JSON format  object. 
 

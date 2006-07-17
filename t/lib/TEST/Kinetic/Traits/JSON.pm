@@ -4,7 +4,7 @@ use Class::Trait 'base';
 
 use strict;
 use warnings;
-use aliased 'Kinetic::Format';
+use aliased 'Kinetic::Store::Format';
 
 ##############################################################################
 

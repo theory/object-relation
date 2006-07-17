@@ -146,30 +146,6 @@ provides:
         - 0
         - 0
         - 2
-  Kinetic::Format:
-    file: lib/Kinetic/Format.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Format::JSON:
-    file: lib/Kinetic/Format/JSON.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Format::XML:
-    file: lib/Kinetic/Format/XML.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
   Kinetic::Meta:
     file: lib/Kinetic/Meta.pm
     version: !!perl/hash:version
@@ -284,6 +260,30 @@ provides:
         - 2
   Kinetic::Store::DataType::State:
     file: lib/Kinetic/Store/DataType/State.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Format:
+    file: lib/Kinetic/Store/Format.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Format::JSON:
+    file: lib/Kinetic/Store/Format/JSON.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Format::XML:
+    file: lib/Kinetic/Store/Format/XML.pm
     version: !!perl/hash:version
       qv: 1
       version:

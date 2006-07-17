@@ -1,4 +1,4 @@
-package Kinetic::Format;
+package Kinetic::Store::Format;
 
 # $Id$
 
@@ -18,12 +18,12 @@ use Kinetic::Util::Exceptions qw/
 
 =head1 Name
 
-Kinetic::Format - The Kinetic serialization class
+Kinetic::Store::Format - The Kinetic serialization class
 
 =head1 Synopsis
 
-  use Kinetic::Format;
-  my $formatter = Kinetic::Format->new( { format => 'json' } );
+  use Kinetic::Store::Format;
+  my $formatter = Kinetic::Store::Format->new( { format => 'json' } );
   my $json      = $formatter->serialize($kinetic_object);
   my $object    = $formatter->deserialize($json);
 
@@ -43,7 +43,7 @@ be updated using this class.
 
 =head3 new
 
-  my $xml = Kinetic::Format->new({ format => 'json' });
+  my $xml = Kinetic::Store::Format->new({ format => 'json' });
 
 Creates and returns a new format object.  Requires a hashref as an argument.
 The key C<format> in the hashref must be a valid format with the Kinetic
@@ -306,19 +306,19 @@ __END__
 =head1 IMPLEMENTING A NEW FORMAT
 
 Adding a new format is as simple as implementing the format with the format
-name as the class name upper case, appended to C<Kinetic::Format>:
+name as the class name upper case, appended to C<Kinetic::Store::Format>:
 
- package Kinetic::Format::JSON;
- package Kinetic::Format::XML;
- package Kinetic::Format::YAML;
+ package Kinetic::Store::Format::JSON;
+ package Kinetic::Store::Format::XML;
+ package Kinetic::Store::Format::YAML;
 
 Factory classes must meet the following conditions:
 
 =over 4
 
-=item * Inherit from L<Kinetic::Format>.
+=item * Inherit from L<Kinetic::Store::Format>.
 
-The factory class should inherit from C<Kinetic::Format>. 
+The factory class should inherit from C<Kinetic::Store::Format>. 
 
 =item * C<new> is optional.
 

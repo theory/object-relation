@@ -1,4 +1,4 @@
-package TEST::Kinetic::Format::XML;
+package TEST::Kinetic::Store::Format::XML;
 
 # $Id$
 
@@ -21,7 +21,7 @@ use aliased 'Kinetic::Store::DataType::DateTime';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
 
-use aliased 'Kinetic::Format::XML';
+use aliased 'Kinetic::Store::Format::XML';
 
 __PACKAGE__->SKIP_CLASS(
     $ENV{KS_CLASS}
@@ -54,7 +54,7 @@ sub serialize : Test(7) {
     # Force all UUIDs to be "UUID".
     my ( $foo, $bar, $baz ) = grep { $_->{uuid} = 'UUID' } $test->test_objects;
 
-    my $formatter = Kinetic::Format::XML->new;
+    my $formatter = Kinetic::Store::Format::XML->new;
     can_ok $formatter, 'serialize';
     ok my $xml = $formatter->serialize($foo),
       '... and serializing an object should succeed';
@@ -105,7 +105,7 @@ sub serialize : Test(7) {
 
 sub deserialize : Test(5) {
     my $test = shift;
-    my $formatter = Kinetic::Format::XML->new;
+    my $formatter = Kinetic::Store::Format::XML->new;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     can_ok $formatter, 'deserialize';
     my $xml = $formatter->serialize($foo);
@@ -155,7 +155,7 @@ return;
 
 sub content_type : Test(2) {
     my $test      = shift;
-    my $formatter = Kinetic::Format::XML->new;
+    my $formatter = Kinetic::Store::Format::XML->new;
     can_ok $formatter, 'content_type';
     is $formatter->content_type, 'text/xml',
       '... and it should return the correct content type';
