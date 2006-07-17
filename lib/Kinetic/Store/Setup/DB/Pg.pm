@@ -308,8 +308,7 @@ sub rules {
                         # Set the message before we die.
                         shift->message('No');
                         throw_setup [
-                            'User "[_1]" cannot connect to either "[_2]" or '
-                            . '"[_3]"',
+                            'User "[_1]" cannot connect to either "[_2]" or "[_3]"',
                             $self->user,
                             $self->dsn,
                             $self->template_dsn
