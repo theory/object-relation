@@ -142,7 +142,7 @@ returned by a lexer and a Kinetic store object:
   my $ir     = parse($stream, $store);
 
 The C<parse()> function will then either throw a
-C<Kinetic::Util::Exception::Fatal::Search> exception or return an IR.
+C<Kinetic::Store::Exception::Fatal::Search> exception or return an IR.
 
 The store object is used in the final step of building the IR to determine the
 names of the attributes on which the actual search will take place. Attempting

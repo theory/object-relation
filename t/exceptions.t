@@ -9,20 +9,20 @@ use Test::NoWarnings; # Adds an extra test.
 use DBI;
 
 BEGIN {
-    use_ok('Kinetic::Util::Exceptions') or die;
+    use_ok('Kinetic::Store::Exceptions') or die;
 }
 
 ##############################################################################
 
 IMPORT: { # 6 tests.
-    package Kinetic::Util::Exceptions::TestImport;
-    use Kinetic::Util::Exceptions qw(:all);
+    package Kinetic::Store::Exceptions::TestImport;
+    use Kinetic::Store::Exceptions qw(:all);
     use Test::More;
 
     eval { throw_fatal 'Attribute must be defined' };
     ok( my $err = $@, 'Catch exception' );
-    isa_ok( $err, 'Kinetic::Util::Exception');
-    isa_ok( $err, 'Kinetic::Util::Exception::Fatal' );
+    isa_ok( $err, 'Kinetic::Store::Exception');
+    isa_ok( $err, 'Kinetic::Store::Exception::Fatal' );
     isa_ok( $err, "Exception::Class::Base" );
     ok( isa_exception($err), "is an exception" );
     ok( isa_kinetic_exception($err), "is a kinetic exception" );
@@ -34,84 +34,84 @@ IMPORT: { # 6 tests.
 }
 
 NOIMPORT: { # 22 tests.
-    package Kinetic::Util::Exceptions::TestNoImport;
-    use Kinetic::Util::Exceptions;
+    package Kinetic::Store::Exceptions::TestNoImport;
+    use Kinetic::Store::Exceptions;
     use Test::More;
 
     eval { throw_fatal('Attribute must be defined') };
     ok( my $err = $@, 'Catch invalid l10n' );
-    ok( Kinetic::Util::Exceptions::isa_kinetic_exception($err),
+    ok( Kinetic::Store::Exceptions::isa_kinetic_exception($err),
         "is a kinetic exception" );
-    ok( Kinetic::Util::Exceptions::isa_exception($err),
+    ok( Kinetic::Store::Exceptions::isa_exception($err),
         "is an exception" );
-    isa_ok $err, 'Kinetic::Util::Exception::ExternalLib';
-    isa_ok $err, 'Kinetic::Util::Exception';
+    isa_ok $err, 'Kinetic::Store::Exception::ExternalLib';
+    isa_ok $err, 'Kinetic::Store::Exception';
     isa_ok $err, "Exception::Class::Base";
     like( $err->error,
-          qr{\AUndefined subroutine &Kinetic::Util::Exceptions::TestNoImport::throw_fatal},
+          qr{\AUndefined subroutine &Kinetic::Store::Exceptions::TestNoImport::throw_fatal},
           "Is a Perl exception passed to ExternalLib");
 
     eval {
-        Kinetic::Util::Exception::Fatal->throw([
+        Kinetic::Store::Exception::Fatal->throw([
             'Attribute "[_1]" is not unique',
             'booyah',
         ]);
     };
     ok( $err = $@, 'Catch exception' );
-    isa_ok( $err, 'Kinetic::Util::Exception' );
-    isa_ok( $err, 'Kinetic::Util::Exception::Fatal' );
+    isa_ok( $err, 'Kinetic::Store::Exception' );
+    isa_ok( $err, 'Kinetic::Store::Exception::Fatal' );
     isa_ok( $err, "Exception::Class::Base" );
-    ok( Kinetic::Util::Exceptions::isa_kinetic_exception($err),
+    ok( Kinetic::Store::Exceptions::isa_kinetic_exception($err),
         "is a kinetic exception" );
-    ok( Kinetic::Util::Exceptions::isa_exception($err),
+    ok( Kinetic::Store::Exceptions::isa_exception($err),
         "is an exception" );
 
-    ok $err = Kinetic::Util::Exception::Fatal->new([
+    ok $err = Kinetic::Store::Exception::Fatal->new([
         'Attribute "[_1]" is not unique',
         'booyah',
     ]), 'New, unthrown exception';
-    isa_ok( $err, 'Kinetic::Util::Exception' );
-    isa_ok( $err, 'Kinetic::Util::Exception::Fatal' );
+    isa_ok( $err, 'Kinetic::Store::Exception' );
+    isa_ok( $err, 'Kinetic::Store::Exception::Fatal' );
     isa_ok( $err, "Exception::Class::Base" );
-    ok( Kinetic::Util::Exceptions::isa_kinetic_exception($err),
+    ok( Kinetic::Store::Exceptions::isa_kinetic_exception($err),
         "is a kinetic exception" );
-    ok( Kinetic::Util::Exceptions::isa_exception($err),
+    ok( Kinetic::Store::Exceptions::isa_exception($err),
         "is an exception" );
 
-    ok( $err = Kinetic::Util::Exception::Fatal->new(
+    ok( $err = Kinetic::Store::Exception::Fatal->new(
         error => [ 'Attribute "[_1]" is not unique', 'booyah' ],
     ), 'New, unthrown exception' );
-    isa_ok( $err, 'Kinetic::Util::Exception' );
-    isa_ok( $err, 'Kinetic::Util::Exception::Fatal' );
+    isa_ok( $err, 'Kinetic::Store::Exception' );
+    isa_ok( $err, 'Kinetic::Store::Exception::Fatal' );
     isa_ok( $err, "Exception::Class::Base" );
-    ok( Kinetic::Util::Exceptions::isa_kinetic_exception($err),
+    ok( Kinetic::Store::Exceptions::isa_kinetic_exception($err),
         "is a kinetic exception" );
-    ok( Kinetic::Util::Exceptions::isa_exception($err),
+    ok( Kinetic::Store::Exceptions::isa_exception($err),
         "is an exception" );
 }
 
 L10N: { # 7 tests.
-    package Kinetic::Util::Exceptions::TestL10N;
-    use Kinetic::Util::Exceptions qw(:all);
+    package Kinetic::Store::Exceptions::TestL10N;
+    use Kinetic::Store::Exceptions qw(:all);
     use Test::More;
 
     # Test an unlocalized error message. It should throw a fatal
     # language exception.
     eval { throw_error 'Ouch!' };
     ok( my $err = $@, 'Catch exception' );
-    isa_ok( $err, 'Kinetic::Util::Exception' );
-    isa_ok( $err, 'Kinetic::Util::Exception::Fatal' );
-    isa_ok( $err, 'Kinetic::Util::Exception::Fatal::Language' );
+    isa_ok( $err, 'Kinetic::Store::Exception' );
+    isa_ok( $err, 'Kinetic::Store::Exception::Fatal' );
+    isa_ok( $err, 'Kinetic::Store::Exception::Fatal::Language' );
     isa_ok( $err, "Exception::Class::Base" );
     ok( isa_exception($err), "isa_exception" );
     ok( isa_kinetic_exception($err), "isa_kinetic_exception" );
 }
 
 STRING: {
-    package Kinetic::Util::Exceptions::TestString;
-    use Kinetic::Util::Exceptions qw(:all);
+    package Kinetic::Store::Exceptions::TestString;
+    use Kinetic::Store::Exceptions qw(:all);
     use Test::More;
-    ok(my $err = Kinetic::Util::Exception::Fatal->new(
+    ok(my $err = Kinetic::Store::Exception::Fatal->new(
         [ 'Attribute "[_1]" is not unique', 'booyah' ]
     ), 'Get an exception object');
     is( ($err->_filtered_frames)[-1]->filename, __FILE__,
@@ -128,26 +128,26 @@ STRING: {
 }
 
 GLOBAL: {
-    package Kinetic::Util::Exceptions::TestGlobal;
-    use Kinetic::Util::Exceptions qw(:all);
+    package Kinetic::Store::Exceptions::TestGlobal;
+    use Kinetic::Store::Exceptions qw(:all);
     use Test::More;
     use Test::Output;
     eval { die "Ouch!" };
     ok my $err = $@, "Catch die";
-    isa_ok $err, 'Kinetic::Util::Exception::ExternalLib';
-    isa_ok $err, 'Kinetic::Util::Exception';
+    isa_ok $err, 'Kinetic::Store::Exception::ExternalLib';
+    isa_ok $err, 'Kinetic::Store::Exception';
     isa_ok $err, "Exception::Class::Base";
 }
 
 DBI: {
-    package Kinetic::Util::Exceptions::TestDBI;
-    use Kinetic::Util::Exceptions;
+    package Kinetic::Store::Exceptions::TestDBI;
+    use Kinetic::Store::Exceptions;
     use Test::More;
-    ok my $err = Kinetic::Util::Exception::DBI->new('DBI error'),
+    ok my $err = Kinetic::Store::Exception::DBI->new('DBI error'),
       "Create DBI error";
-    isa_ok $err, 'Kinetic::Util::Exception::DBI';
-    isa_ok $err, 'Kinetic::Util::Exception::ExternalLib';
-    isa_ok $err, 'Kinetic::Util::Exception';
+    isa_ok $err, 'Kinetic::Store::Exception::DBI';
+    isa_ok $err, 'Kinetic::Store::Exception::ExternalLib';
+    isa_ok $err, 'Kinetic::Store::Exception';
     isa_ok $err, 'Exception::Class::DBI';
     isa_ok $err, 'Exception::Class::Base';
     ok my $str = "$err", "Get the stringified version";
@@ -162,7 +162,7 @@ DBI: {
     ok my $dbh = DBI->connect('dbi:ExampleP:dummy', '', '',{
         PrintError => 0,
         RaiseError => 0,
-        HandleError => Kinetic::Util::Exception::DBI->handler
+        HandleError => Kinetic::Store::Exception::DBI->handler
     }), 'Connect to database';
     END { $dbh->disconnect if $dbh };
 
@@ -172,9 +172,9 @@ DBI: {
     isa_ok $err, 'Exception::Class::DBI';
     isa_ok $err, 'Exception::Class::DBI::H';
     isa_ok $err, 'Exception::Class::DBI::STH';
-    isa_ok $err, 'Kinetic::Util::Exception';
-    isa_ok $err, 'Kinetic::Util::Exception::DBI';
-    isa_ok $err, 'Kinetic::Util::Exception::DBI::STH';
+    isa_ok $err, 'Kinetic::Store::Exception';
+    isa_ok $err, 'Kinetic::Store::Exception::DBI';
+    isa_ok $err, 'Kinetic::Store::Exception::DBI::STH';
     like $err, qr/[for Statement "select * from foo"]/,
         'The full message should include the SQL statement.';
     like $err, qr/[t.exceptions\.t:174]/, 'It should also contain a stack trace';

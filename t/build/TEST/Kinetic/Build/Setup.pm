@@ -149,7 +149,7 @@ sub test_instance_interface : Test(39) {
 sub new_builder {
     my $self = shift;
     local $SIG{__DIE__} = sub {
-        Kinetic::Util::Exception::ExternalLib->throw(shift);
+        Kinetic::Store::Exception::ExternalLib->throw(shift);
     };
     return $self->{builder} = Build->new(
         dist_name       => 'Testing::Kinetic',

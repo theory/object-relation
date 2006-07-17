@@ -64,20 +64,20 @@ my $store = Faux::Store->new;
 
 throws_ok {
     parse( string_lexer_stream("no_such_attr => NOT 'foo'"), $store ) }
-  'Kinetic::Util::Exception::Fatal::Search',
+  'Kinetic::Store::Exception::Fatal::Search',
   'Trying to string search on a non-existent attr should throw an exception';
 
 throws_ok {
     parse( code_lexer_stream( [ no_such_attr => NOT 'foo' ] ), $store ) }
-  'Kinetic::Util::Exception::Fatal::Search',
+  'Kinetic::Store::Exception::Fatal::Search',
   'Trying to code search on a non-existent attr should throw an exception';
 
 throws_ok { parse( string_lexer_stream("name => 'foo', 'bar'"), $store ) }
-  'Kinetic::Util::Exception::Fatal::Search',
+  'Kinetic::Store::Exception::Fatal::Search',
   'Unparseable string searches should throw an exception';
 
 throws_ok { parse( code_lexer_stream( [ name => 'foo', 'bar' ] ), $store ) }
-  'Kinetic::Util::Exception::Fatal::Search',
+  'Kinetic::Store::Exception::Fatal::Search',
   'Unparseable code searches should throw an exception';
 
 my $name_search = Search->new(
@@ -348,7 +348,7 @@ $result =
 is_deeply $result, [$any_search], '... even with a trailing comma';
 
 throws_ok { parse( string_lexer_stream("one => 3"), $store ) }
-  'Kinetic::Util::Exception::Fatal::Search',
+  'Kinetic::Store::Exception::Fatal::Search',
   'String searching on embedded objects should fail';
 
 $result =

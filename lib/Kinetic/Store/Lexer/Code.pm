@@ -32,7 +32,7 @@ our $VERSION = version->new('0.0.2');
 
 use overload;
 use Kinetic::Store::Handle            qw/AND BETWEEN/;
-use Kinetic::Util::Exceptions 'throw_search';
+use Kinetic::Store::Exceptions 'throw_search';
 use HOP::Stream               'node';
 
 use Exporter::Tidy            default => ['code_lexer_stream'];

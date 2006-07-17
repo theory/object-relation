@@ -15,7 +15,7 @@ use Class::BuildMethods qw(
   _in_transaction
 );
 
-use Kinetic::Util::Exceptions qw/
+use Kinetic::Store::Exceptions qw/
   isa_exception
   panic
   throw_attribute
@@ -32,11 +32,11 @@ use Kinetic::Store::Lexer::Code qw/code_lexer_stream/;
 use Kinetic::Store::Lexer::String qw/string_lexer_stream/;
 
 use aliased 'Kinetic::Store::Meta' => 'Meta', qw/:with_dbstore_api/;
-use aliased 'Kinetic::Util::Iterator';
+use aliased 'Kinetic::Store::Iterator';
 use aliased 'Kinetic::Store::DataType::DateTime::Incomplete';
 use aliased 'Kinetic::Store::Search';
 use aliased 'Kinetic::Store::DataType::State';
-use aliased 'Kinetic::Util::Collection';
+use aliased 'Kinetic::Store::Collection';
 
 my %SEARCH_TYPE_FOR = map { $_ => 1 } qw/CODE STRING XML/;
 
@@ -265,7 +265,7 @@ sub lookup {
 
   my $iter = $kinetic_object->query(@search_params);
 
-Returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> object containing
+Returns a L<Kinetic::Store::Iterator|Kinetic::Store::Iterator> object containing
 all objects that match the search params. See L<Kinetic::Store::Handle|Kinetic::Store::Handle>
 for more information about search params.
 
@@ -1115,7 +1115,7 @@ sub _should_create_iterator {
 
   my $iter = $store->_get_sql_results($sql, \@bind_params);
 
-Returns a L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> representing the
+Returns a L<Kinetic::Store::Iterator|Kinetic::Store::Iterator> representing the
 results of a given C<query>.
 
 =cut

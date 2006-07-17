@@ -8,7 +8,7 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Kinetic::Store::Setup::DB';
-use Kinetic::Util::Exceptions qw(
+use Kinetic::Store::Exceptions qw(
     throw_unsupported
 );
 

@@ -9,7 +9,7 @@ use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use Test::Exception;
 use aliased 'Test::MockModule';
-use Kinetic::Util::Exceptions qw(throw_exlib);
+use Kinetic::Store::Exceptions qw(throw_exlib);
 use Test::File;
 use utf8;
 
@@ -85,8 +85,8 @@ ok $fsa->switch, 'Switch to the next state';
 my $prev = $fsa->prev_state;
 ok my @errs = $prev->errors, '... There should be some errors';
 is scalar @errs, 2, '... There should be two errors';
-isa_ok $errs[0], 'Kinetic::Util::Exception::ExternalLib', '... The first';
-isa_ok $errs[0], 'Kinetic::Util::Exception::ExternalLib', '... The second';
+isa_ok $errs[0], 'Kinetic::Store::Exception::ExternalLib', '... The first';
+isa_ok $errs[0], 'Kinetic::Store::Exception::ExternalLib', '... The second';
 is $prev->message, 'No', '... And the message should be "No"';
 ok !$fsa->notes('super'), '.. And the super note should be false';
 ok !$fsa->notes('dsn'), '.. And the dsn note should be false';
@@ -182,7 +182,7 @@ $mocker->mock(connect => sub {
 ok $fsa->curr_state('No Superuser'), 'Set state to "No Superuser"';
 is $fsa->curr_state->label, 'Can we connect as the user?',
     '... It should have the proper label';
-throws_ok { $fsa->switch } 'Kinetic::Util::Exception::Fatal::Setup',
+throws_ok { $fsa->switch } 'Kinetic::Store::Exception::Fatal::Setup',
     'We should get a setup exception when we switch';
 is $@->error,
     'User “kinetic” cannot connect to either “dbi:Pg:dbname=kinetic” or '
@@ -193,8 +193,8 @@ $curr = $fsa->curr_state;
 is $curr->name, 'No Superuser', 'We should still be in "No Superuser"';
 ok @errs = $curr->errors, '... There should be some errors';
 is scalar @errs, 2, '... There should be two errors';
-isa_ok $errs[0], 'Kinetic::Util::Exception::ExternalLib', '... The first';
-isa_ok $errs[0], 'Kinetic::Util::Exception::ExternalLib', '... The second';
+isa_ok $errs[0], 'Kinetic::Store::Exception::ExternalLib', '... The first';
+isa_ok $errs[0], 'Kinetic::Store::Exception::ExternalLib', '... The second';
 is $curr->message, 'No', '... And the message should be "No"';
 ok !$fsa->notes('super'), '.. And the super note should be false';
 ok !$fsa->notes('dsn'), '.. And the dsn note should be false';

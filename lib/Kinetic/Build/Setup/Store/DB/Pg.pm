@@ -1192,7 +1192,7 @@ sub _connect {
             RaiseError     => 0,
             PrintError     => 0,
             pg_enable_utf8 => 1,
-            HandleError    => Kinetic::Util::Exception::DBI->handler,
+            HandleError    => Kinetic::Store::Exception::DBI->handler,
         });
     };
     return $dbh;

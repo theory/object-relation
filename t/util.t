@@ -9,18 +9,18 @@ use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
 use File::Spec;
 
-BEGIN { use_ok('Kinetic::Util::Functions') or die; }
+BEGIN { use_ok('Kinetic::Store::Functions') or die; }
 
 NOIMPORT: { # 1 test.
     package MyTest1;
-    use Kinetic::Util::Functions;
+    use Kinetic::Store::Functions;
     use Test::More;
     ok !defined(&create_uuid), 'create_uuid() should not have been imported';
 }
 
 UUID: { # 10 tests.
     package MyTest2;
-    use Kinetic::Util::Functions qw(:uuid);
+    use Kinetic::Store::Functions qw(:uuid);
     use Test::More;
     can_ok __PACKAGE__, 'create_uuid';
     can_ok __PACKAGE__, 'uuid_to_bin';
@@ -48,13 +48,13 @@ UUID: { # 10 tests.
 
 class: { # 6 tests.
     package MyTest3;
-    use Kinetic::Util::Functions qw(:class);
+    use Kinetic::Store::Functions qw(:class);
     use Test::More;
 
     can_ok __PACKAGE__, 'file_to_mod';
 
     main::throws_ok { file_to_mod( '', 'not/a/module.pl') }
-      'Kinetic::Util::Exception::Fatal',
+      'Kinetic::Store::Exception::Fatal',
       'Passing non-modules to file_to_mod() should throw an exception';
 
     is file_to_mod('', 'Some/Module.pm'), 'Some::Module',

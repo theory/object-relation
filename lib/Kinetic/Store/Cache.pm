@@ -1,4 +1,4 @@
-package Kinetic::Util::Cache;
+package Kinetic::Store::Cache;
 
 # $Id$
 
@@ -7,17 +7,17 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.2');
 
-use Kinetic::Util::Exceptions qw(throw_unknown_class throw_unimplemented);
+use Kinetic::Store::Exceptions qw(throw_unknown_class throw_unimplemented);
 
 =head1 Name
 
-Kinetic::Util::Cache - Kinetic caching
+Kinetic::Store::Cache - Kinetic caching
 
 =head1 Synopsis
 
-  use Kinetic::Util::Cache;
+  use Kinetic::Store::Cache;
 
-  my $cache = Kinetic::Util::Cache->new;
+  my $cache = Kinetic::Store::Cache->new;
   $cache->set($id, $object);
   $cache->add($id, $object);
   $object = $cache->get($id);
@@ -33,7 +33,7 @@ the underlying caching mechanism chosen.
 
 =head2 new
 
-  my $cache = Kinetic::Util::Cache->new(
+  my $cache = Kinetic::Store::Cache->new(
       $cache_class,
       $params,
   );

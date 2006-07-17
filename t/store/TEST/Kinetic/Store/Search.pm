@@ -19,7 +19,7 @@ sub constructor : Test(3) {
     my $test = shift;
 
     throws_ok { Search->new( unknown_attr => 1 ) }
-      'Kinetic::Util::Exception::Fatal::Search',
+      'Kinetic::Store::Exception::Fatal::Search',
       'new() with unknown attributes should throw an exception';
 
     my %search = (

@@ -6,7 +6,7 @@ use strict;
 use base 'DateTime::Duration';
 use DateTime;
 use Kinetic::Store::Meta::Type;
-use Kinetic::Util::Exceptions qw(throw_invalid);
+use Kinetic::Store::Exceptions qw(throw_invalid);
 
 use overload
     'fallback' => 1,

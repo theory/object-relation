@@ -136,7 +136,7 @@ Loads and returns "TEST::Kinetic::Build".
 
 =item F<lib/Kinetic/Util/Language.pm>
 
-Loads and returns "Kinetic::Util::Language".
+Loads and returns "Kinetic::Store::Language".
 
 =back
 

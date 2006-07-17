@@ -8,9 +8,9 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use aliased 'Kinetic::Store::Handle';
-use aliased 'Kinetic::Util::Collection';
+use aliased 'Kinetic::Store::Collection';
 
-use Kinetic::Util::Exceptions qw(throw_invalid throw_read_only);
+use Kinetic::Store::Exceptions qw(throw_invalid throw_read_only);
 use Class::Meta;
 
 =head1 Name

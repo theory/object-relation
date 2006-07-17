@@ -3,7 +3,7 @@ package TestApp::Yello;
 use strict;
 use warnings;
 
-use Kinetic::Util::Language::en_us;
+use Kinetic::Store::Language::en_us;
 use TestApp::Simple::One;
 
 BEGIN {
@@ -36,7 +36,7 @@ BEGIN {
 }
 
 # Add new strings to the lexicon.
-Kinetic::Util::Language::en->add_to_lexicon(
+Kinetic::Store::Language::en->add_to_lexicon(
     'Yello',
     'Yello',
     'Yellos',

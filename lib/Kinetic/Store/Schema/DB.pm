@@ -8,7 +8,7 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Kinetic::Store::Schema';
-use Kinetic::Util::Exceptions qw/throw_unimplemented/;
+use Kinetic::Store::Exceptions qw/throw_unimplemented/;
 
 =head1 Name
 

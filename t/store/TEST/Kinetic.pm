@@ -15,7 +15,7 @@ use aliased 'Test::MockModule';
 use Class::Trait qw(TEST::Kinetic::Traits::Store);
 use Class::Trait qw(TEST::Kinetic::Traits::SampleObjects);
 use Kinetic::Store::Handle qw/:all/;
-use aliased 'Kinetic::Util::Iterator';
+use aliased 'Kinetic::Store::Iterator';
 use aliased 'Kinetic::Store::DataType::State';
 
 use aliased 'TestApp::Simple::One';
@@ -62,10 +62,10 @@ sub lookup : Test(15) {
         is $thing->$method, $one->$method, "$method() should behave the same";
     }
     throws_ok { One->lookup( no_such_attribute => 1 ) }
-      'Kinetic::Util::Exception::Fatal::Attribute',
+      'Kinetic::Store::Exception::Fatal::Attribute',
       'but it should croak if you search for a non-existent attribute';
     throws_ok { One->lookup( name => 1 ) }
-      'Kinetic::Util::Exception::Fatal::Attribute',
+      'Kinetic::Store::Exception::Fatal::Attribute',
       'or if you search on a non-unique field';
 
     ok $one->purge, 'Purge the object';

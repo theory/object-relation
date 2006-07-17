@@ -7,7 +7,7 @@ use Test::More tests => 123;
 #use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
-use Kinetic::Util::Functions qw(:uuid);
+use Kinetic::Store::Functions qw(:uuid);
 
 package Kinetic::TestTypes;
 use strict;
@@ -194,12 +194,12 @@ is $t->integer, -12,   '... It should be set';
 ok $t->integer(12),    '... Set it to a positive integer';
 is $t->integer, 12,    '... It should be set';
 throws_ok { $t->integer('foo' ) }
-    'Kinetic::Util::Exception::Fatal::Invalid',
+    'Kinetic::Store::Exception::Fatal::Invalid',
     '... It should throw an exception for an invalid string value';
 like $@->error, qr/Value .foo. is not an integer/,
     '... It should be the correct error';
 throws_ok { $t->integer( 12.2 ) }
-    'Kinetic::Util::Exception::Fatal::Invalid',
+    'Kinetic::Store::Exception::Fatal::Invalid',
     '... It should throw an exception for an invalid numeric value';
 like $@->error, qr/Value .12\.2. is not an integer/,
     '... It should be the correct error';
@@ -211,17 +211,17 @@ is $t->whole, 12,    '... It should be set';
 ok $t->whole(0),     '... Set it to 0';
 is $t->whole, 0,     '... It should be set to 0';
 throws_ok { $t->whole('foo' ) }
-    'Kinetic::Util::Exception::Fatal::Invalid',
+    'Kinetic::Store::Exception::Fatal::Invalid',
     '... It should throw an exception for an invalid string value';
 like $@->error, qr/Value .foo. is not a whole number/,
     '... It should be the correct error';
 throws_ok { $t->whole( 12.2 ) }
-    'Kinetic::Util::Exception::Fatal::Invalid',
+    'Kinetic::Store::Exception::Fatal::Invalid',
     '... It should throw an exception for an invalid numeric value';
 like $@->error, qr/Value .12\.2. is not a whole number/,
     '... It should be the correct error';
 throws_ok { $t->whole( -12 ) }
-    'Kinetic::Util::Exception::Fatal::Invalid',
+    'Kinetic::Store::Exception::Fatal::Invalid',
     '... It should throw an exception for an invalid negative value';
 like $@->error, qr/Value .-12. is not a whole number/,
     '... It should be the correct error';
@@ -231,22 +231,22 @@ is $t->posint, undef, '... Check for no Posint';
 ok $t->posint(12),    '... Set posint';
 is $t->posint, 12,    '... It should be set';
 throws_ok { $t->posint('foo' ) }
-    'Kinetic::Util::Exception::Fatal::Invalid',
+    'Kinetic::Store::Exception::Fatal::Invalid',
     '... It should throw an exception for an invalid string value';
 like $@->error, qr/Value .foo. is not a positive integer/,
     '... It should be the correct error';
 throws_ok { $t->posint( 12.2 ) }
-    'Kinetic::Util::Exception::Fatal::Invalid',
+    'Kinetic::Store::Exception::Fatal::Invalid',
     '... It should throw an exception for an invalid numeric value';
 like $@->error, qr/Value .12\.2. is not a positive integer/,
     '... It should be the correct error';
 throws_ok { $t->posint( -12 ) }
-    'Kinetic::Util::Exception::Fatal::Invalid',
+    'Kinetic::Store::Exception::Fatal::Invalid',
     '... It should throw an exception for an invalid negative value';
 like $@->error, qr/Value .-12. is not a positive integer/,
     '... It should be the correct error';
 throws_ok { $t->posint(0) }
-    'Kinetic::Util::Exception::Fatal::Invalid',
+    'Kinetic::Store::Exception::Fatal::Invalid',
     '... It should throw an exception for an 0';
 like $@->error, qr/Value .0. is not a positive integer/,
     '... It should be the correct error';
@@ -262,7 +262,7 @@ is $t->my_class->attributes('datetime')->raw($t),
   "Make sure the raw value is a UTC string";
 eval { $t->datetime('foo') };
 ok $err = $@, "Caught bad DateTime exception";
-isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
+isa_ok $err, 'Kinetic::Store::Exception::Fatal::Invalid';
 
 # Test Duration accessor.
 is( $t->duration, undef, 'Check for no Duration' );
@@ -298,7 +298,7 @@ is $t->my_class->attributes('duration')->store_raw($t, $store),
 
 eval { $t->duration('foo') };
 ok $err = $@, "Caught bad Duration exception";
-isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
+isa_ok $err, 'Kinetic::Store::Exception::Fatal::Invalid';
 
 # Test the class attribute.
 is( Kinetic::TestTypes->string, undef, 'The string should be undef' );
@@ -325,7 +325,7 @@ is $t->my_class->attributes('version')->raw($t), $version->stringify,
     'Make sure the raw value is stringified';
 eval { $t->version('foo') };
 ok $err = $@, "Caught bad Version exception";
-isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
+isa_ok $err, 'Kinetic::Store::Exception::Fatal::Invalid';
 
 # Test gtin accessor.
 is( $t->gtin, undef, 'Check for no GTIN' );
@@ -333,7 +333,7 @@ ok( $t->gtin('036000291452'), 'Try a UPC');
 ok( $t->gtin('4007630000116'), 'Try an GTIN');
 is( $t->gtin, '4007630000116', 'It should be properly set');
 throws_ok { $t->gtin('0036000291453') }
-    'Kinetic::Util::Exception::Fatal::Invalid',
+    'Kinetic::Store::Exception::Fatal::Invalid',
     'Make sure an invalid GTIN is caught';
 
 # Test Operator accessor.
@@ -347,7 +347,7 @@ is $t->my_class->attributes('operator')->get($t), $op,
     'It should be accessable via the attribute object';
 eval { $t->operator('foo') };
 ok $err = $@, "Caught bad Operator exception";
-isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
+isa_ok $err, 'Kinetic::Store::Exception::Fatal::Invalid';
 is $err->error, "Value \x{201c}foo\x{201d} is not a valid operator",
     'It should have the proper error message';
 
@@ -365,7 +365,7 @@ is $t->my_class->attributes('media_type')->get($t), $mt,
 
 eval { $t->media_type('foo') };
 ok $err = $@, "Caught bad Media_Type exception";
-isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
+isa_ok $err, 'Kinetic::Store::Exception::Fatal::Invalid';
 is $err->error,
     "Value \x{201c}foo\x{201d} is not a valid Kinetic::Store::DataType::MediaType object",
     'It should have the proper error message';
@@ -389,5 +389,5 @@ is $t->my_class->attributes('attribute')->raw($t),
     'Make sure the raw value is stringified';
 eval { $t->attribute('foo') };
 ok $err = $@, "Caught bad Attribute exception";
-isa_ok $err, 'Kinetic::Util::Exception::Fatal::Invalid';
+isa_ok $err, 'Kinetic::Store::Exception::Fatal::Invalid';
 

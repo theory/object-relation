@@ -5,7 +5,7 @@ use warnings;
 
 use Kinetic::Store::Meta;
 use Kinetic::Store::Meta::Widget;
-use Kinetic::Util::Language::en_us;
+use Kinetic::Store::Language::en_us;
 
 BEGIN {
     my $km = Kinetic::Store::Meta->new(
@@ -31,7 +31,7 @@ BEGIN {
 }
 
 # Add new strings to the lexicon.
-Kinetic::Util::Language::en->add_to_lexicon(
+Kinetic::Store::Language::en->add_to_lexicon(
   'Abstract',
   'Abstract',
   'Abstracts',

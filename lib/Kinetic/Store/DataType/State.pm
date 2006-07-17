@@ -7,7 +7,7 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.2');
 
-use aliased 'Kinetic::Util::Language';
+use aliased 'Kinetic::Store::Language';
 use Kinetic::Store::Meta::Type;
 use overload
     '""'     => \&name,

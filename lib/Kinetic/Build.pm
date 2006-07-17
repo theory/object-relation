@@ -15,7 +15,7 @@ use Term::ANSIColor;
 use Class::ISA;
 
 # Be sure to load exceptions early.
-use Kinetic::Util::Exceptions;
+use Kinetic::Store::Exceptions;
 
 use version;
 our $VERSION = version->new('0.0.2');

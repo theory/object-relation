@@ -9,7 +9,7 @@ our $VERSION = version->new('0.0.2');
 
 use base 'Kinetic::Store::Setup::DB';
 use FSA::Rules;
-use Kinetic::Util::Language;
+use Kinetic::Store::Language;
 
 use Class::BuildMethods qw(
     super_user
@@ -18,7 +18,7 @@ use Class::BuildMethods qw(
     createlang
 );
 
-use Kinetic::Util::Exceptions qw(
+use Kinetic::Store::Exceptions qw(
     throw_unsupported
     throw_not_found
     throw_io
@@ -197,14 +197,14 @@ STATE: {
     sub message {
         my $self = shift;
         return $self->SUPER::message(\@_) if @_;
-        my $lang = Kinetic::Util::Language->get_handle;
+        my $lang = Kinetic::Store::Language->get_handle;
         my $msg = $self->SUPER::message or return;
         return $lang->maketext(ref $msg ? @{ $msg } : $msg);
     }
 
     sub label {
         my $self = shift;
-        my $lang = Kinetic::Util::Language->get_handle;
+        my $lang = Kinetic::Store::Language->get_handle;
         return $lang->maketext($self->SUPER::label);
     }
 

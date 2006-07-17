@@ -1,7 +1,7 @@
 package TestApp::Simple::Two;
 use base 'TestApp::Simple';
 use TestApp::Simple::One;
-use Kinetic::Util::Language::en_us;
+use Kinetic::Store::Language::en_us;
 use aliased 'Kinetic::Store::Meta::Type';
 use Kinetic::Store::DataType::DateTime;
 
@@ -52,7 +52,7 @@ BEGIN {
 }
 
 # Add new strings to the lexicon.
-Kinetic::Util::Language::en->add_to_lexicon(
+Kinetic::Store::Language::en->add_to_lexicon(
   'Two'  => 'Two',
   'Twos' => 'Twos',
   'Age'  => 'Age',

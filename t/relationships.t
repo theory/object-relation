@@ -13,8 +13,8 @@ use base 'Kinetic';
 BEGIN {
     Test::More->import;
     use_ok('Kinetic::Store::Meta') or die;
-    use_ok('Kinetic::Util::Language') or die;
-    use_ok('Kinetic::Util::Language::en_us') or die;
+    use_ok('Kinetic::Store::Language') or die;
+    use_ok('Kinetic::Store::Language::en_us') or die;
     use_ok('Kinetic::Store::Meta::Class') or die;
     use_ok('Kinetic::Store::Meta::Attribute') or die;
     use_ok('Kinetic::Store::Meta::AccessorBuilder') or die;
@@ -248,7 +248,7 @@ like $err, qr/I don't know what a "foo" relationship is/, #'
 ##############################################################################
 
 # Add new strings to the lexicon.
-Kinetic::Util::Language::en_us->add_to_lexicon(
+Kinetic::Store::Language::en_us->add_to_lexicon(
   'Thingy'   => 'Thingy',
   'Thingies' => 'Thingies',
   'Foo'      => 'Foo',

@@ -12,7 +12,7 @@ use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
 use File::Spec;
 use Kinetic::Store::Meta;
-use aliased 'Kinetic::Util::Iterator';
+use aliased 'Kinetic::Store::Iterator';
 use aliased 'Test::MockModule';
 
 {
@@ -71,7 +71,7 @@ use aliased 'Test::MockModule';
 my $CLASS;
 
 BEGIN {
-    $CLASS = 'Kinetic::Util::Collection';
+    $CLASS = 'Kinetic::Store::Collection';
     use_ok $CLASS or die;
 }
 
@@ -84,7 +84,7 @@ $mock_k_class->mock(
 );
 
 can_ok $CLASS, 'new';
-throws_ok { $CLASS->new } 'Kinetic::Util::Exception::Fatal::Invalid',
+throws_ok { $CLASS->new } 'Kinetic::Store::Exception::Fatal::Invalid',
   '... and calling it without an argument should die';
 
 throws_ok {
@@ -93,7 +93,7 @@ throws_ok {
         }
     );
   }
-  'Kinetic::Util::Exception::Fatal::Invalid',
+  'Kinetic::Store::Exception::Fatal::Invalid',
   '... and as should calling with without a proper iterator object';
 
 throws_ok {
@@ -103,7 +103,7 @@ throws_ok {
         }
     );
   }
-  'Kinetic::Util::Exception::Fatal::InvalidClass',
+  'Kinetic::Store::Exception::Fatal::InvalidClass',
   '... and as should calling with without valid key';
 
 my @items = map { Faux->new($_) } qw/fee fie foe fum/;
@@ -115,11 +115,11 @@ isa_ok $coll, $CLASS => '... and the object it returns';
 can_ok $coll, 'package';
 is $coll->package, 'Faux', '... and the collection package should be correct';
 
-@Kinetic::Util::Collection::Faux::ISA = $CLASS;
+@Kinetic::Store::Collection::Faux::ISA = $CLASS;
 my @items2 = map { Faux->new($_) } qw/fee fie foe fum/;
 my $iter2 = Iterator->new( sub { shift @items2 } );
 ok my $coll_from_package
-  = Kinetic::Util::Collection::Faux->new( { iter => $iter } ),
+  = Kinetic::Store::Collection::Faux->new( { iter => $iter } ),
   'Creating a collection from a subclass should succeed';
 
 is $coll_from_package->package, 'Faux',
@@ -226,7 +226,7 @@ is $coll->next->name, 'fie',
 is $coll->next->name, 'foe',
   '... and it should return the correct value (foe)';
 
-throws_ok { $coll->next->name } 'Kinetic::Util::Exception::Fatal::Invalid',
+throws_ok { $coll->next->name } 'Kinetic::Store::Exception::Fatal::Invalid',
   '... but it should throw an exception when it hits a bad type';
 
 @items = map { Faux->new($_) } qw/zero one two three four five six/;
@@ -242,7 +242,7 @@ is $coll->curr->name, 'zero',
   '... but this should not affect the position of the collection';
 
 throws_ok { $coll->set( 4, Faux::Unrelated->new('boom!') ) }
-  'Kinetic::Util::Exception::Fatal::Invalid',
+  'Kinetic::Store::Exception::Fatal::Invalid',
   'Setting a collection item to an invalid type should be fatal';
 
 can_ok $CLASS, 'from_list';

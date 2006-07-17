@@ -17,7 +17,7 @@ BEGIN {
 *lex = \&Kinetic::Store::Lexer::String::_lex;
 
 throws_ok { lex("name ~~ 'foo'") }
-  'Kinetic::Util::Exception::Fatal::Search',
+  'Kinetic::Store::Exception::Fatal::Search',
   'A malformed search request should throw an exception';
 
 ok my $tokens = lex("name => 'foo'"),
@@ -63,7 +63,7 @@ is_deeply lex("-3E5"), [['VALUE', "-3E5"]],
     '... or scientific notation';
 
 throws_ok { lex(".") }
-  'Kinetic::Util::Exception::Fatal::Search',
+  'Kinetic::Store::Exception::Fatal::Search',
   '... but a standalone period should fail to lex';
 
 is_deeply lex("object.name"), [['IDENTIFIER', 'object.name']],

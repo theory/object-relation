@@ -10,7 +10,7 @@ our $VERSION = version->new('0.0.2');
 use Kinetic::Store::Meta;
 use Kinetic::Store::Meta::Class::Schema;
 use Kinetic::Store::Meta::Attribute::Schema;
-use Kinetic::Util::Functions;
+use Kinetic::Store::Functions;
 use File::Spec;
 use File::Path;
 use Carp;
@@ -117,7 +117,7 @@ the appropriate format for the current operating system.
 
 sub load_classes {
     my $self = shift;
-    my $classes = Kinetic::Util::Functions::load_classes(@_);
+    my $classes = Kinetic::Store::Functions::load_classes(@_);
 
     # Store classes according to dependency order.
     my (@sorted, %seen);

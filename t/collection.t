@@ -11,12 +11,12 @@ use Test::More tests => 186;
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
 use File::Spec;
-use aliased 'Kinetic::Util::Iterator';
+use aliased 'Kinetic::Store::Iterator';
 
 FAUX: {
 
     package Faux;
-    use Kinetic::Util::Functions qw(:uuid);
+    use Kinetic::Store::Functions qw(:uuid);
 
     sub new {
         my ( $class, $name ) = @_;
@@ -36,17 +36,17 @@ FAUX: {
 my $CLASS;
 
 BEGIN {
-    $CLASS = 'Kinetic::Util::Collection';
+    $CLASS = 'Kinetic::Store::Collection';
     use_ok $CLASS or die;
 }
 
 can_ok $CLASS, 'new';
 throws_ok { $CLASS->new }
-  qr/Argument “.*” is not a valid Kinetic::Util::Iterator object/,
+  qr/Argument “.*” is not a valid Kinetic::Store::Iterator object/,
   '... and calling it without an argument should die';
 
 throws_ok { $CLASS->new({ iter => sub { } }) }
-  qr/Argument “.*” is not a valid Kinetic::Util::Iterator object/,
+  qr/Argument “.*” is not a valid Kinetic::Store::Iterator object/,
   '... and as should calling with without a proper iterator object';
 
 #

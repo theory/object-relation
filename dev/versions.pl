@@ -5,7 +5,7 @@ use warnings;
 
 use lib 'lib', 't/store', 't/lib', 't/sample/lib';
 use TEST::Kinetic::Store::Handle;
-use Kinetic::Util::Exceptions qw/sig_handlers/;
+use Kinetic::Store::Exceptions qw/sig_handlers/;
 BEGIN { sig_handlers(0) }
 
 foreach my $module (sort keys %INC) {

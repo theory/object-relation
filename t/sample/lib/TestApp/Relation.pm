@@ -6,7 +6,7 @@ use warnings;
 use Kinetic::Express;
 use TestApp::Simple;
 use TestApp::Simple::One;
-use Kinetic::Util::Language::en_us;
+use Kinetic::Store::Language::en_us;
 
 meta relation => (
     plural_name => 'Relations',
@@ -26,7 +26,7 @@ has tmp => (
 build;
 
 # Add new strings to the lexicon.
-Kinetic::Util::Language::en->add_to_lexicon(
+Kinetic::Store::Language::en->add_to_lexicon(
     'Relation',
     'Relation',
     'Relations',

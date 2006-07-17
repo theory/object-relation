@@ -3,8 +3,8 @@ package Kinetic::Store::Handle;
 # $Id$
 
 use strict;
-use aliased 'Kinetic::Util::Cache';
-use Kinetic::Util::Exceptions qw(
+use aliased 'Kinetic::Store::Cache';
+use Kinetic::Store::Exceptions qw(
     throw_invalid_class
     throw_search
     throw_unimplemented
@@ -192,9 +192,9 @@ the full class name. Defaults to "DB::SQLiite".
 
 =item cache
 
-The subclass of L<Kinetic::Util::Cache|Kinetic::Util::Cache> to use for
-caching. If the class is under the Kinetic::Util::Cache namespace, you can
-leave out "Kinetic::Util::Cache". Otherwise, use the full class name. Defaults
+The subclass of L<Kinetic::Store::Cache|Kinetic::Store::Cache> to use for
+caching. If the class is under the Kinetic::Store::Cache namespace, you can
+leave out "Kinetic::Store::Cache". Otherwise, use the full class name. Defaults
 to "File".
 
 =back
@@ -211,7 +211,7 @@ sub new {
 
     my $cache = _load_class(
         delete $params->{cache},
-        'Kinetic::Util::Cache',
+        'Kinetic::Store::Cache',
         'File',
     );
 
@@ -262,10 +262,10 @@ particular Kinetic class that meet a specified set of search parameters. The
 C<$class> argument is required, while the search parameters are optional but
 highly recommended (otherwise it will "find" I<all> of the objects in the
 class). See L<Search Parameters Explained|"SEARCH PARAMETERS EXPLAINED"> for
-details on specifying search parameters. Returns a Kinetic::Util::Collection
+details on specifying search parameters. Returns a Kinetic::Store::Collection
 object that may be used to fetch each of the objects found by the search. If
 no objects are found, C<query> returns an empty iterator. See
-L<Kinetic::Util::Collection|Kinetic::Util::Collection> for details on its
+L<Kinetic::Store::Collection|Kinetic::Store::Collection> for details on its
 interface. See the documentation for the C<query> method in a particular class
 for a list of object attributes to search by in that class.
 
@@ -465,7 +465,7 @@ sub _add_store_meta {
 
 Read-only method which returns the cache object.
 
-See L<Kinetic::Util::Cache|Kinetic::Util::Cache>.
+See L<Kinetic::Store::Cache|Kinetic::Store::Cache>.
 
 =cut
 

@@ -79,11 +79,11 @@ sub test_dbh : Test(2) {
     my $class = $test->test_class;
     if ( $class eq 'Kinetic::Store::Handle::DB' ) {
         throws_ok { $class->_connect_attrs }
-          'Kinetic::Util::Exception::Fatal::Unimplemented',
+          'Kinetic::Store::Exception::Fatal::Unimplemented',
           "_connect_attrs should throw an exception";
         $test->{db_mock}->unmock('_dbh');
         throws_ok { $class->_dbh }
-          'Kinetic::Util::Exception::Fatal::Unimplemented',
+          'Kinetic::Store::Exception::Fatal::Unimplemented',
           "_dbh should throw an exception";
         $test->{db_mock}->mock( _dbh => $test->dbh );
     }
@@ -707,7 +707,7 @@ sub test_extend : Test(45) {
 
     # We should now have two Extend objects pointing at the same Two.
     ok my $extends = Extend->query, 'Get all Extend objects';
-    isa_ok $extends, 'Kinetic::Util::Iterator', 'it should be a';
+    isa_ok $extends, 'Kinetic::Store::Iterator', 'it should be a';
     ok my @extends = $extends->all, 'Get extends objects from the iterator';
     is scalar @extends, 2, 'There should be two Extends objects';
     is_deeply [ map { $_->two_uuid } @extends ], [ ($two->uuid) x 2 ],
@@ -728,7 +728,7 @@ sub test_has_many : Test(13) {
 
     ok my $coll = $yello->ones,
         'The collection slot should have a default value';
-    isa_ok $coll, 'Kinetic::Util::Collection::One',
+    isa_ok $coll, 'Kinetic::Store::Collection::One',
         '... and the object it contains';
     my @all = $coll->all;
     ok !@all, '... and it should be an empty collection';
@@ -746,7 +746,7 @@ sub test_has_many : Test(13) {
     $yello_2->state; # inflate
     ok my $coll_2 = $yello_2->ones,
         '... and the should have collections';
-    isa_ok $coll_2, 'Kinetic::Util::Collection::One',
+    isa_ok $coll_2, 'Kinetic::Store::Collection::One',
         '... and the collection';
     my $all_2 = $coll_2->all;
     $_->state foreach @$all_2;
@@ -886,7 +886,7 @@ sub test_mediate : Test(43) {
 
     # We should now have simple Relation objects pointing at the same Simple.
     ok my $relations = Relation->query, 'Get all Relation objects';
-    isa_ok $relations, 'Kinetic::Util::Iterator', 'it should be a';
+    isa_ok $relations, 'Kinetic::Store::Iterator', 'it should be a';
     ok my @relations = $relations->all, 'Get relations objects from the iterator';
     is scalar @relations, 2, 'There should be simple Relations objects';
     is_deeply [ map { $_->simple_uuid } @relations ], [ ($simple->uuid) x 2 ],
@@ -1028,13 +1028,13 @@ sub test_once : Test(2) {
                 RaiseError     => 0,
                 PrintError     => 0,
                 pg_enable_utf8 => 1,
-                HandleError    => Kinetic::Util::Exception::DBI->handler,
+                HandleError    => Kinetic::Store::Exception::DBI->handler,
                 AutoCommit     => 0,
             }
         );
         $dbh->begin_work;
     }
-    my $uuid = Kinetic::Util::Functions::create_uuid();
+    my $uuid = Kinetic::Store::Functions::create_uuid();
     $dbh->do(
         q{INSERT INTO simple (uuid, name) VALUES (?, ?)},
         undef,
@@ -1046,7 +1046,7 @@ sub test_once : Test(2) {
         $dbh->do(
             q{UPDATE _simple SET uuid = ? WHERE uuid = ?},
             undef,
-            Kinetic::Util::Functions::create_uuid(),
+            Kinetic::Store::Functions::create_uuid(),
             $uuid,
         )
     } 'Exception::Class::DBI::DBH', '... And updating UUID should fail';
@@ -1130,7 +1130,7 @@ sub test_fk_restrict : Test(7) {
         'Create Composed object referencing the One object';
     ok $comp->save, '... And save it';
     ok $one->purge, '... Now purge the One object';
-    throws_ok { $one->save } 'Kinetic::Util::Exception::DBI',
+    throws_ok { $one->save } 'Kinetic::Store::Exception::DBI',
         '... And saving it should throw an exception';
     like $@, $self->delete_fk_regex('one_id', 'composed', 'simple_one'),
         '... And it should have the proper error';
@@ -1166,7 +1166,7 @@ sub test_fk_insert : Test(5) {
     ok my $one = One->new(name => 'One'), 'Create One object';
     ok $one->{id} = -1, '... And fake an ID';
     ok my $two = Two->new(name => 'Two', one => $one), 'Create Two object';
-    throws_ok { $two->save } 'Kinetic::Util::Exception::DBI',
+    throws_ok { $two->save } 'Kinetic::Store::Exception::DBI',
         '... And it should throw an error for an invalid foreign key';
     like $@, $self->insert_fk_regex('one_id', 'two', 'simple_two'),
         '... Which should have the proper error message';
@@ -1185,7 +1185,7 @@ sub test_fk_update : Test(9) {
     ok $one = One->new(name => 'Another'), 'Create another One object';
     ok $one->{id} = -1, '... Fake its IDs';
     ok $two->one($one), '... And associate it it with the Two object';
-    throws_ok { $two->save } 'Kinetic::Util::Exception::DBI',
+    throws_ok { $two->save } 'Kinetic::Store::Exception::DBI',
         '... And it should throw an error for an invalid foreign key';
     like $@, $self->update_fk_regex('one_id', 'two', 'simple_two'),
         '... Which should have the proper error message';

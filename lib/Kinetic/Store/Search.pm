@@ -9,7 +9,7 @@ our $VERSION = version->new('0.0.2');
 
 use Scalar::Util qw(blessed);
 
-use Kinetic::Util::Exceptions qw(panic throw_search);
+use Kinetic::Store::Exceptions qw(panic throw_search);
 use aliased 'Kinetic::Store::DataType::DateTime::Incomplete';
 
 #use overload '""' => \&formatted_data, fallback => 1;

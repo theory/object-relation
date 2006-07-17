@@ -30,7 +30,7 @@ use warnings;
 use version;
 our $VERSION = version->new('0.0.2');
 
-use Kinetic::Util::Exceptions qw/throw_search/;
+use Kinetic::Store::Exceptions qw/throw_search/;
 use HOP::Stream               qw/node iterator_to_stream/;
 use HOP::Lexer                qw/make_lexer/;
 use Carp                      qw/croak/;

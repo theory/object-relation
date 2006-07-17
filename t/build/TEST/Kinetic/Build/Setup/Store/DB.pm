@@ -147,7 +147,7 @@ sub test_rules : Test(27) {
     my $dbh = DBI->connect($kbs->test_dsn, '', '', {
         RaiseError     => 0,
         PrintError     => 0,
-        HandleError    => Kinetic::Util::Exception::DBI->handler,
+        HandleError    => Kinetic::Store::Exception::DBI->handler,
     });
 
     for my $view (qw(simple one two composed comp_comp)) {
@@ -170,7 +170,7 @@ sub test_rules : Test(27) {
     $dbh = DBI->connect($kbs->dsn, '', '', {
         RaiseError     => 0,
         PrintError     => 0,
-        HandleError    => Kinetic::Util::Exception::DBI->handler,
+        HandleError    => Kinetic::Store::Exception::DBI->handler,
     });
 
     for my $view (qw(simple one two composed comp_comp)) {

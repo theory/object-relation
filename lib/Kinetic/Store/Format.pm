@@ -10,7 +10,7 @@ our $VERSION = version->new('0.0.2');
 
 use Scalar::Util 'blessed';
 use aliased 'Kinetic::Store::Meta';
-use Kinetic::Util::Exceptions qw/
+use Kinetic::Store::Exceptions qw/
   throw_fatal
   throw_invalid_class
   throw_unimplemented
@@ -280,7 +280,7 @@ sub expand_ref {
         if ( $ref->isa('Kinetic') ) {
             return $self->_obj_to_hashref($ref);
         }
-        elsif ( $ref->isa('Kinetic::Util::Iterator') ) {
+        elsif ( $ref->isa('Kinetic::Store::Iterator') ) {
             my @ref;
             while ( my $object = $ref->next ) {
                 push @ref => $object;

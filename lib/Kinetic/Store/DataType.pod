@@ -57,7 +57,7 @@ to TKP. As an example, let's say that we wanted to add a real number data
 type. The first thing we need to do is to declare the new data type using
 L<Kinetic::Store::Meta::Type|Kinetic::Store::Meta::Type>:
 
-  use Kinetic::Util::Exceptions qw(throw_invalid);
+  use Kinetic::Store::Exceptions qw(throw_invalid);
   use Data::Types;
   Kinetic::Store::Meta::Type->add(
       key     => 'real',
@@ -85,18 +85,18 @@ the new value will be assigned. You may use any and all of these objects to
 validate the new value.
 
 If the new value is not valid, then throw a
-Kinetic::Util::Exception::Fatal::Invalid exception--most easily done with the
+Kinetic::Store::Exception::Fatal::Invalid exception--most easily done with the
 convenient C<throw_invalid()> function importable from
-L<Kinetic::Util::Exceptions|Kinetic::Util::Exceptions>. Note that the way
+L<Kinetic::Store::Exceptions|Kinetic::Store::Exceptions>. Note that the way
 we've called it in the example is by passing it an array reference. The first
 item in the array reference is a L<Local::Maketext|Local::Maketext> string,
 which is used by the exception class to localize the exception message using
-L<Kinetic::Util::Language|Kinetic::Util::Language>.
+L<Kinetic::Store::Language|Kinetic::Store::Language>.
 
 This leads us to the second step in adding the new data type: adding the error
 message to the TKP lexicon. This can be done in one of two ways. If the new
 type is being added to the TKP distribution itself, then the error message
-should simply be added directly to C<Kinetic::Util::Language::en>, like so:
+should simply be added directly to C<Kinetic::Store::Language::en>, like so:
 
     'Value "[_1]" is not a real number',
     'Value “[_1]” is not a real number',

@@ -358,7 +358,7 @@ sub _setup {
         RaiseError  => 0,
         PrintError  => 0,
         unicode     => 0,
-        HandleError => Kinetic::Util::Exception::DBI->handler,
+        HandleError => Kinetic::Store::Exception::DBI->handler,
     }));
 
     $method = "SUPER::$method";

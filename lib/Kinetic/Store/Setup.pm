@@ -3,7 +3,7 @@ package Kinetic::Store::Setup;
 # $Id$
 
 use strict;
-use Kinetic::Util::Exceptions qw(
+use Kinetic::Store::Exceptions qw(
     throw_invalid_class
     throw_unimplemented
 );

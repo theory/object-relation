@@ -1,4 +1,4 @@
-package Kinetic::Util::Functions;
+package Kinetic::Store::Functions;
 
 # $Id$
 
@@ -10,15 +10,15 @@ use MIME::Base64;
 use File::Find::Rule;
 use File::Spec;
 use List::Util qw(first sum);
-use Kinetic::Util::Exceptions qw/throw_fatal/;
+use Kinetic::Store::Exceptions qw/throw_fatal/;
 
 =head1 Name
 
-Kinetic::Util::Functions - Kinetic Utility Functions.
+Kinetic::Store::Functions - Kinetic Utility Functions.
 
 =head1 Synopsis
 
-  use Kinetic::Util::Functions qw/:uuid/;
+  use Kinetic::Store::Functions qw/:uuid/;
   my $uuid = create_uuid();
 
 =head1 Description
@@ -145,7 +145,7 @@ sub isa_gtin ($) {
 The following functions are generic utilities for handling classes.  They can
 be imported individually or with the C<:class> tag.
 
- use Kinetic::Util::Functions ':class';
+ use Kinetic::Store::Functions ':class';
 
 =cut
 

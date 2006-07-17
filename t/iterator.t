@@ -9,23 +9,23 @@ use Test::More tests => 44;
 #use Test::More qw/no_plan/;
 use Test::NoWarnings; # Adds an extra test.
 
-BEGIN { use_ok('Kinetic::Util::Iterator') or die }
+BEGIN { use_ok('Kinetic::Store::Iterator') or die }
 
 # Make sure we get an exception when we don't pass a code reference to the
 # constructor.
-eval { Kinetic::Util::Iterator->new('woot') };
+eval { Kinetic::Store::Iterator->new('woot') };
 ok( my $err = $@, "Caught exception" );
-isa_ok( $err, 'Kinetic::Util::Exception' );
-isa_ok( $err, 'Kinetic::Util::Exception::Fatal' );
-isa_ok( $err, 'Kinetic::Util::Exception::Fatal::Invalid' );
+isa_ok( $err, 'Kinetic::Store::Exception' );
+isa_ok( $err, 'Kinetic::Store::Exception::Fatal' );
+isa_ok( $err, 'Kinetic::Store::Exception::Fatal::Invalid' );
 
 my @items = qw(1 2 3 4 5 6);
 my $i     = 0;
 
 # Create a simple iterator object.
-ok( my $iter = Kinetic::Util::Iterator->new( sub { $items[ $i++ ] } ),
+ok( my $iter = Kinetic::Store::Iterator->new( sub { $items[ $i++ ] } ),
     "Create iterator" );
-isa_ok( $iter, 'Kinetic::Util::Iterator' );
+isa_ok( $iter, 'Kinetic::Store::Iterator' );
 
 # Make sure that the main methods work.
 is( $iter->peek,    1, "Peek at first item" );
@@ -45,7 +45,7 @@ while ( my $next = $iter->next ) {
 
 # Create another iterator.
 my $k = 0;
-ok( $iter = Kinetic::Util::Iterator->new( sub { $items[ $k++ ] } ),
+ok( $iter = Kinetic::Store::Iterator->new( sub { $items[ $k++ ] } ),
     "Create another iterator" );
 
 # Make sure that scalar all() works.

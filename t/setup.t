@@ -18,7 +18,7 @@ my $db_file = File::Spec->catfile(File::Spec->tmpdir, 'kinetic.db');
 
 # Make sure bad classes are bad.
 throws_ok { Kinetic::Store::Setup->new({ class => 'Foo' }) }
-    'Kinetic::Util::Exception::Fatal::InvalidClass',
+    'Kinetic::Store::Exception::Fatal::InvalidClass',
     'Bogus setup class should throw an InvalidClass exception';
 
 like $@->error, qr/I could not load the class “Foo”/,
@@ -37,7 +37,7 @@ setup_ctor('DB::Pg', qw(super_user super_pass template_dsn));
 is_deeply [Kinetic::Store::Setup::DB->connect_attrs], [
     RaiseError  => 0,
     PrintError  => 0,
-    HandleError => Kinetic::Util::Exception::DBI->handler,
+    HandleError => Kinetic::Store::Exception::DBI->handler,
 ], 'DB->connect_attrs should be correct';
 
 is_deeply [Kinetic::Store::Setup::DB::SQLite->connect_attrs], [

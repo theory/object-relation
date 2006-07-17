@@ -324,7 +324,7 @@ for my $compare (
 
 ##############################################################################
 # Test badly-formatted duration strings.
-my $ex_class = 'Kinetic::Util::Exception::Fatal::Invalid';
+my $ex_class = 'Kinetic::Store::Exception::Fatal::Invalid';
 
 throws_ok { $CLASS->bake('') } $ex_class, 'Empty string should fail to bake';
 like $@, qr/Invalid duration string: \x{201c}\x{201d}/,

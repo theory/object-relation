@@ -1,4 +1,4 @@
-package Kinetic::Util::Cache::Memcached;
+package Kinetic::Store::Cache::File;
 
 # $Id$
 
@@ -7,18 +7,19 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.2');
 
-use base 'Kinetic::Util::Cache';
-use aliased 'Cache::Memcached';
+use base 'Kinetic::Store::Cache';
+
+use aliased 'Cache::FileCache';    # In the Cache::Cache distribution
 
 =head1 Name
 
-Kinetic::Util::Cache::Memcached - Kinetic caching
+Kinetic::Store::Cache::File - Kinetic caching
 
 =head1 Synopsis
 
-  use Kinetic::Util::Cache::Memcached;
+  use Kinetic::Store::Cache::File;
 
-  my $cache = Kinetic::Util::Cache::Memcached->new;
+  my $cache = Kinetic::Store::Cache::File->new;
   $cache->set($id, $object);
   $cache->add($id, $object);
   $object = $cache->get($id);
@@ -26,56 +27,51 @@ Kinetic::Util::Cache::Memcached - Kinetic caching
 =head1 Description
 
 This class provides an interface for caching data in Kinetic, regardless of
-the underlying caching mechanism chosen.
+the underlying caching mechanism chosen.  See
+L<Kinetic::Store::Cache|Kinetic::Store::Cache> for a description of the
+interface.
 
 =cut
-
-my %IDS;    # YUCK!
 
 sub new {
     my ($class, $params) = @_;
     bless {
         # XXX Add support for configuring these arguments.
-        cache   => Memcached->new( { servers => [127.0.0.1:11211] } ),
-        expires => $params->{expires} || 3600,
+        cache => FileCache->new({
+            default_expires_in => $params->{expires} || 3600,
+            namespace          => $class,
+            cache_root         => $params->{root},
+        }),
     }, $class;
 }
 
 sub set {
     my ( $self, $id, $object ) = @_;
-    $self->_cache->set( $id, $object, $self->{expires} );
-    $IDS{$id} = 1;
+    $self->_cache->purge;    # purge expired objects
+    $self->_cache->set( $id, $object );
     return $self;
 }
 
 sub add {
     my ( $self, $id, $object ) = @_;
-    return if $self->get($id);
-    $IDS{$id} = 1;
-    $self->_cache->add( $id, $object, $self->{expires} );
-    return $self;
+    return if $self->_cache->get($id);
+    return $self->set( $id, $object );
 }
 
 sub get {
-    my ( $self, $id ) = @_;
-    my $object = $self->_cache->get($id);
-    return $object if $object;
-    delete $IDS{$id};
-    return;
+    my $self = shift;
+    return $self->_cache->get(@_);
 }
 
 #sub clear {
-#    my $self  = shift;
-#    my $cache = $self->_cache;
-#    $cache->delete($_) foreach keys %IDS;
-#    %IDS = ();
+#    my $self = shift;
+#    $self->_cache->clear;
 #    return $self;
 #}
 
 sub remove {
     my ( $self, $id ) = @_;
-    $self->_cache->delete($id);
-    delete $IDS{$id};
+    $self->_cache->remove($id);
     return $self;
 }
 
@@ -110,5 +106,4 @@ This module is free software; you can redistribute it and/or modify it under the
 same terms as Perl itself.
 
 =cut
-
 

@@ -57,11 +57,11 @@ sub content_type : Test(3) {
 sub constructor : Test(5) {
     my $test = shift;
     can_ok FORMAT, 'new';
-    throws_ok { FORMAT->new } 'Kinetic::Util::Exception::Fatal',
+    throws_ok { FORMAT->new } 'Kinetic::Store::Exception::Fatal',
       '... and trying to create a new formatter without a format should fail';
 
     throws_ok { FORMAT->new( { format => 'no_such_format' } ) }
-      'Kinetic::Util::Exception::Fatal::InvalidClass',
+      'Kinetic::Store::Exception::Fatal::InvalidClass',
       '... as should trying to create a new formatter with an invalid class';
 
     ok my $formatter = FORMAT->new( { format => 'json' } ),
@@ -76,20 +76,20 @@ sub interface : Test(8) {
 
     can_ok $formatter, 'ref_to_format';
     throws_ok { $formatter->ref_to_format }
-      'Kinetic::Util::Exception::Fatal::Unimplemented',
+      'Kinetic::Store::Exception::Fatal::Unimplemented',
       '... and calling it should fail';
 
     can_ok $formatter, 'ref_to_format';
     throws_ok { $formatter->ref_to_format }
-      'Kinetic::Util::Exception::Fatal::Unimplemented',
+      'Kinetic::Store::Exception::Fatal::Unimplemented',
       '... and calling it should fail';
 
     can_ok $formatter, 'serialize';
-    throws_ok { $formatter->serialize } 'Kinetic::Util::Exception::Fatal',
+    throws_ok { $formatter->serialize } 'Kinetic::Store::Exception::Fatal',
       '... and calling it should fail';
 
     can_ok $formatter, 'deserialize';
-    throws_ok { $formatter->deserialize } 'Kinetic::Util::Exception::Fatal',
+    throws_ok { $formatter->deserialize } 'Kinetic::Store::Exception::Fatal',
       '... and calling it should fail';
 }
 

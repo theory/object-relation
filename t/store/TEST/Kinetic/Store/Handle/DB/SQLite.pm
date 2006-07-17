@@ -27,7 +27,7 @@ sub full_text_search : Test(1) {
     my $class = $foo->my_class;
     my $store = Kinetic::Store::Handle->new;
     throws_ok {$store->query($class => 'full text search string')}
-        'Kinetic::Util::Exception::Fatal::Unsupported',
+        'Kinetic::Store::Exception::Fatal::Unsupported',
         'SQLite should die if a full text search is attempted';
 }
 
@@ -44,7 +44,7 @@ sub test_boolean : Test(6) {
             'Name',
             12,
         ),
-    } 'Kinetic::Util::Exception::DBI',
+    } 'Kinetic::Store::Exception::DBI',
         'INSERTing an invalid bool should generate an error';
     like $@,
         qr/value for domain boolean violates check constraint "ck_boolean"/,
@@ -59,7 +59,7 @@ sub test_boolean : Test(6) {
             12,
             $one->uuid,
         ),
-    } 'Kinetic::Util::Exception::DBI',
+    } 'Kinetic::Store::Exception::DBI',
         'UPDATINGing  withan invalid bool should generate an error';
     like $@,
         qr/value for domain boolean violates check constraint "ck_boolean"/,

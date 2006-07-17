@@ -19,7 +19,7 @@ use aliased 'Kinetic::Store::Handle' => 'Store', ':all';
 
 use aliased 'Kinetic::Store::DataType::DateTime';
 use aliased 'Kinetic::Store::DataType::DateTime::Incomplete';
-use aliased 'Kinetic::Util::Iterator';
+use aliased 'Kinetic::Store::Iterator';
 use aliased 'Kinetic::Store::DataType::State';
 
 use aliased 'TestApp::Simple::One';
@@ -335,7 +335,7 @@ sub unit_constructor : Test(6) {
     can_ok $class => 'new';
 
     throws_ok { Kinetic::Store::Handle->new({ class => 'Bogus::Class'}) }
-      'Kinetic::Util::Exception::Fatal::InvalidClass',
+      'Kinetic::Store::Exception::Fatal::InvalidClass',
       '... and trying to load it with a bad class should throw an exception';
 
     ok my $store = $class->new;
@@ -439,7 +439,7 @@ sub search_subs_lex_correctly : Test(47) {
       '... even if it is negated';
     can_ok __PACKAGE__, 'BETWEEN';
     throws_ok { ( BETWEEN [ 2, 3, 4 ] )->() }
-      'Kinetic::Util::Exception::Fatal::Search',
+      'Kinetic::Store::Exception::Fatal::Search',
 '... and BETWEEN searches with other than two values should throw an exception';
     my $between = BETWEEN [ 2, 4 ];
     is_deeply [ $between->() ],
@@ -538,18 +538,18 @@ sub search_incomplete_date_boundaries : Test(6) {
     my $bad_date = Incomplete->new( month => 6, hour => 23 );
 
     throws_ok { $store->query( $class, date => GT $bad_date ) }
-      'Kinetic::Util::Exception::Fatal::Unsupported',
+      'Kinetic::Store::Exception::Fatal::Unsupported',
       'Non-contiguous dates should throw an exception with GT/LT searches';
 
     my $bad_date1 = Incomplete->new( month => 7, hour => 22 );
     throws_ok { $store->query( $class, date => [ $bad_date => $bad_date1 ] ) }
-      'Kinetic::Util::Exception::Fatal::Unsupported',
+      'Kinetic::Store::Exception::Fatal::Unsupported',
       'Non-contiguous dates should throw an exception with range searches';
 
     my ( $first, $second ) =
       ( Incomplete->new( month => 6 ), Incomplete->new( day => 3 ) );
     throws_ok { $store->query( $class, date => [ $first => $second ] ) }
-      'Kinetic::Util::Exception::Fatal::Unsupported',
+      'Kinetic::Store::Exception::Fatal::Unsupported',
       'BETWEEN search dates without identically defined segments will die';
 
     my $date1 = Incomplete->new( month => 6, day => 17 );
@@ -560,7 +560,7 @@ sub search_incomplete_date_boundaries : Test(6) {
       '... and get the correct results';
 
     throws_ok { $store->query( $class, date => ANY( $date1, {} ) ) }
-      'Kinetic::Util::Exception::Fatal::Search',
+      'Kinetic::Store::Exception::Fatal::Search',
       'ANY searches with incomplete dates must have all types matching';
 }
 
@@ -1528,7 +1528,7 @@ sub search_or : Test(13) {
               description => NOT undef,
             { order_by => 'name' }
         )
-      } 'Kinetic::Util::Exception::Fatal::Search',
+      } 'Kinetic::Store::Exception::Fatal::Search',
       'but it will choke without parens if you pass constraints';
 }
 
@@ -1699,10 +1699,10 @@ sub lookup : Test(8) {
         is $thing->$method, $two->$method, "$method() should behave the same";
     }
     throws_ok { $store->lookup( $two->my_class, 'no_such_attribute' => 1 ) }
-      'Kinetic::Util::Exception::Fatal::Attribute',
+      'Kinetic::Store::Exception::Fatal::Attribute',
       'but it should croak if you search for a non-existent attribute';
     throws_ok { $store->lookup( $two->my_class, 'name' => 1 ) }
-      'Kinetic::Util::Exception::Fatal::Attribute',
+      'Kinetic::Store::Exception::Fatal::Attribute',
       'or if you search on a non-unique field';
 }
 
@@ -1730,10 +1730,10 @@ sub lookup_by_key : Test(8) {
         is $thing->$method, $two->$method, "$method() should behave the same";
     }
     throws_ok { $store->lookup( $key, 'no_such_attribute' => 1 ) }
-      'Kinetic::Util::Exception::Fatal::Attribute',
+      'Kinetic::Store::Exception::Fatal::Attribute',
       'but it should croak if you search for a non-existent attribute';
     throws_ok { $store->lookup( $key, 'name' => 1 ) }
-      'Kinetic::Util::Exception::Fatal::Attribute',
+      'Kinetic::Store::Exception::Fatal::Attribute',
       'or if you search on a non-unique field';
 }
 
@@ -2115,7 +2115,7 @@ sub string_order_by : Test(6) {
             order_by => 'name',
             'sort_order'
         );
-      } 'Kinetic::Util::Exception::Fatal::Search',
+      } 'Kinetic::Store::Exception::Fatal::Search',
       'An odd number of constraints should throw an exception';
     my $iterator = $store->query(
         $class,

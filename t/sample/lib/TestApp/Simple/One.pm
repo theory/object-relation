@@ -1,7 +1,7 @@
 package TestApp::Simple::One;
 use base 'TestApp::Simple';
 use Kinetic::Store::Meta;
-use Kinetic::Util::Language::en_us;
+use Kinetic::Store::Language::en_us;
 
 BEGIN {
     my $km = Kinetic::Store::Meta->new(
@@ -27,7 +27,7 @@ BEGIN {
 }
 
 # Add new strings to the lexicon.
-Kinetic::Util::Language::en->add_to_lexicon(
+Kinetic::Store::Language::en->add_to_lexicon(
   'One'  => 'One',
   'Ones' => 'Ones',
   'Bool' => 'Bool',

@@ -984,7 +984,7 @@ sub test_db_helpers : Test(21) {
             RaiseError     => 0,
             PrintError     => 0,
             pg_enable_utf8 => 1,
-            HandleError    => Kinetic::Util::Exception::DBI->handler,
+            HandleError    => Kinetic::Store::Exception::DBI->handler,
         }
     ), 'DBI::db';
 
@@ -1094,7 +1094,7 @@ sub test_build_meths : Test(26) {
             RaiseError     => 0,
             PrintError     => 0,
             pg_enable_utf8 => 1,
-            HandleError    => Kinetic::Util::Exception::DBI->handler,
+            HandleError    => Kinetic::Store::Exception::DBI->handler,
         }
     ), 'DBI::db';
 
@@ -1115,7 +1115,7 @@ sub test_build_meths : Test(26) {
             RaiseError     => 0,
             PrintError     => 0,
             pg_enable_utf8 => 1,
-            HandleError    => Kinetic::Util::Exception::DBI->handler,
+            HandleError    => Kinetic::Store::Exception::DBI->handler,
         }
     );
 
@@ -1261,7 +1261,7 @@ sub _run_build_tests {
             RaiseError     => 0,
             PrintError     => 0,
             pg_enable_utf8 => 1,
-            HandleError    => Kinetic::Util::Exception::DBI->handler,
+            HandleError    => Kinetic::Store::Exception::DBI->handler,
         }
     ), 'DBI::db';
 

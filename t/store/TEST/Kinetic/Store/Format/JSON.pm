@@ -15,7 +15,7 @@ use Class::Trait qw(
   TEST::Kinetic::Traits::SampleObjects
 );
 
-use Kinetic::Util::Functions qw/create_uuid/;
+use Kinetic::Store::Functions qw/create_uuid/;
 
 use aliased 'Test::MockModule';
 use aliased 'Kinetic::Store::Handle' => 'Store', ':all';
@@ -137,7 +137,7 @@ sub deserialize : Test(5) {
     $bad_key =~ s/one/no_such_key/;
 
     throws_ok { $formatter->deserialize($bad_key) }
-      'Kinetic::Util::Exception::Fatal::InvalidClass',
+      'Kinetic::Store::Exception::Fatal::InvalidClass',
       '... and it should throw an exception if it finds an invalid key';
 
     my $new_foo = $formatter->deserialize($json);

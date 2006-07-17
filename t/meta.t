@@ -8,23 +8,23 @@ use Test::More tests => 247;
 use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
 
-use Kinetic::Util::Collection;
-use aliased 'Kinetic::Util::Iterator';
+use Kinetic::Store::Collection;
+use aliased 'Kinetic::Store::Iterator';
 
 package MyTest::Thingy;
 
 BEGIN {
     Test::More->import;
     use_ok('Kinetic::Store::Meta')                  or die;
-    use_ok('Kinetic::Util::Language')        or die;
-    use_ok('Kinetic::Util::Language::en_us') or die;
+    use_ok('Kinetic::Store::Language')        or die;
+    use_ok('Kinetic::Store::Language::en_us') or die;
     use_ok('Kinetic::Store::Meta::Class')           or die;
     use_ok('Kinetic::Store::Meta::Attribute')       or die;
     use_ok('Kinetic::Store::Meta::AccessorBuilder') or die;
     use_ok('Kinetic::Store::Meta::Widget')          or die;
 
     # Add new strings to the lexicon.
-    Kinetic::Util::Language::en->add_to_lexicon(
+    Kinetic::Store::Language::en->add_to_lexicon(
         'Ow'       => 'Ow', # For Class::Meta 2.54 and later.
         'ow'       => 'ow', # For Class::Meta 2.53 and earlier.
         'Thingy'   => 'Thingy',
@@ -234,8 +234,8 @@ BEGIN {
     ), "Create Owie class";
     eval { $km->build };
     ok my $err = $@, 'Catch exception';
-    isa_ok $err, 'Kinetic::Util::Exception';
-    isa_ok $err, 'Kinetic::Util::Exception::Fatal';
+    isa_ok $err, 'Kinetic::Store::Exception';
+    isa_ok $err, 'Kinetic::Store::Exception::Fatal';
     is $err->message, "No direct attribute \x{201c}not_here\x{201d} to sort by",
         'Check the error message';
 
@@ -254,9 +254,9 @@ isa_ok $class, 'Class::Meta::Class';
 eval { Kinetic::Store::Meta->for_key('_no_such_thing') };
 
 ok my $err = $@, 'Caught for_key() exception';
-isa_ok $err, 'Kinetic::Util::Exception';
-isa_ok $err, 'Kinetic::Util::Exception::Fatal';
-isa_ok $err, 'Kinetic::Util::Exception::Fatal::InvalidClass';
+isa_ok $err, 'Kinetic::Store::Exception';
+isa_ok $err, 'Kinetic::Store::Exception::Fatal';
+isa_ok $err, 'Kinetic::Store::Exception::Fatal::InvalidClass';
 is $err->error,
     "I could not find the class for key \x{201c}_no_such_thing\x{201d}",
     'We should have received the proper error message';
@@ -268,9 +268,9 @@ isa_ok $attr, 'Class::Meta::Attribute';
 eval { Kinetic::Store::Meta->attr_for_key('thingy._no_such_thing') };
 
 ok $err = $@, 'Caught attr_for_key() exception';
-isa_ok $err, 'Kinetic::Util::Exception';
-isa_ok $err, 'Kinetic::Util::Exception::Fatal';
-isa_ok $err, 'Kinetic::Util::Exception::Fatal::InvalidAttribute';
+isa_ok $err, 'Kinetic::Store::Exception';
+isa_ok $err, 'Kinetic::Store::Exception::Fatal';
+isa_ok $err, 'Kinetic::Store::Exception::Fatal::InvalidAttribute';
 is $err->error,
     "I could not find the attribute \x{201c}_no_such_thing\x{201d} in class \x{201c}thingy\x{201d}",
     'We should have received the proper error message';
@@ -371,7 +371,7 @@ is $collection->package, 'MyTest::Thingy',
   '... and it should return the class object for objects in the collection';
 
 my @thingies = map { MyTest::Thingy->new } 1 .. 3;
-my $thingy_coll = 'Kinetic::Util::Collection::Thingy';
+my $thingy_coll = 'Kinetic::Store::Collection::Thingy';
 my $coll = $thingy_coll->new( {
     iter => Iterator->new( sub { shift @thingies } )
 } );
@@ -384,7 +384,7 @@ my @all = $empty_coll->all;
 ok !@all, '... and it should be an empty collection';
 
 throws_ok { $has_many->thingies(1) }
-    'Kinetic::Util::Exception::Fatal::Invalid',
+    'Kinetic::Store::Exception::Fatal::Invalid',
     'Adding an invalid type to a has_many relationship should fail';
 
 lives_ok { $has_many->thingies($coll) }
@@ -392,7 +392,7 @@ lives_ok { $has_many->thingies($coll) }
 
 ok my $coll2 = $has_many->thingies,
     'thingies() should return what it was set to';
-isa_ok $coll2, 'Kinetic::Util::Collection::Thingy',
+isa_ok $coll2, 'Kinetic::Store::Collection::Thingy',
     '... and the object it returns';
 is_deeply [$coll2->all], [$coll->all],
     '... and it should be identical to the stored collection';

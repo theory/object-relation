@@ -1,4 +1,4 @@
-package Kinetic::Util::Collection;
+package Kinetic::Store::Collection;
 
 # $Id$
 
@@ -8,8 +8,8 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 #use Kinetic::Store::Meta; # Do not load here--causes loading order problems.
-use Kinetic::Util::Exceptions qw(throw_fatal throw_invalid throw_invalid_class);
-use aliased 'Kinetic::Util::Iterator';
+use Kinetic::Store::Exceptions qw(throw_fatal throw_invalid throw_invalid_class);
+use aliased 'Kinetic::Store::Iterator';
 use aliased 'Array::AsHash';
 
 use Scalar::Util qw(blessed refaddr);
@@ -24,13 +24,13 @@ sub _key($) {
 
 =head1 Name
 
-Kinetic::Util::Collection - Kinetic collection class
+Kinetic::Store::Collection - Kinetic collection class
 
 =head1 Synopsis
 
-  use Kinetic::Util::Collection;
+  use Kinetic::Store::Collection;
 
-  my $coll = Kinetic::Util::Collection->new(
+  my $coll = Kinetic::Store::Collection->new(
      {
          iter => $iterator,
          key  => $key        # optional
@@ -67,7 +67,7 @@ either be Kinetic classes or subclasses for the key C<$key>.  =cut
 
 =head3 new
 
-  my $coll = Kinetic::Util::Collection->new({
+  my $coll = Kinetic::Store::Collection->new({
       iter => $iterator,
       key  => $key,    # optional
   });
@@ -79,7 +79,7 @@ containing the following parameters:
 
 =item iter
 
-A L<Kinetic::Util::Iterator|Kinetic::Util::Iterator> object. Required.
+A L<Kinetic::Store::Iterator|Kinetic::Store::Iterator> object. Required.
 
 =item key
 
@@ -125,8 +125,8 @@ sub new {
 
 =head3 empty
 
-  my $collection = Kinetic::Util::Collection->empty;
-  my $collection = Kinetic::Util::Collection->empty( $key );
+  my $collection = Kinetic::Store::Collection->empty;
+  my $collection = Kinetic::Store::Collection->empty( $key );
 
 Syntactic sugar for creating a new, empty collection. Takes an optional data
 type key to force a typed collection.
@@ -144,7 +144,7 @@ sub empty {
 
 =head3 from_list
 
-  my $coll = Kinetic::Util::Collection->from_list({
+  my $coll = Kinetic::Store::Collection->from_list({
       list => \@list,
       key  => $key,    # optional
   });
@@ -777,7 +777,7 @@ sub _dec_index { shift->{index}-- }
   $value = $collection->_check($value);
 
 Returns the C<$value> unchanged for untyped collections. Otherwise, throws a
-C<Kinetic::Exception::Fatal::Invalid> exception if the C<$value> does not
+C<Kinetic::Store::Exception::Fatal::Invalid> exception if the C<$value> does not
 match the collection type (class or subclass).
 
 =cut
@@ -798,7 +798,7 @@ sub _check {
 
 =head3 _set_package
 
-  my $package = Kinetic::Util::Collection->_set_package($self_hashref);
+  my $package = Kinetic::Store::Collection->_set_package($self_hashref);
 
 If we have a typed collection, this method sets the package and key for the
 collection. As an arguments, takes the hashref which will eventually be

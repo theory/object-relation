@@ -1,4 +1,4 @@
-package Kinetic::Util::Language::en;
+package Kinetic::Store::Language::en;
 
 # $Id$
 
@@ -7,19 +7,19 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.2');
 
-use base 'Kinetic::Util::Language';
+use base 'Kinetic::Store::Language';
 use encoding 'utf8';
 
 =encoding utf8
 
 =head1 Name
 
-Kinetic::Util::Language::en - Kinetic English localization
+Kinetic::Store::Language::en - Kinetic English localization
 
 =head1 Description
 
 This class handles Kinetic English localization. See
-L<Kinetic::Util::Language|Kinetic::Util::Language> for a complete description
+L<Kinetic::Store::Language|Kinetic::Store::Language> for a complete description
 of the Kinetic localization interface.
 
 =cut

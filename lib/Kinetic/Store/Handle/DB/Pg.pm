@@ -9,7 +9,7 @@ our $VERSION = version->new('0.0.2');
 
 use base qw(Kinetic::Store::Handle::DB);
 use Exception::Class::DBI;
-use Kinetic::Util::Exceptions qw(throw_unsupported);
+use Kinetic::Store::Exceptions qw(throw_unsupported);
 use List::Util qw(first);
 use DBI        qw(:sql_types);
 use DBD::Pg    qw(:pg_types);
@@ -18,7 +18,7 @@ use constant _connect_attrs => {
     RaiseError     => 0,
     PrintError     => 0,
     pg_enable_utf8 => 1,
-    HandleError    => Kinetic::Util::Exception::DBI->handler,
+    HandleError    => Kinetic::Store::Exception::DBI->handler,
 };
 
 =head1 Name

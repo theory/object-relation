@@ -114,7 +114,7 @@ sub deserialize : Test(5) {
     $bad_key =~ s/one/no_such_key/;
 
     throws_ok { $formatter->deserialize($bad_key) }
-      'Kinetic::Util::Exception::Fatal::InvalidClass',
+      'Kinetic::Store::Exception::Fatal::InvalidClass',
       '... and it should throw an exception if it finds an invalid key';
     my $new_foo = $formatter->deserialize($xml);
     foreach ( $new_foo, $foo ) {

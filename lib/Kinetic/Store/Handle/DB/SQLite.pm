@@ -10,7 +10,7 @@ our $VERSION = version->new('0.0.2');
 use Kinetic::Store::Handle qw(:logical);
 use DBD::SQLite;
 use Kinetic::Store::Handle::DB::SQLite::DBI;
-use Kinetic::Util::Exceptions qw(throw_unsupported);
+use Kinetic::Store::Exceptions qw(throw_unsupported);
 use Exception::Class::DBI;
 use OSSP::uuid;
 
@@ -19,7 +19,7 @@ use constant _connect_attrs => {
     RaiseError  => 0,
     PrintError  => 0,
     unicode     => 1,
-    HandleError => Kinetic::Util::Exception::DBI->handler,
+    HandleError => Kinetic::Store::Exception::DBI->handler,
 };
 
 =head1 Name

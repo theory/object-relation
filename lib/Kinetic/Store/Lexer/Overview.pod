@@ -136,7 +136,7 @@ L<HOP::Lexer|HOP::Lexer> for details on how the actual lexing and discarding
 of whitespace happens.
 
 If the string lexer encounters text it cannot parse, it throws a
-L<Kinetic::Util::Exception::Fatal::Search|Kinetic::Util::Exception::Fatal::Search>
+L<Kinetic::Store::Exception::Fatal::Search|Kinetic::Store::Exception::Fatal::Search>
 exception. The message in the exception will include a list of all text it
 could not lex.
 

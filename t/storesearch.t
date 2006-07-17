@@ -27,7 +27,7 @@ ok my $search = $CLASS->new(class => Faux::Class->new),
 isa_ok $search, $CLASS, '... and the object it returns';
 
 throws_ok { $CLASS->new(foobar => 1, negated => 2, barfoo => 3)}
-    'Kinetic::Util::Exception::Fatal::Search',
+    'Kinetic::Store::Exception::Fatal::Search',
     '... but it should die if unknown search attributes are specified';
 
 foreach my $attribute (qw/param negated operator class/) {
@@ -115,22 +115,22 @@ foreach my $operator (qw/EQ NOT NE/) {
 $search->operator('BETWEEN');
 $search->data('foobar');
 throws_ok {$search->search_method}
-    'Kinetic::Util::Exception::Fatal::Panic',
+    'Kinetic::Store::Exception::Fatal::Panic',
     'BETWEEN searches without an arrayref for the data should panic';
 
 $search->data([1]),
 throws_ok {$search->search_method}
-    'Kinetic::Util::Exception::Fatal::Search',
+    'Kinetic::Store::Exception::Fatal::Search',
     '... and the should die if there is only one term in the array ref';
 
 $search->data([1, 2, 3]),
 throws_ok {$search->search_method}
-    'Kinetic::Util::Exception::Fatal::Search',
+    'Kinetic::Store::Exception::Fatal::Search',
     '... or if there are more than two terms.';
 
 $search->data([ [] => {} ]);
 throws_ok {$search->search_method}
-    'Kinetic::Util::Exception::Fatal::Search',
+    'Kinetic::Store::Exception::Fatal::Search',
     '... of if the ref types of the two terms do not match';
 
 $search->data([1 => 2]);
@@ -144,12 +144,12 @@ is $search->search_method, '_date_handler',
 $search->operator('ANY');
 $search->data('foobar');
 throws_ok {$search->search_method}
-    'Kinetic::Util::Exception::Fatal::Panic',
+    'Kinetic::Store::Exception::Fatal::Panic',
     'ANY searches without an arrayref for the data should panic';
 
 $search->data([ [], {}, 1 ]);
 throws_ok {$search->search_method}
-    'Kinetic::Util::Exception::Fatal::Search',
+    'Kinetic::Store::Exception::Fatal::Search',
     '... of if the ref types of the terms do not match';
 
 $search->data([1 => 2]);

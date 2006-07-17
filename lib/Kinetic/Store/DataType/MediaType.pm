@@ -6,7 +6,7 @@ use strict;
 use base 'MIME::Type';
 use MIME::Types;
 use Kinetic::Store::Meta::Type;
-use Kinetic::Util::Exceptions qw(throw_invalid);
+use Kinetic::Store::Exceptions qw(throw_invalid);
 
 use version;
 our $VERSION = version->new('0.0.2');

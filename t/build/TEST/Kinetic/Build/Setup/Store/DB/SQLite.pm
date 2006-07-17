@@ -136,7 +136,7 @@ sub test_rules : Test(41) {
         '', '',
         {   RaiseError  => 0,
             PrintError  => 0,
-            HandleError => Kinetic::Util::Exception::DBI->handler,
+            HandleError => Kinetic::Store::Exception::DBI->handler,
         }
     );
     my $sg = $kbs->schema_class->new;
@@ -166,7 +166,7 @@ sub test_rules : Test(41) {
         '', '',
         {   RaiseError  => 0,
             PrintError  => 0,
-            HandleError => Kinetic::Util::Exception::DBI->handler,
+            HandleError => Kinetic::Store::Exception::DBI->handler,
         }
     );
 

@@ -8,10 +8,10 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use Kinetic::Store::Meta::Type;
-use Kinetic::Util::Functions qw(:gtin);
+use Kinetic::Store::Functions qw(:gtin);
 use OSSP::uuid;
 use Data::Types;
-use Kinetic::Util::Exceptions qw(throw_invalid);
+use Kinetic::Store::Exceptions qw(throw_invalid);
 
 =head1 Name
 
@@ -280,7 +280,7 @@ A GTIN code, which includes UPC-A and EAN codes. Some examples:
   4007630000116
 
 Validity of a GTIN is calculated by the C<isa_gtin()> function imported from
-L<Kinetic::Util::Functions|Kinetic::Util::Functions>.
+L<Kinetic::Store::Functions|Kinetic::Store::Functions>.
 
 =cut
 

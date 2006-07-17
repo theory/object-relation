@@ -8,7 +8,7 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Kinetic::Store::Setup';
-use Kinetic::Util::Exceptions;
+use Kinetic::Store::Exceptions;
 use Class::BuildMethods qw(
     dsn
     user
@@ -123,7 +123,7 @@ DBI C<connect()> method. By default, the arguments are:
 
   RaiseError  => 0,
   PrintError  => 0,
-  HandleError => Kinetic::Util::Exception::DBI->handler,
+  HandleError => Kinetic::Store::Exception::DBI->handler,
 
 But they may be overridden or added to by subclasses.
 
@@ -133,7 +133,7 @@ sub connect_attrs {
     return (
         RaiseError  => 0,
         PrintError  => 0,
-        HandleError => Kinetic::Util::Exception::DBI->handler,
+        HandleError => Kinetic::Store::Exception::DBI->handler,
     );
 }
 

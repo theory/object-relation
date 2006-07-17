@@ -10,9 +10,9 @@ our $VERSION = version->new('0.0.2');
 use base 'Class::Meta::Attribute';
 use Kinetic::Store::Meta::Type;
 use Widget::Meta;
-use aliased 'Kinetic::Util::Collection';
-use aliased 'Kinetic::Util::Iterator';
-use aliased 'Kinetic::Util::Language';
+use aliased 'Kinetic::Store::Collection';
+use aliased 'Kinetic::Store::Iterator';
+use aliased 'Kinetic::Store::Language';
 
 =head1 Name
 
@@ -473,7 +473,7 @@ trigger can always just do an update.
 The contained object is a collection of objects that are directly related to
 the containing object. For example, Kinetic::Party has many Kinetic::Contact
 objects. The accessor will return a
-L<Kinetic::Util::Collection|Kinetic::Util::Collection> of the contained
+L<Kinetic::Store::Collection|Kinetic::Store::Collection> of the contained
 objects. The permissions applied to the containing object will extend to the
 contained objects, as well, since they are considered to be a part of the
 containing object.

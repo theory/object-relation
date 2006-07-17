@@ -28,7 +28,7 @@ our $VERSION = version->new('0.0.2');
 package Kinetic::Store::Handle::DB::SQLite::DBI::db;
 use base 'DBI::db';
 use strict;
-use Kinetic::Util::Functions ();
+use Kinetic::Store::Functions ();
 our $VERSION = version->new('0.0.2');
 
 =head1 Interface
@@ -206,7 +206,7 @@ sub coll_clear {
   SELECT UUID_V4();
 
 This function uses the C<create_uuid()> function from
-L<Kinetic::Util::Functions|Kinetic::Util::Functions> to create a new UUID.
+L<Kinetic::Store::Functions|Kinetic::Store::Functions> to create a new UUID.
 
 =head3 regexp
 
@@ -229,7 +229,7 @@ L<http://www.justatheory.com/computers/databases/sqlite/add_regexen.html>.
   SELECT isa_gtin('4007630000116');
 
 Examines the value passed to it to determine whether or not it is a valid
-GTIN. Imported from L<Kinetic::Util::Functions|Kinetic::Util::Functions>.
+GTIN. Imported from L<Kinetic::Store::Functions|Kinetic::Store::Functions>.
 
 =head2 Methods
 
@@ -246,7 +246,7 @@ sub connected {
     $dbh->func(
         'UUID_V4',
         0,
-        \&Kinetic::Util::Functions::create_uuid,
+        \&Kinetic::Store::Functions::create_uuid,
         $func,
     );
 
@@ -267,7 +267,7 @@ sub connected {
     $dbh->func(
         'isa_gtin',
         1,
-        \&Kinetic::Util::Functions::isa_gtin,
+        \&Kinetic::Store::Functions::isa_gtin,
         $func
     );
 

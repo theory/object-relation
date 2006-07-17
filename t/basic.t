@@ -11,8 +11,8 @@ use MIME::Base64 ();
 
 BEGIN {
     use_ok 'Kinetic' or die;
-    use_ok 'Kinetic::Util::Language' or die;
-    use_ok 'Kinetic::Util::Language::en_us' or die;
+    use_ok 'Kinetic::Store::Language' or die;
+    use_ok 'Kinetic::Store::Language::en_us' or die;
     use_ok 'Kinetic::Store::DataType::State' or die;
 };
 
@@ -34,7 +34,7 @@ package main;
 use Kinetic::Store::DataType::State qw(:all);
 
 # Add new strings to the lexicon.
-Kinetic::Util::Language::en->add_to_lexicon(
+Kinetic::Store::Language::en->add_to_lexicon(
   'Thingy',
   'Thingy',
   'Thingies',

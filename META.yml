@@ -146,6 +146,38 @@ provides:
         - 0
         - 0
         - 2
+  Kinetic::Store::Cache:
+    file: lib/Kinetic/Store/Cache.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Cache::File:
+    file: lib/Kinetic/Store/Cache/File.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Cache::Memcached:
+    file: lib/Kinetic/Store/Cache/Memcached.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Collection:
+    file: lib/Kinetic/Store/Collection.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Store::DataType::DateTime:
     file: lib/Kinetic/Store/DataType/DateTime.pm
     version: !!perl/hash:version
@@ -186,6 +218,28 @@ provides:
         - 0
         - 0
         - 2
+  Kinetic::Store::Exception:
+    file: lib/Kinetic/Store/Exceptions.pm
+  Kinetic::Store::Exception::DBI:
+    file: lib/Kinetic/Store/Exceptions.pm
+  Kinetic::Store::Exception::DBI::DBH:
+    file: lib/Kinetic/Store/Exceptions.pm
+  Kinetic::Store::Exception::DBI::DRH:
+    file: lib/Kinetic/Store/Exceptions.pm
+  Kinetic::Store::Exception::DBI::H:
+    file: lib/Kinetic/Store/Exceptions.pm
+  Kinetic::Store::Exception::DBI::STH:
+    file: lib/Kinetic/Store/Exceptions.pm
+  Kinetic::Store::Exception::DBI::Unknown:
+    file: lib/Kinetic/Store/Exceptions.pm
+  Kinetic::Store::Exceptions:
+    file: lib/Kinetic/Store/Exceptions.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
   Kinetic::Store::Format:
     file: lib/Kinetic/Store/Format.pm
     version: !!perl/hash:version
@@ -204,6 +258,14 @@ provides:
         - 2
   Kinetic::Store::Format::XML:
     file: lib/Kinetic/Store/Format/XML.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Functions:
+    file: lib/Kinetic/Store/Functions.pm
     version: !!perl/hash:version
       qv: 1
       version:
@@ -268,6 +330,46 @@ provides:
         - 2
   Kinetic::Store::Handle::DB::mysql:
     file: lib/Kinetic/Store/Handle/DB/mysql.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Iterator:
+    file: lib/Kinetic/Store/Iterator.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Language:
+    file: lib/Kinetic/Store/Language.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Language::en:
+    file: lib/Kinetic/Store/Language/en.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Language::en_uk:
+    file: lib/Kinetic/Store/Language/en_uk.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Language::en_us:
+    file: lib/Kinetic/Store/Language/en_us.pm
     version: !!perl/hash:version
       qv: 1
       version:
@@ -444,108 +546,6 @@ provides:
         - 2
   Kinetic::Store::Setup::DB::SQLite:
     file: lib/Kinetic/Store/Setup/DB/SQLite.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Util::Cache:
-    file: lib/Kinetic/Util/Cache.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Util::Cache::File:
-    file: lib/Kinetic/Util/Cache/File.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Util::Cache::Memcached:
-    file: lib/Kinetic/Util/Cache/Memcached.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Util::Collection:
-    file: lib/Kinetic/Util/Collection.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Util::Exception:
-    file: lib/Kinetic/Util/Exceptions.pm
-  Kinetic::Util::Exception::DBI:
-    file: lib/Kinetic/Util/Exceptions.pm
-  Kinetic::Util::Exception::DBI::DBH:
-    file: lib/Kinetic/Util/Exceptions.pm
-  Kinetic::Util::Exception::DBI::DRH:
-    file: lib/Kinetic/Util/Exceptions.pm
-  Kinetic::Util::Exception::DBI::H:
-    file: lib/Kinetic/Util/Exceptions.pm
-  Kinetic::Util::Exception::DBI::STH:
-    file: lib/Kinetic/Util/Exceptions.pm
-  Kinetic::Util::Exception::DBI::Unknown:
-    file: lib/Kinetic/Util/Exceptions.pm
-  Kinetic::Util::Exceptions:
-    file: lib/Kinetic/Util/Exceptions.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Util::Functions:
-    file: lib/Kinetic/Util/Functions.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Util::Iterator:
-    file: lib/Kinetic/Util/Iterator.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Util::Language:
-    file: lib/Kinetic/Util/Language.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Util::Language::en:
-    file: lib/Kinetic/Util/Language/en.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Util::Language::en_uk:
-    file: lib/Kinetic/Util/Language/en_uk.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Util::Language::en_us:
-    file: lib/Kinetic/Util/Language/en_us.pm
     version: !!perl/hash:version
       qv: 1
       version:

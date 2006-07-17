@@ -32,7 +32,7 @@ is $mt->type, 'text/foobarbad', 'Its type should be "text/foobarbad"';
 
 # Try an invalid media type.
 throws_ok { $CLASS->bake('foo') }
-    'Kinetic::Util::Exception::Fatal::Invalid',
+    'Kinetic::Store::Exception::Fatal::Invalid',
     'Invalid media type should throw an exception';
 like $@, qr/Value \x{201c}foo\x{201d} is not a valid media type/,
     'It should have the proper error message';

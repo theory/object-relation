@@ -8,9 +8,9 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Class::Meta::Class';
-use Kinetic::Util::Exceptions qw/throw_fatal/;
+use Kinetic::Store::Exceptions qw/throw_fatal/;
 use List::Util qw(first);
-use aliased 'Kinetic::Util::Language';
+use aliased 'Kinetic::Store::Language';
 
 =head1 Name
 

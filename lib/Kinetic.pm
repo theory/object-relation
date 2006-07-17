@@ -10,7 +10,7 @@ binmode STDERR, ':utf8';
 use Kinetic::Store::Meta;
 use Kinetic::Store::Meta::Widget;
 use Kinetic::Store::Handle;
-use Kinetic::Util::Functions qw(:uuid);
+use Kinetic::Store::Functions qw(:uuid);
 use Kinetic::Store::DataType::State qw(:all);
 
 our $VERSION = version->new('0.0.2');
@@ -537,7 +537,7 @@ Eliminate configuration file.
 
 =item *
 
-Eliminate Kinetic::Util::Language?
+Eliminate Kinetic::Store::Language?
 
 =back
 

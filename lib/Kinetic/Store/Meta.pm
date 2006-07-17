@@ -12,7 +12,7 @@ use Kinetic::Store::Meta::DataTypes;
 use Kinetic::Store::Meta::Attribute;
 use Kinetic::Store::Meta::Class;
 use Kinetic::Store::Meta::Method;
-use Kinetic::Util::Exceptions qw(
+use Kinetic::Store::Exceptions qw(
     throw_exlib
     throw_invalid_class
     throw_invalid_attr

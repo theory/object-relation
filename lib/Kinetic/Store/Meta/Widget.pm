@@ -8,7 +8,7 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Widget::Meta';
-use aliased 'Kinetic::Util::Language';
+use aliased 'Kinetic::Store::Language';
 
 =head1 Name
 

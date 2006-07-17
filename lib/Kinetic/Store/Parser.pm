@@ -15,7 +15,7 @@ use List::Util 'first';
 
 use Kinetic::Store::DataType::DateTime::Incomplete qw/is_incomplete_iso8601/;
 use Kinetic::Store::Search;
-use Kinetic::Util::Exceptions qw/panic throw_search isa_exception/;
+use Kinetic::Store::Exceptions qw/panic throw_search isa_exception/;
 
 =head1 Name
 
@@ -340,7 +340,7 @@ B<Throws:>
 
 =over
 
-=item Kinetic::Util::Exception::Fatal::Search
+=item Kinetic::Store::Exception::Fatal::Search
 
 =back
 
