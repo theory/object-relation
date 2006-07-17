@@ -436,12 +436,12 @@ B<Throws:>
 =head3 _add_store_meta
 
   package Kinetic;
-  my $km = Kinetic::Meta->new;
+  my $km = Kinetic::Store::Meta->new;
   Kinetic::Store::Handle->_add_store_meta($km);
 
 This protected method is the interface that allows store subclasses to add
 data-store dependendent attributes to the Kinetic base class via the
-Kinetic::Meta object used to construct the Kinetic base class. It will B<only>
+Kinetic::Store::Meta object used to construct the Kinetic base class. It will B<only>
 be called once, during compilation, by Kinetic, to add any necessary
 attributes or other metadata objects to ease the implemtation of the data
 store.
@@ -1383,24 +1383,24 @@ Kinetic::Store::Handle::DB uses this method to add a trusted C<id> attribute tha
 only be accessed by the store classes, but allows them to treat database IDs
 just like any other attribute.
 
-=item * Add Any needed code to Kinetic::Meta
+=item * Add Any needed code to Kinetic::Store::Meta
 
-Some data stores need to add extra code to Kinetic::Meta classes in order to
+Some data stores need to add extra code to Kinetic::Store::Meta classes in order to
 keep their code clean and well-factored. For example, the database stores have
-a special Kinetic::Meta label, ":with_dbstore_api". So when you load
-Kinetic::Meta like this:
+a special Kinetic::Store::Meta label, ":with_dbstore_api". So when you load
+Kinetic::Store::Meta like this:
 
-  use Kinetic::Meta ':with_dbstore_api';
+  use Kinetic::Store::Meta ':with_dbstore_api';
 
-the import methods of the various Kinetic::Meta classes (Attribute, Class,
-Type) add Kinetic::Meta methods specific to database stores.
+the import methods of the various Kinetic::Store::Meta classes (Attribute, Class,
+Type) add Kinetic::Store::Meta methods specific to database stores.
 
 Now, an Oracle data store probably wouldn't need to add any metadata methods
 not already added by the Kinetic::Store::Handle::DB class, but if it did, you could
 modify the import() methods of these classes to add the necessary methods. For
-example, say you needed to add a foo() method to Kinetic::Meta::Attribute just
+example, say you needed to add a foo() method to Kinetic::Store::Meta::Attribute just
 for use with Oracle, you could add something like this to the import() method
-of Kinetic::Meta::Attribute:
+of Kinetic::Store::Meta::Attribute:
 
     if ($api_label eq ':with_oracle_api') {
         return if defined(&foo);
@@ -1409,8 +1409,8 @@ of Kinetic::Meta::Attribute:
     }
 
 See the existing code in the import() methods of
-L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute> and
-L<Kinetic::Meta::Type|Kinetic::Meta::Type> for examples. Be sure to write
+L<Kinetic::Store::Meta::Attribute|Kinetic::Store::Meta::Attribute> and
+L<Kinetic::Store::Meta::Type|Kinetic::Store::Meta::Type> for examples. Be sure to write
 tests for any methods you add! See F<t/dbmeta.t> for an example.
 
 =item * Create the test classes for the data store.

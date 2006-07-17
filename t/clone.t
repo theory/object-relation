@@ -12,7 +12,7 @@ package MyApp::Simple;
 use base 'Kinetic';
 BEGIN {
     use Test::More;
-    ok my $km = Kinetic::Meta->new(
+    ok my $km = Kinetic::Store::Meta->new(
         key         => 'thingy',
         name        => 'Thingy',
         plural_name => 'Thingies',

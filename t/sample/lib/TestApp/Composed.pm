@@ -3,14 +3,14 @@ package TestApp::Composed;
 use strict;
 use warnings;
 
-use Kinetic::Meta;
-use Kinetic::Meta::Widget;
+use Kinetic::Store::Meta;
+use Kinetic::Store::Meta::Widget;
 use Kinetic::Util::Language::en_us;
 
 use TestApp::Simple::One;
 
 BEGIN {
-    my $km = Kinetic::Meta->new(
+    my $km = Kinetic::Store::Meta->new(
         key         => 'composed',
         name        => 'Composed',
         plural_name => 'Composeds',
@@ -23,7 +23,7 @@ BEGIN {
         required      => 0,
         once          => 1,
         default       => sub { TestApp::Simple::One->new },
-        widget_meta   => Kinetic::Meta::Widget->new(
+        widget_meta   => Kinetic::Store::Meta::Widget->new(
             type => 'search',
             tip  => 'One',
         )
@@ -35,7 +35,7 @@ BEGIN {
         label    => 'Color',
         default  => undef,
         unique   => 1,
-        widget_meta   => Kinetic::Meta::Widget->new(
+        widget_meta   => Kinetic::Store::Meta::Widget->new(
             type => 'text',
             tip  => 'Color',
         )

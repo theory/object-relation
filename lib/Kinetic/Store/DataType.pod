@@ -12,13 +12,13 @@ The C<Kinetic::Store::DataType> name space is set aside for the creation of comp
 data types for TKP. By "complex" I mean serializable objects, such as dates,
 durations, states, etc. It also is designed to create a distinction from
 simpler data types, which are defined in
-L<Kinetic::Meta::DataTypes|Kinetic::Meta::DataTypes>.
+L<Kinetic::Store::Meta::DataTypes|Kinetic::Store::Meta::DataTypes>.
 
 What creates the distinction? Well, first and foremost is that fact that it
 doesn't usually take much to create the simple data types, while the complex
 data types might need more code to handle serialization and deserialization,
 overloading, etc. But another criterion is that, while the data types in
-L<Kinetic::Meta::DataTypes|Kinetic::Meta::DataTypes> are I<always> loaded by
+L<Kinetic::Store::Meta::DataTypes|Kinetic::Store::Meta::DataTypes> are I<always> loaded by
 TKP, since it uses them for its own classes, the complex data types in the
 C<Kinetic::Store::DataType> name space tend to be loaded only as needed by the
 Kinetic business classes that need them.
@@ -32,7 +32,7 @@ The first step is to determine exactly what the data type will consist of. Is
 it a simple string or number? A read-only object? A mutable object? Before you
 go any further, consider this: Any TKP business class that you create that
 inherits from L<Kinetic|Kinetic> and is implemented using
-L<Kinetic::Meta|Kinetic::Meta> is already a data type. Its C<key> attribute
+L<Kinetic::Store::Meta|Kinetic::Store::Meta> is already a data type. Its C<key> attribute
 will name is as an attribute, and nothing further needs to be done.
 
 So, aside from TKP business classes, there are essentially three different
@@ -55,11 +55,11 @@ I'll cover how to create new data types for all three.
 Simple scalar values are, as you might expect, the easiest data types to add
 to TKP. As an example, let's say that we wanted to add a real number data
 type. The first thing we need to do is to declare the new data type using
-L<Kinetic::Meta::Type|Kinetic::Meta::Type>:
+L<Kinetic::Store::Meta::Type|Kinetic::Store::Meta::Type>:
 
   use Kinetic::Util::Exceptions qw(throw_invalid);
   use Data::Types;
-  Kinetic::Meta::Type->add(
+  Kinetic::Store::Meta::Type->add(
       key     => 'real',
       name    => 'Real Number',
       check   => sub {
@@ -156,9 +156,9 @@ A good example of a simple, read-only object is a L<version|version> object.
 The C<version> module represents numeric version numbers, and is, in fact,
 already a data type in TKP. But it makes a nice example, so we'll take a look
 at it here. Once again, the data type declaration simply requires a the use of
-L<Kinetic::Meta::Type|Kinetic::Meta::Type>:
+L<Kinetic::Store::Meta::Type|Kinetic::Store::Meta::Type>:
 
-  Kinetic::Meta::Type->add(
+  Kinetic::Store::Meta::Type->add(
       key   => 'version',
       name  => 'Version',
       raw   => sub { ref $_[0] ? shift->stringify : shift },
@@ -169,7 +169,7 @@ L<Kinetic::Meta::Type|Kinetic::Meta::Type>:
 Now, you might think that this looks even simpler than the simple scalar
 data type, and in a sense you're right. We don't have to bother writing
 a C<check> anonymous subroutine; instead, we just specify a package name.
-C<Kinetic::Meta::Type> will recognize it as such, and build a validating
+C<Kinetic::Store::Meta::Type> will recognize it as such, and build a validating
 code reference for us, looking something like this:
 
   sub {
@@ -236,7 +236,7 @@ Having implemented the C<new()> and C<bake()> methods in our subclass, we
 then declare the new data type right in the module itself:
 
   my $utc = DateTime::TimeZone::UTC->new;
-  Kinetic::Meta::Type->add(
+  Kinetic::Store::Meta::Type->add(
       key     => 'datetime',
       name    => 'DateTime',
       raw     => sub {
@@ -288,12 +288,12 @@ and the like, but its format does not translate well for similar functionality
 in the C<TEXT>-based storage in SQLite. So two different serialization formats
 were required: One for PostgreSQL and one for SQLite.
 
-To accommodate this, there is yet another C<Kinetic::Meta::Type> parameter for
+To accommodate this, there is yet another C<Kinetic::Store::Meta::Type> parameter for
 specifying a code reference that will return the serialized form of a data
 type that depends on the current data store. That parameter is C<store_raw>.
 Here's how C<Kinetic::Store::DataType::Duration> uses it:
 
-  Kinetic::Meta::Type->add(
+  Kinetic::Store::Meta::Type->add(
       key       => 'duration',
       name      => 'Duration',
       raw       => sub { ref $_[0] ? shift->raw : shift },
@@ -305,7 +305,7 @@ Here's how C<Kinetic::Store::DataType::Duration> uses it:
 Looks just like the C<raw> parameter, doesn't it? In truth, Kinetic::Store
 I<always> uses the C<store_raw> code reference to serialize a value for
 storage. It's always available because, if C<store_raw> isn't specified,
-C<Kinetic::Meta::Type> uses C<raw>, instead; and if C<raw> isn't specified, it
+C<Kinetic::Store::Meta::Type> uses C<raw>, instead; and if C<raw> isn't specified, it
 uses the accessor generated when the class is built (which is how it would
 work for the C<real> data type we defined above).
 

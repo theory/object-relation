@@ -11,8 +11,8 @@ use Encode qw(is_utf8);
 use base 'TEST::Kinetic::Store::Handle';
 
 use aliased 'Test::MockModule';
-use aliased 'Kinetic::Meta';
-use aliased 'Kinetic::Meta::Attribute';
+use aliased 'Kinetic::Store::Meta';
+use aliased 'Kinetic::Store::Meta::Attribute';
 use aliased 'Kinetic::Store::Handle' => 'DONT_USE', ':all';
 use aliased 'Kinetic::Store::Handle::DB' => 'Store';
 use aliased 'Kinetic::Store::DataType::State';
@@ -64,7 +64,7 @@ sub test_id : Test(5) {
     ok my $class = One->my_class, "We should get the class object";
     ok my $attr = $class->attributes('id'),
       "We should be able to directly access the id attribute object";
-    isa_ok( $attr, 'Kinetic::Meta::Attribute' );
+    isa_ok( $attr, 'Kinetic::Store::Meta::Attribute' );
     ok !grep( { $_->name eq 'id' } $class->attributes ),
       "A call to attributes() should not include private attribute id";
     {
@@ -104,7 +104,7 @@ sub test_dbh : Test(2) {
 sub where_clause : Test(11) {
     my $store = Store->new;
     $store->{search_class} = One->new->my_class;
-    my $my_class = MockModule->new('Kinetic::Meta::Class');
+    my $my_class = MockModule->new('Kinetic::Store::Meta::Class');
     my $current_column;
     $my_class->mock(
         attributes => sub {
@@ -1242,12 +1242,12 @@ sub test_types : Test(138) {
     is $types_test->media_type, $mt,  'It should be properly set';
 
     # Set up the attribute attribute.
-    ok my $attr = Kinetic::Meta->attr_for_key('simple.name'),
+    ok my $attr = Kinetic::Store::Meta->attr_for_key('simple.name'),
         'Get an attribute object';
     is $types_test->attribute, undef, 'The attribute should be undef';
     ok $types_test->attribute($attr), 'Set the attribute';
     is $types_test->attribute, $attr, 'It should be properly set';
-    isa_ok $types_test->attribute,    'Kinetic::Meta::Attribute',  'It';
+    isa_ok $types_test->attribute,    'Kinetic::Store::Meta::Attribute',  'It';
 
     # Set up the gtin attribute.
     is $types_test->gtin, undef,     'The gtin should be undef';
@@ -1312,7 +1312,7 @@ sub test_types : Test(138) {
     is $types_test->media_type, $mt,  'It should be properly set';
 
     # Change the attribute.
-    $attr = Kinetic::Meta->attr_for_key('simple.description');
+    $attr = Kinetic::Store::Meta->attr_for_key('simple.description');
     ok $types_test->attribute($attr),  'Set the attribute to a new value';
     is $types_test->attribute, $attr,  'It should be properly set';
 
@@ -1347,8 +1347,8 @@ sub test_types : Test(138) {
     }
 
     # Mock store_raw to return the wrong value when appropriate.
-    my $orig_straw = Kinetic::Meta::Attribute->can('store_raw');
-    my $attr_mock  = MockModule->new('Kinetic::Meta::Attribute');
+    my $orig_straw = Kinetic::Store::Meta::Attribute->can('store_raw');
+    my $attr_mock  = MockModule->new('Kinetic::Store::Meta::Attribute');
     my $checking   = '';
     my $ret        = 'foo';
     my $store_mock = sub {
@@ -1499,7 +1499,7 @@ sub test_types : Test(138) {
     ok $types_test->save, 'Save it';
 
     # Make sure that invalid attributes are not allowed.
-    $attr = Kinetic::Meta->attr_for_key('simple.name');
+    $attr = Kinetic::Store::Meta->attr_for_key('simple.name');
     ok $types_test->attribute($attr), 'Change the attribute';
     $checking = 'attribute';
     $attr_mock->mock(store_raw => $store_mock);

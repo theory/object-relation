@@ -22,7 +22,7 @@ package MyApp::TestThingy;
 use base 'Kinetic';
 BEGIN {
     use Test::More;
-    ok my $km = Kinetic::Meta->new(
+    ok my $km = Kinetic::Store::Meta->new(
         key         => 'thingy',
         name        => 'Thingy',
         plural_name => 'Thingies',
@@ -43,7 +43,7 @@ Kinetic::Util::Language::en->add_to_lexicon(
 
 # Check Meta objects.
 ok my $class = MyApp::TestThingy->my_class, "Get meta class";
-isa_ok $class, 'Kinetic::Meta::Class';
+isa_ok $class, 'Kinetic::Store::Meta::Class';
 isa_ok $class, 'Class::Meta::Class';
 is $class->key, 'thingy', "Check class key";
 is $class->name, 'Thingy', "Check class name";

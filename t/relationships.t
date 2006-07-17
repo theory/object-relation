@@ -12,29 +12,29 @@ use base 'Kinetic';
 
 BEGIN {
     Test::More->import;
-    use_ok('Kinetic::Meta') or die;
+    use_ok('Kinetic::Store::Meta') or die;
     use_ok('Kinetic::Util::Language') or die;
     use_ok('Kinetic::Util::Language::en_us') or die;
-    use_ok('Kinetic::Meta::Class') or die;
-    use_ok('Kinetic::Meta::Attribute') or die;
-    use_ok('Kinetic::Meta::AccessorBuilder') or die;
-    use_ok('Kinetic::Meta::Widget') or die;
+    use_ok('Kinetic::Store::Meta::Class') or die;
+    use_ok('Kinetic::Store::Meta::Attribute') or die;
+    use_ok('Kinetic::Store::Meta::AccessorBuilder') or die;
+    use_ok('Kinetic::Store::Meta::Widget') or die;
 }
 
 BEGIN {
-    ok( Kinetic::Meta->new( key => 'base')->build, 'Build base' );
+    ok( Kinetic::Store::Meta->new( key => 'base')->build, 'Build base' );
 }
 
 package MyTestThingy;
 use base 'Kinetic';
 BEGIN { Test::More->import }
 BEGIN {
-    is( Kinetic::Meta->class_class, 'Kinetic::Meta::Class',
-        "The class class should be 'Kinetic::Meta::Class'");
-    is( Kinetic::Meta->attribute_class, 'Kinetic::Meta::Attribute',
-        "The attribute class should be 'Kinetic::Meta::Attribute'");
+    is( Kinetic::Store::Meta->class_class, 'Kinetic::Store::Meta::Class',
+        "The class class should be 'Kinetic::Store::Meta::Class'");
+    is( Kinetic::Store::Meta->attribute_class, 'Kinetic::Store::Meta::Attribute',
+        "The attribute class should be 'Kinetic::Store::Meta::Attribute'");
 
-    ok my $km = Kinetic::Meta->new(
+    ok my $km = Kinetic::Store::Meta->new(
         key         => 'thingy',
         name        => 'Thingy',
         plural_name => 'Thingies',
@@ -52,7 +52,7 @@ BEGIN {
         indexed       => 1,
         on_delete     => 'CASCADE',
         store_default => 'ick',
-        widget_meta   => Kinetic::Meta::Widget->new(
+        widget_meta   => Kinetic::Store::Meta::Widget->new(
             type => 'text',
             tip  => 'Kinetic',
         )
@@ -67,7 +67,7 @@ package MyTestHas;
 use base 'Kinetic';
 BEGIN { Test::More->import }
 BEGIN {
-    ok my $km = Kinetic::Meta->new(
+    ok my $km = Kinetic::Store::Meta->new(
         key         => 'has',
         name        => 'Has',
         plural_name => 'Hases',
@@ -93,7 +93,7 @@ package MyTestTypeOf;
 use base 'MyTestBase';
 BEGIN { Test::More->import }
 BEGIN {
-    ok my $km = Kinetic::Meta->new(
+    ok my $km = Kinetic::Store::Meta->new(
         key         => 'typeof',
         name        => 'Typeof',
         plural_name => 'Typeofs',
@@ -114,7 +114,7 @@ package MyTestPartof;
 use base 'Kinetic';
 BEGIN { Test::More->import }
 BEGIN {
-    ok my $km = Kinetic::Meta->new(
+    ok my $km = Kinetic::Store::Meta->new(
         key         => 'partof',
         name        => 'Partof',
         plural_name => 'Partofs',
@@ -140,7 +140,7 @@ package MyTestReferences;
 use base 'Kinetic';
 BEGIN { Test::More->import }
 BEGIN {
-    ok my $km = Kinetic::Meta->new(
+    ok my $km = Kinetic::Store::Meta->new(
         key         => 'references',
         name        => 'References',
         plural_name => 'References',
@@ -166,7 +166,7 @@ package MyTestExtends;
 use base 'MyTestBase';
 BEGIN { Test::More->import }
 BEGIN {
-    ok my $km = Kinetic::Meta->new(
+    ok my $km = Kinetic::Store::Meta->new(
         key         => 'extends',
         name        => 'Extends',
         plural_name => 'Extends',
@@ -187,7 +187,7 @@ package MyTestChildof;
 use base 'Kinetic';
 BEGIN { Test::More->import }
 BEGIN {
-    ok my $km = Kinetic::Meta->new(
+    ok my $km = Kinetic::Store::Meta->new(
         key         => 'childof',
         name        => 'Childof',
         plural_name => 'Childofs',
@@ -213,7 +213,7 @@ package MyTestMediates;
 use base 'MyTestBase';
 BEGIN { Test::More->import }
 BEGIN {
-    ok my $km = Kinetic::Meta->new(
+    ok my $km = Kinetic::Store::Meta->new(
         key         => 'mediates',
         name        => 'Mediates',
         plural_name => 'Mediates',
@@ -234,7 +234,7 @@ package MyTestFail;
 use base 'Kinetic';
 BEGIN { Test::More->import }
 
-ok my $km = Kinetic::Meta->new( key => 'fail'), "Create a failing KM object";
+ok my $km = Kinetic::Store::Meta->new( key => 'fail'), "Create a failing KM object";
 eval{ $km->add_attribute(
     name          => 'fail',
     type          => 'fail',
@@ -272,7 +272,7 @@ package main;
 ok my $class = MyTestHas->my_class, "Get Has class object";
 ok my $attr = $class->attributes('thingy'), "Get thingy attribute";
 is $attr->name, 'thingy', "We should have the thingy attr";
-isa_ok $attr, 'Kinetic::Meta::Attribute';
+isa_ok $attr, 'Kinetic::Store::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
 is $attr->references, MyTestThingy->my_class,
   "The thingy object should reference the thingy class";
@@ -294,7 +294,7 @@ like $err, qr/Can't locate object method "foo" via package "MyTestHas"/, #'
 ok $class = MyTestTypeOf->my_class, "Get Typeof class object";
 ok $attr = $class->attributes('thingy'), "Get thingy attribute";
 is $attr->name, 'thingy', "We should have the thingy attr";
-isa_ok $attr, 'Kinetic::Meta::Attribute';
+isa_ok $attr, 'Kinetic::Store::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
 is $attr->references, MyTestThingy->my_class,
   "The thingy object should reference the thingy class";
@@ -321,7 +321,7 @@ like $err, qr/Cannot assign to read-only attribute .foo./,
 ok $class = MyTestPartof->my_class, "Get Partof class object";
 ok $attr = $class->attributes('thingy'), "Get thingy attribute";
 is $attr->name, 'thingy', "We should have the thingy attr";
-isa_ok $attr, 'Kinetic::Meta::Attribute';
+isa_ok $attr, 'Kinetic::Store::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
 is $attr->references, MyTestThingy->my_class,
   "The thingy object should reference the thingy class";
@@ -343,7 +343,7 @@ like $err, qr/Can't locate object method "foo" via package "MyTestPartof"/, #'
 ok $class = MyTestReferences->my_class, "Get References class object";
 ok $attr = $class->attributes('thingy'), "Get thingy attribute";
 is $attr->name, 'thingy', "We should have the thingy attr";
-isa_ok $attr, 'Kinetic::Meta::Attribute';
+isa_ok $attr, 'Kinetic::Store::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
 is $attr->references, MyTestThingy->my_class,
   "The thingy object should reference the thingy class";
@@ -366,7 +366,7 @@ like $err, qr/Can't locate object method "foo" via package "MyTestReferences"/, 
 ok $class = MyTestExtends->my_class, "Get Extends class object";
 ok $attr = $class->attributes('thingy'), "Get thingy attribute";
 is $attr->name, 'thingy', "We should have the thingy attr";
-isa_ok $attr, 'Kinetic::Meta::Attribute';
+isa_ok $attr, 'Kinetic::Store::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
 is $attr->references, MyTestThingy->my_class,
   "The thingy object should reference the thingy class";
@@ -393,7 +393,7 @@ is $obj->foo, 'ick', 'Extends foo should also return "ick"';
 ok $class = MyTestChildof->my_class, "Get Childof class object";
 ok $attr = $class->attributes('thingy'), "Get thingy attribute";
 is $attr->name, 'thingy', "We should have the thingy attr";
-isa_ok $attr, 'Kinetic::Meta::Attribute';
+isa_ok $attr, 'Kinetic::Store::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
 is $attr->references, MyTestThingy->my_class,
   "The thingy object should reference the thingy class";
@@ -415,7 +415,7 @@ like $err, qr/Can't locate object method "foo" via package "MyTestChildof"/, #'
 ok $class = MyTestMediates->my_class, "Get Mediates class object";
 ok $attr = $class->attributes('thingy'), "Get thingy attribute";
 is $attr->name, 'thingy', "We should have the thingy attr";
-isa_ok $attr, 'Kinetic::Meta::Attribute';
+isa_ok $attr, 'Kinetic::Store::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
 is $attr->references, MyTestThingy->my_class,
   "The thingy object should reference the thingy class";

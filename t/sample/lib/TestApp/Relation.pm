@@ -17,7 +17,7 @@ meta relation => (
 has tmp => (
     label       => 'Temporary storage',
     persistent  => 0,
-    widget_meta => Kinetic::Meta::Widget->new(
+    widget_meta => Kinetic::Store::Meta::Widget->new(
         type => 'text',
         tip  => 'Non-persistent temporary object storage',
     ),

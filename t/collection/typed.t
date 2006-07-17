@@ -11,7 +11,7 @@ use Test::More tests => 76;
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
 use File::Spec;
-use Kinetic::Meta;
+use Kinetic::Store::Meta;
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Test::MockModule';
 
@@ -75,7 +75,7 @@ BEGIN {
     use_ok $CLASS or die;
 }
 
-my $mock_k_class = MockModule->new('Kinetic::Meta');
+my $mock_k_class = MockModule->new('Kinetic::Store::Meta');
 $mock_k_class->mock(
     for_key => sub {
         my ( $class, $key ) = @_;

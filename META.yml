@@ -146,86 +146,6 @@ provides:
         - 0
         - 0
         - 2
-  Kinetic::Meta:
-    file: lib/Kinetic/Meta.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Meta::AccessorBuilder:
-    file: lib/Kinetic/Meta/AccessorBuilder.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Meta::Attribute:
-    file: lib/Kinetic/Meta/Attribute.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Meta::Attribute::Schema:
-    file: lib/Kinetic/Meta/Attribute/Schema.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Meta::Class:
-    file: lib/Kinetic/Meta/Class.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Meta::Class::Schema:
-    file: lib/Kinetic/Meta/Class/Schema.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Meta::DataTypes:
-    file: lib/Kinetic/Meta/DataTypes.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Meta::Method:
-    file: lib/Kinetic/Meta/Method.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Meta::Type:
-    file: lib/Kinetic/Meta/Type.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
-  Kinetic::Meta::Widget:
-    file: lib/Kinetic/Meta/Widget.pm
-    version: !!perl/hash:version
-      qv: 1
-      version:
-        - 0
-        - 0
-        - 2
   Kinetic::Store::DataType::DateTime:
     file: lib/Kinetic/Store/DataType/DateTime.pm
     version: !!perl/hash:version
@@ -364,6 +284,86 @@ provides:
         - 2
   Kinetic::Store::Lexer::String:
     file: lib/Kinetic/Store/Lexer/String.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Meta:
+    file: lib/Kinetic/Store/Meta.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Meta::AccessorBuilder:
+    file: lib/Kinetic/Store/Meta/AccessorBuilder.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Meta::Attribute:
+    file: lib/Kinetic/Store/Meta/Attribute.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Meta::Attribute::Schema:
+    file: lib/Kinetic/Store/Meta/Attribute/Schema.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Meta::Class:
+    file: lib/Kinetic/Store/Meta/Class.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Meta::Class::Schema:
+    file: lib/Kinetic/Store/Meta/Class/Schema.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Meta::DataTypes:
+    file: lib/Kinetic/Store/Meta/DataTypes.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Meta::Method:
+    file: lib/Kinetic/Store/Meta/Method.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Meta::Type:
+    file: lib/Kinetic/Store/Meta/Type.pm
+    version: !!perl/hash:version
+      qv: 1
+      version:
+        - 0
+        - 0
+        - 2
+  Kinetic::Store::Meta::Widget:
+    file: lib/Kinetic/Store/Meta/Widget.pm
     version: !!perl/hash:version
       qv: 1
       version:

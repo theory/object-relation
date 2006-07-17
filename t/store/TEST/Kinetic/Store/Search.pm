@@ -27,7 +27,7 @@ sub constructor : Test(3) {
         operator => 'EQ',
         negated  => 'NOT',
         data     => 'foo',
-        class    => Kinetic::Meta->for_key('one'),
+        class    => Kinetic::Store::Meta->for_key('one'),
     );
     ok my $search = Search->new(%search),
       '... and creating a new Search object should succeed';
@@ -42,7 +42,7 @@ sub methods : Test(16) {
         operator => 'EQ',
         negated  => 'NOT',
         data     => 'foo',
-        class    => Kinetic::Meta->for_key('one'),
+        class    => Kinetic::Store::Meta->for_key('one'),
     );
     ok my $search = Search->new(%search),
       'Creating an EQ search should succeed';

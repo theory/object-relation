@@ -19,11 +19,11 @@ BEGIN {
     Test::More->import;
     # We need to load Kinetic first, or else things just won't work!
     use_ok('Kinetic')       or die;
-    use_ok('Kinetic::Meta') or die;
+    use_ok('Kinetic::Store::Meta') or die;
 }
 
 BEGIN {
-    ok( my $cm = Kinetic::Meta->new(
+    ok( my $cm = Kinetic::Store::Meta->new(
         key     => 'accessors',
         name    => 'Testing Accessors',
     ), "Create new CM object" );
@@ -53,7 +53,7 @@ BEGIN {
     ok( Class::Meta::Type->add(
         key     => "nocheck",
         name    => 'nocheck',
-        builder => 'Kinetic::Meta::AccessorBuilder',
+        builder => 'Kinetic::Store::Meta::AccessorBuilder',
     ), "Create nocheck data type" );
 
     # Add a nocheck attribute.

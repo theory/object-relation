@@ -42,7 +42,7 @@ is $sg->setup_code, undef, "SQLite setup SQL is undefined";
 
 ##############################################################################
 # Grab the simple class.
-ok my $simple = Kinetic::Meta->for_key('simple'), "Get simple class";
+ok my $simple = Kinetic::Store::Meta->for_key('simple'), "Get simple class";
 is $simple->key,   'simple',  "... Simple class has key 'simple'";
 is $simple->table, '_simple', "... Simple class has table '_simple'";
 
@@ -141,7 +141,7 @@ eq_or_diff join( "\n", $sg->schema_for_class($simple) ),
 
 ##############################################################################
 # Grab the one class.
-ok my $one = Kinetic::Meta->for_key('one'), "Get one class";
+ok my $one = Kinetic::Store::Meta->for_key('one'), "Get one class";
 is $one->key,   'one',        "... One class has key 'one'";
 is $one->table, 'simple_one', "... One class has table 'simple_one'";
 
@@ -254,7 +254,7 @@ eq_or_diff join( "\n", $sg->schema_for_class($one) ),
 
 ##############################################################################
 # Grab the two class.
-ok my $two = Kinetic::Meta->for_key('two'), "Get two class";
+ok my $two = Kinetic::Store::Meta->for_key('two'), "Get two class";
 is $two->key,   'two',        "... Two class has key 'two'";
 is $two->table, 'simple_two', "... Two class has table 'simple_two'";
 
@@ -440,7 +440,7 @@ eq_or_diff join( "\n", $sg->schema_for_class($two) ),
 
 ##############################################################################
 # Grab the relation class.
-ok my $relation = Kinetic::Meta->for_key('relation'), "Get relation class";
+ok my $relation = Kinetic::Store::Meta->for_key('relation'), "Get relation class";
 is $relation->key,   'relation',  "... Relation class has key 'relation'";
 is $relation->table, '_relation', "... Relation class has table '_relation'";
 
@@ -601,7 +601,7 @@ eq_or_diff join( "\n", $sg->schema_for_class($relation) ),
 
 ##############################################################################
 # Grab the yello class.
-ok my $yello = Kinetic::Meta->for_key('yello'), "Get yello class";
+ok my $yello = Kinetic::Store::Meta->for_key('yello'), "Get yello class";
 is $yello->key,   'yello',  "... HasMany class has key 'yello'";
 is $yello->table, '_yello', "... HasMany class has table '_yello'";
 
@@ -784,7 +784,7 @@ eq_or_diff join( "\n", $sg->schema_for_class($yello) ),
 
 ##############################################################################
 # Grab the composed class.
-ok my $composed = Kinetic::Meta->for_key('composed'), "Get composed class";
+ok my $composed = Kinetic::Store::Meta->for_key('composed'), "Get composed class";
 is $composed->key,   'composed',  "... Composed class has key 'composed'";
 is $composed->table, '_composed', "... Composed class has table '_composed'";
 
@@ -939,7 +939,7 @@ eq_or_diff join( "\n", $sg->schema_for_class($composed) ),
 
 ##############################################################################
 # Grab the comp_comp class.
-ok my $comp_comp = Kinetic::Meta->for_key('comp_comp'), "Get comp_comp class";
+ok my $comp_comp = Kinetic::Store::Meta->for_key('comp_comp'), "Get comp_comp class";
 is $comp_comp->key, 'comp_comp', "... CompComp class has key 'comp_comp'";
 is $comp_comp->table, '_comp_comp',
   "... CompComp class has table '_comp_comp'";
@@ -1068,7 +1068,7 @@ eq_or_diff join( "\n", $sg->schema_for_class($comp_comp) ),
 
 ##############################################################################
 # Grab the extends class.
-ok my $extend = Kinetic::Meta->for_key('extend'), "Get extend class";
+ok my $extend = Kinetic::Store::Meta->for_key('extend'), "Get extend class";
 is $extend->key,   'extend',  "... Extend class has key 'extend'";
 is $extend->table, '_extend', "... CompComp class has table '_extend'";
 
@@ -1211,7 +1211,7 @@ eq_or_diff join( "\n", $sg->schema_for_class($extend) ),
 
 ##############################################################################
 # Grab the types_test class.
-ok my $types_test = Kinetic::Meta->for_key('types_test'),
+ok my $types_test = Kinetic::Store::Meta->for_key('types_test'),
   "Get types_test class";
 is $types_test->key, 'types_test',
   "... Types_Test class has key 'types_test'";

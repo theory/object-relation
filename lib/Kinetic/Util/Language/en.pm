@@ -233,11 +233,11 @@ our %Lexicon;
         'Okay'   => 'Okay',
         'Failed' => 'Failed',
 
-        # Kinetic::Meta::Class error.
+        # Kinetic::Store::Meta::Class error.
         'No direct attribute "[_1]" to sort by',
         'No direct attribute “[_1]” to sort by',
 
-        # Kinetic::Meta errors.
+        # Kinetic::Store::Meta errors.
         '[_1] cannot extend [_2] because it inherits from it',
         '[_1] cannot extend [_2] because it inherits from it',
 

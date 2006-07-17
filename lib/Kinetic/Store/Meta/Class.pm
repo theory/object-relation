@@ -1,4 +1,4 @@
-package Kinetic::Meta::Class;
+package Kinetic::Store::Meta::Class;
 
 # $Id$
 
@@ -14,7 +14,7 @@ use aliased 'Kinetic::Util::Language';
 
 =head1 Name
 
-Kinetic::Meta::Class - Kinetic class metadata class.
+Kinetic::Store::Meta::Class - Kinetic class metadata class.
 
 =head1 Synopsis
 
@@ -51,9 +51,9 @@ the additional attributes.
 =for private
 
 The C<import()> method is merely a placeholder to ensure that
-L<Kinetic::Meta|Kinetic::Meta> can dispatch its import symbols to a variety
+L<Kinetic::Store::Meta|Kinetic::Store::Meta> can dispatch its import symbols to a variety
 of classes and "just work".  This class is specifically documented as accepting
-those symbols.  See the documentation for L<Kinetic::Meta|Kinetic::Meta> for
+those symbols.  See the documentation for L<Kinetic::Store::Meta|Kinetic::Store::Meta> for
 more information.
 
 =cut
@@ -88,7 +88,7 @@ sub new {
     my $self = shift->SUPER::new(@_);
     for my $rel (qw(extends type_of mediates)) {
         if (my $ref = $self->{$rel}) {
-            $self->{$rel} = Kinetic::Meta->for_key($ref) unless ref $ref;
+            $self->{$rel} = Kinetic::Store::Meta->for_key($ref) unless ref $ref;
         }
     }
 
@@ -173,7 +173,7 @@ sub sort_by {
 
   my $extends  = $class->extends;
 
-Returns a Kinetic::Meta::Class object representing a class that this class
+Returns a Kinetic::Store::Meta::Class object representing a class that this class
 extends. Extension is different than inheritance, in that the object in the
 extended class can correspond to one or more instances of objects in the
 extending class.
@@ -188,7 +188,7 @@ sub extends { shift->{extends} }
 
   my $type_of  = $class->type_of;
 
-Returns a Kinetic::Meta::Class object representing a class that this class is
+Returns a Kinetic::Store::Meta::Class object representing a class that this class is
 a type of.
 
 =cut
@@ -201,7 +201,7 @@ sub type_of { shift->{type_of} }
 
   my $mediates  = $class->mediates;
 
-Returns a Kinetic::Meta::Class object representing a class that this class
+Returns a Kinetic::Store::Meta::Class object representing a class that this class
 mediates.
 
 =cut
@@ -216,7 +216,7 @@ sub mediates { shift->{mediates} }
 
   my @ref_attrs = $class->ref_attributes;
 
-Returns a list of attributes that reference other Kinetic::Meta objects.
+Returns a list of attributes that reference other Kinetic::Store::Meta objects.
 Equivalent to
 
   my @ref_attrs = grep { $_->references } $self->attributes;
@@ -233,7 +233,7 @@ sub ref_attributes { @{ shift->{ref_attrs} } }
 
   my @direct_attrs = $class->direct_attributes;
 
-Returns a list of attributes that do not reference other Kinetic::Meta
+Returns a list of attributes that do not reference other Kinetic::Store::Meta
 objects. Equivalent to
 
   my @direct_attrs = grep { ! $_->references } $self->attributes;
@@ -366,14 +366,14 @@ sub build {
   $class->_add_container($key);
 
 This trusted method is should be called from an attribute class such as
-C<Kinetic::Meta::Attribute> to add a new container object for the current
+C<Kinetic::Store::Meta::Attribute> to add a new container object for the current
 class.  See C<contained_in>.
 
 =cut
 
 sub _add_container {
     my ( $self, $key ) = @_;
-    $self->{contained_in}{$key} ||= Kinetic::Meta->for_key($key);
+    $self->{contained_in}{$key} ||= Kinetic::Store::Meta->for_key($key);
     return $self;
 }
 

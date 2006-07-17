@@ -7,7 +7,7 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.2');
 
-#use Kinetic::Meta; # Do not load here--causes loading order problems.
+#use Kinetic::Store::Meta; # Do not load here--causes loading order problems.
 use Kinetic::Util::Exceptions qw(throw_fatal throw_invalid throw_invalid_class);
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Array::AsHash';
@@ -818,7 +818,7 @@ sub _set_package {
     return $class unless defined $key;
 
     # we have a typed collection!
-    my $class_object = Kinetic::Meta->for_key($key) or throw_invalid_class [
+    my $class_object = Kinetic::Store::Meta->for_key($key) or throw_invalid_class [
         'I could not find the class for key "[_1]"',
         $key
     ];

@@ -1,4 +1,4 @@
-package Kinetic::Meta::Class::Schema;
+package Kinetic::Store::Meta::Class::Schema;
 
 # $Id$
 
@@ -7,22 +7,22 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.2');
 
-use base 'Kinetic::Meta::Class';
+use base 'Kinetic::Store::Meta::Class';
 
 =head1 Name
 
-Kinetic::Meta::Class::Schema - Kinetic database store builder
+Kinetic::Store::Meta::Class::Schema - Kinetic database store builder
 
 =head1 Synopsis
 
-See L<Kinetic::Meta::Class|Kinetic::Meta::Class>.
+See L<Kinetic::Store::Meta::Class|Kinetic::Store::Meta::Class>.
 
 =head1 Description
 
 This module is provides metadata for all Kinetic classes while building a
 storage schema. Loading L<Kinetic::Store::Schema|Kinetic::Store::Schema>
 causes it to be used instead of
-L<Kinetic::Meta::Class|Kinetic::Meta::Class>. This is so that extra metadata
+L<Kinetic::Store::Meta::Class|Kinetic::Store::Meta::Class>. This is so that extra metadata
 methods are available that are useful in constructing the schema, but are not
 otherwise useful when an application is actually in use.
 
@@ -149,7 +149,7 @@ sub foreign_key {
   my @attrs = $class->table_attributes;
 
 Returns the
-L<Kinetic::Meta::Attribute::Schema|Kinetic::Meta::Attribute::Schema> objects
+L<Kinetic::Store::Meta::Attribute::Schema|Kinetic::Store::Meta::Attribute::Schema> objects
 for the attributes that correspond to columns in the table used for the class.
 Thus, it excludes attributes from concrete parent classes and from any
 extended classes, since they're implemented in their own tables. See
@@ -203,7 +203,7 @@ sub direct_attributes {
 
   my $attrs = $class->parent_attributes($class);
 
-Pass the Kinetic::Meta::Class::Schema object of a concrete parent class to get
+Pass the Kinetic::Store::Meta::Class::Schema object of a concrete parent class to get
 back a list of the attributes for that class. This is useful for constructing
 views to represent inherited classes.
 

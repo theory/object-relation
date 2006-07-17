@@ -1,4 +1,4 @@
-package Kinetic::Meta::Type;
+package Kinetic::Store::Meta::Type;
 
 # $Id$
 
@@ -8,19 +8,19 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Class::Meta::Type';
-use Kinetic::Meta::AccessorBuilder;
-__PACKAGE__->default_builder('Kinetic::Meta::AccessorBuilder');
+use Kinetic::Store::Meta::AccessorBuilder;
+__PACKAGE__->default_builder('Kinetic::Store::Meta::AccessorBuilder');
 
 =head1 Name
 
-Kinetic::Meta::Type - Kinetic Data type validation and accessor building
+Kinetic::Store::Meta::Type - Kinetic Data type validation and accessor building
 
 =head1 Synopsis
 
-  Kinetic::Meta::Type->add(
+  Kinetic::Store::Meta::Type->add(
       key     => "state",
       name    => "State",
-      builder => 'Kinetic::Meta::AccessorBuilder',
+      builder => 'Kinetic::Store::Meta::AccessorBuilder',
       raw     => sub { ref $_[0] ? shift->value : shift },
       store_raw   => sub { shift->store_value },
       check   => sub {
@@ -42,7 +42,7 @@ C<new()>, and may be fetched via their accessors.
 
 This class supports the dynamic loading of extra methods specifically designed
 to be used with particular Kinetic data store implementations. See
-L<Kinetic::Meta|Kinetic::Meta> for details. The supported labels are:
+L<Kinetic::Store::Meta|Kinetic::Store::Meta> for details. The supported labels are:
 
 =over
 
@@ -74,7 +74,7 @@ sub import {
         *{__PACKAGE__ . '::new'} = sub {
             my $self = shift->SUPER::new(@_);
             # Set the raw method to return the object ID. Use
-            # Class::Meta->for_key to avoid Kinetic::Meta->for_key's
+            # Class::Meta->for_key to avoid Kinetic::Store::Meta->for_key's
             # exception.
             $self->{raw} ||= sub {
                 my $obj = shift or return undef;
@@ -96,7 +96,7 @@ sub import {
   my $code = $type->raw;
 
 Returns a code reference to get the raw value of a type. Used internally by
-L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>.
+L<Kinetic::Store::Meta::Attribute|Kinetic::Store::Meta::Attribute>.
 
 The code reference should simply expect the value returned by the C<get>
 accessor as its sole argument. It can then take whatever steps are necessary
@@ -118,7 +118,7 @@ sub raw { shift->{raw} }
   my $code = $type->store_raw;
 
 Returns a code reference to get the store raw value of a type. Used internally
-by L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>. In general, it will
+by L<Kinetic::Store::Meta::Attribute|Kinetic::Store::Meta::Attribute>. In general, it will
 exactly the same as C<raw()>, but may occasionally be different, as when
 different data stores require different raw values for a particular data type.
 
@@ -142,7 +142,7 @@ sub store_raw { shift->{store_raw} }
 
 Returns a code reference to set the raw value of a type without actually
 needing to set an object value. Used internally by
-L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>.
+L<Kinetic::Store::Meta::Attribute|Kinetic::Store::Meta::Attribute>.
 
 =cut
 

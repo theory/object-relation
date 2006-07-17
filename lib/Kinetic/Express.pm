@@ -4,11 +4,11 @@ package Kinetic::Express;
 
 use version;
 use base 'Class::Meta::Express';
-use Kinetic::Meta;
+use Kinetic::Store::Meta;
 our $VERSION = version->new('0.0.2');
 
 sub meta {
-    splice @_, 1, 0, meta_class => 'Kinetic::Meta', default_type => 'string';
+    splice @_, 1, 0, meta_class => 'Kinetic::Store::Meta', default_type => 'string';
     goto &Class::Meta::Express::meta;
 }
 
@@ -32,7 +32,7 @@ Kinetic::Express - Fast and Easy Kinetic class creation
 
 This package makes it dead simple to create Kinetic classes. It overrides the
 funcions in L<Class::Meta::Express|Class::Meta::Express> so that the class is
-always built by L<Kinetic::Meta|Kinetic::Meta> and so that attributes are
+always built by L<Kinetic::Store::Meta|Kinetic::Store::Meta> and so that attributes are
 strings by default. Of course, these settings can be overriddent by using the
 explicitly passing the C<meta_class> and and C<default_type> parameters to
 C<meta()>:
@@ -59,12 +59,12 @@ The functions exported by this module are:
 
 =item meta
 
-Creates the L<Kinetic::Meta|Kinetic::Meta> object used to construct the class.
+Creates the L<Kinetic::Store::Meta|Kinetic::Store::Meta> object used to construct the class.
 
 =item ctor
 
 Creates a constructor for the class. Note that all classes created by
-L<Kinetic::Meta|Kinetic::Meta> automatically inherit from L<Kinetic|Kinetic>,
+L<Kinetic::Store::Meta|Kinetic::Store::Meta> automatically inherit from L<Kinetic|Kinetic>,
 and therefore already have a C<new()> constructor, among other methods.
 
 =item has
@@ -85,7 +85,7 @@ Builds the class and removes the above functions from its namespace.
 
 =over 4
 
-=item L<Kinetic::Meta|Kinetic::Meta>
+=item L<Kinetic::Store::Meta|Kinetic::Store::Meta>
 
 Subclass of L<Class::Meta|Class::Meta> that defines Kinetic classes
 created with Kinetic::Express.

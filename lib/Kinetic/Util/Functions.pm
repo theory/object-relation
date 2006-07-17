@@ -183,7 +183,7 @@ sub file_to_mod {
 
 Uses L<File::Find::Rule|File::Find::Rule> to find and load all Perl modules
 found in the directories specified and their subdirectories, and returns a
-list or array reference of the Kinetic::Meta::Class objects for each that
+list or array reference of the Kinetic::Store::Meta::Class objects for each that
 inherits from C<Kinetic> and is not abstract. If the last argument so the
 method is not a File::Find::Rule object, one will be created that ignores
 directories named F<.svn> and C<CVS> and loads all files that end in F<.pm>

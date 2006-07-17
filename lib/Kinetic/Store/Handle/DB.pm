@@ -31,7 +31,7 @@ use Kinetic::Store::Parser qw/parse/;
 use Kinetic::Store::Lexer::Code qw/code_lexer_stream/;
 use Kinetic::Store::Lexer::String qw/string_lexer_stream/;
 
-use aliased 'Kinetic::Meta' => 'Meta', qw/:with_dbstore_api/;
+use aliased 'Kinetic::Store::Meta' => 'Meta', qw/:with_dbstore_api/;
 use aliased 'Kinetic::Util::Iterator';
 use aliased 'Kinetic::Store::DataType::DateTime::Incomplete';
 use aliased 'Kinetic::Store::Search';
@@ -191,7 +191,7 @@ sub _rollback {
   my $search_class = $store->search_class;
   $store->search_class($search_class);
 
-This is an accessor method for the Kinetic::Meta::Class object representing
+This is an accessor method for the Kinetic::Store::Meta::Class object representing
 the class being searched in the current search.  This is usually the first
 argument to the C<query> method.
 
@@ -228,7 +228,7 @@ sub lookup {
     my ( $proto, $search_class, $attr_key, $value ) = @_;
     my $self = $proto->_from_proto;
     unless ( ref $search_class ) {
-        $search_class = Kinetic::Meta->for_key($search_class);
+        $search_class = Kinetic::Store::Meta->for_key($search_class);
     }
 
     my $attr = $search_class->attributes($attr_key);
@@ -293,7 +293,7 @@ sub query {
     my $self = $proto->_from_proto;
     $self->_should_create_iterator(1);
     unless ( ref $search_class ) {
-        $search_class = Kinetic::Meta->for_key($search_class);
+        $search_class = Kinetic::Store::Meta->for_key($search_class);
     }
     local $self->{search_class} = $search_class;
     $self->_query(@search_params);
@@ -322,7 +322,7 @@ Identical to C<query_uuids>, but uses string search syntax.
 sub query_uuids {
     my ( $proto, $search_class, @search_params ) = @_;
     unless ( ref $search_class ) {
-        $search_class = Kinetic::Meta->for_key($search_class);
+        $search_class = Kinetic::Store::Meta->for_key($search_class);
     }
     my $self = $proto->_from_proto;
     $self->_set_search_type( \@search_params );
@@ -351,7 +351,7 @@ Any final constraints (such as "LIMIT" or "ORDER BY") will be discarded.
 sub count {
     my ( $proto, $search_class, @search_params ) = @_;
     unless ( ref $search_class ) {
-        $search_class = Kinetic::Meta->for_key($search_class);
+        $search_class = Kinetic::Store::Meta->for_key($search_class);
     }
     pop @search_params if 'HASH' eq ref $search_params[-1];
     my $self = $proto->_from_proto;
@@ -707,7 +707,7 @@ sub _get_collection {
     (my $coll_type = $attr->type) =~ s/^collection_//;
     my $coll_key         = $attr->name;
     my $containing_key   = $object->my_class->key;
-    my $search           = Kinetic::Meta->for_key($coll_type);
+    my $search           = Kinetic::Store::Meta->for_key($coll_type);
     my $collection_view  = $attr->collection_view;
     my $iter             = $search->package->query(
         "$containing_key.uuid" => $object->uuid,
@@ -727,14 +727,14 @@ This method returns the correct object id column name, collection item id
 column name, and order column name. These are used in building SQL for
 fetching collection results.
 
-The first argument may be a C<Kinetic::Meta::Class> object instead of a
+The first argument may be a C<Kinetic::Store::Meta::Class> object instead of a
 C<Kinetic> object.
 
 =cut
 
 sub _collection_columns {
     my ( $self, $object, $attr ) = @_;
-    my $class = $object->isa( 'Kinetic::Meta::Class' )
+    my $class = $object->isa( 'Kinetic::Store::Meta::Class' )
         ? $object
         : $object->my_class;
     my $object_id = $class->key . "_id";
@@ -752,7 +752,7 @@ This method deletes a Kinetic object from the data store.  Does nothing if the
 object has not previously been saved to the data store.
 
 It does not attempt to delete contained or related objects as the
-C<Kinetic::Meta> framework establishes constraints to handle this.
+C<Kinetic::Store::Meta> framework establishes constraints to handle this.
 
 =cut
 
@@ -1327,7 +1327,7 @@ sub _prep_search_token {
         # column is possibly in a different, but related view
         my $key    = $1;
         my $column = $2;
-        if ( my $class = Kinetic::Meta->for_key($key) ) {
+        if ( my $class = Kinetic::Store::Meta->for_key($key) ) {
             # we need to set the search data as it's possible that this class
             # has not yet been searched on.
             local $self->{search_class} = $class;
@@ -1597,7 +1597,7 @@ sub _get_column_and_placeholder {
     if ( $column =~ /^[[:word:]]+\.([[:word:]]+)__([[:word:]]+)/ ) {
         my ( $key, $base_column ) = ( $1, $2 );
 
-        $search_class   = Kinetic::Meta->for_key($key);
+        $search_class   = Kinetic::Store::Meta->for_key($key);
         $attribute_name = $column = $base_column;
     }
     if ($search_class) {
@@ -1841,7 +1841,7 @@ sub _connect_attrs {
 =head3 _add_store_meta
 
   package Kinetic;
-  my $km = Kinetic::Meta->new;
+  my $km = Kinetic::Store::Meta->new;
   Kinetic::Store::Handle->_add_store_meta($km);
 
 This protected method adds an "id" attribute to the Kinetic base class, solely

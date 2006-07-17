@@ -1,4 +1,4 @@
-package Kinetic::Meta::AccessorBuilder;
+package Kinetic::Store::Meta::AccessorBuilder;
 
 # $Id$
 
@@ -15,7 +15,7 @@ use Class::Meta;
 
 =head1 Name
 
-Kinetic::Meta::AccessorBuilder - Builds Kinetic attribute accessors
+Kinetic::Store::Meta::AccessorBuilder - Builds Kinetic attribute accessors
 
 =head1 Description
 
@@ -253,7 +253,7 @@ sub build {
     }
 
     # If we get here, it's an object attribute.
-    my $bake    = Kinetic::Meta::Type->new($attr->type)->bake;
+    my $bake    = Kinetic::Store::Meta::Type->new($attr->type)->bake;
     my $builder = $bake ? $builders{bake} : $builders{default};
 
     # Create any delegation methods.
@@ -308,7 +308,7 @@ C<login()>.
 This function should only be called for attributes that reference other
 objects and that need to have delegation methods to access the attributes of
 the referenced object. See
-L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute> for a list of supported
+L<Kinetic::Store::Meta::Attribute|Kinetic::Store::Meta::Attribute> for a list of supported
 relationships and descriptions their delegation method requirements.
 
 =cut

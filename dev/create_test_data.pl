@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Getopt::Long;
 use lib 't/lib/', 'lib', 't/sample/lib';
-use Kinetic::Meta;
+use Kinetic::Store::Meta;
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';
 use aliased 'Kinetic::Store::DataType::DateTime';

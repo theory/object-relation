@@ -5,7 +5,7 @@ package Kinetic::Store::DataType::MediaType;
 use strict;
 use base 'MIME::Type';
 use MIME::Types;
-use Kinetic::Meta::Type;
+use Kinetic::Store::Meta::Type;
 use Kinetic::Util::Exceptions qw(throw_invalid);
 
 use version;
@@ -31,7 +31,7 @@ serialization.
 =cut
 
 # Create the data type.
-Kinetic::Meta::Type->add(
+Kinetic::Store::Meta::Type->add(
     key   => 'media_type',
     name  => 'Media Type',
     raw   => sub { ref $_[0] ? shift->type : shift },

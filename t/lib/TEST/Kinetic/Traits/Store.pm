@@ -172,7 +172,7 @@ sub clear_database {
     }
     else {
         my %keys = map { $_ => 1 }
-          grep { !Kinetic::Meta->for_key($_)->abstract } Kinetic::Meta->keys;
+          grep { !Kinetic::Store::Meta->for_key($_)->abstract } Kinetic::Store::Meta->keys;
 
         # it's possible that we'll accidentally try to delete a key which has
         # an FK constraint on another key.  To avoid this, we keep deleting

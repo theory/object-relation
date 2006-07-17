@@ -84,7 +84,7 @@ CREATE TABLE $table (
 
   my $type = $kbs->column_type($attr);
 
-Pass in a Kinetic::Meta::Attribute::Schema object to get back the PostgreSQL
+Pass in a Kinetic::Store::Meta::Attribute::Schema object to get back the PostgreSQL
 column type to be used for the attribute. The column types are optimized for
 the best correspondence between the attribute types and the types supported by
 PostgreSQL, plus data domains where appropriate (e.g., the "state" column type
@@ -116,7 +116,7 @@ sub column_type {
     return 'INTEGER' if $attr->references;
     my $type = $attr->type;
     return $types{$type} if $types{$type};
-    croak "No such data type: $type" unless Kinetic::Meta->for_key($type);
+    croak "No such data type: $type" unless Kinetic::Store::Meta->for_key($type);
 }
 
 ##############################################################################
@@ -126,7 +126,7 @@ sub column_type {
   my $pk_sql = $kbs->pk_column($class);
 
 Returns the SQL statement to create the primary key column for the table for
-the Kinetic::Meta::Class::Schema object passed as its sole argument. If the
+the Kinetic::Store::Meta::Class::Schema object passed as its sole argument. If the
 class has no concrete parent class, the primary key column expression will set
 up a C<DEFAULT> statement to get its value from the sequence created for the
 class. Otherwise, it will be be a simple column declaration. The primary key
@@ -148,7 +148,7 @@ sub pk_column {
 
   my $default_sql = $kbs->column_default($attr);
 
-Pass in a Kinetic::Meta::Attribute::Schema object to get back the default
+Pass in a Kinetic::Store::Meta::Attribute::Schema object to get back the default
 value expression for the column for the attribute. Returns C<undef> (or an
 empty list) if there is no default value on the column. Otherwise, it returns
 the default value expression. Overrides the parent method to return
@@ -234,7 +234,7 @@ sub index_for_attr {
   my $column = $kbs->index_on($attr);
 
 Returns the name of the column on which an index will be generated for the
-given Kinetic::Meta::Attribute::Schema object. Called by C<index_for_class()>
+given Kinetic::Store::Meta::Attribute::Schema object. Called by C<index_for_class()>
 in the parent class. Overridden here to wrap the name in the PostgreSQL
 C<LOWER()> function when the data type is a string.
 
@@ -255,7 +255,7 @@ sub index_on {
   my @constraints = $kbs->constraints_for_class($class);
 
 Returns a list of the SQL statements to create all of the constraints for the
-class described by the Kinetic::Meta::Class::Schema object passed as the sole
+class described by the Kinetic::Store::Meta::Class::Schema object passed as the sole
 argument.
 
 The constraint statements returned may include one or more of the following:
@@ -340,7 +340,7 @@ sub constraints_for_class {
   my $constraint_sql = $kbs->procedures_for_class($class);
 
 Returns a list of the SQL statements to create all of the procedures and/or
-functions for the class described by the Kinetic::Meta::Class::Schema object
+functions for the class described by the Kinetic::Store::Meta::Class::Schema object
 passed as the sole argument.
 
 This implementation actually returns C<undef> (or an empty list), but may be
@@ -1120,7 +1120,7 @@ sub _extending_insert {
   my @coll_constraints = $schema->_generate_collection_constraints($class);
 
 Returns a list of the constraints necessary to manage a collection table
-associated with the Kinetic::Meta::Class object passed as the sole argument.
+associated with the Kinetic::Store::Meta::Class object passed as the sole argument.
 
 =cut
 

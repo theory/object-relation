@@ -1139,8 +1139,8 @@ sub test_build_meths : Test(26) {
     $pg->mock(_dbh => $self->{dbh}); # Don't use the template!
     ok $kbs->build_db, "Build the database";
 
-    for my $view ( Kinetic::Meta->keys ) {
-        my $class = Kinetic::Meta->for_key($view);
+    for my $view ( Kinetic::Store::Meta->keys ) {
+        my $class = Kinetic::Store::Meta->for_key($view);
         my ($expect, $not) = $class->abstract
             ? ([], ' not')
             : ([[1]], '');
@@ -1155,8 +1155,8 @@ sub test_build_meths : Test(26) {
     # Test granting permissions.
     my @checks;
     my @params;
-    for my $view ( Kinetic::Meta->keys ) {
-        my $class = Kinetic::Meta->for_key($view);
+    for my $view ( Kinetic::Store::Meta->keys ) {
+        my $class = Kinetic::Store::Meta->for_key($view);
         next if $class->abstract;
         for my $perm (qw(SELECT UPDATE INSERT DELETE)) {
             push @checks, 'has_table_privilege(?, ?, ?)';

@@ -8,7 +8,7 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Kinetic::Store::Schema::DB';
-use Kinetic::Meta;
+use Kinetic::Store::Meta;
 use List::Util qw(first);
 use Carp;
 
@@ -45,7 +45,7 @@ L<Kinetic::Store::Schema::DB|Kinetic::Store::Schema::DB> for more information.
 
   my $type = $kbs->column_type($attr);
 
-Pass in a Kinetic::Meta::Attribute::Schema object to get back the SQLite
+Pass in a Kinetic::Store::Meta::Attribute::Schema object to get back the SQLite
 column type to be used for the attribute. The column types are optimized for
 the best correspondence between the attribute types and the types supported by
 SQLite (relatively speaking, of course, since SQLite's data types are actually
@@ -75,7 +75,7 @@ sub column_type {
     my ($self, $attr) = @_;
     my $type = $attr->type;
     return $types{$type} if $types{$type};
-    croak "No such data type: $type" unless Kinetic::Meta->for_key($type);
+    croak "No such data type: $type" unless Kinetic::Store::Meta->for_key($type);
     return "INTEGER";
 }
 
@@ -111,7 +111,7 @@ sub index_for_attr {
   my @constraint_sql = $kbs->constraints_for_class($class);
 
 Returns the SQL statements to create all of the constraints for the class
-described by the Kinetic::Meta::Class::Schema object passed as the sole
+described by the Kinetic::Store::Meta::Class::Schema object passed as the sole
 argument.
 
 The constraint statements returned may include one or more of the following:
@@ -190,7 +190,7 @@ sub constraints_for_class {
 
 Returns SQLite triggers to validate that the value of a state column in the
 table representing the contents of the class represented by the
-Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
+Kinetic::Store::Meta::Class::Schema object passed as the sole argument. If the class
 does not have a state attribute (because it inherits the state from a concrete
 parent class), C<state_trigger()> will return an empty list.
 
@@ -278,7 +278,7 @@ sub once_triggers_sql {
 
 Returns the SQLite triggers to validate the values of any "unique" attributes
 in the table representing the contents of the class represented by the
-Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
+Kinetic::Store::Meta::Class::Schema object passed as the sole argument. If the class
 has no unique attributes C<unique_triggers()> will return an empty list.
 
 Called by C<constraints_for_class()>.
@@ -387,7 +387,7 @@ sub unique_triggers {
 
 Returns SQLite triggers to validate that the value of a operator column in the
 table representing the contents of the class represented by the
-Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
+Kinetic::Store::Meta::Class::Schema object passed as the sole argument. If the class
 does not have a operator attribute (because it inherits the operator from a concrete
 parent class), C<operator_trigger()> will return an empty list.
 
@@ -415,7 +415,7 @@ sub operator_triggers {
 
 Returns SQLite triggers to validate that the value of a media_type column in
 the table representing the contents of the class represented by the
-Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
+Kinetic::Store::Meta::Class::Schema object passed as the sole argument. If the class
 does not have a media_type attribute (because it inherits the media_type from
 a concrete parent class), C<media_type_trigger()> will return an empty list.
 
@@ -440,7 +440,7 @@ sub media_type_triggers {
 
 Returns SQLite triggers to validate that the value of a attribute column in
 the table representing the contents of the class represented by the
-Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
+Kinetic::Store::Meta::Class::Schema object passed as the sole argument. If the class
 does not have a attribute attribute (because it inherits the attribute from
 a concrete parent class), C<attribute_trigger()> will return an empty list.
 
@@ -464,7 +464,7 @@ sub attribute_triggers {
 
 Returns SQLite triggers to validate that the value of a version column in the
 table representing the contents of the class represented by the
-Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
+Kinetic::Store::Meta::Class::Schema object passed as the sole argument. If the class
 does not have a version attribute (because it inherits the version from a
 concrete parent class), C<version_trigger()> will return an empty list.
 
@@ -488,7 +488,7 @@ sub version_triggers {
 
 Returns SQLite triggers to validate that the value of a gtin column in the
 table representing the contents of the class represented by the
-Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
+Kinetic::Store::Meta::Class::Schema object passed as the sole argument. If the class
 does not have a gtin attribute (because it inherits the gtin from a
 concrete parent class), C<gtin_trigger()> will return an empty list.
 
@@ -708,7 +708,7 @@ takes the data and creates the SQL. The primary logic to assemble the data for
 this method is in C<_generate_fk>.
 
 The reason these methods are separate is because some tables (such as those
-created by C<has_many> relationships) are not represented by C<Kinetic::Meta>
+created by C<has_many> relationships) are not represented by C<Kinetic::Store::Meta>
 classes and thus do not have the direct introspective capability necessary to
 assemble the arguments dynamically.
 

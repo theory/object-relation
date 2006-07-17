@@ -1,4 +1,4 @@
-package Kinetic::Meta;
+package Kinetic::Store::Meta;
 
 # $Id$
 
@@ -8,10 +8,10 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Class::Meta';
-use Kinetic::Meta::DataTypes;
-use Kinetic::Meta::Attribute;
-use Kinetic::Meta::Class;
-use Kinetic::Meta::Method;
+use Kinetic::Store::Meta::DataTypes;
+use Kinetic::Store::Meta::Attribute;
+use Kinetic::Store::Meta::Class;
+use Kinetic::Store::Meta::Method;
 use Kinetic::Util::Exceptions qw(
     throw_exlib
     throw_invalid_class
@@ -23,7 +23,7 @@ use constant BASE_CLASS => 'Kinetic';
 
 =head1 Name
 
-Kinetic::Meta - Kinetic class automation, introspection, and data validation
+Kinetic::Store::Meta - Kinetic class automation, introspection, and data validation
 
 =head1 Synopsis
 
@@ -32,7 +32,7 @@ Kinetic::Meta - Kinetic class automation, introspection, and data validation
   use strict;
 
   BEGIN {
-      my $cm = Kinetic::Meta->new(
+      my $cm = Kinetic::Store::Meta->new(
         key         => 'thingy',
         plural_key  => 'thingies',
         name        => 'Thingy',
@@ -46,10 +46,10 @@ Kinetic::Meta - Kinetic class automation, introspection, and data validation
 This class inherits from L<Class::Meta|Class::Meta> to provide class
 automation, introspection, and data validation for Kinetic classes. It
 overrides the behavior of Class::Meta to specify the use of the
-L<Kinetic::Meta::Class|Kinetic::Meta::Class> subclass in place of
+L<Kinetic::Store::Meta::Class|Kinetic::Store::Meta::Class> subclass in place of
 Class::Meta::Class.
 
-Any class created with L<Kinetic::Meta|Kinetic::Meta> will automatically have
+Any class created with L<Kinetic::Store::Meta|Kinetic::Store::Meta> will automatically have
 L<Kinetic|Kinetic> pushed onto its C<@ISA> array unless it already inherits
 from L<Kinetic|Kinetic>.
 
@@ -61,9 +61,9 @@ the store APIs can easily dispatch to attribute objects, class objects, and
 data types to get data-store specific metadata without having to do extra work
 themselves. Data store implementors needing store-specific metadata methods
 should add them as necessary to the C<import()> methods of
-L<Kinetic::Meta::Class|Kinetic::Meta::Class>,
-L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>, and/or/
-L<Kinetic::Meta::Type|Kinetic::Meta::Type>
+L<Kinetic::Store::Meta::Class|Kinetic::Store::Meta::Class>,
+L<Kinetic::Store::Meta::Attribute|Kinetic::Store::Meta::Attribute>, and/or/
+L<Kinetic::Store::Meta::Type|Kinetic::Store::Meta::Type>
 
 In general, however, Kinetic users will not need to worry about loading
 data-store specific APIs, as the data stores will load them themselves. And
@@ -72,7 +72,7 @@ else should use them, anyway.
 
 As of this writing, only a single data-store specific API label is supported:
 
-  use Kinetic::Meta ':with_dbstore_api';
+  use Kinetic::Store::Meta ':with_dbstore_api';
 
 More may be added in the future.
 
@@ -82,9 +82,9 @@ sub import {
     my ( $pkg, $api_label ) = @_;
     return unless $api_label;
     $_->import($api_label) for qw(
-        Kinetic::Meta::Class
-        Kinetic::Meta::Attribute
-        Kinetic::Meta::Type
+        Kinetic::Store::Meta::Class
+        Kinetic::Store::Meta::Attribute
+        Kinetic::Store::Meta::Type
     );
 }
 
@@ -98,17 +98,17 @@ sub import {
 
 =head3 new
 
-  my $cm = Kinetic::Meta->new(%init);
+  my $cm = Kinetic::Store::Meta->new(%init);
 
 Overrides the parent Class::Meta constructor in order to specify that the
-class class be Kinetic::Meta::Classl, the attribute class be
-Kinetic::Meta::Attribute, and that the method class be Kinetic::Meta::Method.
+class class be Kinetic::Store::Meta::Classl, the attribute class be
+Kinetic::Store::Meta::Attribute, and that the method class be Kinetic::Store::Meta::Method.
 It also forces the C<key> parameter to default to the last part of the package
 name, e.g., the C<key> for the class My::Big::Fat::Cat would be "cat". This is
 to override Class::Meta's default of using the full class name for the C<key>.
 
 In addition to the parameters supported by C<< Class::Meta->new >>,
-C<< Kinetic::Meta->new >> supports these extra attributes:
+C<< Kinetic::Store::Meta->new >> supports these extra attributes:
 
 =over
 
@@ -247,17 +247,17 @@ sub new {
 
 =head3 class_class
 
-  my $class_class = Kinetic::Meta->class_class;
-  Kinetic::Meta->class_class($class_class);
+  my $class_class = Kinetic::Store::Meta->class_class;
+  Kinetic::Store::Meta->class_class($class_class);
 
 The subclass or Class::Meta::Class that will be used to represent class
 objects. The value of this class attribute is only used at startup time when
 classes are loaded, so if you want to change it form the default, which is
-"Kinetic::Meta::Class", do it before you load any Kinetic classes.
+"Kinetic::Store::Meta::Class", do it before you load any Kinetic classes.
 
 =cut
 
-my $class_class = 'Kinetic::Meta::Class';
+my $class_class = 'Kinetic::Store::Meta::Class';
 
 sub class_class {
     shift;
@@ -269,17 +269,17 @@ sub class_class {
 
 =head3 attribute_class
 
-  my $attribute_class = Kinetic::Meta->attribute_class;
-  Kinetic::Meta->attribute_class($attribute_class);
+  my $attribute_class = Kinetic::Store::Meta->attribute_class;
+  Kinetic::Store::Meta->attribute_class($attribute_class);
 
 The subclass or Class::Meta::Attribute that will be used to represent attribute
 objects. The value of this class attribute is only used at startup time when
 classes are loaded, so if you want to change it form the default, which is
-"Kinetic::Meta::Attribute", do it before you load any Kinetic classes.
+"Kinetic::Store::Meta::Attribute", do it before you load any Kinetic classes.
 
 =cut
 
-my $attribute_class = 'Kinetic::Meta::Attribute';
+my $attribute_class = 'Kinetic::Store::Meta::Attribute';
 
 sub attribute_class {
     shift;
@@ -291,17 +291,17 @@ sub attribute_class {
 
 =head3 method_class
 
-  my $method_class = Kinetic::Meta->method_class;
-  Kinetic::Meta->method_class($method_class);
+  my $method_class = Kinetic::Store::Meta->method_class;
+  Kinetic::Store::Meta->method_class($method_class);
 
 The subclass or Class::Meta::Method that will be used to represent method
 objects. The value of this class method is only used at startup time when
 classes are loaded, so if you want to change it form the default, which is
-"Kinetic::Meta::Method", do it before you load any Kinetic classes.
+"Kinetic::Store::Meta::Method", do it before you load any Kinetic classes.
 
 =cut
 
-my $method_class = 'Kinetic::Meta::Method';
+my $method_class = 'Kinetic::Store::Meta::Method';
 
 sub method_class {
     shift;
@@ -315,7 +315,7 @@ sub method_class {
 
 =head3 for_key
 
-  my $class = Kinetic::Meta->for_key($key);
+  my $class = Kinetic::Store::Meta->for_key($key);
 
 This method overrides the implementation inherited from
 L<Class::Meta|Class::Meta> to throw an exception no class object exists for
@@ -339,9 +339,9 @@ sub for_key {
 
 =head3 attr_for_key
 
-  my $attribute = Kinetic::Meta->attr_for_key('foo.bar');
+  my $attribute = Kinetic::Store::Meta->attr_for_key('foo.bar');
 
-This method returns a L<Kinetic::Meta::Attribute|Kinetic::Meta::Attribute>
+This method returns a L<Kinetic::Store::Meta::Attribute|Kinetic::Store::Meta::Attribute>
 object for a given class key and attribute. The class key and attribute name
 are separated by a dot (".") in the argument. In this above example, the
 attribute "bar" would be returned for the class with the key "foo".
@@ -374,14 +374,14 @@ sub attr_for_key {
   $km->_add_delegates($ref, $rel, $persist, $default);
 
 This method is called by C<new()> to add delegating attributes to a
-Kinetic::Meta::Class that extends, mediates, or is a type of another class.
+Kinetic::Store::Meta::Class that extends, mediates, or is a type of another class.
 The arguments are as follows:
 
 =over
 
 =item 1 $ref
 
-The first argument is a Kinetic::Meta::Class object representing the class
+The first argument is a Kinetic::Store::Meta::Class object representing the class
 that the current class references for the relationship.
 
 =item 2 $rel
@@ -417,13 +417,13 @@ sub _add_delegates {
         create       => Class::Meta::RDWR,
         default      => $def,
         relationship => $rel,
-        widget_meta  => Kinetic::Meta::Widget->new(
+        widget_meta  => Kinetic::Store::Meta::Widget->new(
             type => 'search',
             tip  => $ref->{label},
         ),
     );
 
-    # XXX Kinetic::Meta::Class::Schema->parents doesn't work because it
+    # XXX Kinetic::Store::Meta::Class::Schema->parents doesn't work because it
     # only returns non-abstract parents and, besides, doesn't figure out
     # what they are until build() is called.
 
@@ -466,7 +466,7 @@ sub _add_delegates {
             delegates_to => $ref,
             acts_as      => $attr,
         );
-        # Delegation methods are created by Kinetic::Meta::AccessorBuilder.
+        # Delegation methods are created by Kinetic::Store::Meta::AccessorBuilder.
     }
 
     if ($persist) {

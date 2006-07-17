@@ -174,7 +174,7 @@ we check to see if there are any constraints and convert them into a hashref
 matching the I<CODE> query type hashref.
 
 Once the query type is determined, we set the query data via a method
-cleverly named C<&_set_search_data>. This method uses the C<Kinetic::Meta>
+cleverly named C<&_set_search_data>. This method uses the C<Kinetic::Store::Meta>
 introspection API to determine all relevant information necessary to conduct
 the query and convert results back into Kinetic objects. Because this method
 is relatively expensive, the information is cached and subsequent calls will

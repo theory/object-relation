@@ -30,8 +30,8 @@ file_exists_ok $db_file, 'The database file should now exist';
 
 # Make sure that everything has been created.
 my $dbh = DBI->connect("dbi:SQLite:dbname=$db_file", '', '');
-for my $view ( Kinetic::Meta->keys ) {
-    my $class = Kinetic::Meta->for_key($view);
+for my $view ( Kinetic::Store::Meta->keys ) {
+    my $class = Kinetic::Store::Meta->for_key($view);
     my ($expect, $not) = $class->abstract
         ? ([], ' not')
         : ([[1]], '');

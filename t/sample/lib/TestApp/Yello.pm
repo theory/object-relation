@@ -7,7 +7,7 @@ use Kinetic::Util::Language::en_us;
 use TestApp::Simple::One;
 
 BEGIN {
-    my $km = Kinetic::Meta->new(
+    my $km = Kinetic::Store::Meta->new(
         key         => 'yello',
         name        => 'Yello',
     );
@@ -16,7 +16,7 @@ BEGIN {
         name        => 'age',
         label       => 'Yello age',
         type        => 'posint',
-        widget_meta => Kinetic::Meta::Widget->new(
+        widget_meta => Kinetic::Store::Meta::Widget->new(
             type => 'text',
             tip  => 'This is a tip.  This is only a tip.',
         ),
@@ -26,7 +26,7 @@ BEGIN {
         name         => 'ones',
         type         => 'one',
         relationship => 'has_many',
-        widget_meta  => Kinetic::Meta::Widget->new(
+        widget_meta  => Kinetic::Store::Meta::Widget->new(
             type => 'text',
             tip  => 'This is a tip.  This is only a tip.',
         ),

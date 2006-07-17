@@ -6,7 +6,7 @@ use strict;
 use base 'DateTime';
 use DateTime::TimeZone;
 use DateTime::Format::Strptime;
-use Kinetic::Meta::Type;
+use Kinetic::Store::Meta::Type;
 use Exporter::Tidy other => ['is_iso8601'];
 
 use version;
@@ -38,7 +38,7 @@ another time zone is specified.
 =cut
 
 my $utc = DateTime::TimeZone::UTC->new;
-Kinetic::Meta::Type->add(
+Kinetic::Store::Meta::Type->add(
     key     => 'datetime',
     name    => 'DateTime',
     raw     => sub {

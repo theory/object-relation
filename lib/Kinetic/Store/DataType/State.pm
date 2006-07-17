@@ -8,7 +8,7 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use aliased 'Kinetic::Util::Language';
-use Kinetic::Meta::Type;
+use Kinetic::Store::Meta::Type;
 use overload
     '""'     => \&name,
     '<=>'    => \&compare,
@@ -135,7 +135,7 @@ sub PURGED    () { return $states[-2] }
 
 use Exporter::Tidy all => [qw(PERMANENT ACTIVE INACTIVE DELETED PURGED)];
 
-Kinetic::Meta::Type->add(
+Kinetic::Store::Meta::Type->add(
     key     => 'state',
     name    => 'State',
     raw     => sub { ref $_[0] ? shift->value : shift },

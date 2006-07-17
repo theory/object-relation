@@ -5,7 +5,7 @@ package Kinetic::Store::DataType::Duration;
 use strict;
 use base 'DateTime::Duration';
 use DateTime;
-use Kinetic::Meta::Type;
+use Kinetic::Store::Meta::Type;
 use Kinetic::Util::Exceptions qw(throw_invalid);
 
 use overload
@@ -50,7 +50,7 @@ functionality of this module.
 =cut
 
 # Create the data type.
-Kinetic::Meta::Type->add(
+Kinetic::Store::Meta::Type->add(
     key       => 'duration',
     name      => 'Duration',
     raw       => sub { ref $_[0] ? shift->raw : shift },

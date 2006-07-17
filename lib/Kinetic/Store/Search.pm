@@ -383,7 +383,7 @@ Examples are 'LE', 'EQ', 'LIKE', etc.
   $search->class([$class]);
 
 Getter/Setter for the class which contains the
-L<Kinetic::Meta::Class|Kinetic::Meta::Class> object for the class being
+L<Kinetic::Store::Meta::Class|Kinetic::Store::Meta::Class> object for the class being
 searched.
 
 =head3 key

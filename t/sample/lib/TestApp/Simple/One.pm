@@ -1,10 +1,10 @@
 package TestApp::Simple::One;
 use base 'TestApp::Simple';
-use Kinetic::Meta;
+use Kinetic::Store::Meta;
 use Kinetic::Util::Language::en_us;
 
 BEGIN {
-    my $km = Kinetic::Meta->new(
+    my $km = Kinetic::Store::Meta->new(
         key         => 'one',
         name        => 'One',
         plural_name => 'Ones',
@@ -17,7 +17,7 @@ BEGIN {
         required      => 1,
         default       => 1,
         store_default => 1,
-        widget_meta   => Kinetic::Meta::Widget->new(
+        widget_meta   => Kinetic::Store::Meta::Widget->new(
             type => 'checkbox',
             tip  => 'Bool',
         )

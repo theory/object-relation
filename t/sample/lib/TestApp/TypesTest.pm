@@ -3,14 +3,14 @@ package TestApp::TypesTest;
 use strict;
 use warnings;
 
-use Kinetic::Meta;
-use Kinetic::Meta::Widget;
+use Kinetic::Store::Meta;
+use Kinetic::Store::Meta::Widget;
 use Kinetic::Util::Language::en_us;
 use Kinetic::Store::DataType::Duration;
 use Kinetic::Store::DataType::MediaType;
 
 BEGIN {
-    my $km = Kinetic::Meta->new(
+    my $km = Kinetic::Store::Meta->new(
         key         => 'types_test',
         name        => 'Types Test',
         plural_name => 'Types Tests',
@@ -48,7 +48,7 @@ BEGIN {
         type        => 'duration',
         required    => 1,
         indexed     => 1,
-        widget_meta => Kinetic::Meta::Widget->new(
+        widget_meta => Kinetic::Store::Meta::Widget->new(
             type => 'interval',
             tip  => 'An interval of time',
         )

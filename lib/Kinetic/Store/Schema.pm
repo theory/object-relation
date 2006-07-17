@@ -7,16 +7,16 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.2');
 
-use Kinetic::Meta;
-use Kinetic::Meta::Class::Schema;
-use Kinetic::Meta::Attribute::Schema;
+use Kinetic::Store::Meta;
+use Kinetic::Store::Meta::Class::Schema;
+use Kinetic::Store::Meta::Attribute::Schema;
 use Kinetic::Util::Functions;
 use File::Spec;
 use File::Path;
 use Carp;
 
-Kinetic::Meta->class_class('Kinetic::Meta::Class::Schema');
-Kinetic::Meta->attribute_class('Kinetic::Meta::Attribute::Schema');
+Kinetic::Store::Meta->class_class('Kinetic::Store::Meta::Class::Schema');
+Kinetic::Store::Meta->attribute_class('Kinetic::Store::Meta::Attribute::Schema');
 
 =head1 Name
 
@@ -76,7 +76,7 @@ sub new {
   my @classes = $sg->classes;
   $sg->classes(@classes);
 
-The C<Kinetic::Meta::Class> objects representing classes loaded by the
+The C<Kinetic::Store::Meta::Class> objects representing classes loaded by the
 C<load_classes()> method. The classes will be returned in an order appropriate
 for satisfying dependencies; that is, classes that depend on other classes
 will be returned after the classes on which they depend.
@@ -104,7 +104,7 @@ sub classes {
 
 Uses L<File::Find::Rule|File::Find::Rule> to find and load all Perl modules
 found in the directories specified and their subdirectories, and stores the
-the Kinetic::Meta::Class objects for each that inherits from C<Kinetic>. If
+the Kinetic::Store::Meta::Class objects for each that inherits from C<Kinetic>. If
 the last argument so the method is not a File::Find::Rule object, one will be
 created that ignores directories named F<.svn> and C<CVS> and loads all files
 that end in F<.pm> and do not contain "#" in their names. If you need
@@ -238,7 +238,7 @@ sub setup_code { return }
 
 Returns a list of the schema statements that can be used to build the data
 store for the class passed as an argument. The class can be either a class
-name or a C<Kinetic::Meta::Class> object, but must have been loaded by
+name or a C<Kinetic::Store::Meta::Class> object, but must have been loaded by
 C<load_classes()>. This method is abstract; it must be implemented by
 subclasses.
 
@@ -258,7 +258,7 @@ subclasses.
 
   my @classes = $sg->_sort_class(\%seen, $class);
 
-Returns the Kinetic::Meta::Class::Schema object passed in, as well as any
+Returns the Kinetic::Store::Meta::Class::Schema object passed in, as well as any
 other classes that are dependencies of the class. Dependencies are returned
 before the classes that depend on them. This method is called recursively, so
 it's important to pass a hash reference to keep track of all the classes seen

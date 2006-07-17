@@ -30,8 +30,8 @@ subclasses of Kinetic::Store::Schema::DB for database-specific implementations.
 =head1 Naming Conventions
 
 The naming conventions for database objects are defined by the schema meta
-classes. See L<Kinetic::Meta::Class::Schema|Kinetic::Meta::Class::Schema> and
-L<Kinetic::Meta::Attribute::Schema|Kinetic::Meta::Attribute::Schema> for the
+classes. See L<Kinetic::Store::Meta::Class::Schema|Kinetic::Store::Meta::Class::Schema> and
+L<Kinetic::Store::Meta::Attribute::Schema|Kinetic::Store::Meta::Attribute::Schema> for the
 methods that define these names and documentation for the naming conventions.
 
 =cut
@@ -50,7 +50,7 @@ methods that define these names and documentation for the naming conventions.
 
 Returns a list of the SQL statements that can be used to build the tables,
 indexes constraints, etc. necessary to manage a class in a database. Pass in a
-Kinetic::Meta::Class object as the sole argument.
+Kinetic::Store::Meta::Class object as the sole argument.
 
 =cut
 
@@ -265,7 +265,7 @@ sub columns_for_class {
 
 This method returns the SQL representing a single column declaration in a
 table, where the column holds data represented by the
-C<Kinetic::Meta::Attribute> object passed to the method.
+C<Kinetic::Store::Meta::Attribute> object passed to the method.
 
 =cut
 
@@ -288,7 +288,7 @@ sub generate_column {
 
   my $type = $kbs->column_type($attr);
 
-Pass in a Kinetic::Meta::Attribute::Schema object to get back the column type
+Pass in a Kinetic::Store::Meta::Attribute::Schema object to get back the column type
 to be used for the attribute. This implementation simply returns the string
 "TEXT" for all attributes, but may be overridden in subclasses to return
 something more appropriate to particular attribute types.
@@ -303,7 +303,7 @@ sub column_type { return "TEXT" }
 
   my $null_sql = $kbs->column_null($attr);
 
-Pass in a Kinetic::Meta::Attribute::Schema object to get back the null
+Pass in a Kinetic::Store::Meta::Attribute::Schema object to get back the null
 constraint expression for the attribute. Returns "NOT NULL" if the attribute
 is required, and an empty string if it is not required.
 
@@ -321,7 +321,7 @@ sub column_null {
 
   my $default_sql = $kbs->column_default($attr);
 
-Pass in a Kinetic::Meta::Attribute::Schema object to get back the default
+Pass in a Kinetic::Store::Meta::Attribute::Schema object to get back the default
 value expression for the column for the attribute. Returns C<undef> (or an
 empty list) if there is no default value on the column. Otherwise, it returns
 the default value expression.
@@ -358,7 +358,7 @@ sub column_default {
 
   my $ref_sql = $kbs->column_reference($attr);
 
-Pass in a Kinetic::Meta::Attribute::Schema object to get back the SQL
+Pass in a Kinetic::Store::Meta::Attribute::Schema object to get back the SQL
 expression to create a foreign key relationship to another table for the given
 attribute. Returns C<undef> (or an empty list) if the attribute is not a
 reference to another object. Otherwise, it returns a simple reference
@@ -383,7 +383,7 @@ sub column_reference {
   my $pk_sql = $kbs->pk_column($class);
 
 Returns the SQL statement to create the primary key column for the table for
-the Kinetic::Meta::Class::Schema object passed as its sole argument. If the
+the Kinetic::Store::Meta::Class::Schema object passed as its sole argument. If the
 class has a concrete parent class, the primary key column expression will
 reference the primary key in the parent table. Otherwise, it will just define
 the primary key for the current class.
@@ -407,7 +407,7 @@ sub pk_column {
   my $index_sql = $kbs->indexes_for_class($class);
 
 Returns the SQL statements to create all of the indexes for the class
-described by the Kinetic::Meta::Class::Schema object passed as the sole
+described by the Kinetic::Store::Meta::Class::Schema object passed as the sole
 argument. All of the index declaration statements will be returned in a single
 string, each separated by a "\n".
 
@@ -483,7 +483,7 @@ sub _collection_indexes {
   my $column = $kbs->index_on($attr);
 
 Returns the name of the column on which an index will be generated for the
-given Kinetic::Meta::Attribute::Schema object. Called by C<index_for_class()>.
+given Kinetic::Store::Meta::Attribute::Schema object. Called by C<index_for_class()>.
 May be overridden in subclasses to enclose the column name in SQL functions
 and the like.
 
@@ -498,7 +498,7 @@ sub index_on { pop->column }
   my $constraint_sql = $kbs->constraints_for_class($class);
 
 Returns a list of the SQL statements to create all of the constraints for the
-class described by the Kinetic::Meta::Class::Schema object passed as the sole
+class described by the Kinetic::Store::Meta::Class::Schema object passed as the sole
 argument.
 
 This implementation actually returns C<undef> (or an empty list), but
@@ -518,7 +518,7 @@ sub constraints_for_class {
   my $constraint_sql = $kbs->procedures_for_class($class);
 
 Returns a list of the SQL statements to create all of the procedures and/or
-functions for the class described by the Kinetic::Meta::Class::Schema object
+functions for the class described by the Kinetic::Store::Meta::Class::Schema object
 passed as the sole argument.
 
 This implementation actually returns C<undef> (or an empty list), but may be
@@ -538,7 +538,7 @@ sub procedures_for_class {
   my $view_sql = $kbs->views_for_class($class);
 
 Returns the SQL statement to create a database view for class described by the
-Kinetic::Meta::Class::Schema object passed as the sole argument. Views are the
+Kinetic::Store::Meta::Class::Schema object passed as the sole argument. Views are the
 main construct to access the attributes of a class. They will often
 encapsulate inheritance relationships, so that consumer code does not have to
 be aware of the inheritance relationship of tables when selecting or modify
@@ -740,7 +740,7 @@ sub _map_ref_columns {
 
 Returns the triggers to validate the values of any "once" attributes in
 the table representing the contents of the class represented by the
-Kinetic::Meta::Class::Schema object passed as the sole argument. If the class
+Kinetic::Store::Meta::Class::Schema object passed as the sole argument. If the class
 has no once attributes C<once_triggers()> will return C<undef> (or an empty
 list).
 

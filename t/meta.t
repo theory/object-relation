@@ -15,13 +15,13 @@ package MyTest::Thingy;
 
 BEGIN {
     Test::More->import;
-    use_ok('Kinetic::Meta')                  or die;
+    use_ok('Kinetic::Store::Meta')                  or die;
     use_ok('Kinetic::Util::Language')        or die;
     use_ok('Kinetic::Util::Language::en_us') or die;
-    use_ok('Kinetic::Meta::Class')           or die;
-    use_ok('Kinetic::Meta::Attribute')       or die;
-    use_ok('Kinetic::Meta::AccessorBuilder') or die;
-    use_ok('Kinetic::Meta::Widget')          or die;
+    use_ok('Kinetic::Store::Meta::Class')           or die;
+    use_ok('Kinetic::Store::Meta::Attribute')       or die;
+    use_ok('Kinetic::Store::Meta::AccessorBuilder') or die;
+    use_ok('Kinetic::Store::Meta::Widget')          or die;
 
     # Add new strings to the lexicon.
     Kinetic::Util::Language::en->add_to_lexicon(
@@ -37,27 +37,27 @@ BEGIN {
 
 BEGIN {
     # Make sure the Store methods don't load until we load a db Store.
-    ok !defined(&Kinetic::Meta::Attribute::_column),
+    ok !defined(&Kinetic::Store::Meta::Attribute::_column),
         'Attribute::_column() should not exist';
-    ok !defined(&Kinetic::Meta::Attribute::_view_column),
+    ok !defined(&Kinetic::Store::Meta::Attribute::_view_column),
         'Attribute::_view_column() should not exist';
 
     # Load a database store.
     use_ok('Kinetic::Store::Handle::DB::SQLite') or die;
 
-    ok defined(&Kinetic::Meta::Attribute::_column),
+    ok defined(&Kinetic::Store::Meta::Attribute::_column),
         'Now Attribute::_column() should exist';
-    ok defined(&Kinetic::Meta::Attribute::_view_column),
+    ok defined(&Kinetic::Store::Meta::Attribute::_view_column),
         'Now Attribute::_view_column() should exist';
 }
 
 BEGIN {
-    is( Kinetic::Meta->class_class, 'Kinetic::Meta::Class',
-        "The class class should be 'Kinetic::Meta::Class'");
-    is( Kinetic::Meta->attribute_class, 'Kinetic::Meta::Attribute',
-        "The attribute class should be 'Kinetic::Meta::Attribute'");
+    is( Kinetic::Store::Meta->class_class, 'Kinetic::Store::Meta::Class',
+        "The class class should be 'Kinetic::Store::Meta::Class'");
+    is( Kinetic::Store::Meta->attribute_class, 'Kinetic::Store::Meta::Attribute',
+        "The attribute class should be 'Kinetic::Store::Meta::Attribute'");
 
-    ok my $km = Kinetic::Meta->new(
+    ok my $km = Kinetic::Store::Meta->new(
         name        => 'Thingy',
         plural_name => 'Thingies',
     ), "Create TestThingy class";
@@ -69,7 +69,7 @@ BEGIN {
         indexed       => 1,
         on_delete     => 'CASCADE',
         store_default => 'ick',
-        widget_meta   => Kinetic::Meta::Widget->new(
+        widget_meta   => Kinetic::Store::Meta::Widget->new(
             type => 'text',
             tip  => 'Kinetic',
         )
@@ -89,7 +89,7 @@ package MyTest::Fooey;
 BEGIN { Test::More->import; }
 
 BEGIN {
-    ok my $km = Kinetic::Meta->new(
+    ok my $km = Kinetic::Store::Meta->new(
         key         => 'fooey',
         name        => 'Fooey',
         plural_name => 'Fooies',
@@ -124,7 +124,7 @@ package MyTest::HasMany;
 BEGIN { Test::More->import; }
 
 BEGIN {
-    ok my $km = Kinetic::Meta->new(
+    ok my $km = Kinetic::Store::Meta->new(
         key         => 'cheese_pimple',
         name        => 'Gross',
         plural_name => 'Cheese pimples',
@@ -155,7 +155,7 @@ package MyTest::Extends;
 BEGIN { Test::More->import; }
 
 BEGIN {
-    ok my $km = Kinetic::Meta->new(
+    ok my $km = Kinetic::Store::Meta->new(
         key         => 'extend',
         name        => 'Extend',
         plural_name => 'Extends',
@@ -180,7 +180,7 @@ package MyTest::Mediates;
 BEGIN { Test::More->import; }
 
 BEGIN {
-    ok my $km = Kinetic::Meta->new(
+    ok my $km = Kinetic::Store::Meta->new(
         key         => 'mediate',
         name        => 'Mediate',
         plural_name => 'Mediates',
@@ -205,7 +205,7 @@ package MyTest::::Meta::ExtMed;
 BEGIN { Test::More->import; }
 BEGIN {
     eval {
-        Kinetic::Meta->new(
+        Kinetic::Store::Meta->new(
             key      => 'ow',
             extends  => 'thingy',
             mediates => 'extend',
@@ -225,7 +225,7 @@ BEGIN {
 }
 
 BEGIN {
-    ok my $km = Kinetic::Meta->new(
+    ok my $km = Kinetic::Store::Meta->new(
 
         key         => 'owie',
         name        => 'Owie',
@@ -244,14 +244,14 @@ BEGIN {
 package main;
 
 ok my $class = MyTest::Thingy->my_class, "Get meta class object";
-isa_ok $class, 'Kinetic::Meta::Class';
+isa_ok $class, 'Kinetic::Store::Meta::Class';
 isa_ok $class, 'Class::Meta::Class';
-ok $class = Kinetic::Meta->for_key('thingy'),
+ok $class = Kinetic::Store::Meta->for_key('thingy'),
     'Get meta class object via for_key()';
-isa_ok $class, 'Kinetic::Meta::Class';
+isa_ok $class, 'Kinetic::Store::Meta::Class';
 isa_ok $class, 'Class::Meta::Class';
 
-eval { Kinetic::Meta->for_key('_no_such_thing') };
+eval { Kinetic::Store::Meta->for_key('_no_such_thing') };
 
 ok my $err = $@, 'Caught for_key() exception';
 isa_ok $err, 'Kinetic::Util::Exception';
@@ -261,11 +261,11 @@ is $err->error,
     "I could not find the class for key \x{201c}_no_such_thing\x{201d}",
     'We should have received the proper error message';
 
-ok my $attr = Kinetic::Meta->attr_for_key('thingy.foo'),
+ok my $attr = Kinetic::Store::Meta->attr_for_key('thingy.foo'),
     'Get an attribute via attr_for_key()';
-isa_ok $attr, 'Kinetic::Meta::Attribute';
+isa_ok $attr, 'Kinetic::Store::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
-eval { Kinetic::Meta->attr_for_key('thingy._no_such_thing') };
+eval { Kinetic::Store::Meta->attr_for_key('thingy._no_such_thing') };
 
 ok $err = $@, 'Caught attr_for_key() exception';
 isa_ok $err, 'Kinetic::Util::Exception';
@@ -301,7 +301,7 @@ is_deeply [$class->persistent_attributes], \@attrs,
     'By default, persistent_attributes should return all attributes';
 
 ok $attr = $class->attributes('foo'), "Get foo attribute";
-isa_ok $attr, 'Kinetic::Meta::Attribute';
+isa_ok $attr, 'Kinetic::Store::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
 is $attr->name, 'foo', "Check attr name";
 is $attr->type, 'string', "Check attr type";
@@ -309,7 +309,7 @@ is $attr->label, 'Foo', "Check attr label";
 is $attr->indexed, 1, "Indexed should be true";
 
 ok my $wm = $attr->widget_meta, "Get widget meta object";
-isa_ok $wm, 'Kinetic::Meta::Widget';
+isa_ok $wm, 'Kinetic::Store::Meta::Widget';
 isa_ok $wm, 'Widget::Meta';
 is $wm->tip, 'Kinetic', "Check tip";
 
@@ -318,7 +318,7 @@ is $fclass->sort_by, $fclass->attributes('lname'), 'Check specified sort_by';
 is_deeply [$fclass->sort_by], [ $fclass->attributes('lname', 'fname') ],
     'Check sort_by in an array context';
 ok $attr = $fclass->attributes('thingy'), "Get thingy attribute";
-isa_ok $attr, 'Kinetic::Meta::Attribute';
+isa_ok $attr, 'Kinetic::Store::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
 is $attr->widget_meta->type, 'text',
     'It should default to a "text" widget type';
@@ -397,7 +397,7 @@ isa_ok $coll2, 'Kinetic::Util::Collection::Thingy',
 is_deeply [$coll2->all], [$coll->all],
     '... and it should be identical to the stored collection';
 
-my $thingy_class = Kinetic::Meta->for_key('thingy');
+my $thingy_class = Kinetic::Store::Meta->for_key('thingy');
 can_ok $thingy_class, 'contained_in';
 ok my @containers = $thingy_class->contained_in,
   '... and it should return containing classes';
@@ -426,7 +426,7 @@ isa_ok $ex => 'Kinetic';
 ok !$ex->isa('MyTest::Thingy'), 'The object isn\'ta MyTest::Thingy';
 
 # Make sure that delegates_to is set properly.
-ok $thingy_class = Kinetic::Meta->for_key('thingy'),
+ok $thingy_class = Kinetic::Store::Meta->for_key('thingy'),
     'Get the thingy class object';
 ok $attr = $class->attributes('uuid'), 'Get the uuid attribute object';
 is $attr->delegates_to, undef, 'uuid should not delegate';

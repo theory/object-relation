@@ -141,8 +141,8 @@ sub test_rules : Test(41) {
     );
     my $sg = $kbs->schema_class->new;
     $sg->load_classes( $kbs->builder->source_dir );
-    for my $view ( Kinetic::Meta->keys ) {
-        my $class = Kinetic::Meta->for_key($view);
+    for my $view ( Kinetic::Store::Meta->keys ) {
+        my $class = Kinetic::Store::Meta->for_key($view);
         my ($expect, $not) = $class->abstract
             ? ([], ' not')
             : ([[1]], '');
@@ -170,8 +170,8 @@ sub test_rules : Test(41) {
         }
     );
 
-    for my $view ( Kinetic::Meta->keys ) {
-        my $class = Kinetic::Meta->for_key($view);
+    for my $view ( Kinetic::Store::Meta->keys ) {
+        my $class = Kinetic::Store::Meta->for_key($view);
         my ($expect, $not) = $class->abstract
             ? ([], ' not')
             : ([[1]], '');

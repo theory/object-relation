@@ -17,14 +17,14 @@ BEGIN {
     Test::More->import;
     # We need to load Kinetic first, or else things just won't work!
     use_ok('Kinetic') or die;
-    use_ok('Kinetic::Meta::DataTypes')     or die;
+    use_ok('Kinetic::Store::Meta::DataTypes')     or die;
     use_ok('Kinetic::Store::DataType::DateTime')  or die;
     use_ok('Kinetic::Store::DataType::Duration')  or die;
     use_ok('Kinetic::Store::DataType::MediaType') or die;
 }
 
 BEGIN {
-    ok( my $cm = Kinetic::Meta->new(
+    ok( my $cm = Kinetic::Store::Meta->new(
         key     => 'types',
         name    => 'Testing DataTypes',
     ), "Create new CM object" );
@@ -376,7 +376,7 @@ is( $t->attribute, undef, 'Check for no Attribute' );
 # Make sure that automatic baking works.
 my $attribute = 'types.bool';
 $t->{attribute} = $attribute; # Don't try this at home!
-isa_ok($t->attribute, 'Kinetic::Meta::Attribute');
+isa_ok($t->attribute, 'Kinetic::Store::Meta::Attribute');
 
 # Try assigning a Kinetic::Attribute object.
 $attribute = Kinetic::TestTypes->my_class->attributes('bool');

@@ -9,7 +9,7 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use Scalar::Util 'blessed';
-use aliased 'Kinetic::Meta';
+use aliased 'Kinetic::Store::Meta';
 use Kinetic::Util::Exceptions qw/
   throw_fatal
   throw_invalid_class

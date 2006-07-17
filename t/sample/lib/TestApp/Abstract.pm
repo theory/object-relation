@@ -3,12 +3,12 @@ package TestApp::Abstract;
 use strict;
 use warnings;
 
-use Kinetic::Meta;
-use Kinetic::Meta::Widget;
+use Kinetic::Store::Meta;
+use Kinetic::Store::Meta::Widget;
 use Kinetic::Util::Language::en_us;
 
 BEGIN {
-    my $km = Kinetic::Meta->new(
+    my $km = Kinetic::Store::Meta->new(
         key         => 'abstract',
         name        => 'Abstract',
         plural_name => 'Abstracts',
@@ -21,7 +21,7 @@ BEGIN {
         type        => 'string',
         required    => 1,
         indexed     => 1,
-        widget_meta => Kinetic::Meta::Widget->new(
+        widget_meta => Kinetic::Store::Meta::Widget->new(
             type => 'text',
             tip  => 'The name of this object',
         )
