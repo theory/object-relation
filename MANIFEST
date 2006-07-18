@@ -98,6 +98,7 @@ t/media_type.t
 t/meta.t
 t/mysql/schema.t
 t/parser/main.t
+t/pg/rules.t
 t/pg/schema.t
 t/pg/schema_file.t
 t/pg/setup.t
