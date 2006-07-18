@@ -169,7 +169,7 @@ work.
 
 sub setup {
     my $self = shift;
-    my $machine = FSA::Rules->new($self->rules);
+    my $machine = FSA::Rules->new( $self->rules );
     $machine->run;
     return $self;
     $self->disconnect_all;
@@ -256,18 +256,16 @@ sub rules {
                 local *__ANON__ = '__ANON__check_for_database';
                 my $state = shift;
                 my $dsn = $self->dsn;
-                # If we're connected to the database, it exists.
-                return $state->result(1) if $state->notes('dsn') eq $dsn;
 
-                # Parse out the database name from the DSn and query for it.
-                # Chance are it doesn't exist (or we would have connected to
-                # it), but let's just be thorough.
-                my ($db_name) = $dsn =~ /dbname=['"]?([^;'"]+)/;
-                $state->result($self->_fetch_value(
-                    'SELECT datname FROM pg_catalog.pg_database WHERE '
-                    . 'datname = ?',
-                    $db_name,
-                ));
+                $state->result(
+                    # If we're connected to the database, it exists.
+                    $state->notes('dsn') eq $dsn
+                    # Chances are the database doesn't exist (or we would have
+                    # connected to it), but let's just be thorough.
+                    # Database handle in dbh should still be good.
+                    || $self->_db_exists
+                 );
+                $state->notes( db_exists => $state->result );
             },
             rules => [
                 'Database Exists' => {
@@ -306,7 +304,9 @@ sub rules {
                 'Fail' => {
                     rule => sub {
                         # Set the message before we die.
-                        shift->message('No');
+                        my $state = shift;
+                        $state->message('No');
+                        $state->machine->curr_state('Fail');
                         throw_setup [
                             'User "[_1]" cannot connect to either "[_2]" or "[_3]"',
                             $self->user,
@@ -325,22 +325,43 @@ sub rules {
             label => 'Does it have PL/pgSQL?',
             do => sub {
                 my $state = shift;
+                # dbh should be connected to the production database.
+                $state->result($self->_plpgsql_available);
+                $state->notes( plpgsql => $state->result );
             },
             rules => [
                 'Database Has PL/pgSQL' => {
-                    rule => sub { shift->result }, # and super user
+                    rule => sub {
+                        # Super user goes to this state.
+                        my $state = shift;
+                        $state->result && $state->notes('super');
+                    },
+                    message => 'Yes',
+                },
+                'User Exists' => {
+                    # Regular user goes to this state.
+                    rule => sub { shift->result },
                     message => 'Yes',
                 },
                 'No PL/pgSQL' => {
-                    rule => sub { 1 }, # And have super user.
+                    # Super user goes to this state.
+                    rule => sub { shift->notes('super') },
                     message => 'No',
                 },
-                'User Exists' => {
-                    rule => sub { shift->result }, # and user
-                    message => 'Yes',
-                },
                 'Fail' => {
-                    rule => 1,  # User cannot create PL/pgSQL.
+                    # Regular user cannot add PL/pgSQL.
+                    rule => sub {
+                        # Set the message before we die.
+                        my $state = shift;
+                        $state->message('No');
+                        $state->machine->curr_state('Fail');
+                        throw_setup [
+                            'The "[_1]" database does not have PL/pgSQL and user "[_2]" cannot add it',
+                            $self->dsn,
+                            $self->user,
+                        ];
+                    },
+                    # Leave this for graphing.
                     message => 'No',
                 },
             ],
@@ -351,17 +372,42 @@ sub rules {
             label => 'So create the database.',
             do => sub {
                 my $state = shift;
+                # User should be connected to the template database.
+                # $self->connect(
+                #     $self->template_dsn,
+                #     $state->notes('super')
+                #         ? ( $self->super_user, $self->super_pass )
+                #         : ( $self->user,       $self->pass       )
+                # );
+                $state->result(
+                    $self->create_db($self->_get_dbname_from_dsn($self->dsn))
+                );
             },
             rules => [
                 'Database Has PL/pgSQL' => {
-                    rule => sub { shift->result },
+                    # Superuser needs to check for user.
+                    rule => sub {
+                        my $state = shift;
+                        $state->result && $state->notes('super')
+                            && $state->notes('plpgsql');
+                    },
                     message => 'Okay',
                 },
                 'Add PL/pgSQL' => {
-                    rule => 1, # For superuser when template doesn't have PL/pgSQL.
+                    # Superuser can add PL/pgSQL.
+                    rule => sub {
+                        my $state = shift;
+                        $state->result && $state->notes('super');
+                    },
+                    message => 'Okay',
+                },
+                'User Exists' => {
+                    # User can now create the database.
+                    rule => sub { shift->result },
                     message => 'Okay',
                 },
                 'Fail' => {
+                    # This is here mainly for documentation purposes.
                     rule => 1,
                     message => 'Failed',
                 },
@@ -370,9 +416,12 @@ sub rules {
 
         ######################################################################
         'User Connects' => {
-            label => 'Does the Database exist?',
+            label => 'Does the database exist?',
             do => sub {
                 my $state = shift;
+                # User connected to template db in dsn.
+                $state->result( $self->_db_exists );
+                $state->notes( db_exists => $state->result );
             },
             rules => [
                 'Database Exists' => {
@@ -391,6 +440,9 @@ sub rules {
             label => 'Can we create a database?',
             do => sub {
                 my $state = shift;
+                # User should still be connected to the template database.
+                # $self->connect( $self->template_dsn, $self->user, $self->pass);
+                $state->result( $self->_can_create_db );
             },
             rules => [
                 'Can Create Database' => {
@@ -398,7 +450,17 @@ sub rules {
                     message => 'Yes',
                 },
                 'Fail' => {
-                    rule => 1,
+                    rule => sub {
+                        # Set the message before we die.
+                        my $state = shift;
+                        $state->message('No');
+                        $state->machine->curr_state('Fail');
+                        throw_setup [
+                            'User "[_1]" cannot create a database',
+                            $self->user,
+                        ];
+                    },
+                    # Leave this for graphing.
                     message => 'No',
                 },
             ],
@@ -409,18 +471,34 @@ sub rules {
             label => 'Does the template database have PL/pgSQL?',
             do => sub {
                 my $state = shift;
+                # User should still be connected to the template database.
+                # $self->connect( $self->template_dsn, $self->user, $self->pass);
+                $state->result($self->_plpgsql_available);
             },
             rules => [
                 'No Database' => {
+                    # No problems.
                     rule => sub { shift->result },
                     message => 'Yes',
                 },
                 'No PL/pgSQL' => {
-                    rule => 1,  # For super user only.
+                    # The super user will have to add PL/pgSQL.
+                    rule => sub { shift->notes('super') },
                     message => 'No',
                 },
                 'Fail' => {
-                    rule => 1,
+                    rule => sub {
+                        # Set the message before we die.
+                        my $state = shift;
+                        $state->message('No');
+                        $state->machine->curr_state('Fail');
+                        throw_setup [
+                            'The "[_1]" database does not have PL/pgSQL and user "[_2]" cannot add it',
+                            $self->template_dsn,
+                            $self->user,
+                        ];
+                    },
+                    # Leave this for graphing.
                     message => 'No',
                 },
             ],
@@ -431,6 +509,9 @@ sub rules {
             label => 'Does the user exist?',
             do => sub {
                 my $state = shift;
+                $state->result(
+                    $self->_user_exists( $self->user )
+                );
             },
             rules => [
                 'User Exists' => {
@@ -449,18 +530,34 @@ sub rules {
             label => 'So find createlang.',
             do => sub {
                 my $state = shift;
+                $state->result( $self->find_createlang );
+                $state->notes( createlang => $state->result );
             },
             rules => [
                 'Add PL/pgSQL' => {
-                    rule => sub { shift->result }, # If database exists.
+                    rule => sub {
+                        # If the database exists, we add it.
+                        my $state = shift;
+                        $state->result && $state->notes('db_exists');
+                    },
                     message => 'Okay',
                 },
                 'No Database' => {
-                    rule => 1,  # For superuser,
+                    # Create the database.
+                    rule => sub { shift->result },
                     message => 'Okay',
                 },
                 'Fail' => {
-                    rule => 1,
+                    rule => sub {
+                        # Set the message before we die.
+                        my $state = shift;
+                        $state->message('Failed');
+                        $state->machine->curr_state('Fail');
+                        throw_setup [
+                            'Cannot find createlang; is it in the PATH?',
+                        ];
+                    },
+                    # Leave this for graphing.
                     message => 'Failed',
                 },
             ],
@@ -584,12 +681,7 @@ is not supplied, it will use that stored in the C<db_name> attribute.
 
 sub create_db {
     my ($self, $db_name) = @_;
-    my $dbh = $self->connect(
-        $self->template_dsn,
-        $self->super_user,
-        $self->super_pass,
-    );
-
+    my $dbh = $self->dsn;
     $dbh->do(qq{CREATE DATABASE "$db_name" WITH ENCODING = 'UNICODE'});
     return $self;
 }
@@ -842,25 +934,6 @@ sub _fetch_value {
 
 ##############################################################################
 
-=head3 _db_exists
-
-  print "Database '$db_name' exists" if $setup->_db_exists($db_name);
-
-This method tells whether the given database exists.
-
-=cut
-
-sub _db_exists {
-    my ($self, $db_name) = @_;
-    $db_name ||= $self->db_name;
-    $self->_pg_says_true(
-        'SELECT datname FROM pg_catalog.pg_database WHERE datname = ?',
-        $db_name
-    );
-}
-
-##############################################################################
-
 =head3 _connect_user
 
   my $dbh = $setup->_connect_user($dsn);
@@ -924,6 +997,99 @@ sub _try_connect {
     $state->errors(@errs);
     return;
 }
+
+##############################################################################
+
+=head3 _get_dbname_from_dsn
+
+  my $db_name = $setup->_get_dbname_from_dsn($dsn);
+
+Extracts the database name from the DSN and returns it.
+
+=cut
+
+sub _get_dbname_from_dsn {
+    my ($self, $dsn) = @_;
+    my ($db_name) = $dsn =~ /dbname=['"]?([^;'"]+)/;
+    return $db_name;
+}
+
+##############################################################################
+
+=head3 _db_exists
+
+  print "Database '$db_name' exists" if $setup->_db_exists($db_name);
+
+Returns true when the database exists, and false when it does not. If no
+database is passed, it will be parsed from the C<dsn> attribute.
+
+=cut
+
+sub _db_exists {
+    my ($self, $db_name) = @_;
+    $db_name ||= $self->_get_dbname_from_dsn($self->dsn);
+    $self->_fetch_value(
+        'SELECT datname FROM pg_catalog.pg_database WHERE datname = ?',
+        $db_name
+    );
+}
+
+##############################################################################
+
+=head3 _plpgsql_available
+
+  print "PL/pgSQL is available" if $setup->_plpgsql_available;
+
+Returns boolean value indicating whether PL/pgSQL is installed in the database
+to which we're currently connected.
+
+=cut
+
+sub _plpgsql_available {
+    shift->_fetch_value(
+        'SELECT 1 FROM pg_catalog.pg_language WHERE lanname = ?',
+        'plpgsql'
+    );
+}
+
+##############################################################################
+
+=head3 _can_create_db
+
+  print "User can create database" if $setup->_can_create_db;
+
+This method tells whether a particular user has permissions to create
+databases.
+
+=cut
+
+sub _can_create_db {
+    my $self = shift;
+    $self->_fetch_value(
+        'SELECT usecreatedb FROM pg_catalog.pg_user WHERE usename = ?',
+        $self->user
+    );
+}
+
+##############################################################################
+
+=head3 _user_exists
+
+  print "User exists" if $setup->_user_exists($user);
+
+This method tells whether a particular PostgreSQL user exists.
+
+=cut
+
+sub _user_exists {
+    my ($self, $user) = @_;
+    $self->_fetch_value(
+        'SELECT usename FROM pg_catalog.pg_user WHERE usename = ?',
+        $user
+    );
+}
+
+##############################################################################
 
 1;
 __END__

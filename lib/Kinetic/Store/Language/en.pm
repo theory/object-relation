@@ -217,6 +217,15 @@ our %Lexicon;
         'User "[_1]" cannot connect to either "[_2]" or "[_3]"',
         'User “[_1]” cannot connect to either “[_2]” or “[_3]”',
 
+        'The "[_1]" database does not have PL/pgSQL and user "[_2]" cannot add it',
+        'The “[_1]” database does not have PL/pgSQL and user “[_2]” cannot add it',
+
+        'User "[_1]" cannot create a database',
+        'User “[_1]” cannot create a database',
+
+        'Cannot find createlang; is it in the PATH?',
+        'Cannot find createlang; is it in the PATH?',
+
         # PostgreSQL Setup labels.
         'Can we connect as super user?',
         'Can we connect as super user?',
@@ -226,6 +235,24 @@ our %Lexicon;
 
         'Can we connect as the user?',
         'Can we connect as the user?',
+
+        'Does it have PL/pgSQL?',
+        'Does it have PL/pgSQL?',
+
+        'So create the database.',
+        'So create the database.',
+
+        'Can we create a database?',
+        'Can we create a database?',
+
+        'Does the template database have PL/pgSQL?',
+        'Does the template database have PL/pgSQL?',
+
+        'Does the user exist?',
+        'Does the user exist?',
+
+        'So find createlang.',
+        'So find createlang.',
 
         # PostgreSQL Setup messages.
         'Yes'    => 'Yes',
@@ -258,7 +285,6 @@ our %Lexicon;
 
         'The state of this object',
         'The state of this object',
-
 
         # Data types.
         'UUID' => 'UUID',
