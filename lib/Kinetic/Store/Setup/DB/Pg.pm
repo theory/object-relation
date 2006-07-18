@@ -287,7 +287,7 @@ sub rules {
         'No Superuser' => {
             label => 'Can we connect as the user?',
             do => sub {
-                local *__ANON__ = '__ANON__conect_user';
+                local *__ANON__ = '__ANON__connect_as_user';
                 # Set up the result and note if we successfully connect.
                 my $state = shift;
                 $state->result(1) if $self->_try_connect(
@@ -303,6 +303,7 @@ sub rules {
                 },
                 'Fail' => {
                     rule => sub {
+                        local *__ANON__ = '__ANON__cannot_connect';
                         # Set the message before we die.
                         my $state = shift;
                         $state->message('No');
@@ -324,6 +325,7 @@ sub rules {
         'Database Exists' => {
             label => 'Does it have PL/pgSQL?',
             do => sub {
+                local *__ANON__ = '__ANON__check_plpgsql';
                 my $state = shift;
                 # dbh should be connected to the production database.
                 $state->result($self->_plpgsql_available);
@@ -351,6 +353,7 @@ sub rules {
                 'Fail' => {
                     # Regular user cannot add PL/pgSQL.
                     rule => sub {
+                        local *__ANON__ = '__ANON__no_plpgsql';
                         # Set the message before we die.
                         my $state = shift;
                         $state->message('No');
@@ -371,6 +374,7 @@ sub rules {
         'No Database' => {
             label => 'So create the database.',
             do => sub {
+                local *__ANON__ = '__ANON__create_database';
                 my $state = shift;
                 # User should be connected to the template database.
                 # $self->connect(
@@ -418,6 +422,7 @@ sub rules {
         'User Connects' => {
             label => 'Does the database exist?',
             do => sub {
+                local *__ANON__ = '__ANON__check_database_exists';
                 my $state = shift;
                 # User connected to template db in dsn.
                 $state->result( $self->_db_exists );
@@ -439,6 +444,7 @@ sub rules {
         'No Database for User' => {
             label => 'Can we create a database?',
             do => sub {
+                local *__ANON__ = '__ANON__check_create_database';
                 my $state = shift;
                 # User should still be connected to the template database.
                 # $self->connect( $self->template_dsn, $self->user, $self->pass);
@@ -451,6 +457,7 @@ sub rules {
                 },
                 'Fail' => {
                     rule => sub {
+                        local *__ANON__ = '__ANON__cannot_create_db';
                         # Set the message before we die.
                         my $state = shift;
                         $state->message('No');
@@ -470,6 +477,7 @@ sub rules {
         'Can Create Database' => {
             label => 'Does the template database have PL/pgSQL?',
             do => sub {
+                local *__ANON__ = '__ANON__check_template_plpgsql';
                 my $state = shift;
                 # User should still be connected to the template database.
                 # $self->connect( $self->template_dsn, $self->user, $self->pass);
@@ -489,6 +497,7 @@ sub rules {
                 'Fail' => {
                     rule => sub {
                         # Set the message before we die.
+                        local *__ANON__ = '__ANON__no_template_plpgsql';
                         my $state = shift;
                         $state->message('No');
                         $state->machine->curr_state('Fail');
@@ -508,6 +517,7 @@ sub rules {
         'Database Has PL/pgSQL' => {
             label => 'Does the user exist?',
             do => sub {
+                local *__ANON__ = '__ANON__check_user_exists';
                 my $state = shift;
                 $state->result(
                     $self->_user_exists( $self->user )
@@ -529,6 +539,7 @@ sub rules {
         'No PL/pgSQL' => {
             label => 'So find createlang.',
             do => sub {
+                local *__ANON__ = '__ANON__find_createlang';
                 my $state = shift;
                 $state->result( $self->find_createlang );
                 $state->notes( createlang => $state->result );
@@ -549,6 +560,7 @@ sub rules {
                 },
                 'Fail' => {
                     rule => sub {
+                        local *__ANON__ = '__ANON__no_createlang';
                         # Set the message before we die.
                         my $state = shift;
                         $state->message('Failed');
@@ -567,6 +579,7 @@ sub rules {
         'User Exists' => {
             label => 'So build the database and grant permissions.',
             do => sub {
+                local *__ANON__ = '__ANON__build_database';
                 my $state = shift;
                 $self->build_db;
                 $state->result(1);
@@ -587,6 +600,7 @@ sub rules {
         'No User' => {
             label => 'So create the user.',
             do => sub {
+                local *__ANON__ = '__ANON__create_user';
                 my $state = shift;
                 $state->result( $self->create_user );
             },
@@ -606,6 +620,7 @@ sub rules {
         'Add PL/pgSQL' => {
             label => 'Add PL/pgSQL to the database.',
             do => sub {
+                local *__ANON__ = '__ANON__add_plpgsql';
                 my $state = shift;
                 $state->result(
                     $self->add_plpgsql(
