@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 217;
+use Test::More tests => 229;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use Test::Exception;
@@ -54,23 +54,13 @@ is $setup->template_dsn, 'dbi:Pg:dbname=template0',
 ##############################################################################
 # Test the setup rules.
 ok $setup = Kinetic::Store::Setup::DB::Pg->new, 'Go back to the defaults';
-
-#ok $setup = Kinetic::Store::Setup::DB::Pg->new({
-#    user         => $ENV{KS_USER},
-#    pass         => $ENV{KS_PASS},
-#    super_user   => $ENV{KS_SUPER_USER},
-#    super_pass   => $ENV{KS_SUPER_PASS},
-#    dsn          => $ENV{KS_DSN},
-#    template_dsn => $ENV{KS_TEMPLATE_DSN},
-#}), 'Create PostgreSQL setup object with possible live parameters';
-
 ok my $fsa = FSA::Rules->new($setup->rules), 'Create FSA::Rules machine';
 
 # Mock the class.
 my $mocker = MockModule->new('Kinetic::Store::Setup::DB::Pg');
 
 ##############################################################################
-# Test "Start" and "Superuser Connects"
+# Test "Start"
 $mocker->mock(connect => sub {
     throw_exlib 'This is an error';
 });
@@ -119,6 +109,7 @@ $mocker->mock( add_plpgsql => sub {
     $add_plpgsql_args = \@_;
     return $add_plpgsql;
 });
+$mocker->mock( check_version => 1 );
 
 ok $fsa->reset->curr_state('Start'), 'Reset to "Start" state';
 ok $fsa->switch, 'Switch to the next state';
@@ -126,13 +117,11 @@ $prev = $fsa->prev_state;
 ok !(@errs = $prev->errors), '... There should be no errors';
 is $prev->message, 'Yes', '... And the message should be "Yes"';
 ok $fsa->notes('super'), '.. And the super note should be true';
-ok $fsa->notes('db_exists'), '... And the db_exists note should be true';
 is $fsa->notes('dsn'), $setup->template_dsn,
     '.. And the dsn note should be set to the template DSN';
 
 my $curr = $fsa->curr_state;
-is $curr->name, 'Superuser Connects',
-    'We should be in the "Superuser Connects" state';
+is $curr->name, 'Connected', 'We should be in the "Connected" state';
 ok $curr->result, '... And its result should be true';
 
 # Try it with no errors.
@@ -150,17 +139,54 @@ $prev = $fsa->prev_state;
 ok !(@errs = $prev->errors), '... There should be no errors';
 is $prev->message, 'Yes', '... And the message should be "Yes"';
 ok $fsa->notes('super'), '.. And the super note should be true';
-ok $fsa->notes('db_exists'), '... And the db_exists note should be true';
 is $fsa->notes('dsn'), $setup->dsn,
     '.. And the dsn note should be set to the DSN';
 
 $curr = $fsa->curr_state;
-is $curr->name, 'Superuser Connects',
-    '... And we should be in the "Superuser Connects" state';
+is $curr->name, 'Connected', '... And we should be in the "Connect" state';
 ok $curr->result, '... And its result should be true';
 
 ##############################################################################
+# Test "Connected".
+ok $fsa->reset->curr_state('Connected'), 'Set state to "Connected"';
+is $fsa->curr_state->label, 'Do we have the proper version of PostgreSQL?',
+    '... The label should be correct';
+ok $fsa->curr_state->result, '... The result should be true';
+
+# Try switching with the super user and true result.
+$fsa->notes( super => 1 );
+$fsa->notes( dsn => $setup->dsn );
+ok $fsa->switch, 'Switch states';
+is $fsa->curr_state->name, 'Superuser Connects',
+    '... And now the state should be "Superuser Connects"';
+is $fsa->prev_state->message, 'Yes',
+    '... And the previous state message should be "Yes"';
+
+# Try switching with a true result.
+ok $fsa->reset->curr_state('Connected'), 'Reset state to "Connected"';
+$fsa->notes( dsn => $setup->dsn );
+ok $fsa->switch, 'Switch states';
+is $fsa->curr_state->name, 'User Connects',
+    '... And now the state should be "User Connects"';
+is $fsa->prev_state->message, 'Yes',
+    '... And the previous state message should be "Yes"';
+
+# Try switching with a false result.
+$mocker->mock( check_version => sub { throw_exlib 'Whoops!' } );
+throws_ok { $fsa->reset->curr_state('Connected') }
+    'Kinetic::Store::Exception::ExternalLib',
+    'We should get an error when appropriate';
+$mocker->mock( check_version => 1 );
+
+##############################################################################
 # Test "Superuser Connects".
+$fsa->reset;
+$fsa->notes( dsn => $setup->dsn );
+ok $fsa->curr_state('Superuser Connects'),
+    'Set state to "Superuser Connects"';
+ok $fsa->curr_state->result, '... The result should be true';
+ok $fsa->notes( 'db_exists' ), '... And the "db_exists" note should be true';
+
 my $create_db_args;
 my $create_db_code = sub {
     shift;
@@ -173,6 +199,7 @@ ok $fsa->switch, 'Switch out of "Superuser Connects"';
 is $fsa->prev_state->message, 'Yes', 'The message should be "Yes"';
 ok $curr = $fsa->curr_state, 'Get the new current state';
 is $curr->name, 'Database Exists', '... It should be "Database Exists"';
+
 
 # Now make it switch to "Can Create Database".
 $fsa->reset;
@@ -236,7 +263,7 @@ $mocker->mock(connect => sub {
 ok $fsa->reset->curr_state('No Superuser'), 'Reset state to "No Superuser"';
 ok $fsa->switch, 'Switch states';
 $curr = $fsa->curr_state;
-is $curr->name, 'User Connects', 'We should now be in "User Connects"';
+is $curr->name, 'Connected', 'We should now be in "Connected"';
 $prev = $fsa->prev_state;
 ok !(@errs = $prev->errors), '... There should be no errors';
 is $prev->message, 'Yes', '... And the message should be "Yes"';
@@ -252,8 +279,7 @@ ok $fsa->reset->curr_state('No Superuser'), 'Reset state to "No Superuser"';
 ok $fsa->switch, 'Switch to the next state';
 $prev = $fsa->prev_state;
 $curr = $fsa->curr_state;
-is $curr->name, 'User Connects',
-    '... And we should be in the "User Connects" state';
+is $curr->name, 'Connected', 'We should now be in "Connected"';
 
 ok !(@errs = $prev->errors), '... There should be no errors';
 is $prev->message, 'Yes', '... And the message should be "Yes"';

@@ -238,7 +238,7 @@ sub rules {
                 }
             },
             rules => [
-                'Superuser Connects' => {
+                'Connected' => {
                     rule => sub { shift->result },
                     message => 'Yes',
                 },
@@ -248,6 +248,31 @@ sub rules {
                 },
             ],
         }, # Start
+
+        ######################################################################
+        'Connected' => {
+            label => 'Do we have the proper version of PostgreSQL?',
+            do => sub {
+                shift->result( $self->check_version );
+            },
+            rules => [
+                'Superuser Connects' => {
+                    rule => sub {
+                        my $state = shift;
+                        $state->result && $state->notes('super')
+                    },
+                    message => 'Yes',
+                },
+                'User Connects' => {
+                    rule => sub { shift->result },
+                    message => 'Yes',
+                },
+                'Fail' => {
+                    rule => 1,
+                    message => 'No',
+                },
+            ],
+        }, # Connected
 
         ######################################################################
         'Superuser Connects' => {
@@ -297,7 +322,7 @@ sub rules {
                 );
             },
             rules => [
-                'User Connects' => {
+                'Connected' => {
                     rule => sub { shift->result },
                     message => 'Yes',
                 },

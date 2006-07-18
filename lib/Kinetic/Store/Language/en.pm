@@ -230,6 +230,9 @@ our %Lexicon;
         'Can we connect as super user?',
         'Can we connect as super user?',
 
+        'Do we have the proper version of PostgreSQL?',
+        'Do we have the proper version of PostgreSQL?',
+
         'Does the database exist?',
         'Does the database exist?',
 

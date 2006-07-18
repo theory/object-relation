@@ -238,7 +238,7 @@ C<connect_attrs>.
 sub connect {
     my $self = shift;
     my $dbh = DBI->connect_cached(
-        (@_ || $self->dsn, $self->user, $self->pass),
+        (@_ ? @_ : ($self->dsn, $self->user, $self->pass)),
         { $self->connect_attrs }
     );
 
