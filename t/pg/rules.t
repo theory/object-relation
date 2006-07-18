@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 214;
+use Test::More tests => 217;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use Test::Exception;
@@ -574,5 +574,12 @@ is $fsa->prev_state->message, 'Okay',
 # Test Done
 ok $fsa->reset->curr_state('Done'), 'Set state to "Done"';
 is $fsa->curr_state->label, 'All done!',
+    '... The label should be correct';
+ok $fsa->done, 'The machine should be done';
+
+##############################################################################
+# Test Fail
+ok $fsa->reset->curr_state('Fail'), 'Set state to "Fail"';
+is $fsa->curr_state->label, 'Setup failed.',
     '... The label should be correct';
 ok $fsa->done, 'The machine should be done';

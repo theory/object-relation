@@ -634,7 +634,7 @@ sub rules {
         ######################################################################
         'Fail' => {
             # Exceptions should be thrown by the rules.
-            label => 'Fail spectacularly with some sort of trace.',
+            label => 'Setup failed.',
             do => sub { shift->done(1) }
         }, # Fail
     );

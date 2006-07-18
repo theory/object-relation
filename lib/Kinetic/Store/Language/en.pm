@@ -266,6 +266,9 @@ our %Lexicon;
         'All done!',
         'All done!',
 
+        'Setup failed.',
+        'Setup failed.',
+
         # PostgreSQL Setup messages.
         'Yes'    => 'Yes',
         'No'     => 'No',
