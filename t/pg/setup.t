@@ -110,6 +110,15 @@ my $user_exists = 1;
 $mocker->mock( _user_exists => sub { $user_exists });
 my $createlang = '/usr/local/pgsql/bin/createlang';
 $mocker->mock( find_createlang => sub { $createlang });
+$mocker->mock( build_db => 1 );
+$mocker->mock( create_user => 1 );
+my $add_plpgsql = 1;
+my $add_plpgsql_args;
+$mocker->mock( add_plpgsql => sub {
+    shift;
+    $add_plpgsql_args = \@_;
+    return $add_plpgsql;
+});
 
 ok $fsa->reset->curr_state('Start'), 'Reset to "Start" state';
 ok $fsa->switch, 'Switch to the next state';
@@ -331,7 +340,7 @@ is $curr->name, 'Database Has PL/pgSQL',
 
 # Try with super user and no plpgsql.
 ok $fsa->reset->curr_state('No Database'),
-    'Reet state to "No Database"';
+    'Reset state to "No Database"';
 $fsa->notes( super   => 1 );
 ok $fsa->switch, 'We should be able to switch to the next state';
 $curr = $fsa->curr_state;
@@ -340,7 +349,7 @@ is $curr->name, 'Add PL/pgSQL',
 
 # Try with production user and plpgsql.
 ok $fsa->reset->curr_state('No Database'),
-    'Reet state to "No Database"';
+    'Reset state to "No Database"';
 ok $fsa->switch, 'We should be able to switch to the next state';
 $curr = $fsa->curr_state;
 is $curr->name, 'User Exists',
@@ -517,3 +526,53 @@ $prev = $fsa->prev_state;
 ok !$prev->result, q{... And the failed state's result should be false};
 is $prev->message, 'Failed', '... And the message should be "Failed"';
 
+##############################################################################
+# Test User Exists
+ok $fsa->reset->curr_state('User Exists'), 'Set state to "User Exists"';
+is $fsa->curr_state->label, 'So build the database and grant permissions.',
+    '... The label should be correct';
+ok $fsa->curr_state->result, '... The result should be true';
+
+# Switch with true result.
+ok $fsa->switch, 'Switch states';
+is $fsa->curr_state->name, 'Done',
+    '... And now the state should be "Done"';
+is $fsa->prev_state->message, 'Okay',
+    '... And the previous state message should be "Okay"';
+
+##############################################################################
+# Test No User
+ok $fsa->reset->curr_state('No User'), 'Set state to "No User"';
+is $fsa->curr_state->label, 'So create the user.',
+    '... The label should be correct';
+ok $fsa->curr_state->result, '... The result should be true';
+
+# Switch with true result.
+ok $fsa->switch, 'Switch states';
+is $fsa->curr_state->name, 'User Exists',
+    '... And now the state should be "User Exists"';
+is $fsa->prev_state->message, 'Okay',
+    '... And the previous state message should be "Okay"';
+
+##############################################################################
+# Test Add PL/pgSQL
+ok $fsa->reset->curr_state('Add PL/pgSQL'), 'Set state to "Add PL/pgSQL"';
+is $fsa->curr_state->label, 'Add PL/pgSQL to the database.',
+    '... The label should be correct';
+ok $fsa->curr_state->result, '... The result should be true';
+is_deeply $add_plpgsql_args, ['kinetic'],
+    '... And the proper args should be passed to add_plpgsql()';
+
+# Switch with true result.
+ok $fsa->switch, 'Switch states';
+is $fsa->curr_state->name, 'Database Has PL/pgSQL',
+    '... And now the state should be "Database Has PL/pgSQL"';
+is $fsa->prev_state->message, 'Okay',
+    '... And the previous state message should be "Okay"';
+
+##############################################################################
+# Test Done
+ok $fsa->reset->curr_state('Done'), 'Set state to "Done"';
+is $fsa->curr_state->label, 'All done!',
+    '... The label should be correct';
+ok $fsa->done, 'The machine should be done';

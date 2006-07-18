@@ -568,6 +568,8 @@ sub rules {
             label => 'So build the database and grant permissions.',
             do => sub {
                 my $state = shift;
+                $self->build_db;
+                $state->result(1);
             },
             rules => [
                 'Done' => {
@@ -586,6 +588,7 @@ sub rules {
             label => 'So create the user.',
             do => sub {
                 my $state = shift;
+                $state->result( $self->create_user );
             },
             rules => [
                 'User Exists' => {
@@ -604,6 +607,11 @@ sub rules {
             label => 'Add PL/pgSQL to the database.',
             do => sub {
                 my $state = shift;
+                $state->result(
+                    $self->add_plpgsql(
+                        $self->_get_dbname_from_dsn($self->dsn)
+                    )
+                );
             },
             rules => [
                 'Database Has PL/pgSQL' => {
@@ -620,16 +628,14 @@ sub rules {
         ######################################################################
         'Done' => {
             label => 'All done!',
-            do => sub {
-                my $state = shift;
-                $state->done(1);
-            },
+            do => sub { shift->done(1) }
         }, # Done.
 
         ######################################################################
         'Fail' => {
             # Exceptions should be thrown by the rules.
             label => 'Fail spectacularly with some sort of trace.',
+            do => sub { shift->done(1) }
         }, # Fail
     );
 }

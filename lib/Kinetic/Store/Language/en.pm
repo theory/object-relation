@@ -254,6 +254,18 @@ our %Lexicon;
         'So find createlang.',
         'So find createlang.',
 
+        'So build the database and grant permissions.',
+        'So build the database and grant permissions.',
+
+        'So create the user.',
+        'So create the user.',
+
+        'Add PL/pgSQL to the database.',
+        'Add PL/pgSQL to the database.',
+
+        'All done!',
+        'All done!',
+
         # PostgreSQL Setup messages.
         'Yes'    => 'Yes',
         'No'     => 'No',
