@@ -60,9 +60,11 @@ lib/Kinetic/Store/Setup/DB.pm
 lib/Kinetic/Store/Setup/DB/Pg.pm
 lib/Kinetic/Store/Setup/DB/SQLite.pm
 MANIFEST			This list of files
+META.yml
 README
 t/accessors.t
 t/basic.t
+t/bin/createlang
 t/bin/setup.pl
 t/bin/teardown.pl
 t/build.t
@@ -136,4 +138,3 @@ t/storesearch.t
 t/util.t
 t/util/cache.t
 t/versions.t
-META.yml
