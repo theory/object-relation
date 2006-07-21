@@ -226,6 +226,9 @@ our %Lexicon;
         'Cannot find createlang; is it in the PATH?',
         'Cannot find createlang; is it in the PATH?',
 
+        'The [_1] server is version [_2] but we require version [_3]',
+        'The [_1] server is version [_2] but we require version [_3]',
+
         # PostgreSQL Setup labels.
         'Can we connect as super user?',
         'Can we connect as super user?',

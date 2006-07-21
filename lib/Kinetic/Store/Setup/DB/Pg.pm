@@ -10,6 +10,7 @@ our $VERSION = version->new('0.0.2');
 use base 'Kinetic::Store::Setup::DB';
 use FSA::Rules;
 use Kinetic::Store::Language;
+use POSIX qw(WIFEXITED);
 
 use Class::BuildMethods qw(
     super_user
@@ -409,7 +410,7 @@ sub rules {
                 #         : ( $self->user,       $self->pass       )
                 # );
                 $state->result(
-                    $self->create_db($self->_get_dbname_from_dsn($self->dsn))
+                    $self->create_db($self->_db_from_dsn($self->dsn))
                 );
             },
             rules => [
@@ -649,7 +650,7 @@ sub rules {
                 my $state = shift;
                 $state->result(
                     $self->add_plpgsql(
-                        $self->_get_dbname_from_dsn($self->dsn)
+                        $self->_db_from_dsn($self->dsn)
                     )
                 );
             },
@@ -727,7 +728,7 @@ is not supplied, it will use that stored in the C<db_name> attribute.
 
 sub create_db {
     my ($self, $db_name) = @_;
-    my $dbh = $self->dsn;
+    my $dbh = $self->dbh;
     $dbh->do(qq{CREATE DATABASE "$db_name" WITH ENCODING = 'UNICODE'});
     return $self;
 }
@@ -756,10 +757,11 @@ sub add_plpgsql {
 
     # createlang -U postgres plpgsql template1
     my @options;
-    for my $token ( split /:/, $self->dsn ) {
+    for my $token ( split /;/, $self->dsn ) {
         my ($k, $v) = split /=/, $token;
+        next unless $v;
         $v =~ s/;$//;
-        push @options, '-h', $v if $k eq 'host';
+        push @options, '-h', $v if $k =~ /^host/; # Includes hostaddr
         push @options, '-p', $v if $k eq 'port';
     }
 
@@ -767,15 +769,7 @@ sub add_plpgsql {
         push @options, '-U', $super;
     }
 
-    my @add_plpgsql = ($createlang, @options, 'plpgsql', $db_name);
-    system @add_plpgsql
-        and throw_io [
-            '[_1] failed: [_2]',
-            "system(@add_plpgsql)",
-            $?,
-        ];
-
-    return $self;
+    return $self->_run($createlang, @options, 'plpgsql', $db_name);
 }
 
 ##############################################################################
@@ -796,8 +790,8 @@ sub create_user {
 
     my $dbh = $self->connect(
         $self->template_dsn,
-        $self->db_super_user,
-        $self->db_super_pass,
+        $self->super_user,
+        $self->super_pass,
     );
 
     $dbh->do(
@@ -822,16 +816,11 @@ silence "NOTICE" output from PostgreSQL.
 sub build_db {
     my $self = shift;
 
-    $self->_connect_user($self->dsn);
-
-    # Ignore PostgreSQL warnings.
-    local $SIG{__WARN__} = sub {
-        my $message = shift;
-        return if $message =~ /NOTICE:/;
-        warn $message;
-    };
+    my $dbh = $self->_connect($self->dsn);
+    $dbh->do('SET client_min_messages = warning');
 
     $self->SUPER::build_db(@_);
+    $self->grant_permissions;
 }
 
 ##############################################################################
@@ -853,14 +842,14 @@ sub grant_permissions {
         $self->super_pass,
     );
 
-# relkind:
-#   r => 'table (relation)',
-#   v => 'view',
-#   i => 'index',
-#   c => 'composite type',
-#   S => 'sequence',
-#   s => 'special',
-#   t => 'TOAST table',
+    # relkind:
+    #   r => 'table (relation)',
+    #   v => 'view',
+    #   i => 'index',
+    #   c => 'composite type',
+    #   S => 'sequence',
+    #   s => 'special',
+    #   t => 'TOAST table',
 
     my $objects = $dbh->selectcol_arrayref(qq{
         SELECT n.nspname || '."' || c.relname || '"'
@@ -872,12 +861,12 @@ sub grant_permissions {
                AND pg_catalog.pg_table_is_visible(c.oid)
     });
 
-    return $self unless @$objects;
+    return $self unless $objects && @$objects;
 
     $dbh->do(
         'GRANT SELECT, UPDATE, INSERT, DELETE ON '
         . join(', ', @$objects) . ' TO "'
-        . ($self->_build_db_user || $self->db_user) . '"'
+        . $self->user . '"'
     );
 
     return $self;
@@ -964,10 +953,10 @@ sub find_createlang {
 
 =head3 _fetch_value
 
-  my $value = $setup->_pg_says_true($sql, @bind_params);
+  my $value = $setup->_fetch_value($sql, @bind_params);
 
-This method executes the given SQL with the any params. It expects that the
-SQL will return one and only one value, and in turn returns that value.
+This method executes the given SQL with the params, if any. It expects that
+the SQL will return one and only one value, and in turn returns that value.
 
 =cut
 
@@ -980,20 +969,18 @@ sub _fetch_value {
 
 ##############################################################################
 
-=head3 _connect_user
+=head3 _connect
 
-  my $dbh = $setup->_connect_user($dsn);
+  my $dbh = $setup->_connect($dsn);
 
 This method attempts to connect to PostgreSQL via a given DSN. It connects as
 the super user if the super user has been set; otherwise, it connects as the
-database user. It returns a database handle on success and C<undef> on
-failure. As a side effect, the C<_dbh()> method will also set to the returned
-value.
-
+database user. Whoever it tries to connet, the arguments will be passed to
+C<connect()>.
 
 =cut
 
-sub _connect_user {
+sub _connect {
     my ($self, $dsn) = @_;
     my @credentials;
     if (my $super = $self->super_user) {
@@ -1046,15 +1033,15 @@ sub _try_connect {
 
 ##############################################################################
 
-=head3 _get_dbname_from_dsn
+=head3 _db_from_dsn
 
-  my $db_name = $setup->_get_dbname_from_dsn($dsn);
+  my $db_name = $setup->_db_from_dsn($dsn);
 
 Extracts the database name from the DSN and returns it.
 
 =cut
 
-sub _get_dbname_from_dsn {
+sub _db_from_dsn {
     my ($self, $dsn) = @_;
     my ($db_name) = $dsn =~ /dbname=['"]?([^;'"]+)/;
     return $db_name;
@@ -1073,7 +1060,7 @@ database is passed, it will be parsed from the C<dsn> attribute.
 
 sub _db_exists {
     my ($self, $db_name) = @_;
-    $db_name ||= $self->_get_dbname_from_dsn($self->dsn);
+    $db_name ||= $self->_db_from_dsn($self->dsn);
     $self->_fetch_value(
         'SELECT datname FROM pg_catalog.pg_database WHERE datname = ?',
         $db_name
@@ -1093,7 +1080,7 @@ to which we're currently connected.
 
 sub _plpgsql_available {
     shift->_fetch_value(
-        'SELECT 1 FROM pg_catalog.pg_language WHERE lanname = ?',
+        'SELECT true FROM pg_catalog.pg_language WHERE lanname = ?',
         'plpgsql'
     );
 }
@@ -1136,6 +1123,27 @@ sub _user_exists {
 }
 
 ##############################################################################
+
+=head3 _run
+
+  $setup->_run('echo', 'Off and running!');
+
+This method simply passes all of its arguments off to a call to C<system> and
+then does appropriate error checking. This is the recommended method for
+running system commands.
+
+=cut
+
+sub _run {
+    my $self = shift;
+    system @_;
+    return $self if WIFEXITED $?;
+    throw_io [
+        '[_1] failed: [_2]',
+        q{system('} . join(q{', '}, @_) . q{')},
+        $? == -1 ? $! : 'exit value ' . $? >> 8
+    ];
+}
 
 1;
 __END__
