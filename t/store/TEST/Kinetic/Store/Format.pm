@@ -27,7 +27,7 @@ use constant JSON   => FORMAT . '::JSON';
 __PACKAGE__->SKIP_CLASS(
     $ENV{KS_CLASS}
     ? 0
-    : "Not testing Data Stores"
+    : 'Not testing live data store',
 ) if caller;    # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 

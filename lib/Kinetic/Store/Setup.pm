@@ -94,7 +94,9 @@ sub new {
 
     while (my ($k, $v) = each %$params) {
         next if $k eq 'class' || $k eq 'class_dirs';;
-        $self->$k($v);
+        if (my $meth = $self->can($k)) {
+            $self->$meth($v);
+        }
     }
 
     return $self;

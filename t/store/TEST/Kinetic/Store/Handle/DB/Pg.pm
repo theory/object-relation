@@ -17,7 +17,7 @@ use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
 __PACKAGE__->SKIP_CLASS(
     $ENV{KS_CLASS} && $ENV{KS_CLASS} =~ /DB:Pg$/
     ? 0
-    : "Not testing Data Stores"
+    : 'Not testing live data store',
 ) if caller;    # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 

@@ -178,6 +178,68 @@ sub setup {
 
 ##############################################################################
 
+=head3 teardown
+
+  $kbs->teardown;
+
+Tears down the tests data store by disconnecting all database handles
+currently connected via DBD::Pg, waiting for the connections to be registered
+by PostgreSQL, and then dropping the test database and user. If there appear
+to be users connected to the database, C<test_cleanup> will sleep for one
+second and then try again, sleep and try again, etc. If there are still users
+connected to the database after five seconds, it will give up and die. But
+that shouldn't happen unless you have an I<extremely> slow system, or have
+connected to the database yourself in another process. Either way, you'll then
+need to drop the database and user manually.
+
+=cut
+
+sub teardown {
+    my $self = shift;
+    my $dsn = $self->dsn;
+    my $db_name = $self->_db_from_dsn($dsn);
+    my $db_user = $self->user;
+
+    # Disconnect all database handles.
+    $self->disconnect_all;
+    sleep 1; # Let them disconnect.
+
+    # Connect to the template database.
+    my $dbh = $self->connect(
+        $self->template_dsn,
+        $self->super_user,
+        $self->super_pass,
+    );
+
+    # We'll use this to check for connections to the database.
+    my $check_connections = sub {
+        return ($dbh->selectrow_array(
+            'SELECT 1 FROM pg_stat_activity where datname = ?',
+            undef, $db_name
+        ))[0];
+    };
+
+    # Wait for up to five seconds for all connections to close.
+    for (1..5) {
+        last unless $check_connections->();
+        sleep 1;
+    }
+
+    # If there are still connections, we can't drop the database. So bail.
+    throw_setup [
+        'Looks like someone is accessing "[_1]", so I cannot drop that database',
+        $dsn,
+    ] if $check_connections->();
+
+    # Drop the database and user.
+    $dbh->do(qq{DROP DATABASE "$db_name"});
+    $dbh->do(qq{DROP USER "$db_user"});
+    $dbh->disconnect;
+    return $self;
+}
+
+##############################################################################
+
 =head3 rules
 
   my $machine = FSA::Rules->new($setup->rules);
@@ -1136,6 +1198,7 @@ running system commands.
 
 sub _run {
     my $self = shift;
+    local $SIG{__WARN__} = sub { Kinetic::Store::Exception::ExternalLib->new( shift ) };
     system @_;
     return $self if WIFEXITED $?;
     throw_io [

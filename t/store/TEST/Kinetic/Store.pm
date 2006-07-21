@@ -29,13 +29,13 @@ use aliased 'TestApp::Yello';
 __PACKAGE__->SKIP_CLASS(
     $ENV{KS_CLASS}
     ? 0
-    : "Not testing Data Stores"
+    : 'Not testing live data store',
 ) if caller;    # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
 sub purge : Test(9) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
 
     my ( $foo, $bar, $baz ) = $test->test_objects;
     is $test->_num_recs('one'), 3,
@@ -77,7 +77,7 @@ sub purge : Test(9) {
 
 sub save : Test(10) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     $test->clear_database;
     my $one = One->new;
     $one->name('Ovid');
@@ -128,7 +128,7 @@ sub save : Test(10) {
 
 sub search : Test(19) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'query';
     my ( $foo, $bar, $baz ) = $test->test_objects;
@@ -183,7 +183,7 @@ sub search : Test(19) {
 
 sub search_from_key : Test(10) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'query';
     my ( $foo, $bar, $baz ) = $test->test_objects;
@@ -213,7 +213,7 @@ sub search_from_key : Test(10) {
 
 sub string_search : Test(19) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'query';
     my ( $foo, $bar, $baz ) = $test->test_objects;
@@ -273,7 +273,7 @@ sub string_search : Test(19) {
 
 sub squery_string_search : Test(19) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'squery';
     my ( $foo, $bar, $baz ) = $test->test_objects;
@@ -499,7 +499,7 @@ sub search_subs_lex_correctly : Test(47) {
 
 sub search_incomplete_date_boundaries : Test(6) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     $test->clear_database;
 
     my $june17 = Two->new;
@@ -566,7 +566,7 @@ sub search_incomplete_date_boundaries : Test(6) {
 
 sub search_incomplete_dates : Test(25) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     $test->clear_database;
     my $theory = Two->new;
     $theory->name('David');
@@ -730,7 +730,7 @@ sub search_incomplete_dates : Test(25) {
 
 sub string_search_incomplete_dates : Test(25) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     $test->clear_database;
     my $theory = Two->new;
     $theory->name('David');
@@ -914,7 +914,7 @@ sub string_search_incomplete_dates : Test(25) {
 
 sub search_dates : Test(8) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     $test->clear_database;
     my $theory = Two->new;
     $theory->name('David');
@@ -972,7 +972,7 @@ sub search_dates : Test(8) {
 
 sub string_search_dates : Test(8) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     $test->clear_database;
     my $theory = Two->new;
     $theory->name('David');
@@ -1035,7 +1035,7 @@ sub string_search_dates : Test(8) {
 
 sub search_compound : Test(9) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     #$test->clear_database;
 
     my $store = Store->new;
@@ -1089,7 +1089,7 @@ sub search_compound : Test(9) {
 
 sub string_search_compound : Test(9) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     $test->clear_database;
     my $store = Store->new;
     can_ok $store, 'query';
@@ -1142,7 +1142,7 @@ sub string_search_compound : Test(9) {
 
 sub limit : Test(12) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -1252,7 +1252,7 @@ sub limit : Test(12) {
 
 sub string_limit : Test(12) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -1350,7 +1350,7 @@ sub string_limit : Test(12) {
 
 sub count : Test(15) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'count';
     my ( $foo, $bar, $baz ) = $test->test_objects;
@@ -1385,7 +1385,7 @@ sub count : Test(15) {
 
 sub count_by_key : Test(8) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'count';
     my ( $foo, $bar, $baz ) = $test->test_objects;
@@ -1407,7 +1407,7 @@ sub count_by_key : Test(8) {
 
 sub query_uuids : Test(10) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'query_uuids';
     my ( $foo, $bar, $baz ) = $test->test_objects;
@@ -1441,7 +1441,7 @@ sub query_uuids : Test(10) {
 
 sub query_uuids_by_key : Test(10) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'query_uuids';
     my ( $foo, $bar, $baz ) = $test->test_objects;
@@ -1475,7 +1475,7 @@ sub query_uuids_by_key : Test(10) {
 
 sub search_or : Test(13) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -1534,7 +1534,7 @@ sub search_or : Test(13) {
 
 sub search_and : Test(15) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -1592,7 +1592,7 @@ sub search_and : Test(15) {
 
 sub search_overloaded : Test(11) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     {
 
         package Test::String;
@@ -1678,7 +1678,7 @@ sub search_overloaded : Test(11) {
 
 sub lookup : Test(8) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     $test->clear_database;
     my $one = One->new;
     $one->name('Ovid');
@@ -1708,7 +1708,7 @@ sub lookup : Test(8) {
 
 sub lookup_by_key : Test(8) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     $test->clear_database;
     my $one = One->new;
     $one->name('Ovid');
@@ -1739,7 +1739,7 @@ sub lookup_by_key : Test(8) {
 
 sub search_between : Test(6) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class    = $foo->my_class;
     my $store    = Store->new;
@@ -1768,7 +1768,7 @@ sub search_between : Test(6) {
 
 sub search_gt : Test(6) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -1795,7 +1795,7 @@ sub search_gt : Test(6) {
 
 sub search_lt : Test(6) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -1822,7 +1822,7 @@ sub search_lt : Test(6) {
 
 sub search_eq : Test(14) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -1875,7 +1875,7 @@ sub search_eq : Test(14) {
 
 sub search_ge : Test(6) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -1900,7 +1900,7 @@ sub search_ge : Test(6) {
 
 sub search_le : Test(6) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -1925,7 +1925,7 @@ sub search_le : Test(6) {
 
 sub search_like : Test(6) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -1951,7 +1951,7 @@ sub search_like : Test(6) {
 
 sub search_null : Test(6) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     $foo->description('this is a description');
     my $store = Store->new;
@@ -1979,7 +1979,7 @@ sub search_null : Test(6) {
 
 sub search_in : Test(6) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
     my $store = Store->new;
@@ -2004,7 +2004,7 @@ sub search_in : Test(6) {
 
 sub save_compound : Test(3) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my $store = Store->new;
     can_ok $store, 'query';
     my $foo = Two->new;
@@ -2033,7 +2033,7 @@ sub save_compound : Test(3) {
 
 sub order_by : Test(4) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my $foo   = Two->new;
     my $store = Store->new;
     $foo->name('foo');
@@ -2087,7 +2087,7 @@ sub order_by : Test(4) {
 
 sub string_order_by : Test(6) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my $foo   = Two->new;
     my $store = Store->new;
     $foo->name('foo');
@@ -2178,7 +2178,7 @@ sub string_order_by : Test(6) {
 
 sub joins : Test(6) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abtract_class' unless $test->_should_run;
     my $yello = Yello->new( age => 32 );
     my $coll = $yello->ones;
     my @ones = map { One->new( name => $_ ) } qw/uno dos tres/;

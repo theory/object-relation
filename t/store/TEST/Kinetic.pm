@@ -24,9 +24,11 @@ use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
 __PACKAGE__->SKIP_CLASS(
     $ENV{KS_CLASS}
     ? 0
-    : "Not testing Data Stores"
+    : 'Not testing live data store',
 ) if caller;    # so I can run the tests directly from vim
+
 __PACKAGE__->runtests unless caller;
+
 
 sub _all_items {
     my ( $test, $iterator ) = @_;
@@ -39,12 +41,16 @@ sub _all_items {
 
 sub _should_run {
     my $test    = shift;
-    return $ENV{KS_CLASS} && ref $test eq "TEST::$ENV{KS_CLASS}";
+    my $ref = ref $test;
+    return $ENV{KS_CLASS} && (
+        $ref eq "TEST::$ENV{KS_CLASS}"
+            || $ref eq "TEST::Kinetic::Store::Handle::$ENV{KS_CLASS}"
+    );
 }
 
 sub lookup : Test(15) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abstract class' unless $test->_should_run;
 
     $test->clear_database;
     ok my $one = One->new, 'Create One object';
@@ -75,7 +81,7 @@ sub lookup : Test(15) {
 
 sub save : Test(10) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abstract class' unless $test->_should_run;
     $test->clear_database;
     my $one = One->new;
     $one->name('Ovid');
@@ -126,7 +132,7 @@ sub save : Test(10) {
 
 sub basic_query : Test(19) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abstract class' unless $test->_should_run;
     can_ok One, 'query';
     my ( $foo, $bar, $baz ) = $test->test_objects;
     foreach ( $foo, $bar, $baz ) {
@@ -177,7 +183,7 @@ sub basic_query : Test(19) {
 
 sub query_deleted : Test(7) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abstract class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class    = $foo->my_class;
     my $iterator = One->query;
@@ -205,7 +211,7 @@ sub query_deleted : Test(7) {
 
 sub string_query : Test(19) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abstract class' unless $test->_should_run;
     can_ok One, 'query';
     my ( $foo, $bar, $baz ) = $test->test_objects;
     foreach ( $foo, $bar, $baz ) {
@@ -260,7 +266,7 @@ sub string_query : Test(19) {
 
 sub count : Test(8) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abstract class' unless $test->_should_run;
     can_ok One, 'count';
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
@@ -280,7 +286,7 @@ sub count : Test(8) {
 
 sub query_uuids : Test(10) {
     my $test = shift;
-    return unless $test->_should_run;
+    return 'abstract class' unless $test->_should_run;
     can_ok One, 'query_uuids';
     my ( $foo, $bar, $baz ) = $test->test_objects;
     ok my $uuids = One->query_uuids,

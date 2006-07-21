@@ -29,7 +29,7 @@ use aliased 'TestApp::Yello';
 __PACKAGE__->SKIP_CLASS(
     $ENV{KS_CLASS}
     ? 0
-    : "Not testing Data Stores"
+    : 'Not testing live data store',
 ) if caller;    # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
@@ -531,7 +531,7 @@ sub update : Test(7) {
 
 sub query_match : Test(6) {
     my $test = shift;
-    return 'Skip query_match for abstract class' unless $test->_should_run;
+    return 'abstract class' unless $test->_should_run;
     my ($foo, $bar, $baz) = $test->test_objects;
     my $store = Kinetic::Store::Handle->new;
     my $iterator = $store->query( $foo->my_class,
@@ -572,7 +572,7 @@ sub constraints : Test(5) {
 
 sub test_extend : Test(45) {
     my $self = shift;
-    return 'Skip test_extend for abstract class' unless $self->_should_run;
+    return 'abstract class' unless $self->_should_run;
 
     # Create a One object for the Two objects to reference.
     ok my $one = One->new(name => 'One'), 'Create a One object';
@@ -722,7 +722,7 @@ sub test_extend : Test(45) {
 
 sub test_has_many : Test(13) {
     my $self = shift;
-    return 'Skip test_has_many for abstract class' unless $self->_should_run;
+    return 'abstract class' unless $self->_should_run;
     ok my $yello = Yello->new( age => 32 ), 'Create a Yello object';
     ok $yello->save, 'Save the Yello object';
 
@@ -755,7 +755,7 @@ sub test_has_many : Test(13) {
 
 sub test_mediate : Test(43) {
     my $self = shift;
-    return 'Skip test_mediate for abstract class' unless $self->_should_run;
+    return 'abstract class' unless $self->_should_run;
 
     # Create a One object for the Relation objects to reference.
     ok my $one = One->new(name => 'One'), 'Create a One object';
@@ -906,7 +906,7 @@ sub unique_attr_regex {
 
 sub test_unique : Test(54) {
     my $self = shift;
-    return 'Skip test_unique for abstract class' unless $self->_should_run;
+    return 'abstract class' unless $self->_should_run;
 
     # Test distinct attribute.
     ok my $simple = Simple->new(name => 'Foo'), 'Create simple object';
@@ -1010,7 +1010,7 @@ sub test_unique : Test(54) {
 
 sub test_once : Test(2) {
     my $self = shift;
-    return 'Skip test_once for abstract class' unless $self->_should_run;
+    return 'abstract class' unless $self->_should_run;
 
     # Test once attribute "uuid".
     # UPDATEs don't send UUID to the server, because they're once. Views don't
@@ -1062,8 +1062,7 @@ sub test_once : Test(2) {
 
 sub test_insert_state : Test(2) {
     my $self = shift;
-    return 'Skip test_insert_state for abstract class'
-        unless $self->_should_run;
+    return 'abstract class' unless $self->_should_run;
     my $dbh = $self->dbh;
 
     # Try to insert a bogus state.
@@ -1083,9 +1082,8 @@ sub test_insert_state : Test(2) {
 # This has to be a separate test because the dbh gets horked on error.
 sub test_update_state : Test(4) {
     my $self = shift;
-    return 'Skip test_update_state for abstract class'
-        unless $self->_should_run;
-    my $dbh = $self->dbh;
+    return 'abstract class' unless $self->_should_run;
+ my $dbh = $self->dbh;
 
     # Try to update to a bogus state.
     ok my $simple = Simple->new(name => 'Foo'), 'Create simple object';
@@ -1120,8 +1118,7 @@ sub update_fk_regex {
 
 sub test_fk_restrict : Test(7) {
     my $self = shift;
-    return 'Skip test_fk_restrict for abstract class'
-        unless $self->_should_run;
+    return 'abstract class' unless $self->_should_run;
 
     # First, make sure that RESTRICT works properly.
     ok my $one = One->new(name => 'One'), 'Create One object';
@@ -1138,8 +1135,7 @@ sub test_fk_restrict : Test(7) {
 
 sub test_fk_cascade : Test(10) {
     my $self = shift;
-    return 'Skip test_fk_cascade for abstract class'
-        unless $self->_should_run;
+    return 'abstract class' unless $self->_should_run;
 
     # Create an Extend object.
     ok my $one = One->new(name => 'One'), 'Create One object';
@@ -1160,8 +1156,7 @@ sub test_fk_cascade : Test(10) {
 
 sub test_fk_insert : Test(5) {
     my $self = shift;
-    return 'Skip test_fk_insert for abstract class'
-        unless $self->_should_run;
+    return 'abstract class' unless $self->_should_run;
 
     ok my $one = One->new(name => 'One'), 'Create One object';
     ok $one->{id} = -1, '... And fake an ID';
@@ -1174,8 +1169,7 @@ sub test_fk_insert : Test(5) {
 
 sub test_fk_update : Test(9) {
     my $self = shift;
-    return 'Skip test_fk_update for abstract class'
-        unless $self->_should_run;
+    return 'abstract class' unless $self->_should_run;
 
     ok my $one = One->new(name => 'One'), 'Create One object';
     ok $one->save, '... And save it';
@@ -1193,8 +1187,7 @@ sub test_fk_update : Test(9) {
 
 sub test_types : Test(138) {
     my $self = shift;
-    return 'Skip test_fk_update for abstract class'
-        unless $self->_should_run;
+    return 'abstract class' unless $self->_should_run;
     ok my $types_test = TypesTest->new, 'Create new types_test object';
 
     # Set up the integer attribute.

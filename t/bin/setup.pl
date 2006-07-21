@@ -4,18 +4,23 @@
 
 use strict;
 use warnings;
-use Kinetic::Build;
 use Getopt::Long;
+use Kinetic::Store::Setup;
 
-my $init = 1;
 Getopt::Long::GetOptions(
     'source-dir|l=s' => \my $source_dir,
-    'init|i!'        => \$init,
 );
 
-my $build = Kinetic::Build->resume;
-my $kbs = $build->setup_objects('store');
-$kbs->builder->quiet(1);
-$kbs->builder->source_dir($source_dir) if $source_dir;
-$kbs->test_setup;
-$build->init_app if $init;
+# Assume everything.
+my $setup = Kinetic::Store::Setup->new({
+    class => $ENV{KS_CLASS},
+    user         => $ENV{KS_USER},
+    pass         => $ENV{KS_PASS},
+    super_user   => $ENV{KS_SUPER_USER},
+    super_pass   => $ENV{KS_SUPER_PASS},
+    dsn          => $ENV{KS_DSN},
+    template_dsn => $ENV{KS_TEMPLATE_DSN},
+});
+
+$setup->class_dirs($source_dir);
+$setup->setup;

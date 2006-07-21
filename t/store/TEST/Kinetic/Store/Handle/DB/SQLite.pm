@@ -17,7 +17,7 @@ use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
 __PACKAGE__->SKIP_CLASS(
     $ENV{KS_CLASS} && $ENV{KS_CLASS} =~ /DB:SQLite$/
     ? 0
-    : "Not testing Data Stores"
+    : 'Not testing live data store',
 ) if caller;    # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
@@ -33,7 +33,6 @@ sub full_text_search : Test(1) {
 
 sub test_boolean : Test(6) {
     my $self = shift;
-    return unless $self->_should_run;
     $self->clear_database;
 
     my $dbh = $self->dbh;

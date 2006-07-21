@@ -32,7 +32,7 @@ TEST::Kinetic::TestSetup - Setup Kinetic for tests
 =head1 Synopsis
 
   use lib 't/lib';
-  use TEST::Kinetic::TestSetup qw(--store-lib t/sample/lib --no-init);
+  use TEST::Kinetic::TestSetup qw(--store-lib t/sample/lib);
 
 =head1 Description
 
@@ -58,16 +58,6 @@ The value to set the Kinetic::Build C<source_dir> to before instantiating the
 setup objects. This affects where the store setup library looks for modules
 from which to create the data store. See F<t/store.t> for an example>.
 
-=item --init
-
-=item --no-init
-
-This boolean option indicates whether or not to call the C<init_app()> method
-on the build object once the setup is complete. This can be useful if the
-Kinetic libraries themselves are not used to build the data store, and so some
-necessary bits might be missing. Defaults to true; pass C<--no-init> to make
-it false.
-
 =back
 
 =head1 See Also
@@ -88,8 +78,8 @@ it false.
 
 Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>
 
-This module is free software; you can redistribute it and/or modify it under the
-same terms as Perl itself.
+This module is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut
 

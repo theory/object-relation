@@ -229,6 +229,9 @@ our %Lexicon;
         'The [_1] server is version [_2] but we require version [_3]',
         'The [_1] server is version [_2] but we require version [_3]',
 
+        'Looks like someone is accessing "[_1]", so I cannot drop that database',
+        'Looks like someone is accessing “[_1]”, so I cannot drop that database',
+
         # PostgreSQL Setup labels.
         'Can we connect as super user?',
         'Can we connect as super user?',
@@ -274,6 +277,10 @@ our %Lexicon;
 
         'Setup failed.',
         'Setup failed.',
+
+        # SQLite Setup messages.
+        'Cannot delete "[_1]": [_2]',
+        'Cannot delete "[_1]": [_2]',
 
         # PostgreSQL Setup messages.
         'Yes'    => 'Yes',

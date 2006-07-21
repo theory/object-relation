@@ -10,6 +10,7 @@ our $VERSION = version->new('0.0.2');
 use base 'Kinetic::Store::Setup::DB';
 use Kinetic::Store::Exceptions qw(
     throw_unsupported
+    throw_io
 );
 
 =head1 Name
@@ -118,6 +119,25 @@ sub setup {
 
 ##############################################################################
 
+=head3 teardown
+
+  $kbs->teardown;
+
+Tears down the database by disconnecting all database connections and deleting
+the database file, which is extracted from the DSN.
+
+=cut
+
+sub teardown {
+    my $self = shift;
+    $self->disconnect_all;
+    (my $file = $self->dsn) =~ s/.+dbname=//;
+    unlink $file or throw_io [ 'Cannot delete "[_1]": [_2]', $file, $! ];
+    return $self;
+}
+
+##############################################################################
+
 1;
 __END__
 
@@ -125,8 +145,8 @@ __END__
 
 Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>
 
-This module is free software; you can redistribute it and/or modify it under the
-same terms as Perl itself.
+This module is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut
 
