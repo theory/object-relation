@@ -98,9 +98,9 @@ END {
     sub full { return join ' ', @{ +shift }{qw/rank name/} }
 }
 
-$CACHE = $ENV{KS_CACHE} =~ /Kinetic::Store::Cache/
-    ? $ENV{KS_CACHE}
-    : "Kinetic::Store::Cache::$ENV{KS_CACHE}";
+$CACHE = !exists $ENV{KS_CACHE} ? 'Kinetic::Store::Cache::File'
+    : $ENV{KS_CACHE} =~ /^Kinetic/ ? $ENV{KS_CACHE}
+    :                              "Kinetic::Store::Cache::$ENV{KS_CACHE}";
 
 $cache = $CACHE->new({
     expires => 2,

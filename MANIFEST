@@ -1,11 +1,5 @@
 Build.PL
 Changes
-lib/Kinetic/Build.pm
-lib/Kinetic/Build/Setup.pm
-lib/Kinetic/Build/Setup/Store.pm
-lib/Kinetic/Build/Setup/Store/DB.pm
-lib/Kinetic/Build/Setup/Store/DB/Pg.pm
-lib/Kinetic/Build/Setup/Store/DB/SQLite.pm
 lib/Kinetic/Store.pm
 lib/Kinetic/Store/Base.pm
 lib/Kinetic/Store/Cache.pm
@@ -67,13 +61,6 @@ t/basic.t
 t/bin/createlang
 t/bin/setup.pl
 t/bin/teardown.pl
-t/build.t
-t/build/TEST/Kinetic/Build.pm
-t/build/TEST/Kinetic/Build/Setup.pm
-t/build/TEST/Kinetic/Build/Setup/Store.pm
-t/build/TEST/Kinetic/Build/Setup/Store/DB.pm
-t/build/TEST/Kinetic/Build/Setup/Store/DB/Pg.pm
-t/build/TEST/Kinetic/Build/Setup/Store/DB/SQLite.pm
 t/clone.t
 t/collection.t
 t/collection/typed.t
@@ -98,7 +85,6 @@ t/lib/TEST/Kinetic/Traits/SampleObjects.pm
 t/lib/TEST/Kinetic/Traits/Store.pm
 t/media_type.t
 t/meta.t
-t/mysql/schema.t
 t/parser/main.t
 t/pg/rules.t
 t/pg/schema.t

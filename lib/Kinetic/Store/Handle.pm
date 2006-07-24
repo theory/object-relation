@@ -4,8 +4,8 @@ package Kinetic::Store::Handle;
 
 use strict;
 use aliased 'Kinetic::Store::Cache';
+use Kinetic::Store::Functions qw(:class);
 use Kinetic::Store::Exceptions qw(
-    throw_invalid_class
     throw_search
     throw_unimplemented
 );
@@ -206,17 +206,11 @@ revelant subclass for details.
 
 sub new {
     my ($class, $params) = @_;
-    $class = _load_class(delete $params->{class}, __PACKAGE__, 'DB::SQLite')
+    $class = load_class(delete $params->{class}, __PACKAGE__, 'DB::SQLite')
         if $class eq __PACKAGE__;
 
-    my $cache = _load_class(
-        delete $params->{cache},
-        'Kinetic::Store::Cache',
-        'File',
-    );
-
     return bless {
-        cache  => $cache->new,
+        cache  => Kinetic::Store::Cache->new( delete $params->{cache} ),
         config => $params,
     } => $class;
 }
@@ -493,42 +487,6 @@ sub _prep_search_token {
 }
 
 ##############################################################################
-
-=head2 Private Functions
-
-=head3 _load_class
-
-  my $class = _load_class($class, $base_class, $default_class);
-
-Loads the class specified by the $class argument. It first tries to load it
-under the namespace defined by $base_class. If that class does not exist, it
-simply loads $class. In the case where $class is C<undef>, $default_class will
-be used, instead. Called by C<new()>.
-
-=cut
-
-sub _load_class {
-    my ($pkg, $base, $default) = @_;
-    my $class = "$base\::" . ($pkg || $default);
-
-    eval "require $class";
-    if ($@ && $@ =~ /^Can't locate/ && $pkg) {
-        $class = $pkg;
-        eval "require $class";
-    }
-
-    throw_invalid_class [
-        'I could not load the class "[_1]": [_2]',
-        $class,
-        $@,
-    ] if $@;
-
-    return $class;
-}
-
-##############################################################################
-
-=end private
 
 =head1 Search Parameters Explained
 

@@ -7,6 +7,7 @@ use strict;
 use version;
 our $VERSION = version->new('0.0.2');
 
+use Kinetic::Store::Functions qw(:class);
 use Kinetic::Store::Exceptions qw(throw_unknown_class throw_unimplemented);
 
 =head1 Name
@@ -45,13 +46,9 @@ user.
 
 sub new {
     my ($pkg, $cache_class) = (shift, shift);
-    eval "require $cache_class"
-      or throw_unknown_class [
-        'I could not load the class "[_1]": [_2]',
-        $cache_class,
-        $@
-      ];
-    return $cache_class->new(@_);
+    my $class = load_class($cache_class, __PACKAGE__, 'File')
+        if $pkg eq __PACKAGE__;
+    return $class->new(@_);
 }
 
 BEGIN {
@@ -66,7 +63,7 @@ BEGIN {
     }
 }
 
-sub _cache                  { shift->{cache} }
+sub _cache { shift->{cache} }
 
 ##############################################################################
 

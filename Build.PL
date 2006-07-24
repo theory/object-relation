@@ -1,12 +1,11 @@
 use strict;
 use 5.008003;
 use lib 'lib';
-use Kinetic::Build;
+use Module::Build;
 
-my $build = Kinetic::Build->new(
+my $build = Module::Build->new(
     module_name          => 'Kinetic::Store',
     license              => 'perl',
-    build_class          => 'Kinetic::Build',
     dist_author          => 'Kineticode, Inc. <info@kineticode.com>',
     recursive_test_files => 1,
     requires             => {
@@ -38,7 +37,6 @@ my $build = Kinetic::Build->new(
         'MIME::Types'                => 1.14,
         'OSSP::uuid'                 => 0,      # XXX Not on CPAN!
         'Regexp::Common'             => 2.119,
-        'Term::ANSIColor'            => 0,      # XXX Remove with Build.
         'version'                    => 0.420,
         'Widget::Meta'               => 0.03,   # XXX Kill?
         'XML::Simple'                => 2.13,   # XXX Replace!
@@ -48,7 +46,6 @@ my $build = Kinetic::Build->new(
         'Cache::Cache'              => 1.04,
         'Class::Trait'              => 0.11,
         'DBD::SQLite'               => 1.12,
-        'File::Copy'                => 0,       # XXX Remove with Build.
         'File::Path'                => 0,
         'Module::Build'             => 0.28,
         'Pod::Man'                  => 2.08,    # For utf8 Support.

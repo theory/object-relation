@@ -10,7 +10,7 @@ use MIME::Base64;
 use File::Find::Rule;
 use File::Spec;
 use List::Util qw(first sum);
-use Kinetic::Store::Exceptions qw/throw_fatal/;
+use Kinetic::Store::Exceptions qw/throw_fatal throw_invalid_class/;
 
 =head1 Name
 
@@ -38,6 +38,7 @@ use Exporter::Tidy
     class => [qw(
         file_to_mod
         load_classes
+        load_class
     )],
 ;
 
@@ -142,7 +143,7 @@ sub isa_gtin ($) {
 
 =head2 Class handling functions
 
-The following functions are generic utilities for handling classes.  They can
+The following functions are generic utilities for handling classes. They can
 be imported individually or with the C<:class> tag.
 
  use Kinetic::Store::Functions ':class';
@@ -224,6 +225,37 @@ sub load_classes {
     }
 
     return wantarray ? @classes : \@classes;
+}
+
+##############################################################################
+
+=head3 load_class
+
+  my $class = load_class($class, $base_class, $default_class);
+
+Loads the class specified by the $class argument. It first tries to load it as
+"$base_class::$class". If that class does not exist, it simply loads $class.
+In the case where $class is C<undef>, $default_class will be used instead.
+
+=cut
+
+sub load_class {
+    my ($pkg, $base, $default) = @_;
+    my $class = "$base\::" . ($pkg || $default);
+
+    eval "require $class";
+    if ($@ && $pkg && $@ =~ /^Can't locate/) {
+        $class = $pkg;
+        eval "require $class";
+    }
+
+    throw_invalid_class [
+        'I could not load the class "[_1]": [_2]',
+        $class,
+        $@,
+    ] if $@;
+
+    return $class;
 }
 
 1;
