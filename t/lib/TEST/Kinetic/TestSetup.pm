@@ -38,9 +38,7 @@ TEST::Kinetic::TestSetup - Setup Kinetic for tests
 
 =head1 Description
 
-This module automates setting up Kinetic for tests. It checks the $KS_CLASS
-environment variable, and if that variable is set, it knows that the
-C<dev_test> build attribute has been set to true. So on loading, it runs
+This module automates setting up Kinetic for tests. On loading, it runs
 F<t/bin/setup.pl> and when all testing has completed, it runs
 F<t/bin/teardown.pl>. Those scripts must be run in a separate process; what
 they do is build the Kinetic data store and tear it down, respectively. That
