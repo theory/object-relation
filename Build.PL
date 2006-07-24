@@ -8,6 +8,7 @@ my $build = Module::Build->new(
     license              => 'perl',
     dist_author          => 'Kineticode, Inc. <info@kineticode.com>',
     recursive_test_files => 1,
+    add_to_cleanup       => [ 't/data' ],
     requires             => {
         'aliased'                    => 0.11,
         'Array::AsHash'              => 0.31,
