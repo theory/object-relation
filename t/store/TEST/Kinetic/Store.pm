@@ -1,4 +1,4 @@
-package TEST::Kinetic;
+package TEST::Kinetic::Store;
 
 # $Id$
 

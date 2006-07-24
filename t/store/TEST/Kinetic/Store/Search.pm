@@ -5,7 +5,6 @@ package TEST::Kinetic::Store::Search;
 use strict;
 use warnings;
 
-#use base 'TEST::Kinetic';
 use base 'TEST::Class::Kinetic';
 use Test::More;
 use Test::Exception;

@@ -112,7 +112,7 @@ t/sqlite/schema_file.t
 t/sqlite/setup.t
 t/sqlite/store.t
 t/state.t
-t/store/TEST/Kinetic.pm
+t/store/TEST/Kinetic/Store.pm
 t/store/TEST/Kinetic/Store/Format.pm
 t/store/TEST/Kinetic/Store/Format/JSON.pm
 t/store/TEST/Kinetic/Store/Format/XML.pm

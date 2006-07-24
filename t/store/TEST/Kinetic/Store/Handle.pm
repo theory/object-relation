@@ -5,7 +5,7 @@ package TEST::Kinetic::Store::Handle;
 use strict;
 use warnings;
 
-use base 'TEST::Kinetic';
+use base 'TEST::Kinetic::Store';
 use Test::More;
 use Test::Exception;
 use Encode qw(is_utf8);
