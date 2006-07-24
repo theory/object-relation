@@ -19,7 +19,6 @@ lib/Kinetic/Store/Format/XML.pm
 lib/Kinetic/Store/Functions.pm
 lib/Kinetic/Store/Handle.pm
 lib/Kinetic/Store/Handle/DB.pm
-lib/Kinetic/Store/Handle/DB/mysql.pm
 lib/Kinetic/Store/Handle/DB/Overview.pod
 lib/Kinetic/Store/Handle/DB/Pg.pm
 lib/Kinetic/Store/Handle/DB/SQLite.pm

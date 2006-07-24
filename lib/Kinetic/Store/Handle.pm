@@ -27,14 +27,14 @@ Kinetic::Store::Handle - The Kinetic data storage class
 =head1 Description
 
 This class handles all of the work necessary to communicate with back-end
-storage systems. Kinetic::Store::Handle itself is an abstract class; its subclasses
-will implement its interface for different storage devices: RDBMSs, OODBMSs,
-XML Files, LDAP, or whatever. The canonical storage implementation is
-L<Kinetic::Store::Handle::DB::Pg|Kinetic::Store::Handle::DB::Pg>, for PostgreSQL 7.4 or
-later. Others might include
-L<Kinetic::Store::Handle::DB::SQLite|Kinetic::Store::Handle::DB::SQLite> for SQLite,
-L<Kinetic::Store::Handle::DB::mysql|Kinetic::Store::Handle::DB::mysql> for MySQL 4.1 or
-later, and L<Kinetic::Store::LDAP|Kinetic::Store::LDAP>.
+storage systems. Kinetic::Store::Handle itself is an abstract class; its
+subclasses will implement its interface for different storage devices: RDBMSs,
+OODBMSs, XML Files, LDAP, or whatever. The canonical storage implementation is
+L<Kinetic::Store::Handle::DB::Pg|Kinetic::Store::Handle::DB::Pg>, for
+PostgreSQL 8.0 or later. Others might include
+L<Kinetic::Store::Handle::DB::SQLite|Kinetic::Store::Handle::DB::SQLite> for
+SQLite, Kinetic::Store::Handle::DB::mysql for MySQL 5.0 or later, and
+Kinetic::Store::Handle::LDAP.
 
 =cut
 

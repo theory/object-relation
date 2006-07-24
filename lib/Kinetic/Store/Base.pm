@@ -523,32 +523,6 @@ __END__
 
 ##############################################################################
 
-=head1 To Do
-
-=over
-
-=item *
-
-Add caching to the store.
-
-=item *
-
-Use batch updates and inserts for collections?
-
-=item *
-
-Move all types into classes.
-
-=item *
-
-Add verbosity to setup.
-
-=item *
-
-Make teardowns reverse setups instead of just wiping out the database.
-
-=back
-
 =head1 See Also
 
 =over 4
