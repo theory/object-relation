@@ -171,7 +171,16 @@ work.
 sub setup {
     my $self = shift;
     my $machine = FSA::Rules->new( $self->rules );
-    $machine->run;
+    if ($self->verbose) {
+        $machine->start;
+        until ($machine->done) {
+            print $machine->curr_state->label;
+            $machine->switch;
+            print ' ', $machine->prev_state->message, $/;
+        }
+    } else {
+        $machine->run;
+    }
     return $self;
     $self->disconnect_all;
 }
@@ -570,6 +579,7 @@ sub rules {
                 # User should still be connected to the template database.
                 # $self->connect( $self->template_dsn, $self->user, $self->pass);
                 $state->result($self->_plpgsql_available);
+                $state->notes( plpgsql => $state-> result );
             },
             rules => [
                 'No Database' => {
@@ -745,6 +755,32 @@ sub rules {
 
 ##############################################################################
 
+=head3 connect
+
+  my $dbh = $setup->connect;
+  $dbh = $setup->connect(@args);
+
+Connects to the database and returns the database handle, which is also stored
+in the C<dbh> attribute. The implementation is handled by the parent class;
+this method overrides the parent merely to set the client verbosity in the
+database handle before returning it. If the C<setup> attribute is true, then
+the database verbosity is set to "log". Otherwise it's set to "warning".
+
+=cut
+
+sub connect {
+    my $self = shift;
+    my $dbh = $self->SUPER::connect(@_);
+    # Make it more or less verbose than the default, as appropriate.
+    $dbh->do(
+        'SET client_min_messages = '
+        . ($self->verbose ? 'log' : 'warning')
+    );
+    return $dbh;
+}
+
+##############################################################################
+
 =head3 check_version
 
   $setup->check_version;
@@ -879,7 +915,6 @@ sub build_db {
     my $self = shift;
 
     my $dbh = $self->_connect($self->dsn);
-    $dbh->do('SET client_min_messages = warning');
 
     $self->SUPER::build_db(@_);
     $self->grant_permissions;

@@ -8,6 +8,10 @@ use Kinetic::Store::Exceptions qw(
     throw_unimplemented
 );
 
+use Class::BuildMethods qw(
+    verbose
+);
+
 use version;
 our $VERSION = version->new('0.0.2');
 
@@ -64,6 +68,10 @@ L<Kinetic::Store::Schema|Kinetic::Store::Schema>; as such, the final value in
 the list may optionally be a File::Find::Rule object. Defaults to C<['lib']>
 if not specified.
 
+=item verbose
+
+A boolean value indicating whether or not the setup should be verbose.
+
 =back
 
 =cut
@@ -99,6 +107,7 @@ sub new {
         }
     }
 
+    $self->verbose(0) unless defined $self->verbose;
     return $self;
 }
 
@@ -145,6 +154,13 @@ sub store_class {
 =head1 Instance Interface
 
 =head2 Instance Accessors
+
+=head3 verbose
+
+  my $verbose = $setup->verbose;
+  $setup->verbose($verbose);
+
+A boolean value idicating whether or not the setup should be verbose.
 
 =head3 class_dirs
 

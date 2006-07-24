@@ -170,8 +170,6 @@ $db_mock->mock(build_db => sub { shift; $build_args = \@_; $setup; });
 $pg_mock->mock( grant_permissions => sub { pass 'grant_permissions() called' });
 
 ok $setup->build_db, 'Call build_db()';
-is_deeply $do_args, ['SET client_min_messages = warning'],
-    '... It should have set client_min_messages to warning';
 is_deeply $connect_args, [ $dsn, $super, $setup->super_pass ],
     '... It should have connected the super user';
 is_deeply $build_args, [], '... And it should have called SUPER::build_db()';
@@ -180,8 +178,6 @@ is_deeply $build_args, [], '... And it should have called SUPER::build_db()';
 ok $setup->super_user(undef), 'Set super_user to undef';
 $build_args = undef;
 ok $setup->build_db, 'Call build_db()';
-is_deeply $do_args, ['SET client_min_messages = warning'],
-    '... It should have set client_min_messages to warning';
 is_deeply $connect_args, [ $dsn, $user, $pass ],
     '... It should have connected the user';
 is_deeply $build_args, [], '... And it should have called SUPER::build_db()';
@@ -369,6 +365,15 @@ throws_ok { $setup->_run('someprogramthatshouldnotexist') }
     'Call to _run() should throw an IO exception';
 like $@->error, qr/system\('someprogramthatshouldnotexist'\)\s+failed:/,
     '... And the error should be correct';
+
+##############################################################################
+# Test connect().
+$pg_mock->unmock('connect');
+$db_mock->mock( connect => $dbh );
+
+ok $setup->connect, 'Call connect()';
+is_deeply $do_args, ['SET client_min_messages = warning'],
+    '... It should have set client_min_messages to warning';
 
 # Cleanup.
 $pg_mock->unmock_all;

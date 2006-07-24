@@ -4,13 +4,14 @@
 
 use strict;
 use warnings;
-use Test::More tests => 229;
+use Test::More tests => 233;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use Test::Exception;
 use aliased 'Test::MockModule';
 use Kinetic::Store::Exceptions qw(throw_exlib);
 use Test::File;
+use Test::Output;
 use utf8;
 
 BEGIN {
@@ -454,6 +455,7 @@ ok $fsa->reset->curr_state('Can Create Database'),
 is $fsa->curr_state->label, 'Does the template database have PL/pgSQL?',
     '... The label should be correct';
 ok $fsa->curr_state->result, '... The result should be true';
+ok $fsa->notes('plpgsql'), '... And the "plpgsql" note should be true';
 
 # Try switching with result true.
 ok $fsa->switch, 'Switch states';
@@ -468,6 +470,8 @@ ok $fsa->reset->curr_state('Can Create Database'),
 $fsa->notes( super => 1 );
 ok $fsa->switch, 'Switch states';
 is $fsa->prev_state->message, 'No', '... And the message should be "No"';
+ok !$fsa->prev_state->result, '... And the result should be false';
+ok !$fsa->notes('plpgsql'), '... And the "plpgsql" note should be false';
 is $fsa->curr_state->name, 'No PL/pgSQL',
     '... And now the state should be "No PL/pgSQL"';
 
@@ -609,3 +613,19 @@ ok $fsa->reset->curr_state('Fail'), 'Set state to "Fail"';
 is $fsa->curr_state->label, 'Setup failed.',
     '... The label should be correct';
 ok $fsa->done, 'The machine should be done';
+
+##############################################################################
+# Test verbose output.
+$mocker->mock(find_createlang => 'createlang');
+$setup->verbose(1);
+stdout_is { $setup->setup } <<'EOO', 'The output of setup() should be blah';
+Can we connect as super user? Yes
+Do we have the proper version of PostgreSQL? Yes
+Does the database exist? Yes
+Does it have PL/pgSQL? No
+So find createlang. Okay
+Add PL/pgSQL to the database. Okay
+Does the user exist? No
+So create the user. Okay
+So build the database and grant permissions. Okay
+EOO
