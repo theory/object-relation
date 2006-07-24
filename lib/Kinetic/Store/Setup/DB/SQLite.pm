@@ -8,6 +8,7 @@ use version;
 our $VERSION = version->new('0.0.2');
 
 use base 'Kinetic::Store::Setup::DB';
+use aliased 'Kinetic::Store::Language';
 use Kinetic::Store::Exceptions qw(
     throw_unsupported
     throw_io
@@ -97,10 +98,13 @@ work.
 =cut
 
 sub setup {
-    my $self = shift;
-    my $dbh  = $self->connect;
+    my $self    = shift;
+    my $dbh     = $self->connect;
+    my $verbose = $self->verbose;
+    my $lang    = Language->get_handle;
 
     # Check the version of SQLite.
+    $self->notify($lang->maketext('Do we have the proper version of SQLite?'));
     my $req = version->new('3.2.0');
     my $got = version->new($dbh->{sqlite_version});
     throw_unsupported [
@@ -110,6 +114,7 @@ sub setup {
         $got,
         $req,
     ] if $got < $req;
+    $self->notify(' ', $lang->maketext('Yes'), $/);
 
     # Set the database handle and send it on up.
     $self->dbh($dbh);

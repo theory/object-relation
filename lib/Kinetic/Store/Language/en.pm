@@ -239,6 +239,9 @@ our %Lexicon;
         'Do we have the proper version of PostgreSQL?',
         'Do we have the proper version of PostgreSQL?',
 
+        'Do we have the proper version of SQLite?',
+        'Do we have the proper version of SQLite?',
+
         'Does the database exist?',
         'Does the database exist?',
 

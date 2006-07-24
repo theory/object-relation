@@ -110,10 +110,6 @@ Move all types into classes.
 
 =item *
 
-Add verbosity to setup.
-
-=item *
-
 Make teardowns reverse setups instead of just wiping out the database.
 
 =item *

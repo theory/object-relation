@@ -174,9 +174,9 @@ sub setup {
     if ($self->verbose) {
         $machine->start;
         until ($machine->done) {
-            print $machine->curr_state->label;
+            $self->notify($machine->curr_state->label);
             $machine->switch;
-            print ' ', $machine->prev_state->message, $/;
+            $self->notify(' ', $machine->prev_state->message, $/);
         }
     } else {
         $machine->run;

@@ -205,7 +205,7 @@ sub setup {
 
 =head3 load_schema
 
-  $kbs->load_schema;
+  $setup->load_schema;
 
 Loads a Kinetic::Store::Schema object with all of the libraries found in the
 path specified by the C<source_dir> Kinetic::Build attribute.
@@ -227,6 +227,23 @@ sub load_schema {
 
     # Now load the classes to be installed.
     return $sg->load_classes($self->class_dirs);
+}
+
+##############################################################################
+
+=head3 notify
+
+  $setup->nofify('Looking good...', $/);
+
+Outputs setup notification messages. It simply prints all messages to if the
+C<verbose> attribute is true.
+
+=cut
+
+sub notify {
+    my $self = shift;
+    print @_ if $self->verbose;
+    return $self;
 }
 
 1;
