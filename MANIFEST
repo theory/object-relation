@@ -90,6 +90,7 @@ t/pg/rules.t
 t/pg/schema.t
 t/pg/schema_file.t
 t/pg/setup.t
+t/pg/store.t
 t/pod.t
 t/pod_coverage.t
 t/relationships.t
@@ -109,13 +110,13 @@ t/setup.t
 t/sqlite/schema.t
 t/sqlite/schema_file.t
 t/sqlite/setup.t
+t/sqlite/store.t
 t/state.t
-t/store.t
 t/store/TEST/Kinetic.pm
-t/store/TEST/Kinetic/Store.pm
 t/store/TEST/Kinetic/Store/Format.pm
 t/store/TEST/Kinetic/Store/Format/JSON.pm
 t/store/TEST/Kinetic/Store/Format/XML.pm
+t/store/TEST/Kinetic/Store/Handle.pm
 t/store/TEST/Kinetic/Store/Handle/DB.pm
 t/store/TEST/Kinetic/Store/Handle/DB/Pg.pm
 t/store/TEST/Kinetic/Store/Handle/DB/SQLite.pm

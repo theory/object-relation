@@ -6,20 +6,19 @@ use warnings;
 use strict;
 use File::Spec::Functions;
 
-my $conf;
+my $ARGS;
 sub import {
     my $class = shift;
+    $ARGS = \@_;
     # Run the setup script.
-    return unless $ENV{KS_CLASS};
     my $script = catfile qw(t bin setup.pl);
     system $^X, $script, @_ and die "# $script failed: ($!)";
 }
 
 END {
     # Run the teardown script.
-    return unless $ENV{KS_CLASS};
     my $script = catfile qw(t bin teardown.pl);
-    system $^X, $script and die "# $script failed: ($!)";
+    system $^X, $script, @$ARGS and die "# $script failed: ($!)";
 }
 
 1;
@@ -32,7 +31,10 @@ TEST::Kinetic::TestSetup - Setup Kinetic for tests
 =head1 Synopsis
 
   use lib 't/lib';
-  use TEST::Kinetic::TestSetup qw(--store-lib t/sample/lib);
+  use TEST::Kinetic::TestSetup (
+      class => 'DB::SQLite',
+      dsn   => 'dbi:SQLite:/tmp/kinetic.db',
+  );
 
 =head1 Description
 
@@ -48,17 +50,9 @@ the test script run.
 =head1 Import
 
 Any arguments passed to the use statement when loading this module will be
-passed through to F<t/bin/setup.pl>. The supported options to that script are:
-
-=over
-
-=item --source-dir
-
-The value to set the Kinetic::Build C<source_dir> to before instantiating the
-setup objects. This affects where the store setup library looks for modules
-from which to create the data store. See F<t/store.t> for an example>.
-
-=back
+passed through to F<t/bin/setup.pl> and, in an C<END> block, to
+F<t/bin/teardown.pl>. These scripts will both pass their arguments to
+C<< Kinetic::Store::Setup->new >>>.
 
 =head1 See Also
 

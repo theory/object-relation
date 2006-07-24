@@ -1134,7 +1134,8 @@ sub _get_sql_results {
                 my $result = $sth->fetchrow_hashref or return;
                 local $self->{search_class} = $search_class;
                 return $self->_build_object_from_hashref($result);
-            }
+            },
+            sub { $sth->finish },
         );
         return $iterator;
     }

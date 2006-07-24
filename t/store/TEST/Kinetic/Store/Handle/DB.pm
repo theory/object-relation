@@ -494,13 +494,16 @@ sub update : Test(7) {
     my $test = shift;
     my ($sth, $BIND);
     my $mock_sth = MockModule->new('DBI::st', no_auto => 1);
+    my $orig;
     $mock_sth->mock(
+        # We must call the original to avoid leaving the sth unfinished.
         execute => sub {
             $sth = shift;
             $BIND = \@_;
-            return 1;
+            return $sth->$orig(@_);
         },
     );
+    $orig = $mock_sth->original('execute');
 
     my $one = One->new;
     $one->name('Ovid');

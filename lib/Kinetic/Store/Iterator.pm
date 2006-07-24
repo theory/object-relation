@@ -48,11 +48,15 @@ when there are no more items. Therefore, no item can actually be C<undef>.
 
 =head3 new
 
-  my $iter = Kinetic::Store::Iterator->new(\&closure);
+  my $iter = Kinetic::Store::Iterator->new(\&code_ref);
+  my $iter = Kinetic::Store::Iterator->new(\&code_ref, \&destroy_code_ref);
 
-Constructs and returns a new iterator object. The closure passed in must
-return the next item to iterate over each time it is called, and C<undef> when
-there are no more items. C<undef> cannot itself be an item.
+Constructs and returns a new iterator object. The code reference passed as the
+first argument is required and must return the next item to iterate over each
+time it is called, and C<undef> when there are no more items. C<undef> cannot
+itself be an item. The optional second argument must also be a code reference,
+and will only be executed when the iterator object is destroyed (that is, it
+will be called in the C<DESTROY()> method).
 
 B<Throws:>
 
@@ -65,10 +69,18 @@ B<Throws:>
 =cut
 
 sub new {
-    my ( $class, $code ) = @_;
+    my ( $class, $code, $destroy ) = @_;
     throw_invalid [ 'Argument "[_1]" is not a code reference', $code ]
-      unless ref $code eq 'CODE';
-    bless { code => $code }, $class;
+      if ref $code ne 'CODE';
+    throw_invalid [ 'Argument "[_1]" is not a code reference', $destroy ]
+      if $destroy && ref $destroy ne 'CODE';
+    bless { code => $code, destroy => $destroy }, $class;
+}
+
+DESTROY {
+    if (my $dest = shift->{destroy}) {
+        $dest->();
+    }
 }
 
 ##############################################################################

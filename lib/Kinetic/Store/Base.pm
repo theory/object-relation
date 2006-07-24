@@ -537,11 +537,15 @@ Use batch updates and inserts for collections?
 
 =item *
 
-Eliminate configuration file.
+Move all types into classes.
 
 =item *
 
-Eliminate Kinetic::Store::Language?
+Add verbosity to setup.
+
+=item *
+
+Make teardowns reverse setups instead of just wiping out the database.
 
 =back
 
