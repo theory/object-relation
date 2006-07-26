@@ -3,12 +3,12 @@ package TestApp::Abstract;
 use strict;
 use warnings;
 
-use Kinetic::Store::Meta;
-use Kinetic::Store::Meta::Widget;
-use Kinetic::Store::Language::en_us;
+use Object::Relation::Meta;
+use Object::Relation::Meta::Widget;
+use Object::Relation::Language::en_us;
 
 BEGIN {
-    my $km = Kinetic::Store::Meta->new(
+    my $km = Object::Relation::Meta->new(
         key         => 'abstract',
         name        => 'Abstract',
         plural_name => 'Abstracts',
@@ -21,7 +21,7 @@ BEGIN {
         type        => 'string',
         required    => 1,
         indexed     => 1,
-        widget_meta => Kinetic::Store::Meta::Widget->new(
+        widget_meta => Object::Relation::Meta::Widget->new(
             type => 'text',
             tip  => 'The name of this object',
         )
@@ -31,7 +31,7 @@ BEGIN {
 }
 
 # Add new strings to the lexicon.
-Kinetic::Store::Language::en->add_to_lexicon(
+Object::Relation::Language::en->add_to_lexicon(
   'Abstract',
   'Abstract',
   'Abstracts',

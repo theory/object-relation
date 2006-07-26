@@ -1,0 +1,410 @@
+# $Id$
+
+=encoding utf8
+
+=head1 Name
+
+Object::Relation::DataType - Complex data types for TKP
+
+=head1 Description
+
+The C<Object::Relation::DataType> name space is set aside for the creation of complex
+data types for TKP. By "complex" I mean serializable objects, such as dates,
+durations, states, etc. It also is designed to create a distinction from
+simpler data types, which are defined in
+L<Object::Relation::Meta::DataTypes|Object::Relation::Meta::DataTypes>.
+
+What creates the distinction? Well, first and foremost is that fact that it
+doesn't usually take much to create the simple data types, while the complex
+data types might need more code to handle serialization and deserialization,
+overloading, etc. But another criterion is that, while the data types in
+L<Object::Relation::Meta::DataTypes|Object::Relation::Meta::DataTypes> are I<always> loaded by
+TKP, since it uses them for its own classes, the complex data types in the
+C<Object::Relation::DataType> name space tend to be loaded only as needed by the
+Object::Relation business classes that need them.
+
+Okay, so it's somewhat arbitrary, but you get the idea. The remainder of this
+document is dedicated to documenting how to add new data types to TKP.
+
+=head1 Adding Data Types to TKP
+
+The first step is to determine exactly what the data type will consist of. Is
+it a simple string or number? A read-only object? A mutable object? Before you
+go any further, consider this: Any TKP business class that you create that
+inherits from L<Object::Relation::Base|Object::Relation::Base> and is implemented
+using L<Object::Relation::Meta|Object::Relation::Meta> is already a data type. Its
+C<key> attribute will name is as an attribute, and nothing further needs to be
+done.
+
+So, aside from TKP business classes, there are essentially three different
+kinds of data types that you can add.
+
+=over
+
+=item 1 Simple scalar values
+
+=item 2 Simple objects
+
+=item 3 Complex objects
+
+=back
+
+I'll cover how to create new data types for all three.
+
+=head2 Simple scalar values
+
+Simple scalar values are, as you might expect, the easiest data types to add
+to TKP. As an example, let's say that we wanted to add a real number data
+type. The first thing we need to do is to declare the new data type using
+L<Object::Relation::Meta::Type|Object::Relation::Meta::Type>:
+
+  use Object::Relation::Exceptions qw(throw_invalid);
+  use Data::Types;
+  Object::Relation::Meta::Type->add(
+      key     => 'real',
+      name    => 'Real Number',
+      check   => sub {
+          my ($new_val, $attr_name, $obj) = shift;
+          return unless defined $new_val;
+          Data::Types::is_real($new_val) or throw_invalid([
+              'Value "[_1]" is not a real number',
+              $new_val,
+          ]);
+      },
+  );
+
+The first two parameters should be pretty straight-forward: we need a key name
+for the data type. This key name must be unique across all other data types,
+as well as the key names of Object::Relation business classes. The C<name> parameter is
+simply a display name for the data type.
+
+The C<check> parameter requires a bit more explanation. This optional
+parameter takes an anonymous subroutine as it value. The anonymous subroutine
+should expect three arguments: the new value being assigned to an attribute of
+the type we're defining, the name of the attribute, and the object to which
+the new value will be assigned. You may use any and all of these objects to
+validate the new value.
+
+If the new value is not valid, then throw a
+Object::Relation::Exception::Fatal::Invalid exception--most easily done with the
+convenient C<throw_invalid()> function importable from
+L<Object::Relation::Exceptions|Object::Relation::Exceptions>. Note that the way
+we've called it in the example is by passing it an array reference. The first
+item in the array reference is a L<Local::Maketext|Local::Maketext> string,
+which is used by the exception class to localize the exception message using
+L<Object::Relation::Language|Object::Relation::Language>.
+
+This leads us to the second step in adding the new data type: adding the error
+message to the TKP lexicon. This can be done in one of two ways. If the new
+type is being added to the TKP distribution itself, then the error message
+should simply be added directly to C<Object::Relation::Language::en>, like so:
+
+    'Value "[_1]" is not a real number',
+    'Value “[_1]” is not a real number',
+
+Note that all strings in TKP must be in UTF-8; here I've used UTF-8 curly
+quotes for the translation of the error message into English. Other locales
+might chose to do something else (e.g., the French localization might want to
+use "«[_1]»", instead).
+
+And now the data type has been added and you can just start using it, right?
+Well, no, not quite. We still need to tell the data stores how to store an
+attribute of this type. Currently, you tell each data store how to store a
+data type by editing
+L<Object::Relation::Schema::DB::Pg|Object::Relation::Schema::DB::Pg> and
+L<Object::Relation::Schema::DB::SQLite|Object::Relation::Schema::DB::SQLite>
+directly. Fortunately, for a new type like our C<real> type, this is quite
+simple. Each of these classes has a package-scoped lexical hash, C<%types>,
+that maps data types to column types. All we have to do is add a new entry for
+the C<real> data type. What column type? Well, consult the documentation for
+PostgreSQL's data types here:
+L<http://www.postgresql.org/docs/current/static/datatype.html>, and for
+SQLite's data types (such as they are) here:
+L<http://www.sqlite.org/datatype3.html>. Having done so, we find that both
+support a "REAL" data type, so we simply add it to the C<%types> hash in each
+module:
+
+  real => 'REAL',
+
+And that's it! Well, no, one more thing: write some tests! You want to make
+sure that your new data type works properly in TKP as well as in the data
+stores, so be sure to write some tests that validate that you can create
+C<real> attributes, that invalid values fail, and that the databases complain
+if the values are invalid (this might take some trickery; see
+F<t/store/TEST/Object/Relation/Store/Handle/DB.pm> for some examples).
+
+=head2 Simple Objects
+
+A simple object is an object that cannot be changed once it has been
+instantiated. The nice thing about a simple, read-only object, from TKP's
+point of view, is that if you need to change an attribute based on a read-only
+object data type, you just assign a new object. Objects that can be changed
+without assigning a new object to an attribute are more complex; they're
+covered below.
+
+=for comment
+
+The above is a bit of a simplification, since currently you have to assign a
+new object to any attribute in order to change its value. You cannot simply
+change the object. For example, you might have a DateTime attribute, and you
+can fetch the DateTime object and then change it (by assigning it a different
+date, for example), but TKP doesn't know that it has changed, and therefore
+won't update it in the database. I plan to fix this issue, though I'm not sure
+how. So for now, all objects must be replaced in order to be updated in the
+data store.
+
+A good example of a simple, read-only object is a L<version|version> object.
+The C<version> module represents numeric version numbers, and is, in fact,
+already a data type in TKP. But it makes a nice example, so we'll take a look
+at it here. Once again, the data type declaration simply requires a the use of
+L<Object::Relation::Meta::Type|Object::Relation::Meta::Type>:
+
+  Object::Relation::Meta::Type->add(
+      key   => 'version',
+      name  => 'Version',
+      raw   => sub { ref $_[0] ? shift->stringify : shift },
+      bake  => sub { version->new(shift) },
+      check => 'version',
+  );
+
+Now, you might think that this looks even simpler than the simple scalar
+data type, and in a sense you're right. We don't have to bother writing
+a C<check> anonymous subroutine; instead, we just specify a package name.
+C<Object::Relation::Meta::Type> will recognize it as such, and build a validating
+code reference for us, looking something like this:
+
+  sub {
+      my $val = shift;
+      return unless defined $val;
+      eval { $val->isa($pkg) }
+          or throw_invalid([
+              'Value "[_1]" is not a valid [_2] object',
+              $val,
+              $pkg,
+          ]);
+  }
+
+In our C<version> data type example, $pkg will be set to 'version'.
+
+So what's with the other parameters? Well, they allow the version object to be
+properly serialized to and deserialized from the data store. The C<raw>
+attribute requires a code reference that returns the raw value for storage in
+the data store. It's generally a good idea to check to make sure that the
+value is defined before calling any methods on it. Hence this code reference
+for getting the raw value from a C<version> object:
+
+      raw   => sub { ref $_[0] ? shift->stringify : shift },
+
+The C<bake> parameters is the converse of C<raw>: it deserializes the
+value from the data store into an object. For C<version>, it simply
+calls C<new()> and passes in the raw value from the data store:
+
+      bake  => sub { version->new(shift) },
+
+The beautiful thing about the C<raw> and C<bake> parameters is that this is
+I<all> you have to do to serialize and deserialize your object. TKP does the
+rest using these code references. In fact, TKP is smart enough that it doesn't
+serialize or deserialize a value unless it absolutely has to (such as when an
+accessor is called to fetch a value or when a value has been changed and needs
+to be updated in the data store.
+
+As with simple scalar values, however, we still have to tell TKP what data
+store column types to use to store the value. As it happens, C<version>
+objects are best stored in text rather than numeric columns, so all we have to
+do is tell the schema classes about it by adding a new entry to their
+C<%types> variables:
+
+  version => 'TEXT',
+
+=head3 Complex Objects
+
+Other object data types require more work. Perhaps you have to do more work to
+serialize and deserialize them (as in
+L<Object::Relation::DataTypee::Duration|Object::Relation::DataTypee::Duration>, or you need to
+subclass an existing object class in order to add new functionality
+(overloading, localization, etc.). In such a case, the best choice is to
+add the new class to the Object::Relation::DataType name space.
+
+For example, say that we wanted to add a L<DateTime|DateTime> data type. In
+fact, TKP includes a such a data type,
+L<Object::Relation::DataType::DateTime|Object::Relation::DataType::DateTime>, but it makes a
+convenient example. We wanted to subclass C<DateTime> in order to add
+additional functionality: namely forcing new C<DateTime> objects to default to
+the UTC time zone (rather than a floating time zone, the default), and to have
+a C<bake()> constructor that accepts an ISO-8601-compliant date/time string.
+
+Having implemented the C<new()> and C<bake()> methods in our subclass, we
+then declare the new data type right in the module itself:
+
+  my $utc = DateTime::TimeZone::UTC->new;
+  Object::Relation::Meta::Type->add(
+      key     => 'datetime',
+      name    => 'DateTime',
+      raw     => sub {
+          ref $_[0]
+              ? shift->clone->set_time_zone($utc)->iso8601
+              : shift;
+      },
+      bake    => sub { __PACKAGE__->bake(shift) },
+      check   => __PACKAGE__,
+  );
+
+This example looks just like the others, except that we are here able to use
+the convenient C<__PACKAGE__> constant, since we're declaring the new data
+type right in the package that defines it. Furthermore, since data types
+defined in the Object::Relation::DataType name space are not automatically loaded, they
+consume no memory or processor cycles unless a module actually needs them and
+loads them itself. Again, we check the data types supported by each data
+store, and add them as appropriate to
+L<Object::Relation::Schema::DB::Pg|Object::Relation::Schema::DB::Pg> and
+L<Object::Relation::Schema::DB::SQLite|Object::Relation::Schema::DB::SQLite>. It
+turns out that PostgreSQL calls the data type "TIMESTAMP", while SQLite calls
+it "DATETIME". So we add the appropriate value to each schema class's
+C<%types> hash. For PostgreSQL:
+
+  datetime => 'TIMESTAMP',
+
+And for SQLite:
+
+  datetime => 'DATETIME',
+
+In reality, then, complex objects aren't much more complex than simple
+objects, except that we create a new class for them ourselves, rather than use
+an existing class.
+
+=head1 Advanced Type Issues
+
+There are a couple more tricks to defining TKP data types that merit notice
+here.
+
+=head2 Data-Store Specific Serialization
+
+The first is that different data stores may actually require that a given data
+type be serialized in different ways.
+L<Object::Relation::DataType::Duration|Object::Relation::DataType::Duration> is a case in point.
+It turns out that PostgreSQL has a proprietary C<INTERVAL> data type that we
+could use, while SQLite has nothing equivalent. Since PostgreSQL natively
+supports C<INTERVAL>s, we can rely on it for ordering, C<BETWEEN> queries,
+and the like, but its format does not translate well for similar functionality
+in the C<TEXT>-based storage in SQLite. So two different serialization formats
+were required: One for PostgreSQL and one for SQLite.
+
+To accommodate this, there is yet another C<Object::Relation::Meta::Type> parameter for
+specifying a code reference that will return the serialized form of a data
+type that depends on the current data store. That parameter is C<store_raw>.
+Here's how C<Object::Relation::DataType::Duration> uses it:
+
+  Object::Relation::Meta::Type->add(
+      key       => 'duration',
+      name      => 'Duration',
+      raw       => sub { ref $_[0] ? shift->raw : shift },
+      store_raw => sub { ref $_[0] ? shift->store_raw(@_) : shift },
+      bake      => sub { __PACKAGE__->bake(shift) },
+      check     => __PACKAGE__,
+  );
+
+Looks just like the C<raw> parameter, doesn't it? In truth, Object::Relation
+I<always> uses the C<store_raw> code reference to serialize a value for
+storage. It's always available because, if C<store_raw> isn't specified,
+C<Object::Relation::Meta::Type> uses C<raw>, instead; and if C<raw> isn't specified, it
+uses the accessor generated when the class is built (which is how it would
+work for the C<real> data type we defined above).
+
+How is the C<store_raw> method implemented? It checks to see which store is in
+use and then does the right thing:
+
+  sub store_raw {
+      my ($self, $store) = @_;
+      if ($store->isa('Object::Relation::Handle::DB::Pg')) {
+          # return PostgreSQL format.
+      }
+      else {
+          # Return other format for SQLite, MySQL, or whatever.
+      }
+  }
+
+By the way, in this case, I chose to use a different format for the return
+value of C<raw> than either the PostgreSQL or SQLite format: A ISO-8601
+compliant format. The SQLite format is a modified form of the ISO-8601 format
+that pads the various parts of the duration with zeros, so that they are
+truly storable in the database. Thus, we end up with three different formats,
+but the user of TKP doesn't really have to worry about any of them, except
+possibly for C<raw> (which will be used in XML and the like), as the others
+are solely for the data stores to worry about.
+
+=head2 Data Domains
+
+Speaking of the data stores, as a design fundamental in TKP, the database is
+required to enforce the business rules as much as possible. This is to
+maintain the integrity of the data in the database, as well as to provide
+cover for any other applications that might access the database. In order to
+enforce the integrity of data types, since there are not always corresponding
+data types in the database itself, it can be useful to create "data domains",
+which are essentially new database column types.
+
+PostgreSQL allows for the simple creation of explicit data domains. For
+example, it turns out that the format of version strings for C<version>
+objects should never contain characters other than numbers, dots, and
+underscores. Obviously, the C<TEXT> data type we selected above will not
+enforce that format for version columns, but we can create a new column type
+to do it. Simply add the following declaration to the list of other C<DOMAIN>
+declarations in the C<setup_code()> method of
+L<Object::Relation::Schema::DB::Pg|Object::Relation::Schema::DB::Pg>:
+
+  CREATE DOMAIN version AS TEXT
+  CONSTRAINT ck_version CHECK (
+     VALUE ~ '^v?\\\\d[\\\\d._]+$'
+  );
+
+PostgreSQL requires that backslashes be escaped with a backslash, so when we
+define PostgreSQL code with backslashes in Perl strings, we must escape them
+again. Hence the four backslashes in this example.
+
+ We have now created a new data type that allows only numbers, dots, and
+underscores. To get it in use, change the value stored in the C<%types> hash
+to use the new domain:
+
+  version => 'VERSION',
+
+It's possible to enforce such constraints in SQLite, as well, using triggers
+and its C<REGEXP> keyword (which will use the C<regexp()> SQLite function
+defined by TKP, which therefore supports Perl regular expressions). Adding
+domain triggers to the SQLite data store is relatively trivial. Simply add a
+new triggers method, here it would be C<version_triggers()>, that calls the
+private C<_domain_triggers()> method to define the triggers. The arguments to
+C<_domain_triggers()> are simple: The class for which the table triggers will
+be created, the name of the domain, and a SQL C<WHERE> expression using '%s'
+as the placeholder for the column to be checked that will trigger an exception
+when it evaluates to true. Our C<version_triggers()> method looks like this:
+
+  sub version_triggers {
+      my ($self, $class) = @_;
+      $self->_domain_triggers(
+          $class,
+          version => q{%s NOT REGEXP '^v?\\d[\\d._]+$'
+      });
+  }
+
+The C<_domain_triggers()> method will create and return the actual C<TRIGGER>
+statements. Now, to have this method called, simply add it to the list of
+trigger methods called by the C<constraints_for_class()> method:
+
+  my @cons = (
+      $self->state_trigger(    $class ),
+      $self->boolean_triggers( $class ),
+      # ...
+      $self->version_triggers( $class ),
+   );
+
+Now the integrity of version data in the database will be reinforced. Or will
+it? Write some tests to make sure!
+
+=head1 Copyright and License
+
+Copyright (c) 2004-2006 Kineticode, Inc. <info@obj_relode.com>
+
+This module is free software; you can redistribute it and/or modify it under the
+same terms as Perl itself.
+
+=cut
+

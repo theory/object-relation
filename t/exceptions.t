@@ -9,109 +9,109 @@ use Test::NoWarnings; # Adds an extra test.
 use DBI;
 
 BEGIN {
-    use_ok('Kinetic::Store::Exceptions') or die;
+    use_ok('Object::Relation::Exceptions') or die;
 }
 
 ##############################################################################
 
 IMPORT: { # 6 tests.
-    package Kinetic::Store::Exceptions::TestImport;
-    use Kinetic::Store::Exceptions qw(:all);
+    package Object::Relation::Exceptions::TestImport;
+    use Object::Relation::Exceptions qw(:all);
     use Test::More;
 
     eval { throw_fatal 'Attribute must be defined' };
     ok( my $err = $@, 'Catch exception' );
-    isa_ok( $err, 'Kinetic::Store::Exception');
-    isa_ok( $err, 'Kinetic::Store::Exception::Fatal' );
+    isa_ok( $err, 'Object::Relation::Exception');
+    isa_ok( $err, 'Object::Relation::Exception::Fatal' );
     isa_ok( $err, "Exception::Class::Base" );
     ok( isa_exception($err), "is an exception" );
-    ok( isa_kinetic_exception($err), "is a kinetic exception" );
-    ok( isa_kinetic_exception($err, 'Fatal'), "is a fatal kinetic exception" );
-    eval { isa_kinetic_exception($err, '_Bogus_') };
+    ok( isa_obj_rel_exception($err), "is a obj_rel exception" );
+    ok( isa_obj_rel_exception($err, 'Fatal'), "is a fatal obj_rel exception" );
+    eval { isa_obj_rel_exception($err, '_Bogus_') };
     ok( $err = $@, "Caught bogus exception class name exception" );
-    ok( isa_kinetic_exception($err, 'Fatal'), "is a fatal kinetic exception" );
-    ok( !isa_kinetic_exception(undef), "Undef is not a kinetic exception" );
+    ok( isa_obj_rel_exception($err, 'Fatal'), "is a fatal obj_rel exception" );
+    ok( !isa_obj_rel_exception(undef), "Undef is not a obj_rel exception" );
 }
 
 NOIMPORT: { # 22 tests.
-    package Kinetic::Store::Exceptions::TestNoImport;
-    use Kinetic::Store::Exceptions;
+    package Object::Relation::Exceptions::TestNoImport;
+    use Object::Relation::Exceptions;
     use Test::More;
 
     eval { throw_fatal('Attribute must be defined') };
     ok( my $err = $@, 'Catch invalid l10n' );
-    ok( Kinetic::Store::Exceptions::isa_kinetic_exception($err),
-        "is a kinetic exception" );
-    ok( Kinetic::Store::Exceptions::isa_exception($err),
+    ok( Object::Relation::Exceptions::isa_obj_rel_exception($err),
+        "is a obj_rel exception" );
+    ok( Object::Relation::Exceptions::isa_exception($err),
         "is an exception" );
-    isa_ok $err, 'Kinetic::Store::Exception::ExternalLib';
-    isa_ok $err, 'Kinetic::Store::Exception';
+    isa_ok $err, 'Object::Relation::Exception::ExternalLib';
+    isa_ok $err, 'Object::Relation::Exception';
     isa_ok $err, "Exception::Class::Base";
     like( $err->error,
-          qr{\AUndefined subroutine &Kinetic::Store::Exceptions::TestNoImport::throw_fatal},
+          qr{\AUndefined subroutine &Object::Relation::Exceptions::TestNoImport::throw_fatal},
           "Is a Perl exception passed to ExternalLib");
 
     eval {
-        Kinetic::Store::Exception::Fatal->throw([
+        Object::Relation::Exception::Fatal->throw([
             'Attribute "[_1]" is not unique',
             'booyah',
         ]);
     };
     ok( $err = $@, 'Catch exception' );
-    isa_ok( $err, 'Kinetic::Store::Exception' );
-    isa_ok( $err, 'Kinetic::Store::Exception::Fatal' );
+    isa_ok( $err, 'Object::Relation::Exception' );
+    isa_ok( $err, 'Object::Relation::Exception::Fatal' );
     isa_ok( $err, "Exception::Class::Base" );
-    ok( Kinetic::Store::Exceptions::isa_kinetic_exception($err),
-        "is a kinetic exception" );
-    ok( Kinetic::Store::Exceptions::isa_exception($err),
+    ok( Object::Relation::Exceptions::isa_obj_rel_exception($err),
+        "is a obj_rel exception" );
+    ok( Object::Relation::Exceptions::isa_exception($err),
         "is an exception" );
 
-    ok $err = Kinetic::Store::Exception::Fatal->new([
+    ok $err = Object::Relation::Exception::Fatal->new([
         'Attribute "[_1]" is not unique',
         'booyah',
     ]), 'New, unthrown exception';
-    isa_ok( $err, 'Kinetic::Store::Exception' );
-    isa_ok( $err, 'Kinetic::Store::Exception::Fatal' );
+    isa_ok( $err, 'Object::Relation::Exception' );
+    isa_ok( $err, 'Object::Relation::Exception::Fatal' );
     isa_ok( $err, "Exception::Class::Base" );
-    ok( Kinetic::Store::Exceptions::isa_kinetic_exception($err),
-        "is a kinetic exception" );
-    ok( Kinetic::Store::Exceptions::isa_exception($err),
+    ok( Object::Relation::Exceptions::isa_obj_rel_exception($err),
+        "is a obj_rel exception" );
+    ok( Object::Relation::Exceptions::isa_exception($err),
         "is an exception" );
 
-    ok( $err = Kinetic::Store::Exception::Fatal->new(
+    ok( $err = Object::Relation::Exception::Fatal->new(
         error => [ 'Attribute "[_1]" is not unique', 'booyah' ],
     ), 'New, unthrown exception' );
-    isa_ok( $err, 'Kinetic::Store::Exception' );
-    isa_ok( $err, 'Kinetic::Store::Exception::Fatal' );
+    isa_ok( $err, 'Object::Relation::Exception' );
+    isa_ok( $err, 'Object::Relation::Exception::Fatal' );
     isa_ok( $err, "Exception::Class::Base" );
-    ok( Kinetic::Store::Exceptions::isa_kinetic_exception($err),
-        "is a kinetic exception" );
-    ok( Kinetic::Store::Exceptions::isa_exception($err),
+    ok( Object::Relation::Exceptions::isa_obj_rel_exception($err),
+        "is a obj_rel exception" );
+    ok( Object::Relation::Exceptions::isa_exception($err),
         "is an exception" );
 }
 
 L10N: { # 7 tests.
-    package Kinetic::Store::Exceptions::TestL10N;
-    use Kinetic::Store::Exceptions qw(:all);
+    package Object::Relation::Exceptions::TestL10N;
+    use Object::Relation::Exceptions qw(:all);
     use Test::More;
 
     # Test an unlocalized error message. It should throw a fatal
     # language exception.
     eval { throw_error 'Ouch!' };
     ok( my $err = $@, 'Catch exception' );
-    isa_ok( $err, 'Kinetic::Store::Exception' );
-    isa_ok( $err, 'Kinetic::Store::Exception::Fatal' );
-    isa_ok( $err, 'Kinetic::Store::Exception::Fatal::Language' );
+    isa_ok( $err, 'Object::Relation::Exception' );
+    isa_ok( $err, 'Object::Relation::Exception::Fatal' );
+    isa_ok( $err, 'Object::Relation::Exception::Fatal::Language' );
     isa_ok( $err, "Exception::Class::Base" );
     ok( isa_exception($err), "isa_exception" );
-    ok( isa_kinetic_exception($err), "isa_kinetic_exception" );
+    ok( isa_obj_rel_exception($err), "isa_obj_rel_exception" );
 }
 
 STRING: {
-    package Kinetic::Store::Exceptions::TestString;
-    use Kinetic::Store::Exceptions qw(:all);
+    package Object::Relation::Exceptions::TestString;
+    use Object::Relation::Exceptions qw(:all);
     use Test::More;
-    ok(my $err = Kinetic::Store::Exception::Fatal->new(
+    ok(my $err = Object::Relation::Exception::Fatal->new(
         [ 'Attribute "[_1]" is not unique', 'booyah' ]
     ), 'Get an exception object');
     is( ($err->_filtered_frames)[-1]->filename, __FILE__,
@@ -128,26 +128,26 @@ STRING: {
 }
 
 GLOBAL: {
-    package Kinetic::Store::Exceptions::TestGlobal;
-    use Kinetic::Store::Exceptions qw(:all);
+    package Object::Relation::Exceptions::TestGlobal;
+    use Object::Relation::Exceptions qw(:all);
     use Test::More;
     use Test::Output;
     eval { die "Ouch!" };
     ok my $err = $@, "Catch die";
-    isa_ok $err, 'Kinetic::Store::Exception::ExternalLib';
-    isa_ok $err, 'Kinetic::Store::Exception';
+    isa_ok $err, 'Object::Relation::Exception::ExternalLib';
+    isa_ok $err, 'Object::Relation::Exception';
     isa_ok $err, "Exception::Class::Base";
 }
 
 DBI: {
-    package Kinetic::Store::Exceptions::TestDBI;
-    use Kinetic::Store::Exceptions;
+    package Object::Relation::Exceptions::TestDBI;
+    use Object::Relation::Exceptions;
     use Test::More;
-    ok my $err = Kinetic::Store::Exception::DBI->new('DBI error'),
+    ok my $err = Object::Relation::Exception::DBI->new('DBI error'),
       "Create DBI error";
-    isa_ok $err, 'Kinetic::Store::Exception::DBI';
-    isa_ok $err, 'Kinetic::Store::Exception::ExternalLib';
-    isa_ok $err, 'Kinetic::Store::Exception';
+    isa_ok $err, 'Object::Relation::Exception::DBI';
+    isa_ok $err, 'Object::Relation::Exception::ExternalLib';
+    isa_ok $err, 'Object::Relation::Exception';
     isa_ok $err, 'Exception::Class::DBI';
     isa_ok $err, 'Exception::Class::Base';
     ok my $str = "$err", "Get the stringified version";
@@ -162,7 +162,7 @@ DBI: {
     ok my $dbh = DBI->connect('dbi:ExampleP:dummy', '', '',{
         PrintError => 0,
         RaiseError => 0,
-        HandleError => Kinetic::Store::Exception::DBI->handler
+        HandleError => Object::Relation::Exception::DBI->handler
     }), 'Connect to database';
     END { $dbh->disconnect if $dbh };
 
@@ -172,9 +172,9 @@ DBI: {
     isa_ok $err, 'Exception::Class::DBI';
     isa_ok $err, 'Exception::Class::DBI::H';
     isa_ok $err, 'Exception::Class::DBI::STH';
-    isa_ok $err, 'Kinetic::Store::Exception';
-    isa_ok $err, 'Kinetic::Store::Exception::DBI';
-    isa_ok $err, 'Kinetic::Store::Exception::DBI::STH';
+    isa_ok $err, 'Object::Relation::Exception';
+    isa_ok $err, 'Object::Relation::Exception::DBI';
+    isa_ok $err, 'Object::Relation::Exception::DBI::STH';
     like $err, qr/[for Statement "select * from foo"]/,
         'The full message should include the SQL statement.';
     like $err, qr/[t.exceptions\.t:174]/, 'It should also contain a stack trace';

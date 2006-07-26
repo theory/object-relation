@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Kinetic::Store::Setup;
+use Object::Relation::Setup;
 
-my $setup = Kinetic::Store::Setup->new({ @ARGV });
+my $setup = Object::Relation::Setup->new({ @ARGV });
 $setup->teardown;

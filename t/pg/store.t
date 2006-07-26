@@ -7,7 +7,7 @@ use strict;
 use Test::File;
 
 BEGIN {
-    unless ($ENV{KS_CLASS} && $ENV{KS_CLASS} =~ /DB::Pg$/) {
+    unless ($ENV{OBJ_REL_CLASS} && $ENV{OBJ_REL_CLASS} =~ /DB::Pg$/) {
         require Test::More;
         Test::More::plan( skip_all => 'Not testing live PostgreSQL store' );
     }
@@ -15,16 +15,16 @@ BEGIN {
 
 use lib qw(t/lib t/sample/lib);
 
-use TEST::Kinetic::TestSetup (
-    class        => $ENV{KS_CLASS},
-    user         => $ENV{KS_USER}         || '',
-    pass         => $ENV{KS_PASS}         || '',
-    super_user   => $ENV{KS_SUPER_USER}   || '',
-    super_pass   => $ENV{KS_SUPER_PASS}   || '',
-    dsn          => $ENV{KS_DSN}          || '',
-    template_dsn => $ENV{KS_TEMPLATE_DSN} || '',
+use TEST::Object::Relation::TestSetup (
+    class        => $ENV{OBJ_REL_CLASS},
+    user         => $ENV{OBJ_REL_USER}         || '',
+    pass         => $ENV{OBJ_REL_PASS}         || '',
+    super_user   => $ENV{OBJ_REL_SUPER_USER}   || '',
+    super_pass   => $ENV{OBJ_REL_SUPER_PASS}   || '',
+    dsn          => $ENV{OBJ_REL_DSN}          || '',
+    template_dsn => $ENV{OBJ_REL_TEMPLATE_DSN} || '',
 );
 
-use TEST::Class::Kinetic 't/store';
+use TEST::Class::Object::Relation 't/store';
 
-TEST::Class::Kinetic->runall;
+TEST::Class::Object::Relation->runall;

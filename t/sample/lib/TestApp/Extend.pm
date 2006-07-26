@@ -3,14 +3,14 @@ package TestApp::Extend;
 use strict;
 use warnings;
 
-use Kinetic::Store::Meta;
-use Kinetic::Store::Meta::Widget;
-use Kinetic::Store::Language::en_us;
+use Object::Relation::Meta;
+use Object::Relation::Meta::Widget;
+use Object::Relation::Language::en_us;
 
 use TestApp::Simple::Two;
 
 BEGIN {
-    my $km = Kinetic::Store::Meta->new(
+    my $km = Object::Relation::Meta->new(
         key         => 'extend',
         name        => 'Extend',
         plural_name => 'Extends',
@@ -21,7 +21,7 @@ BEGIN {
 }
 
 # Add new strings to the lexicon.
-Kinetic::Store::Language::en->add_to_lexicon(
+Object::Relation::Language::en->add_to_lexicon(
   'Extend',
   'Extend',
   'Extends',

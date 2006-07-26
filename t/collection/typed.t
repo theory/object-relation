@@ -11,8 +11,8 @@ use Test::More tests => 76;
 use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
 use File::Spec;
-use Kinetic::Store::Meta;
-use aliased 'Kinetic::Store::Iterator';
+use Object::Relation::Meta;
+use aliased 'Object::Relation::Iterator';
 use aliased 'Test::MockModule';
 
 {
@@ -56,9 +56,9 @@ use aliased 'Test::MockModule';
 
     sub new {
         my ( $class, $key ) = @_;
-        my $kinetic_class = $class_for{$key} or return;
+        my $obj_rel_class = $class_for{$key} or return;
         bless {
-            package => $kinetic_class,
+            package => $obj_rel_class,
         }, $class;
     }
 
@@ -71,11 +71,11 @@ use aliased 'Test::MockModule';
 my $CLASS;
 
 BEGIN {
-    $CLASS = 'Kinetic::Store::Collection';
+    $CLASS = 'Object::Relation::Collection';
     use_ok $CLASS or die;
 }
 
-my $mock_k_class = MockModule->new('Kinetic::Store::Meta');
+my $mock_k_class = MockModule->new('Object::Relation::Meta');
 $mock_k_class->mock(
     for_key => sub {
         my ( $class, $key ) = @_;
@@ -84,7 +84,7 @@ $mock_k_class->mock(
 );
 
 can_ok $CLASS, 'new';
-throws_ok { $CLASS->new } 'Kinetic::Store::Exception::Fatal::Invalid',
+throws_ok { $CLASS->new } 'Object::Relation::Exception::Fatal::Invalid',
   '... and calling it without an argument should die';
 
 throws_ok {
@@ -93,7 +93,7 @@ throws_ok {
         }
     );
   }
-  'Kinetic::Store::Exception::Fatal::Invalid',
+  'Object::Relation::Exception::Fatal::Invalid',
   '... and as should calling with without a proper iterator object';
 
 throws_ok {
@@ -103,7 +103,7 @@ throws_ok {
         }
     );
   }
-  'Kinetic::Store::Exception::Fatal::InvalidClass',
+  'Object::Relation::Exception::Fatal::InvalidClass',
   '... and as should calling with without valid key';
 
 my @items = map { Faux->new($_) } qw/fee fie foe fum/;
@@ -115,11 +115,11 @@ isa_ok $coll, $CLASS => '... and the object it returns';
 can_ok $coll, 'package';
 is $coll->package, 'Faux', '... and the collection package should be correct';
 
-@Kinetic::Store::Collection::Faux::ISA = $CLASS;
+@Object::Relation::Collection::Faux::ISA = $CLASS;
 my @items2 = map { Faux->new($_) } qw/fee fie foe fum/;
 my $iter2 = Iterator->new( sub { shift @items2 } );
 ok my $coll_from_package
-  = Kinetic::Store::Collection::Faux->new( { iter => $iter } ),
+  = Object::Relation::Collection::Faux->new( { iter => $iter } ),
   'Creating a collection from a subclass should succeed';
 
 is $coll_from_package->package, 'Faux',
@@ -226,7 +226,7 @@ is $coll->next->name, 'fie',
 is $coll->next->name, 'foe',
   '... and it should return the correct value (foe)';
 
-throws_ok { $coll->next->name } 'Kinetic::Store::Exception::Fatal::Invalid',
+throws_ok { $coll->next->name } 'Object::Relation::Exception::Fatal::Invalid',
   '... but it should throw an exception when it hits a bad type';
 
 @items = map { Faux->new($_) } qw/zero one two three four five six/;
@@ -242,7 +242,7 @@ is $coll->curr->name, 'zero',
   '... but this should not affect the position of the collection';
 
 throws_ok { $coll->set( 4, Faux::Unrelated->new('boom!') ) }
-  'Kinetic::Store::Exception::Fatal::Invalid',
+  'Object::Relation::Exception::Fatal::Invalid',
   'Setting a collection item to an invalid type should be fatal';
 
 can_ok $CLASS, 'from_list';

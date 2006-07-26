@@ -7,15 +7,15 @@ use Test::More tests => 87;
 use Test::NoWarnings; # Adds an extra test.
 use Test::Exception;
 
-use aliased 'Kinetic::Store::Search';
-use aliased 'Kinetic::Store::DataType::DateTime::Incomplete';
+use aliased 'Object::Relation::Search';
+use aliased 'Object::Relation::DataType::DateTime::Incomplete';
 
-use Kinetic::Store::Handle qw/:all/;
-use Kinetic::Store::Lexer::String qw/string_lexer_stream/;
-use Kinetic::Store::Lexer::Code qw/code_lexer_stream/;
+use Object::Relation::Handle qw/:all/;
+use Object::Relation::Lexer::String qw/string_lexer_stream/;
+use Object::Relation::Lexer::Code qw/code_lexer_stream/;
 
 BEGIN {
-    use_ok 'Kinetic::Store::Parser', qw/parse/ or die;
+    use_ok 'Object::Relation::Parser', qw/parse/ or die;
 }
 
 {
@@ -26,7 +26,7 @@ BEGIN {
 
 {
     package Faux::Store;
-    our @ISA = 'Kinetic::Store::Handle';
+    our @ISA = 'Object::Relation::Handle';
     my %column;
     @column{
         qw/
@@ -64,20 +64,20 @@ my $store = Faux::Store->new;
 
 throws_ok {
     parse( string_lexer_stream("no_such_attr => NOT 'foo'"), $store ) }
-  'Kinetic::Store::Exception::Fatal::Search',
+  'Object::Relation::Exception::Fatal::Search',
   'Trying to string search on a non-existent attr should throw an exception';
 
 throws_ok {
     parse( code_lexer_stream( [ no_such_attr => NOT 'foo' ] ), $store ) }
-  'Kinetic::Store::Exception::Fatal::Search',
+  'Object::Relation::Exception::Fatal::Search',
   'Trying to code search on a non-existent attr should throw an exception';
 
 throws_ok { parse( string_lexer_stream("name => 'foo', 'bar'"), $store ) }
-  'Kinetic::Store::Exception::Fatal::Search',
+  'Object::Relation::Exception::Fatal::Search',
   'Unparseable string searches should throw an exception';
 
 throws_ok { parse( code_lexer_stream( [ name => 'foo', 'bar' ] ), $store ) }
-  'Kinetic::Store::Exception::Fatal::Search',
+  'Object::Relation::Exception::Fatal::Search',
   'Unparseable code searches should throw an exception';
 
 my $name_search = Search->new(
@@ -104,10 +104,10 @@ my $age_search = Search->new(
     param   => 'age',
 );
 
-can_ok 'Kinetic::Store::Parser', '_extract_statements';
+can_ok 'Object::Relation::Parser', '_extract_statements';
 my @statements = ( 1, [ 2, [ 3, [] ] ] );
 my $statements =
-  [ Kinetic::Store::Parser::_extract_statements( @statements ) ];
+  [ Object::Relation::Parser::_extract_statements( @statements ) ];
 is_deeply $statements, [ 1, 2, 3 ],
   '... and it should return the correct items';
 
@@ -348,7 +348,7 @@ $result =
 is_deeply $result, [$any_search], '... even with a trailing comma';
 
 throws_ok { parse( string_lexer_stream("one => 3"), $store ) }
-  'Kinetic::Store::Exception::Fatal::Search',
+  'Object::Relation::Exception::Fatal::Search',
   'String searching on embedded objects should fail';
 
 $result =

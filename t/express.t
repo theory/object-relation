@@ -11,7 +11,7 @@ TESTPKG: {
     package My::Test;
     use Test::More;
     BEGIN {
-        use_ok 'Kinetic::Store' or die;
+        use_ok 'Object::Relation' or die;
     }
 
     BEGIN {
@@ -28,12 +28,12 @@ TESTPKG: {
 }
 
 ok my $meta = +My::Test->my_class, 'Get the Test meta object';
-isa_ok $meta, 'Kinetic::Store::Meta::Class', 'it';
+isa_ok $meta, 'Object::Relation::Meta::Class', 'it';
 isa_ok $meta, 'Class::Meta::Class', 'it';
 ok my $attr = $meta->attributes('foo'), 'Get "foo" attribute';
-isa_ok $attr, 'Kinetic::Store::Meta::Attribute', 'it';
+isa_ok $attr, 'Object::Relation::Meta::Attribute', 'it';
 is $attr->type, 'string', 'Its type should be "string"';
 
 ok my $obj = My::Test->new, 'Construct My::Test object';
 isa_ok $obj, 'My::Test', 'it';
-isa_ok $obj, 'Kinetic::Store::Base', 'it';
+isa_ok $obj, 'Object::Relation::Base', 'it';

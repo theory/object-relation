@@ -16,24 +16,25 @@ if ($@) {
     plan skip_all => "Test::Pod::Coverage required for testing versions";
 }
 else {
-    # Not loading Kinetic::Engine:: modules as they often require constants
+    # Not loading Object::Relation::Engine:: modules as they often require constants
     # which will not always be available
     @modules =
-      grep { $_ ne 'Kinetic::Store::Base' } Test::Pod::Coverage::all_modules();
+      grep { $_ ne 'Object::Relation' } Test::Pod::Coverage::all_modules();
     plan tests => @modules + 2;
 }
 
-use Kinetic::Store::Base;
-ok defined Kinetic::Store::Base->VERSION, "Kinetic should have a version number";
-my $version = Kinetic::Store::Base->VERSION;
+use Object::Relation;
+ok defined Object::Relation->VERSION,
+    "Object::Relation should have a version number";
+my $version = Object::Relation->VERSION;
 SKIP: {
-    skip "Kinetic.pm did not have a version", scalar @modules
+    skip "Object/Relation.pm did not have a version", scalar @modules
       unless defined $version;
 
     foreach my $module (@modules) {
         my $file = _package_to_file($module);
         is _get_version($file), $version,
-            "$module should have the same version as Kinetic.pm";
+            "$module should have the same version as Object::Relation";
     }
 }
 

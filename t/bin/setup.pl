@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use aliased 'Kinetic::Store::Setup';
+use aliased 'Object::Relation::Setup';
 use Test::More;
 use aliased 'Test::MockModule';
 

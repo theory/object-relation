@@ -3,10 +3,10 @@ package TestApp::Relation;
 use strict;
 use warnings;
 
-use Kinetic::Store;
+use Object::Relation;
 use TestApp::Simple;
 use TestApp::Simple::One;
-use Kinetic::Store::Language::en_us;
+use Object::Relation::Language::en_us;
 
 meta relation => (
     plural_name => 'Relations',
@@ -17,7 +17,7 @@ meta relation => (
 has tmp => (
     label       => 'Temporary storage',
     persistent  => 0,
-    widget_meta => Kinetic::Store::Meta::Widget->new(
+    widget_meta => Object::Relation::Meta::Widget->new(
         type => 'text',
         tip  => 'Non-persistent temporary object storage',
     ),
@@ -26,7 +26,7 @@ has tmp => (
 build;
 
 # Add new strings to the lexicon.
-Kinetic::Store::Language::en->add_to_lexicon(
+Object::Relation::Language::en->add_to_lexicon(
     'Relation',
     'Relation',
     'Relations',

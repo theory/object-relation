@@ -10,19 +10,19 @@ use Test::Exception;
 
 my $CLASS;
 BEGIN {
-    $CLASS = 'Kinetic::Store::DataType::Duration';
+    $CLASS = 'Object::Relation::DataType::Duration';
     use_ok $CLASS or die;
 };
 
 STORE: {
-    package Kinetic::Store::Handle::DB::Pg;
+    package Object::Relation::Handle::DB::Pg;
     sub new { bless {} => shift }
 }
 
 ok my $du = $CLASS->new, 'Create duration object';
 isa_ok $du, $CLASS;
 isa_ok $du, $CLASS;
-my $store = Kinetic::Store::Handle::DB::Pg->new;
+my $store = Object::Relation::Handle::DB::Pg->new;
 
 for my $compare (
     [
@@ -324,7 +324,7 @@ for my $compare (
 
 ##############################################################################
 # Test badly-formatted duration strings.
-my $ex_class = 'Kinetic::Store::Exception::Fatal::Invalid';
+my $ex_class = 'Object::Relation::Exception::Fatal::Invalid';
 
 throws_ok { $CLASS->bake('') } $ex_class, 'Empty string should fail to bake';
 like $@, qr/Invalid duration string: \x{201c}\x{201d}/,

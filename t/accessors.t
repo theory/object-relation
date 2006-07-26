@@ -7,23 +7,23 @@ use warnings;
 use Test::More tests => 118;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
-use Kinetic::Store::DataType::State qw(:all);
-use Kinetic::Store::DataType::DateTime;
+use Object::Relation::DataType::State qw(:all);
+use Object::Relation::DataType::DateTime;
 
-package Kinetic::TestAccessors;
-use base 'Kinetic::Store::Base';
+package Object::Relation::TestAccessors;
+use base 'Object::Relation::Base';
 use strict;
-use Kinetic::Store::DataType::State qw(:all);
+use Object::Relation::DataType::State qw(:all);
 
 BEGIN {
     Test::More->import;
-    # We need to load Kinetic first, or else things just won't work!
-    use_ok('Kinetic::Store::Base') or die;
-    use_ok('Kinetic::Store::Meta') or die;
+    # We need to load Object::Relation first, or else things just won't work!
+    use_ok('Object::Relation::Base') or die;
+    use_ok('Object::Relation::Meta') or die;
 }
 
 BEGIN {
-    ok( my $cm = Kinetic::Store::Meta->new(
+    ok( my $cm = Object::Relation::Meta->new(
         key     => 'accessors',
         name    => 'Testing Accessors',
     ), "Create new CM object" );
@@ -53,7 +53,7 @@ BEGIN {
     ok( Class::Meta::Type->add(
         key     => "nocheck",
         name    => 'nocheck',
-        builder => 'Kinetic::Store::Meta::AccessorBuilder',
+        builder => 'Object::Relation::Meta::AccessorBuilder',
     ), "Create nocheck data type" );
 
     # Add a nocheck attribute.
@@ -111,8 +111,8 @@ BEGIN {
 ##############################################################################
 package main;
 # Instantiate an object and test its accessors.
-ok( my $t = Kinetic::TestAccessors->new,
-    'Kinetic::TestAccessors->new');
+ok( my $t = Object::Relation::TestAccessors->new,
+    'Object::Relation::TestAccessors->new');
 ok( my $class = $t->my_class, "Get class object" );
 
 # Try the read-only attribute.
@@ -167,43 +167,43 @@ is( $attr->get($t), 'bam!', "Check nc via attribute object for new value" );
 is( $attr->raw($t), 'bam!', "Check nc raw value for the new value");
 
 # Try the read-only class attribute.
-is( Kinetic::TestAccessors->cro, 1, "Check cro" );
-eval {Kinetic::TestAccessors->get_cro };
+is( Object::Relation::TestAccessors->cro, 1, "Check cro" );
+eval {Object::Relation::TestAccessors->get_cro };
 ok( $@, "Cannot get_cro" );
 is( $t->cro, 1, "Check cro via object" );
 eval { $t->get_cro };
 ok( $@, "Cannot get_cro via object" );
-eval { Kinetic::TestAccessors->cro(2) };
+eval { Object::Relation::TestAccessors->cro(2) };
 ok( $@, "Cannot set cro attribute" );
 ok( $attr = $class->attributes('cro'), "Get cro attribute" );
-is( $attr->get('Kinetic::TestAccessors'), 1,
+is( $attr->get('Object::Relation::TestAccessors'), 1,
  "Check cro via attribute object" );
-is( $attr->raw('Kinetic::TestAccessors'), 1, "Check cro raw value");
-eval { $attr->set('Kinetic::TestAccessors', 'fan') };
+is( $attr->raw('Object::Relation::TestAccessors'), 1, "Check cro raw value");
+eval { $attr->set('Object::Relation::TestAccessors', 'fan') };
 ok( $@, "Cannot set cro attribute via attribute" );
-eval { $attr->bake('Kinetic::TestAccessors', 'fan') };
+eval { $attr->bake('Object::Relation::TestAccessors', 'fan') };
 ok( $@, "Cannot bake cro attribute via attribute" );
 
 # Try the read/write class attribute.
-is( Kinetic::TestAccessors->crw, 3, "Check crw" );
-eval {Kinetic::TestAccessors->get_crw };
+is( Object::Relation::TestAccessors->crw, 3, "Check crw" );
+eval {Object::Relation::TestAccessors->get_crw };
 ok( $@, "Cannot get_crw" );
-ok( Kinetic::TestAccessors->crw(2), "Set crw to 2" );
-is( Kinetic::TestAccessors->crw, 2, "Check crw for 2" );
-eval { Kinetic::TestAccessors->set_crw(3) };
+ok( Object::Relation::TestAccessors->crw(2), "Set crw to 2" );
+is( Object::Relation::TestAccessors->crw, 2, "Check crw for 2" );
+eval { Object::Relation::TestAccessors->set_crw(3) };
 ok( $@, "Cannot set_crw" );
 is( $t->crw, 2, "Check crw for 2 via object" );
 eval { $t->get_crw };
 ok( $@, "Cannot get_crw via object" );
 ok( $attr = $class->attributes('crw'), "Get crw attribute" );
-is( $attr->get('Kinetic::TestAccessors'), 2,
+is( $attr->get('Object::Relation::TestAccessors'), 2,
  "Check crw via attribute object" );
-is( $attr->raw('Kinetic::TestAccessors'), 2, "Check crw raw value");
-ok( $attr->set('Kinetic::TestAccessors', 4),
+is( $attr->raw('Object::Relation::TestAccessors'), 2, "Check crw raw value");
+ok( $attr->set('Object::Relation::TestAccessors', 4),
     "Set crw via attribute object" );
-is( $attr->get('Kinetic::TestAccessors'), 4,
+is( $attr->get('Object::Relation::TestAccessors'), 4,
     "Check crw via attribute object for new value" );
-is( $attr->raw('Kinetic::TestAccessors'), 4,
+is( $attr->raw('Object::Relation::TestAccessors'), 4,
     "Check crw raw value for new value");
 is( $attr->get($t), 4,
     "Check crw via attribute object for new value via object" );
@@ -211,37 +211,37 @@ is( $attr->raw($t), 4,
     "Check crw raw value via attribute object for new value");
 
 # Try nocheck class attribute.
-is( Kinetic::TestAccessors->cnc, 'whee', "Check class nocheck" );
-eval { Kinetic::TestAccessors->get_cnc };
+is( Object::Relation::TestAccessors->cnc, 'whee', "Check class nocheck" );
+eval { Object::Relation::TestAccessors->get_cnc };
 ok( $@, "Cannot get_cnc" );
-ok( Kinetic::TestAccessors->cnc('fun'), "Set class nocheck" );
-is( Kinetic::TestAccessors->cnc, 'fun', "Check new class nocheck value" );
-eval { Kinetic::TestAccessors->set_cnc('fug') };
+ok( Object::Relation::TestAccessors->cnc('fun'), "Set class nocheck" );
+is( Object::Relation::TestAccessors->cnc, 'fun', "Check new class nocheck value" );
+eval { Object::Relation::TestAccessors->set_cnc('fug') };
 ok( $@, "Cannot set_cnc" );
 is( $t->cnc, 'fun', "Check new class nocheck value via object" );
 eval { $t->get_cnc };
 ok( $@, "Cannot get_cnc via object" );
 ok( $attr = $class->attributes('cnc'), "Get cnc attribute" );
-is( $attr->get('Kinetic::TestAccessors'), 'fun',
+is( $attr->get('Object::Relation::TestAccessors'), 'fun',
  "Check cnc via attribute object" );
-is( $attr->raw('Kinetic::TestAccessors'), 'fun',
+is( $attr->raw('Object::Relation::TestAccessors'), 'fun',
  "Check cnc raw value via attribute object" );
-ok( $attr->set('Kinetic::TestAccessors', 'fan'),
+ok( $attr->set('Object::Relation::TestAccessors', 'fan'),
     "Set cnc via attribute object" );
-is( $attr->get('Kinetic::TestAccessors'), 'fan',
+is( $attr->get('Object::Relation::TestAccessors'), 'fan',
     "Check cnc via attribute object for new value" );
-is( $attr->raw('Kinetic::TestAccessors'), 'fan',
+is( $attr->raw('Object::Relation::TestAccessors'), 'fan',
  "Check cnc raw value via attribute object for new value" );
 is( $attr->get($t), 'fan',
     "Check cnc via attribute object for new value via object" );
 is( $attr->raw($t), 'fan',
  "Check cnc raw value via attribute object for new value via object" );
 
-ok( $attr->bake('Kinetic::TestAccessors', 'Wheeze Chiz'),
+ok( $attr->bake('Object::Relation::TestAccessors', 'Wheeze Chiz'),
     "Set cnc via attribute object" );
-is( $attr->get('Kinetic::TestAccessors'), 'Wheeze Chiz',
+is( $attr->get('Object::Relation::TestAccessors'), 'Wheeze Chiz',
     "Check cnc via attribute object for new value" );
-is( $attr->raw('Kinetic::TestAccessors'), 'Wheeze Chiz',
+is( $attr->raw('Object::Relation::TestAccessors'), 'Wheeze Chiz',
  "Check cnc raw value via attribute object for new value" );
 is( $attr->get($t), 'Wheeze Chiz',
     "Check cnc via attribute object for new value via object" );
@@ -272,13 +272,13 @@ is( overload::StrVal($attr->get($t)), $inactive_str,
 is( $attr->raw($t), 0, "Check state raw value for the new value");
 
 # test the datetime attribute to ensure it works.
-my $date = Kinetic::Store::DataType::DateTime->bake('1964-10-16T16:12:47.0');
+my $date = Object::Relation::DataType::DateTime->bake('1964-10-16T16:12:47.0');
 is $t->date($date), $t, 'Set date';
 is $t->date->raw, '1964-10-16T16:12:47', 'Check date string is correct';
 ok $attr = $class->attributes('date'), 'Get date attribute';
 is $attr->get($t)->raw, '1964-10-16T16:12:47', 'Check date returns microseconds';
 is $attr->raw($t), '1964-10-16T16:12:47', 'Check attr->raw date does not return microseconds';
-$date = Kinetic::Store::DataType::DateTime->bake('2005-10-16T16:12:47.0');
+$date = Object::Relation::DataType::DateTime->bake('2005-10-16T16:12:47.0');
 is $attr->set($t, $date), $t, 'Set date via attribute object';
 is $attr->raw($t), '2005-10-16T16:12:47', 'Check date returns new value';
 is $attr->bake($t, '2000-01-01T00:00:00'), $t, 'Thaw date via attribute object';

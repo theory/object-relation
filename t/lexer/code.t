@@ -8,13 +8,13 @@ use Test::NoWarnings; # Adds an extra test.
 
 use lib 'lib';
 use HOP::Stream 'drop';
-use aliased 'Kinetic::Store::DataType::DateTime::Incomplete';
+use aliased 'Object::Relation::DataType::DateTime::Incomplete';
 BEGIN {
-    use_ok 'Kinetic::Store::Handle', qw/:all/             or die;
-    use_ok 'Kinetic::Store::Lexer::Code', qw/code_lexer_stream/ or die;
+    use_ok 'Object::Relation::Handle', qw/:all/             or die;
+    use_ok 'Object::Relation::Lexer::Code', qw/code_lexer_stream/ or die;
 }
 
-*lex = \&Kinetic::Store::Lexer::Code::_lex;
+*lex = \&Object::Relation::Lexer::Code::_lex;
 
 ok my $tokens = lex([name => 'foo']),
     '... and we should be able to lex a basic string';

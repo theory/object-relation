@@ -1,0 +1,365 @@
+# $Id$
+
+=head1 Name
+
+Object::Relation::Handle::DB::Overview - Developer's overview of Object::Relation::Handle::DB
+
+=head1 Synopsis
+
+See L<Object::Relation::Handle|Object::Relation::Handle>.
+
+=head1 Description
+
+This class implements the Object::Relation storage API using DBI to communicate with an
+DBMS. DBMS specific behavior is implemented via the C<Object::Relation::Handle::DB::Pg>
+and C<Object::Relation::Handle::DBI::SQLite> classes.
+
+This discussion will be a high-level overview of how the C<Object::Relation::Handle::DB>
+class operates.
+
+=head1 Methods
+
+=head2 C<< $obj_rel_object->save >>
+
+We'll start with the simplest of methods.
+
+  $object->save;
+
+Internally, this is dispatched as follows:
+
+  $store->save($object);
+
+This method saves an object to the data store. It also saves all contained
+objects to the data store at the same time, all in a single transaction.
+
+Internally, this method begins a transaction, calls the C<&_save> method and
+either commits or rolls back based upon whether or not saving the object
+succeeded.
+
+=head2 C<< $self->_save($object) >>
+
+This method is called by C<save> to handle the actual saving of objects. It
+calls itself recursively if it encounters a contained object, thus allowing
+for a single save to be called at the top level.
+
+Classes in the Object::Relation store are represented as tables. A subclass may
+I<inherit> from another table and I<contain> other tables. Rather than write
+complicated SQL to manage these relationships, a view is created that makes
+managing these relationships as simple as working with a single table.
+C<SELECT>ing from a view is relatively trivial, as one might assume.
+C<INSERT>ing or C<UPDATE>ing (sic) is just as trivial and, behind the scenes,
+activate triggers or call rules that take the C<INSERT> or C<UPDATE> and
+create or modify the appropriate records. Thus, C<Object::Relation::Handle::DB> merely
+needs to determine the name of the view and the correct column names for said
+view.
+
+When C<< $object->save >> is called, the C<&_save> method first determines the
+Object::Relation class to which the object belongs:
+
+  my $obj_rel_class = $object->my_class;
+
+Then, it determines the name of the view that represents this class:
+
+  my $view = $obj_rel_class->key;
+
+If a Object::Relation class contains (or "references") other objects, we first iterate
+over those other objects and save them by recursively calling the C<&_save>
+method.
+
+  foreach my $attribute ( $obj_rel_class->ref_attributes ) {
+      $self->_save( $attribute->get($object) );
+  }
+
+Every Object::Relation class has a set of attributes, either direct attributes or
+referenced attributes. The "referenced" attributes refer to contained objects.
+Once the contained objects have been saved, we need to save the actual object.
+This is done by determining the names of the view's columns for each attribute
+and its value.
+
+    foreach my $attribute ( $obj_rel_class->attributes ) {
+        push @columns => $attribute->_view_column;
+
+        # this is the "raw" value of the attribute, i.e., what gets
+        # stored in the database
+        push @values  => $attribute->raw($object);
+    }
+
+Once we have this, we now have all the information we need to save the object.
+If the object has an C<id> attribute (the C<id> is for internal use only --
+other classes should never see this), we know it already exists in the
+database so we call the C<&_update> method. Otherwise, we call the C<&_insert>
+method.
+
+The C<&_insert> and C<&_update> methods are very similar. They join the column
+names and create placeholders (bind parameters) and use the view name for the
+table name. Then they execute the resulting SQL using the attribute values for
+the bind values. The C<&_insert> method then sets the object ID.
+
+=head2 C<< $obj_rel_object->query( @params ) >>
+
+The C<< $object->query >> method is where the real magic happens.  The
+C<< $object->query_guids >>, C<< $object->lookup >> and C<< $object->count >>
+methods are closely related, so the following description applies to them
+also.
+
+  my $iter = $obj_rel_object->query( @query_params );
+
+This method returns a L<Object::Relation::Iterator|Object::Relation::Iterator>
+object containing all objects that match the query parameters. See
+L<Object::Relation::Handle|Object::Relation::Handle> for detailed information about query
+parameters.
+
+First we'll give a general overview of how the C<query> method works and then
+we'll go into detail about the various parts.
+
+As usual, C<query> calls C<&_query> internally. The latter method determines
+what type of query we are working with. This "type" of query is either C<CODE>
+or C<STRING>. A C<CODE> query looks like this:
+
+ $object->query( \@parameters, \%constraints );
+
+A string query is similar:
+
+ $object->query( STRING => $parameters, @constraints );
+
+Here is a concrete example.  These searches are equivalent:
+
+  $object->query(
+      name => LIKE '%vid',
+      age  => GE 21,
+      {
+          order_by   => [ 'name', 'age' ],
+          sort_order => [   ASC,  DESC  ],
+      }
+   );
+
+  $object->query(
+      STRING     => "name => LIKE '%vid', age  => GE 21",
+      order_by   => 'name',
+      order_by   => 'age',
+      sort_order => 'ASC',
+      sort_order => 'DESC',
+   );
+
+The "parameters" correspond to what one would find in a C<WHERE> clause and
+the "constraints" are things such as "limit", "offset" or other things that
+affect the how results are returned.
+
+B<Note>: If no parameters are supplied, every object for a given class is
+returned. Constraints are optional. However, if you want constraints for
+string searches, you must pass an empty string query, first:
+
+  $object->query( STRING => '', @constraints );
+
+The above searches might translate to SQL as follows (loosely):
+
+   SELECT @view_columns
+     FROM $view
+    WHERE $view.name LIKE ?
+      AND $view.age  >= ?
+ ORDER BY $view.name ASC,
+          $view.age  DESC
+
+The reason there are both C<CODE> and C<STRING> searches is the former is used
+from Perl and the latter is used externally, such as from an AJAX call. It is
+important to note, though, that C<eval()> is not used with C<STRING> searches.
+Instead, the the string is lexed into a series of tokens the query parser
+understands. More on this later.
+
+As of this writing, C<&_query> determines the type of query by calling the
+C<&_set_search_type> method to examine the first parameter. If it's "STRING",
+we have a string query. Otherwise, it's assumed to be a code query. No other
+query methods are supported at this time. If we have a I<STRING> query type,
+we check to see if there are any constraints and convert them into a hashref
+matching the I<CODE> query type hashref.
+
+Once the query type is determined, we set the query data via a method
+cleverly named C<&_set_search_data>. This method uses the C<Object::Relation::Meta>
+introspection API to determine all relevant information necessary to conduct
+the query and convert results back into Object::Relation objects. Because this method
+is relatively expensive, the information is cached and subsequent calls will
+fetch the cached results. If a Object::Relation object's metadata is altered, the cache
+will need to be cleared (but this should never happen).
+
+Then, we use the view's columns and the query parameters and constraints to
+construct the SQL and determine the bind parameters.
+
+    my ( $sql, $bind_params )
+      = $self->_get_select_sql_and_bind_params( $columns, \@query_params );
+
+Then it's simply (hah!) a matter of fetching the SQL results.
+
+    return $self->_get_sql_results( $sql, $bind_params );
+
+Now for details of the fiddly bits.
+
+=head2 C<< $store->_set_search_type( \@query ) >>
+
+This method is straightforward. As mentioned earlier, if the first argument is
+I<STRING>, then we have a string query and the third argument and beyond are
+considered to be constraints. The constrains are converted into a hashref that
+matches the I<CODE> hashref.
+
+=head2 C<< $store->_set_search_data >>
+
+This method sets the query data used for the current query. Since this is
+expensive, we cache query data for each query class. The query data
+consists of the SQL columns that will be used in the query SQL and metadata
+that C<&_build_object_from_hashref> will use to break the returned SQL data
+down into an object and its contained objects.
+
+=head2 C<< $store->_get_select_sql_and_bind_params( $columns, \@query ) >>
+
+Once again, we have a fairly straightforward method. When we get here, we
+fetch the name of the view, we build a C<WHERE> clause from the
+C<&_make_where_clause> method, add any constraints, and return the SQL and
+bind parameters. The relevant code looks like this:
+
+  my ( $where_clause, $bind_params )
+    = $self->_make_where_clause($search_request);
+  $where_clause = "WHERE $where_clause"
+    if $where_clause;
+  my $sql = "SELECT $columns FROM $view $where_clause";
+  $sql .= $self->_constraints($constraints) if $constraints;
+
+=head2 C<< $self->_make_where_clause( \@query ) >>
+
+This is where the start of the real magic happens. This method returns a
+C<WHERE> clause and an arrayref of any appropriate bind parameters for that
+C<where> clause. Returns an empty string and an empty array ref (the bind
+parameters) if no C<WHERE> clause can be generated.
+
+Here's the tricky bit:
+
+    my $stream = 'CODE' eq $self->_search_type
+      ?   code_lexer_stream( $search_request )
+      : string_lexer_stream( $search_request->[0] );
+
+The C<code_lexer_stream> and C<string_lexer_stream> functions are exported by
+C<Object::Relation::Lexer::Code> and C<Object::Relation::Lexer::String>,
+respectively. Each takes the appropriate query parameters (either the Perl
+code or the query string) and returns a virtually identical stream of tokens.
+You can see details of their behavior in C<t/lexer/code.t> and
+C<t/lexer/string.t>.
+
+For example, lets consider the following two searches:
+
+ $object->query(
+      name => LIKE 'foo',
+       age => GT 3
+ );
+ $object->query(
+      STRING => "name => LIKE 'foo', age => GT 3"
+ );
+
+Both of these searches, when lexed, will produce the following series of
+tokens:
+
+  [ 'IDENTIFIER', 'name' ],
+  [ 'OP',           '=>' ],
+  [ 'COMPARE',    'LIKE' ],
+  [ 'VALUE',       'foo' ],
+  [ 'OP',            ',' ],
+  [ 'IDENTIFIER',  'age' ],
+  [ 'OP',           '=>' ],
+  [ 'COMPARE',      'GT' ],
+  [ 'VALUE',           3 ],
+
+With a few exceptions, merely quoting the Perl code is what is necessary to
+turn a I<CODE> query into a I<STRING> query. This may seem a bit strange,
+but what it gives us is this:
+
+    my $intermediate_representation = parse( $stream, $store );
+
+The parse method is exported by C<Object::Relation::Parser>. This parser
+uses the parsing methods exported by C<Object::Relation::Parser>. The latter
+module is very similar to the parser described in the book "Higher Order Perl"
+by Mark Jason Dominus.
+
+The intermediate representation (IR) returned by the parser is essentially a
+list of L<Object::Relation::Search|Object::Relation::Search> objects and groups of
+said objects (see L<Object::Relation::Parser|Object::Relation::Parser> for
+more information on this).
+
+This approach allows us to have multiple query interfaces and one parser for
+all searches. This simplifies the code tremendously. Further, if other data
+stores (such as LDAP or XML) are implemented in the future, they can use the
+same IR to handle their searches. Nothing up to this point is specific to SQL.
+
+=head2 C<< $store->_convert_ir_to_where_clause( $ir ) >>
+
+Now that we have the IR, we convert it to a C<WHERE> clause with the
+C<&_convert_ir_to_where_clause> method.
+
+    my ( $where_clause, $bind_params )
+      = $self->_convert_ir_to_where_clause($ir);
+
+This method essentially walks through the IR array and for each element in the
+array, builds up a "where snippet" and pushes it onto a stack and pushes the
+associated bind param onto a stack, too. These "snippets" resemble things such
+as:
+
+  LOWER(name) LIKE LOWER(?)
+  age >= ?
+  foo = ?
+  LOWER(one__value) = LOWER(?)
+
+Note that some snippets have the column and its value lower-cased. This is
+because most searches are case-insensitive.
+
+The last snippet in the example above, because it has an embedded
+double-underscore, refers to a contained object's field. While it's all in the
+same view, inside of the database it's actually in a separate table.
+
+In order to build these snippets, each C<Object::Relation::Search> object has a
+C<search_method> method. The method name returned corresponds to a method that
+must be defined in C<Object::Relation::Handle::DB> or a subclass. It works like this:
+
+  my $search_method    = $search_object->search_method;
+  my ( $token, $bind ) = $store->$search_method( $search_object );
+
+Many of the methods returned by C<search_method> must be defined in the
+subclasses. These tend to be database specific (particularly the date handling
+methods).
+
+=head3 C<< $store->_get_sql_results( $sql, \@bind_params ) >>
+
+Now that we have the C<WHERE> clause built up, we go back up to the
+C<&_get_select_sql_and_bind_params> method, add the constraints (relatively
+straightforward), and finally call the C<&_get_sql_results> method. This
+method usually returns a L<Object::Relation::Iterator|Object::Relation::Iterator>
+object representing the results of a given C<query>. Some methods require all
+results to be returned at once, but whether an iterator or all results are
+required, it effectively boils down to this:
+
+  my @results;
+  while ( my $result = $store->_fetchrow_hashref($sth) ) {
+      push @results, $store->_build_object_from_hashref($result);
+  }
+  return \@results;
+
+=head3 C<< $store->_build_object_from_hashref( $result ) >>
+
+For a given hashref returned by C<< $sth->fetchrow_hashref >>, the
+C<&_build_object_from_hashref> method will return an object representing that
+row. Note that the hashref may represent multiple objects because an object
+can contain other objects. C<&_build_object_from_hashref> resolves this by
+utilizing the metadata assembled by C<&_set_search_data> to match the table
+columns for each object and pull them off of the metadata hashref with hash
+slices.
+
+=head2 Conclusion
+
+Well, I guess there's no conclusion to be given. That pretty much explains how
+things work internally. Any questions?
+
+Oh, wait.  This is POD.  You can't ask me any questions.  Ha, ha, ha!
+
+=head1 Copyright and License
+
+Copyright (c) 2004-2006 Kineticode, Inc. <info@obj_relode.com>
+
+This module is free software; you can redistribute it and/or modify it under the
+same terms as Perl itself.
+
+=cut

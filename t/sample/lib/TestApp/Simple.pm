@@ -3,23 +3,23 @@ package TestApp::Simple;
 use strict;
 use warnings;
 
-use Kinetic::Store::Meta;
-use Kinetic::Store::Meta::Widget;
-use Kinetic::Store::Language::en_us;
+use Object::Relation::Meta;
+use Object::Relation::Meta::Widget;
+use Object::Relation::Language::en_us;
 
 our $VERSION = version->new('1.1.0');
 
 BEGIN {
-    my $km = Kinetic::Store::Meta->new(
+    my $km = Object::Relation::Meta->new(
         key         => 'simple',
         name        => 'Simple',
         plural_name => 'Simples',
         store_config => {
-            class => $ENV{KS_CLASS},
-            cache => $ENV{KS_CACHE},
-            user  => $ENV{KS_USER},
-            pass  => $ENV{KS_PASS},
-            dsn   => $ENV{KS_DSN},
+            class => $ENV{OBJ_REL_CLASS},
+            cache => $ENV{OBJ_REL_CACHE},
+            user  => $ENV{OBJ_REL_USER},
+            pass  => $ENV{OBJ_REL_PASS},
+            dsn   => $ENV{OBJ_REL_DSN},
         },
     );
     $km->add_attribute(
@@ -28,7 +28,7 @@ BEGIN {
         type        => 'string',
         required    => 1,
         indexed     => 1,
-        widget_meta => Kinetic::Store::Meta::Widget->new(
+        widget_meta => Object::Relation::Meta::Widget->new(
             type => 'text',
             tip  => 'The name of this object',
         )
@@ -37,7 +37,7 @@ BEGIN {
         name        => 'description',
         label       => 'Description',
         type        => 'string',
-        widget_meta => Kinetic::Store::Meta::Widget->new(
+        widget_meta => Object::Relation::Meta::Widget->new(
             type => 'textarea',
             tip  => 'The description of this object',
         )
@@ -47,7 +47,7 @@ BEGIN {
 }
 
 # Add new strings to the lexicon.
-Kinetic::Store::Language::en->add_to_lexicon(
+Object::Relation::Language::en->add_to_lexicon(
   'Simple',
   'Simple',
   'Simples',

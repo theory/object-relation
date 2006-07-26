@@ -7,18 +7,18 @@ use strict;
 use Test::File;
 
 BEGIN {
-    $ENV{KS_CLASS} = 'DB::SQLite';
-    $ENV{KS_DSN}   = 'dbi:SQLite:dbname='
-        . File::Spec->catfile(File::Spec->tmpdir, 'kinetic.db');
+    $ENV{OBJ_REL_CLASS} = 'DB::SQLite';
+    $ENV{OBJ_REL_DSN}   = 'dbi:SQLite:dbname='
+        . File::Spec->catfile(File::Spec->tmpdir, 'obj_rel.db');
 }
 
 use lib qw(t/lib t/sample/lib);
 
-use TEST::Kinetic::TestSetup (
-    class => $ENV{KS_CLASS},
-    dsn   => $ENV{KS_DSN},
+use TEST::Object::Relation::TestSetup (
+    class => $ENV{OBJ_REL_CLASS},
+    dsn   => $ENV{OBJ_REL_DSN},
 );
 
-use TEST::Class::Kinetic 't/store';
+use TEST::Class::Object::Relation 't/store';
 
-TEST::Class::Kinetic->runall;
+TEST::Class::Object::Relation->runall;

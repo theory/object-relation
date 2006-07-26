@@ -10,22 +10,22 @@ package MyTestThingy;
 
 BEGIN {
     Test::More->import;
-    use_ok('Kinetic::Store::Meta', ':with_dbstore_api') or die;
-    use_ok('Kinetic::Store::Language') or die;
-    use_ok('Kinetic::Store::Language::en_us') or die;
-    use_ok('Kinetic::Store::Meta::Class') or die;
-    use_ok('Kinetic::Store::Meta::Attribute') or die;
-    use_ok('Kinetic::Store::Meta::AccessorBuilder') or die;
-    use_ok('Kinetic::Store::Meta::Widget') or die;
+    use_ok('Object::Relation::Meta', ':with_dbstore_api') or die;
+    use_ok('Object::Relation::Language') or die;
+    use_ok('Object::Relation::Language::en_us') or die;
+    use_ok('Object::Relation::Meta::Class') or die;
+    use_ok('Object::Relation::Meta::Attribute') or die;
+    use_ok('Object::Relation::Meta::AccessorBuilder') or die;
+    use_ok('Object::Relation::Meta::Widget') or die;
 }
 
 BEGIN {
-    is( Kinetic::Store::Meta->class_class, 'Kinetic::Store::Meta::Class',
-        "The class class should be 'Kinetic::Store::Meta::Class'");
-    is( Kinetic::Store::Meta->attribute_class, 'Kinetic::Store::Meta::Attribute',
-        "The attribute class should be 'Kinetic::Store::Meta::Attribute'");
+    is( Object::Relation::Meta->class_class, 'Object::Relation::Meta::Class',
+        "The class class should be 'Object::Relation::Meta::Class'");
+    is( Object::Relation::Meta->attribute_class, 'Object::Relation::Meta::Attribute',
+        "The attribute class should be 'Object::Relation::Meta::Attribute'");
 
-    ok my $km = Kinetic::Store::Meta->new(
+    ok my $km = Object::Relation::Meta->new(
         key         => 'thingy',
         name        => 'Thingy',
         plural_name => 'Thingies',
@@ -38,9 +38,9 @@ BEGIN {
         indexed       => 1,
         on_delete     => 'CASCADE',
         store_default => 'ick',
-        widget_meta   => Kinetic::Store::Meta::Widget->new(
+        widget_meta   => Object::Relation::Meta::Widget->new(
             type => 'text',
-            tip  => 'Kinetic Base Class',
+            tip  => 'Object::Relation Base Class',
         )
     ), "Add foo attribute";
 
@@ -54,7 +54,7 @@ BEGIN {
 }
 
 BEGIN {
-    ok my $km = Kinetic::Store::Meta->new(
+    ok my $km = Object::Relation::Meta->new(
         key         => 'fooey',
         name        => 'Fooey',
         plural_name => 'Fooies',
@@ -71,7 +71,7 @@ BEGIN {
 }
 
 # Add new strings to the lexicon.
-Kinetic::Store::Language::en->add_to_lexicon(
+Object::Relation::Language::en->add_to_lexicon(
   'Thingy'   => 'Thingy',
   'Thingies' => 'Thingies',
   'Foo'      => 'Foo',
@@ -83,7 +83,7 @@ package main;
 use aliased 'Test::MockModule';
 
 ok my $class = MyTestThingy->my_class, "Get meta class object";
-isa_ok $class, 'Kinetic::Store::Meta::Class';
+isa_ok $class, 'Object::Relation::Meta::Class';
 isa_ok $class, 'Class::Meta::Class';
 
 is $class->key, 'thingy', 'Check key';
@@ -92,7 +92,7 @@ is $class->name, 'Thingy', 'Check name';
 is $class->plural_name, 'Thingies', 'Check plural name';
 
 ok my $attr = $class->attributes('foo'), "Get foo attribute";
-isa_ok $attr, 'Kinetic::Store::Meta::Attribute';
+isa_ok $attr, 'Object::Relation::Meta::Attribute';
 isa_ok $attr, 'Class::Meta::Attribute';
 is $attr->name, 'foo', "Check attr name";
 is $attr->type, 'string', "Check attr type";
@@ -105,7 +105,7 @@ is $attr->_view_column, $attr->name,
   'The _view_column() method should return the view column name';
 
 # Make sure they work when the attribute references another attribute.
-my $mock = MockModule->new('Kinetic::Store::Meta::Attribute');
+my $mock = MockModule->new('Object::Relation::Meta::Attribute');
 $mock->mock(references => 1 );
 is $attr->_column, $attr->name . '_id',
   'The _column() method should return the reference column name';
@@ -114,9 +114,9 @@ is $attr->_view_column, $attr->name . '__id',
 $mock->unmock_all;
 
 ok my $wm = $attr->widget_meta, "Get widget meta object";
-isa_ok $wm, 'Kinetic::Store::Meta::Widget';
+isa_ok $wm, 'Object::Relation::Meta::Widget';
 isa_ok $wm, 'Widget::Meta';
-is $wm->tip, 'Kinetic Base Class', "Check tip";
+is $wm->tip, 'Object::Relation Base Class', "Check tip";
 
 ok my $fclass = MyTestFooey->my_class, "Get Fooey class object";
 ok $attr = $fclass->attributes('thingy'), "Get thingy attribute";

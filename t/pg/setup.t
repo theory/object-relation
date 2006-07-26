@@ -8,20 +8,20 @@ use Test::More tests => 115;
 use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
 use aliased 'Test::MockModule';
-use constant LIVE_PG => $ENV{KS_SUPER_USER} && $ENV{KS_CLASS} =~ /DB::Pg$/;
+use constant LIVE_PG => $ENV{OBJ_REL_SUPER_USER} && $ENV{OBJ_REL_CLASS} =~ /DB::Pg$/;
 
 BEGIN {
-    use_ok 'Kinetic::Store::Setup::DB::Pg' or die;
-    $ENV{KS_DSN}  ||= 'dbi:Pg:dbname=kinetic';
-    $ENV{KS_USER} ||= 'chip';
+    use_ok 'Object::Relation::Setup::DB::Pg' or die;
+    $ENV{OBJ_REL_DSN}  ||= 'dbi:Pg:dbname=obj_rel';
+    $ENV{OBJ_REL_USER} ||= 'chip';
 }
 
-ok my $setup = Kinetic::Store::Setup::DB::Pg->new({
-    user         => $ENV{KS_USER},
+ok my $setup = Object::Relation::Setup::DB::Pg->new({
+    user         => $ENV{OBJ_REL_USER},
     pass         => 'pihc',
     super_user   => 'postgres',
     super_pass   => '',
-    dsn          => $ENV{KS_DSN},
+    dsn          => $ENV{OBJ_REL_DSN},
     template_dsn => 'dbi:Pg:dbname=template1',
 }), 'Create PostgreSQL setup object with possible live parameters';
 
@@ -44,7 +44,7 @@ ok $setup->dbh({
 }), 'Set up a fake database handle with an invalid lib version';
 
 throws_ok { $setup->check_version }
-    'Kinetic::Store::Exception::Fatal::Unsupported',
+    'Object::Relation::Exception::Fatal::Unsupported',
     '... We should get an "Unsupported" exception';
 is $@->error,
     'DBD::Pg is compiled with PostgreSQL 70103 but we require version 80000',
@@ -56,7 +56,7 @@ ok $setup->dbh({
 }), 'Set up a fake database handle with an invalid server version';
 
 throws_ok { $setup->check_version }
-    'Kinetic::Store::Exception::Fatal::Unsupported',
+    'Object::Relation::Exception::Fatal::Unsupported',
     '... We should get an "Unsupported" exception';
 is $@->error,
     'The PostgreSQL server is version 70104 but we require version 80000',
@@ -164,7 +164,7 @@ is_deeply $do_args,
 
 ##############################################################################
 # Test build_db()
-my $db_mock = MockModule->new('Kinetic::Store::Setup::DB');
+my $db_mock = MockModule->new('Object::Relation::Setup::DB');
 my $build_args;
 $db_mock->mock(build_db => sub { shift; $build_args = \@_; $setup; });
 $pg_mock->mock( grant_permissions => sub { pass 'grant_permissions() called' });
@@ -361,7 +361,7 @@ $pg_mock->unmock('_run');
 ok $setup->_run($createlang), 'Call to _run() should work properly';
 
 throws_ok { $setup->_run('someprogramthatshouldnotexist') }
-    'Kinetic::Store::Exception::Fatal::IO',
+    'Object::Relation::Exception::Fatal::IO',
     'Call to _run() should throw an IO exception';
 like $@->error, qr/system\('someprogramthatshouldnotexist'\)\s+failed:/,
     '... And the error should be correct';
@@ -386,13 +386,13 @@ $dbi_mock->unmock_all;
 SKIP: {
     skip 'Not testing live PostreSQL server', 19, unless LIVE_PG;
 
-    ok my $setup = Kinetic::Store::Setup::DB::Pg->new({
-        user         => $ENV{KS_USER},
-        pass         => $ENV{KS_PASS},
-        super_user   => $ENV{KS_SUPER_USER},
-        super_pass   => $ENV{KS_SUPER_PASS},
-        dsn          => $ENV{KS_DSN},
-        template_dsn => $ENV{KS_TEMPLATE_DSN},
+    ok my $setup = Object::Relation::Setup::DB::Pg->new({
+        user         => $ENV{OBJ_REL_USER},
+        pass         => $ENV{OBJ_REL_PASS},
+        super_user   => $ENV{OBJ_REL_SUPER_USER},
+        super_pass   => $ENV{OBJ_REL_SUPER_PASS},
+        dsn          => $ENV{OBJ_REL_DSN},
+        template_dsn => $ENV{OBJ_REL_TEMPLATE_DSN},
     }), 'Create PostgreSQL setup object with possible live parameters';
     ok $setup->class_dirs('t/sample/lib'), 'Set the class_dirs to the sample';
 
@@ -407,7 +407,7 @@ SKIP: {
 
     if (my $err = $@) {
         diag "Looks like we couldn't connect to the template database.\n",
-             "Make sure that the KS_SUPER_USER, KS_DSN, and KS_TEMPLATE_DSN\n",
+             "Make sure that the OBJ_REL_SUPER_USER, OBJ_REL_DSN, and OBJ_REL_TEMPLATE_DSN\n",
              "environment variables are properly set.\n";
         die $err;
     }
@@ -440,13 +440,13 @@ SKIP: {
             $setup->super_pass,
         );
         $dbh->do(qq{DROP DATABASE "$db_name"});
-        $dbh->do(qq{DROP USER "$ENV{KS_USER}"});
+        $dbh->do(qq{DROP USER "$ENV{OBJ_REL_USER}"});
         $dbh->disconnect;
     };
 
 
-    for my $view ( Kinetic::Store::Meta->keys ) {
-        my $class = Kinetic::Store::Meta->for_key($view);
+    for my $view ( Object::Relation::Meta->keys ) {
+        my $class = Object::Relation::Meta->for_key($view);
         my ($expect, $not) = $class->abstract
             ? (undef, ' not')
             : (1, '');
@@ -461,8 +461,8 @@ SKIP: {
     # Test permissions.
     my @checks;
     my @params;
-    for my $view ( Kinetic::Store::Meta->keys ) {
-        my $class = Kinetic::Store::Meta->for_key($view);
+    for my $view ( Object::Relation::Meta->keys ) {
+        my $class = Object::Relation::Meta->for_key($view);
         next if $class->abstract;
         for my $perm (qw(SELECT UPDATE INSERT DELETE)) {
             push @checks, 'has_table_privilege(?, ?, ?)';

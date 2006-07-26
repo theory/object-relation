@@ -3,14 +3,14 @@ package TestApp::Composed;
 use strict;
 use warnings;
 
-use Kinetic::Store::Meta;
-use Kinetic::Store::Meta::Widget;
-use Kinetic::Store::Language::en_us;
+use Object::Relation::Meta;
+use Object::Relation::Meta::Widget;
+use Object::Relation::Language::en_us;
 
 use TestApp::Simple::One;
 
 BEGIN {
-    my $km = Kinetic::Store::Meta->new(
+    my $km = Object::Relation::Meta->new(
         key         => 'composed',
         name        => 'Composed',
         plural_name => 'Composeds',
@@ -23,7 +23,7 @@ BEGIN {
         required      => 0,
         once          => 1,
         default       => sub { TestApp::Simple::One->new },
-        widget_meta   => Kinetic::Store::Meta::Widget->new(
+        widget_meta   => Object::Relation::Meta::Widget->new(
             type => 'search',
             tip  => 'One',
         )
@@ -35,7 +35,7 @@ BEGIN {
         label    => 'Color',
         default  => undef,
         unique   => 1,
-        widget_meta   => Kinetic::Store::Meta::Widget->new(
+        widget_meta   => Object::Relation::Meta::Widget->new(
             type => 'text',
             tip  => 'Color',
         )
@@ -45,7 +45,7 @@ BEGIN {
 }
 
 # Add new strings to the lexicon.
-Kinetic::Store::Language::en->add_to_lexicon(
+Object::Relation::Language::en->add_to_lexicon(
   'Composed',
   'Composed',
   'Composeds',

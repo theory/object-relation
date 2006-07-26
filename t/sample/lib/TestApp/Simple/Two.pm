@@ -1,12 +1,12 @@
 package TestApp::Simple::Two;
 use base 'TestApp::Simple';
 use TestApp::Simple::One;
-use Kinetic::Store::Language::en_us;
-use aliased 'Kinetic::Store::Meta::Type';
-use Kinetic::Store::DataType::DateTime;
+use Object::Relation::Language::en_us;
+use aliased 'Object::Relation::Meta::Type';
+use Object::Relation::DataType::DateTime;
 
 BEGIN {
-    my $km = Kinetic::Store::Meta->new(
+    my $km = Object::Relation::Meta->new(
         key         => 'two',
         name        => 'Two',
         plural_name => 'Twos',
@@ -18,7 +18,7 @@ BEGIN {
         label         => 'One',
         required      => 1,
         default       => sub { TestApp::Simple::One->new },
-        widget_meta   => Kinetic::Store::Meta::Widget->new(
+        widget_meta   => Object::Relation::Meta::Widget->new(
             type => 'search',
             tip  => 'One',
         )
@@ -30,7 +30,7 @@ BEGIN {
         label    => 'Age',
         default  => undef,
         unique   => 1,
-        widget_meta   => Kinetic::Store::Meta::Widget->new(
+        widget_meta   => Object::Relation::Meta::Widget->new(
             type => 'text',
             tip  => 'Age',
         )
@@ -41,8 +41,8 @@ BEGIN {
         type          => 'datetime',
         label         => 'Date',
         required      => 1,
-        default       => sub { Kinetic::Store::DataType::DateTime->now },
-        widget_meta   => Kinetic::Store::Meta::Widget->new(
+        default       => sub { Object::Relation::DataType::DateTime->now },
+        widget_meta   => Object::Relation::Meta::Widget->new(
             type => 'calendar',
             tip  => 'Date',
         )
@@ -52,7 +52,7 @@ BEGIN {
 }
 
 # Add new strings to the lexicon.
-Kinetic::Store::Language::en->add_to_lexicon(
+Object::Relation::Language::en->add_to_lexicon(
   'Two'  => 'Two',
   'Twos' => 'Twos',
   'Age'  => 'Age',

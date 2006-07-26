@@ -3,14 +3,14 @@ package TestApp::TypesTest;
 use strict;
 use warnings;
 
-use Kinetic::Store::Meta;
-use Kinetic::Store::Meta::Widget;
-use Kinetic::Store::Language::en_us;
-use Kinetic::Store::DataType::Duration;
-use Kinetic::Store::DataType::MediaType;
+use Object::Relation::Meta;
+use Object::Relation::Meta::Widget;
+use Object::Relation::Language::en_us;
+use Object::Relation::DataType::Duration;
+use Object::Relation::DataType::MediaType;
 
 BEGIN {
-    my $km = Kinetic::Store::Meta->new(
+    my $km = Object::Relation::Meta->new(
         key         => 'types_test',
         name        => 'Types Test',
         plural_name => 'Types Tests',
@@ -48,7 +48,7 @@ BEGIN {
         type        => 'duration',
         required    => 1,
         indexed     => 1,
-        widget_meta => Kinetic::Store::Meta::Widget->new(
+        widget_meta => Object::Relation::Meta::Widget->new(
             type => 'interval',
             tip  => 'An interval of time',
         )
@@ -90,7 +90,7 @@ BEGIN {
 }
 
 # Add new strings to the lexicon.
-Kinetic::Store::Language::en->add_to_lexicon(
+Object::Relation::Language::en->add_to_lexicon(
   'Types Test',
   'Types Test',
 );

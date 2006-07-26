@@ -9,19 +9,19 @@ use Test::NoWarnings; # Adds an extra test.
 
 {
     # Fake out loading of SQLite store.
-    package Kinetic::Store::Handle::DB::SQLite;
-    $INC{'Kinetic/Store/Handle/DB/SQLite.pm'} = __FILE__;
+    package Object::Relation::Handle::DB::SQLite;
+    $INC{'Object/Relation/Store/Handle/DB/SQLite.pm'} = __FILE__;
     sub _add_store_meta { 1 }
 }
 
-BEGIN { use_ok 'Kinetic::Store::Schema' or die };
+BEGIN { use_ok 'Object::Relation::Schema' or die };
 
-ok my $sg = Kinetic::Store::Schema->new(
-    'Kinetic::Store::Handle::DB::SQLite'
+ok my $sg = Object::Relation::Schema->new(
+    'Object::Relation::Handle::DB::SQLite'
 ), 'Get new Schema';
-isa_ok $sg, 'Kinetic::Store::Schema';
-isa_ok $sg, 'Kinetic::Store::Schema::DB';
-isa_ok $sg, 'Kinetic::Store::Schema::DB::SQLite';
+isa_ok $sg, 'Object::Relation::Schema';
+isa_ok $sg, 'Object::Relation::Schema::DB';
+isa_ok $sg, 'Object::Relation::Schema::DB::SQLite';
 
 ok $sg->load_classes('t/sample/lib'), "Load classes";
 my $file = 't/data/SQLite.sql';
@@ -38,7 +38,7 @@ my @class_keys = map { $_->key } $sg->classes;
 test_contains_order(\@schema, @class_keys);
 
 # Test outputting setup SQL at the beginning of the file.
-ok $sg->write_schema($file, { with_kinetic => 1 }),
+ok $sg->write_schema($file, { with_obj_rel => 1 }),
   "Write schema file with ordered classes and setup SQL";
 ok -e $fn, "... File exists";
 open $schema, '<', $fn or die "Cannot open '$fn': $!\n";

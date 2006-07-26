@@ -8,29 +8,29 @@ use Test::NoWarnings; # Adds an extra test.
 
 {
     # Fake out loading of Pg store.
-    package Kinetic::Store::Handle::DB::Pg;
-    $INC{'Kinetic/Store/Handle/DB/Pg.pm'} = __FILE__;
+    package Object::Relation::Handle::DB::Pg;
+    $INC{'Object/Relation/Store/Handle/DB/Pg.pm'} = __FILE__;
     sub _add_store_meta { 1 }
 }
 
-BEGIN { use_ok 'Kinetic::Store::Schema' };
+BEGIN { use_ok 'Object::Relation::Schema' };
 
-ok my $sg = Kinetic::Store::Schema->new(
-    'Kinetic::Store::Handle::DB::Pg'
+ok my $sg = Object::Relation::Schema->new(
+    'Object::Relation::Handle::DB::Pg'
 ), 'Get new Schema';
-isa_ok $sg, 'Kinetic::Store::Schema';
+isa_ok $sg, 'Object::Relation::Schema';
 
 ok $sg->load_classes('t/sample/lib'),
     'Load all sample classes';
 for my $class ($sg->classes) {
-    ok $class->is_a('Kinetic::Store::Base'), $class->package . ' is a Kinetic::Store::Base';
+    ok $class->is_a('Object::Relation::Base'), $class->package . ' is a Object::Relation::Base';
     isa_ok($class, 'Class::Meta::Class');
-    isa_ok($class, 'Kinetic::Store::Meta::Class');
-    isa_ok($class, 'Kinetic::Store::Meta::Class::Schema');
+    isa_ok($class, 'Object::Relation::Meta::Class');
+    isa_ok($class, 'Object::Relation::Meta::Class::Schema');
     for my $attr ($class->attributes) {
         isa_ok($attr, 'Class::Meta::Attribute');
-        isa_ok($attr, 'Kinetic::Store::Meta::Attribute');
-        isa_ok($attr, 'Kinetic::Store::Meta::Attribute::Schema');
+        isa_ok($attr, 'Object::Relation::Meta::Attribute');
+        isa_ok($attr, 'Object::Relation::Meta::Attribute::Schema');
     }
 }
 
@@ -55,7 +55,7 @@ test_attr($composed_class, 'one', 'one_id', 'idx_composed_one_id', $one_class);
 
 sub test_class {
     my ($key, $table, $table_attrs, @parents) = @_;
-    ok my $class = Kinetic::Store::Meta->for_key($key), "Get $key class";
+    ok my $class = Object::Relation::Meta->for_key($key), "Get $key class";
     is $class->table, $table, "... its table name should be '$table'";
     my $view = $class->key;
     is $class->view, $view, "... its view name should be '$view'";

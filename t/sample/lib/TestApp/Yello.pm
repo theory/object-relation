@@ -3,11 +3,11 @@ package TestApp::Yello;
 use strict;
 use warnings;
 
-use Kinetic::Store::Language::en_us;
+use Object::Relation::Language::en_us;
 use TestApp::Simple::One;
 
 BEGIN {
-    my $km = Kinetic::Store::Meta->new(
+    my $km = Object::Relation::Meta->new(
         key         => 'yello',
         name        => 'Yello',
     );
@@ -16,7 +16,7 @@ BEGIN {
         name        => 'age',
         label       => 'Yello age',
         type        => 'posint',
-        widget_meta => Kinetic::Store::Meta::Widget->new(
+        widget_meta => Object::Relation::Meta::Widget->new(
             type => 'text',
             tip  => 'This is a tip.  This is only a tip.',
         ),
@@ -26,7 +26,7 @@ BEGIN {
         name         => 'ones',
         type         => 'one',
         relationship => 'has_many',
-        widget_meta  => Kinetic::Store::Meta::Widget->new(
+        widget_meta  => Object::Relation::Meta::Widget->new(
             type => 'text',
             tip  => 'This is a tip.  This is only a tip.',
         ),
@@ -36,7 +36,7 @@ BEGIN {
 }
 
 # Add new strings to the lexicon.
-Kinetic::Store::Language::en->add_to_lexicon(
+Object::Relation::Language::en->add_to_lexicon(
     'Yello',
     'Yello',
     'Yellos',

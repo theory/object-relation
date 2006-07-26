@@ -9,31 +9,31 @@ use Test::More tests => 233;
 use Test::NoWarnings; # Adds an extra test.
 use Test::Exception;
 use aliased 'Test::MockModule';
-use Kinetic::Store::Exceptions qw(throw_exlib);
+use Object::Relation::Exceptions qw(throw_exlib);
 use Test::File;
 use Test::Output;
 use utf8;
 
 BEGIN {
-    use_ok 'Kinetic::Store::Setup::DB::Pg' or die;
+    use_ok 'Object::Relation::Setup::DB::Pg' or die;
 }
 
 ##############################################################################
 # Test PostgreSQL implementation.
-ok my $setup = Kinetic::Store::Setup::DB::Pg->new,
+ok my $setup = Object::Relation::Setup::DB::Pg->new,
     'Create PostgreSQL setup object';
 
-is $setup->user, 'kinetic', 'The username should be "kinetic"';
+is $setup->user, 'obj_rel', 'The username should be "obj_rel"';
 is $setup->pass, '', 'The password should be ""';
-is $setup->dsn,  'dbi:Pg:dbname=kinetic',
-    'The dsn should be "dbi:Pg:dbname=kinetic"';
+is $setup->dsn,  'dbi:Pg:dbname=obj_rel',
+    'The dsn should be "dbi:Pg:dbname=obj_rel"';
 
 is $setup->super_user,   'postgres', 'The superuser should be "postgres"';
 is $setup->super_pass,   '', 'The superuser password should be ""';
 is $setup->template_dsn, 'dbi:Pg:dbname=template1',
     'The template dsn should be "dbi:Pg:dbname=template1"';
 
-ok $setup = Kinetic::Store::Setup::DB::Pg->new({
+ok $setup = Object::Relation::Setup::DB::Pg->new({
     user         => 'foo',
     pass         => 'bar',
     super_user   => 'hoo',
@@ -54,11 +54,11 @@ is $setup->template_dsn, 'dbi:Pg:dbname=template0',
 
 ##############################################################################
 # Test the setup rules.
-ok $setup = Kinetic::Store::Setup::DB::Pg->new, 'Go back to the defaults';
+ok $setup = Object::Relation::Setup::DB::Pg->new, 'Go back to the defaults';
 ok my $fsa = FSA::Rules->new($setup->rules), 'Create FSA::Rules machine';
 
 # Mock the class.
-my $mocker = MockModule->new('Kinetic::Store::Setup::DB::Pg');
+my $mocker = MockModule->new('Object::Relation::Setup::DB::Pg');
 
 ##############################################################################
 # Test "Start"
@@ -76,8 +76,8 @@ ok $fsa->switch, 'Switch to the next state';
 my $prev = $fsa->prev_state;
 ok my @errs = $prev->errors, '... There should be some errors';
 is scalar @errs, 2, '... There should be two errors';
-isa_ok $errs[0], 'Kinetic::Store::Exception::ExternalLib', '... The first';
-isa_ok $errs[0], 'Kinetic::Store::Exception::ExternalLib', '... The second';
+isa_ok $errs[0], 'Object::Relation::Exception::ExternalLib', '... The first';
+isa_ok $errs[0], 'Object::Relation::Exception::ExternalLib', '... The second';
 is $prev->message, 'No', '... And the message should be "No"';
 ok !$fsa->notes('super'), '.. And the super note should be false';
 ok !$fsa->notes('dsn'), '.. And the dsn note should be false';
@@ -175,7 +175,7 @@ is $fsa->prev_state->message, 'Yes',
 # Try switching with a false result.
 $mocker->mock( check_version => sub { throw_exlib 'Whoops!' } );
 throws_ok { $fsa->reset->curr_state('Connected') }
-    'Kinetic::Store::Exception::ExternalLib',
+    'Object::Relation::Exception::ExternalLib',
     'We should get an error when appropriate';
 $mocker->mock( check_version => 1 );
 
@@ -236,10 +236,10 @@ $mocker->mock(connect => sub {
 ok $fsa->curr_state('No Superuser'), 'Set state to "No Superuser"';
 is $fsa->curr_state->label, 'Can we connect as the user?',
     '... It should have the proper label';
-throws_ok { $fsa->switch } 'Kinetic::Store::Exception::Fatal::Setup',
+throws_ok { $fsa->switch } 'Object::Relation::Exception::Fatal::Setup',
     'We should get a setup exception when we switch';
 is $@->error,
-    'User “kinetic” cannot connect to either “dbi:Pg:dbname=kinetic” or '
+    'User “obj_rel” cannot connect to either “dbi:Pg:dbname=obj_rel” or '
     . '“dbi:Pg:dbname=template1”',
     '... And it should have the proper error message';
 
@@ -248,8 +248,8 @@ is $curr->name, 'Fail', '... And we should now be in the "Fail" state';
 $prev = $fsa->prev_state;
 ok @errs = $prev->errors, '... There should be some errors';
 is scalar @errs, 2, '... There should be two errors';
-isa_ok $errs[0], 'Kinetic::Store::Exception::ExternalLib', '... The first';
-isa_ok $errs[0], 'Kinetic::Store::Exception::ExternalLib', '... The second';
+isa_ok $errs[0], 'Object::Relation::Exception::ExternalLib', '... The first';
+isa_ok $errs[0], 'Object::Relation::Exception::ExternalLib', '... The second';
 ok !$prev->result, '... And its result should be false';
 is $prev->message, 'No', '... And the message should be "No"';
 ok !$fsa->notes('super'), '.. And the super note should be false';
@@ -317,11 +317,11 @@ ok $fsa->notes('plpgsql'), '... And the "plpgsql" note should be true';
 $plpgsql = 0;
 ok $fsa->reset->curr_state('Database Exists'),
     'Reset state to "Database Exists"';
-throws_ok { $fsa->switch } 'Kinetic::Store::Exception::Fatal::Setup',
+throws_ok { $fsa->switch } 'Object::Relation::Exception::Fatal::Setup',
     'We should get a setup exception when we switch';
 is $@->error,
-    'The “dbi:Pg:dbname=kinetic” database does not have PL/pgSQL and user '
-    . '“kinetic” cannot add it',
+    'The “dbi:Pg:dbname=obj_rel” database does not have PL/pgSQL and user '
+    . '“obj_rel” cannot add it',
     '... And it should have the proper error message';
 $curr = $fsa->curr_state;
 is $curr->name, 'Fail', '... And we should now be in the "Fail" state';
@@ -356,7 +356,7 @@ ok $fsa->curr_state->result, '... The result should be true';
 #    $setup->super_pass,
 #], '... And the super user should have conncted to the template database';
 is_deeply $create_db_args, [
-    'kinetic'
+    'obj_rel'
 ], '... And the correct databse named should be passed to create_db()';
 
 # Try with super user and plpgsql first.
@@ -388,7 +388,7 @@ $mocker->mock(create_db => sub {
 });
 
 throws_ok { $fsa->reset->curr_state('No Database') }
-    'Kinetic::Store::Exception::ExternalLib',
+    'Object::Relation::Exception::ExternalLib',
     'We should get an error when appropriate';
 
 ##############################################################################
@@ -435,9 +435,9 @@ $can_create = 0;
 ok $fsa->reset->curr_state('No Database for User'),
     'Reset state to "No Database for User"';
 ok !$fsa->curr_state->result, '... The result should be false';
-throws_ok { $fsa->switch } 'Kinetic::Store::Exception::Fatal::Setup',
+throws_ok { $fsa->switch } 'Object::Relation::Exception::Fatal::Setup',
     'We should get a setup exception when we switch';
-is $@->error, 'User “kinetic” cannot create a database',
+is $@->error, 'User “obj_rel” cannot create a database',
     '... And it should have the proper error message';
 $curr = $fsa->curr_state;
 is $curr->name, 'Fail', '... And we should now be in the "Fail" state';
@@ -478,11 +478,11 @@ is $fsa->curr_state->name, 'No PL/pgSQL',
 # Try switching without super and result false.
 ok $fsa->reset->curr_state('Can Create Database'),
     'Reset state to "Can Create Database"';
-throws_ok { $fsa->switch } 'Kinetic::Store::Exception::Fatal::Setup',
+throws_ok { $fsa->switch } 'Object::Relation::Exception::Fatal::Setup',
     'We should get a setup exception when we switch';
 is $@->error,
     'The “dbi:Pg:dbname=template1” database does not have PL/pgSQL and user '
-    . '“kinetic” cannot add it',
+    . '“obj_rel” cannot add it',
     '... And it should have the proper error message';
 
 $curr = $fsa->curr_state;
@@ -545,7 +545,7 @@ is $fsa->prev_state->message, 'Okay',
 # Try switching without result false.
 $createlang = undef;
 ok $fsa->reset->curr_state('No PL/pgSQL'), 'Reset state to "No PL/pgSQL"';
-throws_ok { $fsa->switch } 'Kinetic::Store::Exception::Fatal::Setup',
+throws_ok { $fsa->switch } 'Object::Relation::Exception::Fatal::Setup',
     'We should get a setup exception when we switch';
 is $@->error, 'Cannot find createlang; is it in the PATH?',
     '... And it should have the proper error message';
@@ -590,7 +590,7 @@ ok $fsa->reset->curr_state('Add PL/pgSQL'), 'Set state to "Add PL/pgSQL"';
 is $fsa->curr_state->label, 'Add PL/pgSQL to the database.',
     '... The label should be correct';
 ok $fsa->curr_state->result, '... The result should be true';
-is_deeply $add_plpgsql_args, ['kinetic'],
+is_deeply $add_plpgsql_args, ['obj_rel'],
     '... And the proper args should be passed to add_plpgsql()';
 
 # Switch with true result.

@@ -10,16 +10,16 @@ use Test::NoWarnings; # Adds an extra test.
 
 my $CLASS;
 BEGIN {
-    $CLASS = 'Kinetic::Store::DataType::Duration';
+    $CLASS = 'Object::Relation::DataType::Duration';
     use_ok $CLASS or die;
 };
 
 STORE: {
-    package Kinetic::Store::Handle::DB::SQLite;
+    package Object::Relation::Handle::DB::SQLite;
     sub new { bless {} => shift }
 }
 
-my $store = Kinetic::Store::Handle::DB::SQLite->new;
+my $store = Object::Relation::Handle::DB::SQLite->new;
 
 for my $compare (
     [

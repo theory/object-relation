@@ -1,4 +1,4 @@
-package TEST::Class::Kinetic;
+package TEST::Class::Object::Relation;
 
 # $Id$
 
@@ -24,21 +24,21 @@ __PACKAGE__->runtests unless caller;
 
 =head1 Name
 
-TEST::Class::Kinetic - The Kinetic test class base class
+TEST::Class::Object::Relation - The Object::Relation test class base class
 
 =head1 Synopsis
 
   use lib 't/lib';
-  use TEST::Class::Kinetic 't/system';
-  TEST::Class::Kinetic->runall;
+  use TEST::Class::Object::Relation 't/system';
+  TEST::Class::Object::Relation->runall;
 
 =head1 Description
 
-This class is the base class for all Kinetic test classes. It inherits from
+This class is the base class for all Object::Relation test classes. It inherits from
 L<Test::Class|Test::Class>, and so, therefore, do its subclasses. Create new
-subclasses to add new tests to the Kinetic framework.
+subclasses to add new tests to the Object::Relation framework.
 
-In addition to the interface provided by Test::Class, TEST::Class::Kinetic
+In addition to the interface provided by Test::Class, TEST::Class::Object::Relation
 does the extra work of finding all test classes in a specified directory and
 loading them. The tests in these classes can then be run by calling the
 C<runall()> method. This feature is most often used by test scripts in the
@@ -47,7 +47,7 @@ C<t> directory, rather than by test classes themselves.
 The classes found in the directory specified in the C<use> statment (which may
 be specified as a Unix-style path; this module will convert it to the local
 system notation) are loaded upon startup. Only those modules that inherit from
-TEST::Class::Kinetic will be processed by a call to C<runall()>, however.
+TEST::Class::Object::Relation will be processed by a call to C<runall()>, however.
 
 In addition, this module sets up a number of configurations and methods that
 test subclasses can use to create directories or change directories.
@@ -87,7 +87,7 @@ sub import {
 
 =head3 runall
 
-  Kinetic::Test->runall
+  Object::Relation::Test->runall
 
 Runs the tests in all of the classes loaded from the directory specified in
 the C<use> statement.
@@ -100,7 +100,7 @@ sub runall { shift->runtests(@CLASSES) }
 
 =head3 file_to_class
 
-  my $class = TEST::Class::Kinetic->file_to_class($file_name);
+  my $class = TEST::Class::Object::Relation->file_to_class($file_name);
 
 This method takes a file name for an argument, converts it to a class name,
 and then requires the clas. This is useful for tests that search the file
@@ -112,13 +112,13 @@ exmples would be properly converted:
 
 =over 4
 
-=item F<t/lib/TEST/Kinetic/Build.pm>
+=item F<t/lib/TEST/Object/Relation.pm>
 
-Loads and returns "TEST::Kinetic::Build".
+Loads and returns "TEST::Object::Relation".
 
-=item F<lib/Kinetic/Util/Language.pm>
+=item F<lib/Object/Relation/Language.pm>
 
-Loads and returns "Kinetic::Store::Language".
+Loads and returns "Object::Relation::Language".
 
 =back
 
@@ -156,9 +156,9 @@ for the rest of the methods in the class.
 sub a_test_load : Test(startup => 1) {
     my $test = shift;
     (my $class = ref $test) =~ s/^TEST:://;
-    return ok 1, "TEST::Class::Kinetic loaded"
-        if $class eq 'Class::Kinetic'
-        || $class eq 'Kinetic';
+    return ok 1, "TEST::Class::Object::Relation loaded"
+        if $class eq 'Class::Object::Relation'
+        || $class eq 'Object::Relation';
 
     use_ok $class or die;
     $test->{test_class} = $class;
@@ -170,7 +170,7 @@ sub a_test_load : Test(startup => 1) {
 
   my $test_class = $test->test_class;
 
-Returns the name of the Kinetic class being tested. This will usually be the
+Returns the name of the Object::Relation class being tested. This will usually be the
 same as the name of the test class itself with "TEST::" stripped out.
 
 =cut
@@ -274,7 +274,7 @@ __END__
 
 =head1 Copyright and License
 
-Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>
+Copyright (c) 2004-2006 Kineticode, Inc. <info@obj_relode.com>
 
 This module is free software; you can redistribute it and/or modify it under the
 same terms as Perl itself.

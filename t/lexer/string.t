@@ -11,13 +11,13 @@ use lib 'lib/', '../lib/';
 use HOP::Stream 'drop';
 
 BEGIN {
-    use_ok 'Kinetic::Store::Lexer::String', qw/string_lexer_stream/ or die;
+    use_ok 'Object::Relation::Lexer::String', qw/string_lexer_stream/ or die;
 }
 
-*lex = \&Kinetic::Store::Lexer::String::_lex;
+*lex = \&Object::Relation::Lexer::String::_lex;
 
 throws_ok { lex("name ~~ 'foo'") }
-  'Kinetic::Store::Exception::Fatal::Search',
+  'Object::Relation::Exception::Fatal::Search',
   'A malformed search request should throw an exception';
 
 ok my $tokens = lex("name => 'foo'"),
@@ -63,7 +63,7 @@ is_deeply lex("-3E5"), [['VALUE', "-3E5"]],
     '... or scientific notation';
 
 throws_ok { lex(".") }
-  'Kinetic::Store::Exception::Fatal::Search',
+  'Object::Relation::Exception::Fatal::Search',
   '... but a standalone period should fail to lex';
 
 is_deeply lex("object.name"), [['IDENTIFIER', 'object.name']],

@@ -16,7 +16,7 @@ use constant CACHE_DIR => catfile(qw/t data cache/);
 my $CACHE;
 
 BEGIN {
-    $CACHE = 'Kinetic::Store::Cache';
+    $CACHE = 'Object::Relation::Cache';
     use_ok $CACHE or die;
 }
 
@@ -27,14 +27,14 @@ my $cache = bless {}, $CACHE;
 foreach my $method (qw/get set add remove/) {
     can_ok $cache, $method;
     throws_ok { $cache->$method }
-      'Kinetic::Store::Exception::Fatal::Unimplemented',
+      'Object::Relation::Exception::Fatal::Unimplemented',
       '... but calling it should throw an unimplemented error';
 }
 
 # Force factory testing
 
 can_ok $CACHE, 'new';
-ok $cache = $CACHE->new('Kinetic::Store::Cache::File', {
+ok $cache = $CACHE->new('Object::Relation::Cache::File', {
     expires => 2,
 }), '... and calling it should succeed';
 isa_ok $cache, $CACHE, '... and the object it returns';
@@ -98,9 +98,9 @@ END {
     sub full { return join ' ', @{ +shift }{qw/rank name/} }
 }
 
-$CACHE = !exists $ENV{KS_CACHE} ? 'Kinetic::Store::Cache::File'
-    : $ENV{KS_CACHE} =~ /^Kinetic/ ? $ENV{KS_CACHE}
-    :                              "Kinetic::Store::Cache::$ENV{KS_CACHE}";
+$CACHE = !exists $ENV{OBJ_REL_CACHE} ? 'Object::Relation::Cache::File'
+    : $ENV{OBJ_REL_CACHE} =~ /^Object::Relation/ ? $ENV{OBJ_REL_CACHE}
+    :                              "Object::Relation::Cache::$ENV{OBJ_REL_CACHE}";
 
 $cache = $CACHE->new({
     expires => 2,

@@ -3,14 +3,14 @@ package TestApp::CompComp;
 use strict;
 use warnings;
 
-use Kinetic::Store::Meta;
-use Kinetic::Store::Meta::Widget;
-use Kinetic::Store::Language::en_us;
+use Object::Relation::Meta;
+use Object::Relation::Meta::Widget;
+use Object::Relation::Language::en_us;
 
 use TestApp::Composed;
 
 BEGIN {
-    my $km = Kinetic::Store::Meta->new(
+    my $km = Object::Relation::Meta->new(
         key         => 'comp_comp',
         name        => 'CompComp',
         plural_name => 'CompComps',
@@ -24,7 +24,7 @@ BEGIN {
         on_delete     => 'RESTRICT',
         once          => 1,
         default       => sub { TestApp::Composed->new },
-        widget_meta   => Kinetic::Store::Meta::Widget->new(
+        widget_meta   => Object::Relation::Meta::Widget->new(
             type => 'search',
             tip  => 'Composed',
         )
@@ -34,7 +34,7 @@ BEGIN {
 }
 
 # Add new strings to the lexicon.
-Kinetic::Store::Language::en->add_to_lexicon(
+Object::Relation::Language::en->add_to_lexicon(
   'CompComp',
   'CompComp',
   'CompComps',

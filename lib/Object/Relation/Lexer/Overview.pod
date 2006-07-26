@@ -1,0 +1,313 @@
+# $Id$
+
+=head1 Name
+
+Object::Relation::Lexer::Overview - Developer's overview of
+Object::Relation::Lexer::String and Object::Relation::Lexer::Code
+
+=head1 Synopsis
+
+See L<Object::Relation::Lexer::String|Object::Relation::Lexer::String> and
+L<Object::Relation::Lexer::Code|Object::Relation::Lexer::Code>.
+
+=head1 Description
+
+This document explains how the lexers turn search requests into token streams
+suitable for the L<Object::Relation::Parser|Object::Relation::Parser> to handle.
+
+=head1 Lexing
+
+Lexing is essentially the task of analyzing data and breaking it down into a
+series of easy-to-use tokens. Typically this means analyzing strings, but
+sometimes the input data is in other forms. To give a trivial example,
+consider the following pseudo-code:
+
+ x = (3 + 2) / y
+
+When lexed, we might get a series of tokens like the following:
+
+ my @tokens = (
+   [ VAR => 'x' ],
+   [ OP  => '=' ],
+   [ OP  => '(' ],
+   [ INT => '3' ],
+   [ OP  => '+' ],
+   [ INT => '2' ],
+   [ OP  => ')' ],
+   [ OP  => '/' ],
+   [ VAR => 'y' ],
+ );
+
+With a proper grammar, we could then read this series of tokens and take
+actions based upon their values, such as build a simple language interpreter
+or translate this code into another programming language.
+
+The Object::Relation platform allows us to search a data store. As of this writing, we
+have two main ways of searching. If writing Perl code that directly uses the
+Object::Relation platform, we can use what are known as I<code searches>:
+
+ my $iterator = $obj_rel_object->search(
+   name => LIKE '%vid',
+   age  => GE 21,
+ );
+
+The portion of the search which is lexed is:
+
+ name => LIKE '%vid', age  => GE 21
+
+If we are not directly accessing the Object::Relation platform, we can't use the Perl
+code directly, so we resort to I<string searches>. In this case, we supply the
+Object::Relation class key for the object, the method we wish to call (C<search>, in
+this case) and a string representing the search. In most cases, the string
+representing the search can be constructed merely by quoting the code search:
+
+ "name => LIKE '%vid', age  => GE 21"
+
+How does that work? Well, we do not use C<eval> as this would be a major
+security hole. Instead, we use code and string lexers that convert each type
+of search into virtually identical token streams. By taking this approach, we
+can use a single parser, L<Object::Relation::Parser|Object::Relation::Parser>, to
+convert either type of search request into a form that
+L<Object::Relation::Handle|Object::Relation::Handle> recognizes. In the future, if someone wishes
+to submit searches in an XML format, all they will need to do is write
+C<Object::Relation::Lexer::XML> and ensure that equivalent searches generate
+identical token streams and the parser will be able to understand it.
+
+To see how this works in detail, we'll start with string searches. These are
+easier to understand.
+
+=head2 String searches
+
+L<Object::Relation::Lexer::String|Object::Relation::Lexer::String> exports one
+function, C<string_lexer_stream>. This function takes a valid string search
+and returns a token stream.
+
+  use Object::Relation::Lexer::String qw/string_lexer_stream/;
+
+  my $stream = string_lexer_stream(<<'END_QUERY');
+    name => LIKE '%vid',
+    age  => GE 21
+  END_QUERY
+
+In this case, our stream of tokens looks like this:
+
+  [ IDENTIFIER => 'name' ],
+  [ OP         => '=>'   ],
+  [ COMPARE    => 'LIKE' ],
+  [ VALUE      => '%vid' ],
+  [ OP         => ','    ],
+  [ IDENTIFIER => 'age'  ],
+  [ OP         => '=>'   ],
+  [ COMPARE    => 'GE'   ],
+  [ VALUE      => '21'   ],
+
+To generate these tokens, we first need to be able to unambiguously identify
+each and every component of a string search. We can do this by either creating
+exact strings that match a component (such as "undef") or regular expressions
+that match what a component should look like.
+
+  # value before keyword
+  VALUE      => qr/(?!\.(?!\d))(?:$QUOTED|$NUM)/,
+  UNDEF      => 'undef',
+
+  # compare && keyword before identifier
+  COMPARE    => qr/(?:LIKE|GT|LT|GE|LE|NE|MATCH|EQ)/,
+  KEYWORD    => qr/(?:BETWEEN|AND|OR|ANY|NOT)/,
+  IDENTIFIER => qr/[[:alpha:]][.[:word:]]*/,
+  WHITESPACE => qr/\s*/,
+  OP         => qr/(?:[,\]\[()]|=>)/,
+
+B<Note>: In the above example, C<$QUOTED> and C<$NUM> are from
+C<Regexp::Common>.
+
+Tokens are matched in the lexer in the order in which they are defined.
+Getting the correct precedence of tokens can sometimes be a matter of trial
+and error. In the above example, we need the C<KEYWORD> token to come after
+the C<VALUE> token lest any text in a keyword be extracted from quoted strings
+prior to identified as values. C<COMPARE> and C<KEYWORD> must, in turn, come
+before C<IDENTIFIER> or else all comparison terms or keywords would be lexed
+as identifiers.
+
+Note that even though whitespace is identified (the lexer must successfully be
+able to identify everything in the text), what gets discarded as whitespace is
+not significant for the searches. However, because values are extracted prior
+to whitespace, whitespace in quoted strings will remain. See
+L<HOP::Lexer|HOP::Lexer> for details on how the actual lexing and discarding
+of whitespace happens.
+
+If the string lexer encounters text it cannot parse, it throws a
+L<Object::Relation::Exception::Fatal::Search|Object::Relation::Exception::Fatal::Search>
+exception. The message in the exception will include a list of all text it
+could not lex.
+
+=head2 Code searches
+
+L<Object::Relation::Lexer::Code|Object::Relation::Lexer::Code> exports one
+function, C<code_lexer_stream>. This function takes an array reference
+argument of valid code search parameters and returns a token stream.
+
+  use Object::Relation::Lexer::Code qw/code_lexer_stream/;
+
+  my $stream = code_lexer_stream(
+    [ name => LIKE '%vid', age  => GE 21 ]
+  );
+
+The resulting stream of tokens is identical to that produced by the string
+search.
+
+  [ IDENTIFIER => 'name' ],
+  [ OP         => '=>'   ],
+  [ COMPARE    => 'LIKE' ],
+  [ VALUE      => '%vid' ],
+  [ OP         => ','    ],
+  [ IDENTIFIER => 'age'  ],
+  [ OP         => '=>'   ],
+  [ COMPARE    => 'GE'   ],
+  [ VALUE      => '21'   ],
+
+How does it do this? Well, the basic lexing subroutine looks something like
+this (greatly simplified with error handling removed):
+
+  sub lex {
+      my $code = shift;
+      my @tokens;
+      while ( my $term = shift @$code ) {
+          my $type       = ref $term || 'standard';
+          my $make_token = $term_types{$type};
+
+          push @tokens => $make_token->($term, $code);
+          push @tokens => [ OP => ',' ] if @$code;
+      }
+      return \@tokens;
+  }
+
+Let's look at the code request again:
+
+  [ name => LIKE '%vid', age  => GE 21 ]
+
+We see that the first element of this array reference is "name". Since this is
+merely a string, the C<$type> is "standard". The standard lexer is called and
+it pushes to tokens onto the stack:
+
+  [ IDENTIFIER => 'name' ],
+  [ OP         => '=>'   ],
+
+Then it examines more of the search request. If what follows is a string, it
+merely pushes the appropriate tokens onto the stack. For example, with the
+following code search:
+
+  [ name => 'Ovid' ]
+
+It would push C<[ VALUE => 'Ovid' ]> onto the stack:
+
+  [ IDENTIFIER => 'name' ],
+  [ OP         => '=>'   ],
+  [ VALUE      => 'Ovid' ],
+
+You might be aware that the above search is equivalent to this:
+
+  [ name => EQ 'Ovid' ]
+
+For this example, the code lexer the following stack:
+
+  [ IDENTIFIER => 'name' ],
+  [ OP         => '=>'   ],
+  [ COMPARE    => 'EQ'   ],
+  [ VALUE      => 'Ovid' ],
+
+Even though the stacks are different, the parser is smart enough to understand
+that these two cases are equivalent and it will generate identical results
+either way.
+
+Getting back to our current example, we can see that C<LIKE> is the next item
+in the array reference:
+
+  [ name => LIKE '%vid', age  => GE 21 ]
+
+C<LIKE>, C<GE>, and similar items are actually subroutines exported by
+L<Object::Relation::Handle|Object::Relation::Handle>. These subroutines return self-lexing
+subroutines. The lexer, upon encountering them, calls them:
+
+  my $value = shift @$code;
+  if ( 'CODE' eq ref $value ) {
+      push @tokens, $value->();
+  }
+
+Due to creative use of prototypes, these subroutines typically take the
+following parameter as an argument and are sometimes chained, as in the
+following case:
+
+  [ name => NOT EQ 'Ovid' ]
+
+Which is equivalent to:
+
+  [ name => NOT( EQ('Ovid') ) ]
+
+The C<LIKE> subroutine looks like this:
+
+  sub LIKE($) {
+      my $value = shift;
+      return sub {
+          return (
+              shift || (), # NOT will pass a NOT token as an argument
+              [ COMPARE => $token ],
+              [ VALUE   => $value ],
+          );
+      };
+  }
+
+The C<COMPARE> and C<VALUE> tokens are then pushed onto the stack, yielding:
+
+  [ IDENTIFIER => 'name' ],
+  [ OP         => '=>'   ],
+  [ COMPARE    => 'LIDE' ],
+  [ VALUE      => '%vid' ],
+
+The standard lexer then returns the stack to the main lexing subroutine which
+then executes the following code:
+
+  push @tokens => [OP => ','] if @$code;
+
+And that gives us this:
+
+  [ IDENTIFIER => 'name' ],
+  [ OP         => '=>'   ],
+  [ COMPARE    => 'LIDE' ],
+  [ VALUE      => '%vid' ],
+  [ OP         => ','    ],
+
+The C<while> loop in the lexing routine then restarts, continuing the process.
+
+You'll note that we determine the "type" of lexer used by calling the C<ref>
+function:
+
+  my $type       = ref $term || 'standard';
+  my $make_token = $term_types{$type};
+
+  push @tokens => $make_token->($term, $code);
+
+Currently, the only other type of lexer is a C<CODE> lexer. This is used for
+the grouping terms C<AND> and C<OR>. Because both of these may take several
+operators, they require explicit parentheses:
+
+ [ name => EQ 'Ovid', OR( age => GE 21, occupation => 'programmer' ) ]
+
+This lexer is straightforward and calls the lexing function to process whatever
+arguments were in the parentheses.
+
+  # $op is "AND" or "OR"
+  # $code is the arguments supplied to that function
+  my ($op, $code) = $term->();
+  my $op_token    = [ KEYWORD => $op ];
+  my $lparen      = [ OP      => '(' ];
+  my $rparen      = [ OP      => ')' ];
+  return ($op_token, $lparen, @{lex($code)}, $rparen);
+
+=head1 Copyright and License
+
+Copyright (c) 2004-2006 Kineticode, Inc. <info@obj_relode.com>
+
+This module is free software; you can redistribute it and/or modify it under the
+same terms as Perl itself.
+
+=cut

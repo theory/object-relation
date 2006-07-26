@@ -1,10 +1,10 @@
 package TestApp::Simple::One;
 use base 'TestApp::Simple';
-use Kinetic::Store::Meta;
-use Kinetic::Store::Language::en_us;
+use Object::Relation::Meta;
+use Object::Relation::Language::en_us;
 
 BEGIN {
-    my $km = Kinetic::Store::Meta->new(
+    my $km = Object::Relation::Meta->new(
         key         => 'one',
         name        => 'One',
         plural_name => 'Ones',
@@ -17,7 +17,7 @@ BEGIN {
         required      => 1,
         default       => 1,
         store_default => 1,
-        widget_meta   => Kinetic::Store::Meta::Widget->new(
+        widget_meta   => Object::Relation::Meta::Widget->new(
             type => 'checkbox',
             tip  => 'Bool',
         )
@@ -27,7 +27,7 @@ BEGIN {
 }
 
 # Add new strings to the lexicon.
-Kinetic::Store::Language::en->add_to_lexicon(
+Object::Relation::Language::en->add_to_lexicon(
   'One'  => 'One',
   'Ones' => 'Ones',
   'Bool' => 'Bool',

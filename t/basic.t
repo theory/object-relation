@@ -10,19 +10,19 @@ use OSSP::uuid;
 use MIME::Base64 ();
 
 BEGIN {
-    use_ok 'Kinetic::Store::Base' or die;
-    use_ok 'Kinetic::Store::Language' or die;
-    use_ok 'Kinetic::Store::Language::en_us' or die;
-    use_ok 'Kinetic::Store::DataType::State' or die;
+    use_ok 'Object::Relation::Base' or die;
+    use_ok 'Object::Relation::Language' or die;
+    use_ok 'Object::Relation::Language::en_us' or die;
+    use_ok 'Object::Relation::DataType::State' or die;
 };
 
-isa_ok( $Kinetic::Store::Base::VERSION, 'version');
+isa_ok( $Object::Relation::Base::VERSION, 'version');
 
 package MyApp::TestThingy;
-use base 'Kinetic::Store::Base';
+use base 'Object::Relation::Base';
 BEGIN {
     use Test::More;
-    ok my $km = Kinetic::Store::Meta->new(
+    ok my $km = Object::Relation::Meta->new(
         key         => 'thingy',
         name        => 'Thingy',
         plural_name => 'Thingies',
@@ -31,10 +31,10 @@ BEGIN {
 }
 
 package main;
-use Kinetic::Store::DataType::State qw(:all);
+use Object::Relation::DataType::State qw(:all);
 
 # Add new strings to the lexicon.
-Kinetic::Store::Language::en->add_to_lexicon(
+Object::Relation::Language::en->add_to_lexicon(
   'Thingy',
   'Thingy',
   'Thingies',
@@ -43,34 +43,34 @@ Kinetic::Store::Language::en->add_to_lexicon(
 
 # Check Meta objects.
 ok my $class = MyApp::TestThingy->my_class, "Get meta class";
-isa_ok $class, 'Kinetic::Store::Meta::Class';
+isa_ok $class, 'Object::Relation::Meta::Class';
 isa_ok $class, 'Class::Meta::Class';
 is $class->key, 'thingy', "Check class key";
 is $class->name, 'Thingy', "Check class name";
 is $class->plural_name, 'Thingies', "Check class plural name";
 
-ok my $kinetic = MyApp::TestThingy->new, "Create new TestThingy";
-isa_ok $kinetic, 'MyApp::TestThingy';
-isa_ok $kinetic, 'Kinetic::Store::Base';
+ok my $obj_rel = MyApp::TestThingy->new, "Create new TestThingy";
+isa_ok $obj_rel, 'MyApp::TestThingy';
+isa_ok $obj_rel, 'Object::Relation::Base';
 
 # Check UUID.
 my $ug = OSSP::uuid->new;
-ok my $uuid = $kinetic->uuid, "Get UUID";
-ok !$kinetic->is_persistent, 'It should not be persistent';
+ok my $uuid = $obj_rel->uuid, "Get UUID";
+ok !$obj_rel->is_persistent, 'It should not be persistent';
 ok $ug->import(str => $uuid), "It's a valid UUID";
-is join('-', unpack('x2 a8 a4 a4 a4 a12', $kinetic->uuid_hex)),
-    $kinetic->uuid, 'Valid Hex UUID';
-is $kinetic->uuid_bin, $ug->export('bin'), 'Valid binary UUID';
-is MIME::Base64::decode_base64($kinetic->uuid_base64),
-    $kinetic->uuid_bin, 'Valid Base64 UUID';
+is join('-', unpack('x2 a8 a4 a4 a4 a12', $obj_rel->uuid_hex)),
+    $obj_rel->uuid, 'Valid Hex UUID';
+is $obj_rel->uuid_bin, $ug->export('bin'), 'Valid binary UUID';
+is MIME::Base64::decode_base64($obj_rel->uuid_base64),
+    $obj_rel->uuid_bin, 'Valid Base64 UUID';
 ok my $attr = $class->attributes('uuid'), "Get UUID attr object";
-is $attr->get($kinetic), $kinetic->uuid, "Get UUID value";
+is $attr->get($obj_rel), $obj_rel->uuid, "Get UUID value";
 is $attr->name, 'uuid', "Check UUID attr name";
 is $attr->label, 'UUID', "Check UUID attr label";
 ok $attr->required, 'Check UUID attr required';
-eval { $attr->set($kinetic, 'foo') };
+eval { $attr->set($obj_rel, 'foo') };
 ok my $err = $@, "Check UUID is read-only";
-eval { $kinetic->uuid('foo') };
+eval { $obj_rel->uuid('foo') };
 ok $err = $@, "Check cannot set UUID";
 ok my $wm = $attr->widget_meta, "Get UUID widget meta object";
 is $wm->type, 'text', "Check UUID widget type";
@@ -78,23 +78,23 @@ is $wm->tip, 'The globally unique identifier for this object',
   "Check UUID widget tip";
 
 # Check state.
-is $kinetic->state, ACTIVE, "Check for active state";
-ok $kinetic->state(INACTIVE), "Set state to INACTIVE";
-is $kinetic->state, INACTIVE, "Check for INACTIVE state";
-ok $kinetic->is_inactive, 'Check is_inactive';
-ok $kinetic->activate, "Activate";
-ok ! $kinetic->is_inactive, "Check not is_inactive";
-ok $kinetic->is_active, "Check is active";
-ok ! $kinetic->is_permanent, "Check not is_permanent";
-ok ! $kinetic->is_deleted, "Check not is_deleted";
-ok $kinetic->delete, "Delete";
-ok $kinetic->is_deleted, "Check is_deleted";
-ok $kinetic->deactivate, "Deactivate";
-ok $kinetic->is_inactive, 'Check is_inactive again';
-ok $kinetic->purge, "Purge";
-ok ! $kinetic->is_inactive, 'Check not is_inactive again';
+is $obj_rel->state, ACTIVE, "Check for active state";
+ok $obj_rel->state(INACTIVE), "Set state to INACTIVE";
+is $obj_rel->state, INACTIVE, "Check for INACTIVE state";
+ok $obj_rel->is_inactive, 'Check is_inactive';
+ok $obj_rel->activate, "Activate";
+ok ! $obj_rel->is_inactive, "Check not is_inactive";
+ok $obj_rel->is_active, "Check is active";
+ok ! $obj_rel->is_permanent, "Check not is_permanent";
+ok ! $obj_rel->is_deleted, "Check not is_deleted";
+ok $obj_rel->delete, "Delete";
+ok $obj_rel->is_deleted, "Check is_deleted";
+ok $obj_rel->deactivate, "Deactivate";
+ok $obj_rel->is_inactive, 'Check is_inactive again';
+ok $obj_rel->purge, "Purge";
+ok ! $obj_rel->is_inactive, 'Check not is_inactive again';
 ok $attr = $class->attributes('state'), "Get state attr object";
-is $attr->get($kinetic), $kinetic->state, "Get state value";
+is $attr->get($obj_rel), $obj_rel->state, "Get state value";
 is $attr->type, 'state', "Check state attr type";
 is $attr->name, 'state', "Check state attr name";
 is $attr->label, 'State', "Check state attr label";

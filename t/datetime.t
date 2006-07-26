@@ -9,19 +9,19 @@ use Test::NoWarnings; # Adds an extra test.
 
 my $CLASS;
 BEGIN {
-    $CLASS = 'Kinetic::Store::DataType::DateTime';
+    $CLASS = 'Object::Relation::DataType::DateTime';
     use_ok $CLASS, 'is_iso8601' or die;
 };
 
 # Try now().
 can_ok $CLASS, 'now';
-ok my $dt = Kinetic::Store::DataType::DateTime->now, "Create now DateTime";
+ok my $dt = Object::Relation::DataType::DateTime->now, "Create now DateTime";
 isa_ok $dt, $CLASS;
 is $dt->time_zone->name, 'UTC', "Check time zone";
 
 # Try new().
 can_ok $CLASS, 'new';
-ok $dt = Kinetic::Store::DataType::DateTime->new(
+ok $dt = Object::Relation::DataType::DateTime->new(
     year   => 1964,
     month  => 10,
     day    => 16,

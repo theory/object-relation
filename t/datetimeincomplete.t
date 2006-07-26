@@ -9,7 +9,7 @@ use Test::NoWarnings; # Adds an extra test.
 
 my $CLASS;
 BEGIN {
-    $CLASS = 'Kinetic::Store::DataType::DateTime::Incomplete';
+    $CLASS = 'Object::Relation::DataType::DateTime::Incomplete';
     use_ok $CLASS, 'is_incomplete_iso8601' or die
 };
 

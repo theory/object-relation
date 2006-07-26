@@ -1,0 +1,319 @@
+# $Id$
+
+=head1 Name
+
+Object::Relation::Parser::Overview - Developer's overview of Object::Relation::Parser
+
+=head1 Synopsis
+
+See L<Object::Relation::Parser|Object::Relation::Parser>.
+
+=head1 Description
+
+This document explains how the parsing system turns search requests into an
+I<Intermediate Representation> (IR) suitable for searching a datastore.
+
+This discussion will be a high-level overview of how the
+L<Object::Relation::Parser|Object::Relation::Parser> class operates.
+
+=head1 Grammar
+
+L<Object::Relation::Parser|Object::Relation::Parser> uses the Parser module
+described in "Higher Order Perl," by Mark Jason Dominus, to transform a series
+of tokens into an intermediate representation that the
+L<Object::Relation::Handle|Object::Relation::Handle> subclasses can use to initiate searches
+against a datastore.
+
+The following non-standard BNF grammar describes the legal grammar allowed for
+searches. I say "non-standard" because of the existence of regular expressions
+to explain some of the complicated terminals. The regular expressions in the
+C<%RE> hash used in I<search_value> are from L<Regexp::Common|Regexp::Common>.
+
+  entire_input   ::= statements 'End_Of_Input'
+
+  statements     ::= statement | statement ',' statements
+
+  statement      ::= statement_list
+                   | 'AND' '(' statement_list ')'
+                   | 'OR'  '(' statement_list ')'
+
+  statement_list ::= search
+                   | search ','                      # allow trailing commmas
+                   | search ',' statement
+                   | search ',' statement ','        # allow trailing commmas
+
+  search         ::= identifier '=>'       normal_value
+                   | identifier '=>' 'NOT' normal_value
+                   | identifier '=>'       between_value
+                   | identifier '=>' 'NOT' between_value
+                   | identifier            normal_value
+                   | identifier      'NOT' normal_value
+                   | identifier            between_value
+                   | identifier      'NOT' between_value
+
+  normal_value   ::= value | compare value | any
+
+  between_value  ::= 'BETWEEN' '[' value ','  value ']'
+                   | 'BETWEEN' '[' value '=>' value ']'
+                   |           '[' value ','  value ']'
+                   |           '[' value '=>' value ']'
+                   | 'BETWEEN' '(' value '=>' value ')'
+                   | 'BETWEEN' '(' value ','  value ')' # BETWEEN is not optional when using parens
+
+  any            ::= 'ANY' '(' any_list ')'
+
+  any_list       ::= search_value
+                   | search_value ','  any_list
+                   | search_value '=>' any_list
+                   | search_value ','  any_list ','  # allow trailing commas
+                   | search_value '=>' any_list '=>' # allow trailing commas
+
+  value          ::= search_value | undef
+
+  search_value   ::= /(?!\.(?!\d))(?:$RE{quoted}|$RE{num}{real})/;
+
+  identifier     ::= /[[:alpha:]][.[:word:]]*/
+
+  compare        ::= 'LIKE' | 'GT' | 'LT' | 'GE' | 'LE' | 'NE'
+                   | 'MATCH' | 'EQ'
+
+=head1 How it works
+
+Traditionally, parsing code involves three steps:
+
+=over
+
+=item * Tokenizing
+
+Breaking code into a series of discrete tokens. Whitespace is often discarded.
+
+ # name => LIKE 'foo', age => GT 21
+ @tokens = qw(
+    name
+    =>
+    LIKE
+    '
+    foo
+    '
+    ,
+    age
+    =>
+    GT
+    21
+  );
+
+=item * Lexing
+
+Then meaning is assigned to the tokens. Some tokens may be combined and others
+discarded.
+
+  [ IDENTIFIER => 'name' ],
+  [ OP         => '=>'   ],
+  [ COMPARE    => 'LIKE' ],
+  [ OP         => ','    ],
+  [ VALUE      => 'foo'  ],
+  [ OP         => ','    ],
+  [ IDENTIFIER => 'age'  ],
+  [ OP         => '=>'   ],
+  [ COMPARE    => 'GT'   ],
+  [ VALUE      => 3      ],
+
+=item * Parsing
+
+Parsing is the act of converting the lexed tokens into a data structure that
+suits a given task. This structure is often referred to as an I<intermediate
+representation>, or I<IR>. This document will briefly discuss the IR created
+by L<Object::Relation::Parser|Object::Relation::Parser> and how it's created.
+
+=back
+
+=head1 Lexing
+
+The Object::Relation lexers C<Object::Relation:Store::Lexer::Code> and
+L<Object::Relation::Lexer::String|Object::Relation::Lexer::String> both combine
+the tokenizing and lexing into a single step. See
+L<Object::Relation::Lexer::Overview|Object::Relation::Lexer::Overview> for
+details.
+
+This module has only one public function, C<parse>, which expects a stream as
+returned by a lexer and a Object::Relation store object:
+
+  my $stream = code_lexer_stream($search_request);
+  my $ir     = parse($stream, $store);
+
+The C<parse()> function will then either throw a
+C<Object::Relation::Exception::Fatal::Search> exception or return an IR.
+
+The store object is used in the final step of building the IR to determine the
+names of the attributes on which the actual search will take place. Attempting
+to search on an attribute that the current "search class" does not have will
+throw an exception.
+
+In the grammar above, the LHS symbols usually represent small "sub-parsers",
+each capable of handling the parsing of the RHS. Thus, the first step in
+C<parse()> is to pass the input stream to the C<$entire_input> parser:
+
+  my $entire_input = T(
+    concatenate(
+      $statements,
+      \&End_of_Input
+    ),
+    sub {
+      $_[0]
+    }
+  );
+
+That should be fairly straightforward to read. The C<T()> function expects a
+parser (generated by the C<concatenate> function) and an anonymous subroutine
+that transforms the input (C<T> being short for I<transform>). In this case,
+it's telling us that we merely wish to return the parse for the statements and
+not the C<End_of_Input>.
+
+Now let's take a look at a more complicated example. Here's the section of the
+grammar for "between" values.
+
+  between_value  ::= 'BETWEEN' '[' value ','  value ']'
+                   | 'BETWEEN' '[' value '=>' value ']'
+                   |           '[' value ','  value ']'
+                   |           '[' value '=>' value ']'
+
+This will match any of the following:
+
+  BETWEEN [ 'foo',   'bar' ]
+  BETWEEN [ 'foo' => 'bar' ]
+          [ 'foo',   'bar' ]
+          [ 'foo' => 'bar' ]
+
+Here's how the subparser looks:
+
+  my $between_value = T(
+    concatenate(
+      star(match(KEYWORD => 'BETWEEN')), # 0
+         $lbracket,                      # 1
+           $Value,                       # 2
+           alternate(
+             $fat_comma,                 # 3
+             $comma,
+           ),
+           $Value,                       # 4
+         $rbracket,
+    ),
+    sub { ['BETWEEN', [_normalize_value($_[2]), _normalize_value($_[4])]] }
+  );
+
+What this says is "concatenate this stuff". The C<star> function tells us that
+the "BETWEEN" keyword is optional. Then we match an C<$lbracket> ("["), a
+value ("foo"), either a regular comma (",") or a fat comma ("=>"), another
+value ("bar"), and an C<$rbracket>, ("]"). The transformation returns a new
+token with the string "BETWEEN" and two normalized values.
+
+As of this writing, the normalized value function merely examines the values
+to see if they match a
+L<Object::Relation::DataType::DateTime::Incomplete|Object::Relation::DataType::DateTime::Incomplete> string and, if
+they do, return an object representing them.
+
+=head1 Building search objects
+
+It's not until the parser reaches the "search" LHS bit of the grammar that it
+has enough information to create a
+L<Object::Relation::Search|Object::Relation::Search> object.
+
+  search         ::= identifier '=>'       normal_value
+                   | identifier '=>' 'NOT' normal_value
+                   | identifier '=>'       between_value
+                   | identifier '=>' 'NOT' between_value
+
+At this point, it calls the C<_make_search> function with the data it has
+matched to build and return a search object. This is when it uses the
+L<Object::Relation::Handle|Object::Relation::Handle> object that was passed in to validate that
+the search can actually be performed on the Object::Relation class on which we are
+currently searching.
+
+=head1 The Intermediate representation
+
+The IR is merely an array reference of
+L<Object::Relation::Search|Object::Relation::Search> objects and groups of these
+Search objects. Groups may be simple groups, "AND" groups, or "OR" groups.
+
+=over
+
+=item Simple groups
+
+Simple groups are merely a reference to an array of search objects.
+
+  [
+    $search1,
+    $search2,
+    $search3,
+  ]
+
+All searches in a simple group must succeed for the search to succeed.
+
+=item AND groups
+
+"AND" groups are array references with the string "AND" as the first element.
+
+  [
+    [
+      'AND',
+      $search2,
+      $search3,
+    ]
+  ]
+
+=item OR groups
+
+An "OR" group is the string "OR" followed by an array reference.
+
+  [
+    'OR',
+    [
+      $search1,
+      $search2,
+    ]
+  ]
+
+=item Nested groups
+
+Any of the above groups may be nested.
+
+    AND(
+        name   => 'foo',
+        l_name => 'something',
+    ),
+    OR(  age => GT 3 ),
+    OR(
+        one__type  => LIKE 'email',
+        fav_number => GE 42
+    )
+
+The above search, whether it is a code search or a string search, should
+produce the same IR:
+
+  [
+    [
+        'AND',
+        $name_search,
+        $lname_search,
+    ],
+    'OR',
+    [
+        $age_search,
+    ],
+    'OR',
+    [
+        $one_type_search,
+        $fav_number_search,
+    ]
+  ]
+
+=back
+
+=head1 Copyright and License
+
+Copyright (c) 2004-2006 Kineticode, Inc. <info@obj_relode.com>
+
+This module is free software; you can redistribute it and/or modify it under the
+same terms as Perl itself.
+
+=cut
