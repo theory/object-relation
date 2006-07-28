@@ -13,7 +13,7 @@ use Object::Relation::Handle;
 use Object::Relation::Functions qw(:uuid);
 use Object::Relation::DataType::State qw(:all);
 
-our $VERSION = version->new('0.0.2');
+our $VERSION = version->new('0.1.0');
 
 =begin comment
 

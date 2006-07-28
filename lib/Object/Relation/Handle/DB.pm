@@ -5,7 +5,7 @@ package Object::Relation::Handle::DB;
 use strict;
 use base qw(Object::Relation::Handle);
 use version;
-our $VERSION = version->new('0.0.2');
+our $VERSION = version->new('0.1.0');
 use DBI qw(:sql_types);
 use Clone;
 use Scalar::Util qw(blessed);

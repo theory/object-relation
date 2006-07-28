@@ -5,7 +5,7 @@ package Object::Relation::Parser;
 use strict;
 
 use version;
-our $VERSION = version->new('0.0.2');
+our $VERSION = version->new('0.1.0');
 
 use Exporter::Tidy default => ['parse'];
 use HOP::Stream qw/drop list_to_stream/;

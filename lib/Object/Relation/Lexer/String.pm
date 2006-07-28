@@ -28,7 +28,7 @@ use strict;
 use warnings;
 
 use version;
-our $VERSION = version->new('0.0.2');
+our $VERSION = version->new('0.1.0');
 
 use Object::Relation::Exceptions qw/throw_search/;
 use HOP::Stream               qw/node iterator_to_stream/;

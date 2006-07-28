@@ -5,7 +5,7 @@ package Object::Relation;
 use version;
 use base 'Class::Meta::Express';
 use Object::Relation::Meta;
-our $VERSION = version->new('0.0.2');
+our $VERSION = version->new('0.1.0');
 
 sub meta {
     splice @_, 1, 0, meta_class => 'Object::Relation::Meta', default_type => 'string';

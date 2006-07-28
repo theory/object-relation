@@ -5,13 +5,13 @@ version: !!perl/hash:Module::Build::Version
     qv: 1
     version:
       - 0
+      - 1
       - 0
-      - 2
   qv: 1
   version:
     - 0
+    - 1
     - 0
-    - 2
 author:
   - 'Kineticode, Inc. <info@obj_relode.com>'
 abstract: Advanced Object Relational Mapper
@@ -76,88 +76,88 @@ provides:
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Base:
     file: lib/Object/Relation/Base.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Cache:
     file: lib/Object/Relation/Cache.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Cache::File:
     file: lib/Object/Relation/Cache/File.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Cache::Memcached:
     file: lib/Object/Relation/Cache/Memcached.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Collection:
     file: lib/Object/Relation/Collection.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::DataType::DateTime:
     file: lib/Object/Relation/DataType/DateTime.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::DataType::DateTime::Incomplete:
     file: lib/Object/Relation/DataType/DateTime/Incomplete.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::DataType::Duration:
     file: lib/Object/Relation/DataType/Duration.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::DataType::MediaType:
     file: lib/Object/Relation/DataType/MediaType.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::DataType::State:
     file: lib/Object/Relation/DataType/State.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Exception:
     file: lib/Object/Relation/Exceptions.pm
   Object::Relation::Exception::DBI:
@@ -178,312 +178,312 @@ provides:
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Format:
     file: lib/Object/Relation/Format.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Format::JSON:
     file: lib/Object/Relation/Format/JSON.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Format::XML:
     file: lib/Object/Relation/Format/XML.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Functions:
     file: lib/Object/Relation/Functions.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Handle:
     file: lib/Object/Relation/Handle.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Handle::DB:
     file: lib/Object/Relation/Handle/DB.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Handle::DB::Pg:
     file: lib/Object/Relation/Handle/DB/Pg.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Handle::DB::SQLite:
     file: lib/Object/Relation/Handle/DB/SQLite.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Handle::DB::SQLite::DBI:
     file: lib/Object/Relation/Handle/DB/SQLite/DBI.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Handle::DB::SQLite::DBI::db:
     file: lib/Object/Relation/Handle/DB/SQLite/DBI.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Handle::DB::SQLite::DBI::st:
     file: lib/Object/Relation/Handle/DB/SQLite/DBI.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Iterator:
     file: lib/Object/Relation/Iterator.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Language:
     file: lib/Object/Relation/Language.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Language::en:
     file: lib/Object/Relation/Language/en.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Language::en_uk:
     file: lib/Object/Relation/Language/en_uk.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Language::en_us:
     file: lib/Object/Relation/Language/en_us.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Lexer::Code:
     file: lib/Object/Relation/Lexer/Code.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Lexer::String:
     file: lib/Object/Relation/Lexer/String.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Meta:
     file: lib/Object/Relation/Meta.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Meta::AccessorBuilder:
     file: lib/Object/Relation/Meta/AccessorBuilder.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Meta::Attribute:
     file: lib/Object/Relation/Meta/Attribute.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Meta::Attribute::Schema:
     file: lib/Object/Relation/Meta/Attribute/Schema.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Meta::Class:
     file: lib/Object/Relation/Meta/Class.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Meta::Class::Schema:
     file: lib/Object/Relation/Meta/Class/Schema.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Meta::DataTypes:
     file: lib/Object/Relation/Meta/DataTypes.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Meta::Method:
     file: lib/Object/Relation/Meta/Method.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Meta::Type:
     file: lib/Object/Relation/Meta/Type.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Meta::Widget:
     file: lib/Object/Relation/Meta/Widget.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Parser:
     file: lib/Object/Relation/Parser.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Schema:
     file: lib/Object/Relation/Schema.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Schema::DB:
     file: lib/Object/Relation/Schema/DB.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Schema::DB::Pg:
     file: lib/Object/Relation/Schema/DB/Pg.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Schema::DB::SQLite:
     file: lib/Object/Relation/Schema/DB/SQLite.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Search:
     file: lib/Object/Relation/Search.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Setup:
     file: lib/Object/Relation/Setup.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Setup::DB:
     file: lib/Object/Relation/Setup/DB.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Setup::DB::Pg:
     file: lib/Object/Relation/Setup/DB/Pg.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
   Object::Relation::Setup::DB::SQLite:
     file: lib/Object/Relation/Setup/DB/SQLite.pm
     version: !!perl/hash:version
       qv: 1
       version:
         - 0
+        - 1
         - 0
-        - 2
 generated_by: Module::Build version 0.2804
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.2.html
