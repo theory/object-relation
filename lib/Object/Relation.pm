@@ -40,12 +40,27 @@ Object::Relation - Advanced Object Relational Mapper
 
 =head1 Description
 
-This package makes it dead simple to create Object::Relation classes. It overrides the
-funcions in L<Class::Meta::Express|Class::Meta::Express> so that the class is
-always built by L<Object::Relation::Meta|Object::Relation::Meta> and so that
-attributes are strings by default. Of course, these settings can be
-overriddent by using the explicitly passing the C<meta_class> and and
-C<default_type> parameters to C<meta()>:
+Object::Relation is an advanced object relational mapper. Use it to define
+your model classes and it handles the rest. And by that I mean that it works
+hard to exploit the most advance features of your data store to provide
+efficient yet easy to use objects for use in your system. It currently supports
+SQLite and PostgreSQL data stores.
+
+B<Notes:> Develoment and documentation are still in progress; this should be
+considered an alpha release. Do not use it in production as things will likely
+change over the next few months. But don't let that stop you from playing with
+it now to see what it can do!
+
+And now back to the documenation that still needs updating.
+
+=head2 Basic Usage
+
+This package makes it dead simple to create Object::Relation classes. It
+overrides the funcions in L<Class::Meta::Express|Class::Meta::Express> so that
+the class is always built by L<Object::Relation::Meta|Object::Relation::Meta>
+and so that attributes are strings by default. Of course, these settings can
+be overridden by explicitly passing the C<meta_class> and and C<default_type>
+parameters to C<meta()>:
 
   package MyApp::SomethingElse;
   use Object::Relation;
