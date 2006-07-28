@@ -13,7 +13,7 @@ use Class::BuildMethods qw(
 );
 
 use version;
-our $VERSION = version->new('0.1.0');
+our $VERSION = version->new('0.1.1');
 
 =head1 Name
 

@@ -5,7 +5,7 @@ package Object::Relation::Cache::File;
 use strict;
 
 use version;
-our $VERSION = version->new('0.1.0');
+our $VERSION = version->new('0.1.1');
 
 use base 'Object::Relation::Cache';
 

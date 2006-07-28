@@ -5,7 +5,7 @@ package Object::Relation::Schema;
 use strict;
 
 use version;
-our $VERSION = version->new('0.1.0');
+our $VERSION = version->new('0.1.1');
 
 use Object::Relation::Meta;
 use Object::Relation::Meta::Class::Schema;
