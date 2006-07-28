@@ -143,8 +143,7 @@ ok( my $t = Object::Relation::TestTypes->new,
     'Object::Relation::TestTypes->new');
 
 # Test the UUID accessor.
-my $ouuid = OSSP::uuid->new;
-ok $ouuid->import(str => $t->uuid ), 'The UUID should be set';
+ok uuid_to_bin($t->uuid), 'The UUID should be set';
 eval { $t->uuid(create_uuid()) };
 ok my $err = $@, 'Got error setting UUID to bogus value';
 like $err->error, qr/Cannot assign to read-only attribute .uuid./,

@@ -26,6 +26,7 @@ requires:
   Clone: 0.15
   DBI: 1.5
   Data::Types: 0.06
+  Data::UUID: 0
   DateTime: 0.3
   DateTime::Format::Strptime: 1.0601
   DateTime::Incomplete: 0.02
@@ -44,7 +45,6 @@ requires:
   Locale::Maketext: 1.09
   MIME::Base64: 0
   MIME::Types: 1.14
-  OSSP::uuid: 0
   Regexp::Common: 2.119
   Widget::Meta: 0.03
   XML::Simple: 2.13

@@ -12,6 +12,7 @@ use Test::NoWarnings;    # Adds an extra test.
 use Test::Exception;
 use File::Spec;
 use aliased 'Object::Relation::Iterator';
+use Object::Relation::Functions qw(:uuid);
 
 FAUX: {
 
@@ -107,8 +108,7 @@ ok !defined $coll->next,
 
 ok my $array = $coll->_array, '... and we should be the AsHash object';
 my @keys = $array->keys;
-my $ouuid = OSSP::uuid->new;
-is scalar( grep { $ouuid->import(str => $_) } @keys ), scalar(@keys),
+is scalar( grep { uuid_to_bin($_) } @keys ), scalar(@keys),
   '... and all of the keys should match a UUID';
 
 can_ok $coll, 'curr';

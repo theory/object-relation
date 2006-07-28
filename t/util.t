@@ -28,17 +28,16 @@ UUID: { # 10 tests.
     can_ok __PACKAGE__, 'uuid_to_b64';
 
     ok my $uuid = create_uuid(), 'Create a UUID';
-    my $ouuid = OSSP::uuid->new;
-    ok $ouuid->import(str => $uuid ), 'It should be a valid UUID';
+    my $duuid = Data::UUID->new;
+    ok $duuid->from_string( $uuid ), 'It should be a valid UUID';
 
     # Test uuid_to_hex().
     (my $hex = $uuid) =~ s/-//g;
     is uuid_to_hex($uuid), "0x$hex", 'uuid_to_hex should work';
 
     # Test uuid_to_bin().
-    my $ug = OSSP::uuid->new;
-    $ug->import(str => $uuid);
-    my $bin = $ug->export('bin');
+    my $ug = Data::UUID->new;
+    my $bin = $ug->from_string($uuid);
     is uuid_to_bin($uuid), $bin, 'uuid_to_bin should work';
 
     # Test uuid_to_b64().

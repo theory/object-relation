@@ -98,10 +98,6 @@ Builds the class and removes the above functions from its namespace.
 
 =item *
 
-Allow Data::UUID to substitute for OSSP::uuid with SQLite.
-
-=item *
-
 Add caching to the store.
 
 =item *

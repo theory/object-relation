@@ -12,7 +12,6 @@ use DBD::SQLite;
 use Object::Relation::Handle::DB::SQLite::DBI;
 use Object::Relation::Exceptions qw(throw_unsupported);
 use Exception::Class::DBI;
-use OSSP::uuid;
 
 use constant DBI_CLASS => 'Object::Relation::Handle::DB::SQLite::DBI';
 use constant _connect_attrs => {

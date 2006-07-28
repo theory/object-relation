@@ -10,6 +10,7 @@ use Test::NoWarnings; # Adds an extra test.
 
 use Object::Relation::Collection;
 use aliased 'Object::Relation::Iterator';
+use Object::Relation::Functions qw(:uuid);
 
 package MyTest::Thingy;
 
@@ -439,10 +440,8 @@ is $attr->acts_as, $thingy_class->attributes('foo'),
 ok $ex->foo('fooey'), 'Should be able to set delegated attribute';
 is $ex->foo, $ex->thingy->foo, 'The value should have been passed through';
 
-my $ouuid = OSSP::uuid->new;
-ok $ouuid->import(str => $ex->uuid ), 'The UUID should be defined';
-ok $ouuid->import(str => $ex->thingy_uuid ),
-    'And the thingy UUID should be defined';
+ok uuid_to_bin($ex->uuid), 'The UUID should be defined';
+ok uuid_to_bin($ex->thingy_uuid), 'And the thingy UUID should be defined';
 ok $ex->uuid ne $ex->thingy_uuid, 'And they should have different UUIDs';
 
 # We should get the trusted extended object attribute.
@@ -540,10 +539,9 @@ is $attr->acts_as, $thingy_class->attributes('foo'),
 ok $med->foo('fooey'), 'Should be able to set delegated attribute';
 is $med->foo, $med->thingy->foo, 'The value should have been passed through';
 
-ok $ouuid->import(str => $med->uuid ), 'The UUID should be defined';
-ok $ouuid->import(str => $med->thingy_uuid ),
-    'And the thingy UUID should be defined';
-ok $med->uuid ne $med->thingy_uuid, 'And they should have different UUIDs';
+ok uuid_to_bin( $med->uuid ),        'The UUID should be defined';
+ok uuid_to_bin( $med->thingy_uuid ), 'And the thingy UUID should be defined';
+ok $med->uuid ne $med->thingy_uuid,  'And they should have different UUIDs';
 
 # We should get the trusted mediateed object attribute.
 is_deeply [map { $_->name } $class->persistent_attributes],

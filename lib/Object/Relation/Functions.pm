@@ -5,7 +5,7 @@ package Object::Relation::Functions;
 use strict;
 use version;
 our $VERSION = version->new('0.0.2');
-use OSSP::uuid;
+use Data::UUID;
 use MIME::Base64;
 use File::Find::Rule;
 use File::Spec;
@@ -71,16 +71,14 @@ representation.
 
 =cut
 
+my $UUID = Data::UUID->new;
+
 sub create_uuid {
-    my $uuid = OSSP::uuid->new;
-    $uuid->make('v4');
-    return $uuid->export('str');
+    lc $UUID->create_str;
 }
 
 sub uuid_to_bin {
-    my $uuid = OSSP::uuid->new;
-    $uuid->import(str => shift);
-    return $uuid->export('bin');
+    return $UUID->from_string(shift)
 }
 
 sub uuid_to_hex {

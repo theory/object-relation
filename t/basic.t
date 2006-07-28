@@ -6,7 +6,6 @@ use strict;
 use Test::More tests => 57;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
-use OSSP::uuid;
 use MIME::Base64 ();
 
 BEGIN {
@@ -32,6 +31,7 @@ BEGIN {
 
 package main;
 use Object::Relation::DataType::State qw(:all);
+use Object::Relation::Functions qw(:uuid);
 
 # Add new strings to the lexicon.
 Object::Relation::Language::en->add_to_lexicon(
@@ -54,13 +54,12 @@ isa_ok $obj_rel, 'MyApp::TestThingy';
 isa_ok $obj_rel, 'Object::Relation::Base';
 
 # Check UUID.
-my $ug = OSSP::uuid->new;
 ok my $uuid = $obj_rel->uuid, "Get UUID";
 ok !$obj_rel->is_persistent, 'It should not be persistent';
-ok $ug->import(str => $uuid), "It's a valid UUID";
+ok uuid_to_bin($uuid), "It's a valid UUID";
 is join('-', unpack('x2 a8 a4 a4 a4 a12', $obj_rel->uuid_hex)),
     $obj_rel->uuid, 'Valid Hex UUID';
-is $obj_rel->uuid_bin, $ug->export('bin'), 'Valid binary UUID';
+is $obj_rel->uuid_bin, uuid_to_bin($uuid), 'Valid binary UUID';
 is MIME::Base64::decode_base64($obj_rel->uuid_base64),
     $obj_rel->uuid_bin, 'Valid Base64 UUID';
 ok my $attr = $class->attributes('uuid'), "Get UUID attr object";
