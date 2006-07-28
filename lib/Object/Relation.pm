@@ -5,7 +5,7 @@ package Object::Relation;
 use version;
 use base 'Class::Meta::Express';
 use Object::Relation::Meta;
-our $VERSION = version->new('0.1.0');
+our $VERSION = version->new('0.1.1');
 
 sub meta {
     splice @_, 1, 0, meta_class => 'Object::Relation::Meta', default_type => 'string';
@@ -42,9 +42,9 @@ Object::Relation - Advanced Object Relational Mapper
 
 Object::Relation is an advanced object relational mapper. Use it to define
 your model classes and it handles the rest. And by that I mean that it works
-hard to exploit the most advance features of your data store to provide
-efficient yet easy to use objects for use in your system. It currently supports
-SQLite and PostgreSQL data stores.
+hard to exploit the most advanced features of your data store to provide
+efficient yet easy to use objects for use in your system. It currently
+supports SQLite and PostgreSQL data stores.
 
 B<Notes:> Develoment and documentation are still in progress; this should be
 considered an alpha release. Do not use it in production as things will likely
