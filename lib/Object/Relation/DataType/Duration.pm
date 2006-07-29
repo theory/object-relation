@@ -14,8 +14,7 @@ use overload
     '<=>'      => \&_compare_overload,
 ;
 
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 =head1 Name
 

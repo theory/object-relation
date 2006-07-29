@@ -26,7 +26,7 @@ else {
 use Object::Relation;
 ok defined Object::Relation->VERSION,
     "Object::Relation should have a version number";
-my $version = Object::Relation->VERSION;
+my $version = Object::Relation->VERSION; # Returns a version object.
 SKIP: {
     skip "Object/Relation.pm did not have a version", scalar @modules
       unless defined $version;
@@ -51,8 +51,8 @@ sub _get_version {
     open my $fh, "<", $file or die "Cannot open ($file) for reading: $!";
     my $lines = do { local $/; <$fh> };
     close $fh;
-    my ($version) = $lines =~ /VERSION\s*=\s*(version\s*->\s*new\([^\)]*\))/;
-    $version = eval "$version";
+    my ($version) = $lines =~ /VERSION\s*=\s*['"]?([\d.]+)['"]?;/;
+    $version = version->new($version);
     return if $@;
     return $version->numify;
 }

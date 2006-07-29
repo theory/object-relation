@@ -4,13 +4,13 @@ package Object::Relation::Meta::DataTypes;
 
 use strict;
 
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 use Object::Relation::Meta::Type;
 use Object::Relation::Functions qw(:gtin :uuid);
 use Data::Types;
 use Object::Relation::Exceptions qw(throw_invalid);
+use version;
 
 =head1 Name
 

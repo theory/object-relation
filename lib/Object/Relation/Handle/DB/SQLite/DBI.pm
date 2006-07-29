@@ -18,18 +18,17 @@ queries.
 
 package Object::Relation::Handle::DB::SQLite::DBI;
 use base 'DBI';
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 package Object::Relation::Handle::DB::SQLite::DBI::st;
 use base 'DBI::st';
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 package Object::Relation::Handle::DB::SQLite::DBI::db;
 use base 'DBI::db';
 use strict;
 use Object::Relation::Functions ();
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 =head1 Interface
 

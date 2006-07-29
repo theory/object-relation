@@ -6,8 +6,7 @@ use strict;
 use warnings;
 use JSON::Syck;
 
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 use base 'Object::Relation::Format';
 

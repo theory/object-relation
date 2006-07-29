@@ -4,8 +4,7 @@ package Object::Relation::Meta::Attribute::Schema;
 
 use strict;
 
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 use Object::Relation::Meta::Attribute ':with_dbstore_api';
 use base 'Object::Relation::Meta::Attribute';

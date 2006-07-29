@@ -1,4 +1,9 @@
 Revision history for Perl extension Object::Relation.
 
-0.1.1  2006-07-28T17:18:40
+0.11
+       - Changed version numbers to decimal strings instead of version
+         objects. The version module is still required for tests and as
+         a data type.
+
+0.1.0  2006-07-28T17:18:40
        - Initial public release

@@ -2,10 +2,9 @@ package Object::Relation;
 
 # $Id$
 
-use version;
 use base 'Class::Meta::Express';
 use Object::Relation::Meta;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 sub meta {
     splice @_, 1, 0, meta_class => 'Object::Relation::Meta', default_type => 'string';

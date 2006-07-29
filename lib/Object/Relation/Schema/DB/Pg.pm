@@ -4,8 +4,7 @@ package Object::Relation::Schema::DB::Pg;
 
 use strict;
 
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 use base 'Object::Relation::Schema::DB';
 use List::Util qw(first);

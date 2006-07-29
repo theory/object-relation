@@ -3,8 +3,7 @@ package Object::Relation::Functions;
 # $Id$
 
 use strict;
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 use Data::UUID;
 use MIME::Base64;
 use File::Find::Rule;

@@ -4,7 +4,6 @@ package Object::Relation::Base;
 
 use 5.008003;
 use strict;
-use version;
 use encoding 'utf8';
 binmode STDERR, ':utf8';
 use Object::Relation::Meta;
@@ -13,7 +12,7 @@ use Object::Relation::Handle;
 use Object::Relation::Functions qw(:uuid);
 use Object::Relation::DataType::State qw(:all);
 
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 =begin comment
 

@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 57;
+use Test::More tests => 56;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
 use MIME::Base64 ();
@@ -14,8 +14,6 @@ BEGIN {
     use_ok 'Object::Relation::Language::en_us' or die;
     use_ok 'Object::Relation::DataType::State' or die;
 };
-
-isa_ok( $Object::Relation::Base::VERSION, 'version');
 
 package MyApp::TestThingy;
 use base 'Object::Relation::Base';

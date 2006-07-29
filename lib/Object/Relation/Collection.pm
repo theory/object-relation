@@ -4,8 +4,7 @@ package Object::Relation::Collection;
 
 use strict;
 
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 #use Object::Relation::Meta; # Do not load here--causes loading order problems.
 use Object::Relation::Exceptions qw(throw_fatal throw_invalid throw_invalid_class);

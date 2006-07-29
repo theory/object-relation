@@ -9,8 +9,7 @@ use DateTime::Format::Strptime;
 use Object::Relation::Meta::Type;
 use Exporter::Tidy other => ['is_iso8601'];
 
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 =head1 Name
 

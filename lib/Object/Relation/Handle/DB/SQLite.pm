@@ -4,8 +4,7 @@ package Object::Relation::Handle::DB::SQLite;
 
 use strict;
 use base qw(Object::Relation::Handle::DB);
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 use Object::Relation::Handle qw(:logical);
 use DBD::SQLite;

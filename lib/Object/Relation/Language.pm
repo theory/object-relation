@@ -4,8 +4,7 @@ package Object::Relation::Language;
 
 use strict;
 
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 use encoding 'utf8';
 binmode STDERR, ':utf8';

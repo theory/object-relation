@@ -4,8 +4,7 @@ package Object::Relation::Meta;
 
 use strict;
 
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 use base 'Class::Meta';
 use Object::Relation::Meta::DataTypes;

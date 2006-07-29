@@ -8,8 +8,7 @@ use MIME::Types;
 use Object::Relation::Meta::Type;
 use Object::Relation::Exceptions qw(throw_invalid);
 
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 =head1 Name
 

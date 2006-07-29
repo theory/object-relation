@@ -5,8 +5,7 @@ package Object::Relation::Format;
 use strict;
 use warnings;
 
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 use Scalar::Util 'blessed';
 use aliased 'Object::Relation::Meta';

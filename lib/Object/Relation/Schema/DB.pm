@@ -4,8 +4,7 @@ package Object::Relation::Schema::DB;
 
 use strict;
 
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 use base 'Object::Relation::Schema';
 use Object::Relation::Exceptions qw/throw_unimplemented/;

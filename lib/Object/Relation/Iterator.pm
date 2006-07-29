@@ -4,8 +4,7 @@ package Object::Relation::Iterator;
 
 use strict;
 
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 use Object::Relation::Exceptions qw(throw_invalid);
 use Scalar::Util qw/blessed/;

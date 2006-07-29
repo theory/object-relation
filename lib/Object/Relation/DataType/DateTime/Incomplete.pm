@@ -4,8 +4,7 @@ package Object::Relation::DataType::DateTime::Incomplete;
 
 use strict;
 
-use version;
-our $VERSION = version->new('0.1.1');
+our $VERSION = '0.11';
 
 use base 'DateTime::Incomplete';
 use Object::Relation::DataType::DateTime;
