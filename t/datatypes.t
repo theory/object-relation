@@ -320,7 +320,7 @@ ok( $t->version($version), 'Add Version object' );
 is overload::StrVal($t->version), overload::StrVal($version),
     'Version object should be the same';
 
-is $t->my_class->attributes('version')->raw($t), $version->stringify,
+is $t->my_class->attributes('version')->raw($t), 'v4.300.000',
     'Make sure the raw value is stringified';
 eval { $t->version('foo') };
 ok $err = $@, "Caught bad Version exception";

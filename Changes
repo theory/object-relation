@@ -4,6 +4,9 @@ Revision history for Perl extension Object::Relation.
        - Changed version numbers to decimal strings instead of version
          objects. The version module is still required for tests and as
          a data type.
+       - Changed the storage of version objects so that they will be properly
+         order-able. Alpha version objects (those that include an underscore)
+         are not supported.
 
 0.1.0  2006-07-28T17:18:40
        - Initial public release

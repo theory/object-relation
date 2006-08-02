@@ -475,7 +475,7 @@ sub version_triggers {
     my ($self, $class) = @_;
     $self->_domain_triggers(
         $class,
-        version => q{%s NOT REGEXP '^v?\\d[\\d._]+$'}
+        version => q{%s NOT REGEXP '^v\\d+[.](?:\\d{3}|[.]){2,}$'}
     );
 }
 

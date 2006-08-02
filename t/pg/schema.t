@@ -78,7 +78,7 @@ CONSTRAINT ck_attribute CHECK (
 
 CREATE DOMAIN version AS TEXT
 CONSTRAINT ck_version CHECK (
-    VALUE ~ '^v?\\\\d[\\\\d._]+$'
+    VALUE ~ '^v\\\\d+[.](?:\\\\d{3}|[.]){2,}$'
 );
 
 CREATE OR REPLACE FUNCTION isa_gtin(bigint) RETURNS BOOLEAN AS $$

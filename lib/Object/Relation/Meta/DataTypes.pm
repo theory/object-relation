@@ -189,9 +189,17 @@ A L<version|version> object.
 Object::Relation::Meta::Type->add(
     key   => 'version',
     name  => 'Version',
-    raw   => sub { ref $_[0] ? shift->stringify : shift },
-    bake  => sub { version->new(shift) },
     check => 'version',
+    bake  => sub { version->new(shift) },
+    # John Peacock says he might implement this method in version.pm soonish.
+#    raw   => sub { ref $_[0] ? shift->serialize : shift },
+    raw   => sub {
+        return shift unless ref $_[0];
+        (my $ver = shift->normal) =~ s/^v//;
+        my @parts = split /\./, $ver;
+        my $format = 'v%d' . ('.%03d') x $#parts;
+        sprintf $format, @parts;
+    },
 );
 
 ##############################################################################
