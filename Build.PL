@@ -1,6 +1,6 @@
 use strict;
+use warnings;
 use 5.008003;
-use lib 'lib';
 use Module::Build;
 
 my $build = Module::Build->new(

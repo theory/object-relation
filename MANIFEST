@@ -125,3 +125,4 @@ t/util.t
 t/util/cache.t
 t/versions.t
 META.yml
+Makefile.PL

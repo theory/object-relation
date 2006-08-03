@@ -7,6 +7,7 @@ Revision history for Perl extension Object::Relation.
        - Changed the storage of version objects so that they will be properly
          order-able. Alpha version objects (those that include an underscore)
          are not supported.
+       - Added Makefile.PL.
 
 0.1.0  2006-07-28T17:18:40
        - Initial public release
