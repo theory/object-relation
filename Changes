@@ -8,6 +8,8 @@ Revision history for Perl extension Object::Relation.
          order-able. Alpha version objects (those that include an underscore)
          are not supported.
        - Added Makefile.PL.
+       - Fixed the contact address in each file. We're at kineticode.com, not
+         obj_relode.com.
 
 0.1.0  2006-07-28T17:18:40
        - Initial public release
