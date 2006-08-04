@@ -6,7 +6,7 @@ use Module::Build;
 my $build = Module::Build->new(
     module_name          => 'Object::Relation',
     license              => 'perl',
-    dist_author          => 'Kineticode, Inc. <info@obj_relode.com>',
+    dist_author          => 'Kineticode, Inc. <info@kineticode.com>',
     recursive_test_files => 1,
     add_to_cleanup       => [ 't/data' ],
     requires             => {

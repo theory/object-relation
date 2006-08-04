@@ -2,7 +2,7 @@
 name: Object-Relation
 version: 0.11
 author:
-  - 'Kineticode, Inc. <info@obj_relode.com>'
+  - 'Kineticode, Inc. <info@kineticode.com>'
 abstract: Advanced Object Relational Mapper
 license: perl
 resources:
