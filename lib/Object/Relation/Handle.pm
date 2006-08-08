@@ -487,6 +487,8 @@ sub _prep_search_token {
 
 ##############################################################################
 
+=end private
+
 =head1 Search Parameters Explained
 
 The specification for search parameters to be passed to the C<query>,
