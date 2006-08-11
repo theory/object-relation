@@ -10,6 +10,12 @@ Revision history for Perl extension Object::Relation.
        - Added Makefile.PL.
        - Fixed the contact address in each file. We're at kineticode.com, not
          obj_relode.com.
+       - Fixed order of schema creation when classes use collections of other
+         classes or extend, mediate, or make a type of another class.
+       - Added Object::Relation::Meta::Class::Schema->dependencies to return a
+         list of all Object::Relation::Base-inherited classes upon which a
+         class depends. Used to simplify the repaired schema-generation
+         ordering.
 
 0.1.0  2006-07-28T17:18:40
        - Initial public release

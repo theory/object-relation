@@ -150,9 +150,9 @@ hash reference takes a number of possible keys:
 
 =item with_obj_rel
 
-If set to a true value, this parameter causes the Object::Relation framework's class
-schema and setup code to be written to the file, as well. This is useful for
-setting up a Object::Relation application with a new database.
+If set to a true value, this parameter causes the Object::Relation framework's
+class schema and setup code to be written to the file, as well. This is useful
+for setting up a Object::Relation application with a new database.
 
 =back
 
@@ -268,20 +268,14 @@ to prevent duplicates. This function is used by C<load_classes()>.
 
 sub _sort_class {
     my ($self, $seen, $class) = @_;
-    my @sorted;
-    # Grab all parent classes.
-    if (my $parent = $class->parent) {
-        push @sorted, $self->_sort_class($seen, $parent)
-          unless $seen->{$parent->key}++;
-    }
-
-    # Grab all referenced classes.
-    for my $attr ($class->table_attributes) {
-        my $ref = $attr->references or next;
-        push @sorted, $self->_sort_class($seen, $ref)
-          unless $seen->{$ref->key}++;
-    }
-    return @sorted, $class;
+    return (
+        map(
+            { $self->_sort_class($seen, $_) }
+            grep { !$seen->{$_->key}++ }
+            $class->dependencies
+        ),
+        $class
+    );
 }
 
 1;

@@ -187,8 +187,8 @@ sub extends { shift->{extends} }
 
   my $type_of  = $class->type_of;
 
-Returns a Object::Relation::Meta::Class object representing a class that this class is
-a type of.
+Returns a Object::Relation::Meta::Class object representing a class that this
+class is a type of.
 
 =cut
 
@@ -200,8 +200,8 @@ sub type_of { shift->{type_of} }
 
   my $mediates  = $class->mediates;
 
-Returns a Object::Relation::Meta::Class object representing a class that this class
-mediates.
+Returns a Object::Relation::Meta::Class object representing a class that this
+class mediates.
 
 =cut
 
@@ -215,8 +215,8 @@ sub mediates { shift->{mediates} }
 
   my @ref_attrs = $class->ref_attributes;
 
-Returns a list of attributes that reference other Object::Relation::Meta objects.
-Equivalent to
+Returns a list of attributes that reference other Object::Relation::Meta
+objects. Equivalent to
 
   my @ref_attrs = grep { $_->references } $self->attributes;
 
@@ -232,8 +232,8 @@ sub ref_attributes { @{ shift->{ref_attrs} } }
 
   my @direct_attrs = $class->direct_attributes;
 
-Returns a list of attributes that do not reference other Object::Relation::Meta
-objects. Equivalent to
+Returns a list of attributes that do not reference other
+Object::Relation::Meta objects. Equivalent to
 
   my @direct_attrs = grep { ! $_->references } $self->attributes;
 

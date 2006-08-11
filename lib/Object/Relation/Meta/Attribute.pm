@@ -258,9 +258,10 @@ sub persistent { shift->{persistent} }
 
   my $references = $attr->references;
 
-If the attribute is a reference to a class of Object::Relation object, this method
-returns a Object::Relation::Meta::Class::Schema object representing that class. This is
-useful for creating views that include a referenced object.
+If the attribute is a reference to a class of Object::Relation object, this
+method returns a Object::Relation::Meta::Class::Schema object representing
+that class. This is useful for creating views that include a referenced
+object.
 
 =cut
 
@@ -273,12 +274,13 @@ sub references { shift->{references} }
   my $delegates_to = $attr->delegates_to;
 
 If the attribute transparently delegates to an object of another class, this
-method will return the Object::Relation::Meta::Class object describing that class. This
-attribute is implicitly set by Object::Relation::Meta for classes that either extend
-another class or reference other classes via the "type_of" relationship. In
-those cases, Object::Relation::Meta will create extra attributes to delegate to the
-attributes of the referenced or extended classes, and those attributes will
-have their C<delegates_to> attributes set accordingly.
+method will return the Object::Relation::Meta::Class object describing that
+class. This attribute is implicitly set by Object::Relation::Meta for classes
+that either extend another class or reference other classes via the "type_of"
+relationship. In those cases, Object::Relation::Meta will create extra
+attributes to delegate to the attributes of the referenced or extended
+classes, and those attributes will have their C<delegates_to> attributes set
+accordingly.
 
 =cut
 
@@ -290,10 +292,11 @@ sub delegates_to { shift->{delegates_to} }
 
   my $acts_as = $attr->acts_as;
 
-If C<delegates_to()> returns a Object::Relation::Meta::Class object representing the
-class of object to which the attribute delegates, C<acts_as()> returns the
-Object::Relation::Meta::Attribute object to which this attribute corresponds. That is,
-this attribute I<acts as> the attribute returned here.
+If C<delegates_to()> returns a Object::Relation::Meta::Class object
+representing the class of object to which the attribute delegates,
+C<acts_as()> returns the Object::Relation::Meta::Attribute object to which
+this attribute corresponds. That is, this attribute I<acts as> the attribute
+returned here.
 
 =cut
 

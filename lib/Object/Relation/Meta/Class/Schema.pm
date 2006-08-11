@@ -68,6 +68,44 @@ sub parents { @{shift->{parents}} }
 
 ##############################################################################
 
+=head3 dependencies
+
+  my @dependencies = $class->dependencies;
+
+Returns a list of all of
+L<Object::Relation::Meta::Class|Object::Relation::Meta::Class> objects for all
+classes upon which the class depends. These include any classes that it
+inherits from, extends, mediates, is a type of, has attributes of, or has
+collection attributes of.
+
+=cut
+
+sub dependencies {
+    my $self = shift;
+    my @classes;
+    my %seen;
+
+    # Grab all parent or extended classes classes.
+    for my $meth (qw(parent extends mediates type_of)) {
+        if (my $ref = $self->$meth) {
+            push @classes, $ref unless $seen{$ref->key}++;
+        }
+    }
+
+    # Grab all referenced classes.
+    for my $attr ($self->ref_attributes, $self->collection_attributes) {
+        for my $meth (qw(references collection_of)) {
+            if (my $ref = $attr->$meth) {
+                push @classes, $ref unless $seen{$ref->key}++;
+            }
+        }
+    }
+
+    return @classes;
+}
+
+##############################################################################
+
 =head3 table
 
   my $table = $class->table;
