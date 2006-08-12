@@ -16,6 +16,13 @@ Revision history for Perl extension Object::Relation.
          list of all Object::Relation::Base-inherited classes upon which a
          class depends. Used to simplify the repaired schema-generation
          ordering.
+       - Fixed case where a class is used as an attribute more than once by
+         another class. The upshot is that the table must be selected from
+         twice in the view, so it now gets an alias for the attribute name and
+         the table. Thus all of the references to the table had to be updated
+         in the view and its rules, as well. Also, the columns used to select
+         each contained object's attributes are named for the attribute
+         instead of the key name of the referenced class.
 
 0.1.0  2006-07-28T17:18:40
        - Initial public release

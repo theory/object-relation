@@ -22,7 +22,7 @@ use constant _connect_attrs => {
 
 =head1 Name
 
-Object::Relation::Handle::DB::Pg - Postgres specific behavior for Object::Relation::Handle::DB
+Object::Relation::Handle::DB::Pg - PostgresSQL-specific behavior for Object::Relation
 
 =head1 Synopsis
 
@@ -309,7 +309,7 @@ __END__
 
 Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>
 
-This module is free software; you can redistribute it and/or modify it under the
-same terms as Perl itself.
+This module is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut

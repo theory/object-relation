@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use diagnostics;
-use Test::More tests => 277;
+use Test::More tests => 280;
 use Test::NoWarnings; # Adds an extra test.
 
 {
@@ -50,7 +50,7 @@ my $two_class = test_class('two', 'simple_two', 3, $simple_class);
 test_attr($two_class, 'one', 'one_id', 'idx_two_one_id', $one_class);
 
 # Test the schema attributes of the composed class attributes.
-my $composed_class = test_class('composed', '_composed', 4);
+my $composed_class = test_class('composed', '_composed', 5);
 test_attr($composed_class, 'one', 'one_id', 'idx_composed_one_id', $one_class);
 
 sub test_class {

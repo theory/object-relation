@@ -18,12 +18,13 @@ See L<Object::Relation::Meta::Class|Object::Relation::Meta::Class>.
 
 =head1 Description
 
-This module is provides metadata for all Object::Relation classes while building a
-storage schema. Loading L<Object::Relation::Schema|Object::Relation::Schema>
-causes it to be used instead of
-L<Object::Relation::Meta::Class|Object::Relation::Meta::Class>. This is so that extra metadata
-methods are available that are useful in constructing the schema, but are not
-otherwise useful when an application is actually in use.
+This module is provides metadata for all Object::Relation classes while
+building a storage schema. Loading
+L<Object::Relation::Schema|Object::Relation::Schema> causes it to be used
+instead of L<Object::Relation::Meta::Class|Object::Relation::Meta::Class>.
+This is so that extra metadata methods are available that are useful in
+constructing the schema, but are not otherwise useful when an application is
+actually in use.
 
 At this point, those attributes tend to be database-specific. Once other types
 of data stores are added (XML, LDAP, etc.), other attributes may be added to
@@ -186,10 +187,10 @@ sub foreign_key {
   my @attrs = $class->table_attributes;
 
 Returns the
-L<Object::Relation::Meta::Attribute::Schema|Object::Relation::Meta::Attribute::Schema> objects
-for the attributes that correspond to columns in the table used for the class.
-Thus, it excludes attributes from concrete parent classes and from any
-extended classes, since they're implemented in their own tables. See
+L<Object::Relation::Meta::Attribute::Schema|Object::Relation::Meta::Attribute::Schema>
+objects for the attributes that correspond to columns in the table used for
+the class. Thus, it excludes attributes from concrete parent classes and from
+any extended classes, since they're implemented in their own tables. See
 C<parent_attributes()> to get a list of the attributes of concrete parent
 classes and C<view_attributes()> for a list of table attributes I<and>
 extended class attributes. It also excludes the C<id> attribute, since it just
@@ -240,9 +241,9 @@ sub direct_attributes {
 
   my $attrs = $class->parent_attributes($class);
 
-Pass the Object::Relation::Meta::Class::Schema object of a concrete parent class to get
-back a list of the attributes for that class. This is useful for constructing
-views to represent inherited classes.
+Pass the Object::Relation::Meta::Class::Schema object of a concrete parent
+class to get back a list of the attributes for that class. This is useful for
+constructing views to represent inherited classes.
 
 =cut
 
@@ -336,7 +337,7 @@ __END__
 
 Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>
 
-This module is free software; you can redistribute it and/or modify it under the
-same terms as Perl itself.
+This module is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut

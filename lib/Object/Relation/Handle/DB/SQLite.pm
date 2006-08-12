@@ -22,7 +22,7 @@ use constant _connect_attrs => {
 
 =head1 Name
 
-Object::Relation::Handle::DB::SQLite - SQLite specific behavior for Object::Relation::Handle::DB
+Object::Relation::Handle::DB::SQLite - SQLite-specific behavior for Object::Relation
 
 =head1 Synopsis
 
@@ -30,10 +30,11 @@ See L<Object::Relation::Handle|Object::Relation::Handle>.
 
 =head1 Description
 
-This class implements SQLite-specific behavior for the Object::Relation storage API by
-overriding C<Object::Relation::Handle::DB> methods as needed. It uses
-L<Object::Relation::Handle::DB::SQLite::DBI|Object::Relation::Handle::DB::SQLite::DBI>, a subclass
-of the L<DBI|DBI>, for custom interactions with the database.
+This class implements SQLite-specific behavior for the Object::Relation
+storage API by overriding C<Object::Relation::Handle::DB> methods as needed.
+It uses
+L<Object::Relation::Handle::DB::SQLite::DBI|Object::Relation::Handle::DB::SQLite::DBI>,
+a subclass of the L<DBI|DBI>, for custom interactions with the database.
 
 =cut
 
@@ -83,11 +84,11 @@ sub _full_text_search {
 
   my $op = $store->_MATCH_SEARCH($key);
 
-Works like C<Object::Relation::Handle::DB::_MATCH_SEARCH> but supports full Perl regular
-expressions via the SQLite C<REGEXP> operator. As the regular expressions are
-compiled with the C<ixms> modifiers, they are always case-insensitive,
-and C<^> matches the beginning of the whole string, and C<$> matches the end
-of the whole string.
+Works like C<Object::Relation::Handle::DB::_MATCH_SEARCH> but supports full
+Perl regular expressions via the SQLite C<REGEXP> operator. As the regular
+expressions are compiled with the C<ixms> modifiers, they are always
+case-insensitive, and C<^> matches the beginning of the whole string, and C<$>
+matches the end of the whole string.
 
 =cut
 
@@ -190,8 +191,8 @@ sub _any_date_handler {
 
 This method sets a collection to a specific list of IDs, using the SQLite
 C<coll_set()> function defined by
-L<Object::Relation::Handle::DB::SQLite::DBI|Object::Relation::Handle::DB::SQLite::DBI> to do so
-correctly.
+L<Object::Relation::Handle::DB::SQLite::DBI|Object::Relation::Handle::DB::SQLite::DBI>
+to do so correctly.
 
 =cut
 
@@ -205,8 +206,8 @@ sub _coll_set { _coll_query(@_, 'set') }
 
 This method adds a specific list of IDs to a collection, using the SQLite
 C<coll_add()> function defined by
-L<Object::Relation::Handle::DB::SQLite::DBI|Object::Relation::Handle::DB::SQLite::DBI> to do so
-correctly.
+L<Object::Relation::Handle::DB::SQLite::DBI|Object::Relation::Handle::DB::SQLite::DBI>
+to do so correctly.
 
 =cut
 
@@ -220,8 +221,8 @@ sub _coll_add { _coll_query(@_, 'add') }
 
 This method deletes a specific list of IDs from a collection, using the SQLite
 C<coll_del()> function defined by
-L<Object::Relation::Handle::DB::SQLite::DBI|Object::Relation::Handle::DB::SQLite::DBI> to do so
-correctly.
+L<Object::Relation::Handle::DB::SQLite::DBI|Object::Relation::Handle::DB::SQLite::DBI>
+to do so correctly.
 
 =cut
 
@@ -235,8 +236,8 @@ sub _coll_del { _coll_query(@_, 'del') }
 
 This method clears a specific list of IDs from a collection, using the SQLite
 C<coll_clear()> function defined by
-L<Object::Relation::Handle::DB::SQLite::DBI|Object::Relation::Handle::DB::SQLite::DBI> to do so
-correctly.
+L<Object::Relation::Handle::DB::SQLite::DBI|Object::Relation::Handle::DB::SQLite::DBI>
+to do so correctly.
 
 =cut
 
@@ -295,7 +296,7 @@ __END__
 
 Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>
 
-This module is free software; you can redistribute it and/or modify it under the
-same terms as Perl itself.
+This module is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut

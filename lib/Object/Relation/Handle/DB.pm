@@ -64,9 +64,10 @@ See L<Object::Relation::Handle|Object::Relation::Handle>.
 
 =head1 Description
 
-This class implements the Object::Relation storage API using DBI to communicate with an
-RDBMS. RDBMS specific behavior is implemented via the
-C<Object::Relation::Handle::DB::Pg> and C<Object::Relation::Handle::DBI::SQLite> classes.
+This class implements the Object::Relation storage API using DBI to
+communicate with an RDBMS. RDBMS specific behavior is implemented via the
+C<Object::Relation::Handle::DB::Pg> and
+C<Object::Relation::Handle::DBI::SQLite> classes.
 
 =cut
 
@@ -76,7 +77,7 @@ C<Object::Relation::Handle::DB::Pg> and C<Object::Relation::Handle::DBI::SQLite>
 
 It should be noted that although many methods in this class may be called as
 class methods, instances are used internally for bookkeeping while parsing the
-data and assembling information necessary to respond to user messages.  Thus,
+data and assembling information necessary to respond to user messages. Thus,
 many public class methods instantiate an object prior to doing work.
 
 =cut
@@ -190,13 +191,14 @@ sub _rollback {
   my $search_class = $store->search_class;
   $store->search_class($search_class);
 
-This is an accessor method for the Object::Relation::Meta::Class object representing
-the class being searched in the current search.  This is usually the first
-argument to the C<query> method.
+This is an accessor method for the Object::Relation::Meta::Class object
+representing the class being searched in the current search. This is usually
+the first argument to the C<query> method.
 
 Generally, the programmer will know which search class she is working with,
-but if not, this method is available. Note that it is only available externally
-if the programmer first creates an instances of store prior to doing a search.
+but if not, this method is available. Note that it is only available
+externally if the programmer first creates an instances of store prior to
+doing a search.
 
  my $store = Object::Relation::Handle->new;
  my $iter  = $store->query($some_class, name => 'foo');
@@ -264,9 +266,10 @@ sub lookup {
 
   my $iter = $obj_rel_object->query(@search_params);
 
-Returns a L<Object::Relation::Iterator|Object::Relation::Iterator> object containing
-all objects that match the search params. See L<Object::Relation::Handle|Object::Relation::Handle>
-for more information about search params.
+Returns a L<Object::Relation::Iterator|Object::Relation::Iterator> object
+containing all objects that match the search params. See
+L<Object::Relation::Handle|Object::Relation::Handle> for more information
+about search params.
 
 =begin comment
 
@@ -305,9 +308,9 @@ sub query {
   my @uuids = Store->query_uuids($search_class, \@attributes, \%constraints);
   my $uuids = Store->query_uuids($search_class, \@attributes, \%constraints);
 
-This method will return a list of uuids matching the listed criteria.  It
-takes the same arguments as C<query>.  In list context it returns a list.  In
-scalar context it returns an array reference.
+This method will return a list of uuids matching the listed criteria. It takes
+the same arguments as C<query>. In list context it returns a list. In scalar
+context it returns an array reference.
 
 =head3 squery_uuids
 
@@ -340,8 +343,8 @@ sub query_uuids {
 
   my $count = Store->count($class_object, @search_params);
 
-This method takes the same arguments as C<query>.  Returns a count of how
-many rows a similar C<query> will return.
+This method takes the same arguments as C<query>. Returns a count of how many
+rows a similar C<query> will return.
 
 Any final constraints (such as "LIMIT" or "ORDER BY") will be discarded.
 
@@ -399,8 +402,8 @@ sub _date_handler {
   my ($where_token, $bind_params) = $self->_XXX_date_handler($search_object);
 
 The date handler methods which the search object dispatches to are data store
-dependent.  Thus, the methods in C<Object::Relation::Handle::DB> throw exceptions when
-called to warn the user they must be overridden.
+dependent. Thus, the methods in C<Object::Relation::Handle::DB> throw
+exceptions when called to warn the user they must be overridden.
 
 The various date handlers are:
 
@@ -726,8 +729,8 @@ This method returns the correct object id column name, collection item id
 column name, and order column name. These are used in building SQL for
 fetching collection results.
 
-The first argument may be a C<Object::Relation::Meta::Class> object instead of a
-C<Object::Relation::Base> object.
+The first argument may be a C<Object::Relation::Meta::Class> object instead of
+a C<Object::Relation::Base> object.
 
 =cut
 
@@ -747,8 +750,8 @@ sub _collection_columns {
 
   $self->_delete($object);
 
-This method deletes a Object::Relation object from the data store.  Does nothing if the
-object has not previously been saved to the data store.
+This method deletes a Object::Relation object from the data store. Does
+nothing if the object has not previously been saved to the data store.
 
 It does not attempt to delete contained or related objects as the
 C<Object::Relation::Meta> framework establishes constraints to handle this.
@@ -771,10 +774,10 @@ sub _delete {
 
   my @results = $self->_query(@search_params);
 
-This method is called internally by both C<query> and C<lookup>.  Each method
+This method is called internally by both C<query> and C<lookup>. Each method
 sets whether or not the search is a CODE or STRING search and sets the search
-type property accordingly.  It will I<remove> the search type from the front
-of the search params, if it's there.
+type property accordingly. It will I<remove> the search type from the front of
+the search params, if it's there.
 
 =cut
 
@@ -1114,8 +1117,8 @@ sub _should_create_iterator {
 
   my $iter = $store->_get_sql_results($sql, \@bind_params);
 
-Returns a L<Object::Relation::Iterator|Object::Relation::Iterator> representing the
-results of a given C<query>.
+Returns a L<Object::Relation::Iterator|Object::Relation::Iterator>
+representing the results of a given C<query>.
 
 =cut
 
@@ -1244,7 +1247,7 @@ sub _set_search_data {
                     if ( my $class = $attr->references ) {
                         push @classes_to_process => {
                             class  => $class,
-                            prefix => $prefix . $class->key . '__',
+                            prefix => $prefix . $attr->name . '__',
                         };
 
                         $packages{$package}{contains}{$column} = $class;
@@ -1704,8 +1707,8 @@ sub _LIKE_SEARCH {
  my $constraints = $store->_constraints(\%constraints);
 
 This method takes a hash ref of "order by" and "limit" constraints as
-described in L<Object::Relation::Handle|Object::Relation::Handle> and return an sql snippet
-representing those constraints.
+described in L<Object::Relation::Handle|Object::Relation::Handle> and return
+an sql snippet representing those constraints.
 
 =cut
 
@@ -1844,9 +1847,9 @@ sub _connect_attrs {
   my $km = Object::Relation::Meta->new;
   Object::Relation::Handle->_add_store_meta($km);
 
-This protected method adds an "id" attribute to the Object::Relation base class, solely
-for use from within database stores. May be overridden in subclasses to add
-other metadata.
+This protected method adds an "id" attribute to the Object::Relation base
+class, solely for use from within database stores. May be overridden in
+subclasses to add other metadata.
 
 =cut
 
@@ -1878,7 +1881,7 @@ __END__
 
 Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>
 
-This module is free software; you can redistribute it and/or modify it under the
-same terms as Perl itself.
+This module is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut

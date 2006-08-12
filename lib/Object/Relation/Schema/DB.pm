@@ -8,6 +8,7 @@ our $VERSION = '0.11';
 
 use base 'Object::Relation::Schema';
 use Object::Relation::Exceptions qw/throw_unimplemented/;
+use List::MoreUtils qw(any);
 
 =head1 Name
 
@@ -29,9 +30,12 @@ subclasses of Object::Relation::Schema::DB for database-specific implementations
 =head1 Naming Conventions
 
 The naming conventions for database objects are defined by the schema meta
-classes. See L<Object::Relation::Meta::Class::Schema|Object::Relation::Meta::Class::Schema> and
-L<Object::Relation::Meta::Attribute::Schema|Object::Relation::Meta::Attribute::Schema> for the
-methods that define these names and documentation for the naming conventions.
+classes. See
+L<Object::Relation::Meta::Class::Schema|Object::Relation::Meta::Class::Schema>
+and
+L<Object::Relation::Meta::Attribute::Schema|Object::Relation::Meta::Attribute::Schema>
+for the methods that define these names and documentation for the naming
+conventions.
 
 =cut
 
@@ -561,9 +565,9 @@ sub views_for_class {
             push @tables, $parent->key;
             push @wheres, "$prev.id = $tables[-1].id" if $prev;
             $prev = $tables[-1];
-            push @cols,
-              $self->view_columns($prev, \@tables, \@wheres,
-                $class->parent_attributes($parent) );
+            push @cols, $self->view_columns(
+                $prev, \@tables, \@wheres, $class->parent_attributes($parent)
+            );
 
         }
         unshift @cols, "$tables[0].id AS id";
@@ -644,29 +648,31 @@ sub view_columns {
     for my $attr (@_) {
         my $col = $attr->column;
         if ( my $ref = $attr->references ) {
-            my $key = $ref->key;
+            my $key  = $ref->key;
+            my $name = $attr->name;
+            my $as   = $name . '_' . $key;
+
             if ( $attr->required ) {
                 # It will be an INNER JOIN.
-                push @$tables, $key;
-                push @$wheres, "$table.$col = $key.id";
+                push @$tables, "$key AS $as";
+                push @$wheres, "$table.$col = $as.id";
             }
 
             else {
                 # It will be a LEFT JOIN.
-                my $join = "$table LEFT JOIN $key ON $table.$col = $key.id";
+                my $join = "LEFT JOIN $key AS $as ON $table.$col = $as.id";
 
                 # Either change the existing table name to the join table
                 # syntax, or, if it is already joined to another table (and
                 # therefore is not the whole string), then push the new join
                 # string onto the table list.
-                unless ( grep { s/^$table$/$join/ } @$tables ) {
-                    push @$tables, $join;
-                }
+                push @$tables, "$table $join"
+                    unless any { s/^($table\b.*)/$1 $join/ } @$tables;
             }
 
             # Generate the list of columns for the VIEW query.
-            push @cols, "$table.$col AS $key\__id",
-                $self->_map_ref_columns( $ref, $key );
+            push @cols, "$as.id AS $name\__id",
+                 $self->_map_ref_columns( $ref, [ $name => $as ] );
         }
 
         else {
@@ -701,13 +707,13 @@ sub extras_for_class { return }
 
 =head3 _map_ref_columns
 
-  my @cols_sql = $kbs->_map_ref_columns($class, $key, $view_class, @keys);
+  my @cols_sql = $kbs->_map_ref_columns($class, [ $name, $as ], @keys);
 
 This method is called by C<view_columns()> to create the column names for
 contained objects in a view. It may be called recursively if the contained
 object itself has one or more contained objects.
 
-Contained object column names are the key name of the class, a double
+Contained object column names are the key name of the attribute, a double
 underscore, and then the name of the column. The double underscore
 distinguishes contained object column names from the columns for the primary
 attributes of a class.
@@ -716,15 +722,17 @@ attributes of a class.
 
 sub _map_ref_columns {
     my ( $self, $class, $key, @keys ) = @_;
+    my ($name, $as) = @$key;
     my @cols;
-    my $ckey = @keys ? join ( '__', @keys, '' ) : ('');
+    my $ckey = @keys ? join '__', map({ $_->[0] } @keys), '' : ('');
     for my $attr ( $class->persistent_attributes ) {
         my $col = $attr->view_column;
-        push @cols, "$key.$ckey$col AS $key\__$ckey$col";
+        push @cols, "$as.$ckey$col AS $name\__$ckey$col";
 
         if ( my $ref = $attr->references ) {
             push @cols, $self->_map_ref_columns(
-                $ref, $key, @keys, $ref->key
+                $ref, $key, @keys,
+                [ $attr->name => $attr->name . '_' . $ref->key ],
             );
         }
     }

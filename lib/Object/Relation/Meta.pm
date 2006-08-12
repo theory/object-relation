@@ -374,15 +374,15 @@ sub attr_for_key {
   $km->_add_delegates($ref, $rel, $persist, $default);
 
 This method is called by C<new()> to add delegating attributes to a
-Object::Relation::Meta::Class that extends, mediates, or is a type of another class.
-The arguments are as follows:
+Object::Relation::Meta::Class that extends, mediates, or is a type of another
+class. The arguments are as follows:
 
 =over
 
 =item 1 $ref
 
-The first argument is a Object::Relation::Meta::Class object representing the class
-that the current class references for the relationship.
+The first argument is a Object::Relation::Meta::Class object representing the
+class that the current class references for the relationship.
 
 =item 2 $rel
 

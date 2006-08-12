@@ -45,7 +45,8 @@ Class::Meta::Attribute.
 
 This class supports the dynamic loading of extra methods specifically designed
 to be used with particular Object::Relation data store implementations. See
-L<Object::Relation::Meta|Object::Relation::Meta> for details. The supported labels are:
+L<Object::Relation::Meta|Object::Relation::Meta> for details. The supported
+labels are:
 
 =over
 
@@ -328,8 +329,8 @@ contained object itself (fetched via its attribute accessor) will be evaluated
 on its own.
 
 For attributes that reference other attributes, the default relationship will
-be "has". Returns C<undef> for attributes that do not reference other Object::Relation
-objects.
+be "has". Returns C<undef> for attributes that do not reference other
+Object::Relation objects.
 
 The supported relationships are:
 
@@ -359,15 +360,15 @@ relationship can only be specified when creating the new class:
   );
 
 An attribute will automatically be created that defines the type of the
-containing object. Given the above example, a Object::Relation::Contact object has an
-attribute for the Object::Relation::Type::Contact object that defines its type. The
-attributes of the type object will be available to users via read-only
-accessors (such as C<name()> or, if the contact class inherits from another
-class that defines a C<name()> attribute, C<contact_type_name()>). In this
-way, a user has read permission to see the attributes of the type object only
-via the read-only delegated accessors, but not necessarily to the contained
-type object itself (since permission to access that object is evaluated
-independently of the containing object).
+containing object. Given the above example, a Object::Relation::Contact object
+has an attribute for the Object::Relation::Type::Contact object that defines
+its type. The attributes of the type object will be available to users via
+read-only accessors (such as C<name()> or, if the contact class inherits from
+another class that defines a C<name()> attribute, C<contact_type_name()>). In
+this way, a user has read permission to see the attributes of the type object
+only via the read-only delegated accessors, but not necessarily to the
+contained type object itself (since permission to access that object is
+evaluated independently of the containing object).
 
 =for StoreComment
 
@@ -410,12 +411,12 @@ creating the new class:
   );
 
 The containing object extends the contained object. In this example,
-Object::Relation::Party::User extends Object::Relation::Party::Person. This is similar in
-principal to inheritance, but uses composition to prevent overly complex
-inheritance relationships. It also allows more than one containing object to
-refer to the same contained object. The "extends" relationship assumes that
-the attribute will be set once and only once (that is, the C<once> attribute
-of the attribute object will be true).
+Object::Relation::Party::User extends Object::Relation::Party::Person. This is
+similar in principal to inheritance, but uses composition to prevent overly
+complex inheritance relationships. It also allows more than one containing
+object to refer to the same contained object. The "extends" relationship
+assumes that the attribute will be set once and only once (that is, the
+C<once> attribute of the attribute object will be true).
 
 The attributes of the contained objects will be available via read/write
 accessors in the containing class that will simply delegate to the contained
@@ -473,8 +474,8 @@ trigger can always just do an update.
 =item has_many
 
 The contained object is a collection of objects that are directly related to
-the containing object. For example, Object::Relation::Party has many Object::Relation::Contact
-objects. The accessor will return a
+the containing object. For example, Object::Relation::Party has many
+Object::Relation::Contact objects. The accessor will return a
 L<Object::Relation::Collection|Object::Relation::Collection> of the contained
 objects. The permissions applied to the containing object will extend to the
 contained objects, as well, since they are considered to be a part of the
@@ -559,9 +560,9 @@ This method returns the raw value of an attribute. This value will most often
 be the same as that returned by C<get()>, but when the attribute fetched is an
 object, it might return a raw value suitable for serialization or storage in a
 database. For example, if the attribute was a
-L<Object::Relation::DataType::DateTime|Object::Relation::DataType::DateTime> object, the
-C<get()> method will return the object, but the C<raw()> method might return an
-ISO-8601 formatted string using the UTC time zone, instead.
+L<Object::Relation::DataType::DateTime|Object::Relation::DataType::DateTime>
+object, the C<get()> method will return the object, but the C<raw()> method
+might return an ISO-8601 formatted string using the UTC time zone, instead.
 
 =cut
 
@@ -584,11 +585,11 @@ serialization to a data store. This value will most often be the same as that
 returned by C<raw()>, but different data stores require different formats,
 C<store_raw()> will return the representation appropriate for the current data
 store. For example, if the attribute was a
-L<Object::Relation::DataType::Duration|Object::Relation::DataType::Duration> object, C<get()>
-would of course return the object, C<raw()> would return an ISO-8601 string
-representation, and C<store_raw()> would return one string representation for
-the PostgreSQL data store, and a 0-padded ISO-8601 string for all other data
-stores.
+L<Object::Relation::DataType::Duration|Object::Relation::DataType::Duration>
+object, C<get()> would of course return the object, C<raw()> would return an
+ISO-8601 string representation, and C<store_raw()> would return one string
+representation for the PostgreSQL data store, and a 0-padded ISO-8601 string
+for all other data stores.
 
 =cut
 
@@ -686,10 +687,10 @@ sub build {
      ...
  }
 
-When creating a new C<Object::Relation::Meta::Attribute> object, some attributes of the
-object are Object::Relation specific. The handling of these attributes should generally
-be done prior to the SUPER constructor being called. Returns the new arguments
-for the parent constructor.
+When creating a new C<Object::Relation::Meta::Attribute> object, some
+attributes of the object are Object::Relation specific. The handling of these
+attributes should generally be done prior to the SUPER constructor being
+called. Returns the new arguments for the parent constructor.
 
 =cut
 
@@ -754,7 +755,7 @@ __END__
 
 Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>
 
-This module is free software; you can redistribute it and/or modify it under the
-same terms as Perl itself.
+This module is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut

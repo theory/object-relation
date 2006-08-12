@@ -386,9 +386,9 @@ eq_or_diff join( "\n", $sg->constraints_for_class($two) ), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW two AS
-  SELECT simple.id AS id, simple.uuid AS uuid, simple.state AS state, simple.name AS name, simple.description AS description, simple_two.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, simple_two.age AS age, simple_two.date AS date
-  FROM   simple, simple_two, one
-  WHERE  simple.id = simple_two.id AND simple_two.one_id = one.id;
+  SELECT simple.id AS id, simple.uuid AS uuid, simple.state AS state, simple.name AS name, simple.description AS description, one_one.id AS one__id, one_one.uuid AS one__uuid, one_one.state AS one__state, one_one.name AS one__name, one_one.description AS one__description, one_one.bool AS one__bool, simple_two.age AS age, simple_two.date AS date
+  FROM   simple, simple_two, one AS one_one
+  WHERE  simple.id = simple_two.id AND simple_two.one_id = one_one.id;
 };
 eq_or_diff $sg->views_for_class($two), $view,
   "... Schema class generates CREATE VIEW statement";
@@ -542,9 +542,9 @@ eq_or_diff join( "\n", $sg->constraints_for_class($relation) ), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW relation AS
-  SELECT _relation.id AS id, _relation.uuid AS uuid, _relation.state AS state, _relation.simple_id AS simple__id, simple.uuid AS simple__uuid, simple.state AS simple__state, simple.name AS simple__name, simple.description AS simple__description, _relation.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool
-  FROM   _relation, simple, one
-  WHERE  _relation.simple_id = simple.id AND _relation.one_id = one.id;
+  SELECT _relation.id AS id, _relation.uuid AS uuid, _relation.state AS state, simple_simple.id AS simple__id, simple_simple.uuid AS simple__uuid, simple_simple.state AS simple__state, simple_simple.name AS simple__name, simple_simple.description AS simple__description, one_one.id AS one__id, one_one.uuid AS one__uuid, one_one.state AS one__state, one_one.name AS one__name, one_one.description AS one__description, one_one.bool AS one__bool
+  FROM   _relation, simple AS simple_simple, one AS one_one
+  WHERE  _relation.simple_id = simple_simple.id AND _relation.one_id = one_one.id;
 };
 eq_or_diff $sg->views_for_class($relation), $view,
   "... Schema class generates CREATE VIEW statement";
@@ -795,6 +795,7 @@ $table = q{CREATE TABLE _composed (
     uuid TEXT NOT NULL,
     state INTEGER NOT NULL DEFAULT 1,
     one_id INTEGER REFERENCES simple_one(id) ON DELETE RESTRICT,
+    another_one_id INTEGER REFERENCES simple_one(id) ON DELETE RESTRICT,
     color TEXT COLLATE nocase
 );
 };
@@ -805,6 +806,7 @@ eq_or_diff $sg->tables_for_class($composed), $table,
 $indexes = q{CREATE UNIQUE INDEX idx_composed_uuid ON _composed (uuid);
 CREATE INDEX idx_composed_state ON _composed (state);
 CREATE INDEX idx_composed_one_id ON _composed (one_id);
+CREATE INDEX idx_composed_another_one_id ON _composed (another_one_id);
 CREATE INDEX idx_composed_color ON _composed (color);
 };
 
@@ -887,14 +889,35 @@ FOR EACH ROW BEGIN
     SELECT RAISE(ABORT, 'delete on table "simple_one" violates foreign key constraint "fk_composed_one_id"')
     WHERE  (SELECT one_id FROM _composed WHERE one_id = OLD.id) IS NOT NULL;
 END;
+
+CREATE TRIGGER fki_composed_another_one_id
+BEFORE INSERT ON _composed
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'insert on table "_composed" violates foreign key constraint "fk_composed_another_one_id"')
+    WHERE  NEW.another_one_id IS NOT NULL AND (SELECT id FROM simple_one WHERE id = NEW.another_one_id) IS NULL;
+END;
+
+CREATE TRIGGER fku_composed_another_one_id
+BEFORE UPDATE ON _composed
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'update on table "_composed" violates foreign key constraint "fk_composed_another_one_id"')
+    WHERE  NEW.another_one_id IS NOT NULL AND (SELECT id FROM simple_one WHERE id = NEW.another_one_id) IS NULL;
+END;
+
+CREATE TRIGGER fkd_composed_another_one_id
+BEFORE DELETE ON simple_one
+FOR EACH ROW BEGIN
+    SELECT RAISE(ABORT, 'delete on table "simple_one" violates foreign key constraint "fk_composed_another_one_id"')
+    WHERE  (SELECT another_one_id FROM _composed WHERE another_one_id = OLD.id) IS NOT NULL;
+END;
 };
 eq_or_diff join( "\n", $sg->constraints_for_class($composed) ), $constraints,
   "... Schema class generates CONSTRAINT statement";
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW composed AS
-  SELECT _composed.id AS id, _composed.uuid AS uuid, _composed.state AS state, _composed.one_id AS one__id, one.uuid AS one__uuid, one.state AS one__state, one.name AS one__name, one.description AS one__description, one.bool AS one__bool, _composed.color AS color
-  FROM   _composed LEFT JOIN one ON _composed.one_id = one.id;
+  SELECT _composed.id AS id, _composed.uuid AS uuid, _composed.state AS state, one_one.id AS one__id, one_one.uuid AS one__uuid, one_one.state AS one__state, one_one.name AS one__name, one_one.description AS one__description, one_one.bool AS one__bool, another_one_one.id AS another_one__id, another_one_one.uuid AS another_one__uuid, another_one_one.state AS another_one__state, another_one_one.name AS another_one__name, another_one_one.description AS another_one__description, another_one_one.bool AS another_one__bool, _composed.color AS color
+  FROM   _composed LEFT JOIN one AS one_one ON _composed.one_id = one_one.id LEFT JOIN one AS another_one_one ON _composed.another_one_id = another_one_one.id;
 };
 eq_or_diff $sg->views_for_class($composed), $view,
   "... Schema class generates CREATE VIEW statement";
@@ -903,8 +926,8 @@ eq_or_diff $sg->views_for_class($composed), $view,
 $insert = q{CREATE TRIGGER insert_composed
 INSTEAD OF INSERT ON composed
 FOR EACH ROW BEGIN
-  INSERT INTO _composed (uuid, state, one_id, color)
-  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.one__id, NEW.color);
+  INSERT INTO _composed (uuid, state, one_id, another_one_id, color)
+  VALUES (COALESCE(NEW.uuid, UUID_V4()), COALESCE(NEW.state, 1), NEW.one__id, NEW.another_one__id, NEW.color);
 END;
 };
 eq_or_diff $sg->insert_for_class($composed), $insert,
@@ -915,7 +938,7 @@ $update = q{CREATE TRIGGER update_composed
 INSTEAD OF UPDATE ON composed
 FOR EACH ROW BEGIN
   UPDATE _composed
-  SET    state = NEW.state, color = NEW.color
+  SET    state = NEW.state, another_one_id = NEW.another_one__id, color = NEW.color
   WHERE  id = OLD.id;
 END;
 };
@@ -1021,9 +1044,9 @@ eq_or_diff join( "\n", $sg->constraints_for_class($comp_comp) ), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW comp_comp AS
-  SELECT _comp_comp.id AS id, _comp_comp.uuid AS uuid, _comp_comp.state AS state, _comp_comp.composed_id AS composed__id, composed.uuid AS composed__uuid, composed.state AS composed__state, composed.one__id AS composed__one__id, composed.one__uuid AS composed__one__uuid, composed.one__state AS composed__one__state, composed.one__name AS composed__one__name, composed.one__description AS composed__one__description, composed.one__bool AS composed__one__bool, composed.color AS composed__color
-  FROM   _comp_comp, composed
-  WHERE  _comp_comp.composed_id = composed.id;
+  SELECT _comp_comp.id AS id, _comp_comp.uuid AS uuid, _comp_comp.state AS state, composed_composed.id AS composed__id, composed_composed.uuid AS composed__uuid, composed_composed.state AS composed__state, composed_composed.one__id AS composed__one__id, composed_composed.one__uuid AS composed__one__uuid, composed_composed.one__state AS composed__one__state, composed_composed.one__name AS composed__one__name, composed_composed.one__description AS composed__one__description, composed_composed.one__bool AS composed__one__bool, composed_composed.another_one__id AS composed__another_one__id, composed_composed.another_one__uuid AS composed__another_one__uuid, composed_composed.another_one__state AS composed__another_one__state, composed_composed.another_one__name AS composed__another_one__name, composed_composed.another_one__description AS composed__another_one__description, composed_composed.another_one__bool AS composed__another_one__bool, composed_composed.color AS composed__color
+  FROM   _comp_comp, composed AS composed_composed
+  WHERE  _comp_comp.composed_id = composed_composed.id;
 };
 eq_or_diff $sg->views_for_class($comp_comp), $view,
   "... Schema class generates CREATE VIEW statement";
@@ -1148,9 +1171,9 @@ eq_or_diff join( "\n", $sg->constraints_for_class($extend) ), $constraints,
 
 # Check that the CREATE VIEW statement is correct.
 $view = q{CREATE VIEW extend AS
-  SELECT _extend.id AS id, _extend.uuid AS uuid, _extend.state AS state, _extend.two_id AS two__id, two.uuid AS two__uuid, two.state AS two__state, two.name AS two__name, two.description AS two__description, two.one__id AS two__one__id, two.one__uuid AS two__one__uuid, two.one__state AS two__one__state, two.one__name AS two__one__name, two.one__description AS two__one__description, two.one__bool AS two__one__bool, two.age AS two__age, two.date AS two__date
-  FROM   _extend, two
-  WHERE  _extend.two_id = two.id;
+  SELECT _extend.id AS id, _extend.uuid AS uuid, _extend.state AS state, two_two.id AS two__id, two_two.uuid AS two__uuid, two_two.state AS two__state, two_two.name AS two__name, two_two.description AS two__description, two_two.one__id AS two__one__id, two_two.one__uuid AS two__one__uuid, two_two.one__state AS two__one__state, two_two.one__name AS two__one__name, two_two.one__description AS two__one__description, two_two.one__bool AS two__one__bool, two_two.age AS two__age, two_two.date AS two__date
+  FROM   _extend, two AS two_two
+  WHERE  _extend.two_id = two_two.id;
 };
 eq_or_diff $sg->views_for_class($extend), $view,
   "... Schema class generates CREATE VIEW statement";

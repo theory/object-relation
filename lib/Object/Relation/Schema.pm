@@ -75,10 +75,10 @@ sub new {
   my @classes = $sg->classes;
   $sg->classes(@classes);
 
-The C<Object::Relation::Meta::Class> objects representing classes loaded by the
-C<load_classes()> method. The classes will be returned in an order appropriate
-for satisfying dependencies; that is, classes that depend on other classes
-will be returned after the classes on which they depend.
+The C<Object::Relation::Meta::Class> objects representing classes loaded by
+the C<load_classes()> method. The classes will be returned in an order
+appropriate for satisfying dependencies; that is, classes that depend on other
+classes will be returned after the classes on which they depend.
 
 Pass in a list of classes to set them explicitly. Dependency ordering will not
 be guaranteed after setting the classes, so be sure to pass them in in the
@@ -238,8 +238,8 @@ sub setup_code { return }
 
 Returns a list of the schema statements that can be used to build the data
 store for the class passed as an argument. The class can be either a class
-name or a C<Object::Relation::Meta::Class> object, but must have been loaded by
-C<load_classes()>. This method is abstract; it must be implemented by
+name or a C<Object::Relation::Meta::Class> object, but must have been loaded
+by C<load_classes()>. This method is abstract; it must be implemented by
 subclasses.
 
 =cut
@@ -258,11 +258,12 @@ subclasses.
 
   my @classes = $sg->_sort_class(\%seen, $class);
 
-Returns the Object::Relation::Meta::Class::Schema object passed in, as well as any
-other classes that are dependencies of the class. Dependencies are returned
-before the classes that depend on them. This method is called recursively, so
-it's important to pass a hash reference to keep track of all the classes seen
-to prevent duplicates. This function is used by C<load_classes()>.
+Returns the Object::Relation::Meta::Class::Schema object passed in, as well as
+any other classes that are dependencies of the class. Dependencies are
+returned before the classes that depend on them. This method is called
+recursively, so it's important to pass a hash reference to keep track of all
+the classes seen to prevent duplicates. This function is used by
+C<load_classes()>.
 
 =cut
 
@@ -289,7 +290,7 @@ __END__
 
 Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>
 
-This module is free software; you can redistribute it and/or modify it under the
-same terms as Perl itself.
+This module is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut

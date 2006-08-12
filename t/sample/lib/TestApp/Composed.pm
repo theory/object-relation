@@ -30,6 +30,19 @@ BEGIN {
     );
 
     $km->add_attribute(
+        name          => 'another_one',
+        type          => 'one',
+        label         => 'One',
+        required      => 0,
+        once          => 0,
+        default       => sub { TestApp::Simple::One->new },
+        widget_meta   => Object::Relation::Meta::Widget->new(
+            type => 'search',
+            tip  => 'One',
+        )
+    );
+
+    $km->add_attribute(
         name     => 'color',
         type     => 'string',
         label    => 'Color',
