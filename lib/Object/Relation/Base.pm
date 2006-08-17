@@ -181,7 +181,7 @@ information.
         no strict 'refs';
         *$method = eval qq/sub {
                 my \$class = shift;
-                \$class->Storehandle->$method(\$class->my_class, \@_);
+                \$class->StoreHandle->$method(\$class->my_class, \@_);
         }/;
 
         $cm->add_method(
