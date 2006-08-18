@@ -537,11 +537,19 @@ sub update : Test(7) {
     is $one->{id}, 42, 'and the private id should not be changed';
 }
 
-sub query_match : Test(6) {
+sub query_match : Test(7) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my ($foo, $bar, $baz) = $test->test_objects;
-    my $store = Object::Relation::Handle->new;
+    my $store = Object::Relation::Handle->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     my $iterator = $store->query( $foo->my_class,
         name => MATCH '^(f|ba)',
         { order_by => 'name' }

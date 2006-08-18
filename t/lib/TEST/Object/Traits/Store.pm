@@ -136,7 +136,7 @@ objects when tested with is_deeply and friends.
 
 sub force_inflation {
     my ( $test, $object ) = @_;
-    return unless $object;
+    return undef unless $object;
     no warnings 'void';
     foreach my $attr ( $object->my_class->attributes ) {
         if ( $attr->references ) {

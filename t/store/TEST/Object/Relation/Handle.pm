@@ -34,6 +34,12 @@ __PACKAGE__->SKIP_CLASS(
 ) if caller;    # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
+sub handle_class {
+    my $self = shift;
+    ( my $class = ref $self ) =~ s/^TEST:://;
+    return $class;
+}
+
 sub purge : Test(9) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
@@ -76,7 +82,7 @@ sub purge : Test(9) {
     }
 }
 
-sub save : Test(10) {
+sub save : Test(11) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     $test->clear_database;
@@ -84,7 +90,14 @@ sub save : Test(10) {
     $one->name('Ovid');
     $one->description('test class');
 
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
     can_ok $store, 'save';
     my $dbh    = $test->dbh;
     my $result =
@@ -127,10 +140,18 @@ sub save : Test(10) {
     is $test->_num_recs('one'), 2, 'without the number of records changing';
 }
 
-sub search : Test(19) {
+sub search : Test(20) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     can_ok $store, 'query';
     my ( $foo, $bar, $baz ) = $test->test_objects;
     foreach ( $foo, $bar, $baz ) {
@@ -182,11 +203,19 @@ sub search : Test(19) {
       '... and it should be the correct results';
 }
 
-sub search_from_key : Test(10) {
+sub search_from_key : Test(11) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
     can_ok $store, 'query';
+
     my ( $foo, $bar, $baz ) = $test->test_objects;
     foreach ( $foo, $bar, $baz ) {
         $_->name( $_->name . chr(0x100) );
@@ -212,11 +241,19 @@ sub search_from_key : Test(10) {
       'and there should be the correct number of objects';
 }
 
-sub string_search : Test(19) {
+sub string_search : Test(20) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
     can_ok $store, 'query';
+
     my ( $foo, $bar, $baz ) = $test->test_objects;
     foreach ( $foo, $bar, $baz ) {
         $_->name( $_->name . chr(0x100) );
@@ -272,11 +309,19 @@ sub string_search : Test(19) {
       '... and it should be the correct results';
 }
 
-sub squery_string_search : Test(19) {
+sub squery_string_search : Test(20) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
     can_ok $store, 'squery';
+
     my ( $foo, $bar, $baz ) = $test->test_objects;
     foreach ( $foo, $bar, $baz ) {
         $_->name( $_->name . chr(0x100) );
@@ -332,7 +377,7 @@ sub squery_string_search : Test(19) {
 
 sub unit_constructor : Test(6) {
     my $test = shift;
-    ( my $class = ref $test ) =~ s/^TEST:://;
+    my $class = $test->handle_class;
     can_ok $class => 'new';
 
     throws_ok { Object::Relation::Handle->new({ class => 'Bogus::Class'}) }
@@ -498,7 +543,7 @@ sub search_subs_lex_correctly : Test(47) {
       '... and otherwise should take an extra operator';
 }
 
-sub search_incomplete_date_boundaries : Test(6) {
+sub search_incomplete_date_boundaries : Test(7) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     $test->clear_database;
@@ -533,7 +578,16 @@ sub search_incomplete_date_boundaries : Test(6) {
             day   => 16
         )
     );
-    my $store = Store->new;
+
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     $_->save foreach $june17, $june16, $july16;
     my $class    = $june17->my_class;
     my $bad_date = Incomplete->new( month => 6, hour => 23 );
@@ -565,7 +619,7 @@ sub search_incomplete_date_boundaries : Test(6) {
       'ANY searches with incomplete dates must have all types matching';
 }
 
-sub search_incomplete_dates : Test(25) {
+sub search_incomplete_dates : Test(26) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     $test->clear_database;
@@ -609,7 +663,16 @@ sub search_incomplete_dates : Test(25) {
             day   => 9,
         )
     );
-    my $store = Store->new;
+
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     $_->save foreach $theory, $ovid, $usa, $lil;
 
     my $class    = $ovid->my_class;
@@ -729,7 +792,7 @@ sub search_incomplete_dates : Test(25) {
       '... and get the correct results';
 }
 
-sub string_search_incomplete_dates : Test(25) {
+sub string_search_incomplete_dates : Test(26) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     $test->clear_database;
@@ -773,7 +836,16 @@ sub string_search_incomplete_dates : Test(25) {
             day   => 9,
         )
     );
-    my $store = Store->new;
+
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     $_->save foreach $theory, $ovid, $usa, $lil;
 
     my $class    = $ovid->my_class;
@@ -913,7 +985,7 @@ sub string_search_incomplete_dates : Test(25) {
       '... and get the correct results';
 }
 
-sub search_dates : Test(8) {
+sub search_dates : Test(9) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     $test->clear_database;
@@ -947,7 +1019,16 @@ sub search_dates : Test(8) {
             day   => 4,
         )
     );
-    my $store = Store->new;
+
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     $_->save foreach $theory, $ovid, $usa;
 
     my $class    = $ovid->my_class;
@@ -971,7 +1052,7 @@ sub search_dates : Test(8) {
     is_deeply \@results, [$theory], '... and get the correct results';
 }
 
-sub string_search_dates : Test(8) {
+sub string_search_dates : Test(9) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     $test->clear_database;
@@ -1005,7 +1086,16 @@ sub string_search_dates : Test(8) {
             day   => 4,
         )
     );
-    my $store = Store->new;
+
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     $_->save foreach $theory, $ovid, $usa;
 
     my $class    = $ovid->my_class;
@@ -1034,12 +1124,20 @@ sub string_search_dates : Test(8) {
     is_deeply \@results, [$theory], '... and get the correct results';
 }
 
-sub search_compound : Test(9) {
+sub search_compound : Test(10) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     #$test->clear_database;
 
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     can_ok $store, 'query';
     my $foo = Two->new;
     $foo->name('foo');
@@ -1088,12 +1186,21 @@ sub search_compound : Test(9) {
     is_deeply \@results, [ $bar, $foo ], '... and get the correct results';
 }
 
-sub string_search_compound : Test(9) {
+sub string_search_compound : Test(10) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     $test->clear_database;
-    my $store = Store->new;
+
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
     can_ok $store, 'query';
+
     my $foo = Two->new;
     $foo->name('foo');
     $foo->age(13);
@@ -1141,12 +1248,21 @@ sub string_search_compound : Test(9) {
     is_deeply \@results, [ $bar, $foo ], '... and get the correct results';
 }
 
-sub limit : Test(12) {
+sub limit : Test(13) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Store->new;
+
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     ok my $iterator = $store->query(
         $class,
         {
@@ -1251,12 +1367,21 @@ sub limit : Test(12) {
       'and they should be all but the first and last letters';
 }
 
-sub string_limit : Test(12) {
+sub string_limit : Test(13) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Store->new;
+
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     ok my $iterator = $store->query(
         $class,
         STRING   => '',
@@ -1349,10 +1474,18 @@ sub string_limit : Test(12) {
       'and they should be all but the first and last letters';
 }
 
-sub count : Test(15) {
+sub count : Test(16) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     can_ok $store, 'count';
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
@@ -1384,10 +1517,18 @@ sub count : Test(15) {
       'and it should return a false count if nothing matches';
 }
 
-sub count_by_key : Test(8) {
+sub count_by_key : Test(9) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     can_ok $store, 'count';
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $key = $foo->my_class->key;
@@ -1406,11 +1547,19 @@ sub count_by_key : Test(8) {
       'and it should return a false count if nothing matches';
 }
 
-sub query_uuids : Test(10) {
+sub query_uuids : Test(11) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
     can_ok $store, 'query_uuids';
+
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
     ok my $uuids = $store->query_uuids($class),
@@ -1440,11 +1589,19 @@ sub query_uuids : Test(10) {
       'and return the correct uuids';
 }
 
-sub query_uuids_by_key : Test(10) {
+sub query_uuids_by_key : Test(11) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
     can_ok $store, 'query_uuids';
+
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $key = $foo->my_class->key;
     ok my $uuids = $store->query_uuids($key),
@@ -1474,12 +1631,20 @@ sub query_uuids_by_key : Test(10) {
       'and return the correct uuids';
 }
 
-sub search_or : Test(13) {
+sub search_or : Test(14) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     ok my $iterator = $store->query(
         $class,
         name => 'foo',
@@ -1533,12 +1698,20 @@ sub search_or : Test(13) {
       'but it will choke without parens if you pass constraints';
 }
 
-sub search_and : Test(15) {
+sub search_and : Test(16) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     ok my $iterator = $store->query(
         $class,
         AND( name => 'foo', name => LIKE 'snorf%' ),
@@ -1591,7 +1764,7 @@ sub search_and : Test(15) {
     is_deeply \@items, [ $foo, $bar ], 'and should include the correct items';
 }
 
-sub search_overloaded : Test(11) {
+sub search_overloaded : Test(12) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     {
@@ -1603,7 +1776,14 @@ sub search_overloaded : Test(11) {
     }
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
 
     $bar->description('giggling pastries');
     $bar->save;
@@ -1677,14 +1857,23 @@ sub search_overloaded : Test(11) {
     is_deeply \@results, [ $foo, $bar ], '... and the correct results';
 }
 
-sub lookup : Test(8) {
+sub lookup : Test(9) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     $test->clear_database;
     my $one = One->new;
     $one->name('Ovid');
     $one->description('test class');
-    my $store = Store->new;
+
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     $one->save;
 
     my $two = One->new;
@@ -1707,14 +1896,23 @@ sub lookup : Test(8) {
       'or if you search on a non-unique field';
 }
 
-sub lookup_by_key : Test(8) {
+sub lookup_by_key : Test(9) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     $test->clear_database;
     my $one = One->new;
     $one->name('Ovid');
     $one->description('test class');
-    my $store = Store->new;
+
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     $one->save;
 
     my $two = One->new;
@@ -1738,12 +1936,20 @@ sub lookup_by_key : Test(8) {
       'or if you search on a non-unique field';
 }
 
-sub search_between : Test(6) {
+sub search_between : Test(7) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class    = $foo->my_class;
-    my $store    = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     my $iterator = $store->query( $class, name => [ 'b' => 'g' ] );
 
     my @iterator = $test->_all_items($iterator);
@@ -1767,12 +1973,20 @@ sub search_between : Test(6) {
     is_deeply \@iterator, [ $bar, $baz ], 'and the should be the correct items';
 }
 
-sub search_gt : Test(6) {
+sub search_gt : Test(7) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     ok my $iterator = $store->query(
         $class,
         name => GT 'c',
@@ -1794,12 +2008,20 @@ sub search_gt : Test(6) {
     is_deeply \@items, [$bar], 'not to mention the correct items';
 }
 
-sub search_lt : Test(6) {
+sub search_lt : Test(7) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     ok my $iterator = $store->query(
         $class,
         name => LT 's',
@@ -1821,12 +2043,20 @@ sub search_lt : Test(6) {
     is_deeply \@items, [$baz], 'not to mention the correct items';
 }
 
-sub search_eq : Test(14) {
+sub search_eq : Test(16) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     ok my $iterator = $store->query(
         $class,
         name => EQ 's',
@@ -1863,7 +2093,6 @@ sub search_eq : Test(14) {
     is @items, 2, 'NE should also work as expected';
     is_deeply \@items, [ $bar, $baz ], 'and return the correct results';
 
-    $store = Store->new;
     ok $iterator = $store->query(
         $class,
         name => NOT 'foo',
@@ -1874,12 +2103,20 @@ sub search_eq : Test(14) {
     is_deeply \@items, [ $bar, $baz ], 'and return the correct results';
 }
 
-sub search_ge : Test(6) {
+sub search_ge : Test(7) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     ok my $iterator = $store->query(
         $class,
         name => GE 'f',
@@ -1899,12 +2136,20 @@ sub search_ge : Test(6) {
     is_deeply \@items, [$bar], 'and should include the correct items';
 }
 
-sub search_le : Test(6) {
+sub search_le : Test(7) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     ok my $iterator = $store->query(
         $class,
         name => LE 'foo',
@@ -1924,12 +2169,20 @@ sub search_le : Test(6) {
     is_deeply \@items, [$baz], 'and should include the correct items';
 }
 
-sub search_like : Test(6) {
+sub search_like : Test(7) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     ok my $iterator = $store->query(
         $class,
         name => LIKE 'f%',
@@ -1950,12 +2203,20 @@ sub search_like : Test(6) {
     is_deeply \@items, [ $bar, $baz ], 'and should include the correct items';
 }
 
-sub search_null : Test(6) {
+sub search_null : Test(7) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     $foo->description('this is a description');
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     $foo->save;
     my $class = $foo->my_class;
 
@@ -1978,12 +2239,20 @@ sub search_null : Test(6) {
     is_deeply \@items, [$foo], 'and should include the correct items';
 }
 
-sub search_in : Test(6) {
+sub search_in : Test(7) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my ( $foo, $bar, $baz ) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     ok my $iterator = $store->query(
         $class,
         name => ANY(qw/foo bar/),
@@ -2003,10 +2272,18 @@ sub search_in : Test(6) {
     is_deeply \@items, [$baz], 'and should include the correct items';
 }
 
-sub save_compound : Test(3) {
+sub save_compound : Test(4) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     can_ok $store, 'query';
     my $foo = Two->new;
     $foo->name('foo');
@@ -2032,11 +2309,19 @@ sub save_compound : Test(3) {
     is_deeply \@results, [ $foo, $bar ], '... and the correct results';
 }
 
-sub order_by : Test(4) {
+sub order_by : Test(5) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my $foo   = Two->new;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     $foo->name('foo');
     $foo->age(29);
     $foo->one->name('foo_name');
@@ -2086,11 +2371,19 @@ sub order_by : Test(4) {
       'and we can combine single items order_by and sort parameters';
 }
 
-sub string_order_by : Test(6) {
+sub string_order_by : Test(7) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my $foo   = Two->new;
-    my $store = Store->new;
+    my $store = Store->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     $foo->name('foo');
     $foo->age(29);
     $foo->one->name('foo_name');

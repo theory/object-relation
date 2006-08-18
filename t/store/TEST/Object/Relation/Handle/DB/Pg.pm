@@ -15,10 +15,11 @@ use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
 
 # Skip all of the tests in this class if Postgres isn't supported.
 __PACKAGE__->SKIP_CLASS(
-    $ENV{OBJ_REL_CLASS} && $ENV{OBJ_REL_CLASS} =~ /DB:Pg$/
+    $ENV{OBJ_REL_CLASS} && $ENV{OBJ_REL_CLASS} =~ /DB::Pg$/
     ? 0
-    : 'Not testing live data store',
-) if caller;    # so I can run the tests directly from vim
+    : 'Not testing PostgreSQL store',
+) if caller;
+
 __PACKAGE__->runtests unless caller;
 
 # This method is used by TEST::Object::Relation::Handle::DB to check unique constraint
@@ -42,11 +43,19 @@ sub insert_fk_regex {
 
 sub update_fk_regex { shift->insert_fk_regex(@_) }
 
-sub full_text_search : Test(1) {
+sub full_text_search : Test(2) {
     my $test = shift;
     my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Object::Relation::Handle->new;
+    my $store = Object::Relation::Handle->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+    isa_ok $store, $test->handle_class;
+
     TODO: {
         local $TODO  = 'Full text search is not yet implemented.';
         my $iterator = $store->query($class => 'oo');
