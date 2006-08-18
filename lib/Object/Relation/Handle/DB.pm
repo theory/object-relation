@@ -934,12 +934,18 @@ sub _insert {
 
     # INSERT all attributes.
     my ( @cols, @vals, @bind_params );
-    foreach my $attr ( $self->{search_class}->persistent_attributes ) {
+    my $class = $self->{search_class};
+    foreach my $attr ( $class->persistent_attributes ) {
         next if $attr->name eq 'id' || $attr->collection_of;
+
+        throw_invalid [
+            'Attribute "[_1]" must be defined',
+            $class->key . '.' . $attr->name
+        ] if $attr->required && !defined $attr->get($object);
+
         push @cols => $attr->_view_column;
         push @vals => $attr->store_raw($object, $self);
-        throw_invalid( [ 'Attribute "[_1]" must be defined', $attr->name ] )
-            if $attr->required && !defined $attr->get($object);
+
         if (my $bind_attr = $self->_bind_attr($attr->type)) {
             push @bind_params, [ $#vals + 1, $vals[-1], $bind_attr ];
         }

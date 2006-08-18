@@ -26,6 +26,10 @@ Revision history for Perl extension Object::Relation.
        - Fixed broken methods query(), squery(), count(), query_uuids(), and
          squery_uuids() in Object::Relation::Base (and therefore all O::R
          classes).
+       - Improved the error message when a required attribute is not defined
+         so that the class key name is used in the error message. Thus,
+         instead of getting 'Attribute "name" must be defined', you'll get the
+         error, 'Attribute "one.name" must be defined'.
 
 0.1.0  2006-07-28T17:18:40
        - Initial public release
