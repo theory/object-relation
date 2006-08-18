@@ -25,6 +25,7 @@ use aliased 'Object::Relation::DataType::State';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object
 use aliased 'TestApp::Yello';
+use aliased 'TestApp::Composed';
 
 __PACKAGE__->SKIP_CLASS(
     $ENV{OBJ_REL_CLASS}
@@ -2271,6 +2272,77 @@ sub collections : Test(39) {
         'Look up the yello object again in the database';
     ok $coll = $yello->ones, 'Grab the ones collection';
     is $coll->size, 0, 'The collection should still have no items';
+}
+
+
+sub test_double_has : Test(26) {
+    my $self = shift;
+    return 'abstract class' unless $self->_should_run;
+
+    my %ones = map { $_ => One->new(name => $_)->save }
+        qw(Ovid Theory Angryumlaut Strongrrl);
+
+    # Create the red Composed object.
+    ok my $comp = Composed->new(
+        one         => $ones{Ovid},
+        another_one => $ones{Angryumlaut},
+        color       => 'red',
+    ), 'Create a red composed object';
+
+    ok $comp->save, '... And save it';
+
+    is $comp->color, 'red', '... Its color should be red';
+    is $comp->one->name, 'Ovid', '... The "one" object should be "Ovid"';
+    is $comp->another_one->name, 'Angryumlaut',
+        '... And the "another_one" object should be "Angryumlaut"';
+
+    # Create the blue Composed object.
+    ok my $comp2 = Composed->new(
+        one         => $ones{Theory},
+        another_one => $ones{Strongrrl},
+        color       => 'blue',
+    ), 'Create a blue composed object';
+    ok $comp2->save, '... And save it';
+
+    is $comp2->color, 'blue', '... Its color should be blue';
+    is $comp2->one->name, 'Theory', '... The "one" object should be "Theory"';
+    is $comp2->another_one->name, 'Strongrrl',
+        '... And the "another_one" object should be "Strongrrl"';
+
+    # Now make sure that lookups work properly.
+    ok $comp = Composed->lookup( uuid => $comp->uuid ),
+        'Look up the red Composed object';
+    is $comp->color, 'red', '... Its color should be red';
+    is $comp->one->name, 'Ovid', '... The "one" object should be "Ovid"';
+    is $comp->another_one->name, 'Angryumlaut',
+        '... And the "another_one" object should be "Angryumlaut"';
+
+    ok $comp2 = Composed->lookup( uuid => $comp2->uuid ),
+        'Look up the blue Composed object';
+    is $comp2->color, 'blue', '... Its color should be blue';
+    is $comp2->one->name, 'Theory', '... The "one" object should be "Theory"';
+    is $comp2->another_one->name, 'Strongrrl',
+        '... And the "another_one" object should be "Strongrrl"';
+
+    # And make sure that queries work.
+    ok my $iter = Composed->query(
+        color => ANY( $comp->color, $comp2->color ),
+        { order_by => 'color' }
+    ), 'Query for the two Composed objects';
+
+    my @comps = $iter->all;
+    is scalar @comps, 2, 'There should be two Composeds';
+    ($comp, $comp2) = @comps;
+
+    is $comp->color, 'blue', 'The first one should be blue';
+    is $comp->one->name, 'Theory', '... Its "one" object should be "Theory"';
+    is $comp->another_one->name, 'Strongrrl',
+        '... And its "another_one" object should be "Strongrrl"';
+
+    is $comp2->color, 'red', 'The second one should be red';
+    is $comp2->one->name, 'Ovid', '... Its "one" object should be "Ovid"';
+    is $comp2->another_one->name, 'Angryumlaut',
+        '... And its "another_one" object should be "Angryumlaut"';
 }
 
 1;

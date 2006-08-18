@@ -14,11 +14,6 @@ use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
 
 # Skip all of the tests in this class if SQLite isn't supported.
-__PACKAGE__->SKIP_CLASS(
-    $ENV{OBJ_REL_CLASS} && $ENV{OBJ_REL_CLASS} =~ /DB:SQLite$/
-    ? 0
-    : 'Not testing live data store',
-) if caller;    # so I can run the tests directly from vim
 __PACKAGE__->runtests unless caller;
 
 sub full_text_search : Test(1) {

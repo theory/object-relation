@@ -112,9 +112,10 @@ my %builders = (
             my $name = shift;
             return sub {
                 # Turn off this error in certain modes?
-                throw_read_only(['Cannot assign to read-only attribute "[_1]"',
-                                 $name])
-                  if @_ > 1;
+                throw_read_only([
+                    'Cannot assign to read-only attribute "[_1]"',
+                    $name,
+                ]) if @_ > 1;
                 $_[0]->{$name};
             };
         },
@@ -251,7 +252,7 @@ sub build {
         return;
     }
 
-    # If we get here, it's an object attribute.
+    # If we get here, it's an instance attribute.
     my $bake    = Object::Relation::Meta::Type->new($attr->type)->bake;
     my $builder = $bake ? $builders{bake} : $builders{default};
 

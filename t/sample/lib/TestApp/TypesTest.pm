@@ -14,6 +14,13 @@ BEGIN {
         key         => 'types_test',
         name        => 'Types Test',
         plural_name => 'Types Tests',
+        store_config => {
+            class => $ENV{OBJ_REL_CLASS},
+            cache => $ENV{OBJ_REL_CACHE},
+            user  => $ENV{OBJ_REL_USER},
+            pass  => $ENV{OBJ_REL_PASS},
+            dsn   => $ENV{OBJ_REL_DSN},
+        },
     );
 
     $km->add_attribute(

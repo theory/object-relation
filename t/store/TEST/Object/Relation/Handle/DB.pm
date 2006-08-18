@@ -263,7 +263,7 @@ sub set_search_data : Test(9) {
       'which correctly identify the sql column names';
     is_deeply $results->{metadata},
       {
-        'TestApp::Simple::One' => {
+        '' => {
             columns => {
                 bool        => 'bool',
                 description => 'description',
@@ -271,7 +271,8 @@ sub set_search_data : Test(9) {
                 id          => 'id',
                 name        => 'name',
                 state       => 'state',
-            }
+            },
+            package => 'TestApp::Simple::One',
         }
       },
       'and the metadata needed to build the objects';
@@ -290,7 +291,7 @@ sub set_search_data : Test(9) {
       ],
       'which correctly identify the sql column names';
     my $metadata = {
-        'TestApp::Simple::One' => {
+        'one__id' => {
             columns => {
                 one__bool        => 'bool',
                 one__description => 'description',
@@ -298,10 +299,11 @@ sub set_search_data : Test(9) {
                 one__id          => 'id',
                 one__name        => 'name',
                 one__state       => 'state',
-            }
+            },
+            package => 'TestApp::Simple::One',
         },
-        'TestApp::Simple::Two' => {
-            contains => { one__id => One->new->my_class },
+        '' => {
+            contains => { one__id => 'one' },
             columns  => {
                 age         => 'age',
                 date        => 'date',
@@ -311,7 +313,8 @@ sub set_search_data : Test(9) {
                 name        => 'name',
                 one__id     => 'one__id',
                 state       => 'state',
-            }
+            },
+            package => 'TestApp::Simple::Two',
         }
     };
     is_deeply $results->{metadata}, $metadata,
@@ -338,7 +341,7 @@ sub build_objects : Test(16) {
     my $store = Store->new;
     $store->{search_data} = {
         metadata => {
-            'TestApp::Simple::One' => {
+            'one__id' => {
                 columns => {
                     one__bool        => 'bool',
                     one__description => 'description',
@@ -346,10 +349,11 @@ sub build_objects : Test(16) {
                     one__id          => 'id',
                     one__name        => 'name',
                     one__state       => 'state',
-                }
+                },
+                package => 'TestApp::Simple::One',
             },
-            'TestApp::Simple::Two' => {
-                contains => { one__id => One->new->my_class, },
+            '' => {
+                contains => { one__id => 'one', },
                 columns  => {
                     age         => 'age',
                     description => 'description',
@@ -358,7 +362,8 @@ sub build_objects : Test(16) {
                     name        => 'name',
                     one__id     => 'one__id',
                     state       => 'state',
-                }
+                },
+                package => 'TestApp::Simple::Two',
             }
         },
         build_order => [ 'TestApp::Simple::One', 'TestApp::Simple::Two', ],
@@ -869,7 +874,7 @@ sub test_mediate : Test(43) {
     # Make sure that failing to set one results in an exception.
     eval { Relation->new( simple => $relation->simple)->save };
     ok my $err = $@, 'Caught required exception';
-    like $err->error, qr/Attribute .one. must be defined/,
+    like $err->error, qr/Attribute .relation\.one. must be defined/,
         'And it should be the correct exception';
 
     # Create a second relation object referencing the same Simple object.
@@ -907,7 +912,7 @@ sub unique_attr_regex {
     return qr/column $col is not unique/;
 }
 
-sub test_unique : Test(54) {
+sub test_unique : Test(55) {
     my $self = shift;
     return 'abstract class' unless $self->_should_run;
 
@@ -923,11 +928,21 @@ sub test_unique : Test(54) {
 
     # Test unique attribute--relative to state.
     ok my $one = One->new(name => 'One')->save, 'Create and save one object';
-    ok my $comp = Composed->new(one => $one, color => 'red'),
-        'Create composed object';
+    ok my $another_one = One->new( name => 'Another' ),
+        'Create and save another One object';
+
+    ok my $comp = Composed->new(
+        one         => $one,
+        another_one => $another_one,
+        color       => 'red',
+    ),'Create composed object';
     ok $comp->save, '... And save it';
-    ok my $comp2 = Composed->new(one => $one, color => 'red'),
-        'Create another composed object with the same color';
+
+    ok my $comp2 = Composed->new(
+        one         => $one,
+        another_one => $another_one,
+        color       => 'red',
+    ),'Create another composed object with the same color';
     throws_ok { $comp2->save } 'Exception::Class::DBI::STH',
         '... Saving (INSERT) it should fail';
     like $@, $self->unique_attr_regex('color', 'composed'),
@@ -945,14 +960,19 @@ sub test_unique : Test(54) {
     # Now try to insert with the other objects deleted (but not purged).
     ok $comp->delete, 'Delete the original Composed object';
     ok $comp->save, '... And save it';
-    ok my $comp3 = Composed->new(one => $one, color => 'red'),
-        '... Create a third Composed object with color => red';
+    ok my $comp3 = Composed->new(
+        one         => $one,
+        another_one => $another_one,
+        color       => 'red',
+    ), '... Create a third Composed object with color => red';
     ok $comp3->save,
         '... Saving should work, because the other Composed object is deleted';
+
     ok $comp = Composed->lookup( uuid => $comp->uuid ),
         '... We should still be able to look up the original Composed object';
     is $comp->color, 'red', '... And its color should still be red';
-    is $comp->state, Object::Relation::DataType::State->DELETED, '... And it should be deleted';
+    is $comp->state, Object::Relation::DataType::State->DELETED,
+        '... And it should be deleted';
 
     # Now purge the new Composed so that we can test UPDATE.
     ok $comp3->purge, 'Purge the third Composed object';
@@ -1119,14 +1139,15 @@ sub update_fk_regex {
     return qr/update on table "$table" violates foreign key constraint "fk_$key\_$col/;
 }
 
-sub test_fk_restrict : Test(7) {
+sub test_fk_restrict : Test(8) {
     my $self = shift;
     return 'abstract class' unless $self->_should_run;
 
     # First, make sure that RESTRICT works properly.
     ok my $one = One->new(name => 'One'), 'Create One object';
+    ok my $another_one = One->new( name => 'Another' );
     ok $one->save, '... And save it';
-    ok my $comp = Composed->new(one => $one),
+    ok my $comp = Composed->new(one => $one, another_one => $another_one ),
         'Create Composed object referencing the One object';
     ok $comp->save, '... And save it';
     ok $one->purge, '... Now purge the One object';
@@ -1213,7 +1234,7 @@ sub test_types : Test(138) {
     ok my $version = version->new('1.12.3'), 'Create a version object';
     ok $types_test->version($version),       'Set the version';
     isa_ok $types_test->version, 'version',  'It';
-    is $types_test->version, $version,       'It should be properly set';
+    cmp_ok $types_test->version, '==', $version, 'It should be properly set';
 
     # Set up the duration attribute.
     is $types_test->duration, undef, 'The duration should be undef';
@@ -1271,7 +1292,7 @@ sub test_types : Test(138) {
     is $types_test->whole,         0,  'Whole should be correct';
     is $types_test->posint,       12,  'Posint should be correct';
     isa_ok $types_test->version,       'version', 'version';
-    is $types_test->version, $version, 'It should be properly set';
+    cmp_ok $types_test->version, '==', $version, 'It should be properly set';
     isa_ok $types_test->duration,      'Object::Relation::DataType::Duration', 'duration';
     is $types_test->duration, $du,     'It should be properly set';
     is $types_test->operator, 'eq',    'Operator should be properly set';
@@ -1289,7 +1310,7 @@ sub test_types : Test(138) {
     ok $version = version->new('3.40'),     'Create new version object';
     ok $types_test->version($version),      'Set the version';
     isa_ok $types_test->version, 'version', 'It';
-    is $types_test->version, $version,      'It should be properly set';
+    cmp_ok $types_test->version, '==', $version, 'It should be properly set';
 
     # Change the duration object.
     ok $du = Object::Relation::DataType::Duration->new( hours  => 4 ),
@@ -1328,7 +1349,7 @@ sub test_types : Test(138) {
 
     # Check the looked-up values.
     isa_ok $types_test->version, 'version', 'version';
-    is $types_test->version,    $version, 'It should be properly set';
+    cmp_ok $types_test->version, '==', $version, 'It should be properly set';
     isa_ok $types_test->duration,         'Object::Relation::DataType::Duration', 'duration';
     is $types_test->duration,   $du,      'It should be properly set';
     is $types_test->operator,   'ne',     'Operator should be properly set';

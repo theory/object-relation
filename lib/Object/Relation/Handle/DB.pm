@@ -1177,13 +1177,17 @@ sub _build_object_from_hashref {
 
     # for joins, we sometimes get here without main search data getting set,
     # so we need to make sure it gets done.
+
     $self->_set_search_data;
     my %metadata_for = $self->_search_data_metadata;
 
-    foreach my $package ( $self->_search_data_build_order ) {
-        my $columns = $metadata_for{$package}{columns};
+    my @obj_cols = $self->_search_data_build_order;
+    for my $column (@obj_cols) {
+        my $metadata = $metadata_for{$column};
+        my $package = $metadata->{package};
+        my $columns = $metadata->{columns};
 
-        # XXX Is the distinction here due to IDs?
+        # Distinction due to contained object column names.
         my @object_columns    = keys %$columns;
         my @object_attributes = @{$columns}{@object_columns};
 
@@ -1192,20 +1196,19 @@ sub _build_object_from_hashref {
         @object{@object_attributes} = @{$hashref}{@object_columns};
         my $object = bless \%object => $package;
 
-        $objects_for{$package} = $object;
+        $objects_for{$column} = $object;
 
         # do we have a contained object?
-        if ( defined( my $contains = $metadata_for{$package}{contains} ) ) {
-            while ( my ( $key, $contained ) = each %$contains ) {
-                delete $objects_for{$package}{$key};
-                my $contained_package = $contained->package;
-                my $view              = $contained->key;
-                $objects_for{$package}{$view}
-                  = $objects_for{$contained_package};
+        if ( defined( my $contains = $metadata->{contains} ) ) {
+            while ( my ( $attr_column, $attr_name ) = each %$contains ) {
+                delete $objects_for{$column}{$attr_column};
+                $objects_for{$column}{$attr_name} = $objects_for{$attr_column};
             }
         }
     }
-    return $objects_for{ $self->search_class->package };
+
+    # The last object constructed is always the top-level object.
+    return $objects_for{ $obj_cols[-1] };
 }
 
 ##############################################################################
@@ -1232,31 +1235,32 @@ sub _set_search_data {
     my $package      = $self->search_class->package;
     my $primary_view = $self->search_class->key;
     unless ( exists $SEARCH_DATA_FOR{$package} ) {
-        my ( @columns, %packages );
-        my @classes_to_process = {
-            class  => $self->search_class,
-            prefix => '',
-        };
+        my ( @columns, %metadata );
+        my @classes_to_process = [
+            $self->search_class,
+            '',
+            '',
+        ];
         my @build_order;
         while (@classes_to_process) {
             foreach my $data ( splice @classes_to_process, 0 ) {
-                my $class   = $data->{class};
-                my $prefix  = $data->{prefix};
-                my $package = $class->package;
-                unshift @build_order => $package;
+                my ($class, $prefix, $column) = @{ $data };
+                unshift @build_order => $column;
+                $metadata{$column}{package} = $class->package;
                 foreach my $attr ( $class->persistent_attributes ) {
                     next if $attr->acts_as || $attr->collection_of;
-                    my $column      = $attr->_view_column;
-                    my $view_column = "$prefix$column";
-                    $packages{$package}{columns}{$view_column} = $column;
+                    my $attr_column = $attr->_view_column;
+                    my $view_column = "$prefix$attr_column";
+                    $metadata{$column}{columns}{$view_column} = $attr_column;
 
                     if ( my $class = $attr->references ) {
-                        push @classes_to_process => {
-                            class  => $class,
-                            prefix => $prefix . $attr->name . '__',
-                        };
+                        push @classes_to_process => [
+                            $class,
+                            $prefix . $attr->name . '__',
+                            $attr_column,
+                        ];
 
-                        $packages{$package}{contains}{$column} = $class;
+                        $metadata{$column}{contains}{$attr_column} = $attr->name;
                     }
                     else {
                         push @columns => "$primary_view.$view_column";
@@ -1264,16 +1268,19 @@ sub _set_search_data {
                 }
             }
         }
-        $SEARCH_DATA_FOR{$package}{columns}     = \@columns;
-        $SEARCH_DATA_FOR{$package}{metadata}    = \%packages;
-        $SEARCH_DATA_FOR{$package}{build_order} = \@build_order;
-        $SEARCH_DATA_FOR{$package}{lookup}      = {};
+
+        $SEARCH_DATA_FOR{$package} = {
+            columns     => \@columns,
+            metadata    => \%metadata,
+            build_order => \@build_order,
+            lookup      => {},
+        };
 
         # merely a hashset.  The values are useless
         @{ $SEARCH_DATA_FOR{$package}{lookup} }{@columns} = undef;
     }
+
     $self->_search_data( $SEARCH_DATA_FOR{$package} );
-    return $self;
 }
 
 ##############################################################################
