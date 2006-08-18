@@ -186,7 +186,7 @@ sub new {
 
         # Set up the store handle.
         my $store_config = delete $class->{store_config}
-            || $package->can('StoreHandle') ? undef : {};
+            || ($package->can('StoreHandle') ? undef : {});
 
         if ($store_config) {
             my $handle = Object::Relation::Handle->new($store_config);
