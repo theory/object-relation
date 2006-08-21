@@ -14,7 +14,7 @@ FAKEPG: {
     # Fake out loading of Pg store.
     package Object::Relation::Store::DB::Pg;
     use base 'Object::Relation::Store::DB';
-    $INC{'Object/Relation/Store/Handle/DB/Pg.pm'} = __FILE__;
+    $INC{'Object/Relation/Store/DB/Pg.pm'} = __FILE__;
 }
 
 BEGIN { use_ok 'Object::Relation::Schema' or die }

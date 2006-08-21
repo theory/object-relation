@@ -15,7 +15,7 @@ FAKESQLITE: {
     # Fake out loading of SQLite store.
     package Object::Relation::Store::DB::SQLite;
     use base 'Object::Relation::Store::DB';
-    $INC{'Object/Relation/Store/Handle/DB/SQLite.pm'} = __FILE__;
+    $INC{'Object/Relation/Store/DB/SQLite.pm'} = __FILE__;
 }
 
 BEGIN { use_ok 'Object::Relation::Schema' or die }

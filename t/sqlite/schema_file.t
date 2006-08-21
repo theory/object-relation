@@ -10,7 +10,7 @@ use Test::NoWarnings; # Adds an extra test.
 {
     # Fake out loading of SQLite store.
     package Object::Relation::Store::DB::SQLite;
-    $INC{'Object/Relation/Store/Handle/DB/SQLite.pm'} = __FILE__;
+    $INC{'Object/Relation/Store/DB/SQLite.pm'} = __FILE__;
     sub _add_store_meta { 1 }
 }
 

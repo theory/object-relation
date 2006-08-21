@@ -1317,11 +1317,6 @@ This is so that the build system knows that your new store back-end exists and
 may need to be built. The key in this hash is used to identify the data store
 via the C<--store> C<./Build> option.
 
-=item * Test it in a build test class
-
-See F<t/build/TEST/Object/Relation/Build/Store/Handle/DB/SQLite.pm> and
-F<t/build/TEST/Object/Relation/Build/Store/Handle/DB/Pg.pm> for examples.
-
 =item * Create scripts to setup and teardown a test data store.
 
 The scripts should live in F<t/store> and be named with the key used in the
@@ -1379,8 +1374,8 @@ tests for any methods you add! See F<t/dbmeta.t> for an example.
 
 These should live in the F<t/store> directory, and be subclasses of
 TEST::Object::Relation::Store::DB. See
-F<t/store/TEST/Object/Relation/Store/Handle/DB/SQLite.pm> and
-F<t/store/TEST/Object/Relation/Store/Handle/DB/Pg.pm> for examples.
+F<t/store/TEST/Object/Relation/Store/DB/SQLite.pm> and
+F<t/store/TEST/Object/Relation/Store/DB/Pg.pm> for examples.
 
 =back
 

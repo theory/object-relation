@@ -9,7 +9,7 @@ use Test::NoWarnings; # Adds an extra test.
 {
     # Fake out loading of Pg store.
     package Object::Relation::Store::DB::Pg;
-    $INC{'Object/Relation/Store/Handle/DB/Pg.pm'} = __FILE__;
+    $INC{'Object/Relation/Store/Store/DB/Pg.pm'} = __FILE__;
     sub _add_store_meta { 1 }
 }
 

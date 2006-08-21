@@ -127,11 +127,11 @@ module:
   real => 'REAL',
 
 And that's it! Well, no, one more thing: write some tests! You want to make
-sure that your new data type works properly in TKP as well as in the data
-stores, so be sure to write some tests that validate that you can create
-C<real> attributes, that invalid values fail, and that the databases complain
-if the values are invalid (this might take some trickery; see
-F<t/store/TEST/Object/Relation/Store/Handle/DB.pm> for some examples).
+sure that your new data type works properly in Object::Relation as well as in
+the data stores, so be sure to write some tests that validate that you can
+create C<real> attributes, that invalid values fail, and that the databases
+complain if the values are invalid (this might take some trickery; see
+F<t/store/TEST/Object/Relation/Store/DB.pm> for some examples).
 
 =head2 Simple Objects
 
