@@ -65,6 +65,7 @@ my %types = (
     posint     => 'INTEGER',
     state      => 'INTEGER',
     string     => 'TEXT COLLATE nocase',
+    text       => 'TEXT COLLATE nocase',
     uuid       => 'TEXT',
     version    => 'TEXT',
     whole      => 'INTEGER',

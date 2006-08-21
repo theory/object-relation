@@ -36,6 +36,8 @@ Revision history for Perl extension Object::Relation.
        - Eliminated dependence on MIME::Base64 (although modules that this
          module depend on likely depend on it).
        - Eliminated dependency on Class::Trait.
+       - Added the "text" data type. It's just like the string type, only
+         expects to store a longer string of text.
 
 0.1.0  2006-07-28T17:18:40
        - Initial public release

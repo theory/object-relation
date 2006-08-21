@@ -149,6 +149,9 @@ our %Lexicon;
         'Value "[_1]" is not a string',
         'Value “[_1]” is not a string',
 
+        'Value "[_1]" is not text',
+        'Value “[_1]” is not text',
+
         'Value "[_1]" is not an integer',
         'Value “[_1]” is not an integer',
 

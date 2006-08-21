@@ -36,7 +36,7 @@ BEGIN {
     $km->add_attribute(
         name        => 'description',
         label       => 'Description',
-        type        => 'string',
+        type        => 'text',
         widget_meta => Object::Relation::Meta::Widget->new(
             type => 'textarea',
             tip  => 'The description of this object',

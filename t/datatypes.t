@@ -3,7 +3,7 @@
 # $Id$
 
 use strict;
-use Test::More tests => 123;
+use Test::More tests => 135;
 #use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings; # Adds an extra test.
@@ -31,14 +31,26 @@ BEGIN {
 
     ok( $cm->add_constructor(name => 'new'), "Create new() constructor" );
 
+    # Add string attribute.
+    ok( $cm->add_attribute(
+        name     => 'stringy',
+        type     => 'string',
+    ), 'Add string attribute' );
+
+    # Add text attribute.
+    ok( $cm->add_attribute(
+        name     => 'texty',
+        type     => 'text',
+    ), 'Add text attribute' );
+
     # Add boolean attribute.
-    ok( $cm->add_attribute( name     => 'bool',
-                            view     => Class::Meta::PUBLIC,
-                            type     => 'bool',
-                            required => 1,
-                            default  => 1,
-                          ),
-        "Add boolean attribute" );
+    ok( $cm->add_attribute(
+        name     => 'bool',
+        view     => Class::Meta::PUBLIC,
+        type     => 'bool',
+        required => 1,
+        default  => 1,
+    ), 'Add boolean attribute' );
 
     # Add an Integer attribute.
     ok( $cm->add_attribute(
@@ -91,7 +103,7 @@ BEGIN {
                           ),
         "Add media_type attribute" );
 
-    # Add a Attribute attribute.
+    # Add an Attribute attribute.
     ok( $cm->add_attribute( name     => 'attribute',
                             view     => Class::Meta::PUBLIC,
                             type     => 'attribute',
@@ -171,6 +183,24 @@ ok( $@, "Got error with invalid state object" );
 # And an undefined value is not okay.
 eval { $t->state(undef) };
 ok( $@, "Got error with undef for state object" );
+
+# Test string accessor.
+is $t->stringy, undef, 'Stringy should be undefined';
+ok $t->stringy('foo'), 'Set stringy to "foo"';
+is $t->stringy, 'foo', 'Stringy should be "foo"';
+throws_ok { $t->stringy([]) } 'Object::Relation::Exception::Fatal::Invalid',
+    'Stringy should thrown an exception for a non-string';
+like $@->error, qr/Value .ARRAY\([^)]+\). is not a string/,
+    '... It should be the correct error';
+
+# Test text accessor.
+is $t->texty, undef, 'Texty should be undefined';
+ok $t->texty('foo'), 'Set texty to "foo"';
+is $t->texty, 'foo', 'Texty should be "foo"';
+throws_ok { $t->texty([]) } 'Object::Relation::Exception::Fatal::Invalid',
+    'Texty should thrown an exception for a non-text';
+like $@->error, qr/Value .ARRAY\([^)]+\). is not text/,
+    '... It should be the correct error';
 
 # Test boolean accessor.
 ok( $t->bool, "Check bool" );

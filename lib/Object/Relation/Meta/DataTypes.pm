@@ -88,8 +88,27 @@ Object::Relation::Meta::Type->add(
     key     => 'string',
     name    => 'String',
     check   => sub {
-        return unless ref $_[0];
-        throw_invalid([ 'Value "[_1]" is not a string', $_[0] ]);
+        throw_invalid([ 'Value "[_1]" is not a string', $_[0] ])
+            if ref $_[0];
+    }
+);
+
+##############################################################################
+
+=item text
+
+A long Perl string, decoded to its internal, utf8 format. Really it's exavctly
+like a string, except that it is expected to store a long string. A person's
+name might be a string, while a paragraph would be text.
+
+=cut
+
+Object::Relation::Meta::Type->add(
+    key     => 'text',
+    name    => 'Text',
+    check   => sub {
+        throw_invalid([ 'Value "[_1]" is not text', $_[0] ])
+            if ref $_[0];
     }
 );
 

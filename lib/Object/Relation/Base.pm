@@ -50,13 +50,9 @@ Object::Relation::Base - The Object::Relation base class
 
 =head1 Description
 
-Object::Relation is an enterprise application framework. It pulls together the
-Class::Meta, Widget::Meta, and other modules to offer a platform for the rapid
-development of enterprise applications in Perl.
-
-This class serves as the base class for all Object::Relation classes. It defines the
-interface for all data access, and provides convenience methods to all of the
-data store access methods required by the subclasses.
+This class serves as the base class for all Object::Relation classes. It
+defines the interface for all data access, and provides convenience methods to
+all of the data store access methods required by the subclasses.
 
 =cut
 

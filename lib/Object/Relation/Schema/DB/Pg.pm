@@ -106,6 +106,7 @@ my %types = (
     posint     => 'POSINT',
     state      => 'STATE',
     string     => 'TEXT',
+    text       => 'TEXT',
     uuid       => 'UUID',
     version    => 'VERSION',
     whole      => 'WHOLE',
