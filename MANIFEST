@@ -74,11 +74,8 @@ t/iterator.t
 t/language.t
 t/lexer/code.t
 t/lexer/string.t
-t/lib/TEST/Class/Kinetic.pm
 t/lib/TEST/Class/Object/Relation.pm
 t/lib/TEST/Object/Relation/TestSetup.pm
-t/lib/TEST/Object/Traits/SampleObjects.pm
-t/lib/TEST/Object/Traits/Store.pm
 t/media_type.t
 t/meta.t
 t/parser/main.t
