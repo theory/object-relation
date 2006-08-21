@@ -17,7 +17,6 @@ WriteMakefile(
         'Class::Meta'                => '0.53',
         'Class::Meta::Express'       => '0.03',
         'Class::Trait'               => '0.11',
-        'Clone'                      => '0.15',
         'DBD::SQLite'                => '1.12',
         'DBI'                        => '1.5',
         'Data::Types'                => '0.06',

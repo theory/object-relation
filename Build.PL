@@ -14,7 +14,6 @@ my $build = Module::Build->new(
         'Array::AsHash'              => 0.31,
         'Class::Meta'                => 0.53,
         'Class::Meta::Express'       => 0.04,
-        'Clone'                      => 0.15,  # XXX Kill?
         'Data::Types'                => 0.06,
         'DateTime'                   => 0.30,
         'DateTime::Format::Strptime' => 1.0601,

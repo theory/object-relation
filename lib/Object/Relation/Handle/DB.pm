@@ -6,7 +6,6 @@ use strict;
 use base qw(Object::Relation::Handle);
 our $VERSION = '0.11';
 use DBI qw(:sql_types);
-use Clone;
 use Scalar::Util qw(blessed);
 use constant DBI_CLASS => 'DBI';
 

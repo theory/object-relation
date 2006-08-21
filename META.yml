@@ -11,7 +11,6 @@ requires:
   Array::AsHash: 0.31
   Class::Meta: 0.53
   Class::Meta::Express: 0.03
-  Clone: 0.15
   Data::Types: 0.06
   Data::UUID: 0
   DateTime: 0.3
