@@ -40,7 +40,6 @@ my $build = Module::Build->new(
     },
     build_requires       => {
         'Cache::Cache'              => 1.04,    # XXX Kill?
-        'Class::Trait'              => 0.11,    # XXX Kill
         'DBD::SQLite'               => 1.12,
         'DBI'                       => 1.50,
         'File::Path'                => 0,

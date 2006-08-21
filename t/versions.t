@@ -6,7 +6,6 @@ use strict;
 use warnings;
 use Test::More;
 use Test::NoWarnings; # Adds an extra test.
-use Class::Trait;     # Avoid warnings.
 use File::Spec::Functions qw(catdir);
 use version;
 

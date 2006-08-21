@@ -10,11 +10,6 @@ use Test::More;
 use Test::Exception;
 use Encode qw(is_utf8);
 
-use Class::Trait qw(
-    TEST::Object::Traits::Store
-    TEST::Object::Traits::SampleObjects
-);
-
 use aliased 'Object::Relation::Handle' => 'Store', ':all';
 
 use aliased 'Object::Relation::DataType::DateTime';

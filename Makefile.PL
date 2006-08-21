@@ -16,7 +16,6 @@ WriteMakefile(
         'Cache::Cache'               => '1.04',
         'Class::Meta'                => '0.53',
         'Class::Meta::Express'       => '0.03',
-        'Class::Trait'               => '0.11',
         'DBD::SQLite'                => '1.12',
         'DBI'                        => '1.5',
         'Data::Types'                => '0.06',

@@ -13,6 +13,8 @@ use File::Find;
 use File::Spec::Functions;
 use Test::NoWarnings ();
 use aliased 'Test::MockModule';
+use aliased 'TestApp::Simple::One';
+use aliased 'TestApp::Simple::Two';
 
 BEGIN {
     # Tell Test::Builder to use the utf8 layer for its file handles.
@@ -245,6 +247,205 @@ sub tck_cleanup : Test(teardown) {
     if (my $paths = delete $self->{_paths_}) {
         File::Path::rmtree($_) for reverse @$paths;
     }
+}
+
+
+##############################################################################
+
+=head3 create_test_objects
+
+  $test->create_test_objects;
+
+Creates three test objects of the C<TestApp::Simple::One> class and saves them
+to the data store.  Sets their names to 'foo', 'bar' and 'snorfleglitz'.  Not
+other attributes are set.
+
+=cut
+
+sub create_test_objects {
+    my $test = shift;
+    my $foo  = One->new;
+    $foo->name('foo');
+    $foo->save;
+    my $bar = One->new;
+    $bar->name('bar');
+    $bar->save;
+    my $baz = One->new;
+    $baz->name('snorfleglitz');
+    $baz->save;
+    $test->test_objects( [ $foo, $bar, $baz ] );
+}
+
+##############################################################################
+
+=head3 test_objects
+
+  $test->test_objects(\@objects);
+  my @objects = $test->test_objects;
+
+Simple getter/setter for test objects.  If called in scalar context, returns
+an array ref of objects.  Otherwise, returns a list of objects.
+
+May be passed a list of objects or a single object:
+
+ $test->test_objects($foo);
+
+=cut
+
+sub test_objects {
+    my $test = shift;
+    unless (@_) {
+        return wantarray ? @{ $test->{test_objects} } : $test->{test_objects};
+    }
+    my $objects = shift;
+    $objects = [$objects] unless 'ARRAY' eq ref $objects;
+    $test->{test_objects} = $objects;
+    $test;
+}
+
+##############################################################################
+
+=head3 mock_dbh
+
+  $test->mock_dbh;
+
+This method sets C<< $test->{dbh} >> and also mocks up its C<begin_work> and
+C<commit> methods so we don't accidentally commit anything to the test
+database.
+
+=cut
+
+sub mock_dbh {
+    my $test  = shift;
+    my $store = Object::Relation::Handle->new({
+        class => $ENV{OBJ_REL_CLASS},
+        cache => $ENV{OBJ_REL_CACHE},
+        user  => $ENV{OBJ_REL_USER},
+        pass  => $ENV{OBJ_REL_PASS},
+        dsn   => $ENV{OBJ_REL_DSN},
+    });
+
+    $test->dbh( $store->_dbh );
+    $test->dbh->begin_work;
+    $test->{dbi_mock} = MockModule->new( 'DBI::db', no_auto => 1 );
+    $test->{dbi_mock}->mock( begin_work => 1 );
+    $test->{dbi_mock}->mock( commit     => 1 );
+    $test->{db_mock} = MockModule->new('Object::Relation::Handle::DB');
+    $test->{db_mock}->mock( _dbh => $test->dbh );
+}
+
+##############################################################################
+
+=head3 unmock_dbh
+
+  $test->unmock_dbh;
+
+Unmocks previously mocked database handle. Carps if the database handle was
+not previously mocked.
+
+=cut
+
+sub unmock_dbh {
+    my $test = shift;
+    if ( exists $test->{dbi_mock} ) {
+        delete( $test->{dbi_mock} )->unmock_all;
+        $test->dbh->rollback unless $test->dbh->{AutoCommit};
+        delete( $test->{db_mock} )->unmock_all;
+    }
+    else {
+        require Carp;
+        Carp::carp("Could not unmock database handle.");
+    }
+}
+
+##############################################################################
+
+=head3 force_inflation
+
+  $object = $test->force_inflation($object);
+
+This method is used by classes to force the inflation of values of Object::Relation
+objects when tested with is_deeply and friends.
+
+=cut
+
+sub force_inflation {
+    my ( $test, $object ) = @_;
+    return undef unless $object;
+    no warnings 'void';
+    foreach my $attr ( $object->my_class->attributes ) {
+        if ( $attr->references ) {
+            $test->force_inflation( $attr->get($object) );
+        }
+        else {
+            $attr->get($object);
+        }
+    }
+    return $object;
+}
+
+##############################################################################
+
+=head3 clear_database
+
+  $test->clear_database;
+
+Clears the data store.
+
+=cut
+
+sub clear_database {
+
+    # Call this method if you have a test which needs an empty database.
+    my $test = shift;
+    if ( $test->{dbi_mock} ) {
+        $test->{dbi_mock}->unmock_all;
+        $test->dbh->rollback;
+        $test->dbh->begin_work;
+        $test->{dbi_mock}->mock( begin_work => 1 );
+        $test->{dbi_mock}->mock( commit     => 1 );
+    }
+    else {
+        my %keys = map { $_ => 1 }
+          grep { !Object::Relation::Meta->for_key($_)->abstract } Object::Relation::Meta->keys;
+
+        # it's possible that we'll accidentally try to delete a key which has
+        # an FK constraint on another key.  To avoid this, we keep deleting
+        # keys until there are none left.  If, at any time, we have failed to
+        # delete a key on a given pass, we know there was a circular
+        # dependency and we carp.  This should not happen.
+
+        while ( my $count = keys %keys ) {
+            foreach my $key ( keys %keys ) {    # confused yet?
+                eval { $test->{dbh}->do("DELETE FROM $key") };
+                delete $keys{$key} unless $@;
+            }
+            if ( $count == keys %keys ) {
+                my @keys = sort keys %keys;
+                require Carp;
+                Carp::carp(
+                    "Could not delete all records from db for (@keys)");
+            }
+        }
+    }
+}
+
+##############################################################################
+
+=head3 dbh
+
+  my $dbh = $test->dbh;
+  $test->dbh($dbh);
+
+Getter/setter for database handle.
+
+=cut
+
+sub dbh {
+    my $self = shift;
+    return $self->{dbh} unless @_;
+    $self->{dbh} = shift;
+    return $self;
 }
 
 ##############################################################################

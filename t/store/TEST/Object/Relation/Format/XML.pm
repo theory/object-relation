@@ -10,10 +10,6 @@ use base 'TEST::Class::Object::Relation';
 use Test::XML;
 use Test::More;
 use Test::Exception;
-use Class::Trait qw(
-    TEST::Object::Traits::Store
-    TEST::Object::Traits::SampleObjects
-);
 
 use aliased 'Test::MockModule';
 use aliased 'Object::Relation::Handle' => 'Store', ':all';

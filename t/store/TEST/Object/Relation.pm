@@ -12,8 +12,6 @@ use Encode qw(is_utf8);
 
 use aliased 'Test::MockModule';
 
-use Class::Trait qw(TEST::Object::Traits::Store);
-use Class::Trait qw(TEST::Object::Traits::SampleObjects);
 use Object::Relation::Handle qw/:all/;
 use aliased 'Object::Relation::Iterator';
 use aliased 'Object::Relation::DataType::State';

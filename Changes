@@ -31,10 +31,11 @@ Revision history for Perl extension Object::Relation.
          instead of getting 'Attribute "name" must be defined', you'll get the
          error, 'Attribute "one.name" must be defined'.
        - Now requring Class::Meta::Express 0.04.
-       - Eliminated dependency on Class::BuildMethods.
-       - Removed unused dependency on Clone.
-       - Eliminated dependency on MIME::Base64 (although modules that this
+       - Eliminated dependence on Class::BuildMethods.
+       - Removed unused dependence on Clone.
+       - Eliminated dependence on MIME::Base64 (although modules that this
          module depend on likely depend on it).
+       - Eliminated dependency on Class::Trait.
 
 0.1.0  2006-07-28T17:18:40
        - Initial public release

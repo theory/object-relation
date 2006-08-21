@@ -10,11 +10,6 @@ use base 'TEST::Class::Object::Relation';
 use Test::JSON;
 use Test::More;
 use Test::Exception;
-use Class::Trait qw(
-  TEST::Object::Traits::Store
-  TEST::Object::Traits::SampleObjects
-);
-
 use Object::Relation::Functions qw/create_uuid/;
 
 use aliased 'Test::MockModule';
