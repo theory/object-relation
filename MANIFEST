@@ -17,12 +17,6 @@ lib/Object/Relation/Format.pm
 lib/Object/Relation/Format/JSON.pm
 lib/Object/Relation/Format/XML.pm
 lib/Object/Relation/Functions.pm
-lib/Object/Relation/Handle.pm
-lib/Object/Relation/Handle/DB.pm
-lib/Object/Relation/Handle/DB/Overview.pod
-lib/Object/Relation/Handle/DB/Pg.pm
-lib/Object/Relation/Handle/DB/SQLite.pm
-lib/Object/Relation/Handle/DB/SQLite/DBI.pm
 lib/Object/Relation/Iterator.pm
 lib/Object/Relation/Language.pm
 lib/Object/Relation/Language/en.pm
@@ -52,7 +46,15 @@ lib/Object/Relation/Setup.pm
 lib/Object/Relation/Setup/DB.pm
 lib/Object/Relation/Setup/DB/Pg.pm
 lib/Object/Relation/Setup/DB/SQLite.pm
+lib/Object/Relation/Store.pm
+lib/Object/Relation/Store/DB.pm
+lib/Object/Relation/Store/DB/Overview.pod
+lib/Object/Relation/Store/DB/Pg.pm
+lib/Object/Relation/Store/DB/SQLite.pm
+lib/Object/Relation/Store/DB/SQLite/DBI.pm
+Makefile.PL
 MANIFEST			This list of files
+META.yml
 README
 t/accessors.t
 t/basic.t
@@ -109,14 +111,12 @@ t/store/TEST/Object/Relation.pm
 t/store/TEST/Object/Relation/Format.pm
 t/store/TEST/Object/Relation/Format/JSON.pm
 t/store/TEST/Object/Relation/Format/XML.pm
-t/store/TEST/Object/Relation/Handle.pm
-t/store/TEST/Object/Relation/Handle/DB.pm
-t/store/TEST/Object/Relation/Handle/DB/Pg.pm
-t/store/TEST/Object/Relation/Handle/DB/SQLite.pm
 t/store/TEST/Object/Relation/Search.pm
+t/store/TEST/Object/Relation/Store.pm
+t/store/TEST/Object/Relation/Store/DB.pm
+t/store/TEST/Object/Relation/Store/DB/Pg.pm
+t/store/TEST/Object/Relation/Store/DB/SQLite.pm
 t/storesearch.t
 t/util.t
 t/util/cache.t
 t/versions.t
-META.yml
-Makefile.PL

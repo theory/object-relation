@@ -317,7 +317,7 @@ database.
 
 sub mock_dbh {
     my $test  = shift;
-    my $store = Object::Relation::Handle->new({
+    my $store = Object::Relation::Store->new({
         class => $ENV{OBJ_REL_CLASS},
         cache => $ENV{OBJ_REL_CACHE},
         user  => $ENV{OBJ_REL_USER},
@@ -330,7 +330,7 @@ sub mock_dbh {
     $test->{dbi_mock} = MockModule->new( 'DBI::db', no_auto => 1 );
     $test->{dbi_mock}->mock( begin_work => 1 );
     $test->{dbi_mock}->mock( commit     => 1 );
-    $test->{db_mock} = MockModule->new('Object::Relation::Handle::DB');
+    $test->{db_mock} = MockModule->new('Object::Relation::Store::DB');
     $test->{db_mock}->mock( _dbh => $test->dbh );
 }
 

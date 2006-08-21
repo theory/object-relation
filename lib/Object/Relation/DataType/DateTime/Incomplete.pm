@@ -29,7 +29,7 @@ to offer DateTime::Incomplete objects to Object::Relation applications. The only
 which it differs from DateTime::Incomplete is that all new Object::Relation::DataType::DateTime
 objects are in the "UTC" time zone unless another time zone is specified and it
 knows to properly stringify itself when accessed by
-L<Object::Relation::Handle|Object::Relation::Handle>.
+L<Object::Relation::Store|Object::Relation::Store>.
 
 =cut
 

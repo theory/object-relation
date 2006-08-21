@@ -10,7 +10,7 @@ use Test::Exception;
 use aliased 'Object::Relation::Search';
 use aliased 'Object::Relation::DataType::DateTime::Incomplete';
 
-use Object::Relation::Handle qw/:all/;
+use Object::Relation::Store qw/:all/;
 use Object::Relation::Lexer::String qw/string_lexer_stream/;
 use Object::Relation::Lexer::Code qw/code_lexer_stream/;
 
@@ -26,7 +26,7 @@ BEGIN {
 
 {
     package Faux::Store;
-    our @ISA = 'Object::Relation::Handle';
+    our @ISA = 'Object::Relation::Store';
     my %column;
     @column{
         qw/

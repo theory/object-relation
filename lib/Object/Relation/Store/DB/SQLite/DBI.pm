@@ -2,11 +2,11 @@
 
 =head1 Name
 
-Object::Relation::Handle::DB::SQLite::DBI - DBI subclass adding funtions to SQLite
+Object::Relation::Store::DB::SQLite::DBI - DBI subclass adding funtions to SQLite
 
 =head1 Synopsis
 
-  my $dbh = Object::Relation::Handle::DB::SQLite::DBI->connect(...);
+  my $dbh = Object::Relation::Store::DB::SQLite::DBI->connect(...);
 
 =head1 Description
 
@@ -16,15 +16,15 @@ queries.
 
 =cut
 
-package Object::Relation::Handle::DB::SQLite::DBI;
+package Object::Relation::Store::DB::SQLite::DBI;
 use base 'DBI';
 our $VERSION = '0.11';
 
-package Object::Relation::Handle::DB::SQLite::DBI::st;
+package Object::Relation::Store::DB::SQLite::DBI::st;
 use base 'DBI::st';
 our $VERSION = '0.11';
 
-package Object::Relation::Handle::DB::SQLite::DBI::db;
+package Object::Relation::Store::DB::SQLite::DBI::db;
 use base 'DBI::db';
 use strict;
 use Object::Relation::Functions ();

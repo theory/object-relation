@@ -15,14 +15,14 @@ BEGIN {
 };
 
 STORE: {
-    package Object::Relation::Handle::DB::Pg;
+    package Object::Relation::Store::DB::Pg;
     sub new { bless {} => shift }
 }
 
 ok my $du = $CLASS->new, 'Create duration object';
 isa_ok $du, $CLASS;
 isa_ok $du, $CLASS;
-my $store = Object::Relation::Handle::DB::Pg->new;
+my $store = Object::Relation::Store::DB::Pg->new;
 
 for my $compare (
     [

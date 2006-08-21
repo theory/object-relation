@@ -10,7 +10,7 @@ resources:
 requires:
   Array::AsHash: 0.31
   Class::Meta: 0.53
-  Class::Meta::Express: 0.03
+  Class::Meta::Express: 0.04
   Data::Types: 0.06
   Data::UUID: 0
   DateTime: 0.3
@@ -116,27 +116,6 @@ provides:
   Object::Relation::Functions:
     file: lib/Object/Relation/Functions.pm
     version: 0.11
-  Object::Relation::Handle:
-    file: lib/Object/Relation/Handle.pm
-    version: 0.11
-  Object::Relation::Handle::DB:
-    file: lib/Object/Relation/Handle/DB.pm
-    version: 0.11
-  Object::Relation::Handle::DB::Pg:
-    file: lib/Object/Relation/Handle/DB/Pg.pm
-    version: 0.11
-  Object::Relation::Handle::DB::SQLite:
-    file: lib/Object/Relation/Handle/DB/SQLite.pm
-    version: 0.11
-  Object::Relation::Handle::DB::SQLite::DBI:
-    file: lib/Object/Relation/Handle/DB/SQLite/DBI.pm
-    version: 0.11
-  Object::Relation::Handle::DB::SQLite::DBI::db:
-    file: lib/Object/Relation/Handle/DB/SQLite/DBI.pm
-    version: 0.11
-  Object::Relation::Handle::DB::SQLite::DBI::st:
-    file: lib/Object/Relation/Handle/DB/SQLite/DBI.pm
-    version: 0.11
   Object::Relation::Iterator:
     file: lib/Object/Relation/Iterator.pm
     version: 0.11
@@ -217,6 +196,27 @@ provides:
     version: 0.11
   Object::Relation::Setup::DB::SQLite:
     file: lib/Object/Relation/Setup/DB/SQLite.pm
+    version: 0.11
+  Object::Relation::Store:
+    file: lib/Object/Relation/Store.pm
+    version: 0.11
+  Object::Relation::Store::DB:
+    file: lib/Object/Relation/Store/DB.pm
+    version: 0.11
+  Object::Relation::Store::DB::Pg:
+    file: lib/Object/Relation/Store/DB/Pg.pm
+    version: 0.11
+  Object::Relation::Store::DB::SQLite:
+    file: lib/Object/Relation/Store/DB/SQLite.pm
+    version: 0.11
+  Object::Relation::Store::DB::SQLite::DBI:
+    file: lib/Object/Relation/Store/DB/SQLite/DBI.pm
+    version: 0.11
+  Object::Relation::Store::DB::SQLite::DBI::db:
+    file: lib/Object/Relation/Store/DB/SQLite/DBI.pm
+    version: 0.11
+  Object::Relation::Store::DB::SQLite::DBI::st:
+    file: lib/Object/Relation/Store/DB/SQLite/DBI.pm
     version: 0.11
 generated_by: Module::Build version 0.2805
 meta-spec:

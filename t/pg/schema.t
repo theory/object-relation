@@ -12,8 +12,8 @@ use Test::Differences;
 
 FAKEPG: {
     # Fake out loading of Pg store.
-    package Object::Relation::Handle::DB::Pg;
-    use base 'Object::Relation::Handle::DB';
+    package Object::Relation::Store::DB::Pg;
+    use base 'Object::Relation::Store::DB';
     $INC{'Object/Relation/Store/Handle/DB/Pg.pm'} = __FILE__;
 }
 
@@ -26,7 +26,7 @@ sub left_justify {
 }
 
 ok my $sg = Object::Relation::Schema->new(
-    'Object::Relation::Handle::DB::Pg'
+    'Object::Relation::Store::DB::Pg'
 ), 'Get new Schema';
 isa_ok $sg, 'Object::Relation::Schema';
 isa_ok $sg, 'Object::Relation::Schema::DB';

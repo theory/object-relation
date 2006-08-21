@@ -38,6 +38,12 @@ Revision history for Perl extension Object::Relation.
        - Eliminated dependency on Class::Trait.
        - Added the "text" data type. It's just like the string type, only
          expects to store a longer string of text.
+       - Renamed Object::Relation::Handle (and all of its subclasses and
+         associated test classes) to Object::Relation::Store. This is more in
+         line with the original idea for Object::Relation, back when it was
+         called Kinetic::Store. That idea is that the store classes and their
+         subclasses are the interface to the data store, and not just a handle
+         on it.
 
 0.1.0  2006-07-28T17:18:40
        - Initial public release

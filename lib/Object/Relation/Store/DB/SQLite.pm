@@ -1,18 +1,18 @@
-package Object::Relation::Handle::DB::SQLite;
+package Object::Relation::Store::DB::SQLite;
 
 # $Id$
 
 use strict;
-use base qw(Object::Relation::Handle::DB);
+use base qw(Object::Relation::Store::DB);
 our $VERSION = '0.11';
 
-use Object::Relation::Handle qw(:logical);
+use Object::Relation::Store qw(:logical);
 use DBD::SQLite;
-use Object::Relation::Handle::DB::SQLite::DBI;
+use Object::Relation::Store::DB::SQLite::DBI;
 use Object::Relation::Exceptions qw(throw_unsupported);
 use Exception::Class::DBI;
 
-use constant DBI_CLASS => 'Object::Relation::Handle::DB::SQLite::DBI';
+use constant DBI_CLASS => 'Object::Relation::Store::DB::SQLite::DBI';
 use constant _connect_attrs => {
     RaiseError  => 0,
     PrintError  => 0,
@@ -22,18 +22,18 @@ use constant _connect_attrs => {
 
 =head1 Name
 
-Object::Relation::Handle::DB::SQLite - SQLite-specific behavior for Object::Relation
+Object::Relation::Store::DB::SQLite - SQLite-specific behavior for Object::Relation
 
 =head1 Synopsis
 
-See L<Object::Relation::Handle|Object::Relation::Handle>.
+See L<Object::Relation::Store|Object::Relation::Store>.
 
 =head1 Description
 
 This class implements SQLite-specific behavior for the Object::Relation
-storage API by overriding C<Object::Relation::Handle::DB> methods as needed.
+storage API by overriding C<Object::Relation::Store::DB> methods as needed.
 It uses
-L<Object::Relation::Handle::DB::SQLite::DBI|Object::Relation::Handle::DB::SQLite::DBI>,
+L<Object::Relation::Store::DB::SQLite::DBI|Object::Relation::Store::DB::SQLite::DBI>,
 a subclass of the L<DBI|DBI>, for custom interactions with the database.
 
 =cut
@@ -46,7 +46,7 @@ a subclass of the L<DBI|DBI>, for custom interactions with the database.
 
   $store->_set_id($obj_rel_object);
 
-SQLite-specific implementation of C<Object::Relation::Handle::DB::_set_id>.
+SQLite-specific implementation of C<Object::Relation::Store::DB::_set_id>.
 
 =cut
 
@@ -84,7 +84,7 @@ sub _full_text_search {
 
   my $op = $store->_MATCH_SEARCH($key);
 
-Works like C<Object::Relation::Handle::DB::_MATCH_SEARCH> but supports full
+Works like C<Object::Relation::Store::DB::_MATCH_SEARCH> but supports full
 Perl regular expressions via the SQLite C<REGEXP> operator. As the regular
 expressions are compiled with the C<ixms> modifiers, they are always
 case-insensitive, and C<^> matches the beginning of the whole string, and C<$>
@@ -191,7 +191,7 @@ sub _any_date_handler {
 
 This method sets a collection to a specific list of IDs, using the SQLite
 C<coll_set()> function defined by
-L<Object::Relation::Handle::DB::SQLite::DBI|Object::Relation::Handle::DB::SQLite::DBI>
+L<Object::Relation::Store::DB::SQLite::DBI|Object::Relation::Store::DB::SQLite::DBI>
 to do so correctly.
 
 =cut
@@ -206,7 +206,7 @@ sub _coll_set { _coll_query(@_, 'set') }
 
 This method adds a specific list of IDs to a collection, using the SQLite
 C<coll_add()> function defined by
-L<Object::Relation::Handle::DB::SQLite::DBI|Object::Relation::Handle::DB::SQLite::DBI>
+L<Object::Relation::Store::DB::SQLite::DBI|Object::Relation::Store::DB::SQLite::DBI>
 to do so correctly.
 
 =cut
@@ -221,7 +221,7 @@ sub _coll_add { _coll_query(@_, 'add') }
 
 This method deletes a specific list of IDs from a collection, using the SQLite
 C<coll_del()> function defined by
-L<Object::Relation::Handle::DB::SQLite::DBI|Object::Relation::Handle::DB::SQLite::DBI>
+L<Object::Relation::Store::DB::SQLite::DBI|Object::Relation::Store::DB::SQLite::DBI>
 to do so correctly.
 
 =cut
@@ -236,7 +236,7 @@ sub _coll_del { _coll_query(@_, 'del') }
 
 This method clears a specific list of IDs from a collection, using the SQLite
 C<coll_clear()> function defined by
-L<Object::Relation::Handle::DB::SQLite::DBI|Object::Relation::Handle::DB::SQLite::DBI>
+L<Object::Relation::Store::DB::SQLite::DBI|Object::Relation::Store::DB::SQLite::DBI>
 to do so correctly.
 
 =cut

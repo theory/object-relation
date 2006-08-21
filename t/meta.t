@@ -44,7 +44,7 @@ BEGIN {
         'Attribute::_view_column() should not exist';
 
     # Load a database store.
-    use_ok('Object::Relation::Handle::DB::SQLite') or die;
+    use_ok('Object::Relation::Store::DB::SQLite') or die;
 
     ok defined(&Object::Relation::Meta::Attribute::_column),
         'Now Attribute::_column() should exist';

@@ -140,9 +140,9 @@ BEGIN {
 
 # Set up phone data store classes.
 STORES: {
-    package Object::Relation::Handle::DB::Pg;
+    package Object::Relation::Store::DB::Pg;
     sub new { bless {}, shift }
-    package Object::Relation::Handle::DB::SQLite;
+    package Object::Relation::Store::DB::SQLite;
     sub new { bless {}, shift }
 }
 
@@ -315,12 +315,12 @@ is $t->my_class->attributes('duration')->raw($t),
     'P0Y0M2DT-23H-59M0S',
     "Make sure the raw value is properly formatted";
 
-my $store = Object::Relation::Handle::DB::Pg->new;
+my $store = Object::Relation::Store::DB::Pg->new;
 is $t->my_class->attributes('duration')->store_raw($t, $store),
     '0 years 0 mons 2 days -23 hours -59 mins 0 secs',
     'Make sure the PostgreSQL store_raw value is properly formatted';
 
-$store = Object::Relation::Handle::DB::SQLite->new;
+$store = Object::Relation::Store::DB::SQLite->new;
 is $t->my_class->attributes('duration')->store_raw($t, $store),
     'P00000Y00M02DT-23H-59M00S',
     'Make sure the SQLite store_raw value is properly formatted';

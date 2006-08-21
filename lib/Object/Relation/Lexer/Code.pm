@@ -17,7 +17,7 @@ Object::Relation::Lexer::Code - Lexer for Object::Relation search code
 =head1 Description
 
 This package lexes the data structure built by
-L<Object::Relation::Handle|Object::Relation::Handle> search operators and return a token stream
+L<Object::Relation::Store|Object::Relation::Store> search operators and return a token stream
 that a Object::Relation parser can parse.
 
 See L<Object::Relation::Parser::DB|Object::Relation::Parser::DB> for an example.
@@ -30,7 +30,7 @@ use warnings;
 our $VERSION = '0.11';
 
 use overload;
-use Object::Relation::Handle            qw/AND BETWEEN/;
+use Object::Relation::Store            qw/AND BETWEEN/;
 use Object::Relation::Exceptions 'throw_search';
 use HOP::Stream               'node';
 
@@ -44,7 +44,7 @@ use Exporter::Tidy            default => ['code_lexer_stream'];
 
 This function, exported on demand, is the only function publicly useful in
 this module. It takes search parameters as described in the
-L<Object::Relation::Handle|Object::Relation::Handle> documents and returns a token stream that
+L<Object::Relation::Store|Object::Relation::Store> documents and returns a token stream that
 Object::Relation parsers should be able to turn into an intermediate representation.
 
 =cut

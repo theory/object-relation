@@ -1,14 +1,14 @@
-package TEST::Object::Relation::Handle::DB::SQLite;
+package TEST::Object::Relation::Store::DB::SQLite;
 
 # $Id$
 
 use strict;
 use warnings;
 
-use base 'TEST::Object::Relation::Handle::DB';
+use base 'TEST::Object::Relation::Store::DB';
 use Test::More;
 use Test::Exception;
-use Object::Relation::Handle qw/:all/;
+use Object::Relation::Store qw/:all/;
 
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
@@ -27,7 +27,7 @@ sub full_text_search : Test(1) {
     my $test = shift;
     my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Object::Relation::Handle->new;
+    my $store = Object::Relation::Store->new;
     throws_ok {$store->query($class => 'full text search string')}
         'Object::Relation::Exception::Fatal::Unsupported',
         'SQLite should die if a full text search is attempted';

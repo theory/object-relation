@@ -6,7 +6,7 @@ use strict;
 
 our $VERSION = '0.11';
 
-use aliased 'Object::Relation::Handle';
+use aliased 'Object::Relation::Store';
 use aliased 'Object::Relation::Collection';
 
 use Object::Relation::Exceptions qw(throw_invalid throw_read_only);
@@ -90,7 +90,7 @@ the same name as the attribute itself.
 my $collection_builder = sub {
     my ($attr, $name, @checks) = @_;
     (my $key = $attr->type) =~ s/^collection_//; # XXX :(
-    my $store = Handle->new; # XXX!
+    my $store = Store->new; # XXX!
     return sub {
         my $self = shift;
         if (@_) {

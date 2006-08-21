@@ -17,7 +17,7 @@ Object::Relation::Lexer::String - Lexer for Object::Relation search strings
 =head1 Description
 
 This package will lex the a string that uses the
-L<Object::Relation::Handle|Object::Relation::Handle> search operators and return a data structure
+L<Object::Relation::Store|Object::Relation::Store> search operators and return a data structure
 that a Object::Relation parser can parse.
 
 See L<Object::Relation::Parser::DB|Object::Relation::Parser::DB> for an example.
@@ -93,7 +93,7 @@ sub _strip_quotes {    # naive
 
 This function, exported on demand, is the only function publicly useful in
 this module. It takes search parameters as described in the
-L<Object::Relation::Handle|Object::Relation::Handle> documentation, formatted as a string, and
+L<Object::Relation::Store|Object::Relation::Store> documentation, formatted as a string, and
 returns a token stream that Object::Relation parsers should be able to turn into an
 intermediate representation.
 

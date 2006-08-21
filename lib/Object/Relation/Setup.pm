@@ -23,7 +23,7 @@ Object::Relation::Setup - Set up a Object::Relation Data Store
 
 =head1 Description
 
-This module is the base class for classes that set up a Object::Relation::Handle data
+This module is the base class for classes that set up a Object::Relation::Store data
 store.
 
 =cut
@@ -133,7 +133,7 @@ sub schema_class {
 
   my $store_class = Object::Relation::Setup->store_class
 
-Returns the name of the Object::Relation::Handle subclass that manages the
+Returns the name of the Object::Relation::Store subclass that manages the
 interface to the data store for Object::Relation applications. By default, this method
 returns the same name as the name of the Object::Relation::Setup subclass, but
 with "Build" removed.

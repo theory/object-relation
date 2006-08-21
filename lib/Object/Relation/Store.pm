@@ -1,4 +1,4 @@
-package Object::Relation::Handle;
+package Object::Relation::Store;
 
 # $Id$
 
@@ -14,26 +14,26 @@ our $VERSION = '0.11';
 
 =head1 Name
 
-Object::Relation::Handle - The Object::Relation data storage class
+Object::Relation::Store - The Object::Relation data storage class
 
 =head1 Synopsis
 
-  use Object::Relation::Handle;
+  use Object::Relation::Store;
   use Object::Relation::Biz::Subclass;
-  my $iter = Object::Relation::Handle->query('Object::Relation::Biz::SubClass' =>
+  my $iter = Object::Relation::Store->query('Object::Relation::Biz::SubClass' =>
                                     attr => 'value');
 
 =head1 Description
 
 This class handles all of the work necessary to communicate with back-end
-storage systems. Object::Relation::Handle itself is an abstract class; its
+storage systems. Object::Relation::Store itself is an abstract class; its
 subclasses will implement its interface for different storage devices: RDBMSs,
 OODBMSs, XML Files, LDAP, or whatever. The canonical storage implementation is
-L<Object::Relation::Handle::DB::Pg|Object::Relation::Handle::DB::Pg>, for
+L<Object::Relation::Store::DB::Pg|Object::Relation::Store::DB::Pg>, for
 PostgreSQL 8.0 or later. Others might include
-L<Object::Relation::Handle::DB::SQLite|Object::Relation::Handle::DB::SQLite> for
-SQLite, Object::Relation::Handle::DB::mysql for MySQL 5.0 or later, and
-Object::Relation::Handle::LDAP.
+L<Object::Relation::Store::DB::SQLite|Object::Relation::Store::DB::SQLite> for
+SQLite, Object::Relation::Store::DB::mysql for MySQL 5.0 or later, and
+Object::Relation::Store::LDAP.
 
 =cut
 
@@ -169,7 +169,7 @@ foreach my $method (@redispatch) {
 
 =head3 new
 
-  my $store = Object::Relation::Handle->new(
+  my $store = Object::Relation::Store->new(
       class => 'DB::Pg',
       cache => 'Memcached',
       dsn   => 'dbi:Pg:dbname=obj_rel',
@@ -185,8 +185,8 @@ default parameters are:
 
 =item class
 
-The subclass of Object::Relation::Handle to use. If the class is under the
-Object::Relation::Handle namespace, you can leave out "Object::Relation::Handle". Otherwise, use
+The subclass of Object::Relation::Store to use. If the class is under the
+Object::Relation::Store namespace, you can leave out "Object::Relation::Store". Otherwise, use
 the full class name. Defaults to "DB::SQLiite".
 
 =item cache
@@ -198,7 +198,7 @@ to "File".
 
 =back
 
-All other parameters are specific to subclasses of Object::Relation::Handle; see the
+All other parameters are specific to subclasses of Object::Relation::Store; see the
 revelant subclass for details.
 
 =cut
@@ -430,7 +430,7 @@ B<Throws:>
 
   package Object::Relation::Base;
   my $km = Object::Relation::Meta->new;
-  Object::Relation::Handle->_add_store_meta($km);
+  Object::Relation::Store->_add_store_meta($km);
 
 This protected method is the interface that allows store subclasses to add
 data-store dependendent attributes to the Object::Relation base class via the
@@ -440,7 +440,7 @@ any necessary attributes or other metadata objects to ease the implemtation of
 the data store.
 
 The default implementation of this method is a no-op. See
-L<Object::Relation::Handle::DB> for an example implemntation.
+L<Object::Relation::Store::DB> for an example implemntation.
 
 =cut
 
@@ -553,7 +553,7 @@ all the objects of the class and returns all of the active objects that match
 the search. The full text substring search works because an XML representation
 of each Object::Relation business object is always kept in the data store. The
 semantics of the search results will, however, be dependent on the full text
-indexing of the data store in question. See the relevant Object::Relation::Handle
+indexing of the data store in question. See the relevant Object::Relation::Store
 subclasses for details on their full text search implementations.
 
 Note that if you need to search for objects with inactive or deleted states,
@@ -1278,7 +1278,7 @@ Because the hash reference cannot be part of an C<OR> search expression.
 
 =head1 How to Implement Store Subclasses
 
-Say you were creating a subclass of Object::Relation::Handle for a new storage back-end.
+Say you were creating a subclass of Object::Relation::Store for a new storage back-end.
 If it were to be called, for example, "Oracle," and it was a database
 back-end, here's what you'd need to do:
 
@@ -1334,14 +1334,14 @@ test database created for testing Object::Relation applications. It is designed
 specifically to fully test the complete store API, as the sample classes
 exhibit every relationship and data type.
 
-=item * Create a subclass of Object::Relation::Handle::DB.
+=item * Create a subclass of Object::Relation::Store::DB.
 
-It should be named Object::Relation::Handle::DB::Oracle. See
-L<Object::Relation::Handle::DB::Pg|Object::Relation::Handle::DB::Pg> and
-L<Object::Relation::Handle::DB::SQLite|Object::Relation::Handle::DB::SQLite> for examples. Be sure
+It should be named Object::Relation::Store::DB::Oracle. See
+L<Object::Relation::Store::DB::Pg|Object::Relation::Store::DB::Pg> and
+L<Object::Relation::Store::DB::SQLite|Object::Relation::Store::DB::SQLite> for examples. Be sure
 to override the C<_add_store_meta()> method if you need to add data-store
 specific trusted attributes to Object::Relation base class. For example,
-Object::Relation::Handle::DB uses this method to add a trusted C<id> attribute that can
+Object::Relation::Store::DB uses this method to add a trusted C<id> attribute that can
 only be accessed by the store classes, but allows them to treat database IDs
 just like any other attribute.
 
@@ -1358,7 +1358,7 @@ the import methods of the various Object::Relation::Meta classes (Attribute, Cla
 Type) add Object::Relation::Meta methods specific to database stores.
 
 Now, an Oracle data store probably wouldn't need to add any metadata methods
-not already added by the Object::Relation::Handle::DB class, but if it did, you could
+not already added by the Object::Relation::Store::DB class, but if it did, you could
 modify the import() methods of these classes to add the necessary methods. For
 example, say you needed to add a foo() method to Object::Relation::Meta::Attribute just
 for use with Oracle, you could add something like this to the import() method
@@ -1378,7 +1378,7 @@ tests for any methods you add! See F<t/dbmeta.t> for an example.
 =item * Create the test classes for the data store.
 
 These should live in the F<t/store> directory, and be subclasses of
-TEST::Object::Relation::Handle::DB. See
+TEST::Object::Relation::Store::DB. See
 F<t/store/TEST/Object/Relation/Store/Handle/DB/SQLite.pm> and
 F<t/store/TEST/Object/Relation/Store/Handle/DB/Pg.pm> for examples.
 

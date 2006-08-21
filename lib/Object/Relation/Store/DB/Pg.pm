@@ -1,4 +1,4 @@
-package Object::Relation::Handle::DB::Pg;
+package Object::Relation::Store::DB::Pg;
 
 # $Id$
 
@@ -6,7 +6,7 @@ use strict;
 
 our $VERSION = '0.11';
 
-use base qw(Object::Relation::Handle::DB);
+use base qw(Object::Relation::Store::DB);
 use Exception::Class::DBI;
 use Object::Relation::Exceptions qw(throw_unsupported);
 use List::Util qw(first);
@@ -22,13 +22,13 @@ use constant _connect_attrs => {
 
 =head1 Name
 
-Object::Relation::Handle::DB::Pg - PostgresSQL-specific behavior for Object::Relation
+Object::Relation::Store::DB::Pg - PostgresSQL-specific behavior for Object::Relation
 
 =head1 Synopsis
 
-  use Object::Relation::Handle;
+  use Object::Relation::Store;
 
-  my $store = Object::Relation::Handle->load('DB');
+  my $store = Object::Relation::Store->load('DB');
 
   $store->connect('dbi:Pg:obj_rel', $user, $pw);
 
@@ -38,7 +38,7 @@ Object::Relation::Handle::DB::Pg - PostgresSQL-specific behavior for Object::Rel
 =head1 Description
 
 This class implements Postgres-specific behavior for the Object::Relation
-storage API, by overriding C<Object::Relation::Handle::DB> methods as needed.
+storage API, by overriding C<Object::Relation::Store::DB> methods as needed.
 
 =cut
 

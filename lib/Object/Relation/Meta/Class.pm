@@ -317,8 +317,8 @@ sub build {
     # Organize attrs into categories.
     my (@ref, @direct, @persist, @colls);
     FAKE: {
-        # Fake out Object::Relation::Handle so that we can get at trusted attributes.
-        package Object::Relation::Handle;
+        # Fake out Object::Relation::Store so that we can get at trusted attributes.
+        package Object::Relation::Store;
         for my $attr ($self->attributes) {
             push @persist, $attr if $attr->persistent;
             push @colls,   $attr if $attr->collection_of;

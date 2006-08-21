@@ -12,7 +12,7 @@ use Test::More;
 use Test::Exception;
 
 use aliased 'Test::MockModule';
-use aliased 'Object::Relation::Handle' => 'Store', ':all';
+use aliased 'Object::Relation::Store' => 'Store', ':all';
 use aliased 'Object::Relation::DataType::DateTime';
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two';    # contains a TestApp::Simple::One object

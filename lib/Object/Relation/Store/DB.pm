@@ -1,9 +1,9 @@
-package Object::Relation::Handle::DB;
+package Object::Relation::Store::DB;
 
 # $Id$
 
 use strict;
-use base qw(Object::Relation::Handle);
+use base qw(Object::Relation::Store);
 our $VERSION = '0.11';
 use DBI qw(:sql_types);
 use Scalar::Util qw(blessed);
@@ -20,7 +20,7 @@ use Object::Relation::Exceptions qw/
   throw_unimplemented
   throw_unsupported
   /;
-use Object::Relation::Handle qw/:sorting/;
+use Object::Relation::Store qw/:sorting/;
 use Object::Relation::Parser qw/parse/;
 use Object::Relation::Lexer::Code qw/code_lexer_stream/;
 use Object::Relation::Lexer::String qw/string_lexer_stream/;
@@ -51,18 +51,18 @@ foreach my $method (@setup_string_methods) {
 
 =head1 Name
 
-Object::Relation::Handle::DB - The Object::Relation database store base class
+Object::Relation::Store::DB - The Object::Relation database store base class
 
 =head1 Synopsis
 
-See L<Object::Relation::Handle|Object::Relation::Handle>.
+See L<Object::Relation::Store|Object::Relation::Store>.
 
 =head1 Description
 
 This class implements the Object::Relation storage API using DBI to
 communicate with an RDBMS. RDBMS specific behavior is implemented via the
-C<Object::Relation::Handle::DB::Pg> and
-C<Object::Relation::Handle::DBI::SQLite> classes.
+C<Object::Relation::Store::DB::Pg> and
+C<Object::Relation::Store::DBI::SQLite> classes.
 
 =cut
 
@@ -195,7 +195,7 @@ but if not, this method is available. Note that it is only available
 externally if the programmer first creates an instances of store prior to
 doing a search.
 
- my $store = Object::Relation::Handle->new;
+ my $store = Object::Relation::Store->new;
  my $iter  = $store->query($some_class, name => 'foo');
  my $class = $store->search_class; # returns $some_class
 
@@ -263,7 +263,7 @@ sub lookup {
 
 Returns a L<Object::Relation::Iterator|Object::Relation::Iterator> object
 containing all objects that match the search params. See
-L<Object::Relation::Handle|Object::Relation::Handle> for more information
+L<Object::Relation::Store|Object::Relation::Store> for more information
 about search params.
 
 =begin comment
@@ -397,7 +397,7 @@ sub _date_handler {
   my ($where_token, $bind_params) = $self->_XXX_date_handler($search_object);
 
 The date handler methods which the search object dispatches to are data store
-dependent. Thus, the methods in C<Object::Relation::Handle::DB> throw
+dependent. Thus, the methods in C<Object::Relation::Store::DB> throw
 exceptions when called to warn the user they must be overridden.
 
 The various date handlers are:
@@ -1715,7 +1715,7 @@ sub _LIKE_SEARCH {
  my $constraints = $store->_constraints(\%constraints);
 
 This method takes a hash ref of "order by" and "limit" constraints as
-described in L<Object::Relation::Handle|Object::Relation::Handle> and return
+described in L<Object::Relation::Store|Object::Relation::Store> and return
 an sql snippet representing those constraints.
 
 =cut
@@ -1853,7 +1853,7 @@ sub _connect_attrs {
 
   package Object::Relation::Base;
   my $km = Object::Relation::Meta->new;
-  Object::Relation::Handle->_add_store_meta($km);
+  Object::Relation::Store->_add_store_meta($km);
 
 This protected method adds an "id" attribute to the Object::Relation base
 class, solely for use from within database stores. May be overridden in

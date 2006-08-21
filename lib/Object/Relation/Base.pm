@@ -8,7 +8,7 @@ use encoding 'utf8';
 binmode STDERR, ':utf8';
 use Object::Relation::Meta;
 use Object::Relation::Meta::Widget;
-use Object::Relation::Handle;
+use Object::Relation::Store;
 use Object::Relation::Functions qw(:uuid);
 use Object::Relation::DataType::State qw(:all);
 
@@ -61,7 +61,7 @@ BEGIN {
         key         => 'obj_rel_base_class',
         name        => 'Object::Relation Base Class',
         plural_name => 'Object::Relation Base Classes',
-        trust       => 'Object::Relation::Handle',
+        trust       => 'Object::Relation::Store',
         abstract    => 1,
     );
 
@@ -126,7 +126,7 @@ Object::Relation::Base->my_class->key >>.
   my $obj_rel = Some::Object::Relation->lookup(uuid => $uuid);
 
 Calling this method looks up a Object::Relation object in the data store. See the
-C<lookup> method in L<Object::Relation::Handle|Object::Relation::Handle> for more
+C<lookup> method in L<Object::Relation::Store|Object::Relation::Store> for more
 information.
 
 =cut
@@ -148,7 +148,7 @@ information.
 
 Calling this method searches the data store for objects meeting the query
 criteria. See the C<query> method in
-L<Object::Relation::Handle|Object::Relation::Handle> for more information.
+L<Object::Relation::Store|Object::Relation::Store> for more information.
 
 =cut
 
@@ -160,7 +160,7 @@ L<Object::Relation::Handle|Object::Relation::Handle> for more information.
 
 Calling this method searches the data store for objects meeting the query
 criteria. This method uses a string search instead of a code search. See the
-C<squery> method in L<Object::Relation::Handle|Object::Relation::Handle> for more
+C<squery> method in L<Object::Relation::Store|Object::Relation::Store> for more
 information.
 
 =cut
@@ -194,7 +194,7 @@ information.
 
 This method returns a count of the objects in the data store which meet the
 search criteria. See the C<count> method in
-L<Object::Relation::Handle|Object::Relation::Handle> for more information.
+L<Object::Relation::Store|Object::Relation::Store> for more information.
 
 =cut
 
@@ -206,7 +206,7 @@ L<Object::Relation::Handle|Object::Relation::Handle> for more information.
 
 This method returns an array ref of uuids of the objects in the data store
 which meet the search criteria. See the C<query_uuids> method in
-L<Object::Relation::Handle|Object::Relation::Handle> for more information.
+L<Object::Relation::Store|Object::Relation::Store> for more information.
 
 =cut
 
@@ -374,7 +374,7 @@ sub is_persistent {
   $obj_rel->save;
 
 Calling this method saves the Object::Relation object to the data store. See the
-C<save> method in L<Object::Relation::Handle|Object::Relation::Handle> for more
+C<save> method in L<Object::Relation::Store|Object::Relation::Store> for more
 information.
 
 =cut
@@ -482,7 +482,7 @@ L<Object::Relation::Meta::AccessorBuilder|Object::Relation::Meta::AccessorBuilde
 Returns a list or array reference of the names of all of the persistent
 attributes that have been modified since the object was instantiated or since
 the last time it was saved. Called by
-C<Object::Relation::Handle|Object::Relation::Handle> and its subclasses to
+C<Object::Relation::Store|Object::Relation::Store> and its subclasses to
 determine what changes to send to the data store.
 
 =cut
@@ -500,7 +500,7 @@ determine what changes to send to the data store.
   $obj_rel->_clar_modified;
 
 Clears out the list of the names of modified persistent attributes. Called by
-C<Object::Relation::Handle|Object::Relation::Handle> and its subclasses once they
+C<Object::Relation::Store|Object::Relation::Store> and its subclasses once they
 have saved any changes to the data store.
 
 =cut

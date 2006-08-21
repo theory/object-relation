@@ -15,11 +15,11 @@ BEGIN {
 };
 
 STORE: {
-    package Object::Relation::Handle::DB::SQLite;
+    package Object::Relation::Store::DB::SQLite;
     sub new { bless {} => shift }
 }
 
-my $store = Object::Relation::Handle::DB::SQLite->new;
+my $store = Object::Relation::Store::DB::SQLite->new;
 
 for my $compare (
     [

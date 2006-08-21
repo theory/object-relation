@@ -10,7 +10,7 @@ use lib 'lib';
 use HOP::Stream 'drop';
 use aliased 'Object::Relation::DataType::DateTime::Incomplete';
 BEGIN {
-    use_ok 'Object::Relation::Handle', qw/:all/             or die;
+    use_ok 'Object::Relation::Store', qw/:all/             or die;
     use_ok 'Object::Relation::Lexer::Code', qw/code_lexer_stream/ or die;
 }
 

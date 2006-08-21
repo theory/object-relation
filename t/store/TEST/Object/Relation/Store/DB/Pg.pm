@@ -1,14 +1,14 @@
-package TEST::Object::Relation::Handle::DB::Pg;
+package TEST::Object::Relation::Store::DB::Pg;
 
 # $Id$
 
 use strict;
 use warnings;
 
-use base 'TEST::Object::Relation::Handle::DB';
+use base 'TEST::Object::Relation::Store::DB';
 use Test::More;
 use Test::Exception;
-use Object::Relation::Handle qw/:all/;
+use Object::Relation::Store qw/:all/;
 
 use aliased 'TestApp::Simple::One';
 use aliased 'TestApp::Simple::Two'; # contains a TestApp::Simple::One object
@@ -22,7 +22,7 @@ __PACKAGE__->SKIP_CLASS(
 
 __PACKAGE__->runtests unless caller;
 
-# This method is used by TEST::Object::Relation::Handle::DB to check unique constraint
+# This method is used by TEST::Object::Relation::Store::DB to check unique constraint
 # error messages.
 sub unique_attr_regex {
     my ($self, $col, $key) = @_;
@@ -47,7 +47,7 @@ sub full_text_search : Test(2) {
     my $test = shift;
     my ($foo, $bar, $baz) = $test->test_objects;
     my $class = $foo->my_class;
-    my $store = Object::Relation::Handle->new({
+    my $store = Object::Relation::Store->new({
         class => $ENV{OBJ_REL_CLASS},
         cache => $ENV{OBJ_REL_CACHE},
         user  => $ENV{OBJ_REL_USER},

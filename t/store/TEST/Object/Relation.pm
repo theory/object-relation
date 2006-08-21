@@ -12,7 +12,7 @@ use Encode qw(is_utf8);
 
 use aliased 'Test::MockModule';
 
-use Object::Relation::Handle qw/:all/;
+use Object::Relation::Store qw/:all/;
 use aliased 'Object::Relation::Iterator';
 use aliased 'Object::Relation::DataType::State';
 
@@ -42,7 +42,7 @@ sub _should_run {
     my $ref = ref $test;
     return $ENV{OBJ_REL_CLASS} && (
         $ref eq "TEST::$ENV{OBJ_REL_CLASS}"
-            || $ref eq "TEST::Object::Relation::Handle::$ENV{OBJ_REL_CLASS}"
+            || $ref eq "TEST::Object::Relation::Store::$ENV{OBJ_REL_CLASS}"
     );
 }
 

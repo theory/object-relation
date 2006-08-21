@@ -27,7 +27,7 @@ Object::Relation::Iterator - Object::Relation iterator class
 This class provides an iterator interface for accessing a list of items,
 generally Object::Relation objects. Users generally won't create iterator objects
 directly, but will get them back from calls to the C<search()> method of
-Object::Relation::Handle.
+Object::Relation::Store.
 
 The basic interface for iterator objects is the C<next()> instance
 method. This method will return each item in turn, and will return C<undef>

@@ -1,4 +1,4 @@
-package TEST::Object::Relation::Handle;
+package TEST::Object::Relation::Store;
 
 # $Id$
 
@@ -10,7 +10,7 @@ use Test::More;
 use Test::Exception;
 use Encode qw(is_utf8);
 
-use aliased 'Object::Relation::Handle' => 'Store', ':all';
+use aliased 'Object::Relation::Store' => 'Store', ':all';
 
 use aliased 'Object::Relation::DataType::DateTime';
 use aliased 'Object::Relation::DataType::DateTime::Incomplete';
@@ -375,13 +375,13 @@ sub unit_constructor : Test(6) {
     my $class = $test->handle_class;
     can_ok $class => 'new';
 
-    throws_ok { Object::Relation::Handle->new({ class => 'Bogus::Class'}) }
+    throws_ok { Object::Relation::Store->new({ class => 'Bogus::Class'}) }
       'Object::Relation::Exception::Fatal::InvalidClass',
       '... and trying to load it with a bad class should throw an exception';
 
     ok my $store = $class->new;
     isa_ok $store, $class;
-    isa_ok $store, 'Object::Relation::Handle';
+    isa_ok $store, 'Object::Relation::Store';
 
     my $store2 = $class->new;
     isnt "$store", "$store2", '... and a singleton should not be returned';

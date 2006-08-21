@@ -2,19 +2,19 @@
 
 =head1 Name
 
-Object::Relation::Handle::DB::Overview - Developer's overview of Object::Relation::Handle::DB
+Object::Relation::Store::DB::Overview - Developer's overview of Object::Relation::Store::DB
 
 =head1 Synopsis
 
-See L<Object::Relation::Handle|Object::Relation::Handle>.
+See L<Object::Relation::Store|Object::Relation::Store>.
 
 =head1 Description
 
 This class implements the Object::Relation storage API using DBI to communicate with an
-DBMS. DBMS specific behavior is implemented via the C<Object::Relation::Handle::DB::Pg>
-and C<Object::Relation::Handle::DBI::SQLite> classes.
+DBMS. DBMS specific behavior is implemented via the C<Object::Relation::Store::DB::Pg>
+and C<Object::Relation::Store::DBI::SQLite> classes.
 
-This discussion will be a high-level overview of how the C<Object::Relation::Handle::DB>
+This discussion will be a high-level overview of how the C<Object::Relation::Store::DB>
 class operates.
 
 =head1 Methods
@@ -49,7 +49,7 @@ managing these relationships as simple as working with a single table.
 C<SELECT>ing from a view is relatively trivial, as one might assume.
 C<INSERT>ing or C<UPDATE>ing (sic) is just as trivial and, behind the scenes,
 activate triggers or call rules that take the C<INSERT> or C<UPDATE> and
-create or modify the appropriate records. Thus, C<Object::Relation::Handle::DB> merely
+create or modify the appropriate records. Thus, C<Object::Relation::Store::DB> merely
 needs to determine the name of the view and the correct column names for said
 view.
 
@@ -106,7 +106,7 @@ also.
 
 This method returns a L<Object::Relation::Iterator|Object::Relation::Iterator>
 object containing all objects that match the query parameters. See
-L<Object::Relation::Handle|Object::Relation::Handle> for detailed information about query
+L<Object::Relation::Store|Object::Relation::Store> for detailed information about query
 parameters.
 
 First we'll give a general overview of how the C<query> method works and then
@@ -313,7 +313,7 @@ same view, inside of the database it's actually in a separate table.
 
 In order to build these snippets, each C<Object::Relation::Search> object has a
 C<search_method> method. The method name returned corresponds to a method that
-must be defined in C<Object::Relation::Handle::DB> or a subclass. It works like this:
+must be defined in C<Object::Relation::Store::DB> or a subclass. It works like this:
 
   my $search_method    = $search_object->search_method;
   my ( $token, $bind ) = $store->$search_method( $search_object );

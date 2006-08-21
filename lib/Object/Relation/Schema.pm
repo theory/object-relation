@@ -56,7 +56,7 @@ sub new {
     my $class = shift;
     unless ($class ne __PACKAGE__) {
         $class = shift;
-        $class =~ s/^Object::Relation::Handle/Object::Relation::Schema/;
+        $class =~ s/^Object::Relation::Store/Object::Relation::Schema/;
         eval "require $class" or die $@;
     }
     bless {}, $class;

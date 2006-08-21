@@ -373,11 +373,11 @@ sub _normalize_value {
 
 sub parse {
     my ( $stream, $store ) = @_;
-    unless ( blessed $store && $store->isa('Object::Relation::Handle') ) {
+    unless ( blessed $store && $store->isa('Object::Relation::Store') ) {
         throw_search [
             'Argument "[_1]" is not a valid [_2] object',
              2,
-            'Object::Relation::Handle'
+            'Object::Relation::Store'
         ];
     }
     $STORE = $store;

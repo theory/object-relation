@@ -13,15 +13,15 @@ use Test::Differences;
 FAKESQLITE: {
 
     # Fake out loading of SQLite store.
-    package Object::Relation::Handle::DB::SQLite;
-    use base 'Object::Relation::Handle::DB';
+    package Object::Relation::Store::DB::SQLite;
+    use base 'Object::Relation::Store::DB';
     $INC{'Object/Relation/Store/Handle/DB/SQLite.pm'} = __FILE__;
 }
 
 BEGIN { use_ok 'Object::Relation::Schema' or die }
 
 ok my $sg = Object::Relation::Schema->new(
-    'Object::Relation::Handle::DB::SQLite'
+    'Object::Relation::Store::DB::SQLite'
 ), 'Get new Schema';
 isa_ok $sg, 'Object::Relation::Schema';
 isa_ok $sg, 'Object::Relation::Schema::DB';

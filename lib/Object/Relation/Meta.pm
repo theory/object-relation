@@ -189,7 +189,7 @@ sub new {
             || ($package->can('StoreHandle') ? undef : {});
 
         if ($store_config) {
-            my $handle = Object::Relation::Handle->new($store_config);
+            my $handle = Object::Relation::Store->new($store_config);
             $handle->_add_store_meta($self);
             no strict 'refs';
             *{"$package\::StoreHandle"} = sub { $handle };

@@ -216,7 +216,7 @@ sub store_raw {
         qw(years months days hours minutes seconds nanoseconds)
     );
 
-    if ($store && $store->isa('Object::Relation::Handle::DB::Pg')) {
+    if ($store && $store->isa('Object::Relation::Store::DB::Pg')) {
         # Use PostgreSQL's ugly format.
         $units[5] += delete($units[6]) / DateTime::MAX_NANOSECONDS;
         return sprintf '%s years %s mons %s days %s hours %s mins %s secs',

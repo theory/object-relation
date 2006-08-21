@@ -21,7 +21,7 @@ L<Object::Relation::Parser|Object::Relation::Parser> class operates.
 L<Object::Relation::Parser|Object::Relation::Parser> uses the Parser module
 described in "Higher Order Perl," by Mark Jason Dominus, to transform a series
 of tokens into an intermediate representation that the
-L<Object::Relation::Handle|Object::Relation::Handle> subclasses can use to initiate searches
+L<Object::Relation::Store|Object::Relation::Store> subclasses can use to initiate searches
 against a datastore.
 
 The following non-standard BNF grammar describes the legal grammar allowed for
@@ -225,7 +225,7 @@ L<Object::Relation::Search|Object::Relation::Search> object.
 
 At this point, it calls the C<_make_search> function with the data it has
 matched to build and return a search object. This is when it uses the
-L<Object::Relation::Handle|Object::Relation::Handle> object that was passed in to validate that
+L<Object::Relation::Store|Object::Relation::Store> object that was passed in to validate that
 the search can actually be performed on the Object::Relation class on which we are
 currently searching.
 

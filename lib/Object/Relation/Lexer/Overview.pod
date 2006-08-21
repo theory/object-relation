@@ -68,7 +68,7 @@ security hole. Instead, we use code and string lexers that convert each type
 of search into virtually identical token streams. By taking this approach, we
 can use a single parser, L<Object::Relation::Parser|Object::Relation::Parser>, to
 convert either type of search request into a form that
-L<Object::Relation::Handle|Object::Relation::Handle> recognizes. In the future, if someone wishes
+L<Object::Relation::Store|Object::Relation::Store> recognizes. In the future, if someone wishes
 to submit searches in an XML format, all they will need to do is write
 C<Object::Relation::Lexer::XML> and ensure that equivalent searches generate
 identical token streams and the parser will be able to understand it.
@@ -225,7 +225,7 @@ in the array reference:
   [ name => LIKE '%vid', age  => GE 21 ]
 
 C<LIKE>, C<GE>, and similar items are actually subroutines exported by
-L<Object::Relation::Handle|Object::Relation::Handle>. These subroutines return self-lexing
+L<Object::Relation::Store|Object::Relation::Store>. These subroutines return self-lexing
 subroutines. The lexer, upon encountering them, calls them:
 
   my $value = shift @$code;

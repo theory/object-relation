@@ -1,4 +1,4 @@
-package TEST::Object::Relation::Handle::DB;
+package TEST::Object::Relation::Store::DB;
 
 # $Id$
 
@@ -8,13 +8,13 @@ use warnings;
 use Test::More;
 use Test::Exception;
 use Encode qw(is_utf8);
-use base 'TEST::Object::Relation::Handle';
+use base 'TEST::Object::Relation::Store';
 
 use aliased 'Test::MockModule';
 use aliased 'Object::Relation::Meta';
 use aliased 'Object::Relation::Meta::Attribute';
-use aliased 'Object::Relation::Handle' => 'DONT_USE', ':all';
-use aliased 'Object::Relation::Handle::DB' => 'Store';
+use aliased 'Object::Relation::Store' => 'DONT_USE', ':all';
+use aliased 'Object::Relation::Store::DB' => 'Store';
 use aliased 'Object::Relation::DataType::State';
 
 use aliased 'TestApp::Simple';
@@ -59,7 +59,7 @@ sub shutdown : Test(shutdown) {
 
 sub test_id : Test(5) {
 
-    # Test the private ID attribute added by Object::Relation::Handle::DB.
+    # Test the private ID attribute added by Object::Relation::Store::DB.
     my $self = shift;
     ok my $class = One->my_class, "We should get the class object";
     ok my $attr = $class->attributes('id'),
@@ -68,16 +68,16 @@ sub test_id : Test(5) {
     ok !grep( { $_->name eq 'id' } $class->attributes ),
       "A call to attributes() should not include private attribute id";
     {
-        package Object::Relation::Handle;
+        package Object::Relation::Store;
         Test::More::ok grep( { $_->name eq 'id' } $class->attributes ),
-          "But it should include it when we mock the Object::Relation::Handle package";
+          "But it should include it when we mock the Object::Relation::Store package";
     }
 }
 
 sub test_dbh : Test(2) {
     my $test  = shift;
     my $class = $test->test_class;
-    if ( $class eq 'Object::Relation::Handle::DB' ) {
+    if ( $class eq 'Object::Relation::Store::DB' ) {
         throws_ok { $class->_connect_attrs }
           'Object::Relation::Exception::Fatal::Unimplemented',
           "_connect_attrs should throw an exception";
@@ -397,7 +397,7 @@ sub build_objects : Test(16) {
 
 sub save : Test(12) {
     my $test  = shift;
-    my $store = Object::Relation::Handle->new;
+    my $store = Object::Relation::Store->new;
     my $dbh   = $store->_dbh;
     my $mock  = MockModule->new(Store);
     my ( $update, $insert, $begin, $commit, $rollback );
@@ -441,7 +441,7 @@ sub save_contained : Test(1) {
     my ( $update, $insert );
     $mock->mock( _update => sub { $update = 1; $insert = 0 } );
     $mock->mock( _insert => sub { $update = 0; $insert = 1 } );
-    my $store = Object::Relation::Handle->new;
+    my $store = Object::Relation::Store->new;
     my $dbh   = $store->_dbh;
     $mock->mock( _dbh => $dbh );
     $store->save($object2);
@@ -541,7 +541,7 @@ sub query_match : Test(7) {
     my $test = shift;
     return 'abstract class' unless $test->_should_run;
     my ($foo, $bar, $baz) = $test->test_objects;
-    my $store = Object::Relation::Handle->new({
+    my $store = Object::Relation::Store->new({
         class => $ENV{OBJ_REL_CLASS},
         cache => $ENV{OBJ_REL_CACHE},
         user  => $ENV{OBJ_REL_USER},
@@ -612,7 +612,7 @@ sub test_extend : Test(45) {
     my $mock_sth = MockModule->new('DBI::st', no_auto => 1);
     $mock_sth->mock(execute => $execute );
 
-    my $mocker = Test::MockModule->new('Object::Relation::Handle::DB');
+    my $mocker = Test::MockModule->new('Object::Relation::Store::DB');
     $mocker->mock(_set_ids => 1);
 
     ok $extend->save, 'Call the save method';
@@ -795,7 +795,7 @@ sub test_mediate : Test(43) {
     my $mock_sth = MockModule->new('DBI::st', no_auto => 1);
     $mock_sth->mock(execute => $execute );
 
-    my $mocker = Test::MockModule->new('Object::Relation::Handle::DB');
+    my $mocker = Test::MockModule->new('Object::Relation::Store::DB');
     $mocker->mock(_set_ids => 1);
 
     ok $relation->save, 'Call the save method';
