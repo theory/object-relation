@@ -7,10 +7,7 @@ use Object::Relation::Exceptions qw(
     throw_invalid_class
     throw_unimplemented
 );
-
-use Class::BuildMethods qw(
-    verbose
-);
+__PACKAGE__->_accessorize(qw(verbose));
 
 our $VERSION = '0.11';
 
@@ -245,10 +242,41 @@ sub notify {
     return $self;
 }
 
+##############################################################################
+
+=begin private
+
+=head1 Private Interface
+
+=head2 Private Class Methods
+
+=head3 _accessorize
+
+  __PACKAGE__->accessorize(qw(foo bar));
+
+This method is used by subclasses to create simple accessor methods.
+
+=cut
+
+sub _accessorize {
+    my $class = shift;
+    for my $attr (@_) {
+        no strict 'refs';
+        *{"$class\::$attr"} = sub {
+            my $self = shift;
+            return $self->{$attr} unless @_;
+            $self->{$attr} = shift;
+            return $self;
+        };
+    }
+}
+
 1;
 __END__
 
 ##############################################################################
+
+=end private
 
 =head1 Copyright and License
 

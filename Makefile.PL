@@ -14,7 +14,6 @@ WriteMakefile(
     PREREQ_PM    => {
         'Array::AsHash'              => '0.31',
         'Cache::Cache'               => '1.04',
-        'Class::BuildMethods'        => '0.1',
         'Class::Meta'                => '0.53',
         'Class::Meta::Express'       => '0.03',
         'Class::Trait'               => '0.11',

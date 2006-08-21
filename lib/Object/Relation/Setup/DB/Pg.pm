@@ -11,12 +11,12 @@ use FSA::Rules;
 use Object::Relation::Language;
 use POSIX qw(WIFEXITED);
 
-use Class::BuildMethods qw(
+__PACKAGE__->_accessorize(qw(
     super_user
     super_pass
     template_dsn
     createlang
-);
+));
 
 use Object::Relation::Exceptions qw(
     throw_unsupported

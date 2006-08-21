@@ -12,7 +12,6 @@ my $build = Module::Build->new(
     requires             => {
         'aliased'                    => 0.11,
         'Array::AsHash'              => 0.31,
-        'Class::BuildMethods'        => 0.10,  # XXX Kill?
         'Class::Meta'                => 0.53,
         'Class::Meta::Express'       => 0.04,
         'Clone'                      => 0.15,  # XXX Kill?

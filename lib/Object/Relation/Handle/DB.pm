@@ -10,10 +10,6 @@ use Clone;
 use Scalar::Util qw(blessed);
 use constant DBI_CLASS => 'DBI';
 
-use Class::BuildMethods qw(
-  _in_transaction
-);
-
 use Object::Relation::Exceptions qw/
   isa_exception
   panic
@@ -1882,6 +1878,27 @@ sub _add_store_meta {
 
     return $self;
 }
+
+##############################################################################
+
+=head3 _in_transaction
+
+  unless ($store->_in_transaction) {
+      $story->_in_transaction(1);
+  }
+
+Simple boolean method to determine whether or not we're currently in a
+transaction.
+
+=cut
+
+sub _in_transaction {
+    my $self = shift;
+    return $self->{_in_transaction} unless @_;
+    $self->{_in_transaction} = shift;
+    return $self;
+}
+
 
 1;
 __END__

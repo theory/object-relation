@@ -8,14 +8,8 @@ our $VERSION = '0.11';
 
 use base 'Object::Relation::Setup';
 use Object::Relation::Exceptions;
-use Class::BuildMethods qw(
-    dsn
-    user
-    pass
-    dbh
-);
-
 use DBI;
+__PACKAGE__->_accessorize(qw(dsn user pass dbh));
 
 =head1 Name
 
@@ -162,6 +156,14 @@ Gets or sets the username used to connect to the database via the DBI.
   $setup->pass($pass);
 
 Gets or sets the passname used to connect to the database via the DBI.
+
+=head3 dbh
+
+  my $dbh = $setup->dbh;
+  $setup->dbh($dbh);
+
+Gets or sets the database handle. This attribute is automatically set by
+callse to C<connect()>.
 
 =cut
 
