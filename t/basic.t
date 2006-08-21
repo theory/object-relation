@@ -6,7 +6,6 @@ use strict;
 use Test::More tests => 56;
 #use Test::More 'no_plan';
 use Test::NoWarnings; # Adds an extra test.
-use MIME::Base64 ();
 
 BEGIN {
     use_ok 'Object::Relation::Base' or die;
@@ -52,14 +51,15 @@ isa_ok $obj_rel, 'MyApp::TestThingy';
 isa_ok $obj_rel, 'Object::Relation::Base';
 
 # Check UUID.
+my $UG = Data::UUID->new;
 ok my $uuid = $obj_rel->uuid, "Get UUID";
 ok !$obj_rel->is_persistent, 'It should not be persistent';
 ok uuid_to_bin($uuid), "It's a valid UUID";
 is join('-', unpack('x2 a8 a4 a4 a4 a12', $obj_rel->uuid_hex)),
     $obj_rel->uuid, 'Valid Hex UUID';
 is $obj_rel->uuid_bin, uuid_to_bin($uuid), 'Valid binary UUID';
-is MIME::Base64::decode_base64($obj_rel->uuid_base64),
-    $obj_rel->uuid_bin, 'Valid Base64 UUID';
+is $UG->from_b64string($obj_rel->uuid_base64),
+    $obj_rel->uuid_bin, 'Valid base64 UUID';
 ok my $attr = $class->attributes('uuid'), "Get UUID attr object";
 is $attr->get($obj_rel), $obj_rel->uuid, "Get UUID value";
 is $attr->name, 'uuid', "Check UUID attr name";

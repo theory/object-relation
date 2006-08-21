@@ -5,7 +5,6 @@ package Object::Relation::Functions;
 use strict;
 our $VERSION = '0.11';
 use Data::UUID;
-use MIME::Base64;
 use File::Find::Rule;
 use File::Spec;
 use List::Util qw(first sum);
@@ -86,7 +85,7 @@ sub uuid_to_hex {
 }
 
 sub uuid_to_b64 {
-    encode_base64(uuid_to_bin(shift));
+    return $UUID->to_b64string($UUID->from_string(shift));
 }
 
 ##############################################################################

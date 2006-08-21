@@ -33,6 +33,8 @@ Revision history for Perl extension Object::Relation.
        - Now requring Class::Meta::Express 0.04.
        - Eliminated dependency on Class::BuildMethods.
        - Removed unused dependency on Clone.
+       - Eliminated dependency on MIME::Base64 (although modules that this
+         module depend on likely depend on it).
 
 0.1.0  2006-07-28T17:18:40
        - Initial public release

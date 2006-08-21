@@ -245,7 +245,7 @@ store.
 
 The UUID takes the form of a 32-bit string, such as
 "12CAD854-08BD-11D9-8AF0-8AB02ED80375". It is also available in binary, hex
-string, and Base64-encoded formats using the corresponding accessors:
+string, and base64-encoded formats using the corresponding accessors:
 
 =over 4
 

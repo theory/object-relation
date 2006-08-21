@@ -41,7 +41,8 @@ UUID: { # 10 tests.
     is uuid_to_bin($uuid), $bin, 'uuid_to_bin should work';
 
     # Test uuid_to_b64().
-    is uuid_to_b64($uuid), MIME::Base64::encode($bin),
+    my $UG = Data::UUID->new;
+    is uuid_to_b64($uuid), $UG->to_b64string($bin),
         'uuid_to_b64 should work';
 }
 

@@ -29,7 +29,6 @@ requires:
   List::MoreUtils: 0
   List::Util: 0
   Locale::Maketext: 1.09
-  MIME::Base64: 0
   MIME::Types: 1.14
   Regexp::Common: 2.119
   Widget::Meta: 0.03

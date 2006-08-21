@@ -31,7 +31,6 @@ my $build = Module::Build->new(
         'List::Util'                 => 0,
         'List::MoreUtils'            => 0,
         'Locale::Maketext'           => 1.09,   # XXX Kill?
-        'MIME::Base64'               => 0,      # XXX Kill?
         'MIME::Types'                => 1.14,
         'Data::UUID'                 => 0,
         'Regexp::Common'             => 2.119,
