@@ -77,7 +77,6 @@ t/lexer/string.t
 t/lib/TEST/Class/Kinetic.pm
 t/lib/TEST/Class/Object/Relation.pm
 t/lib/TEST/Object/Relation/TestSetup.pm
-t/lib/TEST/Object/Traits/Debug.pm
 t/lib/TEST/Object/Traits/HTML.pm
 t/lib/TEST/Object/Traits/JSON.pm
 t/lib/TEST/Object/Traits/SampleObjects.pm
