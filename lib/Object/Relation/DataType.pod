@@ -19,26 +19,24 @@ doesn't usually take much to create the simple data types, while the complex
 data types might need more code to handle serialization and deserialization,
 overloading, etc. But another criterion is that, while the data types in
 L<Object::Relation::Meta::DataTypes|Object::Relation::Meta::DataTypes> are
-I<always> loaded by Object::Relation, since it uses them for its own classes,
-the complex data types in the C<Object::Relation::DataType> name space tend to
-be loaded only as needed by the Object::Relation business classes that need
-them.
+I<always> loaded by Object::Relation, the complex data types in the
+C<Object::Relation::DataType> name space tend to be loaded only as needed by
+the Object::Relation classes that need them.
 
 Okay, so it's somewhat arbitrary, but you get the idea. The remainder of this
-document is dedicated to documenting how to add new data types to Object::Relation.
+document is dedicated to documenting how to add new data types to
+Object::Relation.
 
 =head1 Adding Data Types to Object::Relation
 
 The first step is to determine exactly what the data type will consist of. Is
 it a simple string or number? A read-only object? A mutable object? Before you
-go any further, consider this: Any Object::Relation business class that you
-create that inherits from L<Object::Relation::Base|Object::Relation::Base> and
-is implemented using L<Object::Relation::Meta|Object::Relation::Meta> is
-already a data type. Its C<key> attribute will name is as an attribute, and
-nothing further needs to be done.
+go any further, consider this: Any Object::Relation class that you create is
+already a data type. Its C<key> attribute is also the name of the data type,
+and nothing further needs to be done.
 
-So, aside from Object::Relation business classes, there are essentially three
-different kinds of data types that you can add.
+So, aside from Object::Relation classes, there are essentially three different
+kinds of data types that you can add.
 
 =over
 
@@ -67,22 +65,22 @@ type using L<Object::Relation::Meta::Type|Object::Relation::Meta::Type>:
       check   => sub {
           my ($new_val, $attr_name, $obj) = shift;
           return unless defined $new_val;
-          Data::Types::is_real($new_val) or throw_invalid([
+          Data::Types::is_real($new_val) or throw_invalid [
               'Value "[_1]" is not a real number',
               $new_val,
-          ]);
+          ];
       },
   );
 
 The first two parameters should be pretty straight-forward: we need a key name
 for the data type. This key name must be unique across all other data types,
-as well as the key names of Object::Relation business classes. The C<name>
-parameter is simply a display name for the data type.
+as well as the key names of Object::Relation classes. The C<name> parameter is
+simply a display name for the data type.
 
 The C<check> parameter requires a bit more explanation. This optional
-parameter takes an anonymous subroutine as it value. The anonymous subroutine
+parameter takes an anonymous subroutine as its value. The anonymous subroutine
 should expect three arguments: the new value being assigned to an attribute of
-the type we're defining, the name of the attribute, and the object to which
+the type we're defining, the name of that attribute, and the object to which
 the new value will be assigned. You may use any and all of these objects to
 validate the new value.
 
@@ -109,7 +107,7 @@ UTF-8 curly quotes for the translation of the error message into English.
 Other locales might chose to do something else (e.g., the French localization
 might want to use "«[_1]»", instead).
 
-And now the data type has been added and you can just start using it, right?
+Now that the data type has been added and you can just start using it, right?
 Well, no, not quite. We still need to tell the data stores how to store an
 attribute of this type. Currently, you tell each data store how to store a
 data type by editing
@@ -128,7 +126,7 @@ module:
 
   real => 'REAL',
 
-And that's it! Well, no, one more thing: write some tests! You want to make
+And that's it! Well, no, one more thing: B<write some tests!> You want to make
 sure that your new data type works properly in Object::Relation as well as in
 the data stores, so be sure to write some tests that validate that you can
 create C<real> attributes, that invalid values fail, and that the databases
@@ -178,12 +176,11 @@ validating code reference for us, looking something like this:
   sub {
       my $val = shift;
       return unless defined $val;
-      eval { $val->isa($pkg) }
-          or throw_invalid([
-              'Value "[_1]" is not a valid [_2] object',
-              $val,
-              $pkg,
-          ]);
+      eval { $val->isa($pkg) } or throw_invalid [
+          'Value "[_1]" is not a valid [_2] object',
+          $val,
+          $pkg,
+      ];
   }
 
 In our C<version> data type example, $pkg will be set to 'version'.
@@ -197,9 +194,9 @@ for getting the raw value from a C<version> object:
 
       raw   => sub { ref $_[0] ? shift->stringify : shift },
 
-The C<bake> parameters is the converse of C<raw>: it deserializes the
-value from the data store into an object. For C<version>, it simply
-calls C<new()> and passes in the raw value from the data store:
+The C<bake> parameter is the converse of C<raw>: it deserializes the value
+from the data store into an object. For C<version>, it simply calls C<new()>
+and passes in the raw value from the data store:
 
       bake  => sub { version->new(shift) },
 
@@ -207,7 +204,7 @@ The beautiful thing about the C<raw> and C<bake> parameters is that this is
 I<all> you have to do to serialize and deserialize your object.
 Object::Relation does the rest using these code references. In fact,
 Object::Relation is smart enough that it doesn't serialize or deserialize a
-value unless it absolutely has to (such as when an accessor is called to fetch
+value unless it absolutely has to, such as when an accessor is called to fetch
 a value or when a value has been changed and needs to be updated in the data
 store.
 
@@ -331,7 +328,7 @@ By the way, in this case, I chose to use a different format for the return
 value of C<raw> than either the PostgreSQL or SQLite format: A ISO-8601
 compliant format. The SQLite format is a modified form of the ISO-8601 format
 that pads the various parts of the duration with zeros, so that they are truly
-storable in the database. Thus, we end up with three different formats, but
+sortable in the database. Thus, we end up with three different formats, but
 the user of Object::Relation doesn't really have to worry about any of them,
 except possibly for C<raw> (which will be used in XML and the like), as the
 others are solely for the data stores to worry about.
@@ -348,25 +345,26 @@ corresponding data types in the database itself, it can be useful to create
 
 PostgreSQL allows for the simple creation of explicit data domains. For
 example, it turns out that the format of version strings for C<version>
-objects should never contain characters other than numbers, dots, and
-underscores. Obviously, the C<TEXT> data type we selected above will not
-enforce that format for version columns, but we can create a new column type
-to do it. Simply add the following declaration to the list of other C<DOMAIN>
-declarations in the C<setup_code()> method of
+objects should never contain characters other than a number, a dot, and then
+up to two more zero-padded numbers separated by a dot. Obviously, the C<TEXT>
+data type we selected above will not enforce that format for version columns,
+but we can create a new column type to do it. Simply add the following
+declaration to the list of other C<DOMAIN> declarations in the C<setup_code()>
+method of
 L<Object::Relation::Schema::DB::Pg|Object::Relation::Schema::DB::Pg>:
 
   CREATE DOMAIN version AS TEXT
   CONSTRAINT ck_version CHECK (
-     VALUE ~ '^v?\\\\d[\\\\d._]+$'
+     VALUE ~ '^v\\\\d+[.](?:\\\\d{3}|[.]){2,}$'
   );
 
 PostgreSQL requires that backslashes be escaped with a backslash, so when we
 define PostgreSQL code with backslashes in Perl strings, we must escape them
 again. Hence the four backslashes in this example.
 
- We have now created a new data type that allows only numbers, dots, and
-underscores. To get it in use, change the value stored in the C<%types> hash
-to use the new domain:
+We have now created a new data type that allows only serialized version
+strings. To get it in use, change the value stored in the C<%types> hash to
+use the new domain:
 
   version => 'VERSION',
 
@@ -386,7 +384,7 @@ C<version_triggers()> method looks like this:
       my ($self, $class) = @_;
       $self->_domain_triggers(
           $class,
-          version => q{%s NOT REGEXP '^v?\\d[\\d._]+$'
+          version => q{%s NOT REGEXP '^v\\d+[.](?:\\d{3}|[.]){2,}$'}
       });
   }
 
