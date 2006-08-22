@@ -27,13 +27,14 @@ Object::Relation::Meta::DataTypes - Object::Relation data type definition
 
 =head1 Description
 
-This module handles the definition of fundamental data types used by TKP. As
-these data types are loaded by TKP and are always available for use, this
-module should never be used directly. Other data types may be loaded from the
-modules in the Object::Relation::DataType name space. Classes that inherit from
+This module handles the definition of fundamental data types used by
+Object::Relation. As these data types are loaded by Object::Relation and are
+always available for use, this module should never be used directly. Other
+data types may be loaded from the modules in the Object::Relation::DataType
+name space. Classes that inherit from
 L<Object::Relation::Base|Object::Relation::Base> and are defined by
-L<Object::Relation::Meta|Object::Relation::Meta> are also available as data types,
-referenceable by their key names.
+L<Object::Relation::Meta|Object::Relation::Meta> are also available as data
+types, referenceable by their key names.
 
 Consult L<Object::Relation::Meta|Object::Relation::Meta> and
 L<Class::Meta|Class::Meta> for details on creating new Object::Relation classes with
