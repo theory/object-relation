@@ -71,7 +71,7 @@ C<< Object::Relation::Setup->new >>>.
 Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>
 
 This module is free software; you can redistribute it and/or modify it under
-the same terms as Perl itself.
+the the same terms as Perl itself.
 
 =cut
 

@@ -37,8 +37,8 @@ L<Object::Relation::Meta|Object::Relation::Meta> are also available as data
 types, referenceable by their key names.
 
 Consult L<Object::Relation::Meta|Object::Relation::Meta> and
-L<Class::Meta|Class::Meta> for details on creating new Object::Relation classes with
-attributes of the types defined by this module.
+L<Class::Meta|Class::Meta> for details on creating new Object::Relation
+classes with attributes of the types defined by this module.
 
 =cut
 
@@ -328,7 +328,7 @@ __END__
 
 Copyright (c) 2004-2006 Kineticode, Inc. <info@kineticode.com>
 
-This module is free software; you can redistribute it and/or modify it under the
-same terms as Perl itself.
+This module is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut
