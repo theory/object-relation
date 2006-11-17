@@ -62,7 +62,7 @@ sub import {
     return unless $symbol;
 
     # currently a no-op
-    return if ( ':with_dbstore_api' eq $symbol );
+    return if ':with_dbstore_api' eq $symbol;
     throw_fatal [ 'Unknown import symbol "[_1]"', shift ];
 }
 

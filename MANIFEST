@@ -6,7 +6,7 @@ lib/Object/Relation/Cache.pm
 lib/Object/Relation/Cache/File.pm
 lib/Object/Relation/Cache/Memcached.pm
 lib/Object/Relation/Collection.pm
-lib/Object/Relation/DataType.pod
+lib/Object/Relation/DataType.pm
 lib/Object/Relation/DataType/DateTime.pm
 lib/Object/Relation/DataType/DateTime/Incomplete.pm
 lib/Object/Relation/DataType/Duration.pm

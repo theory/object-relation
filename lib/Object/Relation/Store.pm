@@ -551,10 +551,11 @@ At its simplest, a search  can be a simple keyword search:
 Passing a single string as the search parameter triggers a full text search of
 all the objects of the class and returns all of the active objects that match
 the search. The full text substring search works because an XML representation
-of each Object::Relation business object is always kept in the data store. The
+of each Object::Relation object is always kept in the data store. The
 semantics of the search results will, however, be dependent on the full text
-indexing of the data store in question. See the relevant Object::Relation::Store
-subclasses for details on their full text search implementations.
+indexing of the data store in question. See the relevant
+Object::Relation::Store subclasses for details on their full text search
+implementations.
 
 Note that if you need to search for objects with inactive or deleted states,
 you'll need to do an attribute search, instead.

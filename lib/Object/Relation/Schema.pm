@@ -15,7 +15,9 @@ use File::Path;
 use Carp;
 
 Object::Relation::Meta->class_class('Object::Relation::Meta::Class::Schema');
-Object::Relation::Meta->attribute_class('Object::Relation::Meta::Attribute::Schema');
+Object::Relation::Meta->attribute_class(
+    'Object::Relation::Meta::Attribute::Schema'
+);
 
 =head1 Name
 

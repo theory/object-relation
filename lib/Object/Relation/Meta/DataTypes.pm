@@ -98,7 +98,7 @@ Object::Relation::Meta::Type->add(
 
 =item text
 
-A long Perl string, decoded to its internal, utf8 format. Really it's exavctly
+A long Perl string, decoded to its internal, utf8 format. Really it's exactly
 like a string, except that it is expected to store a long string. A person's
 name might be a string, while a paragraph would be text.
 

@@ -145,7 +145,30 @@ Object::Relation::Meta::Type->add(
                               $_[0], __PACKAGE__]);
         throw_invalid(['Cannot assign permanent state'])
           if $_[0] == PERMANENT;
-    }
+    },
+    Object::Relation::Meta->is_schemafied ? (
+            schema_type => sub {
+                my ($class, $schema) = @_;
+                return $schema->isa('Object::Relation::Schema::DB::Pg')
+                    ? 'VERSION'
+                    : 'TEXT';
+            },
+            schema_init => sub {
+                my ($class, $schema) = @_;
+                return "SELECT add_domain(\n"
+                    . "    'version'\n"
+                    . "    'TEXT'\n"
+                    . "    \$\$CONSTRAINT ck_version CHECK (\n"
+                    . "        VALUE ~ '^v\\\\d+[.](?:\\\\d{3}|[.]){2,}\$'\n"
+                    . "    )\$\$)"
+                    if $schema->isa('Object::Relation::Schema::DB::Pg');
+            },
+            schema_check => sub {
+                my ($class, $schema) = @_;
+                return q{%s NOT REGEXP '^v\\d+[.](?:\\d{3}|[.]){2,}$'}
+                    if $schema->isa('Object::Relation::Schema::DB::SQLite');
+            },
+    ) : (),
 );
 
 ##############################################################################

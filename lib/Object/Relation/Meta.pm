@@ -43,32 +43,32 @@ Object::Relation::Meta - Object::Relation class automation, introspection, and d
 =head1 Description
 
 This class inherits from L<Class::Meta|Class::Meta> to provide class
-automation, introspection, and data validation for Object::Relation classes. It
-overrides the behavior of Class::Meta to specify the use of the
-L<Object::Relation::Meta::Class|Object::Relation::Meta::Class> subclass in place of
-Class::Meta::Class.
+automation, introspection, and data validation for Object::Relation classes.
+It overrides the behavior of Class::Meta to specify the use of the
+L<Object::Relation::Meta::Class|Object::Relation::Meta::Class> subclass in
+place of Class::Meta::Class.
 
 Any class created with L<Object::Relation::Meta|Object::Relation::Meta> will
-automatically have L<Object::Relation::Base|Object::Relation::Base> pushed onto
-its C<@ISA> array unless it already inherits from
+automatically have L<Object::Relation::Base|Object::Relation::Base> pushed
+onto its C<@ISA> array unless it already inherits from
 L<Object::Relation::Base|Object::Relation::Base>.
 
 =head1 Dynamic APIs
 
 This class supports the dynamic loading of extra methods specifically designed
-to be used with particular Object::Relation data store implementations. This is so that
-the store APIs can easily dispatch to attribute objects, class objects, and
-data types to get data-store specific metadata without having to do extra work
-themselves. Data store implementors needing store-specific metadata methods
-should add them as necessary to the C<import()> methods of
+to be used with particular Object::Relation data store implementations. This
+is so that the store APIs can easily dispatch to attribute objects, class
+objects, and data types to get data-store specific metadata without having to
+do extra work themselves. Data store implementors needing store-specific
+metadata methods should add them as necessary to the C<import()> methods of
 L<Object::Relation::Meta::Class|Object::Relation::Meta::Class>,
-L<Object::Relation::Meta::Attribute|Object::Relation::Meta::Attribute>, and/or/
-L<Object::Relation::Meta::Type|Object::Relation::Meta::Type>
+L<Object::Relation::Meta::Attribute|Object::Relation::Meta::Attribute>,
+and/or/ L<Object::Relation::Meta::Type|Object::Relation::Meta::Type>
 
-In general, however, Object::Relation users will not need to worry about loading
-data-store specific APIs, as the data stores will load them themselves. And
-since the methods should either be protected or otherwise transparent, no one
-else should use them, anyway.
+In general, however, Object::Relation users will not need to worry about
+loading data-store specific APIs, as the data stores will load them
+themselves. And since the methods should either be protected or otherwise
+transparent, no one else should use them, anyway.
 
 As of this writing, only a single data-store specific API label is supported:
 
@@ -102,10 +102,11 @@ sub import {
 
 Overrides the parent Class::Meta constructor in order to specify that the
 class class be Object::Relation::Meta::Classl, the attribute class be
-Object::Relation::Meta::Attribute, and that the method class be Object::Relation::Meta::Method.
-It also forces the C<key> parameter to default to the last part of the package
-name, e.g., the C<key> for the class My::Big::Fat::Cat would be "cat". This is
-to override Class::Meta's default of using the full class name for the C<key>.
+Object::Relation::Meta::Attribute, and that the method class be
+Object::Relation::Meta::Method. It also forces the C<key> parameter to default
+to the last part of the package name, e.g., the C<key> for the class
+My::Big::Fat::Cat would be "cat". This is to override Class::Meta's default of
+using the full class name for the C<key>.
 
 In addition to the parameters supported by C<< Class::Meta->new >>,
 C<< Object::Relation::Meta->new >> supports these extra attributes:
@@ -135,10 +136,10 @@ C<uuid> and C<state> attributes.
 
 =item extends
 
-This attribute specifies a single Object::Relation class name that the class extends.
-Extension is similar to inheritance, only extended class objects have their
-own UUIDs and states, and there can be multiple extending objects for a single
-extended object (think one person acting as several users).
+This attribute specifies a single Object::Relation class name that the class
+extends. Extension is similar to inheritance, only extended class objects have
+their own UUIDs and states, and there can be multiple extending objects for a
+single extended object (think one person acting as several users).
 
 =back
 
@@ -253,7 +254,8 @@ sub new {
 The subclass or Class::Meta::Class that will be used to represent class
 objects. The value of this class attribute is only used at startup time when
 classes are loaded, so if you want to change it form the default, which is
-"Object::Relation::Meta::Class", do it before you load any Object::Relation classes.
+"Object::Relation::Meta::Class", do it before you load any Object::Relation
+classes.
 
 =cut
 
@@ -310,6 +312,22 @@ sub method_class {
 }
 
 ##############################################################################
+
+=head3 is_schemafied
+
+  if (Object::Relation::Meta->is_schemafied) {
+      print "We got schema data!\n";
+  }
+
+Returns true if the schemafied subclasses of the metadata classes have been
+loaded. Esssentially, this means that C<class_class()> returns
+L<Object::Relation::Meta::Class::Schema|Object::Relation::Meta::Class::Schema>.
+This information is mainly useful when creating types to determine whether or
+not to include schema information in the types.
+
+=cut
+
+sub is_schemafied { $class_class eq 'Object::Relation::Meta::Class::Schema' }
 
 =head2 Class Methods
 
