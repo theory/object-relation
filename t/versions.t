@@ -25,7 +25,8 @@ else {
 use Object::Relation;
 ok defined Object::Relation->VERSION,
     "Object::Relation should have a version number";
-my $version = Object::Relation->VERSION; # Returns a version object.
+my $version = version->new(Object::Relation->VERSION)->numify;
+
 SKIP: {
     skip "Object/Relation.pm did not have a version", scalar @modules
       unless defined $version;
