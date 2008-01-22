@@ -44,6 +44,7 @@ Revision history for Perl extension Object::Relation.
          called Kinetic::Store. That idea is that the store classes and their
          subclasses are the interface to the data store, and not just a handle
          on it.
+       - Added the "configure_requires" and "recommends" paremtes to Build.PL.
 
 0.1.0  2006-07-28T17:18:40
        - Initial public release

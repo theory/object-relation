@@ -9,6 +9,8 @@ my $build = Module::Build->new(
     dist_author          => 'Kineticode, Inc. <info@kineticode.com>',
     recursive_test_files => 1,
     add_to_cleanup       => [ 't/data' ],
+    configure_requires   => { 'Module::Build' => '0.2701' },
+    recommends           => { 'Test::Pod'     => '1.20'   },
     requires             => {
         'aliased'                    => 0.11,
         'Array::AsHash'              => 0.31,
