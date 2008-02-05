@@ -1,6 +1,6 @@
 package TEST::Object::Relation::TestSetup;
 
-# $Id: TestSetup.pm 3069 2006-07-24 20:59:25Z theory $
+# $Id$
 
 use warnings;
 use strict;

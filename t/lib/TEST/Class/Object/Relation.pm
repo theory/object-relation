@@ -1,6 +1,6 @@
 package TEST::Class::Object::Relation;
 
-# $Id: Object::Relation.pm 3069 2006-07-24 20:59:25Z theory $
+# $Id$
 
 use strict;
 use warnings;

@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: store.t 3063 2006-07-21 23:07:19Z theory $
+# $Id$
 
 use warnings;
 use strict;
