@@ -77,9 +77,8 @@ sub new {
 }
 
 DESTROY {
-    if (my $dest = shift->{destroy}) {
-        $dest->();
-    }
+    my $dest = shift->{destroy} or return;
+    $dest->();
 }
 
 ##############################################################################
@@ -119,7 +118,7 @@ sub next {
   my $current = $iter->current;
 
 Returns the current item in the iterator--that is, the same item returned by
-the last call to C<next()>.
+the most recent call to C<next()>.
 
 =cut
 
@@ -129,7 +128,7 @@ sub current { shift->{curr} }
 
 =head3 peek
 
-  while ($iter->peek == 1) {
+  while ($iter->peek) {
       $iter->next;
   }
 
